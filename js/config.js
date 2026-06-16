@@ -13,8 +13,8 @@ export const SIZE_TIERS = [
     dims: [{ r: 7, c: 7 }, { r: 8, c: 8 }] },
   { id: 'extrem',  name: 'Extrem',         emoji: '🟪', desc: 'Lange Rätsel, 9×9–10×10',
     dims: [{ r: 9, c: 9 }, { r: 10, c: 10 }] },
-  { id: 'unendlich', name: 'Unendlichkeit', emoji: '♾️', desc: 'Sehr, sehr groß, 12×12+',
-    dims: [{ r: 12, c: 12 }, { r: 13, c: 13 }, { r: 14, c: 14 }] },
+  { id: 'unendlich', name: 'Unendlichkeit', emoji: '♾️', desc: 'Riesig, 11×11–12×12',
+    dims: [{ r: 11, c: 11 }, { r: 12, c: 12 }] },
 ];
 
 export const SIZE_BY_ID = Object.fromEntries(SIZE_TIERS.map(s => [s.id, s]));
@@ -22,19 +22,18 @@ export const SIZE_BY_ID = Object.fromEntries(SIZE_TIERS.map(s => [s.id, s]));
 // ─── SCHWIERIGKEITEN ──────────────────────────────────────────────────────────
 // maxVal     : größter Zahlenwert in einer Zelle
 // keepRatio  : Anteil der Zellen, die zur Lösung gehören (eingekreist werden)
-// regionAvg  : mittlere Größe einer farbigen Region (Zellen); Regionen bedecken
-//              IMMER das ganze Feld (kleiner = mehr/kleinere Regionen = schwerer)
 // lives      : Startleben (Herzen)
 // allowHypo  : erlaubt Tier-3-Deduktion (Hypothese/Widerspruch) → schwerer
+// (Cages bedecken IMMER das ganze Feld, je 8 Zellen — siehe generator.js)
 export const DIFFICULTIES = [
   { id: 'leicht',  name: 'Leicht',  emoji: '🟢', maxVal: 6, keepRatio: 0.62,
-    regionAvg: 8, lives: 5, allowHypo: false, hints: 5 },
+    lives: 5, allowHypo: false, hints: 5 },
   { id: 'mittel',  name: 'Mittel',  emoji: '🟡', maxVal: 7, keepRatio: 0.56,
-    regionAvg: 6, lives: 4, allowHypo: false, hints: 3 },
+    lives: 4, allowHypo: false, hints: 3 },
   { id: 'schwer',  name: 'Schwer',  emoji: '🟠', maxVal: 9, keepRatio: 0.52,
-    regionAvg: 5, lives: 3, allowHypo: false, hints: 2 },
+    lives: 3, allowHypo: false, hints: 2 },
   { id: 'experte', name: 'Experte', emoji: '🔴', maxVal: 9, keepRatio: 0.48,
-    regionAvg: 5, lives: 3, allowHypo: true,  hints: 1 },
+    lives: 3, allowHypo: true,  hints: 1 },
 ];
 
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
@@ -61,8 +60,6 @@ export const DEFAULT_SETTINGS = {
   livesEnabled: true,        // Leben/Herzen aktiv? (false = Zen, unbegrenzt)
   haptics: true,             // Vibration bei Aktionen (falls Gerät unterstützt)
   showTimer: true,           // Timer anzeigen
-  highlightGroups: true,     // aktive Zeile/Spalte/Region hervorheben
-  autoCrossCompleted: true,  // Restzahlen einer fertigen Gruppe automatisch durchstreichen
   confirmTool: 'pen',        // Standard-Werkzeug: 'pen' (einkreisen) | 'eraser'
 };
 

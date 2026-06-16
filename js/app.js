@@ -45,6 +45,7 @@ const state = reactive({
   confirm: null,             // { title, msg, onYes }
   showWhatsNew: false,
   generating: false,
+  paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Spiel (zum Fortsetzen)
   confetti: [],
 });
@@ -89,6 +90,20 @@ function startTimer() {
   }, 250);
 }
 function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandle = null; } }
+
+// ─── PAUSE ────────────────────────────────────────────────────────────────────
+function pauseGame() {
+  if (state.status !== 'playing' || state.paused) return;
+  state.paused = true;
+  state.elapsed = Date.now() - state.startTime; // einfrieren
+  stopTimer();
+}
+function resumeFromPause() {
+  if (!state.paused) return;
+  state.paused = false;
+  state.startTime = Date.now() - state.elapsed; // Zeit fortsetzen
+  startTimer();
+}
 
 // ─── ZELLEN-METADATEN (Regionen, Ränder, Chips) ───────────────────────────────
 function buildCellMeta(puzzle) {
@@ -176,13 +191,22 @@ function colSum(c) {
 function regionSum(i) {
   let s = 0; const p = state.puzzle; for (const [r, c] of p.regions[i].cells) if (state.marks[r][c] === 'kept') s += p.values[r][c]; return s;
 }
-const rowDone = r => rowSum(r) === state.puzzle.rowTargets[r];
-const colDone = c => colSum(c) === state.puzzle.colTargets[c];
-const regionDone = i => regionSum(i) === state.puzzle.regions[i].target;
+// Eine Gruppe gilt erst als "aufgelöst", wenn JEDE Zelle korrekt markiert ist
+// (Lösungszellen eingekreist, alle anderen gelöscht) — nicht schon, wenn die
+// Summe stimmt. Kein automatisches Auflösen.
+const cellCorrect = (r, c) => state.puzzle.solution[r][c]
+  ? state.marks[r][c] === 'kept'
+  : state.marks[r][c] === 'removed';
+function rowResolved(r) { const p = state.puzzle; for (let c = 0; c < p.cols; c++) if (!cellCorrect(r, c)) return false; return true; }
+function colResolved(c) { const p = state.puzzle; for (let r = 0; r < p.rows; r++) if (!cellCorrect(r, c)) return false; return true; }
+function regionResolved(i) { const p = state.puzzle; for (const [r, c] of p.regions[i].cells) if (!cellCorrect(r, c)) return false; return true; }
+// aktuelle Summen stimmen (Hilfsanzeige): Summe der eingekreisten == Ziel
+const rowSumMatch = r => rowSum(r) === state.puzzle.rowTargets[r];
+const colSumMatch = c => colSum(c) === state.puzzle.colTargets[c];
 
 // ─── SPIELZÜGE ────────────────────────────────────────────────────────────────
 function onCellTap(r, c) {
-  if (state.status !== 'playing' || state.generating) return;
+  if (state.status !== 'playing' || state.generating || state.paused) return;
   const cur = state.marks[r][c];
   let next;
   if (state.tool === 'pen') next = (cur === 'kept') ? 'none' : 'kept';
@@ -208,22 +232,8 @@ function setMark(r, c, next, user) {
 }
 
 function afterMove() {
-  if (state.settings.autoCrossCompleted) autoCross();
   persistGame();
   if (isSolved()) win();
-}
-
-// Bei Fertigstellung einer Gruppe die übrigen (nachweislich überflüssigen) Zellen
-// automatisch durchstreichen. Streicht NIE eine Lösungszelle.
-function autoCross() {
-  const p = state.puzzle;
-  const crossGroup = (cells) => {
-    for (const [r, c] of cells)
-      if (state.marks[r][c] === 'none' && !p.solution[r][c]) state.marks[r][c] = 'removed';
-  };
-  for (let r = 0; r < p.rows; r++) if (rowDone(r)) crossGroup(Array.from({ length: p.cols }, (_, c) => [r, c]));
-  for (let c = 0; c < p.cols; c++) if (colDone(c)) crossGroup(Array.from({ length: p.rows }, (_, r) => [r, c]));
-  p.regions.forEach((reg, i) => { if (regionDone(i)) crossGroup(reg.cells); });
 }
 
 function flashError(r, c) {
@@ -241,11 +251,12 @@ function registerMistake() {
   persistGame();
 }
 
+// Gelöst, wenn JEDE Zelle korrekt markiert ist (Lösung eingekreist, Rest gelöscht).
 function isSolved() {
   const p = state.puzzle; if (!p) return false;
   for (let r = 0; r < p.rows; r++)
     for (let c = 0; c < p.cols; c++)
-      if ((state.marks[r][c] === 'kept') !== p.solution[r][c]) return false;
+      if (!cellCorrect(r, c)) return false;
   return true;
 }
 
@@ -474,11 +485,11 @@ const App = {
       state, BUILD, CHANGELOG, SIZE_TIERS, DIFFICULTIES, SIZE_BY_ID, DIFF_BY_ID,
       winStat, livesArr, progress, gridStyle,
       navigate, newGame, resumeGame, onCellTap, undo, useHint, doCheck,
-      rowSum, colSum, regionSum, rowDone, colDone, regionDone,
+      rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doImport, openBackups, doRestore,
       resetStats, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
-      revealSolution, restartPuzzle, quitToHome, setZoom, regionDoneCount,
-      cellClasses, cellStyle, toggleTool, restartFromGame, regionTargets,
+      revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause,
+      cellClasses, cellStyle, toggleTool, restartFromGame,
     };
   },
   template: `
@@ -557,7 +568,12 @@ const App = {
           </div>
           <div class="hud-item timer" v-if="state.settings.showTimer">⏱ {{ fmtTime(state.elapsed) }}</div>
         </div>
-        <button class="icon-btn" @click="state.modal='howto'">?</button>
+        <div class="top-actions">
+          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="pauseGame" title="Pause">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
+          </button>
+          <button class="icon-btn" @click="state.modal='howto'">?</button>
+        </div>
       </header>
 
       <div v-if="state.generating" class="loading">
@@ -569,25 +585,32 @@ const App = {
         <div class="game-meta">
           <span class="chip">{{ DIFF_BY_ID[state.puzzle.difficulty].emoji }} {{ DIFF_BY_ID[state.puzzle.difficulty].name }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
-          <span class="chip">{{ progress.kept }}/{{ progress.total }}</span>
-          <span v-if="state.puzzle.cols>=9" class="zoomctl">
+          <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
             <button class="zoom-btn" @click="setZoom(0.15)">+</button>
           </span>
         </div>
 
-        <div class="board-wrap">
+        <div class="board-wrap" :class="{ blurred: state.paused }">
           <div class="board" :style="gridStyle">
             <div class="corner"></div>
-            <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{done: colDone(c-1)}">
-              <span>{{ state.puzzle.colTargets[c-1] }}</span>
+            <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolved(c-1)}">
+              <template v-if="!colResolved(c-1)">
+                <span class="cur" :class="{match: colSumMatch(c-1)}">{{ colSum(c-1) }}</span>
+                <span class="tgt">{{ state.puzzle.colTargets[c-1] }}</span>
+              </template>
             </div>
             <template v-for="r in state.puzzle.rows" :key="'r'+r">
-              <div class="hdr row-hdr" :class="{done: rowDone(r-1)}"><span>{{ state.puzzle.rowTargets[r-1] }}</span></div>
+              <div class="hdr row-hdr" :class="{resolved: rowResolved(r-1)}">
+                <template v-if="!rowResolved(r-1)">
+                  <span class="cur" :class="{match: rowSumMatch(r-1)}">{{ rowSum(r-1) }}</span>
+                  <span class="tgt">{{ state.puzzle.rowTargets[r-1] }}</span>
+                </template>
+              </div>
               <div v-for="c in state.puzzle.cols" :key="r+'-'+c"
                    class="cell" :class="cellClasses(r-1,c-1)" :style="cellStyle(r-1,c-1)"
                    @click="onCellTap(r-1,c-1)">
-                <span v-if="state.cellMeta[r-1][c-1].chip!=null" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
+                <span v-if="state.cellMeta[r-1][c-1].chip!=null && !regionResolved(state.cellMeta[r-1][c-1].region)" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
                 <span class="cnum">{{ state.puzzle.values[r-1][c-1] }}</span>
               </div>
             </template>
@@ -596,20 +619,39 @@ const App = {
 
         <!-- Werkzeug-Umschalter (Radierer / Stift) -->
         <div class="toolbar">
-          <button class="round-btn" :disabled="!state.history.length" @click="undo" title="Rückgängig">↶</button>
+          <button class="round-btn" :disabled="!state.history.length" @click="undo" title="Rückgängig" aria-label="Rückgängig">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-4"/></svg>
+          </button>
           <div class="tool-toggle" @click="toggleTool">
             <div class="tool-pill" :class="{ pen: state.tool==='pen' }"></div>
-            <span class="tool-ic eraser" :class="{active: state.tool==='eraser'}">⌫</span>
-            <span class="tool-ic pen" :class="{active: state.tool==='pen'}">○</span>
+            <span class="tool-ic eraser" :class="{active: state.tool==='eraser'}" title="Löschen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 20H20"/><path d="m3.6 14.5 5.9 5.9 9.4-9.4a2 2 0 0 0 0-2.8l-3.1-3.1a2 2 0 0 0-2.8 0L3.6 11.7a2 2 0 0 0 0 2.8z"/><path d="m9 8.5 6.5 6.5"/></svg>
+            </span>
+            <span class="tool-ic pen" :class="{active: state.tool==='pen'}" title="Einkreisen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="11" cy="13" rx="8" ry="7"/><path d="m16.5 7.5 3.2-3.2a1.6 1.6 0 0 1 2.3 2.3l-3.2 3.2-2.3-2.3z"/></svg>
+            </span>
           </div>
-          <button class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" title="Hinweis">
-            💡<span v-if="state.hintsLeft>0" class="round-badge">{{ state.hintsLeft }}</span>
+          <button class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" title="Hinweis" aria-label="Hinweis">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5"/><path d="M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-4 11.6c.8.7 1.2 1.3 1.3 2.4h5.4c.1-1.1.5-1.7 1.3-2.4A6.5 6.5 0 0 0 12 2.5z"/></svg>
+            <span v-if="state.hintsLeft>0" class="round-badge">{{ state.hintsLeft }}</span>
           </button>
         </div>
         <div v-if="state.settings.errorReveal==='onCheck'" class="check-row">
           <button class="btn btn-primary btn-check" @click="doCheck">✓ Prüfen</button>
         </div>
       </template>
+
+      <!-- Pause -->
+      <div v-if="state.paused" class="overlay pause-overlay">
+        <div class="result-card">
+          <div class="result-emoji">⏸️</div>
+          <h2>Pausiert</h2>
+          <div class="pause-time">⏱ {{ fmtTime(state.elapsed) }}</div>
+          <p class="result-msg">Das Feld ist verdeckt – die Zeit läuft nicht weiter.</p>
+          <button class="btn btn-primary" @click="resumeFromPause">Fortsetzen</button>
+          <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
+        </div>
+      </div>
 
       <!-- Gewonnen / Verloren -->
       <div v-if="state.status==='won'" class="overlay">
@@ -687,9 +729,6 @@ const App = {
         </div>
         <div class="set-row" @click="toggleSetting('livesEnabled')">
           <span>❤️ Leben / Fehler-Limit</span><span class="switch" :class="{on:state.settings.livesEnabled}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('autoCrossCompleted')">
-          <span>✏️ Fertige Reihen auto-durchstreichen</span><span class="switch" :class="{on:state.settings.autoCrossCompleted}"><i></i></span>
         </div>
 
         <div class="set-group-title">Sonstiges</div>
@@ -779,18 +818,17 @@ const App = {
 };
 
 // Methoden, die das Template über setup() referenziert
-function regionDoneCount() { return state.puzzle ? state.puzzle.regions.filter((_, i) => regionDone(i)).length : 0; }
-function regionTargets() { return state.puzzle ? state.puzzle.regions.map(r => r.target) : []; }
 function toggleTool() { state.tool = state.tool === 'pen' ? 'eraser' : 'pen'; state.settings.confirmTool = state.tool; }
 function restartFromGame() { restartPuzzle(); }
 
 function cellClasses(r, c) {
   const m = state.cellMeta[r][c];
   const mk = state.marks[r][c];
+  // Cage-Färbung nur solange die Cage NICHT aufgelöst ist (dann verschwindet sie).
+  const colored = m.region >= 0 && !regionResolved(m.region);
   return {
     kept: mk === 'kept', removed: mk === 'removed',
-    region: m.region >= 0,
-    'e-t': m.edges.t, 'e-r': m.edges.r, 'e-b': m.edges.b, 'e-l': m.edges.l,
+    region: colored,
     flash: !!state.flash[`${r}-${c}`],
     hinted: m.hint,
     solnc: state.status === 'review' && state.puzzle.solution[r][c],

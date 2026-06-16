@@ -84,58 +84,47 @@ function run(model, mark, allowHypo) {
     return { rem, und };
   }
 
-  // Einen erzwungenen Zug auf Gruppen-Ebene finden & anwenden.
-  // Liefert true bei Fortschritt, 'contradiction' bei Widerspruch, false sonst.
-  function propagateOnce() {
-    let progressed = false;
-    for (const g of model.groups) {
-      const { rem, und } = groupState(g);
-      if (rem < 0) return 'contradiction';
-      if (und.length === 0) { if (rem !== 0) return 'contradiction'; continue; }
-
-      const vals = und.map(ci => model.cells[ci].val);
-      const total = vals.reduce((a, b) => a + b, 0);
-
-      // ── Tier 1: günstige Spezialfälle ───────────────────────────────
-      if (rem === 0) { und.forEach(ci => mark[ci] = REMOVE); tiers.t1++; maxTier = Math.max(maxTier, 1); return true; }
-      if (total === rem) { und.forEach(ci => mark[ci] = KEEP); tiers.t1++; maxTier = Math.max(maxTier, 1); return true; }
-      if (total < rem) return 'contradiction';
-      let t1hit = false;
-      for (const ci of und) {
-        if (model.cells[ci].val > rem) { mark[ci] = REMOVE; t1hit = true; } // passt nie hinein
-      }
-      if (t1hit) { tiers.t1++; maxTier = Math.max(maxTier, 1); return true; }
-
-      // ── Tier 2: Teilsummen-Erreichbarkeit ───────────────────────────
-      // Gesamt-Erreichbarkeit muss rem enthalten, sonst Widerspruch.
-      const reachAll = reachBitset(vals);
-      if (!bitSet(reachAll, rem)) return 'contradiction';
-      let t2hit = false;
-      for (let k = 0; k < und.length; k++) {
-        const ci = und[k];
-        const v = model.cells[ci].val;
-        const without = vals.slice(0, k).concat(vals.slice(k + 1));
-        const reachW = reachBitset(without);
-        const canExcludeReach = bitSet(reachW, rem);        // Ziel ohne diese Zelle erreichbar?
-        const canIncludeReach = bitSet(reachW, rem - v);    // Ziel mit dieser Zelle erreichbar?
-        if (!canExcludeReach && canIncludeReach) { mark[ci] = KEEP; t2hit = true; }     // muss rein
-        else if (canExcludeReach && !canIncludeReach) { mark[ci] = REMOVE; t2hit = true; } // muss raus
-        else if (!canExcludeReach && !canIncludeReach) return 'contradiction';
-      }
-      if (t2hit) { tiers.t2++; maxTier = Math.max(maxTier, 2); return true; }
-    }
-    return progressed;
+  // ── Tier 1 (günstig): erzwungene Züge auf einer Gruppe ──────────────────────
+  function tier1(g) {
+    const { rem, und } = groupState(g);
+    if (rem < 0) return 'c';
+    if (und.length === 0) return rem !== 0 ? 'c' : false;
+    let total = 0; for (const ci of und) total += model.cells[ci].val;
+    if (total < rem) return 'c';
+    if (rem === 0) { for (const ci of und) mark[ci] = REMOVE; tiers.t1++; maxTier = Math.max(maxTier, 1); return true; }
+    if (total === rem) { for (const ci of und) mark[ci] = KEEP; tiers.t1++; maxTier = Math.max(maxTier, 1); return true; }
+    let hit = false;
+    for (const ci of und) if (model.cells[ci].val > rem) { mark[ci] = REMOVE; hit = true; }
+    if (hit) { tiers.t1++; maxTier = Math.max(maxTier, 1); }
+    return hit;
   }
 
-  // Hauptschleife: erzwungene Züge bis Stillstand.
+  // ── Tier 2 (Teilsummen via DP) ──────────────────────────────────────────────
+  function tier2(g) {
+    const { rem, und } = groupState(g);
+    if (und.length === 0) return rem !== 0 ? 'c' : false;
+    const vals = und.map(ci => model.cells[ci].val);
+    const res = subsetForce(vals, rem);
+    if (res.contradiction) return 'c';
+    let hit = false;
+    for (let k = 0; k < und.length; k++) {
+      if (res.force[k] === 1) { mark[und[k]] = KEEP; hit = true; }
+      else if (res.force[k] === 2) { mark[und[k]] = REMOVE; hit = true; }
+    }
+    if (hit) { tiers.t2++; maxTier = Math.max(maxTier, 2); }
+    return hit;
+  }
+
+  // Hauptschleife: erst alle Tier-1-Züge, dann Tier-2, dann ggf. Hypothese.
   for (;;) {
-    const r = propagateOnce();
-    if (r === 'contradiction') return { solved: false, contradiction: true, tiers, maxTier };
-    if (r === true) continue;
-    // Stillstand → ggf. Tier-3 Hypothese probieren
+    let prog = false;
+    for (const g of model.groups) { const r = tier1(g); if (r === 'c') return { solved: false, contradiction: true, tiers, maxTier }; if (r) prog = true; }
+    if (prog) continue;
+    for (const g of model.groups) { const r = tier2(g); if (r === 'c') return { solved: false, contradiction: true, tiers, maxTier }; if (r) prog = true; }
+    if (prog) continue;
     if (allowHypo) {
       const r3 = hypothesisStep(model, mark);
-      if (r3 === 'contradiction') return { solved: false, contradiction: true, tiers, maxTier };
+      if (r3 === 'c') return { solved: false, contradiction: true, tiers, maxTier };
       if (r3) { tiers.t3++; maxTier = Math.max(maxTier, 3); continue; }
     }
     break;
@@ -145,10 +134,44 @@ function run(model, mark, allowHypo) {
   return { solved, contradiction: false, tiers, maxTier };
 }
 
+// Teilsummen-Zwang via DP (typed arrays, schnell): liefert pro Element, ob es
+// zwingend KEEP (1) oder REMOVE (2) ist, plus Widerspruchs-Flag.
+function subsetForce(vals, rem) {
+  const n = vals.length;
+  let S = 0; for (const v of vals) S += v;
+  if (rem < 0 || rem > S) return { contradiction: true };
+  // Präfix-Erreichbarkeit: pre[k] = erreichbare Summen mit vals[0..k-1]
+  const pre = new Array(n + 1);
+  pre[0] = new Uint8Array(S + 1); pre[0][0] = 1;
+  for (let k = 0; k < n; k++) {
+    const cur = pre[k].slice(); const v = vals[k];
+    for (let s = S - v; s >= 0; s--) if (pre[k][s]) cur[s + v] = 1;
+    pre[k + 1] = cur;
+  }
+  if (!pre[n][rem]) return { contradiction: true };
+  // Suffix-Erreichbarkeit: suf[k] = erreichbare Summen mit vals[k..n-1]
+  const suf = new Array(n + 1);
+  suf[n] = new Uint8Array(S + 1); suf[n][0] = 1;
+  for (let k = n - 1; k >= 0; k--) {
+    const cur = suf[k + 1].slice(); const v = vals[k];
+    for (let s = S - v; s >= 0; s--) if (suf[k + 1][s]) cur[s + v] = 1;
+    suf[k] = cur;
+  }
+  const force = new Int8Array(n);
+  for (let k = 0; k < n; k++) {
+    const v = vals[k], pk = pre[k], sk = suf[k + 1];
+    let without = false; for (let a = 0; a <= rem; a++) if (pk[a] && sk[rem - a]) { without = true; break; }
+    let withK = false; const t = rem - v; if (t >= 0) for (let a = 0; a <= t; a++) if (pk[a] && sk[t - a]) { withK = true; break; }
+    if (!without && withK) force[k] = 1;        // muss KEEP
+    else if (without && !withK) force[k] = 2;   // muss REMOVE
+    else if (!without && !withK) return { contradiction: true };
+  }
+  return { contradiction: false, force };
+}
+
 // ── Tier 3: Hypothese & Widerspruch ──────────────────────────────────────────
 // Für eine unentschiedene Zelle wird KEEP angenommen und nur mit Tier1/2
 // propagiert; entsteht ein Widerspruch, MUSS die Zelle REMOVE sein (und umgekehrt).
-// Das ist weiterhin ein erzwungener Zug → Eindeutigkeit bleibt gewahrt.
 function hypothesisStep(model, mark) {
   for (let ci = 0; ci < mark.length; ci++) {
     if (mark[ci] !== UNK) continue;

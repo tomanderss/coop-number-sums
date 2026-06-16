@@ -44,74 +44,138 @@ function buildSolutionMask(rng, rows, cols, keepRatio) {
   return mask;
 }
 
-// ─── Regionen-Parkettierung: unregelmäßige Polyominoes, die das GANZE Feld
-//     bedecken (wie im echten Spiel; auch L-/eckige Formen). Jede Zelle gehört
-//     zu genau einer Region.
-const MIN_CAGE = 6; // Mindestgröße einer farbigen Region (Cage)
-
-function partitionRegions(rng, rows, cols, targetCount) {
-  const total = rows * cols;
-  // Nicht mehr Regionen als bei Mindestgröße möglich
-  const k = Math.max(1, Math.min(targetCount, Math.floor(total / MIN_CAGE) || 1));
-  const id = new Int16Array(total).fill(-1);
-  const neighbors = (i) => {
+// ─── Regionen-Parkettierung: unregelmäßige, BLOBartige Cages (auch über Eck),
+//     die das GANZE Feld bedecken. Jede Cage hat EXAKT so viele Zellen wie die
+//     Felddimension (N×N ⇒ N Cages à N Zellen).
+//     Verfahren: Saatzellen verteilen → Voronoi-BFS (Blobs) → exakt auf N Zellen
+//     ausbalancieren. Fällt im Notfall auf garantierte Streifen-Variante zurück.
+function neighborsFn(rows, cols) {
+  return (i) => {
     const r = Math.floor(i / cols), c = i % cols, out = [];
     if (r > 0) out.push(i - cols); if (r < rows - 1) out.push(i + cols);
     if (c > 0) out.push(i - 1); if (c < cols - 1) out.push(i + 1);
     return out;
   };
+}
+function staysConnected(id, regId, exclude, total, neighbors) {
+  let start = -1, cnt = 0;
+  for (let i = 0; i < total; i++) if (id[i] === regId && i !== exclude) { cnt++; if (start < 0) start = i; }
+  if (cnt === 0) return false;
+  const seen = new Uint8Array(total); seen[start] = 1; const st = [start]; let v = 1;
+  while (st.length) { const cur = st.pop(); for (const nb of neighbors(cur)) if (id[nb] === regId && nb !== exclude && !seen[nb]) { seen[nb] = 1; st.push(nb); v++; } }
+  return v === cnt;
+}
 
-  // k verschiedene Saatzellen wählen
-  const pool = Array.from({ length: total }, (_, i) => i);
-  const seeds = [];
-  for (let s = 0; s < k; s++) { const j = Math.floor(rng() * pool.length); seeds.push(pool[j]); pool.splice(j, 1); }
+function partitionRegions(rng, rows, cols) {
+  const total = rows * cols, N = cols, K = rows;
+  const neighbors = neighborsFn(rows, cols);
 
-  // Mehrquellen-BFS (jede Zelle zur nächstgelegenen Saat): kompakte, ausgewogene
-  // Cages gleicher Größe. Jede Schicht wird gemischt → organische, eckige Ränder.
-  seeds.forEach((cell, region) => { id[cell] = region; });
-  let layer = seeds.slice();
-  while (layer.length) {
-    for (let i = layer.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [layer[i], layer[j]] = [layer[j], layer[i]]; }
-    const nextLayer = [];
-    for (const cell of layer) for (const nb of neighbors(cell)) if (id[nb] === -1) { id[nb] = id[cell]; nextLayer.push(nb); }
-    layer = nextLayer;
+  const minDist = Math.max(1, Math.floor(Math.sqrt(total / K) * 0.8));
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const id = new Int16Array(total).fill(-1);
+    // Saatzellen möglichst gleichmäßig verteilen (Mindestabstand) → balancierte
+    // Voronoi-Blobs, die sich leicht exakt ausbalancieren lassen.
+    const seeds = [];
+    let guard = 0;
+    while (seeds.length < K && guard++ < total * 6) {
+      const cell = Math.floor(rng() * total);
+      if (id[cell] !== -1) continue;
+      const cr = Math.floor(cell / cols), cc = cell % cols;
+      let ok = true;
+      for (const s of seeds) { if (Math.abs(Math.floor(s / cols) - cr) + Math.abs((s % cols) - cc) < minDist) { ok = false; break; } }
+      if (!ok) continue;
+      id[cell] = seeds.length; seeds.push(cell);
+    }
+    while (seeds.length < K) { const cell = Math.floor(rng() * total); if (id[cell] === -1) { id[cell] = seeds.length; seeds.push(cell); } }
+    // Voronoi-BFS (Schichten gemischt → organische Ränder)
+    let layer = seeds.slice();
+    while (layer.length) {
+      for (let i = layer.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [layer[i], layer[j]] = [layer[j], layer[i]]; }
+      const nx = [];
+      for (const cell of layer) for (const nb of neighbors(cell)) if (id[nb] === -1) { id[nb] = id[cell]; nx.push(nb); }
+      layer = nx;
+    }
+    for (let i = 0; i < total; i++) if (id[i] === -1) { const nb = neighbors(i).find(n => id[n] !== -1); id[i] = nb != null ? id[nb] : 0; }
+
+    const size = new Array(K).fill(0); for (let i = 0; i < total; i++) size[id[i]]++;
+    if (rebalanceToTarget(id, size, N, total, neighbors, rng)) {
+      return buildRegions(id, K, rows, cols);
+    }
   }
-  for (let i = 0; i < total; i++) if (id[i] === -1) { const nb = neighbors(i).find(n => id[n] !== -1); id[i] = nb != null ? id[nb] : 0; }
+  return partitionStrips(rng, rows, cols); // garantierter Notnagel
+}
 
-  // ── Zu kleine Cages mit Nachbarn verschmelzen, bis alle ≥ MIN_CAGE ──────────
-  mergeSmallCages(id, total, neighbors);
+// Balanciert jede Cage auf genau `target` Zellen: verschiebt je eine Zelle entlang
+// eines Pfads (über benachbarte Cages) von einer zu großen zur nächsten zu kleinen
+// Cage. So funktioniert es auch, wenn groß/klein nicht direkt benachbart sind.
+function rebalanceToTarget(id, size, target, total, neighbors, rng) {
+  const K = size.length;
+  const regionAdj = () => {
+    const adj = Array.from({ length: K }, () => new Set());
+    for (let i = 0; i < total; i++) for (const nb of neighbors(i)) if (id[nb] !== id[i]) adj[id[i]].add(id[nb]);
+    return adj;
+  };
+  for (let guard = 0; guard < total * 3; guard++) {
+    if (size.every(s => s === target)) return true;
+    const adj = regionAdj();
+    // BFS im Cage-Graph von einer zu großen Cage zur nächsten zu kleinen
+    let path = null;
+    for (let A = 0; A < K && !path; A++) {
+      if (size[A] <= target) continue;
+      const prev = new Array(K).fill(-2); prev[A] = -1; const q = [A];
+      while (q.length) {
+        const cur = q.shift();
+        if (size[cur] < target) { const p = []; let x = cur; while (x !== -1) { p.push(x); x = prev[x]; } path = p.reverse(); break; }
+        for (const nb of adj[cur]) if (prev[nb] === -2) { prev[nb] = cur; q.push(nb); }
+      }
+    }
+    if (!path) return false;
+    // je eine Grenzzelle entlang des Pfads weiterreichen (Zusammenhang erhalten)
+    let okAll = true;
+    for (let s = 0; s < path.length - 1; s++) {
+      const from = path[s], to = path[s + 1];
+      const cands = [];
+      for (let i = 0; i < total; i++) if (id[i] === from && neighbors(i).some(n => id[n] === to)) cands.push(i);
+      for (let i = cands.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [cands[i], cands[j]] = [cands[j], cands[i]]; }
+      let moved = false;
+      for (const cell of cands) { if (staysConnected(id, from, cell, total, neighbors)) { id[cell] = to; size[from]--; size[to]++; moved = true; break; } }
+      if (!moved) { okAll = false; break; }
+    }
+    if (!okAll) continue;
+  }
+  return size.every(s => s === target);
+}
 
-  // IDs lückenlos neu nummerieren
-  const map = new Map(); let next = 0;
-  for (let i = 0; i < total; i++) { if (!map.has(id[i])) map.set(id[i], next++); id[i] = map.get(id[i]); }
-  const regions = Array.from({ length: next }, (_, r2) => ({ id: r2, cells: [], colorIndex: 0, target: 0 }));
-  for (let i = 0; i < total; i++) regions[id[i]].cells.push([Math.floor(i / cols), i % cols]);
+// Garantierte Streifen-Variante (Start = Zeilen, dann größen-/zusammenhangs-
+// erhaltende Tausche). Kann nie fehlschlagen.
+function partitionStrips(rng, rows, cols) {
+  const total = rows * cols, K = rows;
+  const neighbors = neighborsFn(rows, cols);
+  const id = new Int16Array(total);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) id[r * cols + c] = r;
+  for (let m = 0; m < total * 10; m++) {
+    const i = Math.floor(rng() * total);
+    const diff = neighbors(i).filter(n => id[n] !== id[i]);
+    if (!diff.length) continue;
+    const j = diff[Math.floor(rng() * diff.length)];
+    const A = id[i], B = id[j];
+    if (!neighbors(j).some(n => n !== i && id[n] === A)) continue;
+    if (!neighbors(i).some(n => n !== j && id[n] === B)) continue;
+    if (!staysConnected(id, A, i, total, neighbors) || !staysConnected(id, B, j, total, neighbors)) continue;
+    id[i] = B; id[j] = A;
+  }
+  return buildRegions(id, K, rows, cols);
+}
+
+function buildRegions(id, K, rows, cols) {
+  const regions = Array.from({ length: K }, (_, r) => ({ id: r, cells: [], colorIndex: 0, target: 0 }));
+  for (let i = 0; i < id.length; i++) regions[id[i]].cells.push([Math.floor(i / cols), i % cols]);
   colorRegions(regions, id, rows, cols);
   return regions;
 }
 
-// Verschmilzt jede Region < MIN_CAGE in die KLEINSTE benachbarte Region
-// (so wachsen zwei kleine zu einer ≥6 zusammen, statt alles in eine große zu kippen).
-function mergeSmallCages(id, total, neighbors) {
-  const sizes = () => { const m = new Map(); for (let i = 0; i < total; i++) m.set(id[i], (m.get(id[i]) || 0) + 1); return m; };
-  for (let guard = 0; guard < total; guard++) {
-    const sz = sizes();
-    if (sz.size <= 1) break;
-    // kleinste Region unter MIN_CAGE finden
-    let small = null, smallSz = Infinity;
-    for (const [rid, s] of sz) if (s < MIN_CAGE && s < smallSz) { smallSz = s; small = rid; }
-    if (small === null) break; // alle groß genug
-    // kleinste benachbarte Region als Ziel
-    let target = null, tSz = Infinity;
-    for (let i = 0; i < total; i++) if (id[i] === small) {
-      for (const nb of neighbors(i)) { const nr = id[nb]; if (nr !== small) { const s = sz.get(nr); if (s < tSz) { tSz = s; target = nr; } } }
-    }
-    if (target === null) break;
-    for (let i = 0; i < total; i++) if (id[i] === small) id[i] = target;
-  }
-}
-
-// Greedy-Färbung, damit benachbarte Regionen verschiedene Farben haben.
+// Färbung: benachbarte Cages verschieden, dabei möglichst viele Farben nutzen
+// (jeweils die am seltensten verwendete erlaubte Farbe).
 function colorRegions(regions, idGrid, rows, cols) {
   const k = regions.length;
   const adj = Array.from({ length: k }, () => new Set());
@@ -121,11 +185,16 @@ function colorRegions(regions, idGrid, rows, cols) {
     if (c < cols - 1) { const b = idGrid[idx(r, c + 1)]; if (b !== a) { adj[a].add(b); adj[b].add(a); } }
     if (r < rows - 1) { const b = idGrid[idx(r + 1, c)]; if (b !== a) { adj[a].add(b); adj[b].add(a); } }
   }
+  const usage = new Array(REGION_COLORS.length).fill(0);
   for (let i = 0; i < k; i++) {
     const banned = new Set();
     for (const nb of adj[i]) if (nb < i) banned.add(regions[nb].colorIndex);
-    let col = 0; while (banned.has(col) && col < REGION_COLORS.length) col++;
-    regions[i].colorIndex = col % REGION_COLORS.length;
+    let best = 0, bestU = Infinity;
+    for (let col = 0; col < REGION_COLORS.length; col++) {
+      if (banned.has(col)) continue;
+      if (usage[col] < bestU) { bestU = usage[col]; best = col; }
+    }
+    regions[i].colorIndex = best; usage[best]++;
   }
 }
 
@@ -153,20 +222,21 @@ function computeTargets(rows, cols, mask, values, regions) {
 // Große Felder mit kleinen Zahlen sind kaum eindeutig & ohne Raten lösbar
 // (zu viele Teilsummen-Kollisionen). Daher wächst der Zahlenbereich mit der
 // Kantenlänge — die "Extrem"/"Unendlichkeit"-Stufen nutzen also größere Zahlen.
+// Wenige große Cages (= Felddimension) liefern relativ wenige Constraints, daher
+// wächst der Zahlenbereich mit der Kantenlänge stark, damit die Rätsel eindeutig
+// & ohne Raten lösbar bleiben.
 function sizeFloorMaxVal(n) {
-  if (n <= 10) return 0;   // bis 10×10: authentische kleine Zahlen (≤9)
-  if (n <= 12) return 12;
-  return 15;               // 13–14: moderat größere Zahlen
+  if (n <= 8) return 0;    // bis 8×8: authentische kleine Zahlen (≤9)
+  if (n <= 10) return 14;
+  if (n <= 11) return 32;
+  return 45;               // 12×12
 }
 function effParams(diff, rows, cols) {
   const n = Math.max(rows, cols);
-  const area = rows * cols;
   const maxVal = Math.max(diff.maxVal, sizeFloorMaxVal(n));
   let keepRatio = diff.keepRatio;
-  if (n >= 9) keepRatio = Math.max(keepRatio, 0.58); // große Felder: etwas dichter → besser lösbar
-  // Regionen bedecken das ganze Feld; Anzahl ≈ Fläche / mittlere Regionsgröße.
-  const regionCount = Math.max(2, Math.round(area / diff.regionAvg));
-  return { maxVal, keepRatio, regionCount };
+  if (n >= 9) keepRatio = Math.max(keepRatio, 0.62); // große Felder: dichter → deutlich besser lösbar
+  return { maxVal, keepRatio };
 }
 
 // ─── Schwierigkeits-Bewertung ─────────────────────────────────────────────────
@@ -198,10 +268,10 @@ export function generatePuzzle(opts) {
   while (attempts < totalBudget) {
     attempts++;
     const { r: rows, c: cols } = dim;
-    const { maxVal, keepRatio, regionCount } = effParams(diff, rows, cols);
+    const { maxVal, keepRatio } = effParams(diff, rows, cols);
 
     const mask = buildSolutionMask(rng, rows, cols, keepRatio);
-    const regions = partitionRegions(rng, rows, cols, regionCount);
+    const regions = partitionRegions(rng, rows, cols);
     // Jede Region braucht mind. eine Lösungszelle → Zielsumme ≥ 1 (kein „0"-Hinweis,
     // und keine fälschlich „fertige" Region beim Start).
     for (const reg of regions) {
@@ -224,7 +294,10 @@ export function generatePuzzle(opts) {
       solution: mask.map(row => row.slice()),
     };
 
-    const result = logicalSolve(puzzle, { allowHypo: diff.allowHypo });
+    // Hypothesen-Deduktion (Beweis durch Widerspruch) immer erlauben: bleibt
+    // „ohne Raten", erhöht aber die Lösbarkeitsrate stark — nötig, weil Cages mit
+    // genau N Zellen relativ wenige Constraints liefern.
+    const result = logicalSolve(puzzle, { allowHypo: true });
     if (!result.solved || result.contradiction) continue;
 
     // Sicherheit: die erzwungene (eindeutige) Lösung muss mit der vorgesehenen
