@@ -231,9 +231,8 @@ function pulseResolved(kind, idx) {
 function onCellTap(r, c) {
   if (state.status !== 'playing' || state.generating || state.paused) return;
   const cur = state.marks[r][c];
-  let next;
-  if (state.tool === 'pen') next = (cur === 'kept') ? 'none' : 'kept';
-  else next = (cur === 'removed') ? 'none' : 'removed';
+  if (cur !== 'none') return; // already marked — only undo can reverse
+  const next = state.tool === 'pen' ? 'kept' : 'removed';
   setMark(r, c, next, true);
 }
 
@@ -657,7 +656,7 @@ const App = {
 
         <!-- Werkzeug-Umschalter (Radierer / Stift) -->
         <div class="toolbar">
-          <button v-if="state.settings.errorReveal==='onCheck'" class="round-btn" :disabled="!state.history.length" @click="undo" title="Rückgängig" aria-label="Rückgängig">
+          <button class="round-btn" :class="{ 'toolbar-hidden': state.settings.errorReveal!=='onCheck' }" :disabled="!state.history.length || state.settings.errorReveal!=='onCheck'" @click="undo" title="Rückgängig" aria-label="Rückgängig">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-4"/></svg>
           </button>
           <div class="tool-toggle" @click="toggleTool">
@@ -873,7 +872,7 @@ function cellClasses(r, c) {
     flash: !!state.flash[`${r}-${c}`],
     hinted: m.hint,
     hintmark: m.hintMark,
-    pulse: m.region >= 0 && !!state.justResolved[`region-${m.region}`],
+    pulse: (m.region >= 0 && !!state.justResolved[`region-${m.region}`]) || !!state.justResolved[`row-${r}`] || !!state.justResolved[`col-${c}`],
     strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
     solnc: state.status === 'review' && state.puzzle.solution[r][c],
   };

@@ -173,8 +173,13 @@ function buildRegions(id, K, rows, cols) {
   return regions;
 }
 
-// Färbung: benachbarte Cages verschieden, dabei möglichst viele Farben nutzen
-// (jeweils die am seltensten verwendete erlaubte Farbe).
+// Minimaler Winkelabstand auf dem Farbkreis (0–180°) — Farben mit kleinerem
+// Abstand gelten als "zu ähnlich" und werden ebenfalls gebannt.
+const HUE_SIM_THRESHOLD = 40;
+function hueDist(a, b) { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+
+// Färbung: benachbarte Cages verschieden UND nicht zu ähnlich im Farbton,
+// dabei möglichst viele Farben nutzen (seltenste erlaubte Farbe bevorzugt).
 function colorRegions(regions, idGrid, rows, cols) {
   const k = regions.length;
   const adj = Array.from({ length: k }, () => new Set());
@@ -187,11 +192,27 @@ function colorRegions(regions, idGrid, rows, cols) {
   const usage = new Array(REGION_COLORS.length).fill(0);
   for (let i = 0; i < k; i++) {
     const banned = new Set();
-    for (const nb of adj[i]) if (nb < i) banned.add(regions[nb].colorIndex);
-    let best = 0, bestU = Infinity;
+    for (const nb of adj[i]) {
+      if (nb >= i) continue;
+      const nbIdx = regions[nb].colorIndex;
+      const nbHue = REGION_COLORS[nbIdx].h;
+      for (let ci = 0; ci < REGION_COLORS.length; ci++) {
+        if (hueDist(REGION_COLORS[ci].h, nbHue) < HUE_SIM_THRESHOLD) banned.add(ci);
+      }
+    }
+    let best = -1, bestU = Infinity;
     for (let col = 0; col < REGION_COLORS.length; col++) {
       if (banned.has(col)) continue;
       if (usage[col] < bestU) { bestU = usage[col]; best = col; }
+    }
+    if (best === -1) { // all colors too similar — relax and just avoid exact match
+      for (const nb of adj[i]) if (nb < i) banned.add(regions[nb].colorIndex);
+      best = 0; bestU = Infinity;
+      for (let col = 0; col < REGION_COLORS.length; col++) {
+        if (banned.has(col)) continue;
+        if (usage[col] < bestU) { bestU = usage[col]; best = col; }
+      }
+      if (best === -1) best = 0;
     }
     regions[i].colorIndex = best; usage[best]++;
   }
