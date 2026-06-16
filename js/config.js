@@ -1,39 +1,22 @@
-// config.js — statische Spielkonfiguration: Größen, Schwierigkeiten, Farben, Defaults
+// config.js — statische Spielkonfiguration: Schwierigkeiten, Farben, Defaults
 // (Analog zu werwolf-app/js/data.js — reine Daten, keine Logik)
 
-// ─── FELDGRÖSSEN ──────────────────────────────────────────────────────────────
-// Jede Stufe bietet mehrere konkrete Dimensionen; beim Start wird zufällig eine
-// aus dem Bereich gewählt (oder die kleinste, falls Generierung schwierig wird).
-export const SIZE_TIERS = [
-  { id: 'klein',   name: 'Klein',          emoji: '🔹', desc: 'Schnelle Runden, 4×4–5×5',
-    dims: [{ r: 4, c: 4 }, { r: 5, c: 5 }] },
-  { id: 'mittel',  name: 'Mittel',         emoji: '🔷', desc: 'Klassische Größe, 6×6',
-    dims: [{ r: 6, c: 6 }] },
-  { id: 'gross',   name: 'Groß',           emoji: '🟦', desc: 'Mehr Regionen, 7×7–8×8',
-    dims: [{ r: 7, c: 7 }, { r: 8, c: 8 }] },
-  { id: 'extrem',  name: 'Extrem',         emoji: '🟪', desc: 'Lange Rätsel, 9×9–10×10',
-    dims: [{ r: 9, c: 9 }, { r: 10, c: 10 }] },
-  { id: 'unendlich', name: 'Unendlichkeit', emoji: '♾️', desc: 'Riesig, 11×11–12×12',
-    dims: [{ r: 11, c: 11 }, { r: 12, c: 12 }] },
-];
-
-export const SIZE_BY_ID = Object.fromEntries(SIZE_TIERS.map(s => [s.id, s]));
-
 // ─── SCHWIERIGKEITEN ──────────────────────────────────────────────────────────
-// maxVal     : größter Zahlenwert in einer Zelle
-// keepRatio  : Anteil der Zellen, die zur Lösung gehören (eingekreist werden)
-// lives      : Startleben (Herzen)
-// allowHypo  : erlaubt Tier-3-Deduktion (Hypothese/Widerspruch) → schwerer
-// (Cages bedecken IMMER das ganze Feld, je 8 Zellen — siehe generator.js)
+// Jede Schwierigkeit hat eine FESTE Feldgröße (kein separater Größen-Wähler
+// mehr). Leben, Hinweise und Zahlenbereich sind für alle Schwierigkeiten
+// gleich — nur Dimension, Lösungsdichte (keepRatio) und die garantierte
+// Mindestanzahl einstelliger Summen (für Mensch-Lösbarkeit) unterscheiden sich.
+export const LIVES = 3;
+export const HINTS = Infinity;
+export const MAX_VAL = 9; // Zellwerte sind immer 1–9, nie höher — auch bei großen Feldern
+
 export const DIFFICULTIES = [
-  { id: 'leicht',  name: 'Leicht',  emoji: '🟢', maxVal: 6, keepRatio: 0.62,
-    lives: 5, allowHypo: false, hints: 5 },
-  { id: 'mittel',  name: 'Mittel',  emoji: '🟡', maxVal: 7, keepRatio: 0.56,
-    lives: 4, allowHypo: false, hints: 3 },
-  { id: 'schwer',  name: 'Schwer',  emoji: '🟠', maxVal: 9, keepRatio: 0.52,
-    lives: 3, allowHypo: false, hints: 2 },
-  { id: 'experte', name: 'Experte', emoji: '🔴', maxVal: 9, keepRatio: 0.48,
-    lives: 3, allowHypo: true,  hints: 1 },
+  { id: 'sehrleicht', name: 'Sehr Leicht', emoji: '🟢', dim: { r: 6,  c: 6  }, keepRatio: 0.50, minSingleDigitSums: 2 },
+  { id: 'leicht',     name: 'Leicht',      emoji: '🟡', dim: { r: 7,  c: 7  }, keepRatio: 0.48, minSingleDigitSums: 2 },
+  { id: 'mittel',     name: 'Mittel',      emoji: '🟠', dim: { r: 8,  c: 8  }, keepRatio: 0.46, minSingleDigitSums: 2 },
+  { id: 'schwer',     name: 'Schwer',      emoji: '🔴', dim: { r: 9,  c: 9  }, keepRatio: 0.46, minSingleDigitSums: 3 },
+  { id: 'extrem',     name: 'Extrem',      emoji: '🟣', dim: { r: 10, c: 10 }, keepRatio: 0.44, minSingleDigitSums: 4 },
+  { id: 'mashallah',  name: 'Mashallah',   emoji: '💀', dim: { r: 11, c: 11 }, keepRatio: 0.40, minSingleDigitSums: 5 },
 ];
 
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
@@ -58,13 +41,12 @@ export const DEFAULT_SETTINGS = {
   darkMode: true,            // Dunkelmodus ist Standard
   errorReveal: 'instant',    // 'instant' = sofort aufdecken | 'onCheck' = erst beim Prüfen
   livesEnabled: true,        // Leben/Herzen aktiv? (false = Zen, unbegrenzt)
-  haptics: true,             // Vibration bei Aktionen (falls Gerät unterstützt)
   showTimer: true,           // Timer anzeigen
   confirmTool: 'pen',        // Standard-Werkzeug: 'pen' (einkreisen) | 'eraser'
+  eraseStyle: 'hide',        // gelöschte Zahl: 'hide' (verschwindet) | 'strike' (durchgestrichen)
 };
 
-// Standard-Spieloptionen (Start-Screen Vorauswahl)
+// Standard-Spieloption (Start-Screen Vorauswahl)
 export const DEFAULT_GAME_OPTIONS = {
-  size: 'mittel',
   difficulty: 'mittel',
 };

@@ -36,13 +36,13 @@ export function saveActiveGame(g) { if (g) save(KEYS.ACTIVE_GAME, g); else remov
 const EMPTY_STATS = {
   played: 0, won: 0, lost: 0, currentStreak: 0, bestStreak: 0,
   totalTimeMs: 0, hintsUsed: 0,
-  best: {}, // key `${size}-${difficulty}` -> bestTimeMs
+  best: {}, // key `${difficulty}` -> bestTimeMs
   byDifficulty: {}, // id -> { played, won }
 };
 export function loadStats() { return { ...EMPTY_STATS, ...load(KEYS.STATS, {}) }; }
 export function saveStats(s) { save(KEYS.STATS, s); }
 
-export function recordResult({ size, difficulty, won, timeMs, hintsUsed }) {
+export function recordResult({ difficulty, won, timeMs, hintsUsed }) {
   const s = loadStats();
   s.played++;
   s.hintsUsed += hintsUsed || 0;
@@ -52,8 +52,7 @@ export function recordResult({ size, difficulty, won, timeMs, hintsUsed }) {
     s.won++; s.currentStreak++; s.bestStreak = Math.max(s.bestStreak, s.currentStreak);
     s.totalTimeMs += timeMs || 0;
     s.byDifficulty[difficulty].won++;
-    const key = `${size}-${difficulty}`;
-    if (!s.best[key] || timeMs < s.best[key]) s.best[key] = timeMs;
+    if (!s.best[difficulty] || timeMs < s.best[difficulty]) s.best[difficulty] = timeMs;
   } else {
     s.lost++; s.currentStreak = 0;
   }

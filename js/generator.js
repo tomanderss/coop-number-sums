@@ -2,16 +2,16 @@
 //
 // Vorgehen (Sudoku-artig):
 //  1. Lösungsmaske bauen (welche Zellen gehören zur Lösung / werden eingekreist).
-//  2. Farbige Regionen platzieren (ab Schwierigkeit Mittel).
-//  3. Zahlenwerte vergeben (Lösungszellen + Täuschzahlen).
+//  2. Farbige Regionen platzieren.
+//  3. Zahlenwerte vergeben (immer 1–9 — Lösungszellen + Täuschzahlen).
 //  4. Zielsummen aus der Lösung berechnen.
-//  5. Mit dem logischen Solver prüfen: vollständig & nur durch erzwungene Züge
+//  5. Mensch-Lösbarkeit sicherstellen: mindestens N einstellige Summen (Außen
+//     oder Cage), sonst gibt es keinen Einstiegspunkt zum Loslegen.
+//  6. Mit dem logischen Solver prüfen: vollständig & nur durch erzwungene Züge
 //     lösbar?  → dann ist die Lösung BEWEISBAR eindeutig und ohne Raten lösbar.
-//  6. Schwierigkeit anhand der nötigen Deduktionsstufe einordnen; passt sie nicht,
-//     neu versuchen.
 
 import { logicalSolve, KEEP, REMOVE, UNK } from './solver.js';
-import { DIFF_BY_ID, SIZE_BY_ID, REGION_COLORS } from './config.js';
+import { DIFF_BY_ID, REGION_COLORS, MAX_VAL } from './config.js';
 
 // ─── Seedbarer Zufall (mulberry32) ────────────────────────────────────────────
 export function makeRng(seed) {
@@ -24,7 +24,6 @@ export function makeRng(seed) {
   };
 }
 const randInt = (rng, min, max) => min + Math.floor(rng() * (max - min + 1));
-const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
 
 // ─── Lösungsmaske ─────────────────────────────────────────────────────────────
 function buildSolutionMask(rng, rows, cols, keepRatio) {
@@ -199,11 +198,14 @@ function colorRegions(regions, idGrid, rows, cols) {
 }
 
 // ─── Werte vergeben + Zielsummen berechnen ────────────────────────────────────
-function assignValues(rng, rows, cols, mask, maxVal) {
+// Zellwerte sind immer 1–9 (MAX_VAL), unabhängig von der Feldgröße — auch bei
+// 10×10/11×11. Größere Cages liefern dadurch mehr Teilsummen-Kollisionen; das
+// wird über keepRatio (config.js) und den Solver (Tier-3-Hypothese) kompensiert.
+function assignValues(rng, rows, cols) {
   const values = Array.from({ length: rows }, () => Array(cols).fill(0));
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++)
-      values[r][c] = randInt(rng, 1, maxVal);
+      values[r][c] = randInt(rng, 1, MAX_VAL);
   return values;
 }
 function computeTargets(rows, cols, mask, values, regions) {
@@ -218,59 +220,33 @@ function computeTargets(rows, cols, mask, values, regions) {
   return { rowTargets, colTargets };
 }
 
-// ─── Effektive Parameter (skalieren mit der Feldgröße) ────────────────────────
-// Große Felder mit kleinen Zahlen sind kaum eindeutig & ohne Raten lösbar
-// (zu viele Teilsummen-Kollisionen). Daher wächst der Zahlenbereich mit der
-// Kantenlänge — die "Extrem"/"Unendlichkeit"-Stufen nutzen also größere Zahlen.
-// Wenige große Cages (= Felddimension) liefern relativ wenige Constraints, daher
-// wächst der Zahlenbereich mit der Kantenlänge stark, damit die Rätsel eindeutig
-// & ohne Raten lösbar bleiben.
-function sizeFloorMaxVal(n) {
-  if (n <= 8) return 0;    // bis 8×8: authentische kleine Zahlen (≤9)
-  if (n <= 10) return 14;
-  if (n <= 11) return 32;
-  return 45;               // 12×12
-}
-function effParams(diff, rows, cols) {
-  const n = Math.max(rows, cols);
-  const maxVal = Math.max(diff.maxVal, sizeFloorMaxVal(n));
-  let keepRatio = diff.keepRatio;
-  if (n >= 9) keepRatio = Math.max(keepRatio, 0.62); // große Felder: dichter → deutlich besser lösbar
-  return { maxVal, keepRatio };
-}
-
-// ─── Schwierigkeits-Bewertung ─────────────────────────────────────────────────
-// Wir akzeptieren jedes vollständig & ohne Raten lösbare (⇒ eindeutige) Rätsel.
-// Die gefühlte Schwierigkeit steuern wir über die Parameter-Tabelle in config.js
-// (Zahlenbereich, Regionen, Decoy-Dichte, Leben, Hinweise) sowie die Feldgröße —
-// das ist intuitiver als die solver-interne Deduktionsstufe und blitzschnell.
-function gradeMatches(diff, result) {
-  return result.solved && !result.contradiction;
+// Zählt, wie viele Außen- (Reihen/Spalten) und Cage-Summen einstellig sind
+// (1–9). Mindestens eine bestimmte Anzahl davon muss garantiert vorhanden
+// sein — sonst hat der Spieler keinen logischen Einstiegspunkt und das Rätsel
+// ist zwar technisch, aber nicht für einen Menschen zumutbar lösbar.
+function countSingleDigitSums(rowTargets, colTargets, regions) {
+  let n = 0;
+  for (const t of rowTargets) if (t >= 1 && t <= 9) n++;
+  for (const t of colTargets) if (t >= 1 && t <= 9) n++;
+  for (const reg of regions) if (reg.target >= 1 && reg.target <= 9) n++;
+  return n;
 }
 
 // ─── Hauptfunktion ────────────────────────────────────────────────────────────
-// opts: { size (id), difficulty (id), seed?, dim? }
+// opts: { difficulty (id), seed?, dim? }
 export function generatePuzzle(opts) {
-  const sizeTier = SIZE_BY_ID[opts.size] || SIZE_BY_ID.mittel;
   const diff = DIFF_BY_ID[opts.difficulty] || DIFF_BY_ID.mittel;
   const baseSeed = (opts.seed != null) ? (opts.seed >>> 0) : (Math.floor(Math.random() * 0xffffffff) >>> 0);
   const rng = makeRng(baseSeed);
 
-  // Dimensionen: vorgegeben oder zufällig aus der Stufe
-  const dims = sizeTier.dims.slice();
-  let dim = opts.dim || pick(rng, dims);
-
-  const softBudget = 250;   // ab hier nimm das erste lösbare Rätsel, auch wenn Stufe nicht exakt passt
-  const totalBudget = 2500; // harte Obergrenze
+  const { r: rows, c: cols } = opts.dim || diff.dim;
+  const totalBudget = 2500; // harte Obergrenze, danach Notnagel-Neuversuch (leichteste Stufe)
   let attempts = 0;
-  let firstSolved = null;   // erstes garantiert eindeutiges/lösbares Rätsel als Rückfalloption
 
   while (attempts < totalBudget) {
     attempts++;
-    const { r: rows, c: cols } = dim;
-    const { maxVal, keepRatio } = effParams(diff, rows, cols);
 
-    const mask = buildSolutionMask(rng, rows, cols, keepRatio);
+    const mask = buildSolutionMask(rng, rows, cols, diff.keepRatio);
     const regions = partitionRegions(rng, rows, cols);
     // Jede Region braucht mind. eine Lösungszelle → Zielsumme ≥ 1 (kein „0"-Hinweis,
     // und keine fälschlich „fertige" Region beim Start).
@@ -280,13 +256,14 @@ export function generatePuzzle(opts) {
         mask[r][c] = true;
       }
     }
-    const values = assignValues(rng, rows, cols, mask, maxVal);
+    const values = assignValues(rng, rows, cols);
     const { rowTargets, colTargets } = computeTargets(rows, cols, mask, values, regions);
 
+    if (countSingleDigitSums(rowTargets, colTargets, regions) < diff.minSingleDigitSums) continue;
+
     const puzzle = {
-      id: `${opts.size}-${opts.difficulty}-${baseSeed}-${attempts}`,
+      id: `${opts.difficulty}-${baseSeed}-${attempts}`,
       seed: baseSeed,
-      size: opts.size,
       difficulty: opts.difficulty,
       rows, cols, values,
       rowTargets, colTargets,
@@ -312,22 +289,13 @@ export function generatePuzzle(opts) {
 
     puzzle.maxTier = result.maxTier;
     puzzle.tiers = result.tiers;
-    puzzle.maxVal = maxVal;
-    if (!firstSolved) firstSolved = puzzle;
-
-    if (gradeMatches(diff, result)) { puzzle.attempts = attempts; return puzzle; }
-
-    // Stufe passt (noch) nicht: nach dem Soft-Budget das erste lösbare nehmen,
-    // damit die Generierung nie spürbar hängt.
-    if (attempts >= softBudget && firstSolved) { firstSolved.attempts = attempts; return firstSolved; }
-
-    // Bei sehr großen Feldern ggf. eine kleinere Dimension der Stufe probieren.
-    if (attempts % 500 === 0 && dims.length > 1) dim = dims[0];
+    puzzle.maxVal = MAX_VAL;
+    puzzle.attempts = attempts;
+    return puzzle;
   }
 
-  if (firstSolved) return firstSolved;
-  // Allerletzter Notnagel: einfaches, garantiert lösbares Mini-Rätsel
-  return generatePuzzle({ size: 'klein', difficulty: 'leicht', dim: { r: 4, c: 4 } });
+  // Allerletzter Notnagel: easystes Rätsel, garantiert lösbar.
+  return generatePuzzle({ difficulty: 'sehrleicht' });
 }
 
 // ─── Hilfen für die UI ────────────────────────────────────────────────────────
