@@ -1,0 +1,14 @@
+{
+  "name": "Coop Number Sums",
+  "short_name": "Number Sums",
+  "description": "Kreise die richtigen Zahlen ein — Number Sums Rätsel mit Schwierigkeitsgraden und Größen.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

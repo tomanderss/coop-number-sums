@@ -1,0 +1,818 @@
+// app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
+import { createApp, reactive, computed, watch, nextTick, onMounted } from './vue.esm-browser.prod.js';
+import { BUILD, CHANGELOG } from './buildinfo.js';
+import { SIZE_TIERS, DIFFICULTIES, SIZE_BY_ID, DIFF_BY_ID, REGION_COLORS, DEFAULT_GAME_OPTIONS } from './config.js';
+import { generatePuzzle, findHintCell } from './generator.js';
+import {
+  loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
+  loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
+  exportToFile, importFromFile,
+} from './storage.js';
+
+const APP_START = Date.now();
+const splashVersion = document.getElementById('splash-version');
+if (splashVersion) splashVersion.textContent = `v${BUILD}`;
+
+// ─── GLOBALER ZUSTAND ─────────────────────────────────────────────────────────
+const state = reactive({
+  screen: 'home',            // home | setup | game | settings | stats
+  settings: loadSettings(),
+  stats: loadStats(),
+
+  // Spiel
+  puzzle: null,
+  marks: [],                 // 'none' | 'kept' | 'removed'
+  cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint }
+  lives: 0, maxLives: 0,
+  hintsLeft: 0,
+  hintsUsed: 0,
+  mistakes: 0,
+  status: 'idle',            // idle | playing | won | lost
+  tool: 'pen',               // pen | eraser
+  startTime: 0,
+  elapsed: 0,
+  history: [],               // Undo-Stack
+  flash: {},                 // "r-c" -> true (rote Fehler-Animation)
+  cellPx: 48,
+  zoom: 1,
+
+  // Auswahl im Setup
+  sel: { ...DEFAULT_GAME_OPTIONS },
+
+  // UI
+  toast: null,
+  modal: null,               // null | 'howto' | 'changelog' | 'backups' | 'confirm'
+  confirm: null,             // { title, msg, onYes }
+  showWhatsNew: false,
+  generating: false,
+  resumeAvailable: null,     // gespeichertes Spiel (zum Fortsetzen)
+  confetti: [],
+});
+
+let timerHandle = null;
+let saveThrottle = 0;
+
+// ─── HELFER ───────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'info', ms = 2000) {
+  state.toast = { msg, type };
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { state.toast = null; }, ms);
+}
+function haptic(kind = 'tap') {
+  if (!state.settings.haptics || !navigator.vibrate) return;
+  const p = { tap: 8, error: [30, 40, 30], win: [20, 40, 20, 40, 60], hint: 15 }[kind] || 8;
+  try { navigator.vibrate(p); } catch {}
+}
+function fmtTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, '0')}`;
+}
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
+  const tc = document.querySelector('meta[name="theme-color"]');
+  if (tc) tc.setAttribute('content', state.settings.darkMode ? '#0b1020' : '#eef2f9');
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function navigate(screen) {
+  state.screen = screen;
+  if (screen === 'game') startTimer(); else stopTimer();
+}
+
+// ─── TIMER ────────────────────────────────────────────────────────────────────
+function startTimer() {
+  stopTimer();
+  if (state.status !== 'playing') return;
+  timerHandle = setInterval(() => {
+    state.elapsed = Date.now() - state.startTime;
+  }, 250);
+}
+function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandle = null; } }
+
+// ─── ZELLEN-METADATEN (Regionen, Ränder, Chips) ───────────────────────────────
+function buildCellMeta(puzzle) {
+  const { rows, cols, regions } = puzzle;
+  const meta = Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => ({ region: -1, color: null, edges: {}, chip: null, hint: false })));
+  regions.forEach((reg, ri) => {
+    let minR = Infinity, maxR = -1, minC = Infinity, maxC = -1;
+    for (const [r, c] of reg.cells) { minR = Math.min(minR, r); maxR = Math.max(maxR, r); minC = Math.min(minC, c); maxC = Math.max(maxC, c); }
+    const color = REGION_COLORS[reg.colorIndex % REGION_COLORS.length];
+    for (const [r, c] of reg.cells) {
+      const m = meta[r][c];
+      m.region = ri; m.color = color;
+      m.edges = { t: r === minR, b: r === maxR, l: c === minC, r: c === maxC };
+    }
+    meta[minR][minC].chip = reg.target;
+  });
+  return meta;
+}
+
+// ─── NEUES SPIEL ──────────────────────────────────────────────────────────────
+function newGame(sizeId, diffId) {
+  state.generating = true;
+  state.screen = 'game';
+  // kurze Verzögerung, damit die Lade-Animation sichtbar wird (große Felder)
+  setTimeout(() => {
+    const puzzle = generatePuzzle({ size: sizeId, difficulty: diffId });
+    loadPuzzleIntoState(puzzle, null);
+    state.generating = false;
+    startTimer();
+  }, 30);
+}
+
+function loadPuzzleIntoState(puzzle, saved) {
+  const diff = DIFF_BY_ID[puzzle.difficulty] || DIFF_BY_ID.mittel;
+  state.puzzle = puzzle;
+  state.cellMeta = buildCellMeta(puzzle);
+  state.marks = saved ? saved.marks : Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill('none'));
+  state.maxLives = saved ? saved.maxLives : diff.lives;
+  state.lives = saved ? saved.lives : diff.lives;
+  state.hintsLeft = saved ? saved.hintsLeft : diff.hints;
+  state.hintsUsed = saved ? saved.hintsUsed : 0;
+  state.mistakes = saved ? saved.mistakes : 0;
+  state.history = [];
+  state.flash = {};
+  state.tool = state.settings.confirmTool || 'pen';
+  state.status = 'playing';
+  state.elapsed = saved ? (saved.elapsed || 0) : 0;
+  state.startTime = Date.now() - state.elapsed;
+  state.zoom = 1;
+  computeCellSize();
+  persistGame();
+}
+
+// ─── ZELLGRÖSSE (responsiv + Zoom) ────────────────────────────────────────────
+function computeCellSize() {
+  if (!state.puzzle) return;
+  const cols = state.puzzle.cols;
+  const avail = Math.min(window.innerWidth - 24, 560);
+  const ideal = Math.floor(avail / (cols + 1)); // +1 für Kopfspalte
+  const base = Math.max(26, Math.min(56, ideal));
+  state.cellPx = Math.round(base * state.zoom);
+}
+function setZoom(delta) {
+  state.zoom = Math.max(0.7, Math.min(2.2, +(state.zoom + delta).toFixed(2)));
+  computeCellSize();
+}
+
+// ─── SUMMEN & FERTIG-STATUS ───────────────────────────────────────────────────
+function rowSum(r) {
+  let s = 0; const p = state.puzzle; for (let c = 0; c < p.cols; c++) if (state.marks[r][c] === 'kept') s += p.values[r][c]; return s;
+}
+function colSum(c) {
+  let s = 0; const p = state.puzzle; for (let r = 0; r < p.rows; r++) if (state.marks[r][c] === 'kept') s += p.values[r][c]; return s;
+}
+function regionSum(i) {
+  let s = 0; const p = state.puzzle; for (const [r, c] of p.regions[i].cells) if (state.marks[r][c] === 'kept') s += p.values[r][c]; return s;
+}
+const rowDone = r => rowSum(r) === state.puzzle.rowTargets[r];
+const colDone = c => colSum(c) === state.puzzle.colTargets[c];
+const regionDone = i => regionSum(i) === state.puzzle.regions[i].target;
+
+// ─── SPIELZÜGE ────────────────────────────────────────────────────────────────
+function onCellTap(r, c) {
+  if (state.status !== 'playing' || state.generating) return;
+  const cur = state.marks[r][c];
+  let next;
+  if (state.tool === 'pen') next = (cur === 'kept') ? 'none' : 'kept';
+  else next = (cur === 'removed') ? 'none' : 'removed';
+  setMark(r, c, next, true);
+}
+
+function setMark(r, c, next, user) {
+  const cur = state.marks[r][c];
+  if (cur === next) return;
+
+  if (user && state.settings.errorReveal === 'instant') {
+    const sol = state.puzzle.solution[r][c];
+    const wrong = (next === 'kept' && !sol) || (next === 'removed' && sol);
+    if (wrong) { flashError(r, c); registerMistake(); haptic('error'); return; }
+  }
+
+  state.history.push({ r, c, prev: cur });
+  if (state.history.length > 500) state.history.shift();
+  state.marks[r][c] = next;
+  if (user) haptic('tap');
+  afterMove();
+}
+
+function afterMove() {
+  if (state.settings.autoCrossCompleted) autoCross();
+  persistGame();
+  if (isSolved()) win();
+}
+
+// Bei Fertigstellung einer Gruppe die übrigen (nachweislich überflüssigen) Zellen
+// automatisch durchstreichen. Streicht NIE eine Lösungszelle.
+function autoCross() {
+  const p = state.puzzle;
+  const crossGroup = (cells) => {
+    for (const [r, c] of cells)
+      if (state.marks[r][c] === 'none' && !p.solution[r][c]) state.marks[r][c] = 'removed';
+  };
+  for (let r = 0; r < p.rows; r++) if (rowDone(r)) crossGroup(Array.from({ length: p.cols }, (_, c) => [r, c]));
+  for (let c = 0; c < p.cols; c++) if (colDone(c)) crossGroup(Array.from({ length: p.rows }, (_, r) => [r, c]));
+  p.regions.forEach((reg, i) => { if (regionDone(i)) crossGroup(reg.cells); });
+}
+
+function flashError(r, c) {
+  const key = `${r}-${c}`;
+  state.flash[key] = true;
+  setTimeout(() => { delete state.flash[key]; }, 650);
+}
+
+function registerMistake() {
+  state.mistakes++;
+  if (state.settings.livesEnabled) {
+    state.lives--;
+    if (state.lives <= 0) { state.lives = 0; lose(); }
+  }
+  persistGame();
+}
+
+function isSolved() {
+  const p = state.puzzle; if (!p) return false;
+  for (let r = 0; r < p.rows; r++)
+    for (let c = 0; c < p.cols; c++)
+      if ((state.marks[r][c] === 'kept') !== p.solution[r][c]) return false;
+  return true;
+}
+
+// "Prüfen"-Modus (Fehler erst auf Knopfdruck)
+function doCheck() {
+  if (state.status !== 'playing') return;
+  const p = state.puzzle; const wrong = [];
+  for (let r = 0; r < p.rows; r++)
+    for (let c = 0; c < p.cols; c++) {
+      const mk = state.marks[r][c], sol = p.solution[r][c];
+      if ((mk === 'kept' && !sol) || (mk === 'removed' && sol)) wrong.push([r, c]);
+    }
+  if (wrong.length === 0) {
+    if (isSolved()) { win(); return; }
+    showToast('Bisher alles korrekt – aber noch nicht fertig 👍', 'info');
+    return;
+  }
+  wrong.forEach(([r, c]) => flashError(r, c));
+  haptic('error');
+  state.mistakes += wrong.length;
+  if (state.settings.livesEnabled) {
+    state.lives--;
+    if (state.lives <= 0) { state.lives = 0; lose(); return; }
+  }
+  showToast(`${wrong.length} Fehler gefunden`, 'error');
+  persistGame();
+}
+
+function useHint() {
+  if (state.status !== 'playing' || state.hintsLeft <= 0) return;
+  const hint = findHintCell(state.puzzle, state.marks);
+  if (!hint) return;
+  state.hintsLeft--; state.hintsUsed++;
+  const next = hint.want; // 'kept' | 'removed'
+  state.history.push({ r: hint.r, c: hint.c, prev: state.marks[hint.r][hint.c] });
+  state.marks[hint.r][hint.c] = next;
+  state.cellMeta[hint.r][hint.c].hint = true;
+  setTimeout(() => { if (state.cellMeta[hint.r]) state.cellMeta[hint.r][hint.c].hint = false; }, 1400);
+  haptic('hint');
+  afterMove();
+}
+
+function undo() {
+  if (!state.history.length || state.status !== 'playing') return;
+  const last = state.history.pop();
+  state.marks[last.r][last.c] = last.prev;
+  haptic('tap');
+  persistGame();
+}
+
+function win() {
+  if (state.status === 'won') return;
+  state.status = 'won';
+  stopTimer();
+  haptic('win');
+  launchConfetti();
+  state.stats = recordResult({
+    size: state.puzzle.size, difficulty: state.puzzle.difficulty,
+    won: true, timeMs: state.elapsed, hintsUsed: state.hintsUsed,
+  });
+  saveActiveGame(null);
+}
+
+function lose() {
+  state.status = 'lost';
+  stopTimer();
+  haptic('error');
+  state.stats = recordResult({
+    size: state.puzzle.size, difficulty: state.puzzle.difficulty,
+    won: false, timeMs: state.elapsed, hintsUsed: state.hintsUsed,
+  });
+  saveActiveGame(null);
+}
+
+function revealSolution() {
+  const p = state.puzzle;
+  for (let r = 0; r < p.rows; r++)
+    for (let c = 0; c < p.cols; c++)
+      state.marks[r][c] = p.solution[r][c] ? 'kept' : 'removed';
+}
+
+function restartPuzzle() {
+  const diff = DIFF_BY_ID[state.puzzle.difficulty];
+  state.marks = Array.from({ length: state.puzzle.rows }, () => Array(state.puzzle.cols).fill('none'));
+  state.lives = diff.lives; state.maxLives = diff.lives; state.hintsLeft = diff.hints;
+  state.hintsUsed = 0; state.mistakes = 0; state.history = []; state.flash = {};
+  state.status = 'playing'; state.elapsed = 0; state.startTime = Date.now();
+  startTimer(); persistGame();
+}
+
+function quitToHome() {
+  saveActiveGame(state.status === 'playing' ? activeSnapshot() : null);
+  refreshResume();
+  navigate('home');
+}
+
+// ─── PERSISTENZ DES LAUFENDEN SPIELS ──────────────────────────────────────────
+function activeSnapshot() {
+  return {
+    puzzle: state.puzzle, marks: state.marks, lives: state.lives, maxLives: state.maxLives,
+    hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+    elapsed: state.elapsed, size: state.puzzle.size, difficulty: state.puzzle.difficulty,
+    ts: Date.now(),
+  };
+}
+function persistGame() {
+  if (state.status !== 'playing') { saveActiveGame(null); return; }
+  const now = Date.now();
+  if (now - saveThrottle < 400) return;
+  saveThrottle = now;
+  saveActiveGame(activeSnapshot());
+}
+function refreshResume() {
+  const g = loadActiveGame();
+  state.resumeAvailable = (g && g.puzzle) ? g : null;
+}
+function resumeGame() {
+  const g = state.resumeAvailable;
+  if (!g) return;
+  navigate('game');
+  loadPuzzleIntoState(g.puzzle, g);
+  startTimer();
+}
+
+// ─── CONFETTI ─────────────────────────────────────────────────────────────────
+function launchConfetti() {
+  const colors = REGION_COLORS.map(c => `hsl(${c.h} ${c.s}% ${c.l}%)`);
+  const pieces = [];
+  for (let i = 0; i < 80; i++) {
+    pieces.push({
+      id: i, left: Math.random() * 100,
+      delay: Math.random() * 0.5, dur: 1.6 + Math.random() * 1.4,
+      color: colors[i % colors.length], rot: Math.random() * 360,
+      size: 6 + Math.random() * 8,
+    });
+  }
+  state.confetti = pieces;
+  setTimeout(() => { state.confetti = []; }, 3500);
+}
+
+// ─── EINSTELLUNGEN ────────────────────────────────────────────────────────────
+function toggleSetting(key) {
+  state.settings[key] = !state.settings[key];
+  if (key === 'darkMode') applyTheme();
+}
+function setSetting(key, val) { state.settings[key] = val; }
+watch(() => state.settings, (s) => saveSettings(s), { deep: true });
+
+// ─── DATEN: EXPORT / IMPORT / BACKUPS ─────────────────────────────────────────
+function doExport() { exportToFile('manual').then(() => showToast('Backup exportiert', 'success')).catch(() => {}); }
+function doImport(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      importFromFile(reader.result);
+      state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); refreshResume();
+      showToast('Import erfolgreich', 'success');
+    } catch { showToast('Import fehlgeschlagen', 'error'); }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+function openBackups() { state.modal = 'backups'; }
+function doRestore(slot) {
+  if (restoreBackup(slot)) {
+    state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); refreshResume();
+    state.modal = null; showToast('Backup wiederhergestellt', 'success');
+  }
+}
+function resetStats() {
+  ask('Statistik zurücksetzen?', 'Alle Erfolge und Bestzeiten werden gelöscht.', () => {
+    localStorage.removeItem('cns_stats'); state.stats = loadStats(); showToast('Statistik gelöscht', 'success');
+  });
+}
+
+function ask(title, msg, onYes) { state.confirm = { title, msg, onYes }; state.modal = 'confirm'; }
+function confirmYes() { const f = state.confirm?.onYes; state.modal = null; state.confirm = null; if (f) f(); }
+function confirmNo() { state.modal = null; state.confirm = null; }
+
+// ─── WAS IST NEU ──────────────────────────────────────────────────────────────
+function maybeShowWhatsNew() {
+  const seen = loadSeenVersion();
+  if (seen !== BUILD && CHANGELOG.length) { state.showWhatsNew = true; }
+}
+function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD); }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  applyTheme();
+  refreshResume();
+  maybeShowWhatsNew();
+  window.addEventListener('resize', computeCellSize);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  KOMPONENTE / TEMPLATE
+// ════════════════════════════════════════════════════════════════════════════
+const App = {
+  setup() {
+    const winStat = computed(() => {
+      const p = state.stats.played || 0, w = state.stats.won || 0;
+      return p ? Math.round((w / p) * 100) : 0;
+    });
+    const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
+    const progress = computed(() => {
+      if (!state.puzzle) return { kept: 0, total: 0 };
+      let kept = 0, total = 0;
+      const p = state.puzzle;
+      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) {
+        if (p.solution[r][c]) { total++; if (state.marks[r][c] === 'kept') kept++; }
+      }
+      return { kept, total };
+    });
+    const gridStyle = computed(() => ({
+      gridTemplateColumns: `var(--hdr) repeat(${state.puzzle?.cols || 1}, var(--cell))`,
+      gridTemplateRows: `var(--hdr) repeat(${state.puzzle?.rows || 1}, var(--cell))`,
+      '--cell': state.cellPx + 'px',
+      '--hdr': Math.round(state.cellPx * 0.78) + 'px',
+      '--fs': Math.max(11, Math.round(state.cellPx * 0.4)) + 'px',
+    }));
+    onMounted(init);
+
+    return {
+      state, BUILD, CHANGELOG, SIZE_TIERS, DIFFICULTIES, SIZE_BY_ID, DIFF_BY_ID,
+      winStat, livesArr, progress, gridStyle,
+      navigate, newGame, resumeGame, onCellTap, undo, useHint, doCheck,
+      rowSum, colSum, regionSum, rowDone, colDone, regionDone,
+      fmtTime, toggleSetting, setSetting, doExport, doImport, openBackups, doRestore,
+      resetStats, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
+      revealSolution, restartPuzzle, quitToHome, setZoom, regionDoneCount,
+      cellClasses, cellStyle, toggleTool, restartFromGame, regionTargets,
+    };
+  },
+  template: `
+  <div class="app" :class="{ generating: state.generating }">
+
+    <!-- ══ HOME ══ -->
+    <section v-if="state.screen==='home'" class="screen home">
+      <div class="brand">
+        <div class="brand-logo">∑</div>
+        <h1 class="brand-title">Coop<br>Number Sums</h1>
+        <div class="brand-sub">Kreise die richtigen Zahlen ein</div>
+      </div>
+
+      <div class="home-actions">
+        <button v-if="state.resumeAvailable" class="btn btn-resume" @click="resumeGame">
+          <span class="btn-ic">▶</span>
+          <span class="btn-tx"><b>Fortsetzen</b>
+            <small>{{ SIZE_BY_ID[state.resumeAvailable.size]?.name }} · {{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.name }} · {{ fmtTime(state.resumeAvailable.elapsed||0) }}</small>
+          </span>
+        </button>
+        <button class="btn btn-primary" @click="navigate('setup')">
+          <span class="btn-ic">✚</span><span class="btn-tx"><b>Neues Spiel</b><small>Größe & Schwierigkeit wählen</small></span>
+        </button>
+        <button class="btn btn-coop" disabled>
+          <span class="btn-ic">👥</span><span class="btn-tx"><b>Coop-Modus</b><small>Gemeinsam lösen · bald verfügbar</small></span>
+          <span class="badge-soon">bald</span>
+        </button>
+        <div class="home-row">
+          <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> Statistik</button>
+          <button class="btn btn-ghost" @click="navigate('settings')"><span class="btn-ic">⚙️</span> Einstellungen</button>
+        </div>
+        <div class="home-row">
+          <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">❓</span> Anleitung</button>
+          <button class="btn btn-ghost" @click="state.modal='changelog'"><span class="btn-ic">📝</span> Änderungen</button>
+        </div>
+      </div>
+      <div class="home-version">v{{ BUILD }}</div>
+    </section>
+
+    <!-- ══ SETUP ══ -->
+    <section v-else-if="state.screen==='setup'" class="screen setup">
+      <header class="topbar">
+        <button class="icon-btn" @click="navigate('home')">‹</button>
+        <h2>Neues Spiel</h2><span></span>
+      </header>
+      <div class="setup-body">
+        <div class="setup-label">Feldgröße</div>
+        <div class="option-grid">
+          <button v-for="s in SIZE_TIERS" :key="s.id" class="opt-card" :class="{active: state.sel.size===s.id}" @click="state.sel.size=s.id">
+            <span class="opt-emoji">{{ s.emoji }}</span>
+            <span class="opt-name">{{ s.name }}</span>
+            <span class="opt-desc">{{ s.desc }}</span>
+          </button>
+        </div>
+        <div class="setup-label">Schwierigkeit</div>
+        <div class="option-grid">
+          <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card" :class="{active: state.sel.difficulty===d.id}" @click="state.sel.difficulty=d.id">
+            <span class="opt-emoji">{{ d.emoji }}</span>
+            <span class="opt-name">{{ d.name }}</span>
+            <span class="opt-desc">{{ d.lives }} ❤ · {{ d.hints }} 💡</span>
+          </button>
+        </div>
+        <button class="btn btn-primary btn-start" @click="newGame(state.sel.size, state.sel.difficulty)">
+          Los geht's! 🚀
+        </button>
+      </div>
+    </section>
+
+    <!-- ══ GAME ══ -->
+    <section v-else-if="state.screen==='game'" class="screen game">
+      <header class="topbar game-top">
+        <button class="icon-btn" @click="quitToHome">‹</button>
+        <div class="hud">
+          <div class="hud-item lives" v-if="state.settings.livesEnabled">
+            <span v-for="(full,i) in livesArr" :key="i" class="heart" :class="{empty:!full}">♥</span>
+          </div>
+          <div class="hud-item timer" v-if="state.settings.showTimer">⏱ {{ fmtTime(state.elapsed) }}</div>
+        </div>
+        <button class="icon-btn" @click="state.modal='howto'">?</button>
+      </header>
+
+      <div v-if="state.generating" class="loading">
+        <div class="spinner"></div>
+        <div class="loading-tx">Rätsel wird erstellt…</div>
+      </div>
+
+      <template v-else-if="state.puzzle">
+        <div class="game-meta">
+          <span class="chip">{{ DIFF_BY_ID[state.puzzle.difficulty].emoji }} {{ DIFF_BY_ID[state.puzzle.difficulty].name }}</span>
+          <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
+          <span class="chip">{{ progress.kept }}/{{ progress.total }}</span>
+          <span v-if="state.puzzle.cols>=9" class="zoomctl">
+            <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
+            <button class="zoom-btn" @click="setZoom(0.15)">+</button>
+          </span>
+        </div>
+
+        <div class="board-wrap">
+          <div class="board" :style="gridStyle">
+            <div class="corner"></div>
+            <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{done: colDone(c-1)}">
+              <span>{{ state.puzzle.colTargets[c-1] }}</span>
+            </div>
+            <template v-for="r in state.puzzle.rows" :key="'r'+r">
+              <div class="hdr row-hdr" :class="{done: rowDone(r-1)}"><span>{{ state.puzzle.rowTargets[r-1] }}</span></div>
+              <div v-for="c in state.puzzle.cols" :key="r+'-'+c"
+                   class="cell" :class="cellClasses(r-1,c-1)" :style="cellStyle(r-1,c-1)"
+                   @click="onCellTap(r-1,c-1)">
+                <span v-if="state.cellMeta[r-1][c-1].chip!=null" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
+                <span class="cnum">{{ state.puzzle.values[r-1][c-1] }}</span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Werkzeug-Umschalter (Radierer / Stift) -->
+        <div class="toolbar">
+          <button class="round-btn" :disabled="!state.history.length" @click="undo" title="Rückgängig">↶</button>
+          <div class="tool-toggle" @click="toggleTool">
+            <div class="tool-pill" :class="{ pen: state.tool==='pen' }"></div>
+            <span class="tool-ic eraser" :class="{active: state.tool==='eraser'}">⌫</span>
+            <span class="tool-ic pen" :class="{active: state.tool==='pen'}">○</span>
+          </div>
+          <button class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" title="Hinweis">
+            💡<span v-if="state.hintsLeft>0" class="round-badge">{{ state.hintsLeft }}</span>
+          </button>
+        </div>
+        <div v-if="state.settings.errorReveal==='onCheck'" class="check-row">
+          <button class="btn btn-primary btn-check" @click="doCheck">✓ Prüfen</button>
+        </div>
+      </template>
+
+      <!-- Gewonnen / Verloren -->
+      <div v-if="state.status==='won'" class="overlay">
+        <div class="result-card win">
+          <div class="result-emoji">🎉</div>
+          <h2>Gelöst!</h2>
+          <div class="result-stats">
+            <div><b>{{ fmtTime(state.elapsed) }}</b><small>Zeit</small></div>
+            <div><b>{{ state.mistakes }}</b><small>Fehler</small></div>
+            <div><b>{{ state.hintsUsed }}</b><small>Hinweise</small></div>
+          </div>
+          <button class="btn btn-primary" @click="newGame(state.puzzle.size, state.puzzle.difficulty)">Nächstes Rätsel</button>
+          <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
+        </div>
+      </div>
+      <div v-if="state.status==='lost'" class="overlay">
+        <div class="result-card lose">
+          <div class="result-emoji">💔</div>
+          <h2>Keine Leben mehr</h2>
+          <p class="result-msg">Kein Problem – versuch es erneut!</p>
+          <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
+          <button class="btn btn-ghost" @click="revealSolution(); state.status='review'">Lösung zeigen</button>
+          <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
+        </div>
+      </div>
+      <div v-if="state.status==='review'" class="review-bar">
+        <span>Lösung</span>
+        <button class="btn btn-primary btn-sm" @click="quitToHome">Zum Menü</button>
+      </div>
+
+      <!-- Confetti -->
+      <div v-if="state.confetti.length" class="confetti">
+        <i v-for="p in state.confetti" :key="p.id" :style="{left:p.left+'%', background:p.color, animationDelay:p.delay+'s', animationDuration:p.dur+'s', width:p.size+'px', height:p.size+'px', transform:'rotate('+p.rot+'deg)'}"></i>
+      </div>
+    </section>
+
+    <!-- ══ STATS ══ -->
+    <section v-else-if="state.screen==='stats'" class="screen stats">
+      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>Statistik</h2><span></span></header>
+      <div class="stats-body">
+        <div class="stat-grid">
+          <div class="stat-box"><b>{{ state.stats.played }}</b><small>Gespielt</small></div>
+          <div class="stat-box"><b>{{ state.stats.won }}</b><small>Gewonnen</small></div>
+          <div class="stat-box"><b>{{ winStat }}%</b><small>Quote</small></div>
+          <div class="stat-box"><b>{{ state.stats.currentStreak }}</b><small>Serie</small></div>
+          <div class="stat-box"><b>{{ state.stats.bestStreak }}</b><small>Beste Serie</small></div>
+          <div class="stat-box"><b>{{ state.stats.hintsUsed }}</b><small>Hinweise</small></div>
+        </div>
+        <div class="stats-section-title">Nach Schwierigkeit</div>
+        <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
+          <span class="diff-name">{{ d.emoji }} {{ d.name }}</span>
+          <span class="diff-num">{{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}</span>
+        </div>
+        <button class="btn btn-danger-ghost" @click="resetStats">Statistik zurücksetzen</button>
+      </div>
+    </section>
+
+    <!-- ══ SETTINGS ══ -->
+    <section v-else-if="state.screen==='settings'" class="screen settings">
+      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>Einstellungen</h2><span></span></header>
+      <div class="settings-body">
+        <div class="set-group-title">Darstellung</div>
+        <div class="set-row" @click="toggleSetting('darkMode')">
+          <span>🌙 Dunkelmodus</span><span class="switch" :class="{on:state.settings.darkMode}"><i></i></span>
+        </div>
+
+        <div class="set-group-title">Spielhilfe</div>
+        <div class="set-row col">
+          <span class="set-row-label">⚠️ Fehleraufdeckung</span>
+          <div class="seg">
+            <button :class="{active:state.settings.errorReveal==='instant'}" @click="setSetting('errorReveal','instant')">Sofort</button>
+            <button :class="{active:state.settings.errorReveal==='onCheck'}" @click="setSetting('errorReveal','onCheck')">Beim Prüfen</button>
+          </div>
+          <small class="set-hint">{{ state.settings.errorReveal==='instant' ? 'Falsche Einkreisung wird sofort rot markiert.' : 'Fehler erst beim Tippen auf „Prüfen“.' }}</small>
+        </div>
+        <div class="set-row" @click="toggleSetting('livesEnabled')">
+          <span>❤️ Leben / Fehler-Limit</span><span class="switch" :class="{on:state.settings.livesEnabled}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('autoCrossCompleted')">
+          <span>✏️ Fertige Reihen auto-durchstreichen</span><span class="switch" :class="{on:state.settings.autoCrossCompleted}"><i></i></span>
+        </div>
+
+        <div class="set-group-title">Sonstiges</div>
+        <div class="set-row" @click="toggleSetting('showTimer')">
+          <span>⏱ Timer anzeigen</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('haptics')">
+          <span>📳 Vibration</span><span class="switch" :class="{on:state.settings.haptics}"><i></i></span>
+        </div>
+
+        <div class="set-group-title">Daten</div>
+        <button class="btn btn-ghost" @click="doExport">⬆️ Backup exportieren</button>
+        <label class="btn btn-ghost file-btn">⬇️ Backup importieren
+          <input type="file" accept="application/json" @change="doImport" hidden>
+        </label>
+        <button class="btn btn-ghost" @click="openBackups">🗂 Auto-Backups</button>
+      </div>
+    </section>
+
+    <!-- ══ TOAST ══ -->
+    <transition name="toast">
+      <div v-if="state.toast" class="toast" :class="state.toast.type">{{ state.toast.msg }}</div>
+    </transition>
+
+    <!-- ══ MODALS ══ -->
+    <div v-if="state.modal==='howto'" class="modal-bg" @click.self="state.modal=null">
+      <div class="modal">
+        <h3>So wird gespielt</h3>
+        <ol class="rules">
+          <li>Jede <b>Zahl neben einer Reihe</b> (links) und <b>über einer Spalte</b> (oben) ist die <b>Zielsumme</b>.</li>
+          <li>Kreise mit dem <b>Stift ○</b> genau die Zahlen ein, die zusammen die Zielsumme ergeben.</li>
+          <li>Überflüssige Zahlen mit dem <b>Radierer ⌫</b> durchstreichen.</li>
+          <li>Auch jede <b>farbige Region</b> hat eine eigene Zielsumme (Zahl in der Ecke).</li>
+          <li>Kreise nur ein, wo du dir <b>sicher</b> bist – jedes Rätsel ist <b>ohne Raten</b> lösbar.</li>
+          <li>Gelöst, wenn alle Summen stimmen. Im Leben-Modus kostet jeder Fehler ein ❤.</li>
+        </ol>
+        <button class="btn btn-primary" @click="state.modal=null">Verstanden</button>
+      </div>
+    </div>
+
+    <div v-if="state.modal==='changelog'" class="modal-bg" @click.self="state.modal=null">
+      <div class="modal">
+        <h3>Änderungen</h3>
+        <div class="changelog">
+          <div v-for="e in CHANGELOG" :key="e.version" class="cl-entry">
+            <div class="cl-head"><b>v{{ e.version }}</b><span>{{ e.date }}</span></div>
+            <ul><li v-for="(it,i) in e.changes" :key="i">✦ {{ it }}</li></ul>
+          </div>
+        </div>
+        <button class="btn btn-primary" @click="state.modal=null">Schließen</button>
+      </div>
+    </div>
+
+    <div v-if="state.modal==='backups'" class="modal-bg" @click.self="state.modal=null">
+      <div class="modal">
+        <h3>Auto-Backups</h3>
+        <div v-if="!loadBackups().length" class="empty">Noch keine Backups vorhanden.</div>
+        <div v-for="b in loadBackups()" :key="b.slot" class="backup-row">
+          <span>{{ new Date(b.ts).toLocaleString('de-DE') }}<small> · {{ b.label }}</small></span>
+          <button class="btn btn-sm btn-primary" @click="doRestore(b.slot)">Laden</button>
+        </div>
+        <button class="btn btn-ghost" @click="state.modal=null">Schließen</button>
+      </div>
+    </div>
+
+    <div v-if="state.modal==='confirm'" class="modal-bg" @click.self="confirmNo">
+      <div class="modal modal-sm">
+        <h3>{{ state.confirm?.title }}</h3>
+        <p class="confirm-msg">{{ state.confirm?.msg }}</p>
+        <div class="confirm-actions">
+          <button class="btn btn-ghost" @click="confirmNo">Abbrechen</button>
+          <button class="btn btn-danger" @click="confirmYes">Ja</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="state.showWhatsNew" class="modal-bg">
+      <div class="modal">
+        <div class="whatsnew-badge">✨ Neu</div>
+        <h3>Version {{ CHANGELOG[0]?.version }}</h3>
+        <ul class="whatsnew"><li v-for="(it,i) in CHANGELOG[0]?.changes" :key="i">✦ {{ it }}</li></ul>
+        <button class="btn btn-primary" @click="dismissWhatsNew">Los geht's</button>
+      </div>
+    </div>
+  </div>
+  `,
+};
+
+// Methoden, die das Template über setup() referenziert
+function regionDoneCount() { return state.puzzle ? state.puzzle.regions.filter((_, i) => regionDone(i)).length : 0; }
+function regionTargets() { return state.puzzle ? state.puzzle.regions.map(r => r.target) : []; }
+function toggleTool() { state.tool = state.tool === 'pen' ? 'eraser' : 'pen'; state.settings.confirmTool = state.tool; }
+function restartFromGame() { restartPuzzle(); }
+
+function cellClasses(r, c) {
+  const m = state.cellMeta[r][c];
+  const mk = state.marks[r][c];
+  return {
+    kept: mk === 'kept', removed: mk === 'removed',
+    region: m.region >= 0,
+    'e-t': m.edges.t, 'e-r': m.edges.r, 'e-b': m.edges.b, 'e-l': m.edges.l,
+    flash: !!state.flash[`${r}-${c}`],
+    hinted: m.hint,
+    solnc: state.status === 'review' && state.puzzle.solution[r][c],
+  };
+}
+function cellStyle(r, c) {
+  const m = state.cellMeta[r][c];
+  const st = { fontSize: 'var(--fs)' };
+  if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; }
+  return st;
+}
+
+// ─── BOOTSTRAP ────────────────────────────────────────────────────────────────
+const app = createApp(App);
+app.mount('#app');
+
+nextTick(() => {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+  const remaining = Math.max(0, 1200 - (Date.now() - APP_START));
+  setTimeout(() => {
+    splash.classList.add('fade-out');
+    setTimeout(() => { if (splash.parentNode) splash.remove(); }, 450);
+  }, remaining);
+});
+
+window.addEventListener('pagehide', () => { if (state.status === 'playing') saveActiveGame(activeSnapshot()); createBackup('close'); });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { if (state.status === 'playing') saveActiveGame(activeSnapshot()); createBackup('close'); }
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}

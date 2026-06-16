@@ -1,0 +1,7 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.log
+
+# Node (nur build.js braucht Node, keine Dependencies)
+node_modules/
