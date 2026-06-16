@@ -1,8 +1,20 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.4';
-export const BUILD_HASH = 'f1c4d99';
+export const BUILD      = '0.6';
+export const BUILD_HASH = '650c6e8';
 
 export const CHANGELOG = [
+  {
+    "version": "0.6",
+    "date": "16.06.2026",
+    "changes": [
+      "Einstellungen lassen sich jetzt wieder nach oben scrollen (Topbar bleibt fixiert)",
+      "Toolbar: Undo immer links, Toggle immer mittig, Tipps immer rechts — auch ohne Undo-Modus",
+      "Toggle und Buttons vergrößert (60 px)",
+      "Cage-Farben: ähnliche Farbtöne (< 40° Abstand) werden bei Nachbar-Cages vermieden",
+      "Bereits markierte Zellen (eingekreist/gelöscht) lassen sich nicht mehr durch Antippen rückgängig machen — nur noch per Undo",
+      "Reihe/Spalte leuchtet beim Fertigwerden komplett auf (nicht nur die Summe), genau wie Cages"
+    ]
+  },
   {
     "version": "0.4",
     "date": "16.06.2026",
