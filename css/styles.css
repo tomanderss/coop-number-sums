@@ -145,7 +145,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .cell:active { filter: brightness(1.15); }
 .cell .cnum { position: relative; z-index: 2; transition: opacity .15s; }
-.cell.region { background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .14); --rcol: hsl(var(--rc-h) var(--rc-s) var(--rc-l)); }
+.cell.region { background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .20); --rcol: hsl(var(--rc-h) var(--rc-s) var(--rc-l)); }
 .cell.region.e-t { border-top: 2px solid var(--rcol); }
 .cell.region.e-r { border-right: 2px solid var(--rcol); }
 .cell.region.e-b { border-bottom: 2px solid var(--rcol); }
@@ -164,12 +164,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   animation: ringIn .22s cubic-bezier(.2,1.4,.5,1);
 }
 @keyframes ringIn { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-/* durchgestrichen */
-.cell.removed .cnum { opacity: .22; }
-.cell.removed::after {
-  content: ''; position: absolute; left: 22%; right: 22%; top: 50%; height: 2px;
-  background: var(--text3); transform: rotate(-16deg); z-index: 1; opacity: .55;
-}
+/* gelöscht: Zahl verschwindet (kein Durchstreichen), Zelle wird leer */
+.cell.removed .cnum { opacity: 0; }
+.cell.removed { filter: saturate(.55) brightness(.97); }
+.cell.removed.region { background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .10); }
 .cell.flash { background: var(--bad-soft) !important; animation: shake .3s; }
 .cell.flash::after { border-color: var(--bad) !important; background: var(--bad); }
 @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }

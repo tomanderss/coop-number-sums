@@ -20,21 +20,21 @@ export const SIZE_TIERS = [
 export const SIZE_BY_ID = Object.fromEntries(SIZE_TIERS.map(s => [s.id, s]));
 
 // ─── SCHWIERIGKEITEN ──────────────────────────────────────────────────────────
-// maxVal       : größter Zahlenwert in einer Zelle
-// keepRatio    : Anteil der Zellen, die zur Lösung gehören (eingekreist werden)
-// regionFactor : grobe Anzahl farbiger Regionen relativ zur Feldfläche (0 = keine)
-// lives        : Startleben (Herzen)
-// allowHypo    : erlaubt Tier-3-Deduktion (Hypothese/Widerspruch) → schwerer
-// minTier      : geforderte Mindest-Deduktionsstufe, damit das Rätsel "passt"
+// maxVal     : größter Zahlenwert in einer Zelle
+// keepRatio  : Anteil der Zellen, die zur Lösung gehören (eingekreist werden)
+// regionAvg  : mittlere Größe einer farbigen Region (Zellen); Regionen bedecken
+//              IMMER das ganze Feld (kleiner = mehr/kleinere Regionen = schwerer)
+// lives      : Startleben (Herzen)
+// allowHypo  : erlaubt Tier-3-Deduktion (Hypothese/Widerspruch) → schwerer
 export const DIFFICULTIES = [
-  { id: 'leicht',  name: 'Leicht',  emoji: '🟢', maxVal: 5, keepRatio: 0.62,
-    regionFactor: 0.00, lives: 5, allowHypo: false, minTier: 1, hints: 5 },
+  { id: 'leicht',  name: 'Leicht',  emoji: '🟢', maxVal: 6, keepRatio: 0.62,
+    regionAvg: 8, lives: 5, allowHypo: false, hints: 5 },
   { id: 'mittel',  name: 'Mittel',  emoji: '🟡', maxVal: 7, keepRatio: 0.56,
-    regionFactor: 0.04, lives: 4, allowHypo: false, minTier: 1, hints: 3 },
+    regionAvg: 6, lives: 4, allowHypo: false, hints: 3 },
   { id: 'schwer',  name: 'Schwer',  emoji: '🟠', maxVal: 9, keepRatio: 0.52,
-    regionFactor: 0.07, lives: 3, allowHypo: false, minTier: 2, hints: 2 },
+    regionAvg: 5, lives: 3, allowHypo: false, hints: 2 },
   { id: 'experte', name: 'Experte', emoji: '🔴', maxVal: 9, keepRatio: 0.48,
-    regionFactor: 0.10, lives: 3, allowHypo: true,  minTier: 2, hints: 1 },
+    regionAvg: 5, lives: 3, allowHypo: true,  hints: 1 },
 ];
 
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));

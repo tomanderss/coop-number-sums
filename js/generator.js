@@ -44,26 +44,89 @@ function buildSolutionMask(rng, rows, cols, keepRatio) {
   return mask;
 }
 
-// ─── Regionen platzieren (nicht überlappende Rechtecke) ───────────────────────
-function placeRegions(rng, rows, cols, count) {
-  const used = Array.from({ length: rows }, () => Array(cols).fill(false));
-  const regions = [];
-  let tries = 0;
-  while (regions.length < count && tries < count * 40) {
-    tries++;
-    const h = randInt(rng, 2, 3), w = randInt(rng, 2, 3);
-    if (h > rows || w > cols) continue;
-    const r0 = randInt(rng, 0, rows - h), c0 = randInt(rng, 0, cols - w);
-    let free = true;
-    for (let r = r0; r < r0 + h && free; r++)
-      for (let c = c0; c < c0 + w; c++) if (used[r][c]) { free = false; break; }
-    if (!free) continue;
-    const cells = [];
-    for (let r = r0; r < r0 + h; r++)
-      for (let c = c0; c < c0 + w; c++) { used[r][c] = true; cells.push([r, c]); }
-    regions.push({ id: regions.length, cells, colorIndex: regions.length % REGION_COLORS.length, target: 0 });
+// ─── Regionen-Parkettierung: unregelmäßige Polyominoes, die das GANZE Feld
+//     bedecken (wie im echten Spiel; auch L-/eckige Formen). Jede Zelle gehört
+//     zu genau einer Region.
+const MIN_CAGE = 6; // Mindestgröße einer farbigen Region (Cage)
+
+function partitionRegions(rng, rows, cols, targetCount) {
+  const total = rows * cols;
+  // Nicht mehr Regionen als bei Mindestgröße möglich
+  const k = Math.max(1, Math.min(targetCount, Math.floor(total / MIN_CAGE) || 1));
+  const id = new Int16Array(total).fill(-1);
+  const neighbors = (i) => {
+    const r = Math.floor(i / cols), c = i % cols, out = [];
+    if (r > 0) out.push(i - cols); if (r < rows - 1) out.push(i + cols);
+    if (c > 0) out.push(i - 1); if (c < cols - 1) out.push(i + 1);
+    return out;
+  };
+
+  // k verschiedene Saatzellen wählen
+  const pool = Array.from({ length: total }, (_, i) => i);
+  const seeds = [];
+  for (let s = 0; s < k; s++) { const j = Math.floor(rng() * pool.length); seeds.push(pool[j]); pool.splice(j, 1); }
+
+  // Mehrquellen-BFS (jede Zelle zur nächstgelegenen Saat): kompakte, ausgewogene
+  // Cages gleicher Größe. Jede Schicht wird gemischt → organische, eckige Ränder.
+  seeds.forEach((cell, region) => { id[cell] = region; });
+  let layer = seeds.slice();
+  while (layer.length) {
+    for (let i = layer.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [layer[i], layer[j]] = [layer[j], layer[i]]; }
+    const nextLayer = [];
+    for (const cell of layer) for (const nb of neighbors(cell)) if (id[nb] === -1) { id[nb] = id[cell]; nextLayer.push(nb); }
+    layer = nextLayer;
   }
+  for (let i = 0; i < total; i++) if (id[i] === -1) { const nb = neighbors(i).find(n => id[n] !== -1); id[i] = nb != null ? id[nb] : 0; }
+
+  // ── Zu kleine Cages mit Nachbarn verschmelzen, bis alle ≥ MIN_CAGE ──────────
+  mergeSmallCages(id, total, neighbors);
+
+  // IDs lückenlos neu nummerieren
+  const map = new Map(); let next = 0;
+  for (let i = 0; i < total; i++) { if (!map.has(id[i])) map.set(id[i], next++); id[i] = map.get(id[i]); }
+  const regions = Array.from({ length: next }, (_, r2) => ({ id: r2, cells: [], colorIndex: 0, target: 0 }));
+  for (let i = 0; i < total; i++) regions[id[i]].cells.push([Math.floor(i / cols), i % cols]);
+  colorRegions(regions, id, rows, cols);
   return regions;
+}
+
+// Verschmilzt jede Region < MIN_CAGE in die KLEINSTE benachbarte Region
+// (so wachsen zwei kleine zu einer ≥6 zusammen, statt alles in eine große zu kippen).
+function mergeSmallCages(id, total, neighbors) {
+  const sizes = () => { const m = new Map(); for (let i = 0; i < total; i++) m.set(id[i], (m.get(id[i]) || 0) + 1); return m; };
+  for (let guard = 0; guard < total; guard++) {
+    const sz = sizes();
+    if (sz.size <= 1) break;
+    // kleinste Region unter MIN_CAGE finden
+    let small = null, smallSz = Infinity;
+    for (const [rid, s] of sz) if (s < MIN_CAGE && s < smallSz) { smallSz = s; small = rid; }
+    if (small === null) break; // alle groß genug
+    // kleinste benachbarte Region als Ziel
+    let target = null, tSz = Infinity;
+    for (let i = 0; i < total; i++) if (id[i] === small) {
+      for (const nb of neighbors(i)) { const nr = id[nb]; if (nr !== small) { const s = sz.get(nr); if (s < tSz) { tSz = s; target = nr; } } }
+    }
+    if (target === null) break;
+    for (let i = 0; i < total; i++) if (id[i] === small) id[i] = target;
+  }
+}
+
+// Greedy-Färbung, damit benachbarte Regionen verschiedene Farben haben.
+function colorRegions(regions, idGrid, rows, cols) {
+  const k = regions.length;
+  const adj = Array.from({ length: k }, () => new Set());
+  const idx = (r, c) => r * cols + c;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const a = idGrid[idx(r, c)];
+    if (c < cols - 1) { const b = idGrid[idx(r, c + 1)]; if (b !== a) { adj[a].add(b); adj[b].add(a); } }
+    if (r < rows - 1) { const b = idGrid[idx(r + 1, c)]; if (b !== a) { adj[a].add(b); adj[b].add(a); } }
+  }
+  for (let i = 0; i < k; i++) {
+    const banned = new Set();
+    for (const nb of adj[i]) if (nb < i) banned.add(regions[nb].colorIndex);
+    let col = 0; while (banned.has(col) && col < REGION_COLORS.length) col++;
+    regions[i].colorIndex = col % REGION_COLORS.length;
+  }
 }
 
 // ─── Werte vergeben + Zielsummen berechnen ────────────────────────────────────
@@ -91,11 +154,9 @@ function computeTargets(rows, cols, mask, values, regions) {
 // (zu viele Teilsummen-Kollisionen). Daher wächst der Zahlenbereich mit der
 // Kantenlänge — die "Extrem"/"Unendlichkeit"-Stufen nutzen also größere Zahlen.
 function sizeFloorMaxVal(n) {
-  if (n <= 6) return 0;
-  if (n <= 8) return 9;
-  if (n <= 10) return 13;
-  if (n <= 12) return 18;
-  return 24; // 13–14
+  if (n <= 10) return 0;   // bis 10×10: authentische kleine Zahlen (≤9)
+  if (n <= 12) return 12;
+  return 15;               // 13–14: moderat größere Zahlen
 }
 function effParams(diff, rows, cols) {
   const n = Math.max(rows, cols);
@@ -103,10 +164,8 @@ function effParams(diff, rows, cols) {
   const maxVal = Math.max(diff.maxVal, sizeFloorMaxVal(n));
   let keepRatio = diff.keepRatio;
   if (n >= 9) keepRatio = Math.max(keepRatio, 0.58); // große Felder: etwas dichter → besser lösbar
-  let regionCount = Math.round(diff.regionFactor * area);
-  if (diff.regionFactor > 0 && n >= 7) regionCount = Math.max(regionCount, Math.round(area / 12));
-  if (n >= 9) regionCount = Math.max(regionCount, Math.round(area / 9)); // große Felder brauchen Regionen für Lösbarkeit
-  regionCount = Math.min(regionCount, Math.floor(area / 4)); // nicht überfüllen
+  // Regionen bedecken das ganze Feld; Anzahl ≈ Fläche / mittlere Regionsgröße.
+  const regionCount = Math.max(2, Math.round(area / diff.regionAvg));
   return { maxVal, keepRatio, regionCount };
 }
 
@@ -142,7 +201,15 @@ export function generatePuzzle(opts) {
     const { maxVal, keepRatio, regionCount } = effParams(diff, rows, cols);
 
     const mask = buildSolutionMask(rng, rows, cols, keepRatio);
-    const regions = placeRegions(rng, rows, cols, regionCount);
+    const regions = partitionRegions(rng, rows, cols, regionCount);
+    // Jede Region braucht mind. eine Lösungszelle → Zielsumme ≥ 1 (kein „0"-Hinweis,
+    // und keine fälschlich „fertige" Region beim Start).
+    for (const reg of regions) {
+      if (!reg.cells.some(([r, c]) => mask[r][c])) {
+        const [r, c] = reg.cells[randInt(rng, 0, reg.cells.length - 1)];
+        mask[r][c] = true;
+      }
+    }
     const values = assignValues(rng, rows, cols, mask, maxVal);
     const { rowTargets, colTargets } = computeTargets(rows, cols, mask, values, regions);
 

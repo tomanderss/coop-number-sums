@@ -1,8 +1,19 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.1';
-export const BUILD_HASH = 'init';
+export const BUILD      = '0.2';
+export const BUILD_HASH = 'a8823d9';
 
 export const CHANGELOG = [
+  {
+    "version": "0.2",
+    "date": "16.06.2026",
+    "changes": [
+      "Farbige Regionen bedecken jetzt das ganze Feld – unregelmäßige Formen (auch über Eck)",
+      "Radieren löscht die Zahl jetzt vollständig, statt sie nur durchzustreichen",
+      "Zahlen bleiben bis 10×10 klein (1–9) – authentischer wie im Original",
+      "Benachbarte Regionen bekommen automatisch unterschiedliche Farben",
+      "Fehler behoben: Regionen ohne Lösungszahl bzw. fälschlich vorab geleerte Felder"
+    ]
+  },
   {
     "version": "0.1",
     "date": "16.06.2026",

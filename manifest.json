@@ -1,6 +1,6 @@
 {
   "name": "Coop Number Sums",
-  "short_name": "Number Sums",
+  "short_name": "Coop Number Sums",
   "description": "Kreise die richtigen Zahlen ein — Number Sums Rätsel mit Schwierigkeitsgraden und Größen.",
   "start_url": "./index.html",
   "display": "standalone",

@@ -95,16 +95,25 @@ function buildCellMeta(puzzle) {
   const { rows, cols, regions } = puzzle;
   const meta = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => ({ region: -1, color: null, edges: {}, chip: null, hint: false })));
+  // Regions-ID-Gitter aufbauen
+  const rid = Array.from({ length: rows }, () => Array(cols).fill(-1));
+  regions.forEach((reg, ri) => { for (const [r, c] of reg.cells) rid[r][c] = ri; });
+  const same = (r, c, ri) => r >= 0 && r < rows && c >= 0 && c < cols && rid[r][c] === ri;
+
   regions.forEach((reg, ri) => {
-    let minR = Infinity, maxR = -1, minC = Infinity, maxC = -1;
-    for (const [r, c] of reg.cells) { minR = Math.min(minR, r); maxR = Math.max(maxR, r); minC = Math.min(minC, c); maxC = Math.max(maxC, c); }
     const color = REGION_COLORS[reg.colorIndex % REGION_COLORS.length];
+    let chipCell = null;
     for (const [r, c] of reg.cells) {
       const m = meta[r][c];
       m.region = ri; m.color = color;
-      m.edges = { t: r === minR, b: r === maxR, l: c === minC, r: c === maxC };
+      // Rand auf einer Seite, wenn der Nachbar zu einer anderen Region gehört (oder außerhalb)
+      m.edges = {
+        t: !same(r - 1, c, ri), b: !same(r + 1, c, ri),
+        l: !same(r, c - 1, ri), r: !same(r, c + 1, ri),
+      };
+      if (chipCell === null || r < chipCell[0] || (r === chipCell[0] && c < chipCell[1])) chipCell = [r, c];
     }
-    meta[minR][minC].chip = reg.target;
+    if (chipCell) meta[chipCell[0]][chipCell[1]].chip = reg.target;
   });
   return meta;
 }
@@ -797,6 +806,8 @@ function cellStyle(r, c) {
 // ─── BOOTSTRAP ────────────────────────────────────────────────────────────────
 const app = createApp(App);
 app.mount('#app');
+// Debug-Hook nur lokal (nie auf der echten Domain aktiv)
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved };
 
 nextTick(() => {
   const splash = document.getElementById('splash');
