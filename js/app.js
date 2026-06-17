@@ -68,6 +68,7 @@ const state = reactive({
 let timerHandle = null;
 let saveThrottle = 0;
 let pinchState = null;       // { dist, zoom } während einer 2-Finger-Geste
+let coopIntentionalLeave = false; // unterscheidet bewusstes Verlassen von echtem Verbindungsabbruch
 
 // ─── HELFER ───────────────────────────────────────────────────────────────────
 function showToast(msg, type = 'info', ms = 2000) {
@@ -168,21 +169,23 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.puzzle = puzzle;
   state.cellMeta = buildCellMeta(puzzle);
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
-  state.marks = saved ? saved.marks : Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill('none'));
-  state.markedBy = (saved && saved.markedBy) || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill(null));
-  state.maxLives = saved ? saved.maxLives : LIVES;
-  state.lives = saved ? saved.lives : LIVES;
-  state.hintsLeft = saved ? saved.hintsLeft : HINTS;
-  state.hintsUsed = saved ? saved.hintsUsed : 0;
-  state.mistakes = saved ? saved.mistakes : 0;
+  state.marks = saved?.marks || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill('none'));
+  state.markedBy = saved?.markedBy || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill(null));
+  state.maxLives = saved?.maxLives ?? LIVES;
+  state.lives = saved?.lives ?? LIVES;
+  state.hintsLeft = saved?.hintsLeft ?? HINTS;
+  state.hintsUsed = saved?.hintsUsed ?? 0;
+  state.mistakes = saved?.mistakes ?? 0;
   state.history = [];
   state.flash = {};
   state.justResolved = {};
   state.tool = state.settings.confirmTool || 'pen';
   state.status = 'playing';
   state.newHighscore = false;
-  state.elapsed = saved ? (saved.elapsed || 0) : 0;
-  state.startTime = Date.now() - state.elapsed;
+  state.elapsed = saved?.elapsed ?? 0;
+  // Bei Coop-INIT übernimmt der Gast den exakten Host-Startzeitpunkt, damit beide
+  // Seiten dieselbe Zeit anzeigen (sonst Drift durch Verbindungsaufbau-Latenz).
+  state.startTime = saved?.startTime ?? (Date.now() - state.elapsed);
   state.zoom = 1;
   computeCellSize();
   persistGame();
@@ -192,7 +195,7 @@ function loadPuzzleIntoState(puzzle, saved) {
 function computeCellSize() {
   if (!state.puzzle) return;
   const cols = state.puzzle.cols;
-  const avail = Math.min(window.innerWidth - 24, 560);
+  const avail = Math.min(window.innerWidth - 44, 496); // 2*(14px App-Padding + 6px Board-Wrap-Padding) + Sicherheitspuffer
   const ideal = Math.floor(avail / (cols + 1)); // +1 für Kopfspalte
   const base = Math.max(26, Math.min(56, ideal));
   state.cellPx = Math.round(base * state.zoom);
@@ -339,28 +342,34 @@ function doCheck(broadcast = true) {
   persistGame();
 }
 
+// Wendet einen Hinweis auf eine Zelle an (lokal ausgelöst oder vom Coop-Partner empfangen).
+function applyHintEffect(r, c, mark) {
+  const region = state.cellMeta[r][c].region;
+  const wasRow = rowResolved(r), wasCol = colResolved(c);
+  const wasRegion = region >= 0 ? regionResolved(region) : false;
+
+  state.history.push({ r, c, prev: state.marks[r][c] });
+  state.marks[r][c] = mark;
+  state.markedBy[r][c] = null; // Hinweis zählt nicht als "von mir/Partner markiert"
+  // .hint = kurzer Leucht-Puls (Quadrat), .hintMark = bleibt für den Rest des Rätsels
+  state.cellMeta[r][c].hint = true;
+  state.cellMeta[r][c].hintMark = true;
+  setTimeout(() => { if (state.cellMeta[r]) state.cellMeta[r][c].hint = false; }, 1400);
+
+  if (!wasRow && rowResolved(r)) pulseResolved('row', r);
+  if (!wasCol && colResolved(c)) pulseResolved('col', c);
+  if (region >= 0 && !wasRegion && regionResolved(region)) pulseResolved('region', region);
+
+  afterMove();
+}
+
 function useHint() {
   if (state.status !== 'playing' || state.hintsLeft <= 0) return;
   const hint = findHintCell(state.puzzle, state.marks);
   if (!hint) return;
   state.hintsLeft--; state.hintsUsed++;
-  const next = hint.want; // 'kept' | 'removed'
-  const region = state.cellMeta[hint.r][hint.c].region;
-  const wasRow = rowResolved(hint.r), wasCol = colResolved(hint.c);
-  const wasRegion = region >= 0 ? regionResolved(region) : false;
-
-  state.history.push({ r: hint.r, c: hint.c, prev: state.marks[hint.r][hint.c] });
-  state.marks[hint.r][hint.c] = next;
-  // .hint = kurzer Leucht-Puls (Quadrat), .hintMark = bleibt für den Rest des Rätsels
-  state.cellMeta[hint.r][hint.c].hint = true;
-  state.cellMeta[hint.r][hint.c].hintMark = true;
-  setTimeout(() => { if (state.cellMeta[hint.r]) state.cellMeta[hint.r][hint.c].hint = false; }, 1400);
-
-  if (!wasRow && rowResolved(hint.r)) pulseResolved('row', hint.r);
-  if (!wasCol && colResolved(hint.c)) pulseResolved('col', hint.c);
-  if (region >= 0 && !wasRegion && regionResolved(region)) pulseResolved('region', region);
-
-  afterMove();
+  applyHintEffect(hint.r, hint.c, hint.want);
+  if (state.coop.active) coopSend({ type: Coop.MSG.HINT, r: hint.r, c: hint.c, mark: hint.want });
 }
 
 function undo(broadcast = true) {
@@ -394,18 +403,26 @@ function handleCoopMsg(msg, fromConn) {
   } else if (msg.type === Coop.MSG.PAUSE) {
     if (msg.paused) pauseGame(false); else resumeFromPause(false);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.HINT) {
+    applyHintEffect(msg.r, msg.c, msg.mark);
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.INIT) {
-    loadPuzzleIntoState(msg.puzzle, { marks: msg.marks, markedBy: msg.markedBy });
+    loadPuzzleIntoState(msg.puzzle, { marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime });
     state.coop.active = true;
     state.coop.connected = true;
     state.coop.waitingForGuest = false;
     navigate('game');
-  } else if (msg.type === Coop.MSG.STATUS && msg.status === 'won') {
-    win();
+  } else if (msg.type === Coop.MSG.STATUS) {
+    const remote = { timeMs: msg.timeMs, mistakes: msg.mistakes, hintsUsed: msg.hintsUsed };
+    if (msg.status === 'won') win(remote);
+    else if (msg.status === 'lost') lose(remote);
+    else if (msg.status === 'gaveup') giveUp(remote);
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   }
 }
 
 function coopReset() {
+  coopIntentionalLeave = true;
   Coop.leave();
   const keepDiff = state.coop.lobbyDiffId;
   state.coop.active = false; state.coop.role = null; state.coop.code = '';
@@ -413,9 +430,47 @@ function coopReset() {
   state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
 }
 
+// Gibt den Raum/Code frei, sobald eine Runde beendet ist (gewonnen/verloren/aufgegeben),
+// ohne die Ergebnisanzeige zu stören — das Rätsel bleibt offline weiter einsehbar,
+// der Code wird sofort wieder frei für neue Spiele.
+function coopReleaseRoom() {
+  if (!state.coop.active) return;
+  coopIntentionalLeave = true;
+  Coop.leave();
+  state.coop.connected = false;
+  state.coop.waitingForGuest = false;
+}
+
+// Wird aufgerufen, wenn der Gast die Verbindung zum Host unerwartet verliert
+// (Inaktivität, Tab eingeschlafen, Netzwerkausfall) während die Runde noch läuft:
+// der Gast übernimmt selbst die Host-Rolle unter demselben Code, damit der
+// ursprüngliche Host später wieder beitreten kann.
+function promoteToHost() {
+  state.coop.role = 'host';
+  state.coop.connected = false;
+  Coop.leave(); // alte (Gast-)Peer-Verbindung sauber abräumen, bevor der neue Host-Slot belegt wird
+  coopIntentionalLeave = false;
+  Coop.hostGame({
+    code: state.coop.code,
+    onOpen() { showToast('Host getrennt — du bist jetzt Host 📡', 'info', 4000); },
+    onError() {
+      // Code ist beim Broker evtl. noch kurz reserviert — erneut versuchen.
+      setTimeout(() => { if (state.coop.active && state.coop.role === 'host' && !state.coop.connected) promoteToHost(); }, 1500);
+    },
+    onJoin(conn) {
+      state.coop.connected = true;
+      Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+      showToast('Mitspieler verbunden 👥');
+    },
+    onLeave() { state.coop.connected = false; showToast('Mitspieler hat getrennt', 'info', 3000); },
+    onMessage: (d, conn) => handleCoopMsg(d, conn),
+  });
+}
+
 function startHosting() {
   if (!Coop.isAvailable()) { state.coop.error = 'WebRTC nicht verfügbar.'; return; }
   if (!CODE_RE.test(state.coop.code)) { state.coop.error = 'Bitte 6-stelligen Zahlencode eingeben.'; return; }
+  coopIntentionalLeave = false;
   state.coop.role = 'host';
   state.coop.waitingForGuest = true;
   state.coop.error = null;
@@ -434,7 +489,7 @@ function startHosting() {
       state.coop.connected = true;
       state.coop.waitingForGuest = false;
       navigate('game');
-      Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy });
+      Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
       showToast('Mitspieler verbunden 👥');
     },
     onLeave() { state.coop.connected = false; showToast('Mitspieler hat getrennt', 'info', 3000); },
@@ -444,6 +499,7 @@ function startHosting() {
 
 function startJoining() {
   if (!CODE_RE.test(state.coop.code)) { state.coop.error = 'Bitte 6-stelligen Zahlencode eingeben.'; return; }
+  coopIntentionalLeave = false;
   state.coop.role = 'guest';
   state.coop.waitingForGuest = true;
   state.coop.error = null;
@@ -457,15 +513,33 @@ function startJoining() {
         e.type === 'timeout'          ? 'Zeitüberschreitung.' : 'Verbindungsfehler.';
     },
     onMessage: (d) => handleCoopMsg(d, null),
-    onClose() { state.coop.connected = false; showToast('Verbindung zum Host getrennt', 'info', 3000); },
+    onClose() {
+      state.coop.connected = false;
+      if (coopIntentionalLeave) return;
+      if (state.coop.active && state.status === 'playing') {
+        showToast('Host getrennt — werde neuer Host …', 'info', 3000);
+        promoteToHost();
+      } else {
+        showToast('Verbindung zum Host getrennt', 'info', 3000);
+      }
+    },
   });
 }
 
-function win() {
+// remote: vom Coop-Partner empfangene, maßgebliche Werte (überschreibt lokal ggf.
+// abweichende Zeit/Fehler/Hinweise, damit beide Seiten exakt denselben Endstand zeigen).
+// Bei jedem Rundenende (lokal wie remote) wird der Coop-Raum/Code sofort wieder
+// freigegeben — das Ergebnis bleibt sichtbar, das Rätsel offline weiter einsehbar.
+function win(remote) {
   if (state.status === 'won') return;
   state.status = 'won';
   stopTimer();
   launchConfetti();
+  if (remote) {
+    state.elapsed = remote.timeMs;
+    state.mistakes = remote.mistakes;
+    state.hintsUsed = remote.hintsUsed;
+  }
   const { stats, newHighscore } = recordResult({
     difficulty: state.puzzle.difficulty, outcome: 'won',
     timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
@@ -473,30 +547,53 @@ function win() {
   state.stats = stats;
   state.newHighscore = newHighscore;
   saveActiveGame(null);
-  if (state.coop.active && state.coop.role === 'host') coopSend({ type: Coop.MSG.STATUS, status: 'won' });
+  if (state.coop.active && !remote) {
+    coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
+  }
+  coopReleaseRoom();
 }
 
-function lose() {
+function lose(remote) {
+  if (state.status === 'lost') return;
   state.status = 'lost';
   stopTimer();
+  if (remote) {
+    state.elapsed = remote.timeMs;
+    state.mistakes = remote.mistakes;
+    state.hintsUsed = remote.hintsUsed;
+  }
   const { stats } = recordResult({
     difficulty: state.puzzle.difficulty, outcome: 'lost',
     timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
   });
   state.stats = stats;
   saveActiveGame(null);
+  if (state.coop.active && !remote) {
+    coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
+  }
+  coopReleaseRoom();
 }
 
-function giveUp() {
-  if (state.status !== 'playing') return;
+function giveUp(remote) {
+  if (!remote && state.status !== 'playing') return;
+  if (remote && state.status === 'gaveup') return;
   state.status = 'gaveup';
   stopTimer();
+  if (remote) {
+    state.elapsed = remote.timeMs;
+    state.mistakes = remote.mistakes;
+    state.hintsUsed = remote.hintsUsed;
+  }
   const { stats } = recordResult({
     difficulty: state.puzzle.difficulty, outcome: 'gaveup',
     timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
   });
   state.stats = stats;
   saveActiveGame(null);
+  if (state.coop.active && !remote) {
+    coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
+  }
+  coopReleaseRoom();
 }
 
 function revealSolution() {
@@ -748,7 +845,7 @@ const App = {
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
           </button>
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="ask('Aufgeben?', 'Das Rätsel wird als aufgegeben gewertet.', giveUp)" title="Aufgeben">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h13l-3 4 3 4H5"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="5" y="3" width="2.4" height="18" rx="1.2"/><path d="M7.4 4h12.1l-3 3.6 3 3.6H7.4z"/></svg>
           </button>
           <button class="icon-btn" @click="state.modal='howto'">?</button>
         </div>
@@ -900,7 +997,7 @@ const App = {
           </div>
           <div class="diff-row-sub">
             <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
-            <span v-if="avgTimeFor(d.id)!=null">⌀ {{ fmtTime(avgTimeFor(d.id)) }}</span>
+            <span v-if="avgTimeFor(d.id)!=null" class="chip">⌀ {{ fmtTime(avgTimeFor(d.id)) }}</span>
             <span v-if="state.stats.byDifficulty[d.id]?.gaveup">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}</span>
             <span v-if="state.stats.byDifficulty[d.id]?.lost">💔 {{ state.stats.byDifficulty[d.id].lost }}</span>
           </div>

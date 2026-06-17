@@ -2,38 +2,97 @@
 // Der Host legt einen 6-stelligen Zahlencode fest; Gäste verbinden sich damit.
 // Der Host ist die maßgebliche Instanz (autoritativ) und verteilt alle Änderungen.
 // PeerJS wird als globales window.Peer geladen (siehe index.html).
+//
+// Herzschlag: da kein eigener Signaling-Server existiert (PeerJS-Cloud-Broker
+// ohne Heartbeat-API), schicken sich Host und Gast alle HEARTBEAT_MS ein
+// internes __hb/__hbAck-Päckchen. Bleibt eine Antwort länger als
+// HEARTBEAT_TIMEOUT_MS aus, gilt die Verbindung als tot (Inaktivität,
+// eingeschlafener Tab, Netzwerkausfall ohne saubere 'close'-Meldung) — das
+// löst dieselben onLeave/onClose-Pfade wie ein reguläres Trennen aus.
 
 const PREFIX = 'coopnumsums-v1-'; // Namespace für Peer-IDs
+const HEARTBEAT_MS = 4000;
+const HEARTBEAT_TIMEOUT_MS = 13000;
 
 let peer = null;
-let guestConns = [];   // Host: alle Gast-Verbindungen
-let hostConn = null;   // Gast: Verbindung zum Host
+let guestConns = [];          // Host: alle Gast-Verbindungen
+let hostConn = null;          // Gast: Verbindung zum Host
+let heartbeatHandle = null;
+let lastSeenByConn = new Map(); // Host: conn -> ts letzter Aktivität
+let lastSeenHost = 0;           // Gast: ts letzter Aktivität vom Host
 
 export function isAvailable() { return typeof window !== 'undefined' && !!window.Peer; }
+
+function stopHeartbeat() {
+  if (heartbeatHandle) { clearInterval(heartbeatHandle); heartbeatHandle = null; }
+}
 
 // ─── HOST ─────────────────────────────────────────────────────────────────────
 export function hostGame({ code, onOpen, onError, onJoin, onLeave, onMessage }) {
   guestConns = [];
+  lastSeenByConn = new Map();
+  stopHeartbeat();
   peer = new window.Peer(PREFIX + code, { debug: 1 });
   peer.on('open', () => onOpen && onOpen());
   peer.on('error', (e) => onError && onError(e)); // z.B. 'unavailable-id' = Code belegt
   peer.on('connection', (conn) => {
-    conn.on('open', () => { guestConns.push(conn); onJoin && onJoin(conn); });
-    conn.on('data', (d) => onMessage && onMessage(d, conn));
-    const drop = () => { guestConns = guestConns.filter(c => c !== conn); onLeave && onLeave(conn); };
+    conn.on('open', () => { guestConns.push(conn); lastSeenByConn.set(conn, Date.now()); onJoin && onJoin(conn); });
+    conn.on('data', (d) => {
+      lastSeenByConn.set(conn, Date.now());
+      if (d && d.__hb) { try { conn.send({ __hbAck: true }); } catch {} return; }
+      if (d && d.__hbAck) return;
+      onMessage && onMessage(d, conn);
+    });
+    const drop = () => {
+      guestConns = guestConns.filter(c => c !== conn);
+      lastSeenByConn.delete(conn);
+      onLeave && onLeave(conn);
+    };
     conn.on('close', drop); conn.on('error', drop);
   });
+  heartbeatHandle = setInterval(() => {
+    const now = Date.now();
+    for (const conn of [...guestConns]) {
+      const last = lastSeenByConn.get(conn) || now;
+      if (now - last > HEARTBEAT_TIMEOUT_MS) {
+        try { conn.close(); } catch {}
+        guestConns = guestConns.filter(c => c !== conn);
+        lastSeenByConn.delete(conn);
+        onLeave && onLeave(conn);
+      } else {
+        try { conn.send({ __hb: true }); } catch {}
+      }
+    }
+  }, HEARTBEAT_MS);
 }
 
 // ─── GAST ─────────────────────────────────────────────────────────────────────
 export function joinGame({ code, onOpen, onError, onMessage, onClose }) {
   peer = new window.Peer({ debug: 1 });
   let settled = false;
+  stopHeartbeat();
   peer.on('open', () => {
     hostConn = peer.connect(PREFIX + String(code), { reliable: true });
-    hostConn.on('open', () => { settled = true; onOpen && onOpen(); });
-    hostConn.on('data', (d) => onMessage && onMessage(d));
-    hostConn.on('close', () => onClose && onClose());
+    hostConn.on('open', () => {
+      settled = true; lastSeenHost = Date.now(); onOpen && onOpen();
+      heartbeatHandle = setInterval(() => {
+        if (!hostConn) return;
+        if (Date.now() - lastSeenHost > HEARTBEAT_TIMEOUT_MS) {
+          stopHeartbeat();
+          try { hostConn.close(); } catch {}
+          onClose && onClose();
+          return;
+        }
+        try { hostConn.send({ __hb: true }); } catch {}
+      }, HEARTBEAT_MS);
+    });
+    hostConn.on('data', (d) => {
+      lastSeenHost = Date.now();
+      if (d && d.__hb) { try { hostConn.send({ __hbAck: true }); } catch {} return; }
+      if (d && d.__hbAck) return;
+      onMessage && onMessage(d);
+    });
+    hostConn.on('close', () => { stopHeartbeat(); onClose && onClose(); });
     hostConn.on('error', (e) => onError && onError(e));
   });
   peer.on('error', (e) => onError && onError(e)); // z.B. 'peer-unavailable' = Code falsch
@@ -48,10 +107,11 @@ export function sendToConn(conn, msg) { try { if (conn && conn.open) conn.send(m
 export function sendToHost(msg) { try { if (hostConn && hostConn.open) hostConn.send(msg); } catch {} }
 
 export function leave() {
+  stopHeartbeat();
   try { if (peer) peer.destroy(); } catch {}
-  peer = null; hostConn = null; guestConns = [];
+  peer = null; hostConn = null; guestConns = []; lastSeenByConn = new Map(); lastSeenHost = 0;
 }
 
 export const MSG = {
-  INIT: 'init', MOVE: 'move', UNDO: 'undo', CHECK: 'check', STATUS: 'status', PAUSE: 'pause',
+  INIT: 'init', MOVE: 'move', UNDO: 'undo', CHECK: 'check', STATUS: 'status', PAUSE: 'pause', HINT: 'hint',
 };
