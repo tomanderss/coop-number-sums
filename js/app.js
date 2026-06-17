@@ -260,7 +260,55 @@ function pulseResolved(kind, idx) {
 }
 
 // ─── SPIELZÜGE ────────────────────────────────────────────────────────────────
+
+// ─── LANGES DRÜCKEN (Markierung zurücksetzen, nur Solo + "Beim Prüfen") ───────
+// Nur hier kann eine Zelle ohne festen Fehler-Status falsch markiert worden
+// sein (im 'instant'-Modus lehnt setMark falsche Züge sofort ab) — daher ist
+// das Zurückholen per langem Drücken auf diesen Modus beschränkt, und auf
+// Solo, da Coop-Markierungen mit dem Partner synchron bleiben müssen.
+const LONGPRESS_MS = 500;          // Haltedauer bis zum Zurücksetzen auf 'none'
+const LONGPRESS_TOLERANCE_PX = 10; // Bewegungstoleranz während des Haltens
+                                    // (verhindert Fehlauslösung beim Schwenken eines gezoomten Felds)
+let pressState = null;       // { r, c, x, y, timer } während eines Pointer-Holds, sonst null
+let suppressClickUntil = 0;  // Date.now()-Zeitstempel; bis dahin wird der nächste Klick auf der Zelle ignoriert
+
+function canLongPressRestore(r, c) {
+  if (state.status !== 'playing' || state.generating || state.paused) return false;
+  if (state.coop.active) return false;
+  if (state.settings.errorReveal !== 'onCheck') return false;
+  const mk = state.marks[r][c];
+  if (state.tool === 'eraser' && mk === 'removed') return true;
+  if (state.tool === 'pen' && mk === 'kept') return true;
+  return false;
+}
+
+function onCellPointerDown(e, r, c) {
+  if (!canLongPressRestore(r, c)) return;
+  if (pressState) clearTimeout(pressState.timer);
+  pressState = { r, c, x: e.clientX, y: e.clientY, timer: null };
+  pressState.timer = setTimeout(() => {
+    if (!pressState || pressState.r !== r || pressState.c !== c) return;
+    suppressClickUntil = Date.now() + 400;
+    pressState = null;
+    setMark(r, c, 'none', true);
+  }, LONGPRESS_MS);
+}
+
+function onCellPointerMove(e) {
+  if (!pressState) return;
+  const dx = e.clientX - pressState.x, dy = e.clientY - pressState.y;
+  if (Math.hypot(dx, dy) > LONGPRESS_TOLERANCE_PX) {
+    clearTimeout(pressState.timer);
+    pressState = null;
+  }
+}
+
+function onCellPointerCancel() {
+  if (pressState) { clearTimeout(pressState.timer); pressState = null; }
+}
+
 function onCellTap(r, c) {
+  if (Date.now() < suppressClickUntil) { suppressClickUntil = 0; return; }
   if (state.status !== 'playing' || state.generating || state.paused) return;
   const cur = state.marks[r][c];
   if (cur !== 'none') return; // already marked — only undo can reverse
@@ -926,7 +974,7 @@ const App = {
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, COOP_COLORS,
       winStat, coopWinStat, livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
-      navigate, newGame, resumeGame, onCellTap, undo, useHint, doCheck,
+      navigate, newGame, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doImport, openBackups, doRestore,
       resetStats, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
@@ -1060,7 +1108,13 @@ const App = {
               </div>
               <div v-for="c in state.puzzle.cols" :key="r+'-'+c"
                    class="cell" :class="cellClasses(r-1,c-1)" :style="cellStyle(r-1,c-1)"
-                   @click="onCellTap(r-1,c-1)">
+                   @click="onCellTap(r-1,c-1)"
+                   @pointerdown="onCellPointerDown($event,r-1,c-1)"
+                   @pointermove="onCellPointerMove($event)"
+                   @pointerup="onCellPointerCancel"
+                   @pointerleave="onCellPointerCancel"
+                   @pointercancel="onCellPointerCancel"
+                   @contextmenu.prevent>
                 <span v-if="state.cellMeta[r-1][c-1].chip!=null && !regionResolved(state.cellMeta[r-1][c-1].region)" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
                 <span class="cnum">{{ state.puzzle.values[r-1][c-1] }}</span>
               </div>
@@ -1334,7 +1388,7 @@ const App = {
             <button :class="{active:state.settings.errorReveal==='instant'}" @click="setSetting('errorReveal','instant')">Sofort</button>
             <button :class="{active:state.settings.errorReveal==='onCheck'}" @click="setSetting('errorReveal','onCheck')">Beim Prüfen</button>
           </div>
-          <small class="set-hint">{{ state.settings.errorReveal==='instant' ? 'Falsche Einkreisung wird sofort rot markiert.' : 'Fehler erst beim Tippen auf „Prüfen“.' }}</small>
+          <small class="set-hint">{{ state.settings.errorReveal==='instant' ? 'Falsche Einkreisung wird sofort rot markiert.' : 'Fehler erst beim Tippen auf „Prüfen“. Im Solo-Modus: Zelle lang gedrückt halten, um eine Markierung zurückzuholen.' }}</small>
         </div>
         <div class="set-row col">
           <span class="set-row-label">🧹 Gelöschte Zahlen</span>
