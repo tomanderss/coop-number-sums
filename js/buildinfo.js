@@ -1,8 +1,26 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.18';
-export const BUILD_HASH = '8b55e18';
+export const BUILD      = '0.19';
+export const BUILD_HASH = 'b71a774';
 
 export const CHANGELOG = [
+  {
+    "version": "0.19",
+    "date": "17.06.2026",
+    "changes": [
+      "Rückgängig-Button wieder da (macht nur den letzten Zug rückgängig)",
+      "Pause-Timer läuft nicht mehr heimlich weiter, wenn man über \"Zum Menü\" zurückkehrt",
+      "Alle Buttons (inkl. Schwierigkeitskarten, Coop-Hosten/Beitreten) haben jetzt zentrierten Text",
+      "Schnelles Umschalten der Schwierigkeit fühlt sich nicht mehr ruckelig an",
+      "Statistik: \"Aufgegeben\"/\"Verloren\"-Chips sehen jetzt wie Bestzeit/Schnitt aus",
+      "Coop: Aufgeben beendet nur die Runde, die Lobby bleibt bestehen",
+      "Coop: \"Zum Menü\" schließt die Lobby jetzt für beide Spieler",
+      "Coop: \"Lösung zeigen\" und \"Nochmal versuchen\" werden jetzt mit dem Partner synchronisiert",
+      "Neuer \"Neues Spiel\"-Button nach Niederlage/Aufgeben (in Coop ohne dass der Partner etwas wählen muss)",
+      "Coop: Hinweise zeigen jetzt zusätzlich, wer sie ausgelöst hat (farbiger Rahmen)",
+      "Coop: weitere STUN-Server als Fallback für Verbindungen über getrennte Netzwerke",
+      "Versionsnummer bleibt jetzt bei 0.x, bis explizit ein neues Hauptrelease angefordert wird"
+    ]
+  },
   {
     "version": "0.18",
     "date": "17.06.2026",
