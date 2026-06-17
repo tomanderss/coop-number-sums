@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.29';
-export const BUILD_HASH = '03db2ff';
+export const BUILD      = '0.30';
+export const BUILD_HASH = 'c4ed5ae';
 
 export const CHANGELOG = [
+  {
+    "version": "0.30",
+    "date": "17.06.2026",
+    "changes": [
+      "Markierungen im Modus \"Beim Prüfen\" (Solo) lassen sich jetzt durch langes Drücken einer Zelle mit dem passenden Werkzeug zurücksetzen (Radierer auf gelöschter Zahl, Stift auf eingekreister Zahl)."
+    ]
+  },
   {
     "version": "0.29",
     "date": "17.06.2026",
