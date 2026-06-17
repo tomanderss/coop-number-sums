@@ -17,15 +17,21 @@ const HEARTBEAT_TIMEOUT_MS = 13000;
 // STUN reicht nur, wenn beide Seiten direkt erreichbar sind (z.B. selbes WLAN).
 // Über getrennte Netzwerke (z.B. Mobilfunk, restriktives NAT) braucht es einen
 // TURN-Relay, sonst scheitert die Verbindung. Das Open Relay Project bietet
-// einen kostenlosen öffentlichen TURN-Server mit statischen Zugangsdaten.
+// einen kostenlosen öffentlichen TURN-Server mit statischen Zugangsdaten — diese
+// werden aber von vielen Apps weltweit geteilt und können daher überlastet oder
+// (selten) zeitweise nicht erreichbar sein. Google-STUN-Server als zusätzliche,
+// unabhängige Kandidaten erhöhen die Chance, dass wenigstens die Verbindungs-
+// Aushandlung (Discovery) gelingt, bevor auf TURN zurückgegriffen wird.
 const ICE_SERVERS = [
   { urls: 'stun:stun.relay.metered.ca:80' },
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'turn:global.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
   { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
   { urls: 'turn:global.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
   { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
 ];
-const PEER_CONFIG = { config: { iceServers: ICE_SERVERS } };
+const PEER_CONFIG = { config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 } };
 
 let peer = null;
 let guestConns = [];          // Host: alle Gast-Verbindungen
@@ -109,7 +115,9 @@ export function joinGame({ code, onOpen, onError, onMessage, onClose }) {
     hostConn.on('error', (e) => onError && onError(e));
   });
   peer.on('error', (e) => onError && onError(e)); // z.B. 'peer-unavailable' = Code falsch
-  setTimeout(() => { if (!settled) onError && onError({ type: 'timeout' }); }, 12000);
+  // 20s statt 12s: TURN-Relay-Aushandlung über Mobilfunk/CGNAT braucht oft länger
+  // als bei zwei Geräten im selben WLAN (mehr ICE-Kandidaten, höhere Latenz).
+  setTimeout(() => { if (!settled) onError && onError({ type: 'timeout' }); }, 20000);
 }
 
 // ─── Nachrichten ────────────────────────────────────────────────────────────
@@ -127,4 +135,5 @@ export function leave() {
 
 export const MSG = {
   INIT: 'init', MOVE: 'move', UNDO: 'undo', CHECK: 'check', STATUS: 'status', PAUSE: 'pause', HINT: 'hint',
+  REVEAL: 'reveal', RETRY: 'retry', CLOSE: 'close',
 };

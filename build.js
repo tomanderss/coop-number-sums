@@ -1,8 +1,10 @@
 // build.js — generiert js/buildinfo.js (Version + Changelog) und bumpt den
-// Service-Worker-Cache. Version = 0.<Release-Zähler>, ein eigener, in
-// .release-counter persistierter Zähler (nicht die Git-Commit-Anzahl — die
-// würde pro Release um die Anzahl der dabei gemachten Commits springen,
-// z.B. um 2, wenn ein Release aus Feature-Commit + Build-Commit besteht).
+// Service-Worker-Cache. Version = <Major>.<Minor>, persistiert in
+// .release-counter (nicht aus der Git-Commit-Anzahl abgeleitet — die würde
+// pro Release um die Anzahl der dabei gemachten Commits springen).
+// Normalerweise erhöht jeder Lauf nur die Minor-Zahl um 1 (z.B. 0.18 → 0.19).
+// Erst `node build.js --major` erhöht die Major-Zahl und setzt Minor auf 0
+// (z.B. 0.27 → 1.0) — das passiert nur auf explizite Anweisung.
 // Changelog kommt aus changes.txt (von Claude/dir gepflegt).
 
 import { execSync } from 'child_process';
@@ -16,10 +18,11 @@ function gitSafe(cmd, fallback) { try { return git(cmd); } catch { return fallba
 
 // ── Version ──────────────────────────────────────────────────────────────────
 const counterPath = join(__dir, '.release-counter');
-const lastCounter = existsSync(counterPath) ? parseInt(readFileSync(counterPath, 'utf8').trim()) || 0 : 0;
-const counter = lastCounter + 1;
-writeFileSync(counterPath, `${counter}\n`, 'utf8');
-const VERSION = `0.${counter}`;
+const lastVersion = existsSync(counterPath) ? readFileSync(counterPath, 'utf8').trim() : '0.0';
+let [major, minor] = lastVersion.split('.').map(n => parseInt(n) || 0);
+if (process.argv.includes('--major')) { major += 1; minor = 0; } else { minor += 1; }
+const VERSION = `${major}.${minor}`;
+writeFileSync(counterPath, `${VERSION}\n`, 'utf8');
 const GIT_HASH = gitSafe('rev-parse --short HEAD', 'init');
 
 // ── Aktuelle Änderungen aus changes.txt ──────────────────────────────────────

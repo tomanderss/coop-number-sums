@@ -101,7 +101,7 @@ function navigate(screen) {
 // ─── TIMER ────────────────────────────────────────────────────────────────────
 function startTimer() {
   stopTimer();
-  if (state.status !== 'playing') return;
+  if (state.status !== 'playing' || state.paused) return;
   timerHandle = setInterval(() => {
     state.elapsed = Date.now() - state.startTime;
   }, 250);
@@ -153,6 +153,8 @@ function buildCellMeta(puzzle) {
 }
 
 // ─── NEUES SPIEL ──────────────────────────────────────────────────────────────
+// In einer aktiven Coop-Session (als Host) wird das neue Rätsel an den Partner
+// gesendet, statt dass dieser selbst eines wählen müsste — die Lobby bleibt erhalten.
 function newGame(diffId) {
   state.generating = true;
   state.screen = 'game';
@@ -162,6 +164,9 @@ function newGame(diffId) {
     loadPuzzleIntoState(puzzle, null);
     state.generating = false;
     startTimer();
+    if (state.coop.active && state.coop.role === 'host') {
+      coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+    }
   }, 30);
 }
 
@@ -275,8 +280,7 @@ function setMark(r, c, next, user) {
   const wasRow = rowResolved(r), wasCol = colResolved(c);
   const wasRegion = region >= 0 ? regionResolved(region) : false;
 
-  state.history.push({ r, c, prev: cur });
-  if (state.history.length > 500) state.history.shift();
+  state.history = [{ r, c, prev: cur }]; // nur der letzte Zug ist rückgängig machbar
   state.marks[r][c] = next;
   state.markedBy[r][c] = next === 'none' ? null : (user ? 'me' : 'partner');
   if (user && state.coop.active) coopSend({ type: Coop.MSG.MOVE, r, c, mark: next });
@@ -343,14 +347,15 @@ function doCheck(broadcast = true) {
 }
 
 // Wendet einen Hinweis auf eine Zelle an (lokal ausgelöst oder vom Coop-Partner empfangen).
-function applyHintEffect(r, c, mark) {
+// user kennzeichnet, wer den Hinweis ausgelöst hat (für die Coop-Farbmarkierung).
+function applyHintEffect(r, c, mark, user = true) {
   const region = state.cellMeta[r][c].region;
   const wasRow = rowResolved(r), wasCol = colResolved(c);
   const wasRegion = region >= 0 ? regionResolved(region) : false;
 
-  state.history.push({ r, c, prev: state.marks[r][c] });
+  state.history = [{ r, c, prev: state.marks[r][c] }];
   state.marks[r][c] = mark;
-  state.markedBy[r][c] = null; // Hinweis zählt nicht als "von mir/Partner markiert"
+  state.markedBy[r][c] = state.coop.active ? (user ? 'me' : 'partner') : null;
   // .hint = kurzer Leucht-Puls (Quadrat), .hintMark = bleibt für den Rest des Rätsels
   state.cellMeta[r][c].hint = true;
   state.cellMeta[r][c].hintMark = true;
@@ -404,7 +409,7 @@ function handleCoopMsg(msg, fromConn) {
     if (msg.paused) pauseGame(false); else resumeFromPause(false);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.HINT) {
-    applyHintEffect(msg.r, msg.c, msg.mark);
+    applyHintEffect(msg.r, msg.c, msg.mark, false);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.INIT) {
     loadPuzzleIntoState(msg.puzzle, { marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime });
@@ -418,6 +423,19 @@ function handleCoopMsg(msg, fromConn) {
     else if (msg.status === 'lost') lose(remote);
     else if (msg.status === 'gaveup') giveUp(remote);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.REVEAL) {
+    revealSolution(false);
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.RETRY) {
+    restartPuzzle(msg.startTime);
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.CLOSE) {
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+    coopReset();
+    showToast('Mitspieler hat das Spiel beendet', 'info', 3000);
+    saveActiveGame(null);
+    refreshResume();
+    navigate('home');
   }
 }
 
@@ -428,17 +446,6 @@ function coopReset() {
   state.coop.active = false; state.coop.role = null; state.coop.code = '';
   state.coop.connected = false; state.coop.waitingForGuest = false;
   state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
-}
-
-// Gibt den Raum/Code frei, sobald eine Runde beendet ist (gewonnen/verloren/aufgegeben),
-// ohne die Ergebnisanzeige zu stören — das Rätsel bleibt offline weiter einsehbar,
-// der Code wird sofort wieder frei für neue Spiele.
-function coopReleaseRoom() {
-  if (!state.coop.active) return;
-  coopIntentionalLeave = true;
-  Coop.leave();
-  state.coop.connected = false;
-  state.coop.waitingForGuest = false;
 }
 
 // Wird aufgerufen, wenn der Gast die Verbindung zum Host unerwartet verliert
@@ -462,7 +469,7 @@ function promoteToHost() {
       Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
       showToast('Mitspieler verbunden 👥');
     },
-    onLeave() { state.coop.connected = false; showToast('Mitspieler hat getrennt', 'info', 3000); },
+    onLeave() { state.coop.connected = false; if (!coopIntentionalLeave) showToast('Mitspieler hat getrennt', 'info', 3000); },
     onMessage: (d, conn) => handleCoopMsg(d, conn),
   });
 }
@@ -492,7 +499,7 @@ function startHosting() {
       Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
       showToast('Mitspieler verbunden 👥');
     },
-    onLeave() { state.coop.connected = false; showToast('Mitspieler hat getrennt', 'info', 3000); },
+    onLeave() { state.coop.connected = false; if (!coopIntentionalLeave) showToast('Mitspieler hat getrennt', 'info', 3000); },
     onMessage: (d, conn) => handleCoopMsg(d, conn),
   });
 }
@@ -528,8 +535,8 @@ function startJoining() {
 
 // remote: vom Coop-Partner empfangene, maßgebliche Werte (überschreibt lokal ggf.
 // abweichende Zeit/Fehler/Hinweise, damit beide Seiten exakt denselben Endstand zeigen).
-// Bei jedem Rundenende (lokal wie remote) wird der Coop-Raum/Code sofort wieder
-// freigegeben — das Ergebnis bleibt sichtbar, das Rätsel offline weiter einsehbar.
+// Die Coop-Lobby/Verbindung bleibt nach Rundenende bestehen — sie schließt erst,
+// wenn ein Spieler aktiv "Zum Menü" klickt (siehe quitToHome).
 function win(remote) {
   if (state.status === 'won') return;
   state.status = 'won';
@@ -550,7 +557,6 @@ function win(remote) {
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
-  coopReleaseRoom();
 }
 
 function lose(remote) {
@@ -571,7 +577,6 @@ function lose(remote) {
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
-  coopReleaseRoom();
 }
 
 function giveUp(remote) {
@@ -593,27 +598,32 @@ function giveUp(remote) {
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
-  coopReleaseRoom();
 }
 
-function revealSolution() {
+function revealSolution(broadcast = true) {
   const p = state.puzzle;
   for (let r = 0; r < p.rows; r++)
     for (let c = 0; c < p.cols; c++)
       state.marks[r][c] = p.solution[r][c] ? 'kept' : 'removed';
+  state.status = 'review';
+  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.REVEAL });
 }
 
-function restartPuzzle() {
+function restartPuzzle(startTime) {
   state.marks = Array.from({ length: state.puzzle.rows }, () => Array(state.puzzle.cols).fill('none'));
+  state.markedBy = Array.from({ length: state.puzzle.rows }, () => Array(state.puzzle.cols).fill(null));
   state.cellMeta = buildCellMeta(state.puzzle); // setzt auch hint/hintMark zurück
   state.lives = LIVES; state.maxLives = LIVES; state.hintsLeft = HINTS;
   state.hintsUsed = 0; state.mistakes = 0; state.history = []; state.flash = {}; state.justResolved = {};
-  state.status = 'playing'; state.newHighscore = false; state.elapsed = 0; state.startTime = Date.now();
+  state.status = 'playing'; state.newHighscore = false; state.elapsed = 0;
+  state.startTime = startTime ?? Date.now();
   startTimer(); persistGame();
 }
 
+// Schließt die Coop-Lobby für BEIDE Spieler — egal wer "Zum Menü" klickt.
 function quitToHome() {
   const wasCoop = state.coop.active;
+  if (wasCoop) coopSend({ type: Coop.MSG.CLOSE });
   if (state.coop.role) coopReset();
   saveActiveGame(!wasCoop && state.status === 'playing' ? activeSnapshot() : null);
   refreshResume();
@@ -898,7 +908,7 @@ const App = {
 
         <!-- Werkzeug-Umschalter (Radierer / Stift) -->
         <div class="toolbar">
-          <button class="round-btn" :class="{ 'toolbar-hidden': state.settings.errorReveal!=='onCheck' }" :disabled="!state.history.length || state.settings.errorReveal!=='onCheck'" @click="undo" title="Rückgängig" aria-label="Rückgängig">
+          <button class="round-btn" :disabled="!state.history.length" @click="undo" title="Rückgängig" aria-label="Rückgängig">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-4"/></svg>
           </button>
           <div class="tool-toggle" @click="toggleTool">
@@ -942,7 +952,8 @@ const App = {
             <div><b>{{ state.mistakes }}</b><small>Fehler</small></div>
             <div><b>{{ state.hintsUsed }}</b><small>Hinweise</small></div>
           </div>
-          <button class="btn btn-primary" @click="newGame(state.puzzle.difficulty)">Nächstes Rätsel</button>
+          <button class="btn btn-primary" v-if="!state.coop.active || state.coop.role==='host'" @click="newGame(state.puzzle.difficulty)">Nächstes Rätsel</button>
+          <p v-else class="result-msg">Warte auf den Host für die nächste Runde …</p>
           <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
         </div>
       </div>
@@ -952,7 +963,8 @@ const App = {
           <h2>Keine Leben mehr</h2>
           <p class="result-msg">Kein Problem – versuch es erneut!</p>
           <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
-          <button class="btn btn-ghost" @click="revealSolution(); state.status='review'">Lösung zeigen</button>
+          <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">Neues Spiel</button>
+          <button class="btn btn-ghost" @click="revealSolution()">Lösung zeigen</button>
           <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
         </div>
       </div>
@@ -962,7 +974,8 @@ const App = {
           <h2>Aufgegeben</h2>
           <p class="result-msg">Kein Problem – versuch es erneut!</p>
           <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
-          <button class="btn btn-ghost" @click="revealSolution(); state.status='review'">Lösung zeigen</button>
+          <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">Neues Spiel</button>
+          <button class="btn btn-ghost" @click="revealSolution()">Lösung zeigen</button>
           <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
         </div>
       </div>
@@ -998,8 +1011,8 @@ const App = {
           <div class="diff-row-sub">
             <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
             <span v-if="avgTimeFor(d.id)!=null" class="chip">⌀ {{ fmtTime(avgTimeFor(d.id)) }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.gaveup">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.lost">💔 {{ state.stats.byDifficulty[d.id].lost }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.gaveup" class="chip">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.lost" class="chip">💔 {{ state.stats.byDifficulty[d.id].lost }}</span>
           </div>
         </div>
         <button class="btn btn-danger-ghost" @click="resetStats">Statistik zurücksetzen</button>
@@ -1016,11 +1029,11 @@ const App = {
       <!-- Auswahl: Hosten oder Beitreten? -->
       <div v-if="state.coop.role === null" class="coop-body">
         <p class="coop-tagline">Löst ein Rätsel gemeinsam in Echtzeit!</p>
-        <button class="btn btn-primary coop-role-btn" @click="state.coop.role='host'">
+        <button class="btn btn-primary" @click="state.coop.role='host'">
           <span class="btn-ic">📡</span>
           <span class="btn-tx"><b>Hosten</b><small>Code festlegen &amp; Rätsel erstellen</small></span>
         </button>
-        <button class="btn btn-ghost coop-role-btn" @click="state.coop.role='guest'">
+        <button class="btn btn-ghost" @click="state.coop.role='guest'">
           <span class="btn-ic">🔗</span>
           <span class="btn-tx"><b>Beitreten</b><small>Code des Hosts eingeben</small></span>
         </button>
@@ -1209,7 +1222,10 @@ const App = {
 
 // Methoden, die das Template über setup() referenziert
 function toggleTool() { state.tool = state.tool === 'pen' ? 'eraser' : 'pen'; state.settings.confirmTool = state.tool; }
-function restartFromGame() { restartPuzzle(); }
+function restartFromGame(broadcast = true) {
+  restartPuzzle();
+  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.RETRY, startTime: state.startTime });
+}
 
 // Liefert, welche Seiten dieser Zelle zum ÄUSSEREN Rand einer gerade fertig
 // gewordenen Reihe/Spalte/Cage gehören (für den Fertig-Puls, Punkt 3: nur die
