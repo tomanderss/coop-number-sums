@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.17';
-export const BUILD_HASH = '46523ad';
+export const BUILD      = '0.18';
+export const BUILD_HASH = '8b55e18';
 
 export const CHANGELOG = [
+  {
+    "version": "0.18",
+    "date": "17.06.2026",
+    "changes": [
+      "Versionsnummer basiert jetzt auf einem eigenen Release-Zähler statt der Git-Commit-Anzahl (keine Sprünge mehr pro Release)"
+    ]
+  },
   {
     "version": "0.17",
     "date": "17.06.2026",
