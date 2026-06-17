@@ -1,0 +1,2 @@
+Hosten- und Beitreten-Button im Coop-Menü haben jetzt denselben Text-Offset von links
+Titel im Header wird beim Hosten/Warten auf Mitspieler jetzt korrekt zentriert angezeigt

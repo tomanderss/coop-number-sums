@@ -1016,11 +1016,11 @@ const App = {
       <!-- Auswahl: Hosten oder Beitreten? -->
       <div v-if="state.coop.role === null" class="coop-body">
         <p class="coop-tagline">Löst ein Rätsel gemeinsam in Echtzeit!</p>
-        <button class="btn btn-primary" @click="state.coop.role='host'">
+        <button class="btn btn-primary coop-role-btn" @click="state.coop.role='host'">
           <span class="btn-ic">📡</span>
           <span class="btn-tx"><b>Hosten</b><small>Code festlegen &amp; Rätsel erstellen</small></span>
         </button>
-        <button class="btn btn-ghost" @click="state.coop.role='guest'">
+        <button class="btn btn-ghost coop-role-btn" @click="state.coop.role='guest'">
           <span class="btn-ic">🔗</span>
           <span class="btn-tx"><b>Beitreten</b><small>Code des Hosts eingeben</small></span>
         </button>

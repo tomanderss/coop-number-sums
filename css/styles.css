@@ -45,6 +45,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ─── Topbar ─── */
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 14px; gap: 8px; }
 .topbar h2 { font-size: 1.15rem; margin: 0; font-weight: 800; }
+/* Spacer-Span muss exakt so breit wie der Zurück-Button sein, sonst sitzt der
+   Titel nicht in der Mitte (justify-content: space-between zentriert sonst
+   nur den Abstand, nicht den Titel selbst). */
+.topbar > span:last-child:empty { width: 40px; flex-shrink: 0; }
 .icon-btn {
   width: 40px; height: 40px; border-radius: 12px; background: var(--bg2);
   font-size: 1.4rem; font-weight: 700; color: var(--text2);
@@ -91,6 +95,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn .btn-tx { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
 .btn .btn-tx small { font-weight: 500; color: inherit; opacity: .75; font-size: .76rem; }
 .btn-primary .btn-tx, .btn-resume .btn-tx { text-align: left; }
+/* Hosten/Beitreten sollen unabhängig von der Icon-/Textbreite denselben
+   Offset von links haben, statt als Icon+Text-Paar zentriert zu werden. */
+.coop-role-btn { justify-content: flex-start; }
+.coop-role-btn .btn-ic { width: 28px; flex-shrink: 0; text-align: center; }
 .badge-soon {
   position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
   background: var(--accent-soft); color: var(--accent2); font-size: .68rem; font-weight: 800;
