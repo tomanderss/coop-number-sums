@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.26';
-export const BUILD_HASH = '57ca7aa';
+export const BUILD      = '0.27';
+export const BUILD_HASH = 'c48bf38';
 
 export const CHANGELOG = [
+  {
+    "version": "0.27",
+    "date": "17.06.2026",
+    "changes": [
+      "Statistik: Schatten der Stat-Boxen (und der violette Coop-Ring) werden am linken/rechten Rand nicht mehr abgeschnitten"
+    ]
+  },
   {
     "version": "0.26",
     "date": "17.06.2026",
