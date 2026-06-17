@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, DEFAULT_GAME_OPTIONS, LIVES, HINTS } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, DEFAULT_GAME_OPTIONS, LIVES, HINTS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
 import * as Coop from './coop.js';
 import {
@@ -37,9 +37,21 @@ const state = reactive({
   justResolved: {},          // "row-3" | "col-1" | "region-2" -> true (Fertig-Puls)
   cellPx: 48,
   zoom: 1,
+  markedBy: [],               // 2D-Array parallel zu marks: 'me' | 'partner' | null (nur Coop)
 
   // Auswahl im Setup
   sel: { ...DEFAULT_GAME_OPTIONS },
+
+  // Coop-Modus
+  coop: {
+    active: false,             // aktive Session
+    role: null,                // 'host' | 'guest'
+    code: '',                  // Host: gewählter Code; Gast: eingegebener Zielcode
+    connected: false,          // Partner verbunden
+    waitingForGuest: false,    // Host: Peer offen, wartet auf Join / Gast: verbindet
+    lobbyDiffId: 'mittel',
+    error: null,               // Inline-Fehlermeldung im Lobby-Screen
+  },
 
   // UI
   toast: null,
@@ -90,17 +102,19 @@ function startTimer() {
 function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandle = null; } }
 
 // ─── PAUSE ────────────────────────────────────────────────────────────────────
-function pauseGame() {
+function pauseGame(broadcast = true) {
   if (state.status !== 'playing' || state.paused) return;
   state.paused = true;
   state.elapsed = Date.now() - state.startTime; // einfrieren
   stopTimer();
+  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: true });
 }
-function resumeFromPause() {
+function resumeFromPause(broadcast = true) {
   if (!state.paused) return;
   state.paused = false;
   state.startTime = Date.now() - state.elapsed; // Zeit fortsetzen
   startTimer();
+  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: false });
 }
 
 // ─── ZELLEN-METADATEN (Regionen, Ränder, Chips) ───────────────────────────────
@@ -149,6 +163,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.cellMeta = buildCellMeta(puzzle);
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
   state.marks = saved ? saved.marks : Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill('none'));
+  state.markedBy = (saved && saved.markedBy) || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill(null));
   state.maxLives = saved ? saved.maxLives : LIVES;
   state.lives = saved ? saved.lives : LIVES;
   state.hintsLeft = saved ? saved.hintsLeft : HINTS;
@@ -253,6 +268,8 @@ function setMark(r, c, next, user) {
   state.history.push({ r, c, prev: cur });
   if (state.history.length > 500) state.history.shift();
   state.marks[r][c] = next;
+  state.markedBy[r][c] = next === 'none' ? null : (user ? 'me' : 'partner');
+  if (user && state.coop.active) coopSend({ type: Coop.MSG.MOVE, r, c, mark: next });
 
   if (!wasRow && rowResolved(r)) pulseResolved('row', r);
   if (!wasCol && colResolved(c)) pulseResolved('col', c);
@@ -291,8 +308,9 @@ function isSolved() {
 }
 
 // "Prüfen"-Modus (Fehler erst auf Knopfdruck)
-function doCheck() {
+function doCheck(broadcast = true) {
   if (state.status !== 'playing') return;
+  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.CHECK });
   const p = state.puzzle; const wrong = [];
   for (let r = 0; r < p.rows; r++)
     for (let c = 0; c < p.cols; c++) {
@@ -338,11 +356,102 @@ function useHint() {
   afterMove();
 }
 
-function undo() {
+function undo(broadcast = true) {
   if (!state.history.length || state.status !== 'playing') return;
   const last = state.history.pop();
   state.marks[last.r][last.c] = last.prev;
+  state.markedBy[last.r][last.c] = null; // prev ist immer 'none' (siehe Markier-Sperre)
   persistGame();
+  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.UNDO });
+}
+
+// ─── COOP ────────────────────────────────────────────────────────────────────
+const CODE_RE = /^\d{6}$/;
+
+function coopSend(msg) {
+  if (!state.coop.active || !state.coop.connected) return;
+  if (state.coop.role === 'host') Coop.broadcast(msg);
+  else Coop.sendToHost(msg);
+}
+
+function handleCoopMsg(msg, fromConn) {
+  if (msg.type === Coop.MSG.MOVE) {
+    setMark(msg.r, msg.c, msg.mark, false);
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.UNDO) {
+    undo(false);
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.CHECK) {
+    doCheck(false);
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.PAUSE) {
+    if (msg.paused) pauseGame(false); else resumeFromPause(false);
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.INIT) {
+    loadPuzzleIntoState(msg.puzzle, { marks: msg.marks, markedBy: msg.markedBy });
+    state.coop.active = true;
+    state.coop.connected = true;
+    state.coop.waitingForGuest = false;
+    navigate('game');
+  } else if (msg.type === Coop.MSG.STATUS && msg.status === 'won') {
+    win();
+  }
+}
+
+function coopReset() {
+  Coop.leave();
+  const keepDiff = state.coop.lobbyDiffId;
+  state.coop.active = false; state.coop.role = null; state.coop.code = '';
+  state.coop.connected = false; state.coop.waitingForGuest = false;
+  state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
+}
+
+function startHosting() {
+  if (!Coop.isAvailable()) { state.coop.error = 'WebRTC nicht verfügbar.'; return; }
+  if (!CODE_RE.test(state.coop.code)) { state.coop.error = 'Bitte 6-stelligen Zahlencode eingeben.'; return; }
+  state.coop.role = 'host';
+  state.coop.waitingForGuest = true;
+  state.coop.error = null;
+  Coop.hostGame({
+    code: state.coop.code,
+    onOpen() { /* Peer offen, wartet auf Gast */ },
+    onError(e) {
+      state.coop.waitingForGuest = false;
+      state.coop.error = e.type === 'unavailable-id'
+        ? 'Code bereits vergeben — wähle eine andere Zahl.' : 'Verbindungsfehler.';
+    },
+    onJoin(conn) {
+      const puzzle = generatePuzzle({ difficulty: state.coop.lobbyDiffId });
+      loadPuzzleIntoState(puzzle, null);
+      state.coop.active = true;
+      state.coop.connected = true;
+      state.coop.waitingForGuest = false;
+      navigate('game');
+      Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy });
+      showToast('Mitspieler verbunden 👥');
+    },
+    onLeave() { state.coop.connected = false; showToast('Mitspieler hat getrennt', 'info', 3000); },
+    onMessage: (d, conn) => handleCoopMsg(d, conn),
+  });
+}
+
+function startJoining() {
+  if (!CODE_RE.test(state.coop.code)) { state.coop.error = 'Bitte 6-stelligen Zahlencode eingeben.'; return; }
+  state.coop.role = 'guest';
+  state.coop.waitingForGuest = true;
+  state.coop.error = null;
+  Coop.joinGame({
+    code: state.coop.code,
+    onOpen() { /* warte auf MSG.INIT */ },
+    onError(e) {
+      state.coop.waitingForGuest = false;
+      state.coop.error =
+        e.type === 'peer-unavailable' ? 'Code nicht gefunden.' :
+        e.type === 'timeout'          ? 'Zeitüberschreitung.' : 'Verbindungsfehler.';
+    },
+    onMessage: (d) => handleCoopMsg(d, null),
+    onClose() { state.coop.connected = false; showToast('Verbindung zum Host getrennt', 'info', 3000); },
+  });
 }
 
 function win() {
@@ -355,6 +464,7 @@ function win() {
     won: true, timeMs: state.elapsed, hintsUsed: state.hintsUsed,
   });
   saveActiveGame(null);
+  if (state.coop.active && state.coop.role === 'host') coopSend({ type: Coop.MSG.STATUS, status: 'won' });
 }
 
 function lose() {
@@ -384,7 +494,9 @@ function restartPuzzle() {
 }
 
 function quitToHome() {
-  saveActiveGame(state.status === 'playing' ? activeSnapshot() : null);
+  const wasCoop = state.coop.active;
+  if (state.coop.role) coopReset();
+  saveActiveGame(!wasCoop && state.status === 'playing' ? activeSnapshot() : null);
   refreshResume();
   navigate('home');
 }
@@ -524,10 +636,11 @@ const App = {
       '--fs': Math.max(11, Math.round(state.cellPx * 0.4)) + 'px',
     }));
     onMounted(init);
+    const coopAvailable = computed(() => Coop.isAvailable());
 
     return {
-      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID,
-      winStat, livesArr, progress, gridStyle,
+      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, COOP_COLORS,
+      winStat, livesArr, progress, gridStyle, coopAvailable,
       navigate, newGame, resumeGame, onCellTap, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doImport, openBackups, doRestore,
@@ -535,6 +648,7 @@ const App = {
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause,
       onPinchStart, onPinchMove, onPinchEnd,
       cellClasses, cellStyle, toggleTool, restartFromGame,
+      startHosting, startJoining, coopReset,
     };
   },
   template: `
@@ -557,9 +671,9 @@ const App = {
         <button class="btn btn-primary" @click="navigate('setup')">
           <span class="btn-ic">✚</span><span class="btn-tx"><b>Neues Spiel</b><small>Schwierigkeit wählen</small></span>
         </button>
-        <button class="btn btn-coop" disabled>
-          <span class="btn-ic">👥</span><span class="btn-tx"><b>Coop-Modus</b><small>Gemeinsam lösen · bald verfügbar</small></span>
-          <span class="badge-soon">bald</span>
+        <button class="btn btn-coop" :disabled="!coopAvailable" @click="navigate('coop')">
+          <span class="btn-ic">👥</span><span class="btn-tx"><b>Coop-Modus</b><small>Gemeinsam lösen</small></span>
+          <span v-if="!coopAvailable" class="badge-soon">bald</span>
         </button>
         <div class="home-row">
           <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> Statistik</button>
@@ -621,6 +735,9 @@ const App = {
         <div class="game-meta">
           <span class="chip">{{ DIFF_BY_ID[state.puzzle.difficulty].emoji }} {{ DIFF_BY_ID[state.puzzle.difficulty].name }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
+          <span v-if="state.coop.active" class="chip coop-chip" :class="state.coop.connected ? 'coop-on' : 'coop-off'">
+            👥 COOP{{ state.coop.connected ? '' : ' · offline' }}
+          </span>
           <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
             <button class="zoom-btn" @click="setZoom(0.15)">+</button>
@@ -745,6 +862,73 @@ const App = {
       </div>
     </section>
 
+    <!-- ══ COOP ══ -->
+    <section v-else-if="state.screen==='coop'" class="screen coop-screen">
+      <header class="topbar">
+        <button class="icon-btn" @click="coopReset(); navigate('home')">‹</button>
+        <h2>Coop-Modus</h2><span></span>
+      </header>
+
+      <!-- Auswahl: Hosten oder Beitreten? -->
+      <div v-if="state.coop.role === null" class="coop-body">
+        <p class="coop-tagline">Löst ein Rätsel gemeinsam in Echtzeit!</p>
+        <button class="btn btn-primary" @click="state.coop.role='host'">
+          <span class="btn-ic">📡</span>
+          <span class="btn-tx"><b>Hosten</b><small>Code festlegen &amp; Rätsel erstellen</small></span>
+        </button>
+        <button class="btn btn-ghost" @click="state.coop.role='guest'">
+          <span class="btn-ic">🔗</span>
+          <span class="btn-tx"><b>Beitreten</b><small>Code des Hosts eingeben</small></span>
+        </button>
+      </div>
+
+      <!-- Host: Code festlegen + Schwierigkeit → warte auf Gast -->
+      <div v-else-if="state.coop.role === 'host'" class="coop-body">
+        <template v-if="!state.coop.waitingForGuest">
+          <div class="coop-code-label">Code festlegen (6 Ziffern)</div>
+          <input class="coop-input" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
+                 placeholder="z.B. 482917" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
+          <div class="setup-label">Schwierigkeit</div>
+          <div class="option-grid">
+            <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
+                    :class="{active: state.coop.lobbyDiffId===d.id}"
+                    @click="state.coop.lobbyDiffId=d.id">
+              <span class="opt-emoji">{{ d.emoji }}</span>
+              <span class="opt-name">{{ d.name }}</span>
+              <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
+            </button>
+          </div>
+          <button class="btn btn-primary" @click="startHosting">Hosten 🚀</button>
+        </template>
+        <template v-else>
+          <div class="coop-code-label">Dein Code</div>
+          <div class="coop-code">{{ state.coop.code }}</div>
+          <p class="coop-subtext">Gib diesen Code deinem Mitspieler</p>
+          <div class="coop-waiting">
+            <div class="spinner"></div>
+            <div class="loading-tx">Auf Mitspieler warten…</div>
+          </div>
+        </template>
+        <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
+        <button class="btn btn-ghost" style="margin-top:8px" @click="coopReset(); state.coop.role=null">Abbrechen</button>
+      </div>
+
+      <!-- Gast: Code eingeben → verbinden -->
+      <div v-else-if="state.coop.role === 'guest'" class="coop-body">
+        <div class="coop-code-label">Code des Hosts eingeben</div>
+        <input class="coop-input" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
+               placeholder="z.B. 482917" :disabled="state.coop.waitingForGuest"
+               @input="state.coop.code=state.coop.code.replace(/\D/g,'')"
+               @keydown.enter="startJoining" />
+        <button class="btn btn-primary" :disabled="state.coop.waitingForGuest || state.coop.code.length!==6" @click="startJoining">
+          <span v-if="state.coop.waitingForGuest"><span class="spinner-inline"></span> Verbinden…</span>
+          <span v-else>Verbinden ↗</span>
+        </button>
+        <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
+        <button class="btn btn-ghost" style="margin-top:4px" @click="coopReset(); state.coop.role=null">Zurück</button>
+      </div>
+    </section>
+
     <!-- ══ SETTINGS ══ -->
     <section v-else-if="state.screen==='settings'" class="screen settings">
       <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>Einstellungen</h2><span></span></header>
@@ -777,6 +961,28 @@ const App = {
         <div class="set-group-title">Sonstiges</div>
         <div class="set-row" @click="toggleSetting('showTimer')">
           <span>⏱ Timer anzeigen</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
+        </div>
+
+        <div class="set-group-title">Coop-Farben</div>
+        <div class="set-row col">
+          <span class="set-row-label">Meine Farbe</span>
+          <div class="coop-swatches">
+            <button v-for="c in COOP_COLORS" :key="c.hex" class="swatch"
+                    :class="{active: state.settings.coopMyColor===c.hex}"
+                    :style="{background:c.hex}"
+                    :disabled="c.hex===state.settings.coopPartnerColor"
+                    @click="setSetting('coopMyColor', c.hex)" :title="c.name"></button>
+          </div>
+        </div>
+        <div class="set-row col">
+          <span class="set-row-label">Partner-Farbe</span>
+          <div class="coop-swatches">
+            <button v-for="c in COOP_COLORS" :key="c.hex" class="swatch"
+                    :class="{active: state.settings.coopPartnerColor===c.hex}"
+                    :style="{background:c.hex}"
+                    :disabled="c.hex===state.settings.coopMyColor"
+                    @click="setSetting('coopPartnerColor', c.hex)" :title="c.name"></button>
+          </div>
         </div>
 
         <div class="set-group-title">Daten</div>
@@ -875,12 +1081,15 @@ function cellClasses(r, c) {
     pulse: (m.region >= 0 && !!state.justResolved[`region-${m.region}`]) || !!state.justResolved[`row-${r}`] || !!state.justResolved[`col-${c}`],
     strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
     solnc: state.status === 'review' && state.puzzle.solution[r][c],
+    'coop-mark': state.coop.active && !!state.markedBy[r][c],
   };
 }
 function cellStyle(r, c) {
   const m = state.cellMeta[r][c];
   const st = { fontSize: 'var(--fs)' };
   if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; }
+  const who = state.coop.active ? state.markedBy[r][c] : null;
+  if (who) st['--markcol'] = who === 'me' ? state.settings.coopMyColor : state.settings.coopPartnerColor;
   return st;
 }
 

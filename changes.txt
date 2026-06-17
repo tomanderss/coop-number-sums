@@ -1,0 +1,4 @@
+Coop-Modus: gemeinsam Rätsel lösen in Echtzeit (Host legt 6-stelligen Code fest)
+Coop: Pause ist übergreifend – pausiert einer, pausiert der Partner auch
+Coop: eigene Farbe und Partner-Farbe in den Einstellungen frei wählbar
+Coop: Zellen zeigen farblich, wer sie eingekreist oder gelöscht hat
