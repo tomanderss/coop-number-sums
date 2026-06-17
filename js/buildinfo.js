@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.28';
-export const BUILD_HASH = '2cc3e7b';
+export const BUILD      = '0.29';
+export const BUILD_HASH = '03db2ff';
 
 export const CHANGELOG = [
+  {
+    "version": "0.29",
+    "date": "17.06.2026",
+    "changes": [
+      "Pinch-to-Zoom entfernt (nur noch Button-Zoom, Finger verschiebt im gezoomten Modus)",
+      "Schwer/Extrem/Mashallah wieder anspruchsvoller (größere Cage-Obergrenze, nicht nur größeres Feld)"
+    ]
+  },
   {
     "version": "0.28",
     "date": "17.06.2026",
