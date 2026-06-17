@@ -884,7 +884,7 @@ const App = {
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
       <div class="brand">
-        <div class="brand-logo">∑</div>
+        <img class="brand-logo" src="./icons/icon-192.png" alt="" />
         <h1 class="brand-title">Coop<br>Number Sums</h1>
       </div>
 
