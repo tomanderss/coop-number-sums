@@ -10,13 +10,23 @@ export const LIVES = 3;
 export const HINTS = Infinity;
 export const MAX_VAL = 9; // Zellwerte sind immer 1–9, nie höher — auch bei großen Feldern
 
+// maxCageSize: Obergrenze für Cage-Größe, UNABHÄNGIG von der Felddimension —
+// null = kein Limit (Cage-Größe = Spaltenzahl, wie bisher). Ab "schwer" gekappt,
+// damit Teilsummen-Kollisionen nicht mit der Dimension explodieren (sonst nur
+// noch durch Hypothese/Raten lösbar, siehe maxTier3Steps).
+// maxTier3Steps: wie viele Tier-3-Hypothesenschritte (Beweis durch Widerspruch)
+// der Solver maximal brauchen darf, damit das Rätsel noch akzeptiert wird —
+// 0 = nur reine Stufe-1/2-Logik (kein Raten-artiger Schritt nötig).
+// genBudget: maximale Generierungs-Versuche, bevor mit neuem Seed neu gestartet
+// wird — höhere Schwierigkeiten brauchen mehr Versuche, weil Cage-Kappung und
+// Tier-3-Limit die Akzeptanzrate senken.
 export const DIFFICULTIES = [
-  { id: 'sehrleicht', name: 'Sehr Leicht', emoji: '🟢', dim: { r: 6,  c: 6  }, keepRatio: 0.50, minSingleDigitSums: 2 },
-  { id: 'leicht',     name: 'Leicht',      emoji: '🟡', dim: { r: 7,  c: 7  }, keepRatio: 0.48, minSingleDigitSums: 2 },
-  { id: 'mittel',     name: 'Mittel',      emoji: '🟠', dim: { r: 8,  c: 8  }, keepRatio: 0.46, minSingleDigitSums: 2 },
-  { id: 'schwer',     name: 'Schwer',      emoji: '🔴', dim: { r: 9,  c: 9  }, keepRatio: 0.46, minSingleDigitSums: 3 },
-  { id: 'extrem',     name: 'Extrem',      emoji: '🟣', dim: { r: 10, c: 10 }, keepRatio: 0.44, minSingleDigitSums: 4 },
-  { id: 'mashallah',  name: 'Mashallah',   emoji: '💀', dim: { r: 11, c: 11 }, keepRatio: 0.40, minSingleDigitSums: 5 },
+  { id: 'sehrleicht', name: 'Sehr Leicht', emoji: '🟢', dim: { r: 6,  c: 6  }, keepRatio: 0.50, minSingleDigitSums: 2, maxCageSize: null, maxTier3Steps: 0, genBudget: 2500 },
+  { id: 'leicht',     name: 'Leicht',      emoji: '🟡', dim: { r: 7,  c: 7  }, keepRatio: 0.48, minSingleDigitSums: 2, maxCageSize: null, maxTier3Steps: 0, genBudget: 2500 },
+  { id: 'mittel',     name: 'Mittel',      emoji: '🟠', dim: { r: 8,  c: 8  }, keepRatio: 0.46, minSingleDigitSums: 2, maxCageSize: null, maxTier3Steps: 0, genBudget: 2500 },
+  { id: 'schwer',     name: 'Schwer',      emoji: '🔴', dim: { r: 9,  c: 9  }, keepRatio: 0.46, minSingleDigitSums: 3, maxCageSize: 6,    maxTier3Steps: 2, genBudget: 6000 },
+  { id: 'extrem',     name: 'Extrem',      emoji: '🟣', dim: { r: 10, c: 10 }, keepRatio: 0.44, minSingleDigitSums: 4, maxCageSize: 6,    maxTier3Steps: 4, genBudget: 8000 },
+  { id: 'mashallah',  name: 'Mashallah',   emoji: '💀', dim: { r: 11, c: 11 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 7,    maxTier3Steps: 6, genBudget: 10000 },
 ];
 
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));

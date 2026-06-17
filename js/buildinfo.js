@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.25';
-export const BUILD_HASH = '7412c14';
+export const BUILD      = '0.26';
+export const BUILD_HASH = '57ca7aa';
 
 export const CHANGELOG = [
+  {
+    "version": "0.26",
+    "date": "17.06.2026",
+    "changes": [
+      "Rätsel ab Schwer (9×9) sind jetzt ohne Raten lösbar: kleinere Cages (max. 6-7 Zellen statt bis zu 11) und neue Solver-Logik (Überlapp-Deduktion zwischen Cage und Zeile/Spalte) sorgen dafür, dass fast alle Rätsel allein durch logisches Kombinieren lösbar sind",
+      "Sehr Leicht/Leicht/Mittel unverändert"
+    ]
+  },
   {
     "version": "0.25",
     "date": "17.06.2026",
