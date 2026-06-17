@@ -65,8 +65,14 @@ function staysConnected(id, regId, exclude, total, neighbors) {
   return v === cnt;
 }
 
-function partitionRegions(rng, rows, cols) {
-  const total = rows * cols, N = cols, K = rows;
+// maxCageSize: optionale Obergrenze für die Cage-Größe, UNABHÄNGIG von der
+// Felddimension (siehe config.js). null/undefined ⇒ exakt das bisherige
+// Verhalten (Cage-Größe = Spaltenzahl, Cage-Anzahl = Zeilenzahl) — kein
+// Unterschied für sehrleicht/leicht/mittel.
+function partitionRegions(rng, rows, cols, maxCageSize) {
+  const total = rows * cols;
+  const N = maxCageSize ? Math.min(cols, maxCageSize) : cols;
+  const K = maxCageSize ? Math.max(rows, Math.ceil(total / N)) : rows;
   const neighbors = neighborsFn(rows, cols);
 
   const minDist = Math.max(1, Math.floor(Math.sqrt(total / K) * 0.8));
@@ -97,34 +103,39 @@ function partitionRegions(rng, rows, cols) {
     for (let i = 0; i < total; i++) if (id[i] === -1) { const nb = neighbors(i).find(n => id[n] !== -1); id[i] = nb != null ? id[nb] : 0; }
 
     const size = new Array(K).fill(0); for (let i = 0; i < total; i++) size[id[i]]++;
-    if (rebalanceToTarget(id, size, N, total, neighbors, rng)) {
+    if (rebalanceToTarget(id, size, N, total, neighbors, rng, maxCageSize)) {
       return buildRegions(id, K, rows, cols);
     }
   }
-  return partitionStrips(rng, rows, cols); // garantierter Notnagel
+  return maxCageSize ? partitionBandsCapped(rows, cols, K) : partitionStrips(rng, rows, cols); // garantierter Notnagel
 }
 
-// Balanciert jede Cage auf genau `target` Zellen: verschiebt je eine Zelle entlang
-// eines Pfads (über benachbarte Cages) von einer zu großen zur nächsten zu kleinen
-// Cage. So funktioniert es auch, wenn groß/klein nicht direkt benachbart sind.
-function rebalanceToTarget(id, size, target, total, neighbors, rng) {
+// Balanciert jede Cage auf genau `target` Zellen (ohne maxCageSize) bzw. auf ein
+// Toleranzband [target-2, maxCageSize] (mit maxCageSize, da total/K dann meist
+// nicht glatt aufgeht): verschiebt je eine Zelle entlang eines Pfads (über
+// benachbarte Cages) von einer zu großen zur nächsten zu kleinen Cage. So
+// funktioniert es auch, wenn groß/klein nicht direkt benachbart sind.
+function rebalanceToTarget(id, size, target, total, neighbors, rng, maxCageSize) {
   const K = size.length;
+  const maxSize = maxCageSize || target;
+  const minSize = maxCageSize ? Math.max(3, maxCageSize - 2) : target;
+  const isDone = () => size.every(s => s >= minSize && s <= maxSize);
   const regionAdj = () => {
     const adj = Array.from({ length: K }, () => new Set());
     for (let i = 0; i < total; i++) for (const nb of neighbors(i)) if (id[nb] !== id[i]) adj[id[i]].add(id[nb]);
     return adj;
   };
   for (let guard = 0; guard < total * 3; guard++) {
-    if (size.every(s => s === target)) return true;
+    if (isDone()) return true;
     const adj = regionAdj();
     // BFS im Cage-Graph von einer zu großen Cage zur nächsten zu kleinen
     let path = null;
     for (let A = 0; A < K && !path; A++) {
-      if (size[A] <= target) continue;
+      if (size[A] <= maxSize) continue;
       const prev = new Array(K).fill(-2); prev[A] = -1; const q = [A];
       while (q.length) {
         const cur = q.shift();
-        if (size[cur] < target) { const p = []; let x = cur; while (x !== -1) { p.push(x); x = prev[x]; } path = p.reverse(); break; }
+        if (size[cur] < minSize) { const p = []; let x = cur; while (x !== -1) { p.push(x); x = prev[x]; } path = p.reverse(); break; }
         for (const nb of adj[cur]) if (prev[nb] === -2) { prev[nb] = cur; q.push(nb); }
       }
     }
@@ -142,7 +153,28 @@ function rebalanceToTarget(id, size, target, total, neighbors, rng) {
     }
     if (!okAll) continue;
   }
-  return size.every(s => s === target);
+  return isDone();
+}
+
+// Garantierter Notnagel für gekappte Cage-Größe: Schlangenlinie (Zeilen
+// abwechselnd vor-/rückwärts) über das ganze Feld in K zusammenhängende Bänder
+// à ~total/K Zellen — kein Reparatur-Loop nötig, kann nie fehlschlagen.
+function partitionBandsCapped(rows, cols, K) {
+  const total = rows * cols;
+  const id = new Int16Array(total);
+  const order = [];
+  for (let r = 0; r < rows; r++) {
+    const cs = []; for (let c = 0; c < cols; c++) cs.push(c);
+    if (r % 2 === 1) cs.reverse(); // Schlangenlinie ⇒ Bänder bleiben zusammenhängend
+    for (const c of cs) order.push(r * cols + c);
+  }
+  const base = Math.floor(total / K), extra = total % K;
+  let pos = 0;
+  for (let k = 0; k < K; k++) {
+    const len = base + (k < extra ? 1 : 0);
+    for (let i = 0; i < len; i++) id[order[pos++]] = k;
+  }
+  return buildRegions(id, K, rows, cols);
 }
 
 // Garantierte Streifen-Variante (Start = Zeilen, dann größen-/zusammenhangs-
@@ -263,14 +295,14 @@ export function generatePuzzle(opts) {
   const rng = makeRng(baseSeed);
 
   const { r: rows, c: cols } = opts.dim || diff.dim;
-  const totalBudget = 2500; // harte Obergrenze, danach Notnagel-Neuversuch (leichteste Stufe)
+  const totalBudget = diff.genBudget || 2500; // harte Obergrenze, danach Notnagel-Neuversuch (leichteste Stufe)
   let attempts = 0;
 
   while (attempts < totalBudget) {
     attempts++;
 
     const mask = buildSolutionMask(rng, rows, cols, diff.keepRatio);
-    const regions = partitionRegions(rng, rows, cols);
+    const regions = partitionRegions(rng, rows, cols, diff.maxCageSize);
     // Jede Region braucht mind. eine Lösungszelle → Zielsumme ≥ 1 (kein „0"-Hinweis,
     // und keine fälschlich „fertige" Region beim Start).
     for (const reg of regions) {
@@ -300,6 +332,12 @@ export function generatePuzzle(opts) {
     // genau N Zellen relativ wenige Constraints liefern.
     const result = logicalSolve(puzzle, { allowHypo: true });
     if (!result.solved || result.contradiction) continue;
+
+    // Tier-3 (Hypothese) nur begrenzt erlauben — sonst ist das Rätsel zwar
+    // technisch eindeutig lösbar, praktisch aber zu stark auf Raten-artige
+    // Beweisführung angewiesen (maxTier3Steps: 0 für sehrleicht/leicht/mittel,
+    // kleines Kontingent für schwer/extrem/mashallah, siehe config.js).
+    if (diff.maxTier3Steps != null && result.tiers.t3 > diff.maxTier3Steps) continue;
 
     // Sicherheit: die erzwungene (eindeutige) Lösung muss mit der vorgesehenen
     // übereinstimmen — sonst Bug/Inkonsistenz, verwerfen.
