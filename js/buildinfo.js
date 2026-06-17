@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.22';
-export const BUILD_HASH = '7d02884';
+export const BUILD      = '0.23';
+export const BUILD_HASH = 'd01497e';
 
 export const CHANGELOG = [
+  {
+    "version": "0.23",
+    "date": "17.06.2026",
+    "changes": [
+      "Coop: Leben werden jetzt geteilt — alle Spieler haben zusammen 3 Leben statt jeder eigene",
+      "Verbrauchtes Herz wird diagonal durchgestrichen, in der Farbe des Spielers, der den Fehler gemacht hat (nur im Coop)",
+      "Neu auf dem Gelöst-/Verloren-Screen im Coop: Team-Performance-Auswertung mit richtig eingekreisten/gelöschten Feldern, Fehlern pro Spieler und MVP-Krönung"
+    ]
+  },
   {
     "version": "0.22",
     "date": "17.06.2026",

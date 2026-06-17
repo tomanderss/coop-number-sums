@@ -57,6 +57,8 @@ const state = reactive({
     players: [],                // [{id, name, color}] — alle bekannten Mitspieler inkl. mir selbst
     nameDraft: '',              // Entwurf im Namens-Gate, bevor er bestätigt wird
     identityConfirmed: false,   // true sobald das Namens-Gate in dieser Coop-Session bestätigt wurde
+    lifeLossBy: [],              // chronologisch: wer hat welches (gemeinsame) Leben verbraucht
+    mistakesByPlayer: {},        // id -> Anzahl Fehler dieses Spielers im laufenden Rätsel
   },
 
   // UI
@@ -196,6 +198,8 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.hintsLeft = saved?.hintsLeft ?? HINTS;
   state.hintsUsed = saved?.hintsUsed ?? 0;
   state.mistakes = saved?.mistakes ?? 0;
+  state.coop.lifeLossBy = [];
+  state.coop.mistakesByPlayer = {};
   state.history = [];
   state.flash = {};
   state.justResolved = {};
@@ -319,13 +323,34 @@ function flashError(r, c) {
   setTimeout(() => { delete state.flash[key]; }, 650);
 }
 
+// by: wer den Fehler begangen hat ('me'/Peer-ID im Coop, sonst null). Wird im Coop
+// an den/die Partner gesendet, damit Fehler & gemeinsame Leben bei allen synchron
+// bleiben (eine rein lokale Sofort-Aufdeckung würde der Partner sonst nie erfahren).
 function registerMistake() {
+  const by = state.coop.active ? state.coop.myId : null;
   state.mistakes++;
+  if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + 1;
+  if (state.coop.active) coopSend({ type: Coop.MSG.MISTAKE, by, n: 1 });
   if (state.settings.livesEnabled) {
     state.lives--;
+    if (state.coop.active) state.coop.lifeLossBy.push(by);
     if (state.lives <= 0) { state.lives = 0; lose(); }
   }
   persistGame();
+}
+
+// Wendet einen vom Partner gemeldeten Fehler an (ohne erneut zu senden — sonst
+// würde die Nachricht zwischen Host und Gast endlos hin- und herlaufen).
+function applyRemoteMistake(by, n) {
+  state.mistakes += n;
+  if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + n;
+  if (state.settings.livesEnabled) {
+    for (let i = 0; i < n; i++) {
+      state.lives--;
+      state.coop.lifeLossBy.push(by);
+      if (state.lives <= 0) { state.lives = 0; lose(); return; }
+    }
+  }
 }
 
 // Gelöst, wenn JEDE Zelle korrekt markiert ist (Lösung eingekreist, Rest gelöscht).
@@ -337,10 +362,12 @@ function isSolved() {
   return true;
 }
 
-// "Prüfen"-Modus (Fehler erst auf Knopfdruck)
-function doCheck(broadcast = true) {
+// "Prüfen"-Modus (Fehler erst auf Knopfdruck). by: wer den Check ausgelöst hat
+// (für die Fehler-/Lebenszuordnung im Coop) — bleibt beim Weiterleiten an weitere
+// Mitspieler unverändert, damit die Zuordnung auch beim Host-Relay erhalten bleibt.
+function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = true) {
   if (state.status !== 'playing') return;
-  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.CHECK });
+  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.CHECK, from: by });
   const p = state.puzzle; const wrong = [];
   for (let r = 0; r < p.rows; r++)
     for (let c = 0; c < p.cols; c++) {
@@ -354,8 +381,10 @@ function doCheck(broadcast = true) {
   }
   wrong.forEach(([r, c]) => flashError(r, c));
   state.mistakes += wrong.length;
+  if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + wrong.length;
   if (state.settings.livesEnabled) {
     state.lives--;
+    if (state.coop.active) state.coop.lifeLossBy.push(by);
     if (state.lives <= 0) { state.lives = 0; lose(); return; }
   }
   showToast(`${wrong.length} Fehler gefunden`, 'error');
@@ -419,7 +448,10 @@ function handleCoopMsg(msg, fromConn) {
     undo(false);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.CHECK) {
-    doCheck(false);
+    doCheck(msg.from, false);
+    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.MISTAKE) {
+    applyRemoteMistake(msg.by, msg.n);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.PAUSE) {
     if (msg.paused) pauseGame(false, msg.elapsed); else resumeFromPause(false);
@@ -715,6 +747,7 @@ function restartPuzzle(startTime) {
   state.cellMeta = buildCellMeta(state.puzzle); // setzt auch hint/hintMark zurück
   state.lives = LIVES; state.maxLives = LIVES; state.hintsLeft = HINTS;
   state.hintsUsed = 0; state.mistakes = 0; state.history = []; state.flash = {}; state.justResolved = {};
+  state.coop.lifeLossBy = []; state.coop.mistakesByPlayer = {};
   state.status = 'playing'; state.solutionShown = false; state.newHighscore = false; state.elapsed = 0;
   state.startTime = startTime ?? Date.now();
   startTimer(); persistGame();
@@ -848,6 +881,43 @@ const App = {
       return p ? Math.round((w / p) * 100) : 0;
     });
     const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
+    // Welcher Spieler hat das Herz an Index i verbraucht? Herzen werden von links
+    // gefüllt angezeigt, verbraucht wird aber immer von rechts (höchster Index
+    // zuerst) — daher die Umrechnung über die Verlust-Reihenfolge.
+    function lifeLossColor(i) {
+      const lossNr = state.maxLives - i; // 1-basiert: 1. verlorenes Herz, 2., ...
+      const by = state.coop.lifeLossBy[lossNr - 1];
+      return by ? playerColor(by) : null;
+    }
+    const coopPerformance = computed(() => {
+      if (!state.coop.active || !state.puzzle || !state.coop.players.length) return [];
+      const p = state.puzzle;
+      const raw = state.coop.players.map(pl => {
+        let correctKept = 0, correctRemoved = 0;
+        for (let r = 0; r < p.rows; r++)
+          for (let c = 0; c < p.cols; c++) {
+            if (state.markedBy[r][c] !== pl.id) continue;
+            if (state.marks[r][c] === 'kept' && p.solution[r][c]) correctKept++;
+            else if (state.marks[r][c] === 'removed' && !p.solution[r][c]) correctRemoved++;
+          }
+        const mistakes = state.coop.mistakesByPlayer[pl.id] || 0;
+        return { id: pl.id, name: pl.name, color: pl.color, correctKept, correctRemoved, mistakes, correct: correctKept + correctRemoved };
+      });
+      const totalCorrect = raw.reduce((s, pl) => s + pl.correct, 0);
+      return raw.map(pl => ({
+        ...pl,
+        contributionPct: totalCorrect > 0 ? Math.round((pl.correct / totalCorrect) * 100) : Math.round(100 / raw.length),
+        accuracyPct: (pl.correct + pl.mistakes) > 0 ? Math.round((pl.correct / (pl.correct + pl.mistakes)) * 100) : 100,
+      })).sort((a, b) => b.contributionPct - a.contributionPct || b.accuracyPct - a.accuracyPct);
+    });
+    // Kein MVP, wenn nur einer mitspielt oder alle exakt gleich gut beigetragen haben.
+    const mvpId = computed(() => {
+      const list = coopPerformance.value;
+      if (list.length < 2) return null;
+      const best = list[0];
+      if (list.every(pl => pl.contributionPct === best.contributionPct && pl.accuracyPct === best.accuracyPct)) return null;
+      return best.id;
+    });
     const progress = computed(() => {
       if (!state.puzzle) return { kept: 0, total: 0 };
       let kept = 0, total = 0;
@@ -869,7 +939,7 @@ const App = {
 
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, COOP_COLORS,
-      winStat, livesArr, progress, gridStyle, coopAvailable,
+      winStat, livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
       navigate, newGame, resumeGame, onCellTap, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doImport, openBackups, doRestore,
@@ -946,6 +1016,7 @@ const App = {
           <div class="hud-item lives" v-if="state.settings.livesEnabled">
             <span v-for="(full,i) in livesArr" :key="i" class="heart" :class="{empty:!full}">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              <i v-if="!full && state.coop.active && lifeLossColor(i)" class="heart-strike" :style="{background: lifeLossColor(i)}"></i>
             </span>
           </div>
           <div class="hud-item timer" v-if="state.settings.showTimer">⏱ {{ fmtTime(state.elapsed) }}</div>
@@ -1032,7 +1103,7 @@ const App = {
           </button>
         </div>
         <div v-if="state.settings.errorReveal==='onCheck'" class="check-row">
-          <button class="btn btn-primary btn-check" @click="doCheck">✓ Prüfen</button>
+          <button class="btn btn-primary btn-check" @click="doCheck()">✓ Prüfen</button>
         </div>
       </template>
 
@@ -1059,6 +1130,21 @@ const App = {
             <div><b>{{ state.mistakes }}</b><small>Fehler</small></div>
             <div><b>{{ state.hintsUsed }}</b><small>Hinweise</small></div>
           </div>
+          <div v-if="coopPerformance.length" class="coop-performance">
+            <div class="perf-title">👥 Team-Performance</div>
+            <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
+              <div class="perf-head">
+                <span class="perf-name" :style="{color: pl.color}">{{ pl.name }}<template v-if="pl.id===mvpId"> 🏆 MVP</template></span>
+                <span class="perf-pct">{{ pl.contributionPct }}%</span>
+              </div>
+              <div class="perf-bar"><div class="perf-bar-fill" :style="{width: pl.contributionPct + '%', background: pl.color}"></div></div>
+              <div class="perf-nums">
+                <span>⭕ {{ pl.correctKept }} richtig eingekreist</span>
+                <span>🗑️ {{ pl.correctRemoved }} richtig gelöscht</span>
+                <span>❌ {{ pl.mistakes }} Fehler</span>
+              </div>
+            </div>
+          </div>
           <button class="btn btn-primary" v-if="!state.coop.active || state.coop.role==='host'" @click="newGame(state.puzzle.difficulty)">Nächstes Rätsel</button>
           <p v-else class="result-msg">Warte auf den Host für die nächste Runde …</p>
           <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
@@ -1069,6 +1155,21 @@ const App = {
           <div class="result-emoji">💔</div>
           <h2>Keine Leben mehr</h2>
           <p class="result-msg">Kein Problem – versuch es erneut!</p>
+          <div v-if="coopPerformance.length" class="coop-performance">
+            <div class="perf-title">👥 Team-Performance</div>
+            <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
+              <div class="perf-head">
+                <span class="perf-name" :style="{color: pl.color}">{{ pl.name }}<template v-if="pl.id===mvpId"> 🏆 MVP</template></span>
+                <span class="perf-pct">{{ pl.contributionPct }}%</span>
+              </div>
+              <div class="perf-bar"><div class="perf-bar-fill" :style="{width: pl.contributionPct + '%', background: pl.color}"></div></div>
+              <div class="perf-nums">
+                <span>⭕ {{ pl.correctKept }} richtig eingekreist</span>
+                <span>🗑️ {{ pl.correctRemoved }} richtig gelöscht</span>
+                <span>❌ {{ pl.mistakes }} Fehler</span>
+              </div>
+            </div>
+          </div>
           <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
           <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">Neues Spiel</button>
           <button class="btn btn-ghost" @click="revealSolution">Lösung zeigen</button>
@@ -1291,6 +1392,7 @@ const App = {
           <li>Auch jede <b>farbige Region</b> hat eine eigene Zielsumme (Zahl in der Ecke).</li>
           <li>Kreise nur ein, wo du dir <b>sicher</b> bist – jedes Rätsel ist <b>ohne Raten</b> lösbar.</li>
           <li>Gelöst, wenn alle Summen stimmen. Im Leben-Modus kostet jeder Fehler ein ❤.</li>
+          <li v-if="state.coop.active">Im Coop teilt ihr euch die ❤ — ein verbrauchtes Herz wird in der Farbe des Spielers durchgestrichen, der den Fehler gemacht hat.</li>
         </ol>
         <button class="btn btn-primary" @click="state.modal=null">Verstanden</button>
       </div>
