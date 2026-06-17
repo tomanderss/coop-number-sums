@@ -1,8 +1,22 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.19';
-export const BUILD_HASH = 'b71a774';
+export const BUILD      = '0.20';
+export const BUILD_HASH = '2c8899f';
 
 export const CHANGELOG = [
+  {
+    "version": "0.20",
+    "date": "17.06.2026",
+    "changes": [
+      "\"Neues Spiel\"- und \"Coop-Modus\"-Icon im Hauptmenü sind jetzt exakt auf einer Höhe",
+      "Die vier unteren Hauptmenü-Buttons sind jetzt im 2x2-Raster immer gleich breit",
+      "Lösung anzeigen im Coop ist jetzt rein lokal: dein Partner sieht davon nichts und kann währenddessen weiterspielen",
+      "Neuer \"Zurück\"-Button bei angezeigter Lösung führt wieder zum Aufgeben-Dialog zurück",
+      "Beim Coop-Beitritt wird jetzt zuerst nach Name und eigener Farbe gefragt",
+      "Alle verbundenen Mitspieler werden im Spiel jetzt namentlich mit ihrer Farbe angezeigt",
+      "Eigene Coop-Farbe frei wählbar per Farbpicker, andere Mitspieler bekommen automatisch eine eigene Farbe zugewiesen",
+      "Bestzeit und Durchschnittszeit werden für Coop-Partien jetzt getrennt von Solo-Partien geführt und angezeigt"
+    ]
+  },
   {
     "version": "0.19",
     "date": "17.06.2026",

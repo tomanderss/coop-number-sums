@@ -36,7 +36,12 @@ export function saveActiveGame(g) { if (g) save(KEYS.ACTIVE_GAME, g); else remov
 const EMPTY_STATS = {
   played: 0, won: 0, lost: 0, gaveup: 0, currentStreak: 0, bestStreak: 0,
   totalTimeMs: 0, hintsUsed: 0,
-  byDifficulty: {}, // id -> { played, won, lost, gaveup, sumTimeMs, bestTimeMs }
+  // id -> { played, won, lost, gaveup, sumTimeMs, bestTimeMs,
+  //         coopPlayed, coopWon, coopLost, coopGaveup, coopSumTimeMs, coopBestTimeMs }
+  // Die coop*-Felder zählen ausschließlich Coop-Partien getrennt von den
+  // ursprünglichen (Solo-)Feldern, damit eine schnellere Coop-Zeit nie die
+  // Solo-Bestzeit/den Solo-Schnitt verfälscht.
+  byDifficulty: {},
 };
 export function loadStats() { return { ...EMPTY_STATS, ...load(KEYS.STATS, {}) }; }
 export function saveStats(s) { save(KEYS.STATS, s); }
@@ -44,25 +49,37 @@ export function saveStats(s) { save(KEYS.STATS, s); }
 // outcome: 'won' | 'lost' (alle Leben verloren) | 'gaveup' (Aufgeben-Button)
 // Highscore (bestTimeMs je Schwierigkeit) gilt NUR für perfekte Spiele: keine
 // Fehler und keine Hinweise — sonst wäre die Bestzeit nicht vergleichbar.
-export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes }) {
+// coop: true, wenn die Partie in einer aktiven Coop-Session gespielt wurde —
+// fließt dann in die coop*-Felder statt die Solo-Felder ein.
+export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes, coop = false }) {
   const s = loadStats();
   s.played++;
   s.hintsUsed += hintsUsed || 0;
-  s.byDifficulty[difficulty] = s.byDifficulty[difficulty] ||
-    { played: 0, won: 0, lost: 0, gaveup: 0, sumTimeMs: 0, bestTimeMs: null };
+  // Bereits vorhandene Einträge (aus älteren Versionen ohne coop*-Felder) per
+  // Merge ergänzen, statt sie zu überschreiben — keine Datenverluste.
+  s.byDifficulty[difficulty] = {
+    played: 0, won: 0, lost: 0, gaveup: 0, sumTimeMs: 0, bestTimeMs: null,
+    coopPlayed: 0, coopWon: 0, coopLost: 0, coopGaveup: 0, coopSumTimeMs: 0, coopBestTimeMs: null,
+    ...s.byDifficulty[difficulty],
+  };
   const d = s.byDifficulty[difficulty];
-  d.played++;
   let newHighscore = false;
+  if (coop) d.coopPlayed++; else d.played++;
   if (outcome === 'won') {
     s.won++; s.currentStreak++; s.bestStreak = Math.max(s.bestStreak, s.currentStreak);
     s.totalTimeMs += timeMs || 0;
-    d.won++; d.sumTimeMs += timeMs || 0;
     const perfect = (mistakes || 0) === 0 && (hintsUsed || 0) === 0;
-    if (perfect && (d.bestTimeMs == null || timeMs < d.bestTimeMs)) { d.bestTimeMs = timeMs; newHighscore = true; }
+    if (coop) {
+      d.coopWon++; d.coopSumTimeMs += timeMs || 0;
+      if (perfect && (d.coopBestTimeMs == null || timeMs < d.coopBestTimeMs)) { d.coopBestTimeMs = timeMs; newHighscore = true; }
+    } else {
+      d.won++; d.sumTimeMs += timeMs || 0;
+      if (perfect && (d.bestTimeMs == null || timeMs < d.bestTimeMs)) { d.bestTimeMs = timeMs; newHighscore = true; }
+    }
   } else {
     s.currentStreak = 0;
-    if (outcome === 'gaveup') { s.gaveup++; d.gaveup++; }
-    else { s.lost++; d.lost++; }
+    if (outcome === 'gaveup') { if (coop) d.coopGaveup++; else d.gaveup++; s.gaveup++; }
+    else { if (coop) d.coopLost++; else d.lost++; s.lost++; }
   }
   saveStats(s);
   return { stats: s, newHighscore };

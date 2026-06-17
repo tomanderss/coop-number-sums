@@ -52,7 +52,9 @@ export function hostGame({ code, onOpen, onError, onJoin, onLeave, onMessage }) 
   lastSeenByConn = new Map();
   stopHeartbeat();
   peer = new window.Peer(PREFIX + code, { debug: 1, ...PEER_CONFIG });
-  peer.on('open', () => onOpen && onOpen());
+  // Es gibt je Session immer genau einen Host — eine feste logische ID reicht,
+  // statt die interne (code-abhängige) Peer-ID nach außen zu reichen.
+  peer.on('open', () => onOpen && onOpen('host'));
   peer.on('error', (e) => onError && onError(e)); // z.B. 'unavailable-id' = Code belegt
   peer.on('connection', (conn) => {
     conn.on('open', () => { guestConns.push(conn); lastSeenByConn.set(conn, Date.now()); onJoin && onJoin(conn); });
@@ -90,10 +92,10 @@ export function joinGame({ code, onOpen, onError, onMessage, onClose }) {
   peer = new window.Peer({ debug: 1, ...PEER_CONFIG });
   let settled = false;
   stopHeartbeat();
-  peer.on('open', () => {
+  peer.on('open', (myId) => {
     hostConn = peer.connect(PREFIX + String(code), { reliable: true });
     hostConn.on('open', () => {
-      settled = true; lastSeenHost = Date.now(); onOpen && onOpen();
+      settled = true; lastSeenHost = Date.now(); onOpen && onOpen(myId);
       heartbeatHandle = setInterval(() => {
         if (!hostConn) return;
         if (Date.now() - lastSeenHost > HEARTBEAT_TIMEOUT_MS) {
@@ -135,5 +137,5 @@ export function leave() {
 
 export const MSG = {
   INIT: 'init', MOVE: 'move', UNDO: 'undo', CHECK: 'check', STATUS: 'status', PAUSE: 'pause', HINT: 'hint',
-  REVEAL: 'reveal', RETRY: 'retry', CLOSE: 'close',
+  RETRY: 'retry', CLOSE: 'close', IDENTITY: 'identity', ROSTER: 'roster',
 };
