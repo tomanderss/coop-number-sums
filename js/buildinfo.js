@@ -1,8 +1,25 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.8';
-export const BUILD_HASH = 'a32afac';
+export const BUILD      = '0.11';
+export const BUILD_HASH = '43ca967';
 
 export const CHANGELOG = [
+  {
+    "version": "0.11",
+    "date": "17.06.2026",
+    "changes": [
+      "Toggle-Kontrast verbessert: aktives Werkzeug ist jetzt klar erkennbar (weißes Symbol)",
+      "Summenkästchen außen haben jetzt exakt dieselbe Größe wie die Spielfelder",
+      "Obere linke Eckzelle farblich abgehoben",
+      "Fertige Reihen/Spalten/Cages bekommen nur noch eine äußere Umrandung statt einzeln aufblitzender Kästchen",
+      "Änderungshistorie lässt sich jetzt immer schließen (Modal scrollt korrekt)",
+      "Herzen verschieben sich beim Lebensverlust nicht mehr, sondern grauen nur noch aus",
+      "Spielanleitung zeigt jetzt die echten Stift-/Radierer-Symbole statt Text",
+      "Statistik: Bestzeit und Durchschnittszeit je Schwierigkeit, Bestzeiten zählen nur bei fehler- und hinweisfreien Spielen",
+      "Neue Bestzeit wird beim Sieg mit einem Hinweis gefeiert",
+      "Neuer Aufgeben-Button im Spiel; aufgegebene Spiele werden getrennt von verlorenen Spielen gezählt",
+      "Generator garantiert jetzt zuverlässig die Mindestanzahl einstelliger Summen je Schwierigkeit"
+    ]
+  },
   {
     "version": "0.8",
     "date": "17.06.2026",
