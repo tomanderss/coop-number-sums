@@ -1,8 +1,18 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.6';
-export const BUILD_HASH = '650c6e8';
+export const BUILD      = '0.8';
+export const BUILD_HASH = 'a32afac';
 
 export const CHANGELOG = [
+  {
+    "version": "0.8",
+    "date": "17.06.2026",
+    "changes": [
+      "Coop-Modus: gemeinsam Rätsel lösen in Echtzeit (Host legt 6-stelligen Code fest)",
+      "Coop: Pause ist übergreifend – pausiert einer, pausiert der Partner auch",
+      "Coop: eigene Farbe und Partner-Farbe in den Einstellungen frei wählbar",
+      "Coop: Zellen zeigen farblich, wer sie eingekreist oder gelöscht hat"
+    ]
+  },
   {
     "version": "0.6",
     "date": "16.06.2026",
