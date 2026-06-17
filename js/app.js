@@ -74,7 +74,6 @@ const state = reactive({
 
 let timerHandle = null;
 let saveThrottle = 0;
-let pinchState = null;       // { dist, zoom } während einer 2-Finger-Geste
 let coopIntentionalLeave = false; // unterscheidet bewusstes Verlassen von echtem Verbindungsabbruch
 
 // ─── HELFER ───────────────────────────────────────────────────────────────────
@@ -229,23 +228,6 @@ function setZoom(delta) {
   state.zoom = Math.max(0.7, Math.min(2.2, +(state.zoom + delta).toFixed(2)));
   computeCellSize();
 }
-
-// ─── PINCH-TO-ZOOM (Board) ─────────────────────────────────────────────────────
-function touchDist(touches) {
-  const [a, b] = touches;
-  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-}
-function onPinchStart(e) {
-  if (e.touches.length === 2) pinchState = { dist: touchDist(e.touches), zoom: state.zoom };
-}
-function onPinchMove(e) {
-  if (!pinchState || e.touches.length !== 2) return;
-  e.preventDefault();
-  const ratio = touchDist(e.touches) / pinchState.dist;
-  state.zoom = Math.max(0.7, Math.min(2.2, +(pinchState.zoom * ratio).toFixed(2)));
-  computeCellSize();
-}
-function onPinchEnd(e) { if (e.touches.length < 2) pinchState = null; }
 
 // ─── SUMMEN & FERTIG-STATUS ───────────────────────────────────────────────────
 function rowSum(r) {
@@ -949,7 +931,6 @@ const App = {
       fmtTime, toggleSetting, setSetting, doExport, doImport, openBackups, doRestore,
       resetStats, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause,
-      onPinchStart, onPinchMove, onPinchEnd,
       cellClasses, cellStyle, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop,
@@ -1061,8 +1042,7 @@ const App = {
           </span>
         </div>
 
-        <div class="board-wrap" :class="{ blurred: state.paused }"
-             @touchstart="onPinchStart" @touchmove="onPinchMove" @touchend="onPinchEnd" @touchcancel="onPinchEnd">
+        <div class="board-wrap" :class="{ blurred: state.paused }">
           <div class="board" :style="gridStyle">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolved(c-1), pulse: state.justResolved['col-'+(c-1)]}">
