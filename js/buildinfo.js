@@ -1,8 +1,22 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.11';
-export const BUILD_HASH = '43ca967';
+export const BUILD      = '0.13';
+export const BUILD_HASH = 'c9c9c42';
 
 export const CHANGELOG = [
+  {
+    "version": "0.13",
+    "date": "17.06.2026",
+    "changes": [
+      "Aufgeben-Button hat jetzt ein passendes Flaggen-Icon im Stil von Pause/Anleitung",
+      "Hinweise werden im Coop-Modus jetzt an den Mitspieler übertragen",
+      "Fehler beim Endbildschirm im Coop-Modus behoben (NaN-Zeit, abweichende Zeitanzeige)",
+      "Bestzeit wird beim Host im Coop-Modus jetzt korrekt erkannt",
+      "Trennt sich der Host im Coop-Modus, übernimmt der Mitspieler automatisch als neuer Host",
+      "Coop-Raum wird nach Spielende bzw. bei Verbindungsabbruch wieder freigegeben",
+      "Durchschnittszeit in der Statistik wird jetzt auf gleicher Höhe und Größe wie die Bestzeit angezeigt",
+      "Zentrierungsfehler im Spielfeld bei bestimmten Bildschirmbreiten behoben"
+    ]
+  },
   {
     "version": "0.11",
     "date": "17.06.2026",
