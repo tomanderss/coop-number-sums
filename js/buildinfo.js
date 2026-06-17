@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.30';
-export const BUILD_HASH = 'c4ed5ae';
+export const BUILD      = '0.31';
+export const BUILD_HASH = '68d2ec9';
 
 export const CHANGELOG = [
+  {
+    "version": "0.31",
+    "date": "17.06.2026",
+    "changes": [
+      "Beim Gewinnen gibt es jetzt — wie beim Verlieren/Aufgeben — einen Button \"Spielfeld ansehen\", um das fertige Rätsel noch einmal anzusehen (Solo & Coop)."
+    ]
+  },
   {
     "version": "0.30",
     "date": "17.06.2026",

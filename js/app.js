@@ -760,9 +760,12 @@ function giveUp(remote) {
   }
 }
 
-// Rein lokal: zeigt die Lösung nur auf diesem Gerät an, ohne den Partner zu
-// beeinflussen oder den Spielstatus zu verändern (status bleibt 'lost'/'gaveup',
-// damit "Zurück" einfach wieder zum Aufgeben-Dialog zurückkehrt).
+// Rein lokal: zeigt das fertige Feld nur auf diesem Gerät an, ohne den Partner
+// zu beeinflussen oder den Spielstatus zu verändern (status bleibt
+// 'won'/'lost'/'gaveup', damit "Zurück" einfach wieder zum Ergebnis-Dialog
+// zurückkehrt). Bei 'won' sind die Markierungen bereits korrekt — der Aufruf
+// setzt hier nur solutionShown, damit das Ergebnis-Overlay kurz ausgeblendet
+// werden kann.
 function revealSolution() {
   const p = state.puzzle;
   for (let r = 0; r < p.rows; r++)
@@ -1158,7 +1161,7 @@ const App = {
       </div>
 
       <!-- Gewonnen / Verloren -->
-      <div v-if="state.status==='won'" class="overlay">
+      <div v-if="state.status==='won' && !state.solutionShown" class="overlay">
         <div class="result-card win">
           <div class="result-emoji">🎉</div>
           <h2>Gelöst!</h2>
@@ -1185,6 +1188,7 @@ const App = {
           </div>
           <button class="btn btn-primary" v-if="!state.coop.active || state.coop.role==='host'" @click="newGame(state.puzzle.difficulty)">Nächstes Rätsel</button>
           <p v-else class="result-msg">Warte auf den Host für die nächste Runde …</p>
+          <button class="btn btn-ghost" @click="revealSolution">Spielfeld ansehen</button>
           <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
         </div>
       </div>
@@ -1226,9 +1230,9 @@ const App = {
         </div>
       </div>
       <!-- Lösungsanzeige ist rein lokal (Punkt 4): "Zurück" bringt nur diesen
-           Spieler zum Aufgeben-Dialog zurück, ohne den Partner zu beeinflussen. -->
+           Spieler zum Ergebnis-Dialog zurück, ohne den Partner zu beeinflussen. -->
       <div v-if="state.solutionShown" class="review-bar">
-        <span>Lösung</span>
+        <span>{{ state.status==='won' ? 'Rätsel' : 'Lösung' }}</span>
         <button class="btn btn-primary btn-sm" @click="state.solutionShown=false">Zurück</button>
       </div>
 
