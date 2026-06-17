@@ -25,10 +25,7 @@
     #splash-inner { text-align: center; }
     #splash-logo {
       width: 104px; height: 104px; border-radius: 26px; margin: 0 auto;
-      background: linear-gradient(135deg, #5b8cff, #a855f7);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 3.2rem; font-weight: 800; color: #fff;
-      box-shadow: 0 0 48px rgba(91,140,255,.45);
+      display: block; box-shadow: 0 0 48px rgba(91,140,255,.45);
     }
     #splash-title { font-family: system-ui, sans-serif; font-size: 1.4rem; font-weight: 900; color: #e8edf7; margin-top: 18px; letter-spacing: -.3px; }
     #splash-sub { font-family: system-ui, sans-serif; font-size: .8rem; color: #5d6987; margin-top: 4px; }
@@ -38,7 +35,7 @@
 <body>
   <div id="splash">
     <div id="splash-inner">
-      <div id="splash-logo">∑</div>
+      <img id="splash-logo" src="./icons/icon-192.png" alt="" />
       <div id="splash-title">Coop Number Sums</div>
       <div id="splash-version"></div>
     </div>

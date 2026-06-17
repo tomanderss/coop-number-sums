@@ -1,6 +1,8 @@
 // create-icons.js — erzeugt icons/icon-192.png & icon-512.png ohne Abhängigkeiten
-// (reiner PNG-Encoder via Node-zlib). Motiv: eine einzelne Cage-Zelle — Verlauf-
-// Hintergrund, violette Cage mit Summen-Chip oben links, große eingekreiste Zahl.
+// (reiner PNG-Encoder via Node-zlib). Motiv: ein nachgestellter Mini-Ausschnitt
+// der oberen linken Spielfeld-Ecke — Eck-Header, zwei Spalten- und Zeilensummen,
+// ein 2x2-Block echter Puzzle-Zellen mit Cage-Farben, Summen-Badge und einer
+// eingekreisten "kept"-Zahl (wie im echten Spiel).
 import { deflateSync } from 'zlib';
 import { writeFileSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
@@ -36,8 +38,7 @@ function encodePNG(width, height, rgba) {
   return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', Buffer.alloc(0))]);
 }
 
-// ── Farben ────────────────────────────────────────────────────────────────────
-function lerp(a, b, t) { return a + (b - a) * t; }
+// ── Farben (wie im echten App-Theme / REGION_COLORS) ───────────────────────────
 function hslToRgb(h, s, l) {
   s /= 100; l /= 100;
   const c = (1 - Math.abs(2 * l - 1)) * s;
@@ -52,11 +53,14 @@ function hslToRgb(h, s, l) {
   else [r1, g1, b1] = [c, 0, x];
   return [(r1 + m) * 255, (g1 + m) * 255, (b1 + m) * 255];
 }
-const C1 = [91, 140, 255];   // #5b8cff
-const C2 = [168, 85, 247];   // #a855f7
-const VIOLET = hslToRgb(263, 72, 62);      // Cage-Farbe (wie REGION_COLORS in config.js)
-const VIOLET_DARK = hslToRgb(263, 72, 46); // Summen-Chip-Hintergrund (dunklere Schattierung)
 const WHITE = [255, 255, 255];
+const BG = [11, 16, 32];          // --bg
+const HDR_BG = [26, 33, 56];      // --bg2-artige Header-/Eckzelle
+const TEXT2 = [154, 166, 194];    // --text2 (gedämpfte Spaltensumme)
+const VIOLET = hslToRgb(263, 72, 62);       // REGION_COLORS.violet
+const VIOLET_DARK = hslToRgb(263, 72, 46);  // Summen-Badge (dunklere Schattierung)
+const TEAL = hslToRgb(174, 70, 44);         // REGION_COLORS.teal
+const TEAL_DARK = hslToRgb(174, 70, 30);
 
 // ── Sieben-Segment-Ziffern (ohne Schriftart) ───────────────────────────────────
 // Box-Koordinaten: Breite 0..1, Höhe 0..1.8. `t` = Segmentdicke (Anteil von 1).
@@ -83,13 +87,34 @@ function segmentRect(seg, t) {
     case 'G': return [t, 0.9 - t / 2, 1 - t, 0.9 + t / 2];
   }
 }
+function inRoundedRectLocal(lx, ly, x, y, w, h, r) {
+  if (lx < x || lx > x + w || ly < y || ly > y + h) return false;
+  const rx = Math.min(r, w / 2), ry = Math.min(r, h / 2);
+  const corner = (cx, cy) => ((lx - cx) / rx) ** 2 + ((ly - cy) / ry) ** 2 <= 1;
+  if (lx < x + rx && ly < y + ry) return corner(x + rx, y + ry);
+  if (lx > x + w - rx && ly < y + ry) return corner(x + w - rx, y + ry);
+  if (lx < x + rx && ly > y + h - ry) return corner(x + rx, y + h - ry);
+  if (lx > x + w - rx && ly > y + h - ry) return corner(x + w - rx, y + h - ry);
+  return true;
+}
+// Segmente bekommen abgerundete Ecken (Pillenform) statt scharfer Rechtecke,
+// damit die Ziffern nicht wie ein blockiger Digitalanzeigen-Font wirken.
 function digitCoverage(digit, lx, ly, t) {
-  if (lx < 0 || lx > 1 || ly < 0 || ly > 1.8) return false;
+  if (lx < -0.1 || lx > 1.1 || ly < -0.1 || ly > 1.9) return false;
+  const segR = t * 0.85;
   for (const seg of DIGIT_SEGMENTS[digit]) {
     const [x0, y0, x1, y1] = segmentRect(seg, t);
-    if (lx >= x0 && lx <= x1 && ly >= y0 && ly <= y1) return true;
+    if (inRoundedRectLocal(lx, ly, x0, y0, x1 - x0, y1 - y0, segR)) return true;
   }
   return false;
+}
+// Zentriert eine Ziffer in einer Box (boxW/boxH), `scale` = Ziffernbreite relativ
+// zur Boxbreite (Ziffernhöhe ergibt sich aus dem festen 1:1.8-Seitenverhältnis).
+function digitCentered(px, py, boxX, boxY, boxW, boxH, digit, scale, t = 0.24) {
+  const dw = scale * boxW, dh = dw * 1.8;
+  const dx = boxX + (boxW - dw) / 2, dy = boxY + (boxH - dh) / 2;
+  const lx = (px - dx) / dw, ly = (py - dy) / dh * 1.8;
+  return digitCoverage(digit, lx, ly, t);
 }
 
 // ── Geometrie- / Treffertests ──────────────────────────────────────────────────
@@ -109,46 +134,65 @@ function inRing(px, py, cx, cy, rOuter, strokeW) {
 }
 
 // ── Zeichnen ──────────────────────────────────────────────────────────────────
+function pixelColor(px, py, N) {
+  const x0 = 0.06 * N, y0 = 0.06 * N, W = 0.88 * N, H = 0.88 * N, R = 0.16 * N;
+  if (!inRoundedRect(px, py, x0, y0, W, H, R)) return BG;
+  const gap = 0.02 * N;
+  const hdr = 0.27 * W;
+  const cellsW = W - hdr, cellW = (cellsW - gap) / 2;
+  const colX0 = x0 + hdr + gap, colX1 = colX0 + cellW + gap;
+  const rowY0 = y0 + hdr + gap, rowY1 = rowY0 + cellW + gap;
+  const cellR = cellW * 0.16; // weich abgerundete Zellenecken statt scharfer Kanten
+
+  // Eck-Header
+  if (inRoundedRect(px, py, x0, y0, hdr, hdr, cellR)) return HDR_BG;
+  // Spaltensummen (oben)
+  if (py >= y0 && py < y0 + hdr) {
+    if (px >= colX0 && px < colX0 + cellW) return inRoundedRect(px, py, colX0, y0, cellW, hdr, cellR) ? (digitCentered(px, py, colX0, y0, cellW, hdr, 6, 0.42) ? TEXT2 : HDR_BG) : BG;
+    if (px >= colX1 && px < colX1 + cellW) return inRoundedRect(px, py, colX1, y0, cellW, hdr, cellR) ? (digitCentered(px, py, colX1, y0, cellW, hdr, 4, 0.42) ? TEXT2 : HDR_BG) : BG;
+  }
+  // Zeilensummen (links)
+  if (px >= x0 && px < x0 + hdr) {
+    if (py >= rowY0 && py < rowY0 + cellW) return inRoundedRect(px, py, x0, rowY0, hdr, cellW, cellR) ? (digitCentered(px, py, x0, rowY0, hdr, cellW, 9, 0.46) ? WHITE : HDR_BG) : BG;
+    if (py >= rowY1 && py < rowY1 + cellW) return inRoundedRect(px, py, x0, rowY1, hdr, cellW, cellR) ? (digitCentered(px, py, x0, rowY1, hdr, cellW, 5, 0.46) ? WHITE : HDR_BG) : BG;
+  }
+  // 2x2-Block echter Puzzle-Zellen
+  const cells = [
+    { x: colX0, y: rowY0, col: VIOLET, dark: VIOLET_DARK, digit: 7, badge: 3, ring: true },
+    { x: colX1, y: rowY0, col: TEAL,   dark: TEAL_DARK,   digit: 4, badge: null, ring: false },
+    { x: colX0, y: rowY1, col: TEAL,   dark: TEAL_DARK,   digit: 8, badge: null, ring: false },
+    { x: colX1, y: rowY1, col: VIOLET, dark: VIOLET_DARK, digit: 5, badge: null, ring: false },
+  ];
+  for (const c of cells) {
+    if (px >= c.x && px < c.x + cellW && py >= c.y && py < c.y + cellW) {
+      if (!inRoundedRect(px, py, c.x, c.y, cellW, cellW, cellR)) return BG;
+      if (c.badge != null) {
+        const bx = c.x + cellW * 0.1, by = c.y + cellW * 0.1, bw = cellW * 0.46, bh = cellW * 0.3, br = bh * 0.42;
+        if (inRoundedRect(px, py, bx, by, bw, bh, br)) {
+          return digitCentered(px, py, bx, by, bw, bh, c.badge, 0.32) ? WHITE : c.dark;
+        }
+      }
+      if (c.ring) {
+        const rcx = c.x + cellW * 0.56, rcy = c.y + cellW * 0.62, rOuter = cellW * 0.27, sw = cellW * 0.08;
+        if (digitCentered(px, py, rcx - rOuter * 0.62, rcy - rOuter * 0.62, rOuter * 1.24, rOuter * 1.24, c.digit, 0.7)) return WHITE;
+        if (inRing(px, py, rcx, rcy, rOuter, sw)) return WHITE;
+        return c.col;
+      }
+      return digitCentered(px, py, c.x, c.y, cellW, cellW, c.digit, 0.5) ? WHITE : c.col;
+    }
+  }
+  return BG;
+}
+
 function render(N) {
   const buf = Buffer.alloc(N * N * 4);
-  const SS = 4; // Supersampling für glatte Kanten
-
-  const cell = { x: 0.16146 * N, y: 0.16146 * N, w: 0.67708 * N, h: 0.67708 * N, r: 0.10417 * N };
-  const badge = { x: 0.21354 * N, y: 0.21354 * N, w: 0.20833 * N, h: 0.13542 * N, r: 0.03125 * N };
-  const ring = { cx: 0.5 * N, cy: 0.55208 * N, rOuter: 0.17708 * N, strokeW: 0.03646 * N };
-
-  // große Ziffer "7", zentriert im Ring
-  const bigH = ring.rOuter * 1.45, bigW = bigH / 1.8;
-  const bigX = ring.cx - bigW / 2, bigY = ring.cy - bigH / 2;
-
-  // Summen-Chip "12": zwei Ziffern nebeneinander, zentriert im Badge
-  const pad = 0.2;
-  const innerH = badge.h * (1 - 2 * pad);
-  const digH = innerH, digW = digH / 1.8;
-  const gap = digW * 0.22;
-  const totalW = digW * 2 + gap;
-  const chipX = badge.x + (badge.w - totalW) / 2, chipY = badge.y + (badge.h - digH) / 2;
-
+  const SS = 6; // Supersampling für glatte Kanten
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
       let rs = 0, gs = 0, bs = 0;
       for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) {
         const px = x + (sx + 0.5) / SS, py = y + (sy + 0.5) / SS;
-        let col;
-        const lxBig = (px - bigX) / bigW, lyBig = (py - bigY) / bigH * 1.8;
-        const lxC1 = (px - chipX) / digW, lxC2 = (px - (chipX + digW + gap)) / digW, lyC = (py - chipY) / digH * 1.8;
-        if (inRing(px, py, ring.cx, ring.cy, ring.rOuter, ring.strokeW) || digitCoverage(7, lxBig, lyBig, 0.22)) {
-          col = WHITE;
-        } else if (digitCoverage(1, lxC1, lyC, 0.22) || digitCoverage(2, lxC2, lyC, 0.22)) {
-          col = WHITE;
-        } else if (inRoundedRect(px, py, badge.x, badge.y, badge.w, badge.h, badge.r)) {
-          col = VIOLET_DARK;
-        } else if (inRoundedRect(px, py, cell.x, cell.y, cell.w, cell.h, cell.r)) {
-          col = VIOLET;
-        } else {
-          const t = (px + py) / (2 * N);
-          col = [lerp(C1[0], C2[0], t), lerp(C1[1], C2[1], t), lerp(C1[2], C2[2], t)];
-        }
+        const col = pixelColor(px, py, N);
         rs += col[0]; gs += col[1]; bs += col[2];
       }
       const n = SS * SS;
