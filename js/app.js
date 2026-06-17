@@ -880,6 +880,10 @@ const App = {
       const p = state.stats.played || 0, w = state.stats.won || 0;
       return p ? Math.round((w / p) * 100) : 0;
     });
+    const coopWinStat = computed(() => {
+      const p = state.stats.coopPlayed || 0, w = state.stats.coopWon || 0;
+      return p ? Math.round((w / p) * 100) : 0;
+    });
     const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
     // Welcher Spieler hat das Herz an Index i verbraucht? Herzen werden von links
     // gefüllt angezeigt, verbraucht wird aber immer von rechts (höchster Index
@@ -939,7 +943,7 @@ const App = {
 
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, COOP_COLORS,
-      winStat, livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
+      winStat, coopWinStat, livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
       navigate, newGame, resumeGame, onCellTap, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doImport, openBackups, doRestore,
@@ -1204,14 +1208,30 @@ const App = {
     <section v-else-if="state.screen==='stats'" class="screen stats">
       <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>Statistik</h2><span></span></header>
       <div class="stats-body">
+        <div class="stats-section-title">👤 Solo</div>
         <div class="stat-grid">
           <div class="stat-box"><b>{{ state.stats.played }}</b><small>Gespielt</small></div>
           <div class="stat-box"><b>{{ state.stats.won }}</b><small>Gewonnen</small></div>
           <div class="stat-box"><b>{{ winStat }}%</b><small>Quote</small></div>
+          <div class="stat-box"><b>{{ state.stats.gaveup }}</b><small>Aufgegeben</small></div>
+          <div class="stat-box"><b>{{ state.stats.lost }}</b><small>Verloren</small></div>
           <div class="stat-box"><b>{{ state.stats.currentStreak }}</b><small>Serie</small></div>
           <div class="stat-box"><b>{{ state.stats.bestStreak }}</b><small>Beste Serie</small></div>
           <div class="stat-box"><b>{{ state.stats.hintsUsed }}</b><small>Hinweise</small></div>
         </div>
+
+        <div class="stats-section-title coop">👥 Coop</div>
+        <div class="stat-grid coop">
+          <div class="stat-box"><b>{{ state.stats.coopPlayed }}</b><small>Gespielt</small></div>
+          <div class="stat-box"><b>{{ state.stats.coopWon }}</b><small>Gewonnen</small></div>
+          <div class="stat-box"><b>{{ coopWinStat }}%</b><small>Quote</small></div>
+          <div class="stat-box"><b>{{ state.stats.coopGaveup }}</b><small>Aufgegeben</small></div>
+          <div class="stat-box"><b>{{ state.stats.coopLost }}</b><small>Verloren</small></div>
+          <div class="stat-box"><b>{{ state.stats.coopCurrentStreak }}</b><small>Serie</small></div>
+          <div class="stat-box"><b>{{ state.stats.coopBestStreak }}</b><small>Beste Serie</small></div>
+          <div class="stat-box"><b>{{ state.stats.coopHintsUsed }}</b><small>Hinweise</small></div>
+        </div>
+
         <div class="stats-section-title">Nach Schwierigkeit</div>
         <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
           <div class="diff-row-top">
@@ -1221,10 +1241,12 @@ const App = {
           <div class="diff-row-sub">
             <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
             <span v-if="avgTimeFor(d.id)!=null" class="chip">⌀ {{ fmtTime(avgTimeFor(d.id)) }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="chip best-time-chip">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
-            <span v-if="coopAvgTimeFor(d.id)!=null" class="chip">👥⌀ {{ fmtTime(coopAvgTimeFor(d.id)) }}</span>
             <span v-if="state.stats.byDifficulty[d.id]?.gaveup" class="chip">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}</span>
             <span v-if="state.stats.byDifficulty[d.id]?.lost" class="chip">💔 {{ state.stats.byDifficulty[d.id].lost }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="chip coop-chip best-time-chip">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+            <span v-if="coopAvgTimeFor(d.id)!=null" class="chip coop-chip">👥⌀ {{ fmtTime(coopAvgTimeFor(d.id)) }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.coopGaveup" class="chip coop-chip">👥🏳 {{ state.stats.byDifficulty[d.id].coopGaveup }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.coopLost" class="chip coop-chip">👥💔 {{ state.stats.byDifficulty[d.id].coopLost }}</span>
           </div>
         </div>
         <button class="btn btn-danger-ghost" @click="resetStats">Statistik zurücksetzen</button>
