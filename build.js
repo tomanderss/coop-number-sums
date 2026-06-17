@@ -1,6 +1,9 @@
 // build.js — generiert js/buildinfo.js (Version + Changelog) und bumpt den
-// Service-Worker-Cache. Version = 0.<Commit-Anzahl+1>. Changelog kommt aus
-// changes.txt (von Claude/dir gepflegt). 1:1-Mechanik wie in der Werwolf-App.
+// Service-Worker-Cache. Version = 0.<Release-Zähler>, ein eigener, in
+// .release-counter persistierter Zähler (nicht die Git-Commit-Anzahl — die
+// würde pro Release um die Anzahl der dabei gemachten Commits springen,
+// z.B. um 2, wenn ein Release aus Feature-Commit + Build-Commit besteht).
+// Changelog kommt aus changes.txt (von Claude/dir gepflegt).
 
 import { execSync } from 'child_process';
 import { writeFileSync, readFileSync, existsSync, readdirSync, unlinkSync } from 'fs';
@@ -12,9 +15,11 @@ function git(cmd) { return execSync(`git ${cmd}`, { cwd: __dir }).toString().tri
 function gitSafe(cmd, fallback) { try { return git(cmd); } catch { return fallback; } }
 
 // ── Version ──────────────────────────────────────────────────────────────────
-const VERSION_OFFSET = 1;
-const totalCommits = parseInt(gitSafe('rev-list --count HEAD', '0')) || 0;
-const VERSION = `0.${totalCommits + VERSION_OFFSET}`;
+const counterPath = join(__dir, '.release-counter');
+const lastCounter = existsSync(counterPath) ? parseInt(readFileSync(counterPath, 'utf8').trim()) || 0 : 0;
+const counter = lastCounter + 1;
+writeFileSync(counterPath, `${counter}\n`, 'utf8');
+const VERSION = `0.${counter}`;
 const GIT_HASH = gitSafe('rev-parse --short HEAD', 'init');
 
 // ── Aktuelle Änderungen aus changes.txt ──────────────────────────────────────
