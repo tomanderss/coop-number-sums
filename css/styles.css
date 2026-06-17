@@ -129,9 +129,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .hud { display: flex; align-items: center; gap: 14px; }
 .hud-item { font-weight: 800; font-size: 1rem; }
 .lives { display: flex; gap: 3px; align-items: center; }
-.heart { display: block; color: var(--bad); transition: color .2s, opacity .2s; }
+.heart { display: block; position: relative; color: var(--bad); transition: color .2s, opacity .2s; }
 .heart svg { display: block; width: 20px; height: 20px; }
 .heart.empty { color: var(--text3); opacity: .4; padding: 0; text-align: left; }
+/* Coop: zeigt, welcher Mitspieler dieses gemeinsame Leben verbraucht hat —
+   Diagonale von oben-links nach unten-rechts in dessen Spielerfarbe. */
+.heart-strike {
+  position: absolute; left: 50%; top: 50%; width: 25px; height: 2.4px; border-radius: 2px;
+  transform: translate(-50%, -50%) rotate(45deg); opacity: .95;
+}
 .timer { color: var(--text2); font-variant-numeric: tabular-nums; }
 .game-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; flex: 0 0 auto; }
 .chip { background: var(--bg2); color: var(--text2); font-size: .76rem; font-weight: 700; padding: 5px 10px; border-radius: 999px; }
@@ -291,6 +297,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .result-stats > div { display: flex; flex-direction: column; }
 .result-stats b { font-size: 1.4rem; }
 .result-stats small { color: var(--text2); font-size: .74rem; }
+
+/* ─── Coop: Team-Performance & MVP (Gewonnen/Verloren-Screen) ─── */
+.coop-performance { display: flex; flex-direction: column; gap: 8px; text-align: left; margin: 2px 0 4px; }
+.perf-title { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
+.perf-row { background: var(--bg3); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
+.perf-row.mvp { box-shadow: 0 0 0 2px #fbbf24 inset; }
+.perf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.perf-name { font-weight: 800; font-size: .88rem; }
+.perf-pct { font-weight: 800; font-size: .88rem; color: var(--text2); }
+.perf-bar { height: 5px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.perf-bar-fill { height: 100%; border-radius: 999px; }
+.perf-nums { display: flex; flex-wrap: wrap; gap: 8px; font-size: .72rem; color: var(--text2); }
 .review-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 540px; margin: 0 auto; padding: 12px 16px calc(env(safe-area-inset-bottom) + 12px); background: var(--bg2); display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -4px 20px var(--shadow); font-weight: 800; }
 
 /* ─── Confetti ─── */
