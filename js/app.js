@@ -29,6 +29,7 @@ const state = reactive({
   hintsUsed: 0,
   mistakes: 0,
   status: 'idle',            // idle | playing | won | lost | gaveup
+  solutionShown: false,      // Lösung wird angezeigt (rein lokal, nie an den Partner gesendet)
   newHighscore: false,        // true, wenn beim letzten Sieg eine neue Bestzeit erzielt wurde
   tool: 'pen',               // pen | eraser
   startTime: 0,
@@ -52,6 +53,9 @@ const state = reactive({
     waitingForGuest: false,    // Host: Peer offen, wartet auf Join / Gast: verbindet
     lobbyDiffId: 'mittel',
     error: null,               // Inline-Fehlermeldung im Lobby-Screen
+    myId: null,                // eigene Spieler-ID dieser Session ('host' oder PeerJS-ID als Gast)
+    players: [],                // [{id, name, color}] — alle bekannten Mitspieler inkl. mir selbst
+    nameDraft: '',              // Entwurf im Namens-Gate, bevor er bestätigt wird
   },
 
   // UI
@@ -86,6 +90,11 @@ function avgTimeFor(diffId) {
   if (!d || !d.won) return null;
   return d.sumTimeMs / d.won;
 }
+function coopAvgTimeFor(diffId) {
+  const d = state.stats.byDifficulty[diffId];
+  if (!d || !d.coopWon) return null;
+  return d.coopSumTimeMs / d.coopWon;
+}
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
   const tc = document.querySelector('meta[name="theme-color"]');
@@ -109,12 +118,17 @@ function startTimer() {
 function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandle = null; } }
 
 // ─── PAUSE ────────────────────────────────────────────────────────────────────
-function pauseGame(broadcast = true) {
+// remoteElapsed: bei einer vom Partner empfangenen Pause-Nachricht übernehmen wir
+// dessen exakt eingefrorenen Wert, statt ihn lokal neu zu berechnen — sonst würde
+// die (kleine, aber sichtbare) Netzwerklatenz zwischen "Pause gedrückt" und
+// "Nachricht angekommen" dazu führen, dass beide Seiten eine leicht andere Zeit
+// einfrieren (der gemeldete ca. 1-Sekunden-Unterschied).
+function pauseGame(broadcast = true, remoteElapsed) {
   if (state.status !== 'playing' || state.paused) return;
   state.paused = true;
-  state.elapsed = Date.now() - state.startTime; // einfrieren
+  state.elapsed = remoteElapsed != null ? remoteElapsed : Date.now() - state.startTime; // einfrieren
   stopTimer();
-  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: true });
+  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
 }
 function resumeFromPause(broadcast = true) {
   if (!state.paused) return;
@@ -186,6 +200,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.justResolved = {};
   state.tool = state.settings.confirmTool || 'pen';
   state.status = 'playing';
+  state.solutionShown = false;
   state.newHighscore = false;
   state.elapsed = saved?.elapsed ?? 0;
   // Bei Coop-INIT übernimmt der Gast den exakten Host-Startzeitpunkt, damit beide
@@ -266,7 +281,7 @@ function onCellTap(r, c) {
   setMark(r, c, next, true);
 }
 
-function setMark(r, c, next, user) {
+function setMark(r, c, next, user, fromId) {
   const cur = state.marks[r][c];
   if (cur === next) return;
 
@@ -282,8 +297,8 @@ function setMark(r, c, next, user) {
 
   state.history = [{ r, c, prev: cur }]; // nur der letzte Zug ist rückgängig machbar
   state.marks[r][c] = next;
-  state.markedBy[r][c] = next === 'none' ? null : (user ? 'me' : 'partner');
-  if (user && state.coop.active) coopSend({ type: Coop.MSG.MOVE, r, c, mark: next });
+  state.markedBy[r][c] = next === 'none' ? null : (user ? state.coop.myId : fromId);
+  if (user && state.coop.active) coopSend({ type: Coop.MSG.MOVE, r, c, mark: next, from: state.coop.myId });
 
   if (!wasRow && rowResolved(r)) pulseResolved('row', r);
   if (!wasCol && colResolved(c)) pulseResolved('col', c);
@@ -348,14 +363,14 @@ function doCheck(broadcast = true) {
 
 // Wendet einen Hinweis auf eine Zelle an (lokal ausgelöst oder vom Coop-Partner empfangen).
 // user kennzeichnet, wer den Hinweis ausgelöst hat (für die Coop-Farbmarkierung).
-function applyHintEffect(r, c, mark, user = true) {
+function applyHintEffect(r, c, mark, user = true, fromId) {
   const region = state.cellMeta[r][c].region;
   const wasRow = rowResolved(r), wasCol = colResolved(c);
   const wasRegion = region >= 0 ? regionResolved(region) : false;
 
   state.history = [{ r, c, prev: state.marks[r][c] }];
   state.marks[r][c] = mark;
-  state.markedBy[r][c] = state.coop.active ? (user ? 'me' : 'partner') : null;
+  state.markedBy[r][c] = state.coop.active ? (user ? state.coop.myId : fromId) : null;
   // .hint = kurzer Leucht-Puls (Quadrat), .hintMark = bleibt für den Rest des Rätsels
   state.cellMeta[r][c].hint = true;
   state.cellMeta[r][c].hintMark = true;
@@ -374,7 +389,7 @@ function useHint() {
   if (!hint) return;
   state.hintsLeft--; state.hintsUsed++;
   applyHintEffect(hint.r, hint.c, hint.want);
-  if (state.coop.active) coopSend({ type: Coop.MSG.HINT, r: hint.r, c: hint.c, mark: hint.want });
+  if (state.coop.active) coopSend({ type: Coop.MSG.HINT, r: hint.r, c: hint.c, mark: hint.want, from: state.coop.myId });
 }
 
 function undo(broadcast = true) {
@@ -397,7 +412,7 @@ function coopSend(msg) {
 
 function handleCoopMsg(msg, fromConn) {
   if (msg.type === Coop.MSG.MOVE) {
-    setMark(msg.r, msg.c, msg.mark, false);
+    setMark(msg.r, msg.c, msg.mark, false, msg.from);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.UNDO) {
     undo(false);
@@ -406,10 +421,10 @@ function handleCoopMsg(msg, fromConn) {
     doCheck(false);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.PAUSE) {
-    if (msg.paused) pauseGame(false); else resumeFromPause(false);
+    if (msg.paused) pauseGame(false, msg.elapsed); else resumeFromPause(false);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.HINT) {
-    applyHintEffect(msg.r, msg.c, msg.mark, false);
+    applyHintEffect(msg.r, msg.c, msg.mark, false, msg.from);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.INIT) {
     loadPuzzleIntoState(msg.puzzle, { marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime });
@@ -423,9 +438,15 @@ function handleCoopMsg(msg, fromConn) {
     else if (msg.status === 'lost') lose(remote);
     else if (msg.status === 'gaveup') giveUp(remote);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
-  } else if (msg.type === Coop.MSG.REVEAL) {
-    revealSolution(false);
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
+  } else if (msg.type === Coop.MSG.IDENTITY) {
+    // Nur der Host wertet Identitäts-Meldungen aus und verteilt die Liste neu —
+    // er entscheidet (Konfliktauflösung), welche Farbe ein Mitspieler tatsächlich bekommt.
+    if (state.coop.role === 'host' && fromConn) {
+      upsertPlayer(fromConn.peer, msg.name, msg.color);
+      broadcastRoster();
+    }
+  } else if (msg.type === Coop.MSG.ROSTER) {
+    state.coop.players = msg.players;
   } else if (msg.type === Coop.MSG.RETRY) {
     restartPuzzle(msg.startTime);
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
@@ -446,6 +467,53 @@ function coopReset() {
   state.coop.active = false; state.coop.role = null; state.coop.code = '';
   state.coop.connected = false; state.coop.waitingForGuest = false;
   state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
+  state.coop.myId = null; state.coop.players = [];
+}
+
+// ─── SPIELER-IDENTITÄT (Namen & Farben) ────────────────────────────────────────
+// Nur der Host führt die maßgebliche Spielerliste — er löst Farbkonflikte auf und
+// verteilt das Ergebnis per ROSTER an alle. Eigene Wunschfarbe bleibt dabei in den
+// Einstellungen unangetastet; reassignte Farben gelten nur für die laufende Session.
+function normHex(h) { return (h || '').toLowerCase(); }
+function pickAvailableColor(requested, others) {
+  const used = new Set(others.map(p => normHex(p.color)));
+  if (requested && !used.has(normHex(requested))) return requested;
+  const free = COOP_COLORS.find(c => !used.has(normHex(c.hex)));
+  if (free) return free.hex;
+  // Palette erschöpft (mehr Spieler als vordefinierte Farben): per Goldwinkel-
+  // Rotation eine weitere, praktisch garantiert eindeutige Farbe erzeugen.
+  const hue = Math.round((others.length * 137.508) % 360);
+  return `hsl(${hue} 75% 55%)`;
+}
+function upsertPlayer(id, name, requestedColor) {
+  const others = state.coop.players.filter(p => p.id !== id);
+  const color = pickAvailableColor(requestedColor, others);
+  state.coop.players = [...others, { id, name: (name || '').trim() || 'Spieler', color }];
+}
+function removePlayer(id) {
+  state.coop.players = state.coop.players.filter(p => p.id !== id);
+}
+function broadcastRoster() {
+  coopSend({ type: Coop.MSG.ROSTER, players: state.coop.players });
+}
+function playerColor(id) { return state.coop.players.find(p => p.id === id)?.color || null; }
+function chipTextColor(hex) {
+  if (!hex || !hex.startsWith('#') || hex.length < 7) return '#fff';
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.6 ? '#1a1304' : '#ffffff';
+}
+function confirmCoopIdentity() {
+  const name = (state.coop.nameDraft || '').trim();
+  if (!name) return;
+  state.settings.coopName = name;
+}
+// Beim Einstieg ins Coop-Menü den Namens-Entwurf mit dem zuletzt gespeicherten
+// Namen vorbefüllen (falls vorhanden) — das Namens-Gate erscheint trotzdem nur,
+// wenn state.settings.coopName (noch) leer ist.
+function goCoop() {
+  state.coop.nameDraft = state.settings.coopName;
+  navigate('coop');
 }
 
 // Wird aufgerufen, wenn der Gast die Verbindung zum Host unerwartet verliert
@@ -457,6 +525,9 @@ function promoteToHost() {
   state.coop.connected = false;
   Coop.leave(); // alte (Gast-)Peer-Verbindung sauber abräumen, bevor der neue Host-Slot belegt wird
   coopIntentionalLeave = false;
+  state.coop.myId = 'host';
+  state.coop.players = [];
+  upsertPlayer('host', state.settings.coopName, state.settings.coopMyColor);
   Coop.hostGame({
     code: state.coop.code,
     onOpen() { showToast('Host getrennt — du bist jetzt Host 📡', 'info', 4000); },
@@ -469,7 +540,12 @@ function promoteToHost() {
       Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
       showToast('Mitspieler verbunden 👥');
     },
-    onLeave() { state.coop.connected = false; if (!coopIntentionalLeave) showToast('Mitspieler hat getrennt', 'info', 3000); },
+    onLeave(conn) {
+      state.coop.connected = false;
+      removePlayer(conn.peer);
+      broadcastRoster();
+      if (!coopIntentionalLeave) showToast('Mitspieler hat getrennt', 'info', 3000);
+    },
     onMessage: (d, conn) => handleCoopMsg(d, conn),
   });
 }
@@ -481,6 +557,9 @@ function startHosting() {
   state.coop.role = 'host';
   state.coop.waitingForGuest = true;
   state.coop.error = null;
+  state.coop.myId = 'host';
+  state.coop.players = [];
+  upsertPlayer('host', state.settings.coopName, state.settings.coopMyColor);
   Coop.hostGame({
     code: state.coop.code,
     onOpen() { /* Peer offen, wartet auf Gast */ },
@@ -499,7 +578,12 @@ function startHosting() {
       Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
       showToast('Mitspieler verbunden 👥');
     },
-    onLeave() { state.coop.connected = false; if (!coopIntentionalLeave) showToast('Mitspieler hat getrennt', 'info', 3000); },
+    onLeave(conn) {
+      state.coop.connected = false;
+      removePlayer(conn.peer);
+      broadcastRoster();
+      if (!coopIntentionalLeave) showToast('Mitspieler hat getrennt', 'info', 3000);
+    },
     onMessage: (d, conn) => handleCoopMsg(d, conn),
   });
 }
@@ -510,9 +594,17 @@ function startJoining() {
   state.coop.role = 'guest';
   state.coop.waitingForGuest = true;
   state.coop.error = null;
+  state.coop.players = [];
   Coop.joinGame({
     code: state.coop.code,
-    onOpen() { /* warte auf MSG.INIT */ },
+    onOpen(id) {
+      // Eigene ID dieser Session sichern und sofort dem Host die eigene Identität
+      // melden — coopSend() blockt hier noch (state.coop.connected wird erst beim
+      // INIT true), daher direkt über die Transportschicht senden.
+      state.coop.myId = id;
+      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor);
+      Coop.sendToHost({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor });
+    },
     onError(e) {
       state.coop.waitingForGuest = false;
       state.coop.error =
@@ -550,6 +642,7 @@ function win(remote) {
   const { stats, newHighscore } = recordResult({
     difficulty: state.puzzle.difficulty, outcome: 'won',
     timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+    coop: state.coop.active,
   });
   state.stats = stats;
   state.newHighscore = newHighscore;
@@ -571,6 +664,7 @@ function lose(remote) {
   const { stats } = recordResult({
     difficulty: state.puzzle.difficulty, outcome: 'lost',
     timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+    coop: state.coop.active,
   });
   state.stats = stats;
   saveActiveGame(null);
@@ -592,6 +686,7 @@ function giveUp(remote) {
   const { stats } = recordResult({
     difficulty: state.puzzle.difficulty, outcome: 'gaveup',
     timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+    coop: state.coop.active,
   });
   state.stats = stats;
   saveActiveGame(null);
@@ -600,13 +695,15 @@ function giveUp(remote) {
   }
 }
 
-function revealSolution(broadcast = true) {
+// Rein lokal: zeigt die Lösung nur auf diesem Gerät an, ohne den Partner zu
+// beeinflussen oder den Spielstatus zu verändern (status bleibt 'lost'/'gaveup',
+// damit "Zurück" einfach wieder zum Aufgeben-Dialog zurückkehrt).
+function revealSolution() {
   const p = state.puzzle;
   for (let r = 0; r < p.rows; r++)
     for (let c = 0; c < p.cols; c++)
       state.marks[r][c] = p.solution[r][c] ? 'kept' : 'removed';
-  state.status = 'review';
-  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.REVEAL });
+  state.solutionShown = true;
 }
 
 function restartPuzzle(startTime) {
@@ -615,7 +712,7 @@ function restartPuzzle(startTime) {
   state.cellMeta = buildCellMeta(state.puzzle); // setzt auch hint/hintMark zurück
   state.lives = LIVES; state.maxLives = LIVES; state.hintsLeft = HINTS;
   state.hintsUsed = 0; state.mistakes = 0; state.history = []; state.flash = {}; state.justResolved = {};
-  state.status = 'playing'; state.newHighscore = false; state.elapsed = 0;
+  state.status = 'playing'; state.solutionShown = false; state.newHighscore = false; state.elapsed = 0;
   state.startTime = startTime ?? Date.now();
   startTimer(); persistGame();
 }
@@ -777,7 +874,8 @@ const App = {
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause,
       onPinchStart, onPinchMove, onPinchEnd,
       cellClasses, cellStyle, toggleTool, restartFromGame,
-      startHosting, startJoining, coopReset, avgTimeFor, giveUp,
+      startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
+      chipTextColor, confirmCoopIdentity, playerColor, goCoop,
     };
   },
   template: `
@@ -798,17 +896,15 @@ const App = {
           </span>
         </button>
         <button class="btn btn-primary" @click="navigate('setup')">
-          <span class="btn-ic">✚</span><span class="btn-tx"><b>Neues Spiel</b><small>Schwierigkeit wählen</small></span>
+          <span class="btn-ic">➕</span><span class="btn-tx"><b>Neues Spiel</b><small>Schwierigkeit wählen</small></span>
         </button>
-        <button class="btn btn-coop" :disabled="!coopAvailable" @click="navigate('coop')">
+        <button class="btn btn-coop" :disabled="!coopAvailable" @click="goCoop">
           <span class="btn-ic">👥</span><span class="btn-tx"><b>Coop-Modus</b><small>Gemeinsam lösen</small></span>
           <span v-if="!coopAvailable" class="badge-soon">bald</span>
         </button>
-        <div class="home-row">
+        <div class="home-grid">
           <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> Statistik</button>
           <button class="btn btn-ghost" @click="navigate('settings')"><span class="btn-ic">⚙️</span> Einstellungen</button>
-        </div>
-        <div class="home-row">
           <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">❓</span> Anleitung</button>
           <button class="btn btn-ghost" @click="state.modal='changelog'"><span class="btn-ic">📝</span> Änderungen</button>
         </div>
@@ -830,6 +926,7 @@ const App = {
             <span class="opt-name">{{ d.name }}</span>
             <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
             <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="opt-best">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
           </button>
         </div>
         <button class="btn btn-primary btn-start" @click="newGame(state.sel.difficulty)">
@@ -876,6 +973,13 @@ const App = {
           <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
             <button class="zoom-btn" @click="setZoom(0.15)">+</button>
+          </span>
+        </div>
+
+        <div v-if="state.coop.active && state.coop.players.length" class="coop-roster">
+          <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
+                :style="{ background: p.color, color: chipTextColor(p.color) }">
+            {{ p.name }}<template v-if="p.id===state.coop.myId"> (Du)</template>
           </span>
         </div>
 
@@ -957,31 +1061,33 @@ const App = {
           <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
         </div>
       </div>
-      <div v-if="state.status==='lost'" class="overlay">
+      <div v-if="state.status==='lost' && !state.solutionShown" class="overlay">
         <div class="result-card lose">
           <div class="result-emoji">💔</div>
           <h2>Keine Leben mehr</h2>
           <p class="result-msg">Kein Problem – versuch es erneut!</p>
           <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
           <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">Neues Spiel</button>
-          <button class="btn btn-ghost" @click="revealSolution()">Lösung zeigen</button>
+          <button class="btn btn-ghost" @click="revealSolution">Lösung zeigen</button>
           <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
         </div>
       </div>
-      <div v-if="state.status==='gaveup'" class="overlay">
+      <div v-if="state.status==='gaveup' && !state.solutionShown" class="overlay">
         <div class="result-card lose">
           <div class="result-emoji">🏳</div>
           <h2>Aufgegeben</h2>
           <p class="result-msg">Kein Problem – versuch es erneut!</p>
           <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
           <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">Neues Spiel</button>
-          <button class="btn btn-ghost" @click="revealSolution()">Lösung zeigen</button>
+          <button class="btn btn-ghost" @click="revealSolution">Lösung zeigen</button>
           <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
         </div>
       </div>
-      <div v-if="state.status==='review'" class="review-bar">
+      <!-- Lösungsanzeige ist rein lokal (Punkt 4): "Zurück" bringt nur diesen
+           Spieler zum Aufgeben-Dialog zurück, ohne den Partner zu beeinflussen. -->
+      <div v-if="state.solutionShown" class="review-bar">
         <span>Lösung</span>
-        <button class="btn btn-primary btn-sm" @click="quitToHome">Zum Menü</button>
+        <button class="btn btn-primary btn-sm" @click="state.solutionShown=false">Zurück</button>
       </div>
 
       <!-- Confetti -->
@@ -1011,6 +1117,8 @@ const App = {
           <div class="diff-row-sub">
             <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
             <span v-if="avgTimeFor(d.id)!=null" class="chip">⌀ {{ fmtTime(avgTimeFor(d.id)) }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="chip best-time-chip">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+            <span v-if="coopAvgTimeFor(d.id)!=null" class="chip">👥⌀ {{ fmtTime(coopAvgTimeFor(d.id)) }}</span>
             <span v-if="state.stats.byDifficulty[d.id]?.gaveup" class="chip">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}</span>
             <span v-if="state.stats.byDifficulty[d.id]?.lost" class="chip">💔 {{ state.stats.byDifficulty[d.id].lost }}</span>
           </div>
@@ -1026,8 +1134,24 @@ const App = {
         <h2>Coop-Modus</h2><span></span>
       </header>
 
+      <!-- Namens-Gate: bevor irgendetwas anderes möglich ist, Name + eigene Farbe festlegen -->
+      <div v-if="!state.settings.coopName" class="coop-body">
+        <p class="coop-tagline">Wie sollen dich die anderen Spieler sehen?</p>
+        <input class="text-input" v-model="state.coop.nameDraft" maxlength="16" placeholder="Dein Name"
+               @keydown.enter="confirmCoopIdentity" />
+        <div class="setup-label">Deine Farbe</div>
+        <div class="coop-swatches">
+          <button v-for="c in COOP_COLORS" :key="c.hex" class="swatch"
+                  :class="{active: state.settings.coopMyColor===c.hex}"
+                  :style="{background:c.hex}"
+                  @click="setSetting('coopMyColor', c.hex)" :title="c.name"></button>
+          <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" title="Eigene Farbe wählen" />
+        </div>
+        <button class="btn btn-primary" :disabled="!state.coop.nameDraft.trim()" @click="confirmCoopIdentity">Weiter</button>
+      </div>
+
       <!-- Auswahl: Hosten oder Beitreten? -->
-      <div v-if="state.coop.role === null" class="coop-body">
+      <div v-else-if="state.coop.role === null" class="coop-body">
         <p class="coop-tagline">Löst ein Rätsel gemeinsam in Echtzeit!</p>
         <button class="btn btn-primary" @click="state.coop.role='host'">
           <span class="btn-ic">📡</span>
@@ -1053,6 +1177,7 @@ const App = {
               <span class="opt-emoji">{{ d.emoji }}</span>
               <span class="opt-name">{{ d.name }}</span>
               <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
             </button>
           </div>
           <button class="btn btn-primary" @click="startHosting">Hosten 🚀</button>
@@ -1120,26 +1245,21 @@ const App = {
           <span>⏱ Timer anzeigen</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
         </div>
 
-        <div class="set-group-title">Coop-Farben</div>
+        <div class="set-group-title">Coop-Identität</div>
+        <div class="set-row col">
+          <span class="set-row-label">Anzeigename</span>
+          <input class="text-input" v-model="state.settings.coopName" maxlength="16" placeholder="Dein Name" />
+        </div>
         <div class="set-row col">
           <span class="set-row-label">Meine Farbe</span>
           <div class="coop-swatches">
             <button v-for="c in COOP_COLORS" :key="c.hex" class="swatch"
                     :class="{active: state.settings.coopMyColor===c.hex}"
                     :style="{background:c.hex}"
-                    :disabled="c.hex===state.settings.coopPartnerColor"
                     @click="setSetting('coopMyColor', c.hex)" :title="c.name"></button>
+            <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" title="Eigene Farbe wählen" />
           </div>
-        </div>
-        <div class="set-row col">
-          <span class="set-row-label">Partner-Farbe</span>
-          <div class="coop-swatches">
-            <button v-for="c in COOP_COLORS" :key="c.hex" class="swatch"
-                    :class="{active: state.settings.coopPartnerColor===c.hex}"
-                    :style="{background:c.hex}"
-                    :disabled="c.hex===state.settings.coopMyColor"
-                    @click="setSetting('coopPartnerColor', c.hex)" :title="c.name"></button>
-          </div>
+          <small class="set-hint">Andere Mitspieler bekommen automatisch eine eigene, eindeutige Farbe zugewiesen.</small>
         </div>
 
         <div class="set-group-title">Daten</div>
@@ -1257,7 +1377,7 @@ function cellClasses(r, c) {
     hintmark: m.hintMark,
     'pulse-edge': pe.t || pe.b || pe.l || pe.r,
     strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
-    solnc: state.status === 'review' && state.puzzle.solution[r][c],
+    solnc: state.solutionShown && state.puzzle.solution[r][c],
     'coop-mark': state.coop.active && !!state.markedBy[r][c],
   };
 }
@@ -1266,7 +1386,7 @@ function cellStyle(r, c) {
   const st = { fontSize: 'var(--fs)' };
   if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; }
   const who = state.coop.active ? state.markedBy[r][c] : null;
-  if (who) st['--markcol'] = who === 'me' ? state.settings.coopMyColor : state.settings.coopPartnerColor;
+  if (who) { const col = playerColor(who); if (col) st['--markcol'] = col; }
   const pe = pulseEdges(r, c);
   if (pe.t) st['--pt'] = '3px';
   if (pe.b) st['--pb'] = '3px';

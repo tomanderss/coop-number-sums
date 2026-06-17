@@ -39,13 +39,21 @@ export const REGION_COLORS = [
 // ─── COOP-IDENTITÄTSFARBEN ────────────────────────────────────────────────────
 // Bewusst ohne Grün/Smaragd-Töne (= Hinweis-Farbe --good, ~152°) und ohne Rot
 // (= Fehler-Farbe --bad), damit Markierungs-Farbe nie mit Hinweis/Fehler verwechselbar ist.
+// Größere Auswahl, da nun jeder Mitspieler eine EIGENE, eindeutige Farbe braucht
+// (nicht mehr nur "meine" und "Partner"-Farbe).
 export const COOP_COLORS = [
-  { name: 'Blau',   hex: '#3b82f6' },
-  { name: 'Orange', hex: '#f97316' },
-  { name: 'Pink',   hex: '#ec4899' },
-  { name: 'Lila',   hex: '#a855f7' },
-  { name: 'Gelb',   hex: '#eab308' },
-  { name: 'Cyan',   hex: '#06b6d4' },
+  { name: 'Blau',     hex: '#3b82f6' },
+  { name: 'Orange',   hex: '#f97316' },
+  { name: 'Pink',     hex: '#ec4899' },
+  { name: 'Lila',     hex: '#a855f7' },
+  { name: 'Gelb',     hex: '#eab308' },
+  { name: 'Cyan',     hex: '#06b6d4' },
+  { name: 'Indigo',   hex: '#6366f1' },
+  { name: 'Bernstein',hex: '#d97706' },
+  { name: 'Fuchsia',  hex: '#d946ef' },
+  { name: 'Himmelblau',hex: '#0ea5e9' },
+  { name: 'Violett',  hex: '#8b5cf6' },
+  { name: 'Koralle',  hex: '#fb7185' },
 ];
 
 // ─── STANDARD-EINSTELLUNGEN ───────────────────────────────────────────────────
@@ -56,8 +64,8 @@ export const DEFAULT_SETTINGS = {
   showTimer: true,           // Timer anzeigen
   confirmTool: 'pen',        // Standard-Werkzeug: 'pen' (einkreisen) | 'eraser'
   eraseStyle: 'hide',        // gelöschte Zahl: 'hide' (verschwindet) | 'strike' (durchgestrichen)
-  coopMyColor: '#3b82f6',       // 'Meine Farbe' im Coop-Modus (Default: Blau)
-  coopPartnerColor: '#f97316',  // 'Partner-Farbe' im Coop-Modus (Default: Orange)
+  coopName: '',              // eigener Anzeigename im Coop-Modus
+  coopMyColor: '#3b82f6',    // eigene Spielerfarbe im Coop-Modus (Default: Blau)
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)
