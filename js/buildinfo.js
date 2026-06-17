@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.23';
-export const BUILD_HASH = 'd01497e';
+export const BUILD      = '0.24';
+export const BUILD_HASH = 'fd6a9ae';
 
 export const CHANGELOG = [
+  {
+    "version": "0.24",
+    "date": "17.06.2026",
+    "changes": [
+      "Coop: Beitritt scheitert seltener über getrennte Mobilfunknetze (z.B. iCloud Private Relay) — bei Fehlschlag wird automatisch ein zweiter Versuch mit reinem TURN-Relay unternommen",
+      "Coop: hängende Verbindungsversuche werden jetzt korrekt aufgeräumt, statt im Hintergrund weiterzulaufen"
+    ]
+  },
   {
     "version": "0.23",
     "date": "17.06.2026",

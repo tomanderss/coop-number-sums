@@ -32,6 +32,9 @@ const ICE_SERVERS = [
   { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
 ];
 const PEER_CONFIG = { config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 } };
+// Erzwingt reine TURN-Relay-Kandidaten (kein STUN/Host) — Fallback-Konfig für den
+// zweiten Verbindungsversuch des Gasts, siehe joinGame()/iCloud Private Relay unten.
+const PEER_CONFIG_RELAY_ONLY = { config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4, iceTransportPolicy: 'relay' } };
 
 let peer = null;
 let guestConns = [];          // Host: alle Gast-Verbindungen
@@ -88,14 +91,45 @@ export function hostGame({ code, onOpen, onError, onJoin, onLeave, onMessage }) 
 }
 
 // ─── GAST ─────────────────────────────────────────────────────────────────────
+// Manche Mobilfunknetze (v.a. iOS mit aktiviertem iCloud Private Relay) verschleiern
+// die NAT-Adresse so, dass STUN-Kandidaten unbrauchbar werden und die normale
+// ICE-Aushandlung ("all") nie zustande kommt. Das lässt sich von der Webseite aus
+// nicht erkennen oder umgehen — aber ein zweiter Versuch, der ausschließlich
+// TURN-Relay-Kandidaten zulässt (iceTransportPolicy: 'relay'), kommt damit meist
+// klar, weil der Relay-Traffic wie normaler Server-Verkehr aussieht. Daher: erster
+// Versuch normal (kurzes Timeout, da er unter Private Relay schnell scheitert),
+// bei Fehlschlag automatisch ein zweiter Versuch nur mit Relay (längeres Timeout,
+// da TURN-Aushandlung über Mobilfunk/CGNAT mehr Zeit braucht).
 export function joinGame({ code, onOpen, onError, onMessage, onClose }) {
-  peer = new window.Peer({ debug: 1, ...PEER_CONFIG });
-  let settled = false;
   stopHeartbeat();
+  attemptJoin({ code, onOpen, onError, onMessage, onClose, forceRelay: false });
+}
+
+function attemptJoin({ code, onOpen, onError, onMessage, onClose, forceRelay }) {
+  let settled = false;
+  let timeoutHandle = null;
+  peer = new window.Peer({ debug: 1, ...(forceRelay ? PEER_CONFIG_RELAY_ONLY : PEER_CONFIG) });
+
+  const fail = (e) => {
+    if (settled) return;
+    settled = true;
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    try { peer.destroy(); } catch {}
+    peer = null; hostConn = null;
+    // 'peer-unavailable' = Code falsch/Host nicht erreichbar — ein Relay-Retry
+    // ändert daran nichts, also direkt den Fehler melden statt erneut zu versuchen.
+    if (!forceRelay && (!e || e.type !== 'peer-unavailable')) {
+      attemptJoin({ code, onOpen, onError, onMessage, onClose, forceRelay: true });
+    } else {
+      onError && onError(e);
+    }
+  };
+
   peer.on('open', (myId) => {
     hostConn = peer.connect(PREFIX + String(code), { reliable: true });
     hostConn.on('open', () => {
-      settled = true; lastSeenHost = Date.now(); onOpen && onOpen(myId);
+      settled = true; if (timeoutHandle) clearTimeout(timeoutHandle);
+      lastSeenHost = Date.now(); onOpen && onOpen(myId);
       heartbeatHandle = setInterval(() => {
         if (!hostConn) return;
         if (Date.now() - lastSeenHost > HEARTBEAT_TIMEOUT_MS) {
@@ -114,12 +148,12 @@ export function joinGame({ code, onOpen, onError, onMessage, onClose }) {
       onMessage && onMessage(d);
     });
     hostConn.on('close', () => { stopHeartbeat(); onClose && onClose(); });
-    hostConn.on('error', (e) => onError && onError(e));
+    hostConn.on('error', (e) => fail(e));
   });
-  peer.on('error', (e) => onError && onError(e)); // z.B. 'peer-unavailable' = Code falsch
-  // 20s statt 12s: TURN-Relay-Aushandlung über Mobilfunk/CGNAT braucht oft länger
-  // als bei zwei Geräten im selben WLAN (mehr ICE-Kandidaten, höhere Latenz).
-  setTimeout(() => { if (!settled) onError && onError({ type: 'timeout' }); }, 20000);
+  peer.on('error', (e) => fail(e)); // z.B. 'unavailable-id', 'peer-unavailable' = Code falsch
+  // Erster Versuch: 12s (unter Private Relay scheitert er ohnehin schnell).
+  // Relay-Versuch: 20s (TURN-Aushandlung über Mobilfunk/CGNAT braucht länger).
+  timeoutHandle = setTimeout(() => fail({ type: 'timeout' }), forceRelay ? 20000 : 12000);
 }
 
 // ─── Nachrichten ────────────────────────────────────────────────────────────
