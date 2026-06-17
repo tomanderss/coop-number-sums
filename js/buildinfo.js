@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.20';
-export const BUILD_HASH = '2c8899f';
+export const BUILD      = '0.21';
+export const BUILD_HASH = 'a6f6b4b';
 
 export const CHANGELOG = [
+  {
+    "version": "0.21",
+    "date": "17.06.2026",
+    "changes": [
+      "App-Icon neu gestaltet: nachgestellte Spielfeld-Ecke statt abstraktem Symbol, mit weich abgerundeten Ziffern statt blockiger 7-Segment-Optik",
+      "Neues Icon wird jetzt auch auf dem Lade-Screen und im Hauptmenü-Logo angezeigt (statt der alten \"∑\"-Grafik)"
+    ]
+  },
   {
     "version": "0.20",
     "date": "17.06.2026",
