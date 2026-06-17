@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.21';
-export const BUILD_HASH = 'a6f6b4b';
+export const BUILD      = '0.22';
+export const BUILD_HASH = '7d02884';
 
 export const CHANGELOG = [
+  {
+    "version": "0.22",
+    "date": "17.06.2026",
+    "changes": [
+      "Coop: dein zuletzt verwendeter Name wird beim nächsten Mal automatisch im Namensfeld vorausgefüllt (lässt sich aber wie gewohnt ändern)"
+    ]
+  },
   {
     "version": "0.21",
     "date": "17.06.2026",

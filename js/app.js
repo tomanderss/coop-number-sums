@@ -56,6 +56,7 @@ const state = reactive({
     myId: null,                // eigene Spieler-ID dieser Session ('host' oder PeerJS-ID als Gast)
     players: [],                // [{id, name, color}] — alle bekannten Mitspieler inkl. mir selbst
     nameDraft: '',              // Entwurf im Namens-Gate, bevor er bestätigt wird
+    identityConfirmed: false,   // true sobald das Namens-Gate in dieser Coop-Session bestätigt wurde
   },
 
   // UI
@@ -507,12 +508,14 @@ function confirmCoopIdentity() {
   const name = (state.coop.nameDraft || '').trim();
   if (!name) return;
   state.settings.coopName = name;
+  state.coop.identityConfirmed = true;
 }
-// Beim Einstieg ins Coop-Menü den Namens-Entwurf mit dem zuletzt gespeicherten
-// Namen vorbefüllen (falls vorhanden) — das Namens-Gate erscheint trotzdem nur,
-// wenn state.settings.coopName (noch) leer ist.
+// Beim Einstieg ins Coop-Menü erscheint das Namens-Gate jedes Mal erneut (man
+// kann den Namen also immer ändern), wird aber mit dem zuletzt gespeicherten
+// Namen vorbefüllt, damit man ihn im Normalfall nur bestätigen muss.
 function goCoop() {
   state.coop.nameDraft = state.settings.coopName;
+  state.coop.identityConfirmed = false;
   navigate('coop');
 }
 
@@ -1134,8 +1137,9 @@ const App = {
         <h2>Coop-Modus</h2><span></span>
       </header>
 
-      <!-- Namens-Gate: bevor irgendetwas anderes möglich ist, Name + eigene Farbe festlegen -->
-      <div v-if="!state.settings.coopName" class="coop-body">
+      <!-- Namens-Gate: bevor irgendetwas anderes möglich ist, Name + eigene Farbe festlegen
+           (jedes Mal erneut, aber mit dem zuletzt gespeicherten Namen vorbefüllt) -->
+      <div v-if="!state.coop.identityConfirmed" class="coop-body">
         <p class="coop-tagline">Wie sollen dich die anderen Spieler sehen?</p>
         <input class="text-input" v-model="state.coop.nameDraft" maxlength="16" placeholder="Dein Name"
                @keydown.enter="confirmCoopIdentity" />
