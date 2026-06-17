@@ -112,14 +112,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .opt-emoji { font-size: 1.3rem; }
 .opt-name { font-weight: 800; font-size: 1rem; }
 .opt-desc { font-size: .74rem; color: var(--text2); }
+.opt-best { font-size: .74rem; color: var(--accent2); font-weight: 700; font-variant-numeric: tabular-nums; }
 .btn-start { margin-top: 18px; font-size: 1.1rem; padding: 16px; }
 
 /* ─── Game HUD ─── */
 .game-top { padding-bottom: 8px; }
 .hud { display: flex; align-items: center; gap: 14px; }
 .hud-item { font-weight: 800; font-size: 1rem; }
-.lives { display: flex; gap: 3px; }
-.heart { color: var(--bad); font-size: 1.15rem; transition: transform .2s; }
+.lives { display: flex; gap: 3px; align-items: center; }
+.heart { display: block; color: var(--bad); transition: color .2s, opacity .2s; }
+.heart svg { display: block; width: 20px; height: 20px; }
 .heart.empty { color: var(--text3); opacity: .4; }
 .timer { color: var(--text2); font-variant-numeric: tabular-nums; }
 .game-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; flex: 0 0 auto; }
@@ -133,7 +135,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    bleibt). */
 .board-wrap { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; overflow: auto; padding: 6px; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
 .board { display: grid; gap: 0; background: var(--grid); border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 6px 24px var(--shadow); margin: auto; flex-shrink: 0; transition: filter .3s, opacity .3s; }
-.corner { background: var(--bg); }
+.corner { background: var(--accent-soft); border: 1px solid var(--grid); }
 .hdr {
   display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
   background: var(--hdr-bg); color: var(--text); border: 1px solid var(--grid);
@@ -201,12 +203,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   content: ''; position: absolute; top: 3px; right: 3px; z-index: 3;
   width: 7px; height: 7px; border-radius: 50%; background: var(--good);
 }
-/* kurzer, smoother Leucht-Puls für eine Cage, die gerade fertig geworden ist */
-.cell.pulse { animation: cellResolvePulse .8s ease-out; }
-@keyframes cellResolvePulse {
-  0% { filter: brightness(1); box-shadow: inset 0 0 0 0 var(--good); }
-  30% { filter: brightness(1.4); box-shadow: inset 0 0 0 3px var(--good); }
-  100% { filter: brightness(1); box-shadow: inset 0 0 0 0 var(--good); }
+/* Fertig-Puls für eine Reihe/Spalte/Cage: nur die ÄUSSEREN Ränder der ganzen
+   Struktur leuchten kurz auf (keine Querstriche zwischen den Zellen). Welche
+   Seite einer Zelle zum Rand der Struktur gehört, wird in JS berechnet
+   (pulseEdges) und als --pt/--pb/--pl/--pr (Breite) übergeben. */
+.cell.pulse-edge::before {
+  content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  border-style: solid; border-color: var(--good);
+  border-top-width: var(--pt, 0); border-bottom-width: var(--pb, 0);
+  border-left-width: var(--pl, 0); border-right-width: var(--pr, 0);
+  animation: groupPulseFade .9s ease-out;
+}
+@keyframes groupPulseFade {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* ─── Toolbar (Stift/Radierer) ─── */
@@ -235,11 +247,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .tool-pill {
   position: absolute; top: 5px; left: 5px; width: 60px; height: 60px; border-radius: 50%;
-  background: var(--card); box-shadow: 0 3px 10px var(--shadow); transition: transform .26s cubic-bezier(.3,1.2,.5,1);
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 3px 12px var(--accent-soft), 0 2px 8px var(--shadow);
+  transition: transform .26s cubic-bezier(.3,1.2,.5,1);
 }
 .tool-pill.pen { transform: translateX(64px); }
-.tool-ic { position: relative; z-index: 1; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--text3); transition: color .2s; }
-.tool-ic.active { color: var(--accent); }
+.tool-ic { position: relative; z-index: 1; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--text3); transition: color .2s, opacity .2s; opacity: .65; }
+.tool-ic.active { color: #fff; opacity: 1; }
 .tool-ic.pen { font-weight: 800; }
 
 .check-row { padding: 10px 0 4px; flex: 0 0 auto; }
@@ -283,9 +297,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .stat-box b { font-size: 1.5rem; }
 .stat-box small { color: var(--text2); font-size: .72rem; }
 .stats-section-title, .set-group-title { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; margin-top: 14px; }
-.diff-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg2); padding: 12px 16px; border-radius: 12px; }
+.diff-row { display: flex; flex-direction: column; gap: 6px; background: var(--bg2); padding: 12px 16px; border-radius: 12px; }
+.diff-row-top { display: flex; justify-content: space-between; align-items: center; }
+.diff-row-sub { display: flex; gap: 12px; flex-wrap: wrap; font-size: .78rem; color: var(--text2); font-variant-numeric: tabular-nums; }
 .diff-name { font-weight: 700; }
 .diff-num { color: var(--text2); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ─── Highscore-Popup (Gewinn-Overlay) ─── */
+.highscore-badge {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1a1304;
+  font-weight: 800; font-size: .9rem; padding: 8px 16px; border-radius: 999px;
+  align-self: center; box-shadow: 0 4px 16px rgba(251,191,36,.4);
+  animation: pop .4s cubic-bezier(.2,1.3,.5,1);
+}
+.best-time-chip { background: var(--accent-soft) !important; color: var(--accent2) !important; }
 
 /* ─── Settings ─── */
 .set-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); padding: 14px 16px; border-radius: 12px; font-weight: 600; }
@@ -313,13 +338,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translate(-50%, 20px); }
 
 /* ─── Modal ─── */
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 90; padding: 18px; animation: fadein .2s; }
-.modal { background: var(--bg2); border-radius: 22px; padding: 24px; width: 100%; max-width: 400px; max-height: 86dvh; overflow: auto; box-shadow: 0 20px 60px var(--shadow); animation: pop .35s cubic-bezier(.2,1.3,.5,1); display: flex; flex-direction: column; gap: 14px; }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 90; padding: 18px; animation: fadein .2s; overflow-y: auto; }
+.modal { background: var(--bg2); border-radius: 22px; padding: 24px; width: 100%; max-width: 400px; max-height: 86vh; max-height: 86dvh; overflow: auto; box-shadow: 0 20px 60px var(--shadow); animation: pop .35s cubic-bezier(.2,1.3,.5,1); display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; }
 .modal-sm { max-width: 320px; }
 .modal h3 { margin: 0; font-size: 1.25rem; font-weight: 900; }
 .rules { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 9px; color: var(--text2); font-size: .92rem; line-height: 1.45; }
 .rules b { color: var(--text); }
-.changelog { display: flex; flex-direction: column; gap: 16px; }
+.rule-ic { display: inline-flex; vertical-align: middle; margin: 0 2px; color: var(--accent2); }
+.rule-ic svg { width: 18px; height: 18px; display: block; }
+.changelog { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; max-height: 50vh; padding-right: 4px; }
 .cl-entry .cl-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
 .cl-entry .cl-head b { font-size: 1rem; color: var(--accent2); }
 .cl-entry .cl-head span { font-size: .76rem; color: var(--text3); }

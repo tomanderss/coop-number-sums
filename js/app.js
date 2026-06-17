@@ -28,7 +28,8 @@ const state = reactive({
   hintsLeft: 0,
   hintsUsed: 0,
   mistakes: 0,
-  status: 'idle',            // idle | playing | won | lost
+  status: 'idle',            // idle | playing | won | lost | gaveup
+  newHighscore: false,        // true, wenn beim letzten Sieg eine neue Bestzeit erzielt wurde
   tool: 'pen',               // pen | eraser
   startTime: 0,
   elapsed: 0,
@@ -78,6 +79,11 @@ function fmtTime(ms) {
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);
   return `${m}:${String(s % 60).padStart(2, '0')}`;
+}
+function avgTimeFor(diffId) {
+  const d = state.stats.byDifficulty[diffId];
+  if (!d || !d.won) return null;
+  return d.sumTimeMs / d.won;
 }
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
@@ -174,6 +180,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.justResolved = {};
   state.tool = state.settings.confirmTool || 'pen';
   state.status = 'playing';
+  state.newHighscore = false;
   state.elapsed = saved ? (saved.elapsed || 0) : 0;
   state.startTime = Date.now() - state.elapsed;
   state.zoom = 1;
@@ -459,10 +466,12 @@ function win() {
   state.status = 'won';
   stopTimer();
   launchConfetti();
-  state.stats = recordResult({
-    difficulty: state.puzzle.difficulty,
-    won: true, timeMs: state.elapsed, hintsUsed: state.hintsUsed,
+  const { stats, newHighscore } = recordResult({
+    difficulty: state.puzzle.difficulty, outcome: 'won',
+    timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
   });
+  state.stats = stats;
+  state.newHighscore = newHighscore;
   saveActiveGame(null);
   if (state.coop.active && state.coop.role === 'host') coopSend({ type: Coop.MSG.STATUS, status: 'won' });
 }
@@ -470,10 +479,23 @@ function win() {
 function lose() {
   state.status = 'lost';
   stopTimer();
-  state.stats = recordResult({
-    difficulty: state.puzzle.difficulty,
-    won: false, timeMs: state.elapsed, hintsUsed: state.hintsUsed,
+  const { stats } = recordResult({
+    difficulty: state.puzzle.difficulty, outcome: 'lost',
+    timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
   });
+  state.stats = stats;
+  saveActiveGame(null);
+}
+
+function giveUp() {
+  if (state.status !== 'playing') return;
+  state.status = 'gaveup';
+  stopTimer();
+  const { stats } = recordResult({
+    difficulty: state.puzzle.difficulty, outcome: 'gaveup',
+    timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+  });
+  state.stats = stats;
   saveActiveGame(null);
 }
 
@@ -489,7 +511,7 @@ function restartPuzzle() {
   state.cellMeta = buildCellMeta(state.puzzle); // setzt auch hint/hintMark zurück
   state.lives = LIVES; state.maxLives = LIVES; state.hintsLeft = HINTS;
   state.hintsUsed = 0; state.mistakes = 0; state.history = []; state.flash = {}; state.justResolved = {};
-  state.status = 'playing'; state.elapsed = 0; state.startTime = Date.now();
+  state.status = 'playing'; state.newHighscore = false; state.elapsed = 0; state.startTime = Date.now();
   startTimer(); persistGame();
 }
 
@@ -632,7 +654,7 @@ const App = {
       gridTemplateColumns: `var(--hdr) repeat(${state.puzzle?.cols || 1}, var(--cell))`,
       gridTemplateRows: `var(--hdr) repeat(${state.puzzle?.rows || 1}, var(--cell))`,
       '--cell': state.cellPx + 'px',
-      '--hdr': Math.round(state.cellPx * 0.78) + 'px',
+      '--hdr': state.cellPx + 'px',
       '--fs': Math.max(11, Math.round(state.cellPx * 0.4)) + 'px',
     }));
     onMounted(init);
@@ -648,7 +670,7 @@ const App = {
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause,
       onPinchStart, onPinchMove, onPinchEnd,
       cellClasses, cellStyle, toggleTool, restartFromGame,
-      startHosting, startJoining, coopReset,
+      startHosting, startJoining, coopReset, avgTimeFor, giveUp,
     };
   },
   template: `
@@ -700,6 +722,7 @@ const App = {
             <span class="opt-emoji">{{ d.emoji }}</span>
             <span class="opt-name">{{ d.name }}</span>
             <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="opt-best">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
           </button>
         </div>
         <button class="btn btn-primary btn-start" @click="newGame(state.sel.difficulty)">
@@ -714,13 +737,18 @@ const App = {
         <button class="icon-btn" @click="quitToHome">‹</button>
         <div class="hud">
           <div class="hud-item lives" v-if="state.settings.livesEnabled">
-            <span v-for="(full,i) in livesArr" :key="i" class="heart" :class="{empty:!full}">♥</span>
+            <span v-for="(full,i) in livesArr" :key="i" class="heart" :class="{empty:!full}">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </span>
           </div>
           <div class="hud-item timer" v-if="state.settings.showTimer">⏱ {{ fmtTime(state.elapsed) }}</div>
         </div>
         <div class="top-actions">
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="pauseGame" title="Pause">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
+          </button>
+          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="ask('Aufgeben?', 'Das Rätsel wird als aufgegeben gewertet.', giveUp)" title="Aufgeben">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h13l-3 4 3 4H5"/></svg>
           </button>
           <button class="icon-btn" @click="state.modal='howto'">?</button>
         </div>
@@ -811,6 +839,7 @@ const App = {
         <div class="result-card win">
           <div class="result-emoji">🎉</div>
           <h2>Gelöst!</h2>
+          <div v-if="state.newHighscore" class="highscore-badge">🏆 Neue Bestzeit!</div>
           <div class="result-stats">
             <div><b>{{ fmtTime(state.elapsed) }}</b><small>Zeit</small></div>
             <div><b>{{ state.mistakes }}</b><small>Fehler</small></div>
@@ -824,6 +853,16 @@ const App = {
         <div class="result-card lose">
           <div class="result-emoji">💔</div>
           <h2>Keine Leben mehr</h2>
+          <p class="result-msg">Kein Problem – versuch es erneut!</p>
+          <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
+          <button class="btn btn-ghost" @click="revealSolution(); state.status='review'">Lösung zeigen</button>
+          <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
+        </div>
+      </div>
+      <div v-if="state.status==='gaveup'" class="overlay">
+        <div class="result-card lose">
+          <div class="result-emoji">🏳</div>
+          <h2>Aufgegeben</h2>
           <p class="result-msg">Kein Problem – versuch es erneut!</p>
           <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
           <button class="btn btn-ghost" @click="revealSolution(); state.status='review'">Lösung zeigen</button>
@@ -855,8 +894,16 @@ const App = {
         </div>
         <div class="stats-section-title">Nach Schwierigkeit</div>
         <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
-          <span class="diff-name">{{ d.emoji }} {{ d.name }}</span>
-          <span class="diff-num">{{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}</span>
+          <div class="diff-row-top">
+            <span class="diff-name">{{ d.emoji }} {{ d.name }}</span>
+            <span class="diff-num">{{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}</span>
+          </div>
+          <div class="diff-row-sub">
+            <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
+            <span v-if="avgTimeFor(d.id)!=null">⌀ {{ fmtTime(avgTimeFor(d.id)) }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.gaveup">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}</span>
+            <span v-if="state.stats.byDifficulty[d.id]?.lost">💔 {{ state.stats.byDifficulty[d.id].lost }}</span>
+          </div>
         </div>
         <button class="btn btn-danger-ghost" @click="resetStats">Statistik zurücksetzen</button>
       </div>
@@ -1005,8 +1052,8 @@ const App = {
         <h3>So wird gespielt</h3>
         <ol class="rules">
           <li>Jede <b>Zahl neben einer Reihe</b> (links) und <b>über einer Spalte</b> (oben) ist die <b>Zielsumme</b>.</li>
-          <li>Kreise mit dem <b>Stift ○</b> genau die Zahlen ein, die zusammen die Zielsumme ergeben.</li>
-          <li>Überflüssige Zahlen mit dem <b>Radierer ⌫</b> durchstreichen.</li>
+          <li>Kreise mit dem <b>Stift</b> <span class="rule-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="11" cy="13" rx="8" ry="7"/><path d="m16.5 7.5 3.2-3.2a1.6 1.6 0 0 1 2.3 2.3l-3.2 3.2-2.3-2.3z"/></svg></span> genau die Zahlen ein, die zusammen die Zielsumme ergeben.</li>
+          <li>Überflüssige Zahlen mit dem <b>Radierer</b> <span class="rule-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 20H20"/><path d="m3.6 14.5 5.9 5.9 9.4-9.4a2 2 0 0 0 0-2.8l-3.1-3.1a2 2 0 0 0-2.8 0L3.6 11.7a2 2 0 0 0 0 2.8z"/><path d="m9 8.5 6.5 6.5"/></svg></span> durchstreichen.</li>
           <li>Auch jede <b>farbige Region</b> hat eine eigene Zielsumme (Zahl in der Ecke).</li>
           <li>Kreise nur ein, wo du dir <b>sicher</b> bist – jedes Rätsel ist <b>ohne Raten</b> lösbar.</li>
           <li>Gelöst, wenn alle Summen stimmen. Im Leben-Modus kostet jeder Fehler ein ❤.</li>
@@ -1067,18 +1114,35 @@ const App = {
 function toggleTool() { state.tool = state.tool === 'pen' ? 'eraser' : 'pen'; state.settings.confirmTool = state.tool; }
 function restartFromGame() { restartPuzzle(); }
 
+// Liefert, welche Seiten dieser Zelle zum ÄUSSEREN Rand einer gerade fertig
+// gewordenen Reihe/Spalte/Cage gehören (für den Fertig-Puls, Punkt 3: nur die
+// äußersten Ränder der ganzen Struktur leuchten, keine Querstriche dazwischen).
+function pulseEdges(r, c) {
+  const p = state.puzzle;
+  let t = false, b = false, l = false, rr = false;
+  if (state.justResolved[`row-${r}`]) { t = true; b = true; if (c === 0) l = true; if (c === p.cols - 1) rr = true; }
+  if (state.justResolved[`col-${c}`]) { l = true; rr = true; if (r === 0) t = true; if (r === p.rows - 1) b = true; }
+  const region = state.cellMeta[r][c].region;
+  if (region >= 0 && state.justResolved[`region-${region}`]) {
+    const e = state.cellMeta[r][c].edges;
+    if (e.t) t = true; if (e.b) b = true; if (e.l) l = true; if (e.r) rr = true;
+  }
+  return { t, b, l, r: rr };
+}
+
 function cellClasses(r, c) {
   const m = state.cellMeta[r][c];
   const mk = state.marks[r][c];
   // Cage-Färbung nur solange die Cage NICHT aufgelöst ist (dann verschwindet sie).
   const colored = m.region >= 0 && !regionResolved(m.region);
+  const pe = pulseEdges(r, c);
   return {
     kept: mk === 'kept', removed: mk === 'removed',
     region: colored,
     flash: !!state.flash[`${r}-${c}`],
     hinted: m.hint,
     hintmark: m.hintMark,
-    pulse: (m.region >= 0 && !!state.justResolved[`region-${m.region}`]) || !!state.justResolved[`row-${r}`] || !!state.justResolved[`col-${c}`],
+    'pulse-edge': pe.t || pe.b || pe.l || pe.r,
     strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
     solnc: state.status === 'review' && state.puzzle.solution[r][c],
     'coop-mark': state.coop.active && !!state.markedBy[r][c],
@@ -1090,6 +1154,11 @@ function cellStyle(r, c) {
   if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; }
   const who = state.coop.active ? state.markedBy[r][c] : null;
   if (who) st['--markcol'] = who === 'me' ? state.settings.coopMyColor : state.settings.coopPartnerColor;
+  const pe = pulseEdges(r, c);
+  if (pe.t) st['--pt'] = '3px';
+  if (pe.b) st['--pb'] = '3px';
+  if (pe.l) st['--pl'] = '3px';
+  if (pe.r) st['--pr'] = '3px';
   return st;
 }
 

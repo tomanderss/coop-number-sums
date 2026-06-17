@@ -244,13 +244,15 @@ function computeTargets(rows, cols, mask, values, regions) {
 // Zählt, wie viele Außen- (Reihen/Spalten) und Cage-Summen einstellig sind
 // (1–9). Mindestens eine bestimmte Anzahl davon muss garantiert vorhanden
 // sein — sonst hat der Spieler keinen logischen Einstiegspunkt und das Rätsel
-// ist zwar technisch, aber nicht für einen Menschen zumutbar lösbar.
+// ist zwar technisch, aber nicht für einen Menschen zumutbar lösbar. Zusätzlich
+// muss mindestens 1 davon bei den Außensummen UND mindestens 1 bei den Cages
+// liegen ("verteilt über außensummen und cages", nicht alle in einer Kategorie).
 function countSingleDigitSums(rowTargets, colTargets, regions) {
-  let n = 0;
-  for (const t of rowTargets) if (t >= 1 && t <= 9) n++;
-  for (const t of colTargets) if (t >= 1 && t <= 9) n++;
-  for (const reg of regions) if (reg.target >= 1 && reg.target <= 9) n++;
-  return n;
+  let outer = 0, cage = 0;
+  for (const t of rowTargets) if (t >= 1 && t <= 9) outer++;
+  for (const t of colTargets) if (t >= 1 && t <= 9) outer++;
+  for (const reg of regions) if (reg.target >= 1 && reg.target <= 9) cage++;
+  return { total: outer + cage, outer, cage };
 }
 
 // ─── Hauptfunktion ────────────────────────────────────────────────────────────
@@ -280,7 +282,8 @@ export function generatePuzzle(opts) {
     const values = assignValues(rng, rows, cols);
     const { rowTargets, colTargets } = computeTargets(rows, cols, mask, values, regions);
 
-    if (countSingleDigitSums(rowTargets, colTargets, regions) < diff.minSingleDigitSums) continue;
+    const sdCounts = countSingleDigitSums(rowTargets, colTargets, regions);
+    if (sdCounts.total < diff.minSingleDigitSums || sdCounts.outer < 1 || sdCounts.cage < 1) continue;
 
     const puzzle = {
       id: `${opts.difficulty}-${baseSeed}-${attempts}`,
@@ -315,8 +318,14 @@ export function generatePuzzle(opts) {
     return puzzle;
   }
 
-  // Allerletzter Notnagel: easystes Rätsel, garantiert lösbar.
-  return generatePuzzle({ difficulty: 'sehrleicht' });
+  // Notnagel: NIE auf eine andere Feldgröße/Schwierigkeit ausweichen — sonst stimmt
+  // die angezeigte/erwartete Schwierigkeit (und die garantierte Mindestanzahl
+  // einstelliger Summen für GENAU diese Schwierigkeit) nicht mehr. Stattdessen mit
+  // frischer Zufallsfolge erneut versuchen (praktisch nie nötig, totalBudget reicht
+  // fast immer; harte Notbremse nach mehreren Runden gegen einen Crash).
+  const depth = (opts._depth || 0) + 1;
+  if (depth > 5) return generatePuzzle({ difficulty: 'sehrleicht' });
+  return generatePuzzle({ ...opts, seed: undefined, _depth: depth });
 }
 
 // ─── Hilfen für die UI ────────────────────────────────────────────────────────

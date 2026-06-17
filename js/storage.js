@@ -34,30 +34,38 @@ export function saveActiveGame(g) { if (g) save(KEYS.ACTIVE_GAME, g); else remov
 
 // ─── Statistik ────────────────────────────────────────────────────────────────
 const EMPTY_STATS = {
-  played: 0, won: 0, lost: 0, currentStreak: 0, bestStreak: 0,
+  played: 0, won: 0, lost: 0, gaveup: 0, currentStreak: 0, bestStreak: 0,
   totalTimeMs: 0, hintsUsed: 0,
-  best: {}, // key `${difficulty}` -> bestTimeMs
-  byDifficulty: {}, // id -> { played, won }
+  byDifficulty: {}, // id -> { played, won, lost, gaveup, sumTimeMs, bestTimeMs }
 };
 export function loadStats() { return { ...EMPTY_STATS, ...load(KEYS.STATS, {}) }; }
 export function saveStats(s) { save(KEYS.STATS, s); }
 
-export function recordResult({ difficulty, won, timeMs, hintsUsed }) {
+// outcome: 'won' | 'lost' (alle Leben verloren) | 'gaveup' (Aufgeben-Button)
+// Highscore (bestTimeMs je Schwierigkeit) gilt NUR für perfekte Spiele: keine
+// Fehler und keine Hinweise — sonst wäre die Bestzeit nicht vergleichbar.
+export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes }) {
   const s = loadStats();
   s.played++;
   s.hintsUsed += hintsUsed || 0;
-  s.byDifficulty[difficulty] = s.byDifficulty[difficulty] || { played: 0, won: 0 };
-  s.byDifficulty[difficulty].played++;
-  if (won) {
+  s.byDifficulty[difficulty] = s.byDifficulty[difficulty] ||
+    { played: 0, won: 0, lost: 0, gaveup: 0, sumTimeMs: 0, bestTimeMs: null };
+  const d = s.byDifficulty[difficulty];
+  d.played++;
+  let newHighscore = false;
+  if (outcome === 'won') {
     s.won++; s.currentStreak++; s.bestStreak = Math.max(s.bestStreak, s.currentStreak);
     s.totalTimeMs += timeMs || 0;
-    s.byDifficulty[difficulty].won++;
-    if (!s.best[difficulty] || timeMs < s.best[difficulty]) s.best[difficulty] = timeMs;
+    d.won++; d.sumTimeMs += timeMs || 0;
+    const perfect = (mistakes || 0) === 0 && (hintsUsed || 0) === 0;
+    if (perfect && (d.bestTimeMs == null || timeMs < d.bestTimeMs)) { d.bestTimeMs = timeMs; newHighscore = true; }
   } else {
-    s.lost++; s.currentStreak = 0;
+    s.currentStreak = 0;
+    if (outcome === 'gaveup') { s.gaveup++; d.gaveup++; }
+    else { s.lost++; d.lost++; }
   }
   saveStats(s);
-  return s;
+  return { stats: s, newHighscore };
 }
 
 // ─── "Was ist neu"-Tracking ───────────────────────────────────────────────────
