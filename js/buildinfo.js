@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.27';
-export const BUILD_HASH = 'c48bf38';
+export const BUILD      = '0.28';
+export const BUILD_HASH = '2cc3e7b';
 
 export const CHANGELOG = [
+  {
+    "version": "0.28",
+    "date": "17.06.2026",
+    "changes": [
+      "Cage-Form bei Schwer/Extrem/Mashallah wieder organisch (kreuz & quer statt Reihen/Blöcke)"
+    ]
+  },
   {
     "version": "0.27",
     "date": "17.06.2026",
