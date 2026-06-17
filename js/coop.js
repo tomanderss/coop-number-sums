@@ -14,6 +14,19 @@ const PREFIX = 'coopnumsums-v1-'; // Namespace für Peer-IDs
 const HEARTBEAT_MS = 4000;
 const HEARTBEAT_TIMEOUT_MS = 13000;
 
+// STUN reicht nur, wenn beide Seiten direkt erreichbar sind (z.B. selbes WLAN).
+// Über getrennte Netzwerke (z.B. Mobilfunk, restriktives NAT) braucht es einen
+// TURN-Relay, sonst scheitert die Verbindung. Das Open Relay Project bietet
+// einen kostenlosen öffentlichen TURN-Server mit statischen Zugangsdaten.
+const ICE_SERVERS = [
+  { urls: 'stun:stun.relay.metered.ca:80' },
+  { urls: 'turn:global.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:global.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+];
+const PEER_CONFIG = { config: { iceServers: ICE_SERVERS } };
+
 let peer = null;
 let guestConns = [];          // Host: alle Gast-Verbindungen
 let hostConn = null;          // Gast: Verbindung zum Host
@@ -32,7 +45,7 @@ export function hostGame({ code, onOpen, onError, onJoin, onLeave, onMessage }) 
   guestConns = [];
   lastSeenByConn = new Map();
   stopHeartbeat();
-  peer = new window.Peer(PREFIX + code, { debug: 1 });
+  peer = new window.Peer(PREFIX + code, { debug: 1, ...PEER_CONFIG });
   peer.on('open', () => onOpen && onOpen());
   peer.on('error', (e) => onError && onError(e)); // z.B. 'unavailable-id' = Code belegt
   peer.on('connection', (conn) => {
@@ -68,7 +81,7 @@ export function hostGame({ code, onOpen, onError, onJoin, onLeave, onMessage }) 
 
 // ─── GAST ─────────────────────────────────────────────────────────────────────
 export function joinGame({ code, onOpen, onError, onMessage, onClose }) {
-  peer = new window.Peer({ debug: 1 });
+  peer = new window.Peer({ debug: 1, ...PEER_CONFIG });
   let settled = false;
   stopHeartbeat();
   peer.on('open', () => {
