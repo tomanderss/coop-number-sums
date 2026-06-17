@@ -128,14 +128,18 @@ function rebalanceToTarget(id, size, target, total, neighbors, rng, maxCageSize)
   for (let guard = 0; guard < total * 3; guard++) {
     if (isDone()) return true;
     const adj = regionAdj();
-    // BFS im Cage-Graph von einer zu großen Cage zur nächsten zu kleinen
+    // BFS im Cage-Graph von einer zu großen Cage zur nächsten mit noch freier
+    // Kapazität (< maxSize, NICHT < minSize — sonst gilt jede bereits im Band
+    // liegende Cage fälschlich als "voll" und der Pfad findet trotz vorhandener
+    // freier Nachbarn keinen Empfänger, was beim Toleranzband fast immer in den
+    // starren Notnagel-Fallback führte statt die Cages organisch zu balancieren).
     let path = null;
     for (let A = 0; A < K && !path; A++) {
       if (size[A] <= maxSize) continue;
       const prev = new Array(K).fill(-2); prev[A] = -1; const q = [A];
       while (q.length) {
         const cur = q.shift();
-        if (size[cur] < minSize) { const p = []; let x = cur; while (x !== -1) { p.push(x); x = prev[x]; } path = p.reverse(); break; }
+        if (size[cur] < maxSize) { const p = []; let x = cur; while (x !== -1) { p.push(x); x = prev[x]; } path = p.reverse(); break; }
         for (const nb of adj[cur]) if (prev[nb] === -2) { prev[nb] = cur; q.push(nb); }
       }
     }
