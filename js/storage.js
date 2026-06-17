@@ -36,6 +36,11 @@ export function saveActiveGame(g) { if (g) save(KEYS.ACTIVE_GAME, g); else remov
 const EMPTY_STATS = {
   played: 0, won: 0, lost: 0, gaveup: 0, currentStreak: 0, bestStreak: 0,
   totalTimeMs: 0, hintsUsed: 0,
+  // Coop-Pendants der obigen Top-Level-Felder — komplett getrennt von den
+  // Solo-Feldern gezählt, damit z.B. eine Coop-Serie nie die Solo-Serie
+  // verfälscht (und umgekehrt).
+  coopPlayed: 0, coopWon: 0, coopLost: 0, coopGaveup: 0,
+  coopCurrentStreak: 0, coopBestStreak: 0, coopTotalTimeMs: 0, coopHintsUsed: 0,
   // id -> { played, won, lost, gaveup, sumTimeMs, bestTimeMs,
   //         coopPlayed, coopWon, coopLost, coopGaveup, coopSumTimeMs, coopBestTimeMs }
   // Die coop*-Felder zählen ausschließlich Coop-Partien getrennt von den
@@ -53,8 +58,8 @@ export function saveStats(s) { save(KEYS.STATS, s); }
 // fließt dann in die coop*-Felder statt die Solo-Felder ein.
 export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes, coop = false }) {
   const s = loadStats();
-  s.played++;
-  s.hintsUsed += hintsUsed || 0;
+  if (coop) { s.coopPlayed++; s.coopHintsUsed += hintsUsed || 0; }
+  else { s.played++; s.hintsUsed += hintsUsed || 0; }
   // Bereits vorhandene Einträge (aus älteren Versionen ohne coop*-Felder) per
   // Merge ergänzen, statt sie zu überschreiben — keine Datenverluste.
   s.byDifficulty[difficulty] = {
@@ -66,20 +71,22 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
   let newHighscore = false;
   if (coop) d.coopPlayed++; else d.played++;
   if (outcome === 'won') {
-    s.won++; s.currentStreak++; s.bestStreak = Math.max(s.bestStreak, s.currentStreak);
-    s.totalTimeMs += timeMs || 0;
     const perfect = (mistakes || 0) === 0 && (hintsUsed || 0) === 0;
     if (coop) {
+      s.coopWon++; s.coopCurrentStreak++; s.coopBestStreak = Math.max(s.coopBestStreak, s.coopCurrentStreak);
+      s.coopTotalTimeMs += timeMs || 0;
       d.coopWon++; d.coopSumTimeMs += timeMs || 0;
       if (perfect && (d.coopBestTimeMs == null || timeMs < d.coopBestTimeMs)) { d.coopBestTimeMs = timeMs; newHighscore = true; }
     } else {
+      s.won++; s.currentStreak++; s.bestStreak = Math.max(s.bestStreak, s.currentStreak);
+      s.totalTimeMs += timeMs || 0;
       d.won++; d.sumTimeMs += timeMs || 0;
       if (perfect && (d.bestTimeMs == null || timeMs < d.bestTimeMs)) { d.bestTimeMs = timeMs; newHighscore = true; }
     }
   } else {
-    s.currentStreak = 0;
-    if (outcome === 'gaveup') { if (coop) d.coopGaveup++; else d.gaveup++; s.gaveup++; }
-    else { if (coop) d.coopLost++; else d.lost++; s.lost++; }
+    if (coop) s.coopCurrentStreak = 0; else s.currentStreak = 0;
+    if (outcome === 'gaveup') { if (coop) { d.coopGaveup++; s.coopGaveup++; } else { d.gaveup++; s.gaveup++; } }
+    else { if (coop) { d.coopLost++; s.coopLost++; } else { d.lost++; s.lost++; } }
   }
   saveStats(s);
   return { stats: s, newHighscore };

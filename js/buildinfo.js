@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.24';
-export const BUILD_HASH = 'fd6a9ae';
+export const BUILD      = '0.25';
+export const BUILD_HASH = '7412c14';
 
 export const CHANGELOG = [
+  {
+    "version": "0.25",
+    "date": "17.06.2026",
+    "changes": [
+      "Statistik: Solo- und Coop-Werte werden jetzt komplett getrennt erfasst und in zwei eigenen, klar gekennzeichneten Bereichen angezeigt",
+      "Statistik: Aufgeben und Verloren werden jetzt auch für Coop separat getrackt (Übersicht & nach Schwierigkeit)",
+      "Statistik: Durchschnittszeit und Bestzeit pro Schwierigkeit gelten weiterhin getrennt für Solo und Coop, jetzt visuell als Coop-Werte hervorgehoben"
+    ]
+  },
   {
     "version": "0.24",
     "date": "17.06.2026",
