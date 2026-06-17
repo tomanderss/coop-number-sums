@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.15';
-export const BUILD_HASH = '0109228';
+export const BUILD      = '0.17';
+export const BUILD_HASH = '46523ad';
 
 export const CHANGELOG = [
+  {
+    "version": "0.17",
+    "date": "17.06.2026",
+    "changes": [
+      "Hosten- und Beitreten-Button im Coop-Menü haben jetzt denselben Text-Offset von links",
+      "Titel im Header wird beim Hosten/Warten auf Mitspieler jetzt korrekt zentriert angezeigt"
+    ]
+  },
   {
     "version": "0.15",
     "date": "17.06.2026",
