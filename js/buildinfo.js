@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.13';
-export const BUILD_HASH = 'c9c9c42';
+export const BUILD      = '0.15';
+export const BUILD_HASH = '0109228';
 
 export const CHANGELOG = [
+  {
+    "version": "0.15",
+    "date": "17.06.2026",
+    "changes": [
+      "Coop-Modus funktioniert jetzt auch über getrennte Netzwerke hinweg (TURN-Server als Fallback, falls Direktverbindung nicht möglich ist)"
+    ]
+  },
   {
     "version": "0.13",
     "date": "17.06.2026",
