@@ -1,4 +1,4 @@
-const CACHE = 'coop-number-sums-v0.42';
+const CACHE = 'coop-number-sums-v0.43';
 const ASSETS = [
   './index.html',
   './css/styles.css',
@@ -9,6 +9,7 @@ const ASSETS = [
   './js/storage.js',
   './js/coop.js',
   './js/firebase.js',
+  './js/debuglog.js',
   './js/vendor/firebase/firebase-app.js',
   './js/vendor/firebase/firebase-auth.js',
   './js/vendor/firebase/firebase-database.js',

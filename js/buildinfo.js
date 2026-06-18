@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.42';
-export const BUILD_HASH = '8e7cde7';
+export const BUILD      = '0.43';
+export const BUILD_HASH = 'b9593df';
 
 export const CHANGELOG = [
+  {
+    "version": "0.43",
+    "date": "18.06.2026",
+    "changes": [
+      "Coop-Hosten/Beitreten-Fehler (\"Verbindungsfehler\") behoben: der Spieler-Eintrag erfüllt jetzt die Firebase-Sicherheitsregeln",
+      "Coop-Verbindungsaufbau erholt sich jetzt von einem fehlgeschlagenen Versuch, statt dauerhaft zu hängen",
+      "Neu: Diagnoseprotokoll in den Einstellungen exportierbar, um Coop-Verbindungsprobleme melden zu können"
+    ]
+  },
   {
     "version": "0.42",
     "date": "18.06.2026",

@@ -152,6 +152,7 @@ export default {
     exportBackup: '⬆️ 백업 내보내기',
     importBackup: '⬇️ 백업 가져오기',
     autoBackups: '🗂 자동 백업',
+    exportLog: '🐞 진단 로그 내보내기',
     language: '🌐 언어',
   },
   toast: {

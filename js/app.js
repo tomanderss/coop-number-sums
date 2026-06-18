@@ -4,6 +4,7 @@ import { BUILD, CHANGELOG } from './buildinfo.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, DEFAULT_GAME_OPTIONS, LIVES, HINTS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
 import * as Coop from './coop.js';
+import { exportLogToFile } from './debuglog.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
@@ -627,6 +628,8 @@ function startHosting() {
   state.coop.players = [];
   Coop.hostGame({
     code: state.coop.code,
+    name: state.settings.coopName,
+    color: state.settings.coopMyColor,
     onOpen(id) {
       state.coop.myId = id;
       upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor);
@@ -665,6 +668,8 @@ function startJoining() {
   state.coop.players = [];
   Coop.joinGame({
     code: state.coop.code,
+    name: state.settings.coopName,
+    color: state.settings.coopMyColor,
     onOpen(id) {
       // Eigene ID dieser Session sichern und sofort dem Host die eigene Identität
       // melden — coopSend() blockt hier noch (state.coop.connected wird erst beim
@@ -873,6 +878,7 @@ watch(() => state.settings, (s) => saveSettings(s), { deep: true });
 
 // ─── DATEN: EXPORT / IMPORT / BACKUPS ─────────────────────────────────────────
 function doExport() { exportToFile('manual').then(() => showToast(t('toast.backupExported'), 'success')).catch(() => {}); }
+function doExportLog() { exportLogToFile().catch(() => {}); }
 function doImport(ev) {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
@@ -1002,7 +1008,7 @@ const App = {
       livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
       navigate, newGame, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
-      fmtTime, toggleSetting, setSetting, doExport, doImport, openBackups, doRestore,
+      fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause,
       cellClasses, cellStyle, toggleTool, restartFromGame,
@@ -1446,6 +1452,7 @@ const App = {
           <input type="file" accept="application/json" @change="doImport" hidden>
         </label>
         <button class="btn btn-ghost" @click="openBackups">{{ t('settings.autoBackups') }}</button>
+        <button class="btn btn-ghost" @click="doExportLog">{{ t('settings.exportLog') }}</button>
       </div>
     </section>
 

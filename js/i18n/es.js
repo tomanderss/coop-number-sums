@@ -152,6 +152,7 @@ export default {
     exportBackup: '⬆️ Exportar copia de seguridad',
     importBackup: '⬇️ Importar copia de seguridad',
     autoBackups: '🗂 Copias automáticas',
+    exportLog: '🐞 Exportar registro de diagnóstico',
     language: '🌐 Idioma',
   },
   toast: {
