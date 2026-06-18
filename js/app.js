@@ -54,10 +54,10 @@ const state = reactive({
     role: null,                // 'host' | 'guest'
     code: '',                  // Host: gewählter Code; Gast: eingegebener Zielcode
     connected: false,          // Partner verbunden
-    waitingForGuest: false,    // Host: Peer offen, wartet auf Join / Gast: verbindet
+    waitingForGuest: false,    // Host: Raum offen, wartet auf Join / Gast: verbindet
     lobbyDiffId: 'mittel',
     error: null,               // Inline-Fehlermeldung im Lobby-Screen
-    myId: null,                // eigene Spieler-ID dieser Session ('host' oder PeerJS-ID als Gast)
+    myId: null,                // eigene Firebase-uid dieser Session (Host wie Gast)
     players: [],                // [{id, name, color}] — alle bekannten Mitspieler inkl. mir selbst
     nameDraft: '',              // Entwurf im Namens-Gate, bevor er bestätigt wird
     identityConfirmed: false,   // true sobald das Namens-Gate in dieser Coop-Session bestätigt wurde
@@ -501,29 +501,22 @@ const CODE_RE = /^\d{6}$/;
 
 function coopSend(msg) {
   if (!state.coop.active || !state.coop.connected) return;
-  if (state.coop.role === 'host') Coop.broadcast(msg);
-  else Coop.sendToHost(msg);
+  Coop.send(msg);
 }
 
-function handleCoopMsg(msg, fromConn) {
+function handleCoopMsg(msg) {
   if (msg.type === Coop.MSG.MOVE) {
     setMark(msg.r, msg.c, msg.mark, false, msg.from);
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.UNDO) {
     undo(false);
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.CHECK) {
     doCheck(msg.from, false);
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.MISTAKE) {
     applyRemoteMistake(msg.by, msg.n);
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.PAUSE) {
     if (msg.paused) pauseGame(false, msg.elapsed); else resumeFromPause(false);
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.HINT) {
     applyHintEffect(msg.r, msg.c, msg.mark, false, msg.from);
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.INIT) {
     loadPuzzleIntoState(msg.puzzle, { marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime });
     state.coop.active = true;
@@ -535,21 +528,18 @@ function handleCoopMsg(msg, fromConn) {
     if (msg.status === 'won') win(remote);
     else if (msg.status === 'lost') lose(remote);
     else if (msg.status === 'gaveup') giveUp(remote);
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.IDENTITY) {
     // Nur der Host wertet Identitäts-Meldungen aus und verteilt die Liste neu —
     // er entscheidet (Konfliktauflösung), welche Farbe ein Mitspieler tatsächlich bekommt.
-    if (state.coop.role === 'host' && fromConn) {
-      upsertPlayer(fromConn.peer, msg.name, msg.color);
+    if (state.coop.role === 'host') {
+      upsertPlayer(msg.author, msg.name, msg.color);
       broadcastRoster();
     }
   } else if (msg.type === Coop.MSG.ROSTER) {
     state.coop.players = msg.players;
   } else if (msg.type === Coop.MSG.RETRY) {
     restartPuzzle(msg.startTime);
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
   } else if (msg.type === Coop.MSG.CLOSE) {
-    if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
     coopReset();
     showToast(t('coop.partnerLeftGame'), 'info', 3000);
     saveActiveGame(null);
@@ -617,37 +607,13 @@ function goCoop() {
 }
 
 // Wird aufgerufen, wenn der Gast die Verbindung zum Host unerwartet verliert
-// (Inaktivität, Tab eingeschlafen, Netzwerkausfall) während die Runde noch läuft:
-// der Gast übernimmt selbst die Host-Rolle unter demselben Code, damit der
-// ursprüngliche Host später wieder beitreten kann.
+// (Tab eingeschlafen, Netzwerkausfall) während die Runde noch läuft: der Gast
+// übernimmt lokal die Host-Rolle (Identitäts-Arbitrierung für künftige Mitspieler) —
+// die Raumdaten in der RTDB leben unabhängig vom "Host", ein Transport-Neuaufbau
+// ist anders als bei PeerJS nicht nötig.
 function promoteToHost() {
   state.coop.role = 'host';
-  state.coop.connected = false;
-  Coop.leave(); // alte (Gast-)Peer-Verbindung sauber abräumen, bevor der neue Host-Slot belegt wird
-  coopIntentionalLeave = false;
-  state.coop.myId = 'host';
-  state.coop.players = [];
-  upsertPlayer('host', state.settings.coopName, state.settings.coopMyColor);
-  Coop.hostGame({
-    code: state.coop.code,
-    onOpen() { showToast(t('coop.becameHost'), 'info', 4000); },
-    onError() {
-      // Code ist beim Broker evtl. noch kurz reserviert — erneut versuchen.
-      setTimeout(() => { if (state.coop.active && state.coop.role === 'host' && !state.coop.connected) promoteToHost(); }, 1500);
-    },
-    onJoin(conn) {
-      state.coop.connected = true;
-      Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
-      showToast(t('coop.partnerConnected'));
-    },
-    onLeave(conn) {
-      state.coop.connected = false;
-      removePlayer(conn.peer);
-      broadcastRoster();
-      if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected'), 'info', 3000);
-    },
-    onMessage: (d, conn) => handleCoopMsg(d, conn),
-  });
+  showToast(t('coop.becameHost'), 'info', 4000);
 }
 
 function startHosting() {
@@ -657,34 +623,36 @@ function startHosting() {
   state.coop.role = 'host';
   state.coop.waitingForGuest = true;
   state.coop.error = null;
-  state.coop.myId = 'host';
+  state.coop.myId = null;
   state.coop.players = [];
-  upsertPlayer('host', state.settings.coopName, state.settings.coopMyColor);
   Coop.hostGame({
     code: state.coop.code,
-    onOpen() { /* Peer offen, wartet auf Gast */ },
+    onOpen(id) {
+      state.coop.myId = id;
+      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor);
+    },
     onError(e) {
       state.coop.waitingForGuest = false;
-      state.coop.error = e.type === 'unavailable-id'
+      state.coop.error = e.type === 'code-taken'
         ? t('coop.errorCodeTaken') : t('coop.errorConnection');
     },
-    onJoin(conn) {
+    onJoin() {
       const puzzle = generatePuzzle({ difficulty: state.coop.lobbyDiffId });
       loadPuzzleIntoState(puzzle, null);
       state.coop.active = true;
       state.coop.connected = true;
       state.coop.waitingForGuest = false;
       navigate('game');
-      Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+      Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
       showToast(t('coop.partnerConnected'));
     },
-    onLeave(conn) {
+    onLeave(id) {
       state.coop.connected = false;
-      removePlayer(conn.peer);
+      removePlayer(id);
       broadcastRoster();
       if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected'), 'info', 3000);
     },
-    onMessage: (d, conn) => handleCoopMsg(d, conn),
+    onMessage: handleCoopMsg,
   });
 }
 
@@ -703,15 +671,16 @@ function startJoining() {
       // INIT true), daher direkt über die Transportschicht senden.
       state.coop.myId = id;
       upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor);
-      Coop.sendToHost({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor });
+      Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor });
     },
     onError(e) {
       state.coop.waitingForGuest = false;
       state.coop.error =
-        e.type === 'peer-unavailable' ? t('coop.errorCodeNotFound') :
-        e.type === 'timeout'          ? t('coop.errorTimeout') : t('coop.errorConnection');
+        e.type === 'code-not-found' ? t('coop.errorCodeNotFound') :
+        e.type === 'room-full'      ? t('coop.errorConnection') :
+        e.type === 'timeout'        ? t('coop.errorTimeout') : t('coop.errorConnection');
     },
-    onMessage: (d) => handleCoopMsg(d, null),
+    onMessage: handleCoopMsg,
     onClose() {
       state.coop.connected = false;
       if (coopIntentionalLeave) return;

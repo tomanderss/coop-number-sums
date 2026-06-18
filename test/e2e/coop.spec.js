@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp } from './helpers.js';
 
-// PeerJS is vendored locally (js/peerjs.min.js), so Coop.isAvailable() is true
-// and the coop button is never disabled in this suite. We deliberately do NOT
-// attempt real two-peer WebRTC signaling (that needs an external broker) --
-// these tests cover the UI/state machine up to the point a real network
-// connection would be required (host waiting-for-guest spinner, guest
-// connecting spinner).
+// Coop.isAvailable() only checks for a fetch-capable browser, so the coop
+// button is never disabled in this suite. We deliberately do NOT attempt a
+// real two-client Firebase sync (that hits the live RTDB project) -- these
+// tests cover the UI/state machine up to the point a real round-trip would
+// be required (host waiting-for-guest spinner, guest connecting spinner).
+// The lone exception is the "unreachable code" test below, which does let a
+// real Firebase lookup resolve (fast: a single RTDB read for a code with no
+// active room).
 test.describe('coop', () => {
   async function goToCoop(page) {
     await gotoApp(page);

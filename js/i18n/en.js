@@ -115,7 +115,7 @@ export default {
     enterHostCode: "Enter the host's code",
     connecting: 'Connecting…',
     connect: 'Connect ↗',
-    errorWebrtcUnavailable: 'WebRTC not available.',
+    errorWebrtcUnavailable: 'Coop is not available in this browser.',
     errorInvalidCode: 'Please enter a 6-digit code.',
     errorCodeTaken: 'Code already taken — choose a different number.',
     errorConnection: 'Connection error.',

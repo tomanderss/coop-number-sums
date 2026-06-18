@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.41';
-export const BUILD_HASH = 'aa7b247';
+export const BUILD      = '0.42';
+export const BUILD_HASH = '8e7cde7';
 
 export const CHANGELOG = [
+  {
+    "version": "0.42",
+    "date": "18.06.2026",
+    "changes": [
+      "Coop-Transport von WebRTC/PeerJS auf Firebase Realtime Database umgestellt — zuverlässiger hinter Firewalls, NAT und iCloud Private Relay"
+    ]
+  },
   {
     "version": "0.41",
     "date": "18.06.2026",
