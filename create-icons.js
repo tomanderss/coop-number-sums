@@ -132,6 +132,11 @@ function inRing(px, py, cx, cy, rOuter, strokeW) {
   const d = Math.hypot(px - cx, py - cy);
   return d <= rOuter && d >= rOuter - strokeW;
 }
+// Silhouette der äußeren Karte — bestimmt bei der transparenten Variante (für
+// das Capacitor-Assets-Logo), welche Pixel außerhalb des Icons liegen.
+function isInsideCard(px, py, N) {
+  return inRoundedRect(px, py, 0.06 * N, 0.06 * N, 0.88 * N, 0.88 * N, 0.16 * N);
+}
 
 // ── Zeichnen ──────────────────────────────────────────────────────────────────
 function pixelColor(px, py, N) {
@@ -184,20 +189,29 @@ function pixelColor(px, py, N) {
   return BG;
 }
 
-function render(N) {
+// `transparent`: macht alles außerhalb der äußeren Karten-Silhouette
+// durchsichtig statt BG-farben — für das Capacitor-Assets-Quelllogo, das auf
+// eine separate Hintergrundfarbe gelegt wird (Easy Mode, Android Adaptive Icon).
+function render(N, { transparent = false } = {}) {
   const buf = Buffer.alloc(N * N * 4);
   const SS = 6; // Supersampling für glatte Kanten
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
-      let rs = 0, gs = 0, bs = 0;
+      let rs = 0, gs = 0, bs = 0, inside = 0;
       for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) {
         const px = x + (sx + 0.5) / SS, py = y + (sy + 0.5) / SS;
+        if (transparent && !isInsideCard(px, py, N)) continue;
         const col = pixelColor(px, py, N);
-        rs += col[0]; gs += col[1]; bs += col[2];
+        rs += col[0]; gs += col[1]; bs += col[2]; inside++;
       }
       const n = SS * SS;
       const i = (y * N + x) * 4;
-      buf[i] = Math.round(rs / n); buf[i + 1] = Math.round(gs / n); buf[i + 2] = Math.round(bs / n); buf[i + 3] = 255;
+      if (inside === 0) {
+        buf[i] = BG[0]; buf[i + 1] = BG[1]; buf[i + 2] = BG[2]; buf[i + 3] = 0;
+      } else {
+        buf[i] = Math.round(rs / inside); buf[i + 1] = Math.round(gs / inside); buf[i + 2] = Math.round(bs / inside);
+        buf[i + 3] = transparent ? Math.round((inside / n) * 255) : 255;
+      }
     }
   }
   return encodePNG(N, N, buf);
@@ -207,4 +221,14 @@ const dir = join(__dir, 'icons');
 mkdirSync(dir, { recursive: true });
 writeFileSync(join(dir, 'icon-192.png'), render(192));
 writeFileSync(join(dir, 'icon-512.png'), render(512));
-console.log('✓ icons/icon-192.png & icon-512.png erstellt');
+// 1024px voll-deckendes Master-Icon für die App-Store-Einreichung (Apple
+// verlangt randlos, ohne Alpha, ohne vorgerundete Ecken).
+writeFileSync(join(dir, 'icon-1024.png'), render(1024));
+
+// Transparentes Quelllogo für `@capacitor/assets` (Easy Mode) — wird beim
+// Android-Adaptive-Icon/Splash-Generieren auf eine eigene Hintergrundfarbe gelegt.
+const assetsDir = join(__dir, 'assets');
+mkdirSync(assetsDir, { recursive: true });
+writeFileSync(join(assetsDir, 'logo.png'), render(1024, { transparent: true }));
+
+console.log('✓ icons/icon-192.png, icon-512.png, icon-1024.png & assets/logo.png erstellt');

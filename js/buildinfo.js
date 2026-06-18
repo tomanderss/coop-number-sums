@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.48';
-export const BUILD_HASH = 'f1e1dfc';
+export const BUILD      = '0.49';
+export const BUILD_HASH = 'e259091';
 
 export const CHANGELOG = [
+  {
+    "version": "0.49",
+    "date": "18.06.2026",
+    "changes": [
+      "Echtes App-Icon (statt Capacitor-Platzhalter) für Android-Launcher und Splashscreen erstellt"
+    ]
+  },
   {
     "version": "0.48",
     "date": "18.06.2026",

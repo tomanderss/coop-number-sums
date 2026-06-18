@@ -10,6 +10,7 @@
     "cap:sync": "npm run cap:copy && npx cap sync"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
     "@playwright/test": "1.56.1"
   },
