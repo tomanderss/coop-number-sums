@@ -1,0 +1,29 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && $code.matches(/^[0-9]{6}$/)",
+
+        "meta": {
+          ".validate": "newData.hasChildren(['hostId','createdAt','status'])"
+        },
+
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['name','color','role','joinedAt'])"
+          }
+        },
+
+        "events": {
+          "$eventId": {
+            ".validate": "newData.hasChildren(['type','author','ts']) && newData.child('author').val() === auth.uid"
+          }
+        }
+      }
+    }
+  }
+}
