@@ -48,7 +48,13 @@ const EMPTY_STATS = {
   // Solo-Bestzeit/den Solo-Schnitt verfälscht.
   byDifficulty: {},
 };
-export function loadStats() { return { ...EMPTY_STATS, ...load(KEYS.STATS, {}) }; }
+export function loadStats() {
+  const loaded = load(KEYS.STATS, {});
+  // byDifficulty muss IMMER ein frisches Objekt sein -- sonst würde das geteilte
+  // EMPTY_STATS.byDifficulty-Template selbst mutiert (Referenz statt Kopie),
+  // sobald noch nichts in localStorage steht.
+  return { ...EMPTY_STATS, ...loaded, byDifficulty: { ...(loaded.byDifficulty || {}) } };
+}
 export function saveStats(s) { save(KEYS.STATS, s); }
 
 // outcome: 'won' | 'lost' (alle Leben verloren) | 'gaveup' (Aufgeben-Button)
