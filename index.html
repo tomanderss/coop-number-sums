@@ -41,13 +41,13 @@
     </div>
   </div>
   <div id="app"></div>
-  <div id="rotate-lock">
-    <div id="rotate-lock-icon">📱</div>
-    <div id="rotate-lock-title">Bitte drehe dein Gerät</div>
-    <div id="rotate-lock-sub">Coop Number Sums ist nur im Hochformat verfügbar.</div>
-  </div>
   <div id="err" style="display:none;position:fixed;inset:0;background:#1a0000;color:#ff6b6b;padding:20px;font-family:monospace;font-size:13px;z-index:99999;overflow:auto;white-space:pre-wrap"></div>
   <script>
+    // Best-effort echte OS-Sperre (wirkt nur im Standalone/Fullscreen-Kontext
+    // auf unterstützten Browsern, z.B. installierte PWA unter Android-Chrome).
+    // Schlägt überall sonst (iOS, normaler Browser-Tab) lautlos fehl — dafür
+    // sorgt der CSS-Rotations-Fallback in styles.css für den Hochformat-Zwang.
+    try { screen.orientation && screen.orientation.lock('portrait').catch(function(){}); } catch (e) {}
     window.onerror = function(msg, src, line, col, err) {
       var d = document.getElementById('err');
       d.style.display = 'block';
