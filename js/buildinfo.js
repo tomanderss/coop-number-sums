@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.44';
-export const BUILD_HASH = '852346f';
+export const BUILD      = '0.45';
+export const BUILD_HASH = '564226b';
 
 export const CHANGELOG = [
+  {
+    "version": "0.45",
+    "date": "18.06.2026",
+    "changes": [
+      "Capacitor-Setup für native iOS/Android-Apps (Android-Projekt bereits gescaffoldet, iOS folgt auf macOS)",
+      "Service Worker registriert sich in nativen Apps nicht mehr (nur für GitHub-Pages-Updates relevant)"
+    ]
+  },
   {
     "version": "0.44",
     "date": "18.06.2026",

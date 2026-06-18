@@ -1645,7 +1645,11 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') { if (state.status === 'playing') saveActiveGame(activeSnapshot()); createBackup('close'); }
 });
 
-if ('serviceWorker' in navigator) {
+// Der Service Worker dient ausschließlich dem GitHub-Pages-Update-Banner-Flow
+// (neues Deployment erkennen) — innerhalb einer nativen Capacitor-App gibt es
+// dieses Konzept nicht (Updates laufen über Store-Binaries), daher dort gar
+// nicht erst registrieren.
+if ('serviceWorker' in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       log('sw', `Service Worker registriert`);

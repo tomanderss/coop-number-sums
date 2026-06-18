@@ -5,9 +5,16 @@
   "scripts": {
     "test:unit": "node --test test/unit/*.test.js",
     "test:e2e": "playwright test",
-    "test": "npm run test:unit && npm run test:e2e"
+    "test": "npm run test:unit && npm run test:e2e",
+    "cap:copy": "node scripts/cap-copy-www.js",
+    "cap:sync": "npm run cap:copy && npx cap sync"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.0",
     "@playwright/test": "1.56.1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/core": "^8.4.0"
   }
 }
