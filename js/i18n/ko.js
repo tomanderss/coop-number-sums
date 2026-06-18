@@ -195,18 +195,4 @@ export default {
     extrem: '매우 어려움',
     mashallah: '마샬라',
   },
-  coopColor: {
-    blau: '파란색',
-    orange: '주황색',
-    pink: '핑크',
-    lila: '라일락',
-    gelb: '노란색',
-    cyan: '시안',
-    indigo: '인디고',
-    bernstein: '앰버',
-    fuchsia: '푸크시아',
-    himmelblau: '하늘색',
-    violett: '바이올렛',
-    koralle: '코랄',
-  },
 };

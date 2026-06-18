@@ -1013,7 +1013,7 @@ const App = {
     const coopAvailable = computed(() => Coop.isAvailable());
 
     return {
-      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, COOP_COLORS,
+      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID,
       livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
       navigate, newGame, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
@@ -1336,10 +1336,6 @@ const App = {
                @keydown.enter="confirmCoopIdentity" />
         <div class="setup-label">{{ t('coop.yourColor') }}</div>
         <div class="coop-swatches">
-          <button v-for="c in COOP_COLORS" :key="c.hex" class="swatch"
-                  :class="{active: state.settings.coopMyColor===c.hex}"
-                  :style="{background:c.hex}"
-                  @click="setSetting('coopMyColor', c.hex)" :title="t('coopColor.'+c.id)"></button>
           <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" :title="t('common.pickColorTitle')" />
         </div>
         <button class="btn btn-primary" :disabled="!state.coop.nameDraft.trim()" @click="confirmCoopIdentity">{{ t('coop.continue') }}</button>
@@ -1454,10 +1450,6 @@ const App = {
         <div class="set-row col">
           <span class="set-row-label">{{ t('settings.myColor') }}</span>
           <div class="coop-swatches">
-            <button v-for="c in COOP_COLORS" :key="c.hex" class="swatch"
-                    :class="{active: state.settings.coopMyColor===c.hex}"
-                    :style="{background:c.hex}"
-                    @click="setSetting('coopMyColor', c.hex)" :title="t('coopColor.'+c.id)"></button>
             <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" :title="t('common.pickColorTitle')" />
           </div>
           <small class="set-hint">{{ t('settings.colorHint') }}</small>

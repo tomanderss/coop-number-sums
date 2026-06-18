@@ -195,18 +195,4 @@ export default {
     extrem: 'Extrem',
     mashallah: 'Mashallah',
   },
-  coopColor: {
-    blau: 'Blau',
-    orange: 'Orange',
-    pink: 'Pink',
-    lila: 'Lila',
-    gelb: 'Gelb',
-    cyan: 'Cyan',
-    indigo: 'Indigo',
-    bernstein: 'Bernstein',
-    fuchsia: 'Fuchsia',
-    himmelblau: 'Himmelblau',
-    violett: 'Violett',
-    koralle: 'Koralle',
-  },
 };

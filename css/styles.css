@@ -495,10 +495,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* ─── Settings: Farb-Swatches & Text-Eingabe ─── */
 .coop-swatches { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.swatch { width: 36px; height: 36px; border-radius: 50%; border: 3px solid transparent; transition: transform .12s, border-color .15s; }
-.swatch.active { border-color: var(--text); transform: scale(1.12); }
-.swatch:disabled { opacity: .25; cursor: not-allowed; }
-/* Eigene Farbe frei wählen statt nur aus der festen Palette (Punkt 5) */
 .swatch-custom {
   width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--grid);
   padding: 0; background: none; cursor: pointer; -webkit-appearance: none; appearance: none;

@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.37';
-export const BUILD_HASH = '28b6783';
+export const BUILD      = '0.38';
+export const BUILD_HASH = 'f39c9fd';
 
 export const CHANGELOG = [
+  {
+    "version": "0.38",
+    "date": "18.06.2026",
+    "changes": [
+      "Coop-Farbwahl vereinfacht: nur noch der freie Farbwähler statt fester Farbpalette, zuletzt gewählte Farbe wird gemerkt"
+    ]
+  },
   {
     "version": "0.37",
     "date": "18.06.2026",
