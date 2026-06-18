@@ -52,18 +52,18 @@ export const REGION_COLORS = [
 // Größere Auswahl, da nun jeder Mitspieler eine EIGENE, eindeutige Farbe braucht
 // (nicht mehr nur "meine" und "Partner"-Farbe).
 export const COOP_COLORS = [
-  { name: 'Blau',     hex: '#3b82f6' },
-  { name: 'Orange',   hex: '#f97316' },
-  { name: 'Pink',     hex: '#ec4899' },
-  { name: 'Lila',     hex: '#a855f7' },
-  { name: 'Gelb',     hex: '#eab308' },
-  { name: 'Cyan',     hex: '#06b6d4' },
-  { name: 'Indigo',   hex: '#6366f1' },
-  { name: 'Bernstein',hex: '#d97706' },
-  { name: 'Fuchsia',  hex: '#d946ef' },
-  { name: 'Himmelblau',hex: '#0ea5e9' },
-  { name: 'Violett',  hex: '#8b5cf6' },
-  { name: 'Koralle',  hex: '#fb7185' },
+  { id: 'blau',       name: 'Blau',     hex: '#3b82f6' },
+  { id: 'orange',     name: 'Orange',   hex: '#f97316' },
+  { id: 'pink',       name: 'Pink',     hex: '#ec4899' },
+  { id: 'lila',       name: 'Lila',     hex: '#a855f7' },
+  { id: 'gelb',       name: 'Gelb',     hex: '#eab308' },
+  { id: 'cyan',       name: 'Cyan',     hex: '#06b6d4' },
+  { id: 'indigo',     name: 'Indigo',   hex: '#6366f1' },
+  { id: 'bernstein',  name: 'Bernstein',hex: '#d97706' },
+  { id: 'fuchsia',    name: 'Fuchsia',  hex: '#d946ef' },
+  { id: 'himmelblau', name: 'Himmelblau',hex: '#0ea5e9' },
+  { id: 'violett',    name: 'Violett',  hex: '#8b5cf6' },
+  { id: 'koralle',    name: 'Koralle',  hex: '#fb7185' },
 ];
 
 // ─── STANDARD-EINSTELLUNGEN ───────────────────────────────────────────────────
@@ -76,6 +76,7 @@ export const DEFAULT_SETTINGS = {
   eraseStyle: 'hide',        // gelöschte Zahl: 'hide' (verschwindet) | 'strike' (durchgestrichen)
   coopName: '',              // eigener Anzeigename im Coop-Modus
   coopMyColor: '#3b82f6',    // eigene Spielerfarbe im Coop-Modus (Default: Blau)
+  language: null,           // UI-Sprache; null = noch nicht erkannt/gewählt -> Auto-Detect via navigator.language
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)

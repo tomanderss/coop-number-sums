@@ -9,6 +9,7 @@ import {
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
   exportToFile, importFromFile,
 } from './storage.js';
+import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
 const APP_START = Date.now();
 const splashVersion = document.getElementById('splash-version');
@@ -111,6 +112,10 @@ function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
   const tc = document.querySelector('meta[name="theme-color"]');
   if (tc) tc.setAttribute('content', state.settings.darkMode ? '#0b1020' : '#eef2f9');
+}
+function applyLocale() {
+  if (!state.settings.language) state.settings.language = detectLocale();
+  setLocale(state.settings.language);
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
@@ -376,7 +381,7 @@ function registerMistake() {
   if (state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
-    showBestTimeNotice('Leben verloren – keine Bestzeit mehr möglich diese Partie');
+    showBestTimeNotice(t('game.lifeLostNotice'));
     if (state.lives <= 0) { state.lives = 0; lose(); }
   }
   persistGame();
@@ -391,7 +396,7 @@ function applyRemoteMistake(by, n) {
     for (let i = 0; i < n; i++) {
       state.lives--;
       state.coop.lifeLossBy.push(by);
-      showBestTimeNotice('Leben verloren – keine Bestzeit mehr möglich diese Partie');
+      showBestTimeNotice(t('game.lifeLostNotice'));
       if (state.lives <= 0) { state.lives = 0; lose(); return; }
     }
   }
@@ -420,7 +425,7 @@ function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = tr
     }
   if (wrong.length === 0) {
     if (isSolved()) { win(); return; }
-    showToast('Bisher alles korrekt – aber noch nicht fertig 👍', 'info');
+    showToast(t('game.stillCorrect'), 'info');
     return;
   }
   wrong.forEach(([r, c]) => flashError(r, c));
@@ -429,10 +434,10 @@ function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = tr
   if (state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
-    showBestTimeNotice('Leben verloren – keine Bestzeit mehr möglich diese Partie');
+    showBestTimeNotice(t('game.lifeLostNotice'));
     if (state.lives <= 0) { state.lives = 0; lose(); return; }
   }
-  showToast(`${wrong.length} Fehler gefunden`, 'error');
+  showToast(t('game.errorsFound', { count: wrong.length }), 'error');
   persistGame();
 }
 
@@ -464,7 +469,7 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
 function useHint() {
   if (state.status !== 'playing' || state.hintsLeft <= 0) return;
   if (!state.hintWarnShown) {
-    ask('Hinweis nehmen?', 'Mit einem Hinweis ist in dieser Partie keine Bestzeit mehr möglich. Trotzdem fortfahren?', () => {
+    ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => {
       state.hintWarnShown = true;
       doUseHint();
     });
@@ -477,7 +482,7 @@ function doUseHint() {
   if (!hint) return;
   state.hintsLeft--; state.hintsUsed++;
   applyHintEffect(hint.r, hint.c, hint.want);
-  showBestTimeNotice('Hinweis genutzt – keine Bestzeit mehr möglich diese Partie');
+  showBestTimeNotice(t('game.hintUsedNotice'));
   if (state.coop.active) coopSend({ type: Coop.MSG.HINT, r: hint.r, c: hint.c, mark: hint.want, from: state.coop.myId });
 }
 
@@ -545,7 +550,7 @@ function handleCoopMsg(msg, fromConn) {
   } else if (msg.type === Coop.MSG.CLOSE) {
     if (state.coop.role === 'host') Coop.broadcast(msg, fromConn);
     coopReset();
-    showToast('Mitspieler hat das Spiel beendet', 'info', 3000);
+    showToast(t('coop.partnerLeftGame'), 'info', 3000);
     saveActiveGame(null);
     refreshResume();
     navigate('home');
@@ -580,7 +585,7 @@ function pickAvailableColor(requested, others) {
 function upsertPlayer(id, name, requestedColor) {
   const others = state.coop.players.filter(p => p.id !== id);
   const color = pickAvailableColor(requestedColor, others);
-  state.coop.players = [...others, { id, name: (name || '').trim() || 'Spieler', color }];
+  state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color }];
 }
 function removePlayer(id) {
   state.coop.players = state.coop.players.filter(p => p.id !== id);
@@ -624,7 +629,7 @@ function promoteToHost() {
   upsertPlayer('host', state.settings.coopName, state.settings.coopMyColor);
   Coop.hostGame({
     code: state.coop.code,
-    onOpen() { showToast('Host getrennt — du bist jetzt Host 📡', 'info', 4000); },
+    onOpen() { showToast(t('coop.becameHost'), 'info', 4000); },
     onError() {
       // Code ist beim Broker evtl. noch kurz reserviert — erneut versuchen.
       setTimeout(() => { if (state.coop.active && state.coop.role === 'host' && !state.coop.connected) promoteToHost(); }, 1500);
@@ -632,21 +637,21 @@ function promoteToHost() {
     onJoin(conn) {
       state.coop.connected = true;
       Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
-      showToast('Mitspieler verbunden 👥');
+      showToast(t('coop.partnerConnected'));
     },
     onLeave(conn) {
       state.coop.connected = false;
       removePlayer(conn.peer);
       broadcastRoster();
-      if (!coopIntentionalLeave) showToast('Mitspieler hat getrennt', 'info', 3000);
+      if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected'), 'info', 3000);
     },
     onMessage: (d, conn) => handleCoopMsg(d, conn),
   });
 }
 
 function startHosting() {
-  if (!Coop.isAvailable()) { state.coop.error = 'WebRTC nicht verfügbar.'; return; }
-  if (!CODE_RE.test(state.coop.code)) { state.coop.error = 'Bitte 6-stelligen Zahlencode eingeben.'; return; }
+  if (!Coop.isAvailable()) { state.coop.error = t('coop.errorWebrtcUnavailable'); return; }
+  if (!CODE_RE.test(state.coop.code)) { state.coop.error = t('coop.errorInvalidCode'); return; }
   coopIntentionalLeave = false;
   state.coop.role = 'host';
   state.coop.waitingForGuest = true;
@@ -660,7 +665,7 @@ function startHosting() {
     onError(e) {
       state.coop.waitingForGuest = false;
       state.coop.error = e.type === 'unavailable-id'
-        ? 'Code bereits vergeben — wähle eine andere Zahl.' : 'Verbindungsfehler.';
+        ? t('coop.errorCodeTaken') : t('coop.errorConnection');
     },
     onJoin(conn) {
       const puzzle = generatePuzzle({ difficulty: state.coop.lobbyDiffId });
@@ -670,20 +675,20 @@ function startHosting() {
       state.coop.waitingForGuest = false;
       navigate('game');
       Coop.sendToConn(conn, { type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
-      showToast('Mitspieler verbunden 👥');
+      showToast(t('coop.partnerConnected'));
     },
     onLeave(conn) {
       state.coop.connected = false;
       removePlayer(conn.peer);
       broadcastRoster();
-      if (!coopIntentionalLeave) showToast('Mitspieler hat getrennt', 'info', 3000);
+      if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected'), 'info', 3000);
     },
     onMessage: (d, conn) => handleCoopMsg(d, conn),
   });
 }
 
 function startJoining() {
-  if (!CODE_RE.test(state.coop.code)) { state.coop.error = 'Bitte 6-stelligen Zahlencode eingeben.'; return; }
+  if (!CODE_RE.test(state.coop.code)) { state.coop.error = t('coop.errorInvalidCode'); return; }
   coopIntentionalLeave = false;
   state.coop.role = 'guest';
   state.coop.waitingForGuest = true;
@@ -702,18 +707,18 @@ function startJoining() {
     onError(e) {
       state.coop.waitingForGuest = false;
       state.coop.error =
-        e.type === 'peer-unavailable' ? 'Code nicht gefunden.' :
-        e.type === 'timeout'          ? 'Zeitüberschreitung.' : 'Verbindungsfehler.';
+        e.type === 'peer-unavailable' ? t('coop.errorCodeNotFound') :
+        e.type === 'timeout'          ? t('coop.errorTimeout') : t('coop.errorConnection');
     },
     onMessage: (d) => handleCoopMsg(d, null),
     onClose() {
       state.coop.connected = false;
       if (coopIntentionalLeave) return;
       if (state.coop.active && state.status === 'playing') {
-        showToast('Host getrennt — werde neuer Host …', 'info', 3000);
+        showToast(t('coop.hostDisconnectedPromoting'), 'info', 3000);
         promoteToHost();
       } else {
-        showToast('Verbindung zum Host getrennt', 'info', 3000);
+        showToast(t('coop.hostDisconnected'), 'info', 3000);
       }
     },
   });
@@ -890,11 +895,14 @@ function toggleSetting(key) {
   state.settings[key] = !state.settings[key];
   if (key === 'darkMode') applyTheme();
 }
-function setSetting(key, val) { state.settings[key] = val; }
+function setSetting(key, val) {
+  state.settings[key] = val;
+  if (key === 'language') applyLocale();
+}
 watch(() => state.settings, (s) => saveSettings(s), { deep: true });
 
 // ─── DATEN: EXPORT / IMPORT / BACKUPS ─────────────────────────────────────────
-function doExport() { exportToFile('manual').then(() => showToast('Backup exportiert', 'success')).catch(() => {}); }
+function doExport() { exportToFile('manual').then(() => showToast(t('toast.backupExported'), 'success')).catch(() => {}); }
 function doImport(ev) {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
@@ -902,9 +910,9 @@ function doImport(ev) {
   reader.onload = () => {
     try {
       importFromFile(reader.result);
-      state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); refreshResume();
-      showToast('Import erfolgreich', 'success');
-    } catch { showToast('Import fehlgeschlagen', 'error'); }
+      state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applyLocale(); refreshResume();
+      showToast(t('toast.importSuccess'), 'success');
+    } catch { showToast(t('toast.importFailed'), 'error'); }
   };
   reader.readAsText(file);
   ev.target.value = '';
@@ -912,13 +920,13 @@ function doImport(ev) {
 function openBackups() { state.modal = 'backups'; }
 function doRestore(slot) {
   if (restoreBackup(slot)) {
-    state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); refreshResume();
-    state.modal = null; showToast('Backup wiederhergestellt', 'success');
+    state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applyLocale(); refreshResume();
+    state.modal = null; showToast(t('toast.backupRestored'), 'success');
   }
 }
 function resetStats() {
-  ask('Statistik zurücksetzen?', 'Alle Erfolge und Bestzeiten werden gelöscht.', () => {
-    localStorage.removeItem('cns_stats'); state.stats = loadStats(); showToast('Statistik gelöscht', 'success');
+  ask(t('stats.resetConfirmTitle'), t('stats.resetConfirmMsg'), () => {
+    localStorage.removeItem('cns_stats'); state.stats = loadStats(); showToast(t('stats.resetDone'), 'success');
   });
 }
 
@@ -936,6 +944,7 @@ function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD);
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
   applyTheme();
+  applyLocale();
   refreshResume();
   maybeShowWhatsNew();
   window.addEventListener('resize', computeCellSize);
@@ -1014,6 +1023,7 @@ const App = {
       cellClasses, cellStyle, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop,
+      t, i18nState, SUPPORTED_LOCALES,
     };
   },
   template: `
@@ -1029,22 +1039,22 @@ const App = {
       <div class="home-actions">
         <button v-if="state.resumeAvailable" class="btn btn-resume" @click="resumeGame">
           <span class="btn-ic">▶</span>
-          <span class="btn-tx"><b>Fortsetzen</b>
-            <small>{{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.name }} · {{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailable.elapsed||0) }}</small>
+          <span class="btn-tx"><b>{{ t('home.resume') }}</b>
+            <small>{{ t('difficulty.'+state.resumeAvailable.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailable.elapsed||0) }}</small>
           </span>
         </button>
         <button class="btn btn-primary" @click="navigate('setup')">
-          <span class="btn-ic">➕</span><span class="btn-tx"><b>Neues Spiel</b><small>Schwierigkeit wählen</small></span>
+          <span class="btn-ic">➕</span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
         <button class="btn btn-coop" :disabled="!coopAvailable" @click="goCoop">
-          <span class="btn-ic">👥</span><span class="btn-tx"><b>Coop-Modus</b><small>Gemeinsam lösen</small></span>
-          <span v-if="!coopAvailable" class="badge-soon">bald</span>
+          <span class="btn-ic">👥</span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
+          <span v-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
         </button>
         <div class="home-grid">
-          <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> Statistik</button>
-          <button class="btn btn-ghost" @click="navigate('settings')"><span class="btn-ic">⚙️</span> Einstellungen</button>
-          <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">❓</span> Anleitung</button>
-          <button class="btn btn-ghost" @click="state.modal='changelog'"><span class="btn-ic">📝</span> Änderungen</button>
+          <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> {{ t('home.stats') }}</button>
+          <button class="btn btn-ghost" @click="navigate('settings')"><span class="btn-ic">⚙️</span> {{ t('home.settings') }}</button>
+          <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">❓</span> {{ t('home.howto') }}</button>
+          <button class="btn btn-ghost" @click="state.modal='changelog'"><span class="btn-ic">📝</span> {{ t('home.changelog') }}</button>
         </div>
       </div>
       <div class="home-version">v{{ BUILD }}</div>
@@ -1054,21 +1064,21 @@ const App = {
     <section v-else-if="state.screen==='setup'" class="screen setup">
       <header class="topbar">
         <button class="icon-btn" @click="navigate('home')">‹</button>
-        <h2>Neues Spiel</h2><span></span>
+        <h2>{{ t('setup.title') }}</h2><span></span>
       </header>
       <div class="setup-body">
-        <div class="setup-label">Schwierigkeit</div>
+        <div class="setup-label">{{ t('common.difficulty') }}</div>
         <div class="option-grid">
           <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card" :class="{active: state.sel.difficulty===d.id}" @click="state.sel.difficulty=d.id">
             <span class="opt-emoji">{{ d.emoji }}</span>
-            <span class="opt-name">{{ d.name }}</span>
+            <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
             <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
             <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="opt-best">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
             <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
           </button>
         </div>
         <button class="btn btn-primary btn-start" @click="newGame(state.sel.difficulty)">
-          Los geht's! 🚀
+          {{ t('setup.start') }}
         </button>
       </div>
     </section>
@@ -1087,10 +1097,10 @@ const App = {
           <div class="hud-item timer" v-if="state.settings.showTimer">⏱ {{ fmtTime(state.elapsed) }}</div>
         </div>
         <div class="top-actions">
-          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="pauseGame" title="Pause">
+          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="pauseGame" :title="t('game.pauseTitle')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
           </button>
-          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="ask('Aufgeben?', 'Das Rätsel wird als aufgegeben gewertet.', giveUp)" title="Aufgeben">
+          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="ask(t('game.giveUpConfirmTitle'), t('game.giveUpConfirmMsg'), giveUp)" :title="t('game.giveUpTitle')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="5" y="3" width="2.4" height="18" rx="1.2"/><path d="M7.4 4h12.1l-3 3.6 3 3.6H7.4z"/></svg>
           </button>
           <button class="icon-btn" @click="state.modal='howto'">?</button>
@@ -1099,15 +1109,15 @@ const App = {
 
       <div v-if="state.generating" class="loading">
         <div class="spinner"></div>
-        <div class="loading-tx">Rätsel wird erstellt…</div>
+        <div class="loading-tx">{{ t('game.loading') }}</div>
       </div>
 
       <template v-else-if="state.puzzle">
         <div class="game-meta">
-          <span class="chip">{{ DIFF_BY_ID[state.puzzle.difficulty].emoji }} {{ DIFF_BY_ID[state.puzzle.difficulty].name }}</span>
+          <span class="chip">{{ DIFF_BY_ID[state.puzzle.difficulty].emoji }} {{ t('difficulty.'+state.puzzle.difficulty) }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
           <span v-if="state.coop.active" class="chip coop-chip" :class="state.coop.connected ? 'coop-on' : 'coop-off'">
-            👥 COOP{{ state.coop.connected ? '' : ' · offline' }}
+            👥 {{ t('game.coopTag') }}{{ state.coop.connected ? '' : t('game.coopOfflineSuffix') }}
           </span>
           <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
@@ -1118,7 +1128,7 @@ const App = {
         <div v-if="state.coop.active && state.coop.players.length" class="coop-roster">
           <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
                 :style="{ background: p.color, color: chipTextColor(p.color) }">
-            {{ p.name }}<template v-if="p.id===state.coop.myId"> (Du)</template>
+            {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
           </span>
         </div>
 
@@ -1156,24 +1166,24 @@ const App = {
 
         <!-- Werkzeug-Umschalter (Radierer / Stift) -->
         <div class="toolbar">
-          <button class="round-btn" :disabled="!state.history.length" @click="undo" title="Rückgängig" aria-label="Rückgängig">
+          <button class="round-btn" :disabled="!state.history.length" @click="undo" :title="t('game.undoTitle')" :aria-label="t('game.undoTitle')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-4"/></svg>
           </button>
           <div class="tool-toggle" @click="toggleTool">
             <div class="tool-pill" :class="{ pen: state.tool==='pen' }"></div>
-            <span class="tool-ic eraser" :class="{active: state.tool==='eraser'}" title="Löschen">
+            <span class="tool-ic eraser" :class="{active: state.tool==='eraser'}" :title="t('game.eraserTitle')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 20H20"/><path d="m3.6 14.5 5.9 5.9 9.4-9.4a2 2 0 0 0 0-2.8l-3.1-3.1a2 2 0 0 0-2.8 0L3.6 11.7a2 2 0 0 0 0 2.8z"/><path d="m9 8.5 6.5 6.5"/></svg>
             </span>
-            <span class="tool-ic pen" :class="{active: state.tool==='pen'}" title="Einkreisen">
+            <span class="tool-ic pen" :class="{active: state.tool==='pen'}" :title="t('game.penTitle')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="11" cy="13" rx="8" ry="7"/><path d="m16.5 7.5 3.2-3.2a1.6 1.6 0 0 1 2.3 2.3l-3.2 3.2-2.3-2.3z"/></svg>
             </span>
           </div>
-          <button class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" title="Hinweis" aria-label="Hinweis">
+          <button class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" :title="t('game.hintTitle')" :aria-label="t('game.hintTitle')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5"/><path d="M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-4 11.6c.8.7 1.2 1.3 1.3 2.4h5.4c.1-1.1.5-1.7 1.3-2.4A6.5 6.5 0 0 0 12 2.5z"/></svg>
           </button>
         </div>
         <div v-if="state.settings.errorReveal==='onCheck'" class="check-row">
-          <button class="btn btn-primary btn-check" @click="doCheck()">✓ Prüfen</button>
+          <button class="btn btn-primary btn-check" @click="doCheck()">{{ t('game.check') }}</button>
         </div>
       </template>
 
@@ -1181,11 +1191,11 @@ const App = {
       <div v-if="state.paused" class="overlay pause-overlay">
         <div class="result-card">
           <div class="result-emoji">⏸️</div>
-          <h2>Pausiert</h2>
+          <h2>{{ t('pause.title') }}</h2>
           <div class="pause-time">⏱ {{ fmtTime(state.elapsed) }}</div>
-          <p class="result-msg">Das Feld ist verdeckt – die Zeit läuft nicht weiter.</p>
-          <button class="btn btn-primary" @click="resumeFromPause">Fortsetzen</button>
-          <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
+          <p class="result-msg">{{ t('pause.msg') }}</p>
+          <button class="btn btn-primary" @click="resumeFromPause">{{ t('pause.resume') }}</button>
+          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
 
@@ -1193,82 +1203,82 @@ const App = {
       <div v-if="state.status==='won' && !state.solutionShown" class="overlay">
         <div class="result-card win">
           <div class="result-emoji">🎉</div>
-          <h2>Gelöst!</h2>
-          <div v-if="state.newHighscore" class="highscore-badge">🏆 Neue Bestzeit!</div>
+          <h2>{{ t('win.title') }}</h2>
+          <div v-if="state.newHighscore" class="highscore-badge">{{ t('win.newHighscore') }}</div>
           <div v-else-if="state.wouldHaveBeenBest" class="highscore-badge missed">
-            ⏱️ Das wäre eine neue Bestzeit gewesen – zählt aber nicht wegen
-            <template v-if="state.mistakes>0 && state.hintsUsed>0"> Fehlern und Hinweisen</template>
-            <template v-else-if="state.mistakes>0"> Fehlern</template>
-            <template v-else> Hinweisen</template>.
+            {{ t('win.missedPrefix') }}
+            <template v-if="state.mistakes>0 && state.hintsUsed>0"> {{ t('win.missedBoth') }}</template>
+            <template v-else-if="state.mistakes>0"> {{ t('win.missedMistakes') }}</template>
+            <template v-else> {{ t('win.missedHints') }}</template>.
           </div>
           <div class="result-stats">
-            <div><b>{{ fmtTime(state.elapsed) }}</b><small>Zeit</small></div>
-            <div><b>{{ state.mistakes }}</b><small>Fehler</small></div>
-            <div><b>{{ state.hintsUsed }}</b><small>Hinweise</small></div>
+            <div><b>{{ fmtTime(state.elapsed) }}</b><small>{{ t('win.timeLabel') }}</small></div>
+            <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
+            <div><b>{{ state.hintsUsed }}</b><small>{{ t('win.hintsLabel') }}</small></div>
           </div>
           <div v-if="coopPerformance.length" class="coop-performance">
-            <div class="perf-title">👥 Team-Performance</div>
+            <div class="perf-title">{{ t('win.teamPerformance') }}</div>
             <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
               <div class="perf-head">
-                <span class="perf-name" :style="{color: pl.color}">{{ pl.name }}<template v-if="pl.id===mvpId"> 🏆 MVP</template></span>
+                <span class="perf-name" :style="{color: pl.color}">{{ pl.name }}<template v-if="pl.id===mvpId"> {{ t('win.mvp') }}</template></span>
                 <span class="perf-pct">{{ pl.contributionPct }}%</span>
               </div>
               <div class="perf-bar"><div class="perf-bar-fill" :style="{width: pl.contributionPct + '%', background: pl.color}"></div></div>
               <div class="perf-nums">
-                <span>⭕ {{ pl.correctKept }} richtig eingekreist</span>
-                <span>🗑️ {{ pl.correctRemoved }} richtig gelöscht</span>
-                <span>❌ {{ pl.mistakes }} Fehler</span>
+                <span>{{ t('win.correctKept', { count: pl.correctKept }) }}</span>
+                <span>{{ t('win.correctRemoved', { count: pl.correctRemoved }) }}</span>
+                <span>{{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
               </div>
             </div>
           </div>
-          <button class="btn btn-primary" v-if="!state.coop.active || state.coop.role==='host'" @click="newGame(state.puzzle.difficulty)">Nächstes Rätsel</button>
-          <p v-else class="result-msg">Warte auf den Host für die nächste Runde …</p>
-          <button class="btn btn-ghost" @click="revealSolution">Spielfeld ansehen</button>
-          <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
+          <button class="btn btn-primary" v-if="!state.coop.active || state.coop.role==='host'" @click="newGame(state.puzzle.difficulty)">{{ t('win.nextPuzzle') }}</button>
+          <p v-else class="result-msg">{{ t('win.waitingForHost') }}</p>
+          <button class="btn btn-ghost" @click="revealSolution">{{ t('win.viewBoard') }}</button>
+          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
       <div v-if="state.status==='lost' && !state.solutionShown" class="overlay">
         <div class="result-card lose">
           <div class="result-emoji">💔</div>
-          <h2>Keine Leben mehr</h2>
-          <p class="result-msg">Kein Problem – versuch es erneut!</p>
+          <h2>{{ t('loss.title') }}</h2>
+          <p class="result-msg">{{ t('loss.msg') }}</p>
           <div v-if="coopPerformance.length" class="coop-performance">
-            <div class="perf-title">👥 Team-Performance</div>
+            <div class="perf-title">{{ t('win.teamPerformance') }}</div>
             <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
               <div class="perf-head">
-                <span class="perf-name" :style="{color: pl.color}">{{ pl.name }}<template v-if="pl.id===mvpId"> 🏆 MVP</template></span>
+                <span class="perf-name" :style="{color: pl.color}">{{ pl.name }}<template v-if="pl.id===mvpId"> {{ t('win.mvp') }}</template></span>
                 <span class="perf-pct">{{ pl.contributionPct }}%</span>
               </div>
               <div class="perf-bar"><div class="perf-bar-fill" :style="{width: pl.contributionPct + '%', background: pl.color}"></div></div>
               <div class="perf-nums">
-                <span>⭕ {{ pl.correctKept }} richtig eingekreist</span>
-                <span>🗑️ {{ pl.correctRemoved }} richtig gelöscht</span>
-                <span>❌ {{ pl.mistakes }} Fehler</span>
+                <span>{{ t('win.correctKept', { count: pl.correctKept }) }}</span>
+                <span>{{ t('win.correctRemoved', { count: pl.correctRemoved }) }}</span>
+                <span>{{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
               </div>
             </div>
           </div>
-          <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
-          <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">Neues Spiel</button>
-          <button class="btn btn-ghost" @click="revealSolution">Lösung zeigen</button>
-          <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
+          <button class="btn btn-primary" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">{{ t('common.newGame') }}</button>
+          <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
+          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
       <div v-if="state.status==='gaveup' && !state.solutionShown" class="overlay">
         <div class="result-card lose">
           <div class="result-emoji">🏳</div>
-          <h2>Aufgegeben</h2>
-          <p class="result-msg">Kein Problem – versuch es erneut!</p>
-          <button class="btn btn-primary" @click="restartFromGame">Nochmal versuchen</button>
-          <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">Neues Spiel</button>
-          <button class="btn btn-ghost" @click="revealSolution">Lösung zeigen</button>
-          <button class="btn btn-ghost" @click="quitToHome">Zum Menü</button>
+          <h2>{{ t('gaveup.title') }}</h2>
+          <p class="result-msg">{{ t('loss.msg') }}</p>
+          <button class="btn btn-primary" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">{{ t('common.newGame') }}</button>
+          <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
+          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
       <!-- Lösungsanzeige ist rein lokal (Punkt 4): "Zurück" bringt nur diesen
            Spieler zum Ergebnis-Dialog zurück, ohne den Partner zu beeinflussen. -->
       <div v-if="state.solutionShown" class="review-bar">
-        <span>{{ state.status==='won' ? 'Rätsel' : 'Lösung' }}</span>
-        <button class="btn btn-primary btn-sm" @click="state.solutionShown=false">Zurück</button>
+        <span>{{ state.status==='won' ? t('review.puzzle') : t('review.solution') }}</span>
+        <button class="btn btn-primary btn-sm" @click="state.solutionShown=false">{{ t('common.back') }}</button>
       </div>
 
       <!-- Confetti -->
@@ -1279,15 +1289,15 @@ const App = {
 
     <!-- ══ STATS ══ -->
     <section v-else-if="state.screen==='stats'" class="screen stats">
-      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>Statistik</h2><span></span></header>
+      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('stats.title') }}</h2><span></span></header>
       <div class="stats-body">
-        <div class="stats-section-title">Level-Übersicht</div>
+        <div class="stats-section-title">{{ t('stats.levelOverview') }}</div>
         <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
           <div class="diff-row-top">
-            <span class="diff-name">{{ d.emoji }} {{ d.name }}</span>
+            <span class="diff-name">{{ d.emoji }} {{ t('difficulty.'+d.id) }}</span>
           </div>
           <div class="diff-sub">
-            <div class="diff-sub-label">👤 Solo</div>
+            <div class="diff-sub-label">{{ t('stats.solo') }}</div>
             <div class="diff-row-sub">
               <span class="chip">{{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}</span>
               <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
@@ -1297,7 +1307,7 @@ const App = {
             </div>
           </div>
           <div class="diff-sub">
-            <div class="diff-sub-label coop">👥 Coop</div>
+            <div class="diff-sub-label coop">{{ t('stats.coop') }}</div>
             <div class="diff-row-sub">
               <span class="chip coop-chip">{{ (state.stats.byDifficulty[d.id]?.coopWon)||0 }} / {{ (state.stats.byDifficulty[d.id]?.coopPlayed)||0 }}</span>
               <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="chip coop-chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
@@ -1307,7 +1317,7 @@ const App = {
             </div>
           </div>
         </div>
-        <button class="btn btn-danger-ghost" @click="resetStats">Statistik zurücksetzen</button>
+        <button class="btn btn-danger-ghost" @click="resetStats">{{ t('stats.reset') }}</button>
       </div>
     </section>
 
@@ -1315,144 +1325,150 @@ const App = {
     <section v-else-if="state.screen==='coop'" class="screen coop-screen">
       <header class="topbar">
         <button class="icon-btn" @click="coopReset(); navigate('home')">‹</button>
-        <h2>Coop-Modus</h2><span></span>
+        <h2>{{ t('coop.title') }}</h2><span></span>
       </header>
 
       <!-- Namens-Gate: bevor irgendetwas anderes möglich ist, Name + eigene Farbe festlegen
            (jedes Mal erneut, aber mit dem zuletzt gespeicherten Namen vorbefüllt) -->
       <div v-if="!state.coop.identityConfirmed" class="coop-body">
-        <p class="coop-tagline">Wie sollen dich die anderen Spieler sehen?</p>
-        <input class="text-input" v-model="state.coop.nameDraft" maxlength="16" placeholder="Dein Name"
+        <p class="coop-tagline">{{ t('coop.identityPrompt') }}</p>
+        <input class="text-input" v-model="state.coop.nameDraft" maxlength="16" :placeholder="t('common.namePlaceholder')"
                @keydown.enter="confirmCoopIdentity" />
-        <div class="setup-label">Deine Farbe</div>
+        <div class="setup-label">{{ t('coop.yourColor') }}</div>
         <div class="coop-swatches">
           <button v-for="c in COOP_COLORS" :key="c.hex" class="swatch"
                   :class="{active: state.settings.coopMyColor===c.hex}"
                   :style="{background:c.hex}"
-                  @click="setSetting('coopMyColor', c.hex)" :title="c.name"></button>
-          <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" title="Eigene Farbe wählen" />
+                  @click="setSetting('coopMyColor', c.hex)" :title="t('coopColor.'+c.id)"></button>
+          <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" :title="t('common.pickColorTitle')" />
         </div>
-        <button class="btn btn-primary" :disabled="!state.coop.nameDraft.trim()" @click="confirmCoopIdentity">Weiter</button>
+        <button class="btn btn-primary" :disabled="!state.coop.nameDraft.trim()" @click="confirmCoopIdentity">{{ t('coop.continue') }}</button>
       </div>
 
       <!-- Auswahl: Hosten oder Beitreten? -->
       <div v-else-if="state.coop.role === null" class="coop-body">
-        <p class="coop-tagline">Löst ein Rätsel gemeinsam in Echtzeit!</p>
+        <p class="coop-tagline">{{ t('coop.tagline') }}</p>
         <button class="btn btn-primary" @click="state.coop.role='host'">
           <span class="btn-ic">📡</span>
-          <span class="btn-tx"><b>Hosten</b><small>Code festlegen &amp; Rätsel erstellen</small></span>
+          <span class="btn-tx"><b>{{ t('coop.host') }}</b><small>{{ t('coop.hostHint') }}</small></span>
         </button>
         <button class="btn btn-ghost" @click="state.coop.role='guest'">
           <span class="btn-ic">🔗</span>
-          <span class="btn-tx"><b>Beitreten</b><small>Code des Hosts eingeben</small></span>
+          <span class="btn-tx"><b>{{ t('coop.join') }}</b><small>{{ t('coop.joinHint') }}</small></span>
         </button>
       </div>
 
       <!-- Host: Code festlegen + Schwierigkeit → warte auf Gast -->
       <div v-else-if="state.coop.role === 'host'" class="coop-body">
         <template v-if="!state.coop.waitingForGuest">
-          <div class="coop-code-label">Code festlegen (6 Ziffern)</div>
+          <div class="coop-code-label">{{ t('coop.setCode') }}</div>
           <input class="coop-input" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
-                 placeholder="z.B. 482917" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
-          <div class="setup-label">Schwierigkeit</div>
+                 :placeholder="t('common.codePlaceholder')" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
+          <div class="setup-label">{{ t('common.difficulty') }}</div>
           <div class="option-grid">
             <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                     :class="{active: state.coop.lobbyDiffId===d.id}"
                     @click="state.coop.lobbyDiffId=d.id">
               <span class="opt-emoji">{{ d.emoji }}</span>
-              <span class="opt-name">{{ d.name }}</span>
+              <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
               <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
               <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
             </button>
           </div>
-          <button class="btn btn-primary" @click="startHosting">Hosten 🚀</button>
+          <button class="btn btn-primary" @click="startHosting">{{ t('coop.startHosting') }}</button>
         </template>
         <template v-else>
-          <div class="coop-code-label">Dein Code</div>
+          <div class="coop-code-label">{{ t('coop.yourCode') }}</div>
           <div class="coop-code">{{ state.coop.code }}</div>
-          <p class="coop-subtext">Gib diesen Code deinem Mitspieler</p>
+          <p class="coop-subtext">{{ t('coop.shareCode') }}</p>
           <div class="coop-waiting">
             <div class="spinner"></div>
-            <div class="loading-tx">Auf Mitspieler warten…</div>
+            <div class="loading-tx">{{ t('coop.waitingForGuest') }}</div>
           </div>
         </template>
         <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
-        <button class="btn btn-ghost" style="margin-top:8px" @click="coopReset(); state.coop.role=null">Abbrechen</button>
+        <button class="btn btn-ghost" style="margin-top:8px" @click="coopReset(); state.coop.role=null">{{ t('common.cancel') }}</button>
       </div>
 
       <!-- Gast: Code eingeben → verbinden -->
       <div v-else-if="state.coop.role === 'guest'" class="coop-body">
-        <div class="coop-code-label">Code des Hosts eingeben</div>
+        <div class="coop-code-label">{{ t('coop.enterHostCode') }}</div>
         <input class="coop-input" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
-               placeholder="z.B. 482917" :disabled="state.coop.waitingForGuest"
+               :placeholder="t('common.codePlaceholder')" :disabled="state.coop.waitingForGuest"
                @input="state.coop.code=state.coop.code.replace(/\D/g,'')"
                @keydown.enter="startJoining" />
         <button class="btn btn-primary" :disabled="state.coop.waitingForGuest || state.coop.code.length!==6" @click="startJoining">
-          <span v-if="state.coop.waitingForGuest"><span class="spinner-inline"></span> Verbinden…</span>
-          <span v-else>Verbinden ↗</span>
+          <span v-if="state.coop.waitingForGuest"><span class="spinner-inline"></span> {{ t('coop.connecting') }}</span>
+          <span v-else>{{ t('coop.connect') }}</span>
         </button>
         <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
-        <button class="btn btn-ghost" style="margin-top:4px" @click="coopReset(); state.coop.role=null">Zurück</button>
+        <button class="btn btn-ghost" style="margin-top:4px" @click="coopReset(); state.coop.role=null">{{ t('common.back') }}</button>
       </div>
     </section>
 
     <!-- ══ SETTINGS ══ -->
     <section v-else-if="state.screen==='settings'" class="screen settings">
-      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>Einstellungen</h2><span></span></header>
+      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('settings.title') }}</h2><span></span></header>
       <div class="settings-body">
-        <div class="set-group-title">Darstellung</div>
+        <div class="set-group-title">{{ t('settings.appearance') }}</div>
         <div class="set-row" @click="toggleSetting('darkMode')">
-          <span>🌙 Dunkelmodus</span><span class="switch" :class="{on:state.settings.darkMode}"><i></i></span>
+          <span>{{ t('settings.darkMode') }}</span><span class="switch" :class="{on:state.settings.darkMode}"><i></i></span>
+        </div>
+        <div class="set-row col">
+          <span class="set-row-label">{{ t('settings.language') }}</span>
+          <select class="text-input" :value="state.settings.language" @change="setSetting('language', $event.target.value)">
+            <option v-for="l in SUPPORTED_LOCALES" :key="l.id" :value="l.id">{{ l.label }}</option>
+          </select>
         </div>
 
-        <div class="set-group-title">Spielhilfe</div>
+        <div class="set-group-title">{{ t('settings.gameHelp') }}</div>
         <div class="set-row col">
-          <span class="set-row-label">⚠️ Fehleraufdeckung</span>
+          <span class="set-row-label">{{ t('settings.errorReveal') }}</span>
           <div class="seg">
-            <button :class="{active:state.settings.errorReveal==='instant'}" @click="setSetting('errorReveal','instant')">Sofort</button>
-            <button :class="{active:state.settings.errorReveal==='onCheck'}" @click="setSetting('errorReveal','onCheck')">Beim Prüfen</button>
+            <button :class="{active:state.settings.errorReveal==='instant'}" @click="setSetting('errorReveal','instant')">{{ t('settings.instant') }}</button>
+            <button :class="{active:state.settings.errorReveal==='onCheck'}" @click="setSetting('errorReveal','onCheck')">{{ t('settings.onCheck') }}</button>
           </div>
-          <small class="set-hint">{{ state.settings.errorReveal==='instant' ? 'Falsche Einkreisung wird sofort rot markiert.' : 'Fehler erst beim Tippen auf „Prüfen“. Im Solo-Modus: Zelle lang gedrückt halten, um eine Markierung zurückzuholen.' }}</small>
+          <small class="set-hint">{{ state.settings.errorReveal==='instant' ? t('settings.errorRevealHintInstant') : t('settings.errorRevealHintOnCheck') }}</small>
         </div>
         <div class="set-row col">
-          <span class="set-row-label">🧹 Gelöschte Zahlen</span>
+          <span class="set-row-label">{{ t('settings.eraseStyle') }}</span>
           <div class="seg">
-            <button :class="{active:state.settings.eraseStyle==='hide'}" @click="setSetting('eraseStyle','hide')">Verschwinden</button>
-            <button :class="{active:state.settings.eraseStyle==='strike'}" @click="setSetting('eraseStyle','strike')">Durchstreichen</button>
+            <button :class="{active:state.settings.eraseStyle==='hide'}" @click="setSetting('eraseStyle','hide')">{{ t('settings.hide') }}</button>
+            <button :class="{active:state.settings.eraseStyle==='strike'}" @click="setSetting('eraseStyle','strike')">{{ t('settings.strike') }}</button>
           </div>
         </div>
         <div class="set-row" @click="toggleSetting('livesEnabled')">
-          <span>❤️ Leben / Fehler-Limit</span><span class="switch" :class="{on:state.settings.livesEnabled}"><i></i></span>
+          <span>{{ t('settings.livesEnabled') }}</span><span class="switch" :class="{on:state.settings.livesEnabled}"><i></i></span>
         </div>
 
-        <div class="set-group-title">Sonstiges</div>
+        <div class="set-group-title">{{ t('settings.misc') }}</div>
         <div class="set-row" @click="toggleSetting('showTimer')">
-          <span>⏱ Timer anzeigen</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
+          <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
         </div>
 
-        <div class="set-group-title">Coop-Identität</div>
+        <div class="set-group-title">{{ t('settings.coopIdentity') }}</div>
         <div class="set-row col">
-          <span class="set-row-label">Anzeigename</span>
-          <input class="text-input" v-model="state.settings.coopName" maxlength="16" placeholder="Dein Name" />
+          <span class="set-row-label">{{ t('settings.displayName') }}</span>
+          <input class="text-input" v-model="state.settings.coopName" maxlength="16" :placeholder="t('common.namePlaceholder')" />
         </div>
         <div class="set-row col">
-          <span class="set-row-label">Meine Farbe</span>
+          <span class="set-row-label">{{ t('settings.myColor') }}</span>
           <div class="coop-swatches">
             <button v-for="c in COOP_COLORS" :key="c.hex" class="swatch"
                     :class="{active: state.settings.coopMyColor===c.hex}"
                     :style="{background:c.hex}"
-                    @click="setSetting('coopMyColor', c.hex)" :title="c.name"></button>
-            <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" title="Eigene Farbe wählen" />
+                    @click="setSetting('coopMyColor', c.hex)" :title="t('coopColor.'+c.id)"></button>
+            <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" :title="t('common.pickColorTitle')" />
           </div>
-          <small class="set-hint">Andere Mitspieler bekommen automatisch eine eigene, eindeutige Farbe zugewiesen.</small>
+          <small class="set-hint">{{ t('settings.colorHint') }}</small>
         </div>
 
-        <div class="set-group-title">Daten</div>
-        <button class="btn btn-ghost" @click="doExport">⬆️ Backup exportieren</button>
-        <label class="btn btn-ghost file-btn">⬇️ Backup importieren
+        <div class="set-group-title">{{ t('settings.data') }}</div>
+        <button class="btn btn-ghost" @click="doExport">{{ t('settings.exportBackup') }}</button>
+        <label class="btn btn-ghost file-btn">{{ t('settings.importBackup') }}
           <input type="file" accept="application/json" @change="doImport" hidden>
         </label>
-        <button class="btn btn-ghost" @click="openBackups">🗂 Auto-Backups</button>
+        <button class="btn btn-ghost" @click="openBackups">{{ t('settings.autoBackups') }}</button>
       </div>
     </section>
 
@@ -1468,44 +1484,45 @@ const App = {
     <!-- ══ MODALS ══ -->
     <div v-if="state.modal==='howto'" class="modal-bg" @click.self="state.modal=null">
       <div class="modal">
-        <h3>So wird gespielt</h3>
+        <h3>{{ t('howto.title') }}</h3>
         <ol class="rules">
-          <li>Jede <b>Zahl neben einer Reihe</b> (links) und <b>über einer Spalte</b> (oben) ist die <b>Zielsumme</b>.</li>
-          <li>Kreise mit dem <b>Stift</b> <span class="rule-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="11" cy="13" rx="8" ry="7"/><path d="m16.5 7.5 3.2-3.2a1.6 1.6 0 0 1 2.3 2.3l-3.2 3.2-2.3-2.3z"/></svg></span> genau die Zahlen ein, die zusammen die Zielsumme ergeben.</li>
-          <li>Überflüssige Zahlen mit dem <b>Radierer</b> <span class="rule-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 20H20"/><path d="m3.6 14.5 5.9 5.9 9.4-9.4a2 2 0 0 0 0-2.8l-3.1-3.1a2 2 0 0 0-2.8 0L3.6 11.7a2 2 0 0 0 0 2.8z"/><path d="m9 8.5 6.5 6.5"/></svg></span> durchstreichen.</li>
-          <li>Auch jede <b>farbige Region</b> hat eine eigene Zielsumme (Zahl in der Ecke).</li>
-          <li>Kreise nur ein, wo du dir <b>sicher</b> bist – jedes Rätsel ist <b>ohne Raten</b> lösbar.</li>
-          <li>Gelöst, wenn alle Summen stimmen. Im Leben-Modus kostet jeder Fehler ein ❤.</li>
-          <li v-if="state.coop.active">Im Coop teilt ihr euch die ❤ — ein verbrauchtes Herz wird in der Farbe des Spielers durchgestrichen, der den Fehler gemacht hat.</li>
-          <li v-if="!state.coop.active && state.settings.errorReveal==='onCheck'">Im Modus „Beim Prüfen“ (Solo): eine markierte Zahl <b>lange gedrückt halten</b>, um die Markierung zurückzunehmen.</li>
-          <li>Eine <b>Bestzeit</b> zählt nur bei einem fehlerfreien Spiel <b>ohne Hinweise</b> — bei Fehlern oder Hinweisen wirst du im Spiel und am Ende darauf hingewiesen.</li>
+          <li v-html="t('howto.rule1')"></li>
+          <li v-html="t('howto.rule2')"></li>
+          <li v-html="t('howto.rule3')"></li>
+          <li v-html="t('howto.rule4')"></li>
+          <li v-html="t('howto.rule5')"></li>
+          <li v-html="t('howto.rule6')"></li>
+          <li v-if="state.coop.active" v-html="t('howto.rule7Coop')"></li>
+          <li v-if="!state.coop.active && state.settings.errorReveal==='onCheck'" v-html="t('howto.rule8OnCheck')"></li>
+          <li v-html="t('howto.rule9')"></li>
         </ol>
-        <button class="btn btn-primary" @click="state.modal=null">Verstanden</button>
+        <button class="btn btn-primary" @click="state.modal=null">{{ t('howto.understood') }}</button>
       </div>
     </div>
 
     <div v-if="state.modal==='changelog'" class="modal-bg" @click.self="state.modal=null">
       <div class="modal">
-        <h3>Änderungen</h3>
+        <h3>{{ t('changelog.title') }}</h3>
+        <p v-if="i18nState.locale!=='de'" class="set-hint">{{ t('changelog.germanOnlyNote') }}</p>
         <div class="changelog">
           <div v-for="e in CHANGELOG" :key="e.version" class="cl-entry">
             <div class="cl-head"><b>v{{ e.version }}</b><span>{{ e.date }}</span></div>
             <ul><li v-for="(it,i) in e.changes" :key="i">✦ {{ it }}</li></ul>
           </div>
         </div>
-        <button class="btn btn-primary" @click="state.modal=null">Schließen</button>
+        <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>
       </div>
     </div>
 
     <div v-if="state.modal==='backups'" class="modal-bg" @click.self="state.modal=null">
       <div class="modal">
-        <h3>Auto-Backups</h3>
-        <div v-if="!loadBackups().length" class="empty">Noch keine Backups vorhanden.</div>
+        <h3>{{ t('backups.title') }}</h3>
+        <div v-if="!loadBackups().length" class="empty">{{ t('backups.empty') }}</div>
         <div v-for="b in loadBackups()" :key="b.slot" class="backup-row">
           <span>{{ new Date(b.ts).toLocaleString('de-DE') }}<small> · {{ b.label }}</small></span>
-          <button class="btn btn-sm btn-primary" @click="doRestore(b.slot)">Laden</button>
+          <button class="btn btn-sm btn-primary" @click="doRestore(b.slot)">{{ t('backups.load') }}</button>
         </div>
-        <button class="btn btn-ghost" @click="state.modal=null">Schließen</button>
+        <button class="btn btn-ghost" @click="state.modal=null">{{ t('common.close') }}</button>
       </div>
     </div>
 
@@ -1514,18 +1531,18 @@ const App = {
         <h3>{{ state.confirm?.title }}</h3>
         <p class="confirm-msg">{{ state.confirm?.msg }}</p>
         <div class="confirm-actions">
-          <button class="btn btn-ghost" @click="confirmNo">Abbrechen</button>
-          <button class="btn btn-danger" @click="confirmYes">Ja</button>
+          <button class="btn btn-ghost" @click="confirmNo">{{ t('common.cancel') }}</button>
+          <button class="btn btn-danger" @click="confirmYes">{{ t('common.yes') }}</button>
         </div>
       </div>
     </div>
 
     <div v-if="state.showWhatsNew" class="modal-bg">
       <div class="modal">
-        <div class="whatsnew-badge">✨ Neu</div>
-        <h3>Version {{ CHANGELOG[0]?.version }}</h3>
+        <div class="whatsnew-badge">{{ t('whatsnew.badge') }}</div>
+        <h3>{{ t('whatsnew.title', { version: CHANGELOG[0]?.version }) }}</h3>
         <ul class="whatsnew"><li v-for="(it,i) in CHANGELOG[0]?.changes" :key="i">✦ {{ it }}</li></ul>
-        <button class="btn btn-primary" @click="dismissWhatsNew">Los geht's</button>
+        <button class="btn btn-primary" @click="dismissWhatsNew">{{ t('whatsnew.start') }}</button>
       </div>
     </div>
   </div>
