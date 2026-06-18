@@ -3,6 +3,8 @@
 //
 // Diese Werte sind öffentlich/committbar (kein Secret): die Absicherung läuft über
 // die RTDB-Security-Rules + Anonymous Auth, nicht über Geheimhaltung des Configs.
+import { log } from './debuglog.js';
+
 const firebaseConfig = {
   apiKey: 'AIzaSyAVpCzaRbJu6C1nSNRQCjD3MLwf5wijPbY',
   authDomain: 'coop-number-sums.firebaseapp.com',
@@ -18,19 +20,29 @@ let dbPromise = null;
 export function ensureFirebase() {
   if (!dbPromise) {
     dbPromise = (async () => {
-      const [{ initializeApp }, { getAuth, signInAnonymously, onAuthStateChanged }, dbModule] = await Promise.all([
-        import('./vendor/firebase/firebase-app.js'),
-        import('./vendor/firebase/firebase-auth.js'),
-        import('./vendor/firebase/firebase-database.js'),
-      ]);
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = dbModule.getDatabase(app);
-      const uid = await new Promise((resolve, reject) => {
-        onAuthStateChanged(auth, (user) => { if (user) resolve(user.uid); }, reject);
-        signInAnonymously(auth).catch(reject);
-      });
-      return { db, uid, ...dbModule };
+      try {
+        const [{ initializeApp }, { getAuth, signInAnonymously, onAuthStateChanged }, dbModule] = await Promise.all([
+          import('./vendor/firebase/firebase-app.js'),
+          import('./vendor/firebase/firebase-auth.js'),
+          import('./vendor/firebase/firebase-database.js'),
+        ]);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = dbModule.getDatabase(app);
+        const uid = await new Promise((resolve, reject) => {
+          onAuthStateChanged(auth, (user) => { if (user) resolve(user.uid); }, reject);
+          signInAnonymously(auth).catch(reject);
+        });
+        log('firebase', 'Anonyme Anmeldung erfolgreich', { uid });
+        return { db, uid, ...dbModule };
+      } catch (e) {
+        // Bei einem Fehlschlag (SDK-Laden oder Anmeldung) den Cache verwerfen,
+        // damit ein erneuter Versuch (z.B. nächster Host/Join-Klick) nicht für
+        // immer am selben gescheiterten Promise hängen bleibt.
+        log('firebase', 'Verbindungsaufbau fehlgeschlagen', e);
+        dbPromise = null;
+        throw e;
+      }
     })();
   }
   return dbPromise;

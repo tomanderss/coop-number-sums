@@ -152,6 +152,7 @@ export default {
     exportBackup: '⬆️ バックアップを書き出す',
     importBackup: '⬇️ バックアップを読み込む',
     autoBackups: '🗂 自動バックアップ',
+    exportLog: '🐞 診断ログを書き出す',
     language: '🌐 言語',
   },
   toast: {

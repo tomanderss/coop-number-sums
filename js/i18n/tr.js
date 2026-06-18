@@ -152,6 +152,7 @@ export default {
     exportBackup: '⬆️ Yedeği dışa aktar',
     importBackup: '⬇️ Yedeği içe aktar',
     autoBackups: '🗂 Otomatik yedekler',
+    exportLog: '🐞 Tanılama günlüğünü dışa aktar',
     language: '🌐 Dil',
   },
   toast: {

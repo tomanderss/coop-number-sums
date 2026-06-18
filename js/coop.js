@@ -13,6 +13,12 @@
 //
 // Firebase wird bewusst nie statisch importiert (siehe ensureDb()), damit
 // Solo-Spieler die SDK-Dateien nie laden.
+//
+// Jeder relevante Schritt (Verbindungsaufbau, Schreibzugriffe, Fehler) wird
+// über debuglog.js protokolliert — rein lokal, damit Verbindungsprobleme bei
+// Bedarf anhand eines vom Nutzer exportierten Protokolls nachvollzogen werden
+// können, ohne dass dafür eigene Server-Logs nötig wären.
+import { log } from './debuglog.js';
 
 let fb = null;       // { db, uid, ref, push, set, get, remove, onChildAdded, onChildRemoved, onDisconnect, serverTimestamp }
 let roomCode = null;
@@ -25,8 +31,10 @@ export function isAvailable() { return typeof window !== 'undefined' && typeof f
 
 async function ensureDb() {
   if (!fb) {
+    log('coop', 'Verbinde mit Firebase…');
     const { ensureFirebase } = await import('./firebase.js');
     fb = await ensureFirebase();
+    log('coop', 'Firebase verbunden', { uid: fb.uid });
   }
   return fb;
 }
@@ -62,11 +70,16 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }) {
 }
 
 // ─── HOST ─────────────────────────────────────────────────────────────────────
-export async function hostGame({ code, onOpen, onError, onJoin, onLeave, onMessage }) {
+// Der players/$uid-Eintrag muss name+color+role+joinedAt enthalten — die
+// RTDB-Security-Rules validieren genau diese vier Felder; ein Schreibzugriff
+// mit weniger Feldern wird von Firebase mit PERMISSION_DENIED abgelehnt.
+export async function hostGame({ code, name, color, onOpen, onError, onJoin, onLeave, onMessage }) {
   try {
     const f = await ensureDb();
+    log('coop', `Hoste Raum ${code} – prüfe Verfügbarkeit…`);
     const playersSnap = await withTimeout(f.get(f.ref(f.db, `rooms/${code}/players`)));
     if (playersSnap.exists() && playersSnap.numChildren() > 0) {
+      log('coop', `Code ${code} bereits belegt`);
       onError && onError({ type: 'code-taken' });
       return;
     }
@@ -76,35 +89,42 @@ export async function hostGame({ code, onOpen, onError, onJoin, onLeave, onMessa
     await f.remove(f.ref(f.db, `rooms/${code}/events`));
     await f.set(f.ref(f.db, `rooms/${code}/meta`), { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active' });
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
-    await f.set(myPlayerRef, { joinedAt: f.serverTimestamp() });
+    await f.set(myPlayerRef, { name, color, role: 'host', joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
     attachListeners(f, code, { onJoin, onLeave, onMessage });
+    log('coop', `Raum ${code} gehostet`, { uid: f.uid });
     onOpen && onOpen(f.uid);
   } catch (e) {
+    log('coop', `Hosten von Raum ${code} fehlgeschlagen`, e);
     onError && onError(e);
   }
 }
 
 // ─── GAST ─────────────────────────────────────────────────────────────────────
-export async function joinGame({ code, onOpen, onError, onMessage, onClose }) {
+export async function joinGame({ code, name, color, onOpen, onError, onMessage, onClose }) {
   try {
     const f = await ensureDb();
+    log('coop', `Trete Raum ${code} bei – prüfe Existenz…`);
     const playersSnap = await withTimeout(f.get(f.ref(f.db, `rooms/${code}/players`)));
     if (!playersSnap.exists() || playersSnap.numChildren() === 0) {
+      log('coop', `Code ${code} nicht gefunden`);
       onError && onError({ type: 'code-not-found' });
       return;
     }
     if (playersSnap.numChildren() >= 2) {
+      log('coop', `Raum ${code} bereits voll`);
       onError && onError({ type: 'room-full' });
       return;
     }
     roomCode = code;
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
-    await f.set(myPlayerRef, { joinedAt: f.serverTimestamp() });
+    await f.set(myPlayerRef, { name, color, role: 'guest', joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
     attachListeners(f, code, { onJoin: null, onLeave: () => onClose && onClose(), onMessage });
+    log('coop', `Raum ${code} beigetreten`, { uid: f.uid });
     onOpen && onOpen(f.uid);
   } catch (e) {
+    log('coop', `Beitreten zu Raum ${code} fehlgeschlagen`, e);
     onError && onError(e);
   }
 }
@@ -114,7 +134,9 @@ export async function send(msg) {
   if (!fb || !roomCode) return;
   try {
     await fb.push(fb.ref(fb.db, `rooms/${roomCode}/events`), { ...msg, author: fb.uid, ts: fb.serverTimestamp() });
-  } catch {}
+  } catch (e) {
+    log('coop', `Senden von "${msg.type}" fehlgeschlagen`, e);
+  }
 }
 
 export async function leave() {
@@ -130,7 +152,9 @@ export async function leave() {
     if (!playersSnap.exists() || playersSnap.numChildren() === 0) {
       await f.remove(f.ref(f.db, `rooms/${code}`));
     }
-  } catch {}
+  } catch (e) {
+    log('coop', `Verlassen von Raum ${code} fehlgeschlagen`, e);
+  }
 }
 
 export const MSG = {
