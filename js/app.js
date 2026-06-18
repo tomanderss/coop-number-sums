@@ -1478,6 +1478,7 @@ const App = {
         </label>
         <button class="btn btn-ghost" @click="openBackups">{{ t('settings.autoBackups') }}</button>
         <button class="btn btn-ghost" @click="doExportLog">{{ t('settings.exportLog') }}</button>
+        <a class="btn btn-ghost" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
       </div>
     </section>
 

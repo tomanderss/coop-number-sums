@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.46';
-export const BUILD_HASH = '1b892ed';
+export const BUILD      = '0.47';
+export const BUILD_HASH = '6ba8228';
 
 export const CHANGELOG = [
+  {
+    "version": "0.47",
+    "date": "18.06.2026",
+    "changes": [
+      "Datenschutzerklärung hinzugefügt (Deutsch/Englisch), über die Einstellungen abrufbar"
+    ]
+  },
   {
     "version": "0.46",
     "date": "18.06.2026",

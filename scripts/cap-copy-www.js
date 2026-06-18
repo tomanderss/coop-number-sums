@@ -14,7 +14,7 @@ const www = join(root, 'www');
 rmSync(www, { recursive: true, force: true });
 mkdirSync(www, { recursive: true });
 
-const entries = ['index.html', 'manifest.json', 'sw.js', 'css', 'icons', 'js'];
+const entries = ['index.html', 'privacy.html', 'manifest.json', 'sw.js', 'css', 'icons', 'js'];
 for (const entry of entries) {
   cpSync(join(root, entry), join(www, entry), { recursive: true });
 }

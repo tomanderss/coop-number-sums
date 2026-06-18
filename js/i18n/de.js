@@ -153,6 +153,7 @@ export default {
     importBackup: '⬇️ Backup importieren',
     autoBackups: '🗂 Auto-Backups',
     exportLog: '🐞 Diagnoseprotokoll exportieren',
+    privacyPolicy: 'Datenschutzerklärung',
     language: '🌐 Sprache',
   },
   toast: {
