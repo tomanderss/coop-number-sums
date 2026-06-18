@@ -1,4 +1,4 @@
-const CACHE = 'coop-number-sums-v0.36';
+const CACHE = 'coop-number-sums-v0.37';
 const ASSETS = [
   './index.html',
   './css/styles.css',
@@ -38,8 +38,16 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Network-first mit Cache-Fallback (frische Inhalte, offline lauffähig)
+// Icons ändern sich praktisch nie und werden bei jedem Bildschirmwechsel neu
+// gemountet (v-if im Home-Screen) — Cache-first vermeidet den dadurch sonst
+// merkbaren Netzwerk-Roundtrip pro Navigation.
 self.addEventListener('fetch', e => {
+  if (e.request.url.includes('/icons/')) {
+    e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request)));
+    return;
+  }
+
+  // Network-first mit Cache-Fallback (frische Inhalte, offline lauffähig)
   e.respondWith(
     fetch(e.request)
       .then(response => {

@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.36';
-export const BUILD_HASH = 'db1f916';
+export const BUILD      = '0.37';
+export const BUILD_HASH = '28b6783';
 
 export const CHANGELOG = [
+  {
+    "version": "0.37",
+    "date": "18.06.2026",
+    "changes": [
+      "Fix: Logo auf dem Hauptmenü erschien beim Navigieren kurz verzögert (Service Worker liefert Icons jetzt direkt aus dem Cache statt per Netzwerk-Roundtrip)"
+    ]
+  },
   {
     "version": "0.36",
     "date": "18.06.2026",
