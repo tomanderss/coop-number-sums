@@ -241,26 +241,30 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   100% { opacity: 0; }
 }
 
-/* ─── Hochformat-Sperre ───────────────────────────────────────────────────────
-   Der App-Layout (max-width 540px, "Telefon"-Optik) ist ausschließlich für
-   Hochformat ausgelegt. manifest.json setzt "orientation: portrait-primary"
-   für installierte PWAs, greift aber nicht im normalen Browser-Tab oder auf
-   Geräten/Browsern ohne Unterstützung — daher zusätzlich diese CSS-Sperre.
-   Nur bei kleinen/Touch-typischen Breiten aktiv (max-width 920px), damit
-   normale Desktop-Browserfenster (die immer "landscape" sind) nicht betroffen
-   sind. */
-#rotate-lock { display: none; }
-@media (orientation: landscape) and (max-width: 920px) {
-  #app, #splash { display: none; }
-  #rotate-lock {
-    display: flex; position: fixed; inset: 0; z-index: 99998;
-    flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-    background: var(--bg); color: var(--text); text-align: center; padding: 24px;
+/* ─── Hochformat-Zwang ────────────────────────────────────────────────────────
+   Das App-Layout (max-width 540px, "Telefon"-Optik) ist ausschließlich für
+   Hochformat ausgelegt. manifest.json setzt "orientation: portrait-primary" für
+   installierte PWAs (echte OS-Sperre, z.B. Android-Chrome im Standalone-Modus),
+   das greift aber nicht im normalen Browser-Tab oder auf iOS. Als universellen
+   Fallback drehen wir hier stattdessen das gesamte Dokument per CSS-Transform
+   zurück in Hochformat, sobald das Gerät physisch quer liegt — kein Hinweis-
+   Screen, das Spiel bleibt einfach durchgängig im Hochformat bedienbar. (Da
+   "transform" am <html> gleichzeitig einen neuen Containing-Block für alle
+   position:fixed-Kindelemente im Dokument erzeugt, drehen sich Overlays/Modals
+   etc. automatisch mit.) Nur bei kleinen/Touch-typischen Breiten aktiv (max-width
+   920px), damit normale Desktop-Browserfenster (die immer "landscape" sind)
+   nicht betroffen sind. */
+@media screen and (orientation: landscape) and (max-width: 920px) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
   }
-  #rotate-lock-icon { font-size: 3rem; animation: rotateHint 1.6s ease-in-out infinite; }
-  #rotate-lock-title { font-size: 1.2rem; font-weight: 900; }
-  #rotate-lock-sub { color: var(--text2); font-size: .9rem; max-width: 280px; }
-  @keyframes rotateHint { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
 }
 
 /* ─── Toolbar (Stift/Radierer) ─── */

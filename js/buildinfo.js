@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.32';
-export const BUILD_HASH = '551eb7d';
+export const BUILD      = '0.33';
+export const BUILD_HASH = '2a213ef';
 
 export const CHANGELOG = [
+  {
+    "version": "0.33",
+    "date": "18.06.2026",
+    "changes": [
+      "Querformat ersetzt: Spiel bleibt jetzt erzwungen im Hochformat statt Hinweis-Screen"
+    ]
+  },
   {
     "version": "0.32",
     "date": "18.06.2026",
