@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.51';
-export const BUILD_HASH = '26ab690';
+export const BUILD      = '0.52';
+export const BUILD_HASH = '954efce';
 
 export const CHANGELOG = [
+  {
+    "version": "0.52",
+    "date": "18.06.2026",
+    "changes": [
+      "Hintergrund-Scrollen hinter Popups (z. B. Anleitung) behoben — die Seite dahinter bewegt sich nicht mehr mit.",
+      "Versehentliche Textmarkierung beim gedrückt halten von Schaltern in den Einstellungen behoben."
+    ]
+  },
   {
     "version": "0.51",
     "date": "18.06.2026",
