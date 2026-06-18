@@ -1,0 +1,13 @@
+{
+  "name": "coop-number-sums",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:unit": "node --test test/unit/*.test.js",
+    "test:e2e": "playwright test",
+    "test": "npm run test:unit && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}

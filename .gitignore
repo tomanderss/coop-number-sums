@@ -3,5 +3,8 @@
 Thumbs.db
 *.log
 
-# Node (nur build.js braucht Node, keine Dependencies)
+# Node (build.js braucht kein npm install — nur die Tests in test/ haben
+# echte Dependencies, siehe package.json)
 node_modules/
+test-results/
+playwright-report/

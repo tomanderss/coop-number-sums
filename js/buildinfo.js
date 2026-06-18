@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.38';
-export const BUILD_HASH = 'f39c9fd';
+export const BUILD      = '0.39';
+export const BUILD_HASH = '6f80af8';
 
 export const CHANGELOG = [
+  {
+    "version": "0.39",
+    "date": "18.06.2026",
+    "changes": [
+      "Automatisierte Testsuite für die ganze App ergänzt (Unit-Tests für Solver, Generator, Storage, Config, i18n + Playwright-E2E-Tests für alle Bildschirme)",
+      "Bug behoben: beim allerersten Laden ohne gespeicherte Statistik konnte ein intern geteiltes Datenobjekt verunreinigt werden"
+    ]
+  },
   {
     "version": "0.38",
     "date": "18.06.2026",
