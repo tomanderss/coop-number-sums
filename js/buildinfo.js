@@ -1,8 +1,20 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.34';
-export const BUILD_HASH = 'c510909';
+export const BUILD      = '0.35';
+export const BUILD_HASH = '385e4d9';
 
 export const CHANGELOG = [
+  {
+    "version": "0.35",
+    "date": "18.06.2026",
+    "changes": [
+      "Hochformat-Sperre per \"pointer: coarse\" statt Breiten-Schwelle erkannt (griff bei großen Handys im Querformat bisher nicht)",
+      "Warnung vor dem ersten Hinweis je Partie: Bestzeit ist danach nicht mehr möglich",
+      "Toast oben im Spiel bei Lebensverlust oder Hinweis, ohne das Feld zu verdecken",
+      "Gewinn-Screen zeigt jetzt an, wenn die Zeit ohne Fehler/Hinweise eine neue Bestzeit gewesen wäre",
+      "Spielanleitung ergänzt: langes Drücken zum Zurücknehmen (Solo, \"Beim Prüfen\") und Bestzeit-Regel",
+      "Statistik: Solo/Coop-Übersicht entfernt, dafür pro Schwierigkeit eigene Solo- und Coop-Unterzeile"
+    ]
+  },
   {
     "version": "0.34",
     "date": "18.06.2026",
