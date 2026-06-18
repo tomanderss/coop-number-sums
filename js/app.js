@@ -31,6 +31,9 @@ const state = reactive({
   status: 'idle',            // idle | playing | won | lost | gaveup
   solutionShown: false,      // Lösung wird angezeigt (rein lokal, nie an den Partner gesendet)
   newHighscore: false,        // true, wenn beim letzten Sieg eine neue Bestzeit erzielt wurde
+  wouldHaveBeenBest: false,   // true, wenn die Zeit ohne Fehler/Hinweise eine neue Bestzeit gewesen wäre
+  hintWarnShown: false,       // true, sobald die einmalige Hinweis-Warnung dieser Partie bestätigt wurde
+  bestTimeNotice: null,       // Text der kurzen Top-Banner-Meldung "Bestzeit nicht mehr möglich"
   tool: 'pen',               // pen | eraser
   startTime: 0,
   elapsed: 0,
@@ -81,6 +84,13 @@ function showToast(msg, type = 'info', ms = 2000) {
   state.toast = { msg, type };
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => { state.toast = null; }, ms);
+}
+// Eigenständige, oben sitzende Banner-Meldung (statt des unten sitzenden Toasts) —
+// verdeckt nie das Spielfeld, da sie nur den schmalen Bereich am oberen Rand nutzt.
+function showBestTimeNotice(msg) {
+  state.bestTimeNotice = msg;
+  clearTimeout(showBestTimeNotice._t);
+  showBestTimeNotice._t = setTimeout(() => { state.bestTimeNotice = null; }, 2600);
 }
 function fmtTime(ms) {
   const s = Math.floor(ms / 1000);
@@ -206,6 +216,8 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.status = 'playing';
   state.solutionShown = false;
   state.newHighscore = false;
+  state.wouldHaveBeenBest = false;
+  state.hintWarnShown = false;
   state.elapsed = saved?.elapsed ?? 0;
   // Bei Coop-INIT übernimmt der Gast den exakten Host-Startzeitpunkt, damit beide
   // Seiten dieselbe Zeit anzeigen (sonst Drift durch Verbindungsaufbau-Latenz).
@@ -364,6 +376,7 @@ function registerMistake() {
   if (state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
+    showBestTimeNotice('Leben verloren – keine Bestzeit mehr möglich diese Partie');
     if (state.lives <= 0) { state.lives = 0; lose(); }
   }
   persistGame();
@@ -378,6 +391,7 @@ function applyRemoteMistake(by, n) {
     for (let i = 0; i < n; i++) {
       state.lives--;
       state.coop.lifeLossBy.push(by);
+      showBestTimeNotice('Leben verloren – keine Bestzeit mehr möglich diese Partie');
       if (state.lives <= 0) { state.lives = 0; lose(); return; }
     }
   }
@@ -415,6 +429,7 @@ function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = tr
   if (state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
+    showBestTimeNotice('Leben verloren – keine Bestzeit mehr möglich diese Partie');
     if (state.lives <= 0) { state.lives = 0; lose(); return; }
   }
   showToast(`${wrong.length} Fehler gefunden`, 'error');
@@ -443,12 +458,26 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
   afterMove();
 }
 
+// Vor dem ersten Hinweis je Partie (und je Spieler, da state lokal ist) eine
+// einmalige Warnung, dass damit keine Bestzeit mehr möglich ist — bei Abbruch
+// bleibt hintWarnShown false, sodass die Warnung beim nächsten Versuch erneut kommt.
 function useHint() {
   if (state.status !== 'playing' || state.hintsLeft <= 0) return;
+  if (!state.hintWarnShown) {
+    ask('Hinweis nehmen?', 'Mit einem Hinweis ist in dieser Partie keine Bestzeit mehr möglich. Trotzdem fortfahren?', () => {
+      state.hintWarnShown = true;
+      doUseHint();
+    });
+    return;
+  }
+  doUseHint();
+}
+function doUseHint() {
   const hint = findHintCell(state.puzzle, state.marks);
   if (!hint) return;
   state.hintsLeft--; state.hintsUsed++;
   applyHintEffect(hint.r, hint.c, hint.want);
+  showBestTimeNotice('Hinweis genutzt – keine Bestzeit mehr möglich diese Partie');
   if (state.coop.active) coopSend({ type: Coop.MSG.HINT, r: hint.r, c: hint.c, mark: hint.want, from: state.coop.myId });
 }
 
@@ -704,6 +733,13 @@ function win(remote) {
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
+  // Vergleich VOR recordResult() einfangen, da der Aufruf bestTimeMs/coopBestTimeMs
+  // bei einem tatsächlichen Highscore sofort überschreibt.
+  const prevBest = state.coop.active
+    ? state.stats.byDifficulty[state.puzzle.difficulty]?.coopBestTimeMs
+    : state.stats.byDifficulty[state.puzzle.difficulty]?.bestTimeMs;
+  const disqualified = state.mistakes > 0 || state.hintsUsed > 0;
+  state.wouldHaveBeenBest = disqualified && (prevBest == null || state.elapsed < prevBest);
   const { stats, newHighscore } = recordResult({
     difficulty: state.puzzle.difficulty, outcome: 'won',
     timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
@@ -782,6 +818,7 @@ function restartPuzzle(startTime) {
   state.hintsUsed = 0; state.mistakes = 0; state.history = []; state.flash = {}; state.justResolved = {};
   state.coop.lifeLossBy = []; state.coop.mistakesByPlayer = {};
   state.status = 'playing'; state.solutionShown = false; state.newHighscore = false; state.elapsed = 0;
+  state.wouldHaveBeenBest = false; state.hintWarnShown = false;
   state.startTime = startTime ?? Date.now();
   startTimer(); persistGame();
 }
@@ -909,14 +946,6 @@ function init() {
 // ════════════════════════════════════════════════════════════════════════════
 const App = {
   setup() {
-    const winStat = computed(() => {
-      const p = state.stats.played || 0, w = state.stats.won || 0;
-      return p ? Math.round((w / p) * 100) : 0;
-    });
-    const coopWinStat = computed(() => {
-      const p = state.stats.coopPlayed || 0, w = state.stats.coopWon || 0;
-      return p ? Math.round((w / p) * 100) : 0;
-    });
     const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
     // Welcher Spieler hat das Herz an Index i verbraucht? Herzen werden von links
     // gefüllt angezeigt, verbraucht wird aber immer von rechts (höchster Index
@@ -976,7 +1005,7 @@ const App = {
 
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, COOP_COLORS,
-      winStat, coopWinStat, livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
+      livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
       navigate, newGame, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doImport, openBackups, doRestore,
@@ -1166,6 +1195,12 @@ const App = {
           <div class="result-emoji">🎉</div>
           <h2>Gelöst!</h2>
           <div v-if="state.newHighscore" class="highscore-badge">🏆 Neue Bestzeit!</div>
+          <div v-else-if="state.wouldHaveBeenBest" class="highscore-badge missed">
+            ⏱️ Das wäre eine neue Bestzeit gewesen – zählt aber nicht wegen
+            <template v-if="state.mistakes>0 && state.hintsUsed>0"> Fehlern und Hinweisen</template>
+            <template v-else-if="state.mistakes>0"> Fehlern</template>
+            <template v-else> Hinweisen</template>.
+          </div>
           <div class="result-stats">
             <div><b>{{ fmtTime(state.elapsed) }}</b><small>Zeit</small></div>
             <div><b>{{ state.mistakes }}</b><small>Fehler</small></div>
@@ -1246,45 +1281,30 @@ const App = {
     <section v-else-if="state.screen==='stats'" class="screen stats">
       <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>Statistik</h2><span></span></header>
       <div class="stats-body">
-        <div class="stats-section-title">👤 Solo</div>
-        <div class="stat-grid">
-          <div class="stat-box"><b>{{ state.stats.played }}</b><small>Gespielt</small></div>
-          <div class="stat-box"><b>{{ state.stats.won }}</b><small>Gewonnen</small></div>
-          <div class="stat-box"><b>{{ winStat }}%</b><small>Quote</small></div>
-          <div class="stat-box"><b>{{ state.stats.gaveup }}</b><small>Aufgegeben</small></div>
-          <div class="stat-box"><b>{{ state.stats.lost }}</b><small>Verloren</small></div>
-          <div class="stat-box"><b>{{ state.stats.currentStreak }}</b><small>Serie</small></div>
-          <div class="stat-box"><b>{{ state.stats.bestStreak }}</b><small>Beste Serie</small></div>
-          <div class="stat-box"><b>{{ state.stats.hintsUsed }}</b><small>Hinweise</small></div>
-        </div>
-
-        <div class="stats-section-title coop">👥 Coop</div>
-        <div class="stat-grid coop">
-          <div class="stat-box"><b>{{ state.stats.coopPlayed }}</b><small>Gespielt</small></div>
-          <div class="stat-box"><b>{{ state.stats.coopWon }}</b><small>Gewonnen</small></div>
-          <div class="stat-box"><b>{{ coopWinStat }}%</b><small>Quote</small></div>
-          <div class="stat-box"><b>{{ state.stats.coopGaveup }}</b><small>Aufgegeben</small></div>
-          <div class="stat-box"><b>{{ state.stats.coopLost }}</b><small>Verloren</small></div>
-          <div class="stat-box"><b>{{ state.stats.coopCurrentStreak }}</b><small>Serie</small></div>
-          <div class="stat-box"><b>{{ state.stats.coopBestStreak }}</b><small>Beste Serie</small></div>
-          <div class="stat-box"><b>{{ state.stats.coopHintsUsed }}</b><small>Hinweise</small></div>
-        </div>
-
-        <div class="stats-section-title">Nach Schwierigkeit</div>
+        <div class="stats-section-title">Level-Übersicht</div>
         <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
           <div class="diff-row-top">
             <span class="diff-name">{{ d.emoji }} {{ d.name }}</span>
-            <span class="diff-num">{{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}</span>
           </div>
-          <div class="diff-row-sub">
-            <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
-            <span v-if="avgTimeFor(d.id)!=null" class="chip">⌀ {{ fmtTime(avgTimeFor(d.id)) }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.gaveup" class="chip">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.lost" class="chip">💔 {{ state.stats.byDifficulty[d.id].lost }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="chip coop-chip best-time-chip">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
-            <span v-if="coopAvgTimeFor(d.id)!=null" class="chip coop-chip">👥⌀ {{ fmtTime(coopAvgTimeFor(d.id)) }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.coopGaveup" class="chip coop-chip">👥🏳 {{ state.stats.byDifficulty[d.id].coopGaveup }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.coopLost" class="chip coop-chip">👥💔 {{ state.stats.byDifficulty[d.id].coopLost }}</span>
+          <div class="diff-sub">
+            <div class="diff-sub-label">👤 Solo</div>
+            <div class="diff-row-sub">
+              <span class="chip">{{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
+              <span v-if="avgTimeFor(d.id)!=null" class="chip">⌀ {{ fmtTime(avgTimeFor(d.id)) }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.gaveup" class="chip">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.lost" class="chip">💔 {{ state.stats.byDifficulty[d.id].lost }}</span>
+            </div>
+          </div>
+          <div class="diff-sub">
+            <div class="diff-sub-label coop">👥 Coop</div>
+            <div class="diff-row-sub">
+              <span class="chip coop-chip">{{ (state.stats.byDifficulty[d.id]?.coopWon)||0 }} / {{ (state.stats.byDifficulty[d.id]?.coopPlayed)||0 }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="chip coop-chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+              <span v-if="coopAvgTimeFor(d.id)!=null" class="chip coop-chip">⌀ {{ fmtTime(coopAvgTimeFor(d.id)) }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.coopGaveup" class="chip coop-chip">🏳 {{ state.stats.byDifficulty[d.id].coopGaveup }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.coopLost" class="chip coop-chip">💔 {{ state.stats.byDifficulty[d.id].coopLost }}</span>
+            </div>
           </div>
         </div>
         <button class="btn btn-danger-ghost" @click="resetStats">Statistik zurücksetzen</button>
@@ -1440,6 +1460,10 @@ const App = {
     <transition name="toast">
       <div v-if="state.toast" class="toast" :class="state.toast.type">{{ state.toast.msg }}</div>
     </transition>
+    <!-- Top-Banner statt Toast: verdeckt nie das Spielfeld, sitzt am oberen Rand. -->
+    <transition name="toast">
+      <div v-if="state.bestTimeNotice" class="best-time-banner">⏱️ {{ state.bestTimeNotice }}</div>
+    </transition>
 
     <!-- ══ MODALS ══ -->
     <div v-if="state.modal==='howto'" class="modal-bg" @click.self="state.modal=null">
@@ -1453,6 +1477,8 @@ const App = {
           <li>Kreise nur ein, wo du dir <b>sicher</b> bist – jedes Rätsel ist <b>ohne Raten</b> lösbar.</li>
           <li>Gelöst, wenn alle Summen stimmen. Im Leben-Modus kostet jeder Fehler ein ❤.</li>
           <li v-if="state.coop.active">Im Coop teilt ihr euch die ❤ — ein verbrauchtes Herz wird in der Farbe des Spielers durchgestrichen, der den Fehler gemacht hat.</li>
+          <li v-if="!state.coop.active && state.settings.errorReveal==='onCheck'">Im Modus „Beim Prüfen“ (Solo): eine markierte Zahl <b>lange gedrückt halten</b>, um die Markierung zurückzunehmen.</li>
+          <li>Eine <b>Bestzeit</b> zählt nur bei einem fehlerfreien Spiel <b>ohne Hinweise</b> — bei Fehlern oder Hinweisen wirst du im Spiel und am Ende darauf hingewiesen.</li>
         </ol>
         <button class="btn btn-primary" @click="state.modal=null">Verstanden</button>
       </div>
