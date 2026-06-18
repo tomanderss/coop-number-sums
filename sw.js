@@ -1,4 +1,4 @@
-const CACHE = 'coop-number-sums-v0.40';
+const CACHE = 'coop-number-sums-v0.41';
 const ASSETS = [
   './index.html',
   './css/styles.css',
@@ -28,7 +28,16 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
-  self.skipWaiting();
+  // Bewusst KEIN self.skipWaiting() hier: bei einem Update soll der neue Worker in
+  // den "waiting"-Zustand gehen und die alte Version weiterlaufen lassen, bis der
+  // Nutzer aktiv aktualisiert (siehe Update-Banner in app.js). Erst-Installationen
+  // haben keinen aktiven Vorgänger und aktivieren dadurch ohnehin sofort.
+});
+
+// Die Seite stößt das eigentliche Update an, sobald der Nutzer (nach optionalem
+// Backup) auf "Aktualisieren" tippt.
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'skipWaiting') self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {

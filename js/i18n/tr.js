@@ -187,6 +187,14 @@ export default {
     title: 'Sürüm {version}',
     start: 'Hadi başlayalım',
   },
+  update: {
+    badge: '⬆️ Güncelleme',
+    title: 'Güncelleme mevcut',
+    body: 'Yeni bir sürüm hazır. Önce verilerinin yedeğini indirebilirsin; ardından uygulama güncellenip yeniden başlatılır.',
+    backup: '⬇️ Yedeği indir',
+    apply: 'Güncelle ve yeniden başlat',
+    later: 'Sonra',
+  },
   difficulty: {
     sehrleicht: 'Çok kolay',
     leicht: 'Kolay',

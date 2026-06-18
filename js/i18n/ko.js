@@ -187,6 +187,14 @@ export default {
     title: '버전 {version}',
     start: '시작하기',
   },
+  update: {
+    badge: '⬆️ 업데이트',
+    title: '새 버전 사용 가능',
+    body: '새 버전이 준비되었습니다. 먼저 데이터 백업을 내려받을 수 있습니다. 그런 다음 앱이 업데이트되고 다시 시작됩니다.',
+    backup: '⬇️ 백업 내려받기',
+    apply: '업데이트 후 다시 시작',
+    later: '나중에',
+  },
   difficulty: {
     sehrleicht: '매우 쉬움',
     leicht: '쉬움',

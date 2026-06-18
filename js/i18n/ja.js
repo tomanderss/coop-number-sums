@@ -187,6 +187,14 @@ export default {
     title: 'バージョン {version}',
     start: 'スタート',
   },
+  update: {
+    badge: '⬆️ アップデート',
+    title: '新しいバージョンがあります',
+    body: '新しいバージョンの準備ができました。先にデータのバックアップをダウンロードできます。その後、アプリが更新されて再起動します。',
+    backup: '⬇️ バックアップを保存',
+    apply: '更新して再起動',
+    later: '後で',
+  },
   difficulty: {
     sehrleicht: 'とても簡単',
     leicht: '簡単',

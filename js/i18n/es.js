@@ -187,6 +187,14 @@ export default {
     title: 'Versión {version}',
     start: 'Vamos',
   },
+  update: {
+    badge: '⬆️ Actualización',
+    title: 'Actualización disponible',
+    body: 'Hay una nueva versión lista. Puedes descargar primero una copia de seguridad de tus datos; luego la app se actualizará y se reiniciará.',
+    backup: '⬇️ Descargar copia',
+    apply: 'Actualizar y reiniciar',
+    later: 'Más tarde',
+  },
   difficulty: {
     sehrleicht: 'Muy fácil',
     leicht: 'Fácil',
