@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.35';
-export const BUILD_HASH = '385e4d9';
+export const BUILD      = '0.36';
+export const BUILD_HASH = 'db1f916';
 
 export const CHANGELOG = [
+  {
+    "version": "0.36",
+    "date": "18.06.2026",
+    "changes": [
+      "Mehrsprachigkeit: App ist jetzt auf Deutsch und Englisch vollständig übersetzt",
+      "8 weitere Sprachen (Spanisch, Französisch, Portugiesisch, Italienisch, Japanisch, Koreanisch, Türkisch, Russisch) als erste maschinelle Übersetzung verfügbar",
+      "Neue Sprachauswahl in den Einstellungen"
+    ]
+  },
   {
     "version": "0.35",
     "date": "18.06.2026",
