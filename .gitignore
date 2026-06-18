@@ -10,10 +10,6 @@ test-results/
 playwright-report/
 
 # Capacitor — generierte Web-Assets (siehe scripts/cap-copy-www.js).
-# Android-Build-Artefakte werden bereits von android/.gitignore (von
-# `cap add android` generiert) ignoriert. iOS hat noch kein eigenes
-# Projekt (nur auf macOS via `cap add ios` einzurichten).
+# Android-/iOS-Build-Artefakte werden bereits von android/.gitignore bzw.
+# ios/.gitignore (von `cap add android`/`cap add ios` generiert) ignoriert.
 www/
-ios/App/Pods/
-ios/App/build/
-ios/App/DerivedData/

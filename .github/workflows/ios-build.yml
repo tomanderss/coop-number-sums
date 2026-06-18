@@ -1,0 +1,39 @@
+name: iOS Build (Simulator)
+
+# Manuell ausgelöst — macOS-Runner sind teuer (ca. 10x Minutenfaktor ggü.
+# Linux), deshalb kein Auto-Trigger auf jeden Push.
+#
+# Baut aktuell nur für den Simulator (CODE_SIGNING_ALLOWED=NO), da noch kein
+# Apple Developer Account / keine Zertifikate hinterlegt sind — siehe
+# README, Abschnitt "Native Apps". Sobald Account + Secrets existieren, kann
+# hier ein zusätzlicher signierter Archive-Export-Schritt ergänzt werden.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - run: npm run cap:sync
+
+      # Kein .xcscheme vorhanden (Projekt wurde headless via `cap add ios`
+      # erzeugt, nie in Xcode geöffnet) — deshalb -target statt -scheme,
+      # das reicht für eine reine Build-Action.
+      - name: Build for iOS Simulator (unsigned)
+        working-directory: ios/App
+        run: |
+          xcodebuild build \
+            -project App.xcodeproj \
+            -target App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
