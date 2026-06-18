@@ -4,7 +4,7 @@ import { BUILD, CHANGELOG } from './buildinfo.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, DEFAULT_GAME_OPTIONS, LIVES, HINTS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
 import * as Coop from './coop.js';
-import { exportLogToFile } from './debuglog.js';
+import { log, exportLogToFile } from './debuglog.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
@@ -193,7 +193,15 @@ function newGame(diffId) {
   state.screen = 'game';
   // kurze Verzögerung, damit die Lade-Animation sichtbar wird (große Felder)
   setTimeout(() => {
-    const puzzle = generatePuzzle({ difficulty: diffId });
+    log('game', `Puzzle-Generierung gestartet`, { difficulty: diffId });
+    let puzzle;
+    try {
+      puzzle = generatePuzzle({ difficulty: diffId });
+    } catch (e) {
+      log('game', `Puzzle-Generierung fehlgeschlagen`, e);
+      throw e;
+    }
+    log('game', `Puzzle generiert`, { difficulty: diffId, rows: puzzle.rows, cols: puzzle.cols });
     loadPuzzleIntoState(puzzle, null);
     state.generating = false;
     startTimer();
@@ -430,6 +438,7 @@ function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = tr
     showToast(t('game.stillCorrect'), 'info');
     return;
   }
+  log('game', `Check ausgeführt`, { errors: wrong.length });
   wrong.forEach(([r, c]) => flashError(r, c));
   state.mistakes += wrong.length;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + wrong.length;
@@ -482,6 +491,7 @@ function useHint() {
 function doUseHint() {
   const hint = findHintCell(state.puzzle, state.marks);
   if (!hint) return;
+  log('game', `Hinweis verwendet`, { hintsLeft: state.hintsLeft - 1 });
   state.hintsLeft--; state.hintsUsed++;
   applyHintEffect(hint.r, hint.c, hint.want);
   showBestTimeNotice(t('game.hintUsedNotice'));
@@ -493,6 +503,7 @@ function undo(broadcast = true) {
   const last = state.history.pop();
   state.marks[last.r][last.c] = last.prev;
   state.markedBy[last.r][last.c] = null; // prev ist immer 'none' (siehe Markier-Sperre)
+  log('game', `Rückgängig`);
   persistGame();
   if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.UNDO });
 }
@@ -640,7 +651,15 @@ function startHosting() {
         ? t('coop.errorCodeTaken') : t('coop.errorConnection');
     },
     onJoin() {
-      const puzzle = generatePuzzle({ difficulty: state.coop.lobbyDiffId });
+      log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty: state.coop.lobbyDiffId });
+      let puzzle;
+      try {
+        puzzle = generatePuzzle({ difficulty: state.coop.lobbyDiffId });
+      } catch (e) {
+        log('game', `Puzzle-Generierung fehlgeschlagen (Coop)`, e);
+        throw e;
+      }
+      log('game', `Puzzle generiert (Coop)`, { difficulty: state.coop.lobbyDiffId, rows: puzzle.rows, cols: puzzle.cols });
       loadPuzzleIntoState(puzzle, null);
       state.coop.active = true;
       state.coop.connected = true;
@@ -706,6 +725,7 @@ function startJoining() {
 function win(remote) {
   if (state.status === 'won') return;
   state.status = 'won';
+  log('game', `Gewonnen`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
   launchConfetti();
   if (remote) {
@@ -736,6 +756,7 @@ function win(remote) {
 function lose(remote) {
   if (state.status === 'lost') return;
   state.status = 'lost';
+  log('game', `Verloren`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
   if (remote) {
     state.elapsed = remote.timeMs;
@@ -758,6 +779,7 @@ function giveUp(remote) {
   if (!remote && state.status !== 'playing') return;
   if (remote && state.status === 'gaveup') return;
   state.status = 'gaveup';
+  log('game', `Aufgegeben`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
   if (remote) {
     state.elapsed = remote.timeMs;
@@ -791,6 +813,7 @@ function revealSolution() {
 }
 
 function restartPuzzle(startTime) {
+  log('game', `Puzzle neu gestartet`);
   state.marks = Array.from({ length: state.puzzle.rows }, () => Array(state.puzzle.cols).fill('none'));
   state.markedBy = Array.from({ length: state.puzzle.rows }, () => Array(state.puzzle.cols).fill(null));
   state.cellMeta = buildCellMeta(state.puzzle); // setzt auch hint/hintMark zurück
@@ -923,10 +946,12 @@ let waitingWorker = null;
 let reloadingForUpdate = false;
 function applyUpdate() {
   if (!waitingWorker) { location.reload(); return; }
+  log('sw', `Update wird angewendet`);
   // Sobald der neue Worker die Kontrolle übernimmt, einmalig neu laden.
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (reloadingForUpdate) return;
     reloadingForUpdate = true;
+    log('sw', `Neuer Worker aktiv – lade neu`);
     location.reload();
   });
   waitingWorker.postMessage({ type: 'skipWaiting' });
@@ -1623,6 +1648,7 @@ document.addEventListener('visibilitychange', () => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(reg => {
+      log('sw', `Service Worker registriert`);
       // Ein bereits wartender Worker (Update kam, während die App geschlossen war).
       const promote = (w) => {
         if (!w) return;
@@ -1631,6 +1657,7 @@ if ('serviceWorker' in navigator) {
         if (w.state === 'installed' && navigator.serviceWorker.controller) {
           waitingWorker = w;
           state.updateReady = true;
+          log('sw', `Update verfügbar (wartend)`);
         }
       };
       promote(reg.waiting);
@@ -1640,6 +1667,6 @@ if ('serviceWorker' in navigator) {
         if (!nw) return;
         nw.addEventListener('statechange', () => promote(nw));
       });
-    }).catch(() => {});
+    }).catch(e => log('sw', `Service-Worker-Registrierung fehlgeschlagen`, e));
   });
 }

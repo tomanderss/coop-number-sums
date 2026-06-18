@@ -78,7 +78,7 @@ export async function hostGame({ code, name, color, onOpen, onError, onJoin, onL
     const f = await ensureDb();
     log('coop', `Hoste Raum ${code} – prüfe Verfügbarkeit…`);
     const playersSnap = await withTimeout(f.get(f.ref(f.db, `rooms/${code}/players`)));
-    if (playersSnap.exists() && playersSnap.numChildren() > 0) {
+    if (playersSnap.exists() && playersSnap.size > 0) {
       log('coop', `Code ${code} bereits belegt`);
       onError && onError({ type: 'code-taken' });
       return;
@@ -106,12 +106,12 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
     const f = await ensureDb();
     log('coop', `Trete Raum ${code} bei – prüfe Existenz…`);
     const playersSnap = await withTimeout(f.get(f.ref(f.db, `rooms/${code}/players`)));
-    if (!playersSnap.exists() || playersSnap.numChildren() === 0) {
+    if (!playersSnap.exists() || playersSnap.size === 0) {
       log('coop', `Code ${code} nicht gefunden`);
       onError && onError({ type: 'code-not-found' });
       return;
     }
-    if (playersSnap.numChildren() >= 2) {
+    if (playersSnap.size >= 2) {
       log('coop', `Raum ${code} bereits voll`);
       onError && onError({ type: 'room-full' });
       return;
@@ -149,7 +149,7 @@ export async function leave() {
     await f.onDisconnect(playerRef).cancel();
     await f.remove(playerRef);
     const playersSnap = await f.get(f.ref(f.db, `rooms/${code}/players`));
-    if (!playersSnap.exists() || playersSnap.numChildren() === 0) {
+    if (!playersSnap.exists() || playersSnap.size === 0) {
       await f.remove(f.ref(f.db, `rooms/${code}`));
     }
   } catch (e) {

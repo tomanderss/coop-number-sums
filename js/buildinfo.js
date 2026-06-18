@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.43';
-export const BUILD_HASH = 'b9593df';
+export const BUILD      = '0.44';
+export const BUILD_HASH = '852346f';
 
 export const CHANGELOG = [
+  {
+    "version": "0.44",
+    "date": "18.06.2026",
+    "changes": [
+      "Fehler beim Beitreten zu einem Coop-Raum behoben (numChildren ist in Firebase v10 keine Funktion mehr, sondern die Property \"size\")",
+      "Diagnoseprotokoll deckt jetzt die gesamte App ab (Storage, Service-Worker-Updates, globale Fehler, Spielverlauf), nicht mehr nur den Coop-Bereich"
+    ]
+  },
   {
     "version": "0.43",
     "date": "18.06.2026",

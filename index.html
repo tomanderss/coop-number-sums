@@ -50,15 +50,30 @@
     // Schlägt überall sonst (iOS, normaler Browser-Tab) lautlos fehl — dafür
     // sorgt der CSS-Rotations-Fallback in styles.css für den Hochformat-Zwang.
     try { screen.orientation && screen.orientation.lock('portrait').catch(function(){}); } catch (e) {}
+    // Klassisches Script (kein type="module") — kann debuglog.js nicht importieren.
+    // Schreibt deshalb direkt im selben Format/Key wie debuglog.js, damit ein
+    // späterer exportLogToFile()-Aufruf auch Boot-Fehler und globale Laufzeitfehler
+    // enthält.
+    function cnsLogWindowError(message, extra) {
+      try {
+        var key = 'cns_debuglog';
+        var entries = JSON.parse(localStorage.getItem(key)) || [];
+        entries.push({ ts: Date.now(), category: 'window', message: message, extra: extra });
+        while (entries.length > 400) entries.shift();
+        localStorage.setItem(key, JSON.stringify(entries));
+      } catch (e) {}
+    }
     window.onerror = function(msg, src, line, col, err) {
       var d = document.getElementById('err');
       d.style.display = 'block';
       d.textContent = 'ERROR:\n' + msg + '\n\nFile: ' + src + '\nLine: ' + line + '\n\n' + (err && err.stack ? err.stack : '');
+      cnsLogWindowError(msg + ' (' + src + ':' + line + ')', err ? { message: err.message, name: err.name } : undefined);
     };
     window.addEventListener('unhandledrejection', function(e) {
       var d = document.getElementById('err');
       d.style.display = 'block';
       d.textContent += '\nPromise Error:\n' + (e.reason && e.reason.stack ? e.reason.stack : String(e.reason));
+      cnsLogWindowError('Promise Error: ' + String(e.reason), e.reason ? { message: e.reason.message, name: e.reason.name } : undefined);
     });
   </script>
   <script type="module" src="./js/app.js"></script>

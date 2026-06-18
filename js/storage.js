@@ -2,6 +2,7 @@
 // Statistik, rollende Backups, Datei-Export/Import). Struktur analog werwolf-app.
 
 import { DEFAULT_SETTINGS } from './config.js';
+import { log } from './debuglog.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -15,12 +16,16 @@ const bk = (i) => `cns_bk_${i}`;
 
 function load(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
-  catch { return fallback; }
+  catch (e) { log('storage', `Laden von "${key}" fehlgeschlagen`, e); return fallback; }
 }
 function save(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch (e) { log('storage', `Speichern von "${key}" fehlgeschlagen`, e); }
 }
-function remove(key) { try { localStorage.removeItem(key); } catch {} }
+function remove(key) {
+  try { localStorage.removeItem(key); }
+  catch (e) { log('storage', `Entfernen von "${key}" fehlgeschlagen`, e); }
+}
 
 // ─── Einstellungen ────────────────────────────────────────────────────────────
 export function loadSettings() {
@@ -118,7 +123,7 @@ export function createBackup(label = 'auto') {
     };
     localStorage.setItem(bk(slot), JSON.stringify(snapshot));
     localStorage.setItem(KEYS.BACKUP_SLOT, String((slot + 1) % BACKUP_COUNT));
-  } catch {}
+  } catch (e) { log('storage', 'Backup erstellen fehlgeschlagen', e); }
 }
 export function loadBackups() {
   const nextSlot = parseInt(localStorage.getItem(KEYS.BACKUP_SLOT) || '0');
@@ -127,7 +132,8 @@ export function loadBackups() {
     const idx = (nextSlot - 1 - i + BACKUP_COUNT) % BACKUP_COUNT;
     const raw = localStorage.getItem(bk(idx));
     if (!raw) continue;
-    try { result.push({ slot: idx, ...JSON.parse(raw) }); } catch {}
+    try { result.push({ slot: idx, ...JSON.parse(raw) }); }
+    catch (e) { log('storage', `Backup-Slot ${idx} laden fehlgeschlagen`, e); }
   }
   return result;
 }
@@ -140,7 +146,7 @@ export function restoreBackup(slotIdx) {
     if (data.stats) save(KEYS.STATS, data.stats);
     if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
     return true;
-  } catch { return false; }
+  } catch (e) { log('storage', `Backup-Slot ${slotIdx} wiederherstellen fehlgeschlagen`, e); return false; }
 }
 
 // ─── Datei-Export / Import ────────────────────────────────────────────────────
@@ -164,7 +170,7 @@ export async function exportToFile(type = 'manual') {
         await navigator.share({ files: [file], title: 'Coop Number Sums Backup' });
         return;
       }
-    } catch (e) { if (e.name === 'AbortError') return; }
+    } catch (e) { if (e.name === 'AbortError') return; log('storage', 'Exportieren fehlgeschlagen', e); }
   }
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement('a'), { href: url, download: filename });

@@ -37,12 +37,12 @@ describe('debuglog', () => {
     assert.deepEqual(entry.extra, { code: 'PERMISSION_DENIED', message: 'nope', name: 'FirebaseError' });
   });
 
-  test('log trims to the most recent 200 entries', () => {
-    for (let i = 0; i < 250; i++) log('coop', `msg${i}`);
+  test('log trims to the most recent 400 entries', () => {
+    for (let i = 0; i < 450; i++) log('coop', `msg${i}`);
     const entries = getLog();
-    assert.equal(entries.length, 200);
+    assert.equal(entries.length, 400);
     assert.equal(entries[0].message, 'msg50');
-    assert.equal(entries[199].message, 'msg249');
+    assert.equal(entries[399].message, 'msg449');
   });
 
   test('clearLog empties the log', () => {

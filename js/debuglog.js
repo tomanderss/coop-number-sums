@@ -5,7 +5,7 @@
 // Nutzer exportierten Protokolls nachträglich diagnostizieren.
 
 const KEY = 'cns_debuglog';
-const MAX_ENTRIES = 200;
+const MAX_ENTRIES = 400;
 
 function read() {
   try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
