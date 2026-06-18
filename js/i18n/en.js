@@ -187,6 +187,14 @@ export default {
     title: 'Version {version}',
     start: "Let's go",
   },
+  update: {
+    badge: '⬆️ Update',
+    title: 'Update available',
+    body: 'A new version is ready. You can download a backup of your data first; the app will then update and restart.',
+    backup: '⬇️ Download backup',
+    apply: 'Update & restart',
+    later: 'Later',
+  },
   difficulty: {
     sehrleicht: 'Very easy',
     leicht: 'Easy',

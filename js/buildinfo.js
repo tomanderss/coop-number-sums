@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.40';
-export const BUILD_HASH = '9e686cc';
+export const BUILD      = '0.41';
+export const BUILD_HASH = 'aa7b247';
 
 export const CHANGELOG = [
+  {
+    "version": "0.41",
+    "date": "18.06.2026",
+    "changes": [
+      "Update-Sicherheitsnetz: bei neuer Version erscheint ein Hinweis mit der Möglichkeit, vorher ein Backup herunterzuladen, bevor aktualisiert und neu gestartet wird"
+    ]
+  },
   {
     "version": "0.40",
     "date": "18.06.2026",

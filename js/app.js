@@ -74,6 +74,7 @@ const state = reactive({
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Spiel (zum Fortsetzen)
   confetti: [],
+  updateReady: false,        // neue App-Version liegt im Service-Worker bereit
 });
 
 let timerHandle = null;
@@ -941,6 +942,21 @@ function maybeShowWhatsNew() {
 }
 function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD); }
 
+// ─── APP-UPDATE (Service Worker) ──────────────────────────────────────────────
+// Hält den im "waiting" wartenden Worker, bis der Nutzer aktiv aktualisiert.
+let waitingWorker = null;
+let reloadingForUpdate = false;
+function applyUpdate() {
+  if (!waitingWorker) { location.reload(); return; }
+  // Sobald der neue Worker die Kontrolle übernimmt, einmalig neu laden.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloadingForUpdate) return;
+    reloadingForUpdate = true;
+    location.reload();
+  });
+  waitingWorker.postMessage({ type: 'skipWaiting' });
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
   applyTheme();
@@ -1022,7 +1038,7 @@ const App = {
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause,
       cellClasses, cellStyle, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
-      chipTextColor, confirmCoopIdentity, playerColor, goCoop,
+      chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
       t, i18nState, SUPPORTED_LOCALES,
     };
   },
@@ -1537,6 +1553,17 @@ const App = {
         <button class="btn btn-primary" @click="dismissWhatsNew">{{ t('whatsnew.start') }}</button>
       </div>
     </div>
+
+    <div v-if="state.updateReady" class="modal-bg">
+      <div class="modal">
+        <div class="whatsnew-badge">{{ t('update.badge') }}</div>
+        <h3>{{ t('update.title') }}</h3>
+        <p class="confirm-msg">{{ t('update.body') }}</p>
+        <button class="btn btn-ghost" @click="doExport">{{ t('update.backup') }}</button>
+        <button class="btn btn-primary" @click="applyUpdate">{{ t('update.apply') }}</button>
+        <button class="btn btn-ghost btn-sm" @click="state.updateReady=false">{{ t('update.later') }}</button>
+      </div>
+    </div>
   </div>
   `,
 };
@@ -1618,5 +1645,25 @@ document.addEventListener('visibilitychange', () => {
 });
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Ein bereits wartender Worker (Update kam, während die App geschlossen war).
+      const promote = (w) => {
+        if (!w) return;
+        // Nur als Update werten, wenn diese Seite schon von einem Worker kontrolliert
+        // wird — sonst ist es die Erst-Installation (kein "alte Version läuft weiter").
+        if (w.state === 'installed' && navigator.serviceWorker.controller) {
+          waitingWorker = w;
+          state.updateReady = true;
+        }
+      };
+      promote(reg.waiting);
+      // Ein Update, das erst zur Laufzeit eintrifft.
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => promote(nw));
+      });
+    }).catch(() => {});
+  });
 }
