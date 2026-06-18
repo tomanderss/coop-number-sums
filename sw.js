@@ -1,7 +1,8 @@
-const CACHE = 'coop-number-sums-v0.47';
+const CACHE = 'coop-number-sums-v0.48';
 const ASSETS = [
   './index.html',
   './privacy.html',
+  './imprint.html',
   './css/styles.css',
   './js/vue.esm-browser.prod.js',
   './js/config.js',

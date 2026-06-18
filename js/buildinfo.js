@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.47';
-export const BUILD_HASH = '6ba8228';
+export const BUILD      = '0.48';
+export const BUILD_HASH = 'f1e1dfc';
 
 export const CHANGELOG = [
+  {
+    "version": "0.48",
+    "date": "18.06.2026",
+    "changes": [
+      "Datenschutzerklärung um Hosting-Hinweis (GitHub Pages) und Drittlandtransfer (Google) ergänzt",
+      "Neuen \"Alle lokalen Daten löschen\"-Button in den Einstellungen hinzugefügt",
+      "Impressum hinzugefügt (Deutsch/Englisch), über die Einstellungen abrufbar"
+    ]
+  },
   {
     "version": "0.47",
     "date": "18.06.2026",

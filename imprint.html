@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Impressum / Imprint — Coop Number Sums</title>
+<style>
+  :root {
+    --bg: #0b1020; --card: #1a2138; --text: #e8edf7; --text2: #9aa6c2;
+    --accent: #5b8cff; --accent-soft: rgba(91,140,255,.16);
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #eef2f9; --card: #ffffff; --text: #1a2138; --text2: #5d6987; --accent: #3b6fe0; --accent-soft: rgba(59,111,224,.12); }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 18px 60px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 28px 0 8px; }
+  p, li { color: var(--text2); }
+  a { color: var(--accent); text-decoration: none; }
+  .lang-switch { display: flex; gap: 10px; margin-bottom: 20px; }
+  .lang-switch button {
+    flex: 1; padding: 10px; border-radius: 12px; border: none; cursor: pointer;
+    background: var(--card); color: var(--text); font-weight: 700; font-size: .95rem;
+  }
+  .lang-switch button.active { background: var(--accent-soft); color: var(--accent); }
+  section[data-lang] { display: none; }
+  section[data-lang].active { display: block; }
+  .updated { font-size: .85rem; color: var(--text2); margin-bottom: 24px; }
+  .back { display: inline-block; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="lang-switch">
+    <button id="btn-de" class="active" onclick="setLang('de')">Deutsch</button>
+    <button id="btn-en" onclick="setLang('en')">English</button>
+  </div>
+
+  <section data-lang="de" class="active">
+    <h1>Impressum</h1>
+    <p class="updated">Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG)</p>
+
+    <h2>Angaben zum Anbieter</h2>
+    <p>
+      Tom Anders<br />
+      Petersweg 3<br />
+      38268 Lengede<br />
+      Deutschland
+    </p>
+
+    <h2>Kontakt</h2>
+    <p>
+      E-Mail: <a href="mailto:tom-anders@gmx.net">tom-anders@gmx.net</a>
+    </p>
+
+    <h2>Hinweis</h2>
+    <p>
+      Coop Number Sums ist ein kostenloses, privates Hobbyprojekt und wird
+      nicht im Rahmen eines Gewerbebetriebs angeboten. Es werden keine
+      Waren oder Dienstleistungen verkauft, daher entfallen Angaben wie
+      Umsatzsteuer-ID oder Handelsregistereintrag.
+    </p>
+
+    <h2>Haftung für Inhalte</h2>
+    <p>
+      Trotz sorgfältiger inhaltlicher Kontrolle wird keine Haftung für die
+      Inhalte externer Links übernommen. Für den Inhalt verlinkter Seiten
+      sind ausschließlich deren Betreiber verantwortlich.
+    </p>
+
+    <p>
+      Siehe auch: <a href="./privacy.html">Datenschutzerklärung</a>
+    </p>
+
+    <a class="back" href="javascript:history.back()">← Zurück zur App</a>
+  </section>
+
+  <section data-lang="en">
+    <h1>Imprint</h1>
+    <p class="updated">Information pursuant to § 5 German Digital Services Act (DDG)</p>
+
+    <h2>Provider</h2>
+    <p>
+      Tom Anders<br />
+      Petersweg 3<br />
+      38268 Lengede<br />
+      Germany
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      Email: <a href="mailto:tom-anders@gmx.net">tom-anders@gmx.net</a>
+    </p>
+
+    <h2>Note</h2>
+    <p>
+      Coop Number Sums is a free, private hobby project and is not
+      operated as a commercial business. No goods or services are sold,
+      so information such as a VAT ID or commercial register entry does
+      not apply.
+    </p>
+
+    <h2>Liability for Content</h2>
+    <p>
+      Despite careful review, no liability is assumed for the content of
+      external links. The operators of linked pages are solely
+      responsible for their own content.
+    </p>
+
+    <p>
+      See also: <a href="./privacy.html">Privacy Policy</a>
+    </p>
+
+    <a class="back" href="javascript:history.back()">← Back to the app</a>
+  </section>
+</div>
+<script>
+  function setLang(lang) {
+    document.querySelectorAll('section[data-lang]').forEach(function (el) {
+      el.classList.toggle('active', el.dataset.lang === lang);
+    });
+    document.getElementById('btn-de').classList.toggle('active', lang === 'de');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  }
+</script>
+</body>
+</html>
