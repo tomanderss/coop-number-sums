@@ -153,6 +153,7 @@ export default {
     importBackup: '⬇️ Импортировать резервную копию',
     autoBackups: '🗂 Автоматические резервные копии',
     exportLog: '🐞 Экспортировать журнал диагностики',
+    privacyPolicy: 'Политика конфиденциальности',
     language: '🌐 Язык',
   },
   toast: {

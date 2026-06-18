@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Datenschutzerklärung / Privacy Policy — Coop Number Sums</title>
+<style>
+  :root {
+    --bg: #0b1020; --card: #1a2138; --text: #e8edf7; --text2: #9aa6c2;
+    --accent: #5b8cff; --accent-soft: rgba(91,140,255,.16);
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #eef2f9; --card: #ffffff; --text: #1a2138; --text2: #5d6987; --accent: #3b6fe0; --accent-soft: rgba(59,111,224,.12); }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 18px 60px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 28px 0 8px; }
+  p, li { color: var(--text2); }
+  a { color: var(--accent); text-decoration: none; }
+  .lang-switch { display: flex; gap: 10px; margin-bottom: 20px; }
+  .lang-switch button {
+    flex: 1; padding: 10px; border-radius: 12px; border: none; cursor: pointer;
+    background: var(--card); color: var(--text); font-weight: 700; font-size: .95rem;
+  }
+  .lang-switch button.active { background: var(--accent-soft); color: var(--accent); }
+  section[data-lang] { display: none; }
+  section[data-lang].active { display: block; }
+  .updated { font-size: .85rem; color: var(--text2); margin-bottom: 24px; }
+  .back { display: inline-block; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="lang-switch">
+    <button id="btn-de" class="active" onclick="setLang('de')">Deutsch</button>
+    <button id="btn-en" onclick="setLang('en')">English</button>
+  </div>
+
+  <section data-lang="de" class="active">
+    <h1>Datenschutzerklärung</h1>
+    <p class="updated">Stand: Juni 2026</p>
+
+    <h2>Verantwortlicher</h2>
+    <p>
+      Tom Anders<br />
+      E-Mail: <a href="mailto:tom-anders@gmx.net">tom-anders@gmx.net</a>
+    </p>
+    <p>
+      Coop Number Sums ist ein kostenloses, privates Hobbyprojekt ohne
+      Gewerbebetrieb. Es werden keine Werbung, kein Tracking und keine
+      Analyse-Tools eingesetzt.
+    </p>
+
+    <h2>Lokale Daten (Einstellungen, Statistik, Fortschritt)</h2>
+    <p>
+      Einstellungen, Spielstatistiken, der aktuelle Spielfortschritt sowie
+      lokale Backups werden ausschließlich im <strong>lokalen Speicher
+      (localStorage)</strong> deines Geräts abgelegt. Diese Daten verlassen
+      dein Gerät nie und werden an niemanden übertragen — auch nicht an uns.
+      Du kannst sie jederzeit über die Einstellungen exportieren, importieren
+      oder löschen.
+    </p>
+
+    <h2>Coop-Modus (Firebase Realtime Database)</h2>
+    <p>
+      Im Coop-Modus spielen zwei Personen gemeinsam ein Rätsel in Echtzeit.
+      Dafür wird während der aktiven Sitzung die <strong>Firebase Realtime
+      Database</strong> von Google (Region Europa, europe-west1) als
+      technischer Übertragungsweg genutzt. Es werden ausschließlich folgende
+      Daten übertragen:
+    </p>
+    <ul>
+      <li>ein von dir frei gewählter Anzeigename (max. 16 Zeichen)</li>
+      <li>eine von dir gewählte Farbe</li>
+      <li>deine Rolle (Host/Mitspieler)</li>
+      <li>Spielzüge (Markierungen im Rätsel)</li>
+      <li>eine anonyme, technische Kennung (Firebase Anonymous Auth) zur
+        Zuordnung deiner Aktionen innerhalb des Raums</li>
+    </ul>
+    <p>
+      Es werden keine Klarnamen, E-Mail-Adressen, IP-Adressen oder
+      Standortdaten erhoben oder gespeichert. Die Sitzungsdaten werden
+      automatisch gelöscht, sobald beide Spieler den Raum verlassen
+      (technisch über <code>onDisconnect()</code>). Statistiken und
+      Einstellungen werden im Coop-Modus nicht in die Cloud übertragen — sie
+      bleiben wie im Solo-Modus rein lokal auf deinem Gerät.
+    </p>
+    <p>
+      Rechtsgrundlage für diese Verarbeitung ist Art. 6 Abs. 1 lit. b DSGVO
+      (Erfüllung des Vertrags bzw. der von dir angefragten Funktion).
+      Google LLC bzw. Google Ireland Limited verarbeitet die Daten als
+      Auftragsverarbeiter im Auftrag des Verantwortlichen.
+    </p>
+
+    <h2>Cookies &amp; Drittanbieter</h2>
+    <p>
+      Die App verwendet keine Cookies und lädt keine Inhalte von
+      Drittanbieter-Servern, mit Ausnahme der Firebase-Infrastruktur von
+      Google während einer aktiven Coop-Sitzung.
+    </p>
+
+    <h2>Deine Rechte</h2>
+    <p>
+      Du hast nach der DSGVO das Recht auf Auskunft, Berichtigung, Löschung
+      und Einschränkung der Verarbeitung deiner Daten sowie ein
+      Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde. Da Coop-Daten
+      automatisch beim Verlassen des Raums gelöscht werden und lokale Daten
+      ausschließlich auf deinem eigenen Gerät liegen, kannst du die meisten
+      dieser Rechte direkt selbst in der App ausüben (Einstellungen → Daten
+      löschen/exportieren). Für alle weiteren Anfragen erreichst du uns unter
+      der oben genannten E-Mail-Adresse.
+    </p>
+
+    <a class="back" href="javascript:history.back()">← Zurück zur App</a>
+  </section>
+
+  <section data-lang="en">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: June 2026</p>
+
+    <h2>Data Controller</h2>
+    <p>
+      Tom Anders<br />
+      Email: <a href="mailto:tom-anders@gmx.net">tom-anders@gmx.net</a>
+    </p>
+    <p>
+      Coop Number Sums is a free, private hobby project, not operated as a
+      commercial business. It contains no advertising, no tracking and no
+      analytics tools.
+    </p>
+
+    <h2>Local Data (Settings, Statistics, Progress)</h2>
+    <p>
+      Settings, game statistics, your current game progress, and local
+      backups are stored exclusively in your device's
+      <strong>local storage (localStorage)</strong>. This data never leaves
+      your device and is never transmitted to anyone — including us. You
+      can export, import or delete it at any time from the settings screen.
+    </p>
+
+    <h2>Coop Mode (Firebase Realtime Database)</h2>
+    <p>
+      In Coop mode, two people solve a puzzle together in real time. For
+      this, the <strong>Firebase Realtime Database</strong> by Google
+      (Europe region, europe-west1) is used as the technical transport
+      layer during the active session. Only the following data is
+      transmitted:
+    </p>
+    <ul>
+      <li>a display name you freely choose (max. 16 characters)</li>
+      <li>a color you choose</li>
+      <li>your role (host/teammate)</li>
+      <li>game moves (marks placed on the puzzle)</li>
+      <li>an anonymous, technical identifier (Firebase Anonymous Auth) used
+        to attribute your actions within the room</li>
+    </ul>
+    <p>
+      No real names, email addresses, IP addresses, or location data are
+      collected or stored. Session data is automatically deleted once both
+      players leave the room (technically via <code>onDisconnect()</code>).
+      Statistics and settings are not sent to the cloud in Coop mode either
+      — they remain purely local on your device, just as in solo mode.
+    </p>
+    <p>
+      The legal basis for this processing is Art. 6(1)(b) GDPR (performance
+      of the feature you requested). Google LLC / Google Ireland Limited
+      processes this data as a data processor on behalf of the controller.
+    </p>
+
+    <h2>Cookies &amp; Third Parties</h2>
+    <p>
+      The app uses no cookies and loads no content from third-party
+      servers, other than Google's Firebase infrastructure during an
+      active Coop session.
+    </p>
+
+    <h2>Your Rights</h2>
+    <p>
+      Under the GDPR you have the right to access, rectify, erase, and
+      restrict the processing of your data, as well as the right to lodge a
+      complaint with a data protection supervisory authority. Since Coop
+      data is automatically deleted when you leave the room, and local data
+      stays exclusively on your own device, you can exercise most of these
+      rights directly within the app (Settings → export/delete data). For
+      any further requests, you can reach us at the email address above.
+    </p>
+
+    <a class="back" href="javascript:history.back()">← Back to the app</a>
+  </section>
+</div>
+<script>
+  function setLang(lang) {
+    document.querySelectorAll('section[data-lang]').forEach(function (el) {
+      el.classList.toggle('active', el.dataset.lang === lang);
+    });
+    document.getElementById('btn-de').classList.toggle('active', lang === 'de');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  }
+</script>
+</body>
+</html>

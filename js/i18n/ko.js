@@ -153,6 +153,7 @@ export default {
     importBackup: '⬇️ 백업 가져오기',
     autoBackups: '🗂 자동 백업',
     exportLog: '🐞 진단 로그 내보내기',
+    privacyPolicy: '개인정보처리방침',
     language: '🌐 언어',
   },
   toast: {
