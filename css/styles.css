@@ -222,8 +222,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    Struktur leuchten kurz auf (keine Querstriche zwischen den Zellen). Welche
    Seite einer Zelle zum Rand der Struktur gehört, wird in JS berechnet
    (pulseEdges) und als --pt/--pb/--pl/--pr (Breite) übergeben. */
+/* inset -1.5px statt 0: das Overlay liegt sonst exakt innerhalb des
+   1px-Zellrahmens, wodurch sich an Ecken (v.a. bei unregelmäßigen Cage-Formen,
+   wo zwei Randstücke aus verschiedenen, nur diagonal benachbarten Zellen
+   stammen) durch Rundungsfehler im Grid-Layout eine sichtbare Lücke ergeben
+   kann — der kleine Überstand schließt diese Lücke zuverlässig. */
 .cell.pulse-edge::before {
-  content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  content: ''; position: absolute; inset: -1.5px; z-index: 4; pointer-events: none;
   border-style: solid; border-color: var(--good);
   border-top-width: var(--pt, 0); border-bottom-width: var(--pb, 0);
   border-left-width: var(--pl, 0); border-right-width: var(--pr, 0);
@@ -234,6 +239,28 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   20% { opacity: 1; }
   70% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* ─── Hochformat-Sperre ───────────────────────────────────────────────────────
+   Der App-Layout (max-width 540px, "Telefon"-Optik) ist ausschließlich für
+   Hochformat ausgelegt. manifest.json setzt "orientation: portrait-primary"
+   für installierte PWAs, greift aber nicht im normalen Browser-Tab oder auf
+   Geräten/Browsern ohne Unterstützung — daher zusätzlich diese CSS-Sperre.
+   Nur bei kleinen/Touch-typischen Breiten aktiv (max-width 920px), damit
+   normale Desktop-Browserfenster (die immer "landscape" sind) nicht betroffen
+   sind. */
+#rotate-lock { display: none; }
+@media (orientation: landscape) and (max-width: 920px) {
+  #app, #splash { display: none; }
+  #rotate-lock {
+    display: flex; position: fixed; inset: 0; z-index: 99998;
+    flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    background: var(--bg); color: var(--text); text-align: center; padding: 24px;
+  }
+  #rotate-lock-icon { font-size: 3rem; animation: rotateHint 1.6s ease-in-out infinite; }
+  #rotate-lock-title { font-size: 1.2rem; font-weight: 900; }
+  #rotate-lock-sub { color: var(--text2); font-size: .9rem; max-width: 280px; }
+  @keyframes rotateHint { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
 }
 
 /* ─── Toolbar (Stift/Radierer) ─── */
