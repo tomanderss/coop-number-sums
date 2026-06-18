@@ -22,7 +22,7 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; }
+html, body, #rotate-fix { margin: 0; height: 100%; }
 body {
   background: var(--bg); color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -246,24 +246,30 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    Hochformat ausgelegt. manifest.json setzt "orientation: portrait-primary" für
    installierte PWAs (echte OS-Sperre, z.B. Android-Chrome im Standalone-Modus),
    das greift aber nicht im normalen Browser-Tab oder auf iOS. Als universellen
-   Fallback drehen wir hier stattdessen das gesamte Dokument per CSS-Transform
-   zurück in Hochformat, sobald das Gerät physisch quer liegt — kein Hinweis-
-   Screen, das Spiel bleibt einfach durchgängig im Hochformat bedienbar. (Da
-   "transform" am <html> gleichzeitig einen neuen Containing-Block für alle
-   position:fixed-Kindelemente im Dokument erzeugt, drehen sich Overlays/Modals
-   etc. automatisch mit.) Nur bei kleinen/Touch-typischen Breiten aktiv (max-width
-   920px), damit normale Desktop-Browserfenster (die immer "landscape" sind)
-   nicht betroffen sind. */
+   Fallback drehen wir hier stattdessen #rotate-fix (Wrapper um Splash/App/Err
+   in index.html) per CSS-Transform zurück in Hochformat, sobald das Gerät
+   physisch quer liegt — kein Hinweis-Screen, das Spiel bleibt einfach
+   durchgängig im Hochformat bedienbar. WICHTIG: bewusst NICHT direkt auf
+   <html> (frühere Version dieses Fixes) — das Root-Element ist gleichzeitig
+   der "initial containing block" der Seite, "position: absolute" darauf ist
+   also ein Sonderfall relativ zu sich selbst, den Browser inkonsistent
+   behandeln (in der Praxis: keine Wirkung). Ein dedizierter Wrapper mit
+   "position: fixed" relativ zum echten Viewport ist eindeutig definiert.
+   Da "transform" am Wrapper gleichzeitig einen neuen Containing-Block für
+   alle position:fixed-Kindelemente erzeugt, drehen sich Overlays/Modals
+   etc. darin automatisch mit. Nur bei kleinen/Touch-typischen Breiten aktiv
+   (max-width 920px), damit normale Desktop-Browserfenster (die immer
+   "landscape" sind) nicht betroffen sind. */
 @media screen and (orientation: landscape) and (max-width: 920px) {
-  html {
-    transform: rotate(-90deg);
-    transform-origin: left top;
-    width: 100vh;
-    height: 100vw;
-    overflow-x: hidden;
-    position: absolute;
+  body { overflow: hidden; }
+  #rotate-fix {
+    position: fixed;
     top: 100%;
     left: 0;
+    width: 100vh;
+    height: 100vw;
+    transform-origin: left top;
+    transform: rotate(-90deg);
   }
 }
 
