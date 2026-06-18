@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.49';
-export const BUILD_HASH = 'e259091';
+export const BUILD      = '0.50';
+export const BUILD_HASH = 'bf42b3e';
 
 export const CHANGELOG = [
+  {
+    "version": "0.50",
+    "date": "18.06.2026",
+    "changes": [
+      "CI/CD-Pipelines für Android- und iOS-Builds via GitHub Actions ergänzt",
+      "iOS-Capacitor-Projekt (ios/) inkl. App-Icon & Splash-Screens hinzugefügt",
+      "Android-Release-Signing optional über keystore.properties/CI-Secrets vorbereitet"
+    ]
+  },
   {
     "version": "0.49",
     "date": "18.06.2026",

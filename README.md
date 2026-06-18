@@ -89,9 +89,13 @@ unverändert nach `www/` (generiert, nicht versioniert — siehe `.gitignore`).
 ### Einmalige Einrichtung
 ```
 npm install
-npx cap add android   # bereits erledigt, nur bei Bedarf erneut nötig
 ```
-`npx cap add ios` erfordert macOS + Xcode und ist hier nicht eingerichtet.
+Sowohl `android/` als auch `ios/` sind bereits als fertig generierte
+Capacitor-Projekte im Repo versioniert (`npx cap add android` / `npx cap add
+ios` wurden einmalig ausgeführt) — ein erneuter `cap add` ist nur nötig, falls
+einer der Ordner gelöscht wird. `npx cap add ios` selbst benötigt **kein**
+macOS (reines Node-Scaffolding) — nur das tatsächliche **Bauen** (`xcodebuild`/
+Xcode) braucht einen Mac bzw. den unten beschriebenen CI-Workflow.
 
 ### Android-Build (lokal, Android Studio/SDK erforderlich)
 ```
@@ -103,12 +107,56 @@ Von dort wie gewohnt per Android Studio (oder `./gradlew assembleDebug` im
 
 ### iOS-Build (nur auf einem Mac)
 ```
-npm run cap:copy
-npx cap add ios        # einmalig, nur auf dem Mac
-npx cap sync ios
+npm run cap:sync
 npx cap open ios
 ```
 Danach in Xcode signieren (Apple Developer Account nötig) und einreichen.
+
+### CI/CD-Pipelines (GitHub Actions, ohne eigenen Mac)
+Zwei manuell auslösbare Workflows (Tab **Actions → workflow auswählen → Run
+workflow** — kein Auto-Trigger, da v.a. der macOS-Runner CI-Minuten teurer
+abrechnet):
+
+- **`.github/workflows/android-build.yml`** — baut auf einem normalen
+  Linux-Runner eine **Debug-APK** (signiert mit Androids eingebautem
+  Debug-Key, installierbar auf jedem Gerät mit aktivierter "Unbekannte
+  Quellen"-Option, aber nicht Play-Store-fähig) und lädt sie als Artefakt
+  hoch — funktioniert schon heute, ganz ohne Account/Secrets.
+- **`.github/workflows/ios-build.yml`** — baut auf einem **macOS-Runner**
+  die App unsigniert für den iOS-**Simulator** (`CODE_SIGNING_ALLOWED=NO`).
+  Das prüft nur, dass der native Build durchläuft — liefert noch **kein**
+  auf einem echten Gerät installierbares Artefakt, da dafür ein Apple
+  Developer Account + Zertifikate nötig sind (siehe unten).
+
+#### Signierte Android-Release-Bundles (sobald ein Play-Console-Account existiert)
+Der `android-build.yml`-Workflow enthält einen zweiten, bedingten Schritt
+("Build signed release bundle"), der nur läuft, wenn die folgenden
+**Repository-Secrets** hinterlegt sind (**Settings → Secrets and variables →
+Actions → New repository secret** — die Werte selbst trägt nur der
+Repo-Owner ein, niemand sonst sieht sie):
+
+| Secret | Inhalt |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | Der Upload-Keystore (`.jks`), base64-kodiert: `base64 -w0 release.keystore` |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore-Passwort |
+| `ANDROID_KEY_ALIAS` | Key-Alias innerhalb des Keystores |
+| `ANDROID_KEY_PASSWORD` | Passwort des Keys (oft identisch mit dem Keystore-Passwort) |
+
+Den Keystore selbst einmalig lokal erzeugen (z. B.
+`keytool -genkey -v -keystore release.keystore -alias upload -keyalg RSA
+-keysize 2048 -validity 9125`) — **niemals committen**, ein verlorener
+Keystore ist nicht ersetzbar (außer bei aktiviertem Play App Signing).
+Sobald alle vier Secrets gesetzt sind, erzeugt der Workflow zusätzlich ein
+signiertes `app-release.aab`, hochladbar in die Play Console.
+
+#### Signierte iOS-Builds (sobald ein Apple Developer Account existiert)
+Dafür fehlt aktuell noch die Zertifikats-/Provisioning-Infrastruktur
+(Apple Developer Program, 99 $/Jahr — nur über die eigene Apple-ID
+einrichtbar). Sobald der Account existiert, kann der `ios-build.yml`-Workflow
+um einen `xcodebuild archive` + `exportArchive`-Schritt erweitert werden, der
+Zertifikat + Provisioning-Profil aus Secrets (z. B. base64-kodiertes `.p12` +
+`.mobileprovision`) in einen temporären Keychain importiert — analog zum
+Android-Vorgehen oben.
 
 ### Web-Code-Änderungen für Capacitor
 Die Service-Worker-Registrierung in `js/app.js` ist um eine Bedingung
