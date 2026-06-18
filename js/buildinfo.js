@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.50';
-export const BUILD_HASH = 'bf42b3e';
+export const BUILD      = '0.51';
+export const BUILD_HASH = '26ab690';
 
 export const CHANGELOG = [
+  {
+    "version": "0.51",
+    "date": "18.06.2026",
+    "changes": [
+      "Tägliches Rätsel hinzugefügt — jeden Tag ein weltweit identisches Puzzle (immer sehr leicht, leicht oder mittel), inklusive Serien-Zähler (Streak).",
+      "Teilen-Funktion eingebaut: Ergebnis des täglichen Rätsels und Coop-Einladungen können jetzt direkt als Link verschickt werden."
+    ]
+  },
   {
     "version": "0.50",
     "date": "18.06.2026",

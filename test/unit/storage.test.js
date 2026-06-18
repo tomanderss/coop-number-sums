@@ -15,6 +15,7 @@ const {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame,
   loadStats, recordResult, loadSeenVersion, saveSeenVersion,
   createBackup, loadBackups, restoreBackup, importFromFile, generateId,
+  loadDaily, recordDailyResult,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
 
@@ -157,6 +158,44 @@ describe('storage.importFromFile', () => {
     assert.equal(loadSettings().darkMode, false);
     assert.deepEqual(loadActiveGame(), { difficulty: 'leicht' });
     assert.equal(loadStats().played, 5);
+  });
+});
+
+describe('storage.recordDailyResult', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('loadDaily returns empty defaults when nothing is stored', () => {
+    assert.deepEqual(loadDaily(), { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0 });
+  });
+
+  test('a first completion starts a streak of 1', () => {
+    const d = recordDailyResult('2026-06-18');
+    assert.equal(d.currentStreak, 1);
+    assert.equal(d.bestStreak, 1);
+    assert.equal(d.totalCompleted, 1);
+    assert.equal(d.lastCompletedDate, '2026-06-18');
+  });
+
+  test('completing the next calendar day continues the streak', () => {
+    recordDailyResult('2026-06-18');
+    const d = recordDailyResult('2026-06-19');
+    assert.equal(d.currentStreak, 2);
+    assert.equal(d.bestStreak, 2);
+  });
+
+  test('skipping a day resets the streak to 1, but keeps bestStreak', () => {
+    recordDailyResult('2026-06-18');
+    recordDailyResult('2026-06-19');
+    const d = recordDailyResult('2026-06-25');
+    assert.equal(d.currentStreak, 1);
+    assert.equal(d.bestStreak, 2);
+  });
+
+  test('replaying the same day again is idempotent (no double count)', () => {
+    recordDailyResult('2026-06-18');
+    const d = recordDailyResult('2026-06-18');
+    assert.equal(d.currentStreak, 1);
+    assert.equal(d.totalCompleted, 1);
   });
 });
 

@@ -3,12 +3,13 @@ import { createApp, reactive, computed, watch, nextTick, onMounted } from './vue
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, DEFAULT_GAME_OPTIONS, LIVES, HINTS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
+import { getDailyChallenge, todayDateStr } from './daily.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
-  exportToFile, importFromFile, deleteAllData,
+  exportToFile, importFromFile, deleteAllData, loadDaily, recordDailyResult,
 } from './storage.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
@@ -21,9 +22,12 @@ const state = reactive({
   screen: 'home',            // home | setup | game | settings | stats
   settings: loadSettings(),
   stats: loadStats(),
+  daily: loadDaily(),        // { lastCompletedDate, currentStreak, bestStreak, totalCompleted }
 
   // Spiel
   puzzle: null,
+  isDailyGame: false,         // true, während das laufende Rätsel das Tagesrätsel ist
+  dailyDateStr: null,         // Kalendertag, für den das laufende Tagesrätsel generiert wurde
   marks: [],                 // 'none' | 'kept' | 'removed'
   cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint, hintMark }
   lives: 0, maxLives: 0,
@@ -189,6 +193,8 @@ function buildCellMeta(puzzle) {
 // In einer aktiven Coop-Session (als Host) wird das neue Rätsel an den Partner
 // gesendet, statt dass dieser selbst eines wählen müsste — die Lobby bleibt erhalten.
 function newGame(diffId) {
+  state.isDailyGame = false;
+  state.dailyDateStr = null;
   state.generating = true;
   state.screen = 'game';
   // kurze Verzögerung, damit die Lade-Animation sichtbar wird (große Felder)
@@ -208,6 +214,32 @@ function newGame(diffId) {
     if (state.coop.active && state.coop.role === 'host') {
       coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
     }
+  }, 30);
+}
+
+// Tagesrätsel: deterministisch aus dem Kalendertag abgeleitet (gleicher Seed +
+// gleiche, auf sehrleicht/leicht/mittel begrenzte Schwierigkeit für alle
+// Spieler weltweit am selben Tag, siehe daily.js). Bewusst solo-only — kein
+// Coop-Pendant, das würde die Determinismus-Garantie unnötig verkomplizieren.
+function startDailyGame() {
+  const { dateStr, seed, difficulty } = getDailyChallenge();
+  state.isDailyGame = true;
+  state.dailyDateStr = dateStr;
+  state.generating = true;
+  state.screen = 'game';
+  setTimeout(() => {
+    log('game', `Tagesrätsel-Generierung gestartet`, { dateStr, difficulty });
+    let puzzle;
+    try {
+      puzzle = generatePuzzle({ difficulty, seed });
+    } catch (e) {
+      log('game', `Tagesrätsel-Generierung fehlgeschlagen`, e);
+      throw e;
+    }
+    log('game', `Tagesrätsel generiert`, { dateStr, difficulty, rows: puzzle.rows, cols: puzzle.cols });
+    loadPuzzleIntoState(puzzle, null);
+    state.generating = false;
+    startTimer();
   }, 30);
 }
 
@@ -747,6 +779,7 @@ function win(remote) {
   });
   state.stats = stats;
   state.newHighscore = newHighscore;
+  if (state.isDailyGame) state.daily = recordDailyResult(state.dailyDateStr);
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -850,6 +883,7 @@ function activeSnapshot() {
     hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
     elapsed: state.elapsed, difficulty: state.puzzle.difficulty,
     hintMarks: collectHintMarks(),
+    isDailyGame: state.isDailyGame, dailyDateStr: state.dailyDateStr,
     ts: Date.now(),
   };
 }
@@ -867,6 +901,8 @@ function refreshResume() {
 function resumeGame() {
   const g = state.resumeAvailable;
   if (!g) return;
+  state.isDailyGame = !!g.isDailyGame;
+  state.dailyDateStr = g.dailyDateStr || null;
   navigate('game');
   loadPuzzleIntoState(g.puzzle, g);
   startTimer();
@@ -931,9 +967,31 @@ function resetStats() {
 function doDeleteAllData() {
   ask(t('settings.deleteAllConfirmTitle'), t('settings.deleteAllConfirmMsg'), () => {
     deleteAllData();
-    state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applyLocale(); refreshResume();
+    state.settings = loadSettings(); state.stats = loadStats(); state.daily = loadDaily(); applyTheme(); applyLocale(); refreshResume();
     showToast(t('settings.deleteAllDone'), 'success');
   });
+}
+
+// ─── TEILEN (viraler Loop) ─────────────────────────────────────────────────────
+// Web Share API mit Clipboard-Fallback — analog zum bereits etablierten Muster
+// in exportToFile() (storage.js), nur für Text statt einer Datei.
+async function shareText(text) {
+  if (navigator.share) {
+    try { await navigator.share({ text }); return; }
+    catch (e) { if (e.name === 'AbortError') return; log('app', 'Teilen fehlgeschlagen', e); }
+  }
+  if (navigator.clipboard?.writeText) {
+    try { await navigator.clipboard.writeText(text); showToast(t('toast.linkCopied'), 'success'); return; }
+    catch (e) { log('app', 'Kopieren fehlgeschlagen', e); }
+  }
+}
+function shareDailyResult() {
+  shareText(t('share.dailyResult', {
+    time: fmtTime(state.elapsed), streak: state.daily.currentStreak, url: location.origin + location.pathname,
+  }));
+}
+function shareCoopInvite() {
+  shareText(t('share.coopInvite', { code: state.coop.code, url: location.origin + location.pathname }));
 }
 
 function ask(title, msg, onYes) { state.confirm = { title, msg, onYes }; state.modal = 'confirm'; }
@@ -1034,6 +1092,8 @@ const App = {
     }));
     onMounted(init);
     const coopAvailable = computed(() => Coop.isAvailable());
+    const dailyInfo = computed(() => getDailyChallenge());
+    const dailyDoneToday = computed(() => state.daily.lastCompletedDate === dailyInfo.value.dateStr);
 
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID,
@@ -1046,6 +1106,7 @@ const App = {
       cellClasses, cellStyle, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
+      startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
       t, i18nState, SUPPORTED_LOCALES,
     };
   },
@@ -1072,6 +1133,11 @@ const App = {
         <button class="btn btn-coop" :disabled="!coopAvailable" @click="goCoop">
           <span class="btn-ic">👥</span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
           <span v-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
+        </button>
+        <button class="btn btn-ghost" @click="startDailyGame">
+          <span class="btn-ic">📅</span>
+          <span class="btn-tx"><b>{{ t('home.dailyChallenge') }}</b><small>{{ dailyDoneToday ? t('home.dailyDone') : t('difficulty.'+dailyInfo.difficulty) }}</small></span>
+          <span v-if="state.daily.currentStreak>0" class="badge-soon">🔥{{ state.daily.currentStreak }}</span>
         </button>
         <div class="home-grid">
           <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> {{ t('home.stats') }}</button>
@@ -1254,8 +1320,10 @@ const App = {
               </div>
             </div>
           </div>
-          <button class="btn btn-primary" v-if="!state.coop.active || state.coop.role==='host'" @click="newGame(state.puzzle.difficulty)">{{ t('win.nextPuzzle') }}</button>
-          <p v-else class="result-msg">{{ t('win.waitingForHost') }}</p>
+          <div v-if="state.isDailyGame" class="highscore-badge">{{ t('daily.streakBadge', { count: state.daily.currentStreak }) }}</div>
+          <button v-if="state.isDailyGame" class="btn btn-ghost" @click="shareDailyResult">📤 {{ t('share.button') }}</button>
+          <button class="btn btn-primary" v-if="!state.isDailyGame && (!state.coop.active || state.coop.role==='host')" @click="newGame(state.puzzle.difficulty)">{{ t('win.nextPuzzle') }}</button>
+          <p v-else-if="state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('win.viewBoard') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -1400,6 +1468,7 @@ const App = {
           <div class="coop-code-label">{{ t('coop.yourCode') }}</div>
           <div class="coop-code">{{ state.coop.code }}</div>
           <p class="coop-subtext">{{ t('coop.shareCode') }}</p>
+          <button class="btn btn-ghost btn-sm" @click="shareCoopInvite">📤 {{ t('coop.shareInvite') }}</button>
           <div class="coop-waiting">
             <div class="spinner"></div>
             <div class="loading-tx">{{ t('coop.waitingForGuest') }}</div>

@@ -25,6 +25,8 @@ export default {
     settings: 'Ayarlar',
     howto: 'Nasıl oynanır',
     changelog: 'Değişiklikler',
+    dailyChallenge: 'Günlük bulmaca',
+    dailyDone: 'Bugün çözüldü ✓',
   },
   setup: {
     title: 'Yeni oyun',
@@ -127,6 +129,7 @@ export default {
     partnerDisconnected: 'Takım arkadaşının bağlantısı kesildi',
     hostDisconnectedPromoting: 'Ev sahibinin bağlantısı kesildi — yeni ev sahibi oluyorsun…',
     hostDisconnected: 'Ev sahibiyle bağlantı kesildi',
+    shareInvite: 'Davet et',
   },
   settings: {
     title: 'Ayarlar',
@@ -166,6 +169,15 @@ export default {
     importSuccess: 'İçe aktarma başarılı',
     importFailed: 'İçe aktarma başarısız',
     backupRestored: 'Yedek geri yüklendi',
+    linkCopied: 'Bağlantı kopyalandı',
+  },
+  daily: {
+    streakBadge: '🔥 {count} günlük seri',
+  },
+  share: {
+    button: 'Paylaş',
+    dailyResult: "Coop Number Sums'taki günlük bulmacayı {time} içinde çözdüm! 🔥 {streak} günlük seri. Sen de oyna: {url}",
+    coopInvite: "Coop Number Sums'ı benimle coop modunda oyna! Kod: {code} — {url}",
   },
   howto: {
     title: 'Nasıl oynanır',

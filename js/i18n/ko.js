@@ -25,6 +25,8 @@ export default {
     settings: '설정',
     howto: '게임 방법',
     changelog: '업데이트 내역',
+    dailyChallenge: '오늘의 퍼즐',
+    dailyDone: '오늘 해결 완료 ✓',
   },
   setup: {
     title: '새 게임',
@@ -127,6 +129,7 @@ export default {
     partnerDisconnected: '동료의 연결이 끊겼습니다',
     hostDisconnectedPromoting: '호스트 연결이 끊겼습니다 — 새 호스트가 되는 중…',
     hostDisconnected: '호스트와의 연결이 끊겼습니다',
+    shareInvite: '초대하기',
   },
   settings: {
     title: '설정',
@@ -166,6 +169,15 @@ export default {
     importSuccess: '가져오기 성공',
     importFailed: '가져오기 실패',
     backupRestored: '백업이 복원되었습니다',
+    linkCopied: '링크가 복사되었습니다',
+  },
+  daily: {
+    streakBadge: '🔥 {count}일 연속',
+  },
+  share: {
+    button: '공유',
+    dailyResult: 'Coop Number Sums의 오늘의 퍼즐을 {time}에 풀었어요! 🔥 {streak}일 연속 기록. 같이 플레이해요: {url}',
+    coopInvite: 'Coop Number Sums을 협동 모드로 함께 플레이해요! 코드: {code} — {url}',
   },
   howto: {
     title: '게임 방법',

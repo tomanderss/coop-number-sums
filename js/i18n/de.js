@@ -25,6 +25,8 @@ export default {
     settings: 'Einstellungen',
     howto: 'Anleitung',
     changelog: 'Änderungen',
+    dailyChallenge: 'Tagesrätsel',
+    dailyDone: 'Heute schon gelöst ✓',
   },
   setup: {
     title: 'Neues Spiel',
@@ -127,6 +129,7 @@ export default {
     partnerDisconnected: 'Mitspieler hat getrennt',
     hostDisconnectedPromoting: 'Host getrennt — werde neuer Host …',
     hostDisconnected: 'Verbindung zum Host getrennt',
+    shareInvite: 'Einladen',
   },
   settings: {
     title: 'Einstellungen',
@@ -166,6 +169,15 @@ export default {
     importSuccess: 'Import erfolgreich',
     importFailed: 'Import fehlgeschlagen',
     backupRestored: 'Backup wiederhergestellt',
+    linkCopied: 'Link kopiert',
+  },
+  daily: {
+    streakBadge: '🔥 {count} Tage Streak',
+  },
+  share: {
+    button: 'Teilen',
+    dailyResult: 'Ich habe das Tagesrätsel bei Coop Number Sums in {time} gelöst! 🔥 {streak} Tage Streak. Spiel mit: {url}',
+    coopInvite: 'Spiel mit mir Coop Number Sums im Coop-Modus! Code: {code} — {url}',
   },
   howto: {
     title: 'So wird gespielt',
