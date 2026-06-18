@@ -47,6 +47,7 @@ schreiben — sie erscheinen automatisch im „Was ist neu"-Popup und im Changel
 ```
 index.html            Splashscreen + App-Mount
 manifest.json         PWA-Manifest
+database.rules.json   Firebase-RTDB-Security-Rules (versioniert, Quelle: Firebase Console)
 sw.js                 Service Worker (offline-Cache)
 build.js / build.bat  Versionierung & Deploy
 start-server.bat      Lokaler Testserver

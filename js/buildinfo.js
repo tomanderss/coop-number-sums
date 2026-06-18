@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.45';
-export const BUILD_HASH = '564226b';
+export const BUILD      = '0.46';
+export const BUILD_HASH = '1b892ed';
 
 export const CHANGELOG = [
+  {
+    "version": "0.46",
+    "date": "18.06.2026",
+    "changes": [
+      "Firebase-RTDB-Security-Rules jetzt im Repo versioniert (database.rules.json)",
+      "manifest.json um App-Kategorien (games, puzzle) ergänzt"
+    ]
+  },
   {
     "version": "0.45",
     "date": "18.06.2026",
