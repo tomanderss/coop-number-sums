@@ -1,4 +1,4 @@
-const CACHE = 'coop-number-sums-v0.35';
+const CACHE = 'coop-number-sums-v0.36';
 const ASSETS = [
   './index.html',
   './css/styles.css',
@@ -7,8 +7,20 @@ const ASSETS = [
   './js/solver.js',
   './js/generator.js',
   './js/storage.js',
+  './js/coop.js',
   './js/buildinfo.js',
   './js/app.js',
+  './js/i18n/index.js',
+  './js/i18n/de.js',
+  './js/i18n/en.js',
+  './js/i18n/es.js',
+  './js/i18n/fr.js',
+  './js/i18n/pt-BR.js',
+  './js/i18n/it.js',
+  './js/i18n/ja.js',
+  './js/i18n/ko.js',
+  './js/i18n/tr.js',
+  './js/i18n/ru.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
