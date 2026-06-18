@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.31';
-export const BUILD_HASH = '68d2ec9';
+export const BUILD      = '0.32';
+export const BUILD_HASH = '551eb7d';
 
 export const CHANGELOG = [
+  {
+    "version": "0.32",
+    "date": "18.06.2026",
+    "changes": [
+      "Hochformat-Sperre: Landschaft auf Handy/Tablet wird jetzt blockiert",
+      "Cage-/Reihen-/Spalten-Umrandung beim Fertigstellen: Lücken an den Ecken behoben"
+    ]
+  },
   {
     "version": "0.31",
     "date": "17.06.2026",
