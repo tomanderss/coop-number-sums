@@ -115,7 +115,7 @@ export default {
     enterHostCode: 'Ev sahibinin kodunu gir',
     connecting: 'Bağlanıyor…',
     connect: 'Bağlan ↗',
-    errorWebrtcUnavailable: 'WebRTC kullanılamıyor.',
+    errorWebrtcUnavailable: 'Bu tarayıcıda Coop kullanılamıyor.',
     errorInvalidCode: 'Lütfen 6 haneli bir kod girin.',
     errorCodeTaken: 'Bu kod zaten kullanılıyor — başka bir sayı seç.',
     errorConnection: 'Bağlantı hatası.',

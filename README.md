@@ -57,14 +57,18 @@ js/
   solver.js           Deduktions-Engine (Eindeutigkeit + Schwierigkeitsmaß)
   generator.js        Rätsel-Generator (immer eindeutig & ohne Raten lösbar)
   storage.js          localStorage: Einstellungen, Resume, Statistik, Backups
+  coop.js             Coop-Transport (Firebase Realtime Database, lazy geladen)
+  firebase.js         Firebase-Init (anonyme Auth + RTDB), lazy geladen
+  vendor/firebase/    Lokal vendorter Firebase-SDK-Build (app/auth/database)
   buildinfo.js        Auto-generiert: Version + Changelog
   app.js              Vue-App (Screens, Board, Interaktion)
 ```
 
-## Coop-Modus (geplant)
-Der Coop-Button ist als „bald" markiert. Architektur ist vorbereitet: Spielzüge
-laufen zentral über `setMark()` und der Rätselzustand ist serialisierbar (Seed +
-`marks`). Für Echtzeit-Coop kommt eine Netzwerk-Schicht hinzu (z. B. Firebase
-Realtime Database oder WebRTC/PeerJS), die `setMark`-Ereignisse broadcastet und
-beim Beitritt den vollen Zustand synchronisiert. Bluetooth ist auf iOS-Safari
-nicht möglich, daher braucht Coop Internet + eine Relay-Schicht.
+## Coop-Modus
+Zwei Spieler (Host + ein Mitspieler) lösen ein Rätsel gemeinsam in Echtzeit.
+Spielzüge laufen über `setMark()`; Transport ist Firebase Realtime Database
+(Region `europe-west1`): der Host legt einen 6-stelligen Code an, jede Aktion
+landet als Event unter `/rooms/{code}/events` und wird an alle Lauscher
+verteilt. Anwesenheit läuft über `onDisconnect()` statt eines eigenen
+Heartbeats. Es werden keine Statistiken/Einstellungen in die Cloud
+übertragen — die bleiben wie bisher rein lokal (`localStorage`).

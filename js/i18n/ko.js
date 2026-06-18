@@ -115,7 +115,7 @@ export default {
     enterHostCode: '호스트 코드 입력',
     connecting: '연결 중…',
     connect: '연결 ↗',
-    errorWebrtcUnavailable: 'WebRTC를 사용할 수 없습니다.',
+    errorWebrtcUnavailable: '이 브라우저에서는 Coop을 사용할 수 없습니다.',
     errorInvalidCode: '6자리 숫자 코드를 입력하세요.',
     errorCodeTaken: '이미 사용 중인 코드입니다 — 다른 번호를 선택하세요.',
     errorConnection: '연결 오류입니다.',
