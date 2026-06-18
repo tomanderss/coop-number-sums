@@ -195,18 +195,4 @@ export default {
     extrem: 'Aşırı',
     mashallah: 'Maşallah',
   },
-  coopColor: {
-    blau: 'Mavi',
-    orange: 'Turuncu',
-    pink: 'Pembe',
-    lila: 'Lila',
-    gelb: 'Sarı',
-    cyan: 'Camgöbeği',
-    indigo: 'İndigo',
-    bernstein: 'Kehribar',
-    fuchsia: 'Fuşya',
-    himmelblau: 'Gök mavisi',
-    violett: 'Menekşe',
-    koralle: 'Mercan',
-  },
 };

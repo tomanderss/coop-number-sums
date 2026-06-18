@@ -195,18 +195,4 @@ export default {
     extrem: '超難しい',
     mashallah: 'マシャアッラー',
   },
-  coopColor: {
-    blau: '青',
-    orange: 'オレンジ',
-    pink: 'ピンク',
-    lila: '紫',
-    gelb: '黄色',
-    cyan: 'シアン',
-    indigo: 'インディゴ',
-    bernstein: 'アンバー',
-    fuchsia: 'フクシア',
-    himmelblau: 'スカイブルー',
-    violett: 'バイオレット',
-    koralle: 'コーラル',
-  },
 };

@@ -195,18 +195,4 @@ export default {
     extrem: 'Экстремально',
     mashallah: 'Машалла',
   },
-  coopColor: {
-    blau: 'Синий',
-    orange: 'Оранжевый',
-    pink: 'Розовый',
-    lila: 'Лиловый',
-    gelb: 'Жёлтый',
-    cyan: 'Циан',
-    indigo: 'Индиго',
-    bernstein: 'Янтарный',
-    fuchsia: 'Фуксия',
-    himmelblau: 'Небесно-голубой',
-    violett: 'Фиолетовый',
-    koralle: 'Коралловый',
-  },
 };
