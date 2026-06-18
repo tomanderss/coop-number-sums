@@ -25,6 +25,8 @@ export default {
     settings: 'Settings',
     howto: 'How to play',
     changelog: 'Changelog',
+    dailyChallenge: 'Daily challenge',
+    dailyDone: 'Solved today ✓',
   },
   setup: {
     title: 'New game',
@@ -127,6 +129,7 @@ export default {
     partnerDisconnected: 'Teammate disconnected',
     hostDisconnectedPromoting: 'Host disconnected — becoming new host …',
     hostDisconnected: 'Connection to host lost',
+    shareInvite: 'Invite',
   },
   settings: {
     title: 'Settings',
@@ -166,6 +169,15 @@ export default {
     importSuccess: 'Import successful',
     importFailed: 'Import failed',
     backupRestored: 'Backup restored',
+    linkCopied: 'Link copied',
+  },
+  daily: {
+    streakBadge: '🔥 {count} day streak',
+  },
+  share: {
+    button: 'Share',
+    dailyResult: "I solved today's puzzle on Coop Number Sums in {time}! 🔥 {streak} day streak. Play along: {url}",
+    coopInvite: 'Play Coop Number Sums with me in co-op mode! Code: {code} — {url}',
   },
   howto: {
     title: 'How to play',

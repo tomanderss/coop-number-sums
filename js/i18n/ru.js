@@ -25,6 +25,8 @@ export default {
     settings: 'Настройки',
     howto: 'Как играть',
     changelog: 'Изменения',
+    dailyChallenge: 'Ежедневная головоломка',
+    dailyDone: 'Сегодня решено ✓',
   },
   setup: {
     title: 'Новая игра',
@@ -127,6 +129,7 @@ export default {
     partnerDisconnected: 'Товарищ по команде отключился',
     hostDisconnectedPromoting: 'Хост отключился — становишься новым хостом…',
     hostDisconnected: 'Соединение с хостом потеряно',
+    shareInvite: 'Пригласить',
   },
   settings: {
     title: 'Настройки',
@@ -166,6 +169,15 @@ export default {
     importSuccess: 'Импорт успешен',
     importFailed: 'Импорт не удался',
     backupRestored: 'Резервная копия восстановлена',
+    linkCopied: 'Ссылка скопирована',
+  },
+  daily: {
+    streakBadge: '🔥 Серия {count} дней',
+  },
+  share: {
+    button: 'Поделиться',
+    dailyResult: 'Я решил ежедневную головоломку Coop Number Sums за {time}! 🔥 Серия {streak} дней. Присоединяйся: {url}',
+    coopInvite: 'Сыграй со мной в Coop Number Sums в кооперативном режиме! Код: {code} — {url}',
   },
   howto: {
     title: 'Как играть',

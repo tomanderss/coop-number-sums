@@ -25,6 +25,8 @@ export default {
     settings: 'Configurações',
     howto: 'Como jogar',
     changelog: 'Novidades',
+    dailyChallenge: 'Desafio diário',
+    dailyDone: 'Resolvido hoje ✓',
   },
   setup: {
     title: 'Novo jogo',
@@ -127,6 +129,7 @@ export default {
     partnerDisconnected: 'Parceiro desconectado',
     hostDisconnectedPromoting: 'Anfitrião desconectado — tornando-se o novo anfitrião…',
     hostDisconnected: 'Conexão com o anfitrião perdida',
+    shareInvite: 'Convidar',
   },
   settings: {
     title: 'Configurações',
@@ -166,6 +169,15 @@ export default {
     importSuccess: 'Importação bem-sucedida',
     importFailed: 'Falha na importação',
     backupRestored: 'Backup restaurado',
+    linkCopied: 'Link copiado',
+  },
+  daily: {
+    streakBadge: '🔥 Sequência de {count} dias',
+  },
+  share: {
+    button: 'Compartilhar',
+    dailyResult: 'Resolvi o desafio diário do Coop Number Sums em {time}! 🔥 Sequência de {streak} dias. Jogue também: {url}',
+    coopInvite: 'Jogue Coop Number Sums comigo no modo cooperativo! Código: {code} — {url}',
   },
   howto: {
     title: 'Como jogar',

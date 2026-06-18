@@ -25,6 +25,8 @@ export default {
     settings: '設定',
     howto: '遊び方',
     changelog: '更新履歴',
+    dailyChallenge: 'デイリーパズル',
+    dailyDone: '本日クリア済み ✓',
   },
   setup: {
     title: '新しいゲーム',
@@ -127,6 +129,7 @@ export default {
     partnerDisconnected: '仲間が切断されました',
     hostDisconnectedPromoting: 'ホストが切断されました — 新しいホストになっています…',
     hostDisconnected: 'ホストとの接続が切断されました',
+    shareInvite: '招待する',
   },
   settings: {
     title: '設定',
@@ -166,6 +169,15 @@ export default {
     importSuccess: 'インポートに成功しました',
     importFailed: 'インポートに失敗しました',
     backupRestored: 'バックアップを復元しました',
+    linkCopied: 'リンクをコピーしました',
+  },
+  daily: {
+    streakBadge: '🔥 {count}日連続',
+  },
+  share: {
+    button: '共有',
+    dailyResult: 'Coop Number Sumsのデイリーパズルを{time}で解きました！🔥 {streak}日連続。一緒にプレイしよう: {url}',
+    coopInvite: 'Coop Number Sumsを一緒にCoopモードで遊ぼう！コード: {code} — {url}',
   },
   howto: {
     title: '遊び方',

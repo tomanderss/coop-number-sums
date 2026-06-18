@@ -10,6 +10,7 @@ const KEYS = {
   STATS: 'cns_stats',
   BACKUP_SLOT: 'cns_bk_slot',
   SEEN_VERSION: 'cns_seen_version',
+  DAILY: 'cns_daily',
 };
 const BACKUP_COUNT = 3;
 const bk = (i) => `cns_bk_${i}`;
@@ -107,6 +108,32 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
 export function loadSeenVersion() { return load(KEYS.SEEN_VERSION, null); }
 export function saveSeenVersion(v) { save(KEYS.SEEN_VERSION, v); }
 
+// ─── Tagesrätsel-Streak ────────────────────────────────────────────────────────
+const EMPTY_DAILY = { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0 };
+export function loadDaily() { return { ...EMPTY_DAILY, ...load(KEYS.DAILY, {}) }; }
+export function saveDaily(d) { save(KEYS.DAILY, d); }
+
+function isNextCalendarDay(prevDateStr, dateStr) {
+  if (!prevDateStr) return false;
+  const prev = new Date(`${prevDateStr}T00:00:00`);
+  const cur = new Date(`${dateStr}T00:00:00`);
+  return Math.round((cur - prev) / 86400000) === 1;
+}
+
+// Wird nur bei einem GEWONNENEN Tagesrätsel aufgerufen. Idempotent: ein
+// erneutes Lösen desselben Tages (z.B. nach Neuladen der Seite) zählt den
+// Streak nicht doppelt.
+export function recordDailyResult(dateStr) {
+  const d = loadDaily();
+  if (d.lastCompletedDate === dateStr) return d;
+  d.currentStreak = isNextCalendarDay(d.lastCompletedDate, dateStr) ? d.currentStreak + 1 : 1;
+  d.bestStreak = Math.max(d.bestStreak, d.currentStreak);
+  d.lastCompletedDate = dateStr;
+  d.totalCompleted++;
+  saveDaily(d);
+  return d;
+}
+
 // ─── Rollende Backups (3 Slots) ───────────────────────────────────────────────
 let _lastBackupTs = 0;
 export function createBackup(label = 'auto') {
@@ -120,6 +147,7 @@ export function createBackup(label = 'auto') {
       settings: load(KEYS.SETTINGS, {}),
       activeGame: load(KEYS.ACTIVE_GAME, null),
       stats: load(KEYS.STATS, {}),
+      daily: load(KEYS.DAILY, {}),
     };
     localStorage.setItem(bk(slot), JSON.stringify(snapshot));
     localStorage.setItem(KEYS.BACKUP_SLOT, String((slot + 1) % BACKUP_COUNT));
@@ -144,6 +172,7 @@ export function restoreBackup(slotIdx) {
     const data = JSON.parse(raw);
     if (data.settings) save(KEYS.SETTINGS, data.settings);
     if (data.stats) save(KEYS.STATS, data.stats);
+    if (data.daily) save(KEYS.DAILY, data.daily);
     if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
     return true;
   } catch (e) { log('storage', `Backup-Slot ${slotIdx} wiederherstellen fehlgeschlagen`, e); return false; }
@@ -161,6 +190,7 @@ export async function exportToFile(type = 'manual') {
     settings: load(KEYS.SETTINGS, {}),
     activeGame: load(KEYS.ACTIVE_GAME, null),
     stats: load(KEYS.STATS, {}),
+    daily: load(KEYS.DAILY, {}),
   }, null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   if (navigator.canShare) {
@@ -181,6 +211,7 @@ export function importFromFile(jsonText) {
   const data = JSON.parse(jsonText);
   if (data.settings) save(KEYS.SETTINGS, data.settings);
   if (data.stats) save(KEYS.STATS, data.stats);
+  if (data.daily) save(KEYS.DAILY, data.daily);
   if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
   return data;
 }
@@ -192,6 +223,7 @@ export function deleteAllData() {
   remove(KEYS.STATS);
   remove(KEYS.SEEN_VERSION);
   remove(KEYS.BACKUP_SLOT);
+  remove(KEYS.DAILY);
   for (let i = 0; i < BACKUP_COUNT; i++) remove(bk(i));
   clearLog();
 }
