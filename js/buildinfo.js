@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.39';
-export const BUILD_HASH = '6f80af8';
+export const BUILD      = '0.40';
+export const BUILD_HASH = '9e686cc';
 
 export const CHANGELOG = [
+  {
+    "version": "0.40",
+    "date": "18.06.2026",
+    "changes": [
+      "CI eingerichtet: Tests laufen jetzt automatisch bei jedem Push/PR via GitHub Actions"
+    ]
+  },
   {
     "version": "0.39",
     "date": "18.06.2026",
