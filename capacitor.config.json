@@ -1,0 +1,8 @@
+{
+  "appId": "com.tomanderss.coopnumbersums",
+  "appName": "Coop Number Sums",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
