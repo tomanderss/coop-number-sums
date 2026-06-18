@@ -154,6 +154,11 @@ export default {
     autoBackups: '🗂 Sauvegardes automatiques',
     exportLog: '🐞 Exporter le journal de diagnostic',
     privacyPolicy: 'Politique de confidentialité',
+    imprint: 'Mentions légales',
+    deleteAllData: '🗑 Supprimer toutes les données locales',
+    deleteAllConfirmTitle: 'Supprimer toutes les données locales ?',
+    deleteAllConfirmMsg: 'Les paramètres, statistiques, la progression et les sauvegardes seront définitivement supprimés de cet appareil.',
+    deleteAllDone: 'Toutes les données locales supprimées',
     language: '🌐 Langue',
   },
   toast: {

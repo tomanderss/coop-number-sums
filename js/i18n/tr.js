@@ -154,6 +154,11 @@ export default {
     autoBackups: '🗂 Otomatik yedekler',
     exportLog: '🐞 Tanılama günlüğünü dışa aktar',
     privacyPolicy: 'Gizlilik Politikası',
+    imprint: 'Yasal Bilgiler',
+    deleteAllData: '🗑 Tüm yerel verileri sil',
+    deleteAllConfirmTitle: 'Tüm yerel veriler silinsin mi?',
+    deleteAllConfirmMsg: 'Ayarlar, istatistikler, ilerleme ve yedekler bu cihazdan kalıcı olarak silinecek.',
+    deleteAllDone: 'Tüm yerel veriler silindi',
     language: '🌐 Dil',
   },
   toast: {

@@ -154,6 +154,11 @@ export default {
     autoBackups: '🗂 자동 백업',
     exportLog: '🐞 진단 로그 내보내기',
     privacyPolicy: '개인정보처리방침',
+    imprint: '운영자 정보',
+    deleteAllData: '🗑 모든 로컬 데이터 삭제',
+    deleteAllConfirmTitle: '모든 로컬 데이터를 삭제할까요?',
+    deleteAllConfirmMsg: '설정, 통계, 진행 상황 및 백업이 이 기기에서 영구적으로 삭제됩니다.',
+    deleteAllDone: '모든 로컬 데이터가 삭제되었습니다',
     language: '🌐 언어',
   },
   toast: {

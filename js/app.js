@@ -8,7 +8,7 @@ import { log, exportLogToFile } from './debuglog.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
-  exportToFile, importFromFile,
+  exportToFile, importFromFile, deleteAllData,
 } from './storage.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
@@ -928,6 +928,13 @@ function resetStats() {
     localStorage.removeItem('cns_stats'); state.stats = loadStats(); showToast(t('stats.resetDone'), 'success');
   });
 }
+function doDeleteAllData() {
+  ask(t('settings.deleteAllConfirmTitle'), t('settings.deleteAllConfirmMsg'), () => {
+    deleteAllData();
+    state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applyLocale(); refreshResume();
+    showToast(t('settings.deleteAllDone'), 'success');
+  });
+}
 
 function ask(title, msg, onYes) { state.confirm = { title, msg, onYes }; state.modal = 'confirm'; }
 function confirmYes() { const f = state.confirm?.onYes; state.modal = null; state.confirm = null; if (f) f(); }
@@ -1034,7 +1041,7 @@ const App = {
       navigate, newGame, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
-      resetStats, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
+      resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause,
       cellClasses, cellStyle, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
@@ -1479,6 +1486,8 @@ const App = {
         <button class="btn btn-ghost" @click="openBackups">{{ t('settings.autoBackups') }}</button>
         <button class="btn btn-ghost" @click="doExportLog">{{ t('settings.exportLog') }}</button>
         <a class="btn btn-ghost" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
+        <a class="btn btn-ghost" href="./imprint.html" target="_blank" rel="noopener">{{ t('settings.imprint') }}</a>
+        <button class="btn btn-danger-ghost" @click="doDeleteAllData">{{ t('settings.deleteAllData') }}</button>
       </div>
     </section>
 

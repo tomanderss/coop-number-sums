@@ -2,7 +2,7 @@
 // Statistik, rollende Backups, Datei-Export/Import). Struktur analog werwolf-app.
 
 import { DEFAULT_SETTINGS } from './config.js';
-import { log } from './debuglog.js';
+import { log, clearLog } from './debuglog.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -183,6 +183,17 @@ export function importFromFile(jsonText) {
   if (data.stats) save(KEYS.STATS, data.stats);
   if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
   return data;
+}
+
+// ─── Alle lokalen Daten löschen ───────────────────────────────────────────────
+export function deleteAllData() {
+  remove(KEYS.SETTINGS);
+  remove(KEYS.ACTIVE_GAME);
+  remove(KEYS.STATS);
+  remove(KEYS.SEEN_VERSION);
+  remove(KEYS.BACKUP_SLOT);
+  for (let i = 0; i < BACKUP_COUNT; i++) remove(bk(i));
+  clearLog();
 }
 
 export function generateId() {
