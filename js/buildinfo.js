@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.33';
-export const BUILD_HASH = '2a213ef';
+export const BUILD      = '0.34';
+export const BUILD_HASH = 'c510909';
 
 export const CHANGELOG = [
+  {
+    "version": "0.34",
+    "date": "18.06.2026",
+    "changes": [
+      "Hochformat-Zwang: Rotations-Fix von <html> auf dedizierten Wrapper umgestellt (vorige Version griff in der Praxis nicht)"
+    ]
+  },
   {
     "version": "0.33",
     "date": "18.06.2026",

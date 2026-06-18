@@ -33,15 +33,17 @@
   </style>
 </head>
 <body>
-  <div id="splash">
-    <div id="splash-inner">
-      <img id="splash-logo" src="./icons/icon-192.png" alt="" />
-      <div id="splash-title">Coop Number Sums</div>
-      <div id="splash-version"></div>
+  <div id="rotate-fix">
+    <div id="splash">
+      <div id="splash-inner">
+        <img id="splash-logo" src="./icons/icon-192.png" alt="" />
+        <div id="splash-title">Coop Number Sums</div>
+        <div id="splash-version"></div>
+      </div>
     </div>
+    <div id="app"></div>
+    <div id="err" style="display:none;position:fixed;inset:0;background:#1a0000;color:#ff6b6b;padding:20px;font-family:monospace;font-size:13px;z-index:99999;overflow:auto;white-space:pre-wrap"></div>
   </div>
-  <div id="app"></div>
-  <div id="err" style="display:none;position:fixed;inset:0;background:#1a0000;color:#ff6b6b;padding:20px;font-family:monospace;font-size:13px;z-index:99999;overflow:auto;white-space:pre-wrap"></div>
   <script>
     // Best-effort echte OS-Sperre (wirkt nur im Standalone/Fullscreen-Kontext
     // auf unterstützten Browsern, z.B. installierte PWA unter Android-Chrome).
