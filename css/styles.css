@@ -326,7 +326,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .pause-time { font-size: 1.6rem; font-weight: 900; color: var(--accent2); font-variant-numeric: tabular-nums; }
 
 /* ─── Overlay / Result ─── */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; animation: fadein .25s; padding: 20px; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; animation: fadein .25s; padding: 20px; touch-action: none; overscroll-behavior: contain; }
 .result-card {
   background: var(--bg2); border-radius: 22px; padding: 28px 24px; width: 100%; max-width: 360px;
   text-align: center; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px var(--shadow);
@@ -395,7 +395,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .coop-chip { background: rgba(139,92,246,.16) !important; color: #8b5cf6 !important; }
 
 /* ─── Settings ─── */
-.set-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); padding: 14px 16px; border-radius: 12px; font-weight: 600; }
+.set-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); padding: 14px 16px; border-radius: 12px; font-weight: 600; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .set-row.col { flex-direction: column; align-items: stretch; gap: 10px; }
 .set-row-label { font-weight: 600; }
 .set-hint { color: var(--text3); font-size: .76rem; }
@@ -403,6 +403,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   width: 58px; height: 34px; border-radius: 999px; background: var(--bg3); position: relative;
   transition: background .2s, box-shadow .2s; flex-shrink: 0;
   box-shadow: inset 0 0 0 2px var(--grid);
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .switch i { position: absolute; top: 3px; left: 3px; width: 28px; height: 28px; border-radius: 50%; background: #fff; transition: transform .22s cubic-bezier(.3,1.2,.5,1); box-shadow: 0 2px 6px var(--shadow); }
 .switch.on { background: var(--accent); box-shadow: inset 0 0 0 2px var(--accent2); }
@@ -428,8 +429,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translate(-50%, 20px); }
 
 /* ─── Modal ─── */
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 90; padding: 18px; animation: fadein .2s; overflow-y: auto; }
-.modal { background: var(--bg2); border-radius: 22px; padding: 24px; width: 100%; max-width: 400px; max-height: 86vh; max-height: 86dvh; overflow: auto; box-shadow: 0 20px 60px var(--shadow); animation: pop .35s cubic-bezier(.2,1.3,.5,1); display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; }
+/* touch-action: none auf dem Backdrop verhindert, dass eine Wischgeste, die
+   auf dem abgedunkelten Hintergrund beginnt, überhaupt als Scroll-Geste
+   erkannt wird; overscroll-behavior: contain stoppt zusätzlich das
+   Scroll-Chaining, falls der Wisch auf der Scroll-Grenze des Modal-Inhalts
+   endet — sonst "rutscht" die dahinterliegende Seite sichtbar mit. */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 90; padding: 18px; animation: fadein .2s; overflow-y: auto; touch-action: none; overscroll-behavior: contain; }
+.modal { background: var(--bg2); border-radius: 22px; padding: 24px; width: 100%; max-width: 400px; max-height: 86vh; max-height: 86dvh; overflow: auto; box-shadow: 0 20px 60px var(--shadow); animation: pop .35s cubic-bezier(.2,1.3,.5,1); display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; touch-action: pan-y; overscroll-behavior: contain; }
 .modal-sm { max-width: 320px; }
 .modal h3 { margin: 0; font-size: 1.25rem; font-weight: 900; }
 .rules { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 9px; color: var(--text2); font-size: .92rem; line-height: 1.45; }
