@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.53';
-export const BUILD_HASH = '889ecac';
+export const BUILD      = '0.54';
+export const BUILD_HASH = '888c8ea';
 
 export const CHANGELOG = [
+  {
+    "version": "0.54",
+    "date": "19.06.2026",
+    "changes": [
+      "Versehentliches Scrollen der ganzen Seite beim Lösen eines Rätsels behoben — nur das gezoomte Spielfeld selbst lässt sich noch verschieben, wenn es nicht ganz passt.",
+      "Hintergrund hinter offenen Fenstern (z. B. Anleitung) bleibt jetzt zuverlässig stehen, auch beim Scrollen im Fenster selbst.",
+      "Tagesrätsel-Button auffälliger gestaltet, solange das heutige Rätsel noch nicht gelöst ist."
+    ]
+  },
   {
     "version": "0.53",
     "date": "19.06.2026",

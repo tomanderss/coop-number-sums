@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, solveActivePuzzle } from './helpers.js';
 
-// The daily-challenge button is a direct child of .home-actions, distinct
-// from the .btn-ghost buttons nested inside .home-grid (stats/settings/
-// howto/changelog).
-const dailyBtn = (page) => page.locator('.home-actions > .btn-ghost');
+// .daily-btn is a stable hook independent of the btn-ghost/btn-daily class
+// that toggles depending on whether today's puzzle is already completed.
+const dailyBtn = (page) => page.locator('.home-actions > .daily-btn');
 
 test.describe('daily challenge', () => {
   test('starts a puzzle restricted to the three easiest difficulties', async ({ page }) => {
