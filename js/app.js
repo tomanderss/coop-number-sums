@@ -1253,8 +1253,10 @@ const App = {
           </div>
         </div>
 
-        <!-- Werkzeug-Umschalter (Radierer / Stift) -->
-        <div class="toolbar">
+        <!-- Werkzeug-Umschalter (Radierer / Stift) — während der Lösungsanzeige
+             ausgeblendet, da Bearbeiten dort ohnehin nicht möglich/sinnvoll ist
+             und die Buttons sonst von der .review-bar verdeckt würden. -->
+        <div v-if="!state.solutionShown" class="toolbar">
           <button class="round-btn" :disabled="!state.history.length" @click="undo" :title="t('game.undoTitle')" :aria-label="t('game.undoTitle')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-4"/></svg>
           </button>
@@ -1271,7 +1273,7 @@ const App = {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5"/><path d="M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-4 11.6c.8.7 1.2 1.3 1.3 2.4h5.4c.1-1.1.5-1.7 1.3-2.4A6.5 6.5 0 0 0 12 2.5z"/></svg>
           </button>
         </div>
-        <div v-if="state.settings.errorReveal==='onCheck'" class="check-row">
+        <div v-if="!state.solutionShown && state.settings.errorReveal==='onCheck'" class="check-row">
           <button class="btn btn-primary btn-check" @click="doCheck()">{{ t('game.check') }}</button>
         </div>
       </template>
@@ -1367,10 +1369,12 @@ const App = {
       </div>
       <!-- Lösungsanzeige ist rein lokal (Punkt 4): "Zurück" bringt nur diesen
            Spieler zum Ergebnis-Dialog zurück, ohne den Partner zu beeinflussen. -->
-      <div v-if="state.solutionShown" class="review-bar">
-        <span>{{ state.status==='won' ? t('review.puzzle') : t('review.solution') }}</span>
-        <button class="btn btn-primary btn-sm" @click="state.solutionShown=false">{{ t('common.back') }}</button>
-      </div>
+      <transition name="toast">
+        <div v-if="state.solutionShown" class="review-bar">
+          <span>{{ state.status==='won' ? t('review.puzzle') : t('review.solution') }}</span>
+          <button class="btn btn-primary btn-sm" @click="state.solutionShown=false">{{ t('common.back') }}</button>
+        </div>
+      </transition>
 
       <!-- Confetti -->
       <div v-if="state.confetti.length" class="confetti">

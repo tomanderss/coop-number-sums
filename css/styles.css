@@ -351,7 +351,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .perf-bar { height: 5px; border-radius: 999px; background: var(--bg); overflow: hidden; }
 .perf-bar-fill { height: 100%; border-radius: 999px; }
 .perf-nums { display: flex; flex-wrap: wrap; gap: 8px; font-size: .72rem; color: var(--text2); }
-.review-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 540px; margin: 0 auto; padding: 12px 16px calc(env(safe-area-inset-bottom) + 12px); background: var(--bg2); display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -4px 20px var(--shadow); font-weight: 800; }
+/* Schwebende Pille statt randloser Balken (Punkt: "anorganisch", verdeckt
+   Buttons) — folgt demselben Muster wie .toast/.best-time-banner, damit sie
+   sich ins restliche App-Design einfügt. Der Toolbar wird beim Anzeigen der
+   Lösung ohnehin ausgeblendet (siehe app.js), daher reicht ein normaler
+   Toast-Abstand statt fester Pixel-Reserve für den Toolbar. */
+.review-bar {
+  position: fixed; bottom: calc(env(safe-area-inset-bottom) + 24px); left: 50%; transform: translateX(-50%);
+  max-width: calc(100% - 32px); background: var(--bg2); display: flex; align-items: center; gap: 14px;
+  padding: 10px 10px 10px 20px; border-radius: 999px; box-shadow: 0 8px 24px var(--shadow);
+  font-weight: 800; z-index: 80;
+}
 
 /* ─── Confetti ─── */
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
