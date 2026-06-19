@@ -1111,7 +1111,7 @@ const App = {
     };
   },
   template: `
-  <div class="app" :class="{ generating: state.generating }">
+  <div class="app" :class="{ generating: state.generating, 'modal-open': !!state.modal }">
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
@@ -1134,7 +1134,7 @@ const App = {
           <span class="btn-ic">👥</span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
           <span v-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
         </button>
-        <button class="btn btn-ghost" @click="startDailyGame">
+        <button class="btn daily-btn" :class="dailyDoneToday ? 'btn-ghost' : 'btn-daily'" @click="startDailyGame">
           <span class="btn-ic">📅</span>
           <span class="btn-tx"><b>{{ t('home.dailyChallenge') }}</b><small>{{ dailyDoneToday ? t('home.dailyDone') : t('difficulty.'+dailyInfo.difficulty) }}</small></span>
           <span v-if="state.daily.currentStreak>0" class="badge-soon">🔥{{ state.daily.currentStreak }}</span>

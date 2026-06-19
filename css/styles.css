@@ -43,6 +43,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    lassen) — sonst könnte z.B. ein gezoomtes Spielfeld die fixe Werkzeugleiste
    nach unten aus dem sichtbaren Bereich schieben. */
 .screen { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; animation: fadein .25s ease; }
+/* Der Spiel-Screen selbst darf nicht scrollen — nur das Spielfeld (.board-wrap)
+   ist bei Zoom pannbar. Ohne das konnte man beim Lösen versehentlich die ganze
+   Seite hoch/runter schieben, sobald Header+Werkzeugleiste+Brett zusammen
+   etwas höher als der Bildschirm waren. */
+.screen.game { overflow: hidden; }
+/* Solange ein Modal offen ist (z.B. Anleitung), darf der dahinterliegende
+   Screen nicht mitscrollen, auch wenn der Wisch auf dem Modal-Inhalt dessen
+   eigene Scroll-Grenze erreicht — overscroll-behavior/touch-action allein
+   reicht auf manchen mobilen WebViews nicht zuverlässig aus. */
+.app.modal-open > .screen { overflow: hidden; }
 @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 /* ─── Topbar ─── */
@@ -95,6 +105,19 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn-danger { background: var(--bad); color: #fff; }
 .btn-danger-ghost { background: var(--bg2); color: var(--bad); margin-top: 14px; }
 .btn-sm { padding: 8px 14px; font-size: .85rem; }
+/* Tagesrätsel-Button: nur solange er noch nicht erledigt ist auffällig/"spielerisch"
+   gestaltet (warmer Gradient + leichtes Pulsieren), damit man ihn nicht übersieht —
+   nach Abschluss fällt er zurück auf den neutralen .btn-ghost-Look. */
+.btn-daily {
+  background: linear-gradient(135deg, #f59e0b, #f97316); color: #1a1304;
+  box-shadow: 0 4px 18px rgba(249,115,22,.5);
+  animation: dailyglow 2.2s ease-in-out infinite;
+}
+.btn-daily .badge-soon { background: rgba(26,19,4,.2); color: #1a1304; }
+@keyframes dailyglow {
+  0%, 100% { box-shadow: 0 4px 18px rgba(249,115,22,.5); }
+  50% { box-shadow: 0 4px 26px rgba(249,115,22,.85); }
+}
 /* Fixe Icon-Spaltenbreite, damit unterschiedlich breite Emoji-Icons (z.B. 📡
    vs. 🔗) die Zentrierung des Buttons nicht sichtbar verschieben. */
 .btn .btn-ic { font-size: 1.3rem; width: 28px; flex-shrink: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
