@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.52';
-export const BUILD_HASH = '954efce';
+export const BUILD      = '0.53';
+export const BUILD_HASH = '889ecac';
 
 export const CHANGELOG = [
+  {
+    "version": "0.53",
+    "date": "19.06.2026",
+    "changes": [
+      "Design der Lösungsanzeige überarbeitet — sie verdeckt nicht mehr die Werkzeug-Buttons und fügt sich als schwebende Pille ins restliche App-Design ein."
+    ]
+  },
   {
     "version": "0.52",
     "date": "18.06.2026",
