@@ -16,8 +16,8 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 |---|---------|--------|--------|
 | 0 | ROADMAP.md (dieses Setup) | `claude/feat-roadmap` | ✅ fertig |
 | F6 | Barrierefreiheit (Farbenblind-Palette, ARIA, Tippflächen) | `claude/feat-a11y` | ✅ fertig |
-| F8 | Profanitätsfilter für Coop-Namen | `claude/feat-profanity` | ⬜ offen |
-| F10 | Eigene Rätselgröße/-schwierigkeit (Custom-Modus) | `claude/feat-custom-size` | ⬜ offen |
+| F8 | Profanitätsfilter für Coop-Namen | `claude/feat-profanity` | ✅ fertig |
+| F10 | Eigene Rätselgröße/-schwierigkeit (Custom-Modus) | `claude/feat-custom-size` | ✅ fertig |
 | F15 | Boss-Rätsel (wöchentliches Sudden-Death) | `claude/feat-boss` | ⬜ offen |
 | F3 | Replay/Verlauf gelöster Rätsel | `claude/feat-history` | ⬜ offen |
 | F1 | Achievements/Badges | `claude/feat-achievements` | ⬜ offen |
@@ -37,15 +37,27 @@ Reihenfolge und jedes einzelnen Features stehen im ursprünglichen Plan
 
 - **Aktueller Branch:** `master` (nächster Feature-Branch noch nicht
   angelegt)
-- **Letzter abgeschlossener Schritt:** Feature 6 (Barrierefreiheit)
-  vollständig: Farbenblind-Palette, ARIA-Labels + Tastaturbedienung für
-  Zellen, 44px-Tippflächen, Fokusring; i18n in allen 10 Sprachen ergänzt;
-  Unit- (85/85) und E2E-Tests (35/35) grün; PR #43 nach grünem CI nach
-  `master` gemerged (zusammen mit PR #42 ROADMAP.md-Setup).
-- **Nächster Schritt:** Branch `claude/feat-profanity` von `master`
-  anlegen und mit Feature 8 (Profanitätsfilter für Coop-Namen) beginnen
-  (siehe ursprünglicher Plan: neue Datei `js/profanity.js`, Hook in
-  `confirmCoopIdentity()` + Settings-`coopName`-Input).
+- **Letzter abgeschlossener Schritt:** Feature 10 (Custom-Modus)
+  vollständig: Setup-Screen-Tab Standard/Custom, frei wählbare quadratische
+  Rastergröße 6×6–11×11 (`CUSTOM_SIZES`, `state.sel.custom`/`customSize`),
+  Custom-Spiele bewusst von Streaks/Bestzeiten ausgeschlossen
+  (`state.isCustomGame`, gated `recordResult()`-Aufrufe in
+  `win()`/`lose()`/`giveUp()`), Tab im Coop-Modus ausgeblendet; i18n in
+  allen 10 Sprachen ergänzt; Unit- (89/89) und E2E-Tests (37/37, inkl. 2
+  neuer Tests in `test/e2e/custom.spec.js`) grün; PR #46 nach grünem CI
+  nach `master` gemerged. (Davor: Feature 8 (Profanitätsfilter für
+  Coop-Namen) — neue Datei `js/profanity.js`, Hook in
+  `confirmCoopIdentity()` + Settings-`coopName`-Input, PR #45 gemerged.)
+- **Nächster Schritt:** Branch `claude/feat-boss` von `master` anlegen und
+  mit Feature 15 (Boss-Rätsel) beginnen (siehe ursprünglicher Plan: neue
+  Datei `js/boss.js` analog `js/daily.js` mit eigener ISO-Kalenderwoche +
+  FNV-1a-Seed, rotierend über die 3 schwersten `DIFFICULTIES`; neuer
+  `KEYS.BOSS`-Storage-Key `{lastCompletedWeek, currentStreak, bestStreak,
+  totalCompleted}` analog `KEYS.DAILY`, Streak bricht bei Niederlage
+  **sofort** statt erst bei Wochen-Lücke; `state.isBossGame` mit fest
+  `maxLives=lives=1` unabhängig von `settings.livesEnabled`; eigener
+  Loss-Screen ohne Retry-Button; Home-Button + Stats-Sektion analog
+  Tagesrätsel; solo-only).
 
 ## Pro-Feature-Checkliste (Referenz)
 
