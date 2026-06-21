@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.54';
-export const BUILD_HASH = '888c8ea';
+export const BUILD      = '0.55';
+export const BUILD_HASH = 'edadd61';
 
 export const CHANGELOG = [
+  {
+    "version": "0.55",
+    "date": "21.06.2026",
+    "changes": [
+      "Fix: Die Streak des Tagesrätsels wurde nicht zurückgesetzt, wenn ein Kalendertag übersprungen wurde – sie blieb fälschlich bis zum nächsten gelösten Tagesrätsel stehen, statt sofort beim Öffnen der App zu reagieren."
+    ]
+  },
   {
     "version": "0.54",
     "date": "19.06.2026",

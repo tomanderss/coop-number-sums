@@ -3,6 +3,7 @@
 
 import { DEFAULT_SETTINGS } from './config.js';
 import { log, clearLog } from './debuglog.js';
+import { todayDateStr } from './daily.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -110,7 +111,21 @@ export function saveSeenVersion(v) { save(KEYS.SEEN_VERSION, v); }
 
 // ─── Tagesrätsel-Streak ────────────────────────────────────────────────────────
 const EMPTY_DAILY = { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0 };
-export function loadDaily() { return { ...EMPTY_DAILY, ...load(KEYS.DAILY, {}) }; }
+function loadRawDaily() { return { ...EMPTY_DAILY, ...load(KEYS.DAILY, {}) }; }
+
+// Ein Streak gilt nur als "noch lebendig", solange das letzte abgeschlossene
+// Tagesrätsel heute oder gestern war — wurde mindestens ein ganzer Kalendertag
+// ausgelassen, ist der Streak gerissen. recordDailyResult() würde das beim
+// nächsten Lösen zwar ohnehin korrekt auf 1 zurücksetzen, aber bis dahin zeigte
+// loadDaily() fälschlich noch den alten (bereits gerissenen) Streak an.
+export function loadDaily() {
+  const d = loadRawDaily();
+  const today = todayDateStr();
+  if (d.currentStreak > 0 && d.lastCompletedDate !== today && !isNextCalendarDay(d.lastCompletedDate, today)) {
+    d.currentStreak = 0;
+  }
+  return d;
+}
 export function saveDaily(d) { save(KEYS.DAILY, d); }
 
 function isNextCalendarDay(prevDateStr, dateStr) {
@@ -122,9 +137,11 @@ function isNextCalendarDay(prevDateStr, dateStr) {
 
 // Wird nur bei einem GEWONNENEN Tagesrätsel aufgerufen. Idempotent: ein
 // erneutes Lösen desselben Tages (z.B. nach Neuladen der Seite) zählt den
-// Streak nicht doppelt.
+// Streak nicht doppelt. Nutzt bewusst den rohen, ungekürzten Stand statt
+// loadDaily() — hier ist dateStr die maßgebliche "Quelle der Wahrheit" für
+// den aktuellen Tag, nicht die echte Systemzeit.
 export function recordDailyResult(dateStr) {
-  const d = loadDaily();
+  const d = loadRawDaily();
   if (d.lastCompletedDate === dateStr) return d;
   d.currentStreak = isNextCalendarDay(d.lastCompletedDate, dateStr) ? d.currentStreak + 1 : 1;
   d.bestStreak = Math.max(d.bestStreak, d.currentStreak);
