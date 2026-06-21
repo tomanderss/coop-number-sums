@@ -524,8 +524,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ─── Coop Farb-Kennzeichnung pro Zelle ─── */
 /* Eingekreist: Ring in Spieler-Farbe statt Standard-Akzent */
 .cell.kept.coop-mark::after { border-color: var(--markcol); }
-/* Gelöscht: Umrandung in Spieler-Farbe (einziger Hinweis, wer gelöscht hat, da Zahl ggf. verschwindet) */
-.cell.removed.coop-mark { box-shadow: inset 0 0 0 2px var(--markcol); }
+/* Gelöscht: Umrandung in Spieler-Farbe (einziger Hinweis, wer gelöscht hat, da Zahl ggf. verschwindet) —
+   per Einstellung settings.coopRemovedOutline abschaltbar, da das manche Spieler verwirrt. */
+.cell.removed.coop-mark-removed { box-shadow: inset 0 0 0 2px var(--markcol); }
 /* Hinweis behält seinen grünen Ring (höhere Spezifität gewinnt gegen die Regel
    oben), bekommt aber zusätzlich einen farbigen Rahmen, der zeigt, wer den
    Hinweis ausgelöst hat. */

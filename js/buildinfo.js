@@ -1,8 +1,18 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.56';
-export const BUILD_HASH = '2c6a611';
+export const BUILD      = '0.57';
+export const BUILD_HASH = '1f7909f';
 
 export const CHANGELOG = [
+  {
+    "version": "0.57",
+    "date": "21.06.2026",
+    "changes": [
+      "Coop: \"Nächstes Rätsel\" führt jetzt zur Schwierigkeitsauswahl statt automatisch dieselbe Schwierigkeit zu wiederholen",
+      "Neue Einstellung: farbige Umrandung an gelöschten Zellen im Coop-Modus ein-/ausschaltbar",
+      "Einstellungen: Coop-Bereich zusammengefasst (Name, Farbe, neue Umrandungs-Option)",
+      "Coop: Rätselstart zeigt jetzt eine \"Lobby\"-Ansicht mit Start-Button statt direkt als \"Pause\" zu erscheinen"
+    ]
+  },
   {
     "version": "0.56",
     "date": "21.06.2026",
