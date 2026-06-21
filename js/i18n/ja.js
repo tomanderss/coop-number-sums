@@ -31,6 +31,10 @@ export default {
   setup: {
     title: '新しいゲーム',
     start: 'スタート！🚀',
+    standardTab: '標準',
+    customTab: 'カスタムサイズ',
+    customSizeLabel: 'グリッドサイズ',
+    customHint: 'カスタムサイズはベストタイムや連続記録には反映されません。',
   },
   game: {
     loading: 'パズルを作成中…',

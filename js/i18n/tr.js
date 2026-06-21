@@ -31,6 +31,10 @@ export default {
   setup: {
     title: 'Yeni oyun',
     start: 'Hadi başlayalım! 🚀',
+    standardTab: 'Standart',
+    customTab: 'Özel boyut',
+    customSizeLabel: 'Izgara boyutu',
+    customHint: 'Özel boyutlar en iyi süreler veya seri sayımına dahil edilmez.',
   },
   game: {
     loading: 'Bulmaca oluşturuluyor…',

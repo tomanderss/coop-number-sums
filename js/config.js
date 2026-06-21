@@ -99,4 +99,11 @@ export const DEFAULT_SETTINGS = {
 // Standard-Spieloption (Start-Screen Vorauswahl)
 export const DEFAULT_GAME_OPTIONS = {
   difficulty: 'mittel',
+  custom: false,      // true, wenn im Setup-Screen "Eigene Größe" statt der festen Maße gewählt ist
+  customSize: 8,       // gewählte Kantenlänge (quadratisch) im Custom-Modus
 };
+
+// Wählbare Kantenlängen im Custom-Modus (quadratisch) — bewusst eng begrenzt,
+// damit der Solver-Budget-Retry-Loop in generator.js auch am oberen Ende
+// noch zuverlässig lösbare Rätsel findet.
+export const CUSTOM_SIZES = [6, 7, 8, 9, 10, 11];

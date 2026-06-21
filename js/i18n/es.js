@@ -31,6 +31,10 @@ export default {
   setup: {
     title: 'Nueva partida',
     start: '¡Vamos! 🚀',
+    standardTab: 'Estándar',
+    customTab: 'Tamaño personalizado',
+    customSizeLabel: 'Tamaño de la cuadrícula',
+    customHint: 'Los tamaños personalizados no cuentan para las mejores marcas ni las rachas.',
   },
   game: {
     loading: 'Creando puzzle…',

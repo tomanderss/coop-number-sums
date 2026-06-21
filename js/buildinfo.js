@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.60';
-export const BUILD_HASH = 'b5dfb46';
+export const BUILD      = '0.61';
+export const BUILD_HASH = '2b6f132';
 
 export const CHANGELOG = [
+  {
+    "version": "0.61",
+    "date": "21.06.2026",
+    "changes": [
+      "Eigene Rätselgröße: im Setup-Screen lässt sich jetzt eine quadratische Rastergröße von 6×6 bis 11×11 frei wählen (zählt nicht zu Streaks/Bestzeiten)"
+    ]
+  },
   {
     "version": "0.60",
     "date": "21.06.2026",

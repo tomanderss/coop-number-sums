@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, CUSTOM_SIZES, LIVES, HINTS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
 import { getDailyChallenge, todayDateStr } from './daily.js';
 import * as Coop from './coop.js';
@@ -29,6 +29,7 @@ const state = reactive({
   puzzle: null,
   isDailyGame: false,         // true, während das laufende Rätsel das Tagesrätsel ist
   dailyDateStr: null,         // Kalendertag, für den das laufende Tagesrätsel generiert wurde
+  isCustomGame: false,        // true, während das laufende Rätsel eine eigene (nicht in Stats gezählte) Größe hat
   marks: [],                 // 'none' | 'kept' | 'removed'
   cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint, hintMark }
   lives: 0, maxLives: 0,
@@ -211,17 +212,22 @@ function buildCellMeta(puzzle) {
 // ─── NEUES SPIEL ──────────────────────────────────────────────────────────────
 // In einer aktiven Coop-Session (als Host) wird das neue Rätsel an den Partner
 // gesendet, statt dass dieser selbst eines wählen müsste — die Lobby bleibt erhalten.
-function newGame(diffId) {
+function newGame(diffId, customDim) {
   state.isDailyGame = false;
   state.dailyDateStr = null;
+  // Custom-Größe ist bewusst auf Solo beschränkt (siehe Setup-Template, das den
+  // Tab dafür in aktiver Coop-Session ausblendet) — hier zusätzlich abgesichert,
+  // damit ein evtl. noch gesetztes state.sel.custom aus einer früheren Solo-
+  // Session den Coop-Host-Flow nicht verändert.
+  state.isCustomGame = !state.coop.active && !!customDim;
   state.generating = true;
   state.screen = 'game';
   // kurze Verzögerung, damit die Lade-Animation sichtbar wird (große Felder)
   setTimeout(() => {
-    log('game', `Puzzle-Generierung gestartet`, { difficulty: diffId });
+    log('game', `Puzzle-Generierung gestartet`, { difficulty: diffId, customDim });
     let puzzle;
     try {
-      puzzle = generatePuzzle({ difficulty: diffId });
+      puzzle = generatePuzzle(state.isCustomGame ? { difficulty: diffId, dim: customDim } : { difficulty: diffId });
     } catch (e) {
       log('game', `Puzzle-Generierung fehlgeschlagen`, e);
       throw e;
@@ -247,7 +253,7 @@ function goNextPuzzle() {
     state.sel.difficulty = state.puzzle.difficulty;
     navigate('setup');
   } else {
-    newGame(state.puzzle.difficulty);
+    newGame(state.puzzle.difficulty, state.isCustomGame ? { r: state.puzzle.rows, c: state.puzzle.cols } : undefined);
   }
 }
 
@@ -259,6 +265,7 @@ function startDailyGame() {
   const { dateStr, seed, difficulty } = getDailyChallenge();
   state.isDailyGame = true;
   state.dailyDateStr = dateStr;
+  state.isCustomGame = false;
   state.generating = true;
   state.screen = 'game';
   setTimeout(() => {
@@ -808,20 +815,28 @@ function win(remote) {
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
-  // Vergleich VOR recordResult() einfangen, da der Aufruf bestTimeMs/coopBestTimeMs
-  // bei einem tatsächlichen Highscore sofort überschreibt.
-  const prevBest = state.coop.active
-    ? state.stats.byDifficulty[state.puzzle.difficulty]?.coopBestTimeMs
-    : state.stats.byDifficulty[state.puzzle.difficulty]?.bestTimeMs;
-  const disqualified = state.mistakes > 0 || state.hintsUsed > 0;
-  state.wouldHaveBeenBest = disqualified && (prevBest == null || state.elapsed < prevBest);
-  const { stats, newHighscore } = recordResult({
-    difficulty: state.puzzle.difficulty, outcome: 'won',
-    timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
-    coop: state.coop.active,
-  });
-  state.stats = stats;
-  state.newHighscore = newHighscore;
+  // Custom-Rätsel (eigene Rastergröße) fließen bewusst nicht in die nach
+  // Schwierigkeit gebucketeten Streaks/Bestzeiten ein, da sie nicht mit den
+  // festen Standardmaßen vergleichbar sind.
+  if (state.isCustomGame) {
+    state.wouldHaveBeenBest = false;
+    state.newHighscore = false;
+  } else {
+    // Vergleich VOR recordResult() einfangen, da der Aufruf bestTimeMs/coopBestTimeMs
+    // bei einem tatsächlichen Highscore sofort überschreibt.
+    const prevBest = state.coop.active
+      ? state.stats.byDifficulty[state.puzzle.difficulty]?.coopBestTimeMs
+      : state.stats.byDifficulty[state.puzzle.difficulty]?.bestTimeMs;
+    const disqualified = state.mistakes > 0 || state.hintsUsed > 0;
+    state.wouldHaveBeenBest = disqualified && (prevBest == null || state.elapsed < prevBest);
+    const { stats, newHighscore } = recordResult({
+      difficulty: state.puzzle.difficulty, outcome: 'won',
+      timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+      coop: state.coop.active,
+    });
+    state.stats = stats;
+    state.newHighscore = newHighscore;
+  }
   if (state.isDailyGame) state.daily = recordDailyResult(state.dailyDateStr);
   saveActiveGame(null);
   if (state.coop.active && !remote) {
@@ -839,12 +854,14 @@ function lose(remote) {
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
-  const { stats } = recordResult({
-    difficulty: state.puzzle.difficulty, outcome: 'lost',
-    timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
-    coop: state.coop.active,
-  });
-  state.stats = stats;
+  if (!state.isCustomGame) {
+    const { stats } = recordResult({
+      difficulty: state.puzzle.difficulty, outcome: 'lost',
+      timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+      coop: state.coop.active,
+    });
+    state.stats = stats;
+  }
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -862,12 +879,14 @@ function giveUp(remote) {
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
-  const { stats } = recordResult({
-    difficulty: state.puzzle.difficulty, outcome: 'gaveup',
-    timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
-    coop: state.coop.active,
-  });
-  state.stats = stats;
+  if (!state.isCustomGame) {
+    const { stats } = recordResult({
+      difficulty: state.puzzle.difficulty, outcome: 'gaveup',
+      timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+      coop: state.coop.active,
+    });
+    state.stats = stats;
+  }
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -931,6 +950,7 @@ function activeSnapshot() {
     elapsed: state.elapsed, difficulty: state.puzzle.difficulty,
     hintMarks: collectHintMarks(),
     isDailyGame: state.isDailyGame, dailyDateStr: state.dailyDateStr,
+    isCustomGame: state.isCustomGame,
     ts: Date.now(),
   };
 }
@@ -950,6 +970,7 @@ function resumeGame() {
   if (!g) return;
   state.isDailyGame = !!g.isDailyGame;
   state.dailyDateStr = g.dailyDateStr || null;
+  state.isCustomGame = !!g.isCustomGame;
   navigate('game');
   loadPuzzleIntoState(g.puzzle, g);
   startTimer();
@@ -1143,7 +1164,7 @@ const App = {
     const dailyDoneToday = computed(() => state.daily.lastCompletedDate === dailyInfo.value.dateStr);
 
     return {
-      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID,
+      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, CUSTOM_SIZES,
       livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
       navigate, newGame, goNextPuzzle, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
@@ -1203,17 +1224,30 @@ const App = {
         <h2>{{ t('setup.title') }}</h2><span></span>
       </header>
       <div class="setup-body">
+        <div class="seg" v-if="!state.coop.active">
+          <button :class="{active: !state.sel.custom}" @click="state.sel.custom=false">{{ t('setup.standardTab') }}</button>
+          <button :class="{active: state.sel.custom}" @click="state.sel.custom=true">{{ t('setup.customTab') }}</button>
+        </div>
         <div class="setup-label">{{ t('common.difficulty') }}</div>
         <div class="option-grid">
           <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card" :class="{active: state.sel.difficulty===d.id}" @click="state.sel.difficulty=d.id">
             <span class="opt-emoji">{{ d.emoji }}</span>
             <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
-            <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="opt-best">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+            <span class="opt-desc">{{ (!state.coop.active && state.sel.custom) ? (state.sel.customSize+'×'+state.sel.customSize) : (d.dim.r+'×'+d.dim.c) }}</span>
+            <span v-if="!(!state.coop.active && state.sel.custom) && state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="opt-best">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
+            <span v-if="!(!state.coop.active && state.sel.custom) && state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
           </button>
         </div>
-        <button class="btn btn-primary btn-start" @click="newGame(state.sel.difficulty)">
+        <template v-if="!state.coop.active && state.sel.custom">
+          <div class="setup-label">{{ t('setup.customSizeLabel') }}</div>
+          <div class="option-grid">
+            <button v-for="n in CUSTOM_SIZES" :key="n" class="opt-card" :class="{active: state.sel.customSize===n}" @click="state.sel.customSize=n">
+              <span class="opt-name">{{ n }}×{{ n }}</span>
+            </button>
+          </div>
+          <small class="set-hint">{{ t('setup.customHint') }}</small>
+        </template>
+        <button class="btn btn-primary btn-start" @click="newGame(state.sel.difficulty, (!state.coop.active && state.sel.custom) ? { r: state.sel.customSize, c: state.sel.customSize } : undefined)">
           {{ t('setup.start') }}
         </button>
       </div>

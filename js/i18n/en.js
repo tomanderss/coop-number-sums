@@ -31,6 +31,10 @@ export default {
   setup: {
     title: 'New game',
     start: "Let's go! 🚀",
+    standardTab: 'Standard',
+    customTab: 'Custom size',
+    customSizeLabel: 'Grid size',
+    customHint: "Custom sizes don't count toward best times or streaks.",
   },
   game: {
     loading: 'Creating puzzle…',
