@@ -236,4 +236,7 @@ export default {
     cellRemoved: 'зачёркнуто',
     cellUnmarked: 'не отмечено',
   },
+  error: {
+    profanity: 'Пожалуйста, выберите другое имя.',
+  },
 };

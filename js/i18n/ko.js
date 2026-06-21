@@ -236,4 +236,7 @@ export default {
     cellRemoved: '취소선 표시됨',
     cellUnmarked: '표시 없음',
   },
+  error: {
+    profanity: '다른 이름을 선택해 주세요.',
+  },
 };

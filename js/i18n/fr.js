@@ -236,4 +236,7 @@ export default {
     cellRemoved: 'barrée',
     cellUnmarked: 'non marquée',
   },
+  error: {
+    profanity: 'Merci de choisir un autre nom.',
+  },
 };

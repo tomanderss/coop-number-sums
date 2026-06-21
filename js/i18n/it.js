@@ -236,4 +236,7 @@ export default {
     cellRemoved: 'cancellata',
     cellUnmarked: 'non segnata',
   },
+  error: {
+    profanity: 'Scegli un altro nome.',
+  },
 };
