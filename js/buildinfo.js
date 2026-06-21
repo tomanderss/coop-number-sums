@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.57';
-export const BUILD_HASH = '1f7909f';
+export const BUILD      = '0.58';
+export const BUILD_HASH = 'd8eaa2b';
 
 export const CHANGELOG = [
+  {
+    "version": "0.58",
+    "date": "21.06.2026",
+    "changes": [
+      "Coop: Namensbegrenzung von 16 auf 32 Zeichen verdoppelt, damit längere Namen nicht mehr beschnitten werden müssen."
+    ]
+  },
   {
     "version": "0.57",
     "date": "21.06.2026",

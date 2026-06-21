@@ -1473,7 +1473,7 @@ const App = {
            (jedes Mal erneut, aber mit dem zuletzt gespeicherten Namen vorbefüllt) -->
       <div v-if="!state.coop.identityConfirmed" class="coop-body">
         <p class="coop-tagline">{{ t('coop.identityPrompt') }}</p>
-        <input class="text-input" v-model="state.coop.nameDraft" maxlength="16" :placeholder="t('common.namePlaceholder')"
+        <input class="text-input" v-model="state.coop.nameDraft" maxlength="32" :placeholder="t('common.namePlaceholder')"
                @keydown.enter="confirmCoopIdentity" />
         <div class="setup-label">{{ t('coop.yourColor') }}</div>
         <div class="coop-swatches">
@@ -1587,7 +1587,7 @@ const App = {
         <div class="set-group-title">{{ t('settings.coop') }}</div>
         <div class="set-row col">
           <span class="set-row-label">{{ t('settings.displayName') }}</span>
-          <input class="text-input" v-model="state.settings.coopName" maxlength="16" :placeholder="t('common.namePlaceholder')" />
+          <input class="text-input" v-model="state.settings.coopName" maxlength="32" :placeholder="t('common.namePlaceholder')" />
         </div>
         <div class="set-row col">
           <span class="set-row-label">{{ t('settings.myColor') }}</span>
