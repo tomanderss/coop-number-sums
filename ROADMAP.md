@@ -18,7 +18,7 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 | F6 | Barrierefreiheit (Farbenblind-Palette, ARIA, Tippflächen) | `claude/feat-a11y` | ✅ fertig |
 | F8 | Profanitätsfilter für Coop-Namen | `claude/feat-profanity` | ✅ fertig |
 | F10 | Eigene Rätselgröße/-schwierigkeit (Custom-Modus) | `claude/feat-custom-size` | ✅ fertig |
-| F15 | Boss-Rätsel (wöchentliches Sudden-Death) | `claude/feat-boss` | ⬜ offen |
+| F15 | Boss-Rätsel (wöchentliches Sudden-Death) | `claude/feat-boss` | ✅ fertig |
 | F3 | Replay/Verlauf gelöster Rätsel | `claude/feat-history` | ⬜ offen |
 | F1 | Achievements/Badges | `claude/feat-achievements` | ⬜ offen |
 | F5 | Trainings-/Lernmodus | `claude/feat-training` | ⬜ offen |
@@ -37,27 +37,38 @@ Reihenfolge und jedes einzelnen Features stehen im ursprünglichen Plan
 
 - **Aktueller Branch:** `master` (nächster Feature-Branch noch nicht
   angelegt)
-- **Letzter abgeschlossener Schritt:** Feature 10 (Custom-Modus)
-  vollständig: Setup-Screen-Tab Standard/Custom, frei wählbare quadratische
-  Rastergröße 6×6–11×11 (`CUSTOM_SIZES`, `state.sel.custom`/`customSize`),
-  Custom-Spiele bewusst von Streaks/Bestzeiten ausgeschlossen
-  (`state.isCustomGame`, gated `recordResult()`-Aufrufe in
-  `win()`/`lose()`/`giveUp()`), Tab im Coop-Modus ausgeblendet; i18n in
-  allen 10 Sprachen ergänzt; Unit- (89/89) und E2E-Tests (37/37, inkl. 2
-  neuer Tests in `test/e2e/custom.spec.js`) grün; PR #46 nach grünem CI
-  nach `master` gemerged. (Davor: Feature 8 (Profanitätsfilter für
-  Coop-Namen) — neue Datei `js/profanity.js`, Hook in
-  `confirmCoopIdentity()` + Settings-`coopName`-Input, PR #45 gemerged.)
-- **Nächster Schritt:** Branch `claude/feat-boss` von `master` anlegen und
-  mit Feature 15 (Boss-Rätsel) beginnen (siehe ursprünglicher Plan: neue
-  Datei `js/boss.js` analog `js/daily.js` mit eigener ISO-Kalenderwoche +
-  FNV-1a-Seed, rotierend über die 3 schwersten `DIFFICULTIES`; neuer
-  `KEYS.BOSS`-Storage-Key `{lastCompletedWeek, currentStreak, bestStreak,
-  totalCompleted}` analog `KEYS.DAILY`, Streak bricht bei Niederlage
-  **sofort** statt erst bei Wochen-Lücke; `state.isBossGame` mit fest
-  `maxLives=lives=1` unabhängig von `settings.livesEnabled`; eigener
-  Loss-Screen ohne Retry-Button; Home-Button + Stats-Sektion analog
-  Tagesrätsel; solo-only).
+- **Letzter abgeschlossener Schritt:** Feature 15 (Boss-Rätsel)
+  vollständig: neue Datei `js/boss.js` (analog `js/daily.js`) mit eigener
+  `isoWeekStr()` (ISO-Kalenderwoche, Montag-Start, lokale Zeit) +
+  FNV-1a-Seed, rotierend über die 3 schwersten `DIFFICULTIES`
+  (`schwer`/`extrem`/`mashallah`); neuer `KEYS.BOSS`-Storage-Key
+  `{lastAttemptedWeek, lastCompletedWeek, currentStreak, bestStreak,
+  totalCompleted}` mit `recordBossWin()`/`recordBossLoss()` — Streak
+  bricht bei Niederlage **sofort** statt erst bei Wochen-Lücke; in allen
+  vier Backup/Export-Funktionen + `deleteAllData()` ergänzt;
+  `state.isBossGame` mit fest `maxLives=lives=1` unabhängig von
+  `settings.livesEnabled`; eigener `startBossGame()`; Loss-/Gaveup-Screen
+  ohne Retry-Button + Hinweistext "nächste Woche wieder versuchen";
+  Win-Screen mit Streak-Badge statt "nächstes Rätsel"-Button;
+  Home-Screen-Button analog Tagesrätsel mit Wochen-Status + Streak-Badge;
+  solo-only. i18n (`home.bossChallenge`/`bossDone`, `boss.streakBadge`/
+  `tryAgainNextWeek`) in allen 10 Sprachen ergänzt; Unit- (95/95) und
+  E2E-Tests (40/40, inkl. 3 neuer Tests in `test/e2e/boss.spec.js`) grün;
+  PR #48 nach grünem CI nach `master` gemerged. (Davor: Feature 10
+  (Custom-Modus) + ROADMAP-Update, PR #46/#47 gemerged.)
+- **Nächster Schritt:** Branch `claude/feat-history` von `master` anlegen
+  und mit Feature 3 (Replay/Verlauf gelöster Rätsel) beginnen (siehe
+  ursprünglicher Plan: kein Zug-Log vorhanden, daher v1 = Snapshot
+  abgeschlossener Rätsel statt zugweises Playback; neuer Storage-Key
+  `KEYS.HISTORY` = Ringpuffer (z.B. letzte 20) mit `{difficulty, dim,
+  seed, marks, timeMs, outcome, ts}` — Seed statt vollem Puzzle
+  gespeichert, `generatePuzzle({difficulty, seed, dim})` reproduziert das
+  exakte Rätsel; neue Funktion `recordHistory()` in storage.js, aufgerufen
+  in `win()/lose()/giveUp()`; `KEYS.HISTORY` in alle vier Backup/Export-
+  Funktionen + `deleteAllData()` eintragen; neuer "history"-Screen
+  (`state.screen`, `navigate()`) mit Liste gelöster Rätsel →
+  Endboard/Lösung ansehen oder per Seed erneut spielen; i18n
+  `history.*`).
 
 ## Pro-Feature-Checkliste (Referenz)
 
