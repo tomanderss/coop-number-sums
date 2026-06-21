@@ -29,6 +29,7 @@ export default {
     dailyDone: 'Heute schon gelöst ✓',
     bossChallenge: 'Boss-Rätsel',
     bossDone: 'Diese Woche schon versucht',
+    history: 'Verlauf',
   },
   setup: {
     title: 'Neues Spiel',
@@ -191,6 +192,17 @@ export default {
   boss: {
     streakBadge: '🔥 {count} Wochen Streak',
     tryAgainNextWeek: 'Nächste Woche wieder versuchen',
+  },
+  history: {
+    title: 'Verlauf',
+    empty: 'Noch keine gelösten Rätsel.',
+    view: 'Ansehen',
+    replay: 'Erneut spielen',
+    outcome: {
+      won: 'Gelöst',
+      lost: 'Verloren',
+      gaveup: 'Aufgegeben',
+    },
   },
   share: {
     button: 'Teilen',

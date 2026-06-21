@@ -29,6 +29,7 @@ export default {
     dailyDone: 'Risolta oggi ✓',
     bossChallenge: 'Sfida del boss',
     bossDone: 'Già tentata questa settimana',
+    history: 'Cronologia',
   },
   setup: {
     title: 'Nuova partita',
@@ -191,6 +192,17 @@ export default {
   boss: {
     streakBadge: '🔥 Serie di {count} settimane',
     tryAgainNextWeek: 'Riprova la prossima settimana',
+  },
+  history: {
+    title: 'Cronologia',
+    empty: 'Ancora nessun puzzle risolto.',
+    view: 'Visualizza',
+    replay: 'Rigioca',
+    outcome: {
+      won: 'Risolto',
+      lost: 'Perso',
+      gaveup: 'Abbandonato',
+    },
   },
   share: {
     button: 'Condividi',

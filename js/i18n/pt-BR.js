@@ -29,6 +29,7 @@ export default {
     dailyDone: 'Resolvido hoje ✓',
     bossChallenge: 'Desafio do chefão',
     bossDone: 'Já tentado esta semana',
+    history: 'Histórico',
   },
   setup: {
     title: 'Novo jogo',
@@ -191,6 +192,17 @@ export default {
   boss: {
     streakBadge: '🔥 Sequência de {count} semanas',
     tryAgainNextWeek: 'Tente novamente na próxima semana',
+  },
+  history: {
+    title: 'Histórico',
+    empty: 'Ainda não há quebra-cabeças resolvidos.',
+    view: 'Ver',
+    replay: 'Jogar novamente',
+    outcome: {
+      won: 'Resolvido',
+      lost: 'Perdido',
+      gaveup: 'Desistiu',
+    },
   },
   share: {
     button: 'Compartilhar',

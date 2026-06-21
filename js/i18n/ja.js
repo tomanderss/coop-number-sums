@@ -29,6 +29,7 @@ export default {
     dailyDone: '本日クリア済み ✓',
     bossChallenge: 'ボスパズル',
     bossDone: '今週は挑戦済み',
+    history: '履歴',
   },
   setup: {
     title: '新しいゲーム',
@@ -191,6 +192,17 @@ export default {
   boss: {
     streakBadge: '🔥 {count}週連続',
     tryAgainNextWeek: '来週またチャレンジしよう',
+  },
+  history: {
+    title: '履歴',
+    empty: 'まだクリアしたパズルはありません。',
+    view: '見る',
+    replay: 'もう一度プレイ',
+    outcome: {
+      won: 'クリア',
+      lost: '失敗',
+      gaveup: 'ギブアップ',
+    },
   },
   share: {
     button: '共有',

@@ -13,7 +13,9 @@ const KEYS = {
   SEEN_VERSION: 'cns_seen_version',
   DAILY: 'cns_daily',
   BOSS: 'cns_boss',
+  HISTORY: 'cns_history',
 };
+const HISTORY_MAX = 20;
 const BACKUP_COUNT = 3;
 const bk = (i) => `cns_bk_${i}`;
 
@@ -183,6 +185,20 @@ export function recordDailyResult(dateStr) {
   return d;
 }
 
+// ─── Verlauf gelöster Rätsel (Ringpuffer, neueste zuerst) ─────────────────────
+// Speichert je Partie den Seed statt des vollen Puzzles — generatePuzzle({
+// difficulty, seed, dim }) reproduziert das exakte Rätsel für "erneut spielen".
+// marks ist der Endstand (für "Endboard ansehen"), keine Zugfolge (kein
+// zugweises Playback in v1, siehe ROADMAP/Plan).
+export function loadHistory() { return load(KEYS.HISTORY, []); }
+export function recordHistory(entry) {
+  const h = loadHistory();
+  h.unshift({ ...entry, ts: Date.now() });
+  if (h.length > HISTORY_MAX) h.length = HISTORY_MAX;
+  save(KEYS.HISTORY, h);
+  return h;
+}
+
 // ─── Rollende Backups (3 Slots) ───────────────────────────────────────────────
 let _lastBackupTs = 0;
 export function createBackup(label = 'auto') {
@@ -198,6 +214,7 @@ export function createBackup(label = 'auto') {
       stats: load(KEYS.STATS, {}),
       daily: load(KEYS.DAILY, {}),
       boss: load(KEYS.BOSS, {}),
+      history: load(KEYS.HISTORY, []),
     };
     localStorage.setItem(bk(slot), JSON.stringify(snapshot));
     localStorage.setItem(KEYS.BACKUP_SLOT, String((slot + 1) % BACKUP_COUNT));
@@ -224,6 +241,7 @@ export function restoreBackup(slotIdx) {
     if (data.stats) save(KEYS.STATS, data.stats);
     if (data.daily) save(KEYS.DAILY, data.daily);
     if (data.boss) save(KEYS.BOSS, data.boss);
+    if (data.history) save(KEYS.HISTORY, data.history);
     if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
     return true;
   } catch (e) { log('storage', `Backup-Slot ${slotIdx} wiederherstellen fehlgeschlagen`, e); return false; }
@@ -243,6 +261,7 @@ export async function exportToFile(type = 'manual') {
     stats: load(KEYS.STATS, {}),
     daily: load(KEYS.DAILY, {}),
     boss: load(KEYS.BOSS, {}),
+    history: load(KEYS.HISTORY, []),
   }, null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   if (navigator.canShare) {
@@ -265,6 +284,7 @@ export function importFromFile(jsonText) {
   if (data.stats) save(KEYS.STATS, data.stats);
   if (data.daily) save(KEYS.DAILY, data.daily);
   if (data.boss) save(KEYS.BOSS, data.boss);
+  if (data.history) save(KEYS.HISTORY, data.history);
   if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
   return data;
 }
@@ -278,6 +298,7 @@ export function deleteAllData() {
   remove(KEYS.BACKUP_SLOT);
   remove(KEYS.DAILY);
   remove(KEYS.BOSS);
+  remove(KEYS.HISTORY);
   for (let i = 0; i < BACKUP_COUNT; i++) remove(bk(i));
   clearLog();
 }
