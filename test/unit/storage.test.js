@@ -18,6 +18,7 @@ const {
   loadDaily, recordDailyResult,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
+const { todayDateStr } = await import('../../js/daily.js');
 
 describe('storage.settings', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });
@@ -196,6 +197,21 @@ describe('storage.recordDailyResult', () => {
     const d = recordDailyResult('2026-06-18');
     assert.equal(d.currentStreak, 1);
     assert.equal(d.totalCompleted, 1);
+  });
+
+  test('loadDaily resets a stale streak once a day was skipped, without waiting for the next completion', () => {
+    recordDailyResult('2026-06-18'); // long in the past relative to any real "today" this test runs on
+    const d = loadDaily();
+    assert.equal(d.currentStreak, 0);
+    assert.equal(d.bestStreak, 1);
+    assert.equal(d.totalCompleted, 1);
+    assert.equal(d.lastCompletedDate, '2026-06-18');
+  });
+
+  test('loadDaily keeps a streak alive when the last completion was today', () => {
+    recordDailyResult(todayDateStr());
+    const d = loadDaily();
+    assert.equal(d.currentStreak, 1);
   });
 });
 
