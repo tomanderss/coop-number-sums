@@ -66,6 +66,21 @@ export const COOP_COLORS = [
   { id: 'koralle',    name: 'Koralle',  hex: '#fb7185' },
 ];
 
+// Farbenblind-sichere Variante (angelehnt an die Okabe-Ito-/Wong-Palette) —
+// ebenfalls ohne Grün (= Hinweis-Farbe) und ohne Rot (= Fehler-Farbe), aber
+// mit größerem Mindestabstand der Farbtöne für Personen mit Rot-Grün- oder
+// Blau-Gelb-Sehschwäche. Aktiv, wenn settings.colorBlindMode === true.
+export const COOP_COLORS_CB = [
+  { id: 'blau',      name: 'Blau',      hex: '#0072B2' },
+  { id: 'orange',    name: 'Orange',    hex: '#E69F00' },
+  { id: 'himmelblau',name: 'Himmelblau',hex: '#56B4E9' },
+  { id: 'gelb',      name: 'Gelb',      hex: '#F0E442' },
+  { id: 'magenta',   name: 'Magenta',   hex: '#CC79A7' },
+  { id: 'graublau',  name: 'Graublau',  hex: '#5C6BC0' },
+  { id: 'braun',     name: 'Braun',     hex: '#8B5A2B' },
+  { id: 'violett',   name: 'Violett',   hex: '#7B5EA7' },
+];
+
 // ─── STANDARD-EINSTELLUNGEN ───────────────────────────────────────────────────
 export const DEFAULT_SETTINGS = {
   darkMode: true,            // Dunkelmodus ist Standard
@@ -78,6 +93,7 @@ export const DEFAULT_SETTINGS = {
   coopMyColor: '#3b82f6',    // eigene Spielerfarbe im Coop-Modus (Default: Blau)
   coopRemovedOutline: true,  // farbige Umrandung an gelöschten Zellen, die zeigt, wer sie gelöscht hat (rein optisch)
   language: null,           // UI-Sprache; null = noch nicht erkannt/gewählt -> Auto-Detect via navigator.language
+  colorBlindMode: false,    // farbenblind-sichere Coop-Spielerpalette (COOP_COLORS_CB) statt der Standardpalette
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)

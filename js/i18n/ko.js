@@ -150,6 +150,9 @@ export default {
     livesEnabled: '❤️ 목숨 / 오류 제한',
     misc: '기타',
     showTimer: '⏱ 타이머 표시',
+    a11y: '접근성',
+    colorBlindMode: '🎨 색맹 친화적 협동 색상',
+    colorBlindModeHint: '적록/청황 색각 이상을 위해 더 높은 대비의 플레이어 색상 팔레트를 사용합니다.',
     coop: '협동',
     displayName: '표시 이름',
     myColor: '내 색상',
@@ -226,5 +229,11 @@ export default {
     schwer: '어려움',
     extrem: '매우 어려움',
     mashallah: '마샬라',
+  },
+  a11y: {
+    cellLabel: '{row}행 {col}열, 값 {value}, {status}',
+    cellKept: '동그라미 표시됨',
+    cellRemoved: '취소선 표시됨',
+    cellUnmarked: '표시 없음',
   },
 };

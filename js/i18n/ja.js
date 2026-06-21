@@ -150,6 +150,9 @@ export default {
     livesEnabled: '❤️ ライフ／ミス制限',
     misc: 'その他',
     showTimer: '⏱ タイマーを表示',
+    a11y: 'アクセシビリティ',
+    colorBlindMode: '🎨 色覚に配慮したCoopカラー',
+    colorBlindModeHint: '赤緑・青黄色覚異常向けに、よりコントラストの高いプレイヤーカラーパレットを使用します。',
     coop: 'Coop',
     displayName: '表示名',
     myColor: '自分の色',
@@ -226,5 +229,11 @@ export default {
     schwer: '難しい',
     extrem: '超難しい',
     mashallah: 'マシャアッラー',
+  },
+  a11y: {
+    cellLabel: '{row}行目、{col}列目、値{value}、{status}',
+    cellKept: '丸で囲まれています',
+    cellRemoved: '消されています',
+    cellUnmarked: '未マーク',
   },
 };

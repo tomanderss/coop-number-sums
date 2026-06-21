@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, DEFAULT_GAME_OPTIONS, LIVES, HINTS } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
 import { getDailyChallenge, todayDateStr } from './daily.js';
 import * as Coop from './coop.js';
@@ -637,10 +637,11 @@ function coopReset() {
 // verteilt das Ergebnis per ROSTER an alle. Eigene Wunschfarbe bleibt dabei in den
 // Einstellungen unangetastet; reassignte Farben gelten nur für die laufende Session.
 function normHex(h) { return (h || '').toLowerCase(); }
+function activeCoopPalette() { return state.settings.colorBlindMode ? COOP_COLORS_CB : COOP_COLORS; }
 function pickAvailableColor(requested, others) {
   const used = new Set(others.map(p => normHex(p.color)));
   if (requested && !used.has(normHex(requested))) return requested;
-  const free = COOP_COLORS.find(c => !used.has(normHex(c.hex)));
+  const free = activeCoopPalette().find(c => !used.has(normHex(c.hex)));
   if (free) return free.hex;
   // Palette erschöpft (mehr Spieler als vordefinierte Farben): per Goldwinkel-
   // Rotation eine weitere, praktisch garantiert eindeutige Farbe erzeugen.
@@ -1138,7 +1139,7 @@ const App = {
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause, startCoopRound,
-      cellClasses, cellStyle, toggleTool, restartFromGame,
+      cellClasses, cellStyle, cellAriaLabel, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
@@ -1274,7 +1275,10 @@ const App = {
               </div>
               <div v-for="c in state.puzzle.cols" :key="r+'-'+c"
                    class="cell" :class="cellClasses(r-1,c-1)" :style="cellStyle(r-1,c-1)"
+                   role="button" tabindex="0" :aria-label="cellAriaLabel(r-1,c-1)"
                    @click="onCellTap(r-1,c-1)"
+                   @keydown.enter.prevent="onCellTap(r-1,c-1)"
+                   @keydown.space.prevent="onCellTap(r-1,c-1)"
                    @pointerdown="onCellPointerDown($event,r-1,c-1)"
                    @pointermove="onCellPointerMove($event)"
                    @pointerup="onCellPointerCancel"
@@ -1584,6 +1588,12 @@ const App = {
           <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
         </div>
 
+        <div class="set-group-title">{{ t('settings.a11y') }}</div>
+        <div class="set-row" @click="toggleSetting('colorBlindMode')">
+          <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
+        </div>
+        <small class="set-hint">{{ t('settings.colorBlindModeHint') }}</small>
+
         <div class="set-group-title">{{ t('settings.coop') }}</div>
         <div class="set-row col">
           <span class="set-row-label">{{ t('settings.displayName') }}</span>
@@ -1725,6 +1735,11 @@ function pulseEdges(r, c) {
   return { t, b, l, r: rr };
 }
 
+function cellAriaLabel(r, c) {
+  const mk = state.marks[r][c];
+  const status = mk === 'kept' ? t('a11y.cellKept') : mk === 'removed' ? t('a11y.cellRemoved') : t('a11y.cellUnmarked');
+  return t('a11y.cellLabel', { row: r + 1, col: c + 1, value: state.puzzle.values[r][c], status });
+}
 function cellClasses(r, c) {
   const m = state.cellMeta[r][c];
   const mk = state.marks[r][c];

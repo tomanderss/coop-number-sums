@@ -150,6 +150,9 @@ export default {
     livesEnabled: '❤️ Leben / Fehler-Limit',
     misc: 'Sonstiges',
     showTimer: '⏱ Timer anzeigen',
+    a11y: 'Barrierefreiheit',
+    colorBlindMode: '🎨 Farbenblind-sichere Coop-Farben',
+    colorBlindModeHint: 'Verwendet eine Spielerfarbpalette mit größerem Kontrast für Rot-Grün-/Blau-Gelb-Sehschwäche.',
     coop: 'Coop',
     displayName: 'Anzeigename',
     myColor: 'Meine Farbe',
@@ -226,5 +229,11 @@ export default {
     schwer: 'Schwer',
     extrem: 'Extrem',
     mashallah: 'Mashallah',
+  },
+  a11y: {
+    cellLabel: 'Zeile {row}, Spalte {col}, Wert {value}, {status}',
+    cellKept: 'eingekreist',
+    cellRemoved: 'gelöscht',
+    cellUnmarked: 'unmarkiert',
   },
 };

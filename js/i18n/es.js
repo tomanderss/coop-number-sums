@@ -150,6 +150,9 @@ export default {
     livesEnabled: '❤️ Vidas / límite de errores',
     misc: 'Otros',
     showTimer: '⏱ Mostrar temporizador',
+    a11y: 'Accesibilidad',
+    colorBlindMode: '🎨 Colores cooperativos aptos para daltónicos',
+    colorBlindModeHint: 'Usa una paleta de colores de jugador con más contraste para la discapacidad visual rojo-verde/azul-amarillo.',
     coop: 'Cooperativo',
     displayName: 'Nombre visible',
     myColor: 'Mi color',
@@ -226,5 +229,11 @@ export default {
     schwer: 'Difícil',
     extrem: 'Extremo',
     mashallah: 'Mashallah',
+  },
+  a11y: {
+    cellLabel: 'Fila {row}, columna {col}, valor {value}, {status}',
+    cellKept: 'marcada',
+    cellRemoved: 'eliminada',
+    cellUnmarked: 'sin marcar',
   },
 };
