@@ -68,6 +68,7 @@ const state = reactive({
     identityConfirmed: false,   // true sobald das Namens-Gate in dieser Coop-Session bestätigt wurde
     lifeLossBy: [],              // chronologisch: wer hat welches (gemeinsame) Leben verbraucht
     mistakesByPlayer: {},        // id -> Anzahl Fehler dieses Spielers im laufenden Rätsel
+    awaitingStart: false,        // Rätsel ist generiert, aber die Zeit läuft noch nicht — wartet auf Start-Klick
   },
 
   // UI
@@ -133,7 +134,7 @@ function navigate(screen) {
 // ─── TIMER ────────────────────────────────────────────────────────────────────
 function startTimer() {
   stopTimer();
-  if (state.status !== 'playing' || state.paused) return;
+  if (state.status !== 'playing' || state.paused || state.coop.awaitingStart) return;
   timerHandle = setInterval(() => {
     state.elapsed = Date.now() - state.startTime;
   }, 250);
@@ -147,7 +148,7 @@ function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandl
 // "Nachricht angekommen" dazu führen, dass beide Seiten eine leicht andere Zeit
 // einfrieren (der gemeldete ca. 1-Sekunden-Unterschied).
 function pauseGame(broadcast = true, remoteElapsed) {
-  if (state.status !== 'playing' || state.paused) return;
+  if (state.status !== 'playing' || state.paused || state.coop.awaitingStart) return;
   state.paused = true;
   state.elapsed = remoteElapsed != null ? remoteElapsed : Date.now() - state.startTime; // einfrieren
   stopTimer();
@@ -159,6 +160,23 @@ function resumeFromPause(broadcast = true) {
   state.startTime = Date.now() - state.elapsed; // Zeit fortsetzen
   startTimer();
   if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: false });
+}
+
+// ─── COOP-LOBBY: "Bereit?" vor dem eigentlichen Start ─────────────────────────
+// Ein frisch generiertes Coop-Rätsel zeigt zunächst nur die Lobby ("Mitspieler
+// sind da, Zeit läuft noch nicht") statt sofort loszulaufen — wer auch immer
+// zuerst auf "Starten" tippt, legt den gemeinsamen Startzeitpunkt fest.
+function startCoopGame(startTime) {
+  state.coop.awaitingStart = false;
+  state.elapsed = 0;
+  state.startTime = startTime;
+  startTimer();
+}
+function startCoopRound() {
+  if (!state.coop.awaitingStart) return;
+  const startTime = Date.now();
+  startCoopGame(startTime);
+  coopSend({ type: Coop.MSG.START, startTime });
 }
 
 // ─── ZELLEN-METADATEN (Regionen, Ränder, Chips) ───────────────────────────────
@@ -210,11 +228,26 @@ function newGame(diffId) {
     log('game', `Puzzle generiert`, { difficulty: diffId, rows: puzzle.rows, cols: puzzle.cols });
     loadPuzzleIntoState(puzzle, null);
     state.generating = false;
-    startTimer();
     if (state.coop.active && state.coop.role === 'host') {
+      state.coop.awaitingStart = true;
+      startTimer();
       coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+    } else {
+      startTimer();
     }
   }, 30);
+}
+
+// Gewonnenes Coop-Rätsel → statt direkt erneut derselben Schwierigkeit (wie im
+// Solo-Modus) zur Schwierigkeitsauswahl, vorbefüllt mit der zuletzt gespielten —
+// der Host kann so für die nächste Runde bewusst eine andere Schwierigkeit wählen.
+function goNextPuzzle() {
+  if (state.coop.active && state.coop.role === 'host') {
+    state.sel.difficulty = state.puzzle.difficulty;
+    navigate('setup');
+  } else {
+    newGame(state.puzzle.difficulty);
+  }
 }
 
 // Tagesrätsel: deterministisch aus dem Kalendertag abgeleitet (gleicher Seed +
@@ -566,7 +599,10 @@ function handleCoopMsg(msg) {
     state.coop.active = true;
     state.coop.connected = true;
     state.coop.waitingForGuest = false;
+    state.coop.awaitingStart = true;
     navigate('game');
+  } else if (msg.type === Coop.MSG.START) {
+    if (state.coop.awaitingStart) startCoopGame(msg.startTime);
   } else if (msg.type === Coop.MSG.STATUS) {
     const remote = { timeMs: msg.timeMs, mistakes: msg.mistakes, hintsUsed: msg.hintsUsed };
     if (msg.status === 'won') win(remote);
@@ -593,7 +629,7 @@ function coopReset() {
   state.coop.active = false; state.coop.role = null; state.coop.code = '';
   state.coop.connected = false; state.coop.waitingForGuest = false;
   state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
-  state.coop.myId = null; state.coop.players = [];
+  state.coop.myId = null; state.coop.players = []; state.coop.awaitingStart = false;
 }
 
 // ─── SPIELER-IDENTITÄT (Namen & Farben) ────────────────────────────────────────
@@ -690,6 +726,7 @@ function startHosting() {
       state.coop.active = true;
       state.coop.connected = true;
       state.coop.waitingForGuest = false;
+      state.coop.awaitingStart = true;
       navigate('game');
       Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
       showToast(t('coop.partnerConnected'));
@@ -1096,11 +1133,11 @@ const App = {
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID,
       livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
-      navigate, newGame, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
+      navigate, newGame, goNextPuzzle, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
-      revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause,
+      revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause, startCoopRound,
       cellClasses, cellStyle, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
@@ -1184,7 +1221,7 @@ const App = {
           <div class="hud-item timer" v-if="state.settings.showTimer">⏱ {{ fmtTime(state.elapsed) }}</div>
         </div>
         <div class="top-actions">
-          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="pauseGame" :title="t('game.pauseTitle')">
+          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing' && !state.coop.awaitingStart" @click="pauseGame" :title="t('game.pauseTitle')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
           </button>
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="ask(t('game.giveUpConfirmTitle'), t('game.giveUpConfirmMsg'), giveUp)" :title="t('game.giveUpTitle')">
@@ -1219,7 +1256,7 @@ const App = {
           </span>
         </div>
 
-        <div class="board-wrap" :class="{ blurred: state.paused }">
+        <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
           <div class="board" :style="gridStyle">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolved(c-1), pulse: state.justResolved['col-'+(c-1)]}">
@@ -1276,6 +1313,17 @@ const App = {
         </div>
       </template>
 
+      <!-- Coop-Lobby: Rätsel ist da, Zeit läuft erst nach "Starten" -->
+      <div v-if="state.coop.awaitingStart" class="overlay coop-lobby-overlay">
+        <div class="result-card">
+          <div class="result-emoji">👥</div>
+          <h2>{{ t('coop.lobbyTitle') }}</h2>
+          <p class="result-msg">{{ t('coop.lobbyMsg') }}</p>
+          <button class="btn btn-primary" @click="startCoopRound">{{ t('coop.lobbyStart') }}</button>
+          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
+        </div>
+      </div>
+
       <!-- Pause -->
       <div v-if="state.paused" class="overlay pause-overlay">
         <div class="result-card">
@@ -1322,7 +1370,7 @@ const App = {
           </div>
           <div v-if="state.isDailyGame" class="highscore-badge">{{ t('daily.streakBadge', { count: state.daily.currentStreak }) }}</div>
           <button v-if="state.isDailyGame" class="btn btn-ghost" @click="shareDailyResult">📤 {{ t('share.button') }}</button>
-          <button class="btn btn-primary" v-if="!state.isDailyGame && (!state.coop.active || state.coop.role==='host')" @click="newGame(state.puzzle.difficulty)">{{ t('win.nextPuzzle') }}</button>
+          <button class="btn btn-primary" v-if="!state.isDailyGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
           <p v-else-if="state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('win.viewBoard') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -1536,7 +1584,7 @@ const App = {
           <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
         </div>
 
-        <div class="set-group-title">{{ t('settings.coopIdentity') }}</div>
+        <div class="set-group-title">{{ t('settings.coop') }}</div>
         <div class="set-row col">
           <span class="set-row-label">{{ t('settings.displayName') }}</span>
           <input class="text-input" v-model="state.settings.coopName" maxlength="16" :placeholder="t('common.namePlaceholder')" />
@@ -1548,6 +1596,10 @@ const App = {
           </div>
           <small class="set-hint">{{ t('settings.colorHint') }}</small>
         </div>
+        <div class="set-row" @click="toggleSetting('coopRemovedOutline')">
+          <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
+        </div>
+        <small class="set-hint">{{ t('settings.coopRemovedOutlineHint') }}</small>
 
         <div class="set-group-title">{{ t('settings.data') }}</div>
         <button class="btn btn-ghost" @click="doExport">{{ t('settings.exportBackup') }}</button>
@@ -1689,6 +1741,7 @@ function cellClasses(r, c) {
     strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
     solnc: state.solutionShown && state.puzzle.solution[r][c],
     'coop-mark': state.coop.active && !!state.markedBy[r][c],
+    'coop-mark-removed': state.coop.active && !!state.markedBy[r][c] && mk === 'removed' && state.settings.coopRemovedOutline,
   };
 }
 function cellStyle(r, c) {

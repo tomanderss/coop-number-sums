@@ -159,5 +159,5 @@ export async function leave() {
 
 export const MSG = {
   INIT: 'init', MOVE: 'move', UNDO: 'undo', CHECK: 'check', STATUS: 'status', PAUSE: 'pause', HINT: 'hint',
-  RETRY: 'retry', IDENTITY: 'identity', ROSTER: 'roster', MISTAKE: 'mistake',
+  RETRY: 'retry', IDENTITY: 'identity', ROSTER: 'roster', MISTAKE: 'mistake', START: 'start',
 };
