@@ -27,6 +27,8 @@ export default {
     changelog: '更新履歴',
     dailyChallenge: 'デイリーパズル',
     dailyDone: '本日クリア済み ✓',
+    bossChallenge: 'ボスパズル',
+    bossDone: '今週は挑戦済み',
   },
   setup: {
     title: '新しいゲーム',
@@ -185,6 +187,10 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count}日連続',
+  },
+  boss: {
+    streakBadge: '🔥 {count}週連続',
+    tryAgainNextWeek: '来週またチャレンジしよう',
   },
   share: {
     button: '共有',

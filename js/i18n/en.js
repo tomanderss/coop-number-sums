@@ -27,6 +27,8 @@ export default {
     changelog: 'Changelog',
     dailyChallenge: 'Daily challenge',
     dailyDone: 'Solved today ✓',
+    bossChallenge: 'Boss challenge',
+    bossDone: 'Already attempted this week',
   },
   setup: {
     title: 'New game',
@@ -185,6 +187,10 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count} day streak',
+  },
+  boss: {
+    streakBadge: '🔥 {count} week streak',
+    tryAgainNextWeek: 'Try again next week',
   },
   share: {
     button: 'Share',

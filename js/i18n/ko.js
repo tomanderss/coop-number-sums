@@ -27,6 +27,8 @@ export default {
     changelog: '업데이트 내역',
     dailyChallenge: '오늘의 퍼즐',
     dailyDone: '오늘 해결 완료 ✓',
+    bossChallenge: '보스 퍼즐',
+    bossDone: '이번 주 이미 시도함',
   },
   setup: {
     title: '새 게임',
@@ -185,6 +187,10 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count}일 연속',
+  },
+  boss: {
+    streakBadge: '🔥 {count}주 연속',
+    tryAgainNextWeek: '다음 주에 다시 시도하세요',
   },
   share: {
     button: '공유',

@@ -4,6 +4,7 @@ import { BUILD, CHANGELOG } from './buildinfo.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, CUSTOM_SIZES, LIVES, HINTS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
 import { getDailyChallenge, todayDateStr } from './daily.js';
+import { getBossChallenge } from './boss.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { hasProfanity } from './profanity.js';
@@ -11,6 +12,7 @@ import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
   exportToFile, importFromFile, deleteAllData, loadDaily, recordDailyResult,
+  loadBoss, recordBossWin, recordBossLoss,
 } from './storage.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
@@ -24,11 +26,14 @@ const state = reactive({
   settings: loadSettings(),
   stats: loadStats(),
   daily: loadDaily(),        // { lastCompletedDate, currentStreak, bestStreak, totalCompleted }
+  boss: loadBoss(),          // { lastAttemptedWeek, lastCompletedWeek, currentStreak, bestStreak, totalCompleted }
 
   // Spiel
   puzzle: null,
   isDailyGame: false,         // true, während das laufende Rätsel das Tagesrätsel ist
   dailyDateStr: null,         // Kalendertag, für den das laufende Tagesrätsel generiert wurde
+  isBossGame: false,          // true, während das laufende Rätsel das wöchentliche Boss-Rätsel ist
+  bossWeekStr: null,          // ISO-Kalenderwoche, für die das laufende Boss-Rätsel generiert wurde
   isCustomGame: false,        // true, während das laufende Rätsel eine eigene (nicht in Stats gezählte) Größe hat
   marks: [],                 // 'none' | 'kept' | 'removed'
   cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint, hintMark }
@@ -215,6 +220,8 @@ function buildCellMeta(puzzle) {
 function newGame(diffId, customDim) {
   state.isDailyGame = false;
   state.dailyDateStr = null;
+  state.isBossGame = false;
+  state.bossWeekStr = null;
   // Custom-Größe ist bewusst auf Solo beschränkt (siehe Setup-Template, das den
   // Tab dafür in aktiver Coop-Session ausblendet) — hier zusätzlich abgesichert,
   // damit ein evtl. noch gesetztes state.sel.custom aus einer früheren Solo-
@@ -265,6 +272,8 @@ function startDailyGame() {
   const { dateStr, seed, difficulty } = getDailyChallenge();
   state.isDailyGame = true;
   state.dailyDateStr = dateStr;
+  state.isBossGame = false;
+  state.bossWeekStr = null;
   state.isCustomGame = false;
   state.generating = true;
   state.screen = 'game';
@@ -284,14 +293,43 @@ function startDailyGame() {
   }, 30);
 }
 
+// Boss-Rätsel: wöchentlich rotierendes Sudden-Death-Format (siehe boss.js) — genau
+// ein Versuch pro ISO-Kalenderwoche, erzwungenes einzelnes Leben (siehe
+// loadPuzzleIntoState), kein Retry bei Niederlage (siehe Verlust-Screen-Template).
+// Solo-only aus demselben Grund wie das Tagesrätsel.
+function startBossGame() {
+  const { weekStr, seed, difficulty } = getBossChallenge();
+  state.isBossGame = true;
+  state.bossWeekStr = weekStr;
+  state.isDailyGame = false;
+  state.dailyDateStr = null;
+  state.isCustomGame = false;
+  state.generating = true;
+  state.screen = 'game';
+  setTimeout(() => {
+    log('game', `Boss-Rätsel-Generierung gestartet`, { weekStr, difficulty });
+    let puzzle;
+    try {
+      puzzle = generatePuzzle({ difficulty, seed });
+    } catch (e) {
+      log('game', `Boss-Rätsel-Generierung fehlgeschlagen`, e);
+      throw e;
+    }
+    log('game', `Boss-Rätsel generiert`, { weekStr, difficulty, rows: puzzle.rows, cols: puzzle.cols });
+    loadPuzzleIntoState(puzzle, null);
+    state.generating = false;
+    startTimer();
+  }, 30);
+}
+
 function loadPuzzleIntoState(puzzle, saved) {
   state.puzzle = puzzle;
   state.cellMeta = buildCellMeta(puzzle);
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
   state.marks = saved?.marks || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill('none'));
   state.markedBy = saved?.markedBy || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill(null));
-  state.maxLives = saved?.maxLives ?? LIVES;
-  state.lives = saved?.lives ?? LIVES;
+  state.maxLives = saved?.maxLives ?? (state.isBossGame ? 1 : LIVES);
+  state.lives = saved?.lives ?? (state.isBossGame ? 1 : LIVES);
   state.hintsLeft = saved?.hintsLeft ?? HINTS;
   state.hintsUsed = saved?.hintsUsed ?? 0;
   state.mistakes = saved?.mistakes ?? 0;
@@ -461,7 +499,7 @@ function registerMistake() {
   state.mistakes++;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + 1;
   if (state.coop.active) coopSend({ type: Coop.MSG.MISTAKE, by, n: 1 });
-  if (state.settings.livesEnabled) {
+  if (state.isBossGame || state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
     showBestTimeNotice(t('game.lifeLostNotice'));
@@ -475,7 +513,7 @@ function registerMistake() {
 function applyRemoteMistake(by, n) {
   state.mistakes += n;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + n;
-  if (state.settings.livesEnabled) {
+  if (state.isBossGame || state.settings.livesEnabled) {
     for (let i = 0; i < n; i++) {
       state.lives--;
       state.coop.lifeLossBy.push(by);
@@ -515,7 +553,7 @@ function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = tr
   wrong.forEach(([r, c]) => flashError(r, c));
   state.mistakes += wrong.length;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + wrong.length;
-  if (state.settings.livesEnabled) {
+  if (state.isBossGame || state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
     showBestTimeNotice(t('game.lifeLostNotice'));
@@ -838,6 +876,7 @@ function win(remote) {
     state.newHighscore = newHighscore;
   }
   if (state.isDailyGame) state.daily = recordDailyResult(state.dailyDateStr);
+  if (state.isBossGame) state.boss = recordBossWin(state.bossWeekStr);
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -862,6 +901,7 @@ function lose(remote) {
     });
     state.stats = stats;
   }
+  if (state.isBossGame) state.boss = recordBossLoss(state.bossWeekStr);
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -887,6 +927,7 @@ function giveUp(remote) {
     });
     state.stats = stats;
   }
+  if (state.isBossGame) state.boss = recordBossLoss(state.bossWeekStr);
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -950,6 +991,7 @@ function activeSnapshot() {
     elapsed: state.elapsed, difficulty: state.puzzle.difficulty,
     hintMarks: collectHintMarks(),
     isDailyGame: state.isDailyGame, dailyDateStr: state.dailyDateStr,
+    isBossGame: state.isBossGame, bossWeekStr: state.bossWeekStr,
     isCustomGame: state.isCustomGame,
     ts: Date.now(),
   };
@@ -970,6 +1012,8 @@ function resumeGame() {
   if (!g) return;
   state.isDailyGame = !!g.isDailyGame;
   state.dailyDateStr = g.dailyDateStr || null;
+  state.isBossGame = !!g.isBossGame;
+  state.bossWeekStr = g.bossWeekStr || null;
   state.isCustomGame = !!g.isCustomGame;
   navigate('game');
   loadPuzzleIntoState(g.puzzle, g);
@@ -1162,6 +1206,8 @@ const App = {
     const coopAvailable = computed(() => Coop.isAvailable());
     const dailyInfo = computed(() => getDailyChallenge());
     const dailyDoneToday = computed(() => state.daily.lastCompletedDate === dailyInfo.value.dateStr);
+    const bossInfo = computed(() => getBossChallenge());
+    const bossAttemptedThisWeek = computed(() => state.boss.lastAttemptedWeek === bossInfo.value.weekStr);
 
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, CUSTOM_SIZES,
@@ -1175,6 +1221,7 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       chipTextColor, confirmCoopIdentity, onCoopNameBlur, playerColor, goCoop, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
+      startBossGame, bossInfo, bossAttemptedThisWeek,
       t, i18nState, SUPPORTED_LOCALES,
     };
   },
@@ -1206,6 +1253,11 @@ const App = {
           <span class="btn-ic">📅</span>
           <span class="btn-tx"><b>{{ t('home.dailyChallenge') }}</b><small>{{ dailyDoneToday ? t('home.dailyDone') : t('difficulty.'+dailyInfo.difficulty) }}</small></span>
           <span v-if="state.daily.currentStreak>0" class="badge-soon">🔥{{ state.daily.currentStreak }}</span>
+        </button>
+        <button class="btn boss-btn" :class="bossAttemptedThisWeek ? 'btn-ghost' : 'btn-daily'" :disabled="bossAttemptedThisWeek" @click="startBossGame">
+          <span class="btn-ic">👹</span>
+          <span class="btn-tx"><b>{{ t('home.bossChallenge') }}</b><small>{{ bossAttemptedThisWeek ? t('home.bossDone') : t('difficulty.'+bossInfo.difficulty) }}</small></span>
+          <span v-if="state.boss.currentStreak>0" class="badge-soon">🔥{{ state.boss.currentStreak }}</span>
         </button>
         <div class="home-grid">
           <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> {{ t('home.stats') }}</button>
@@ -1418,8 +1470,9 @@ const App = {
             </div>
           </div>
           <div v-if="state.isDailyGame" class="highscore-badge">{{ t('daily.streakBadge', { count: state.daily.currentStreak }) }}</div>
+          <div v-if="state.isBossGame" class="highscore-badge">{{ t('boss.streakBadge', { count: state.boss.currentStreak }) }}</div>
           <button v-if="state.isDailyGame" class="btn btn-ghost" @click="shareDailyResult">📤 {{ t('share.button') }}</button>
-          <button class="btn btn-primary" v-if="!state.isDailyGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
+          <button class="btn btn-primary" v-if="!state.isDailyGame && !state.isBossGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
           <p v-else-if="state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('win.viewBoard') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -1445,7 +1498,8 @@ const App = {
               </div>
             </div>
           </div>
-          <button class="btn btn-primary" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
+          <button class="btn btn-primary" v-if="!state.isBossGame" @click="restartFromGame">{{ t('loss.retry') }}</button>
           <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -1456,7 +1510,8 @@ const App = {
           <div class="result-emoji">🏳</div>
           <h2>{{ t('gaveup.title') }}</h2>
           <p class="result-msg">{{ t('loss.msg') }}</p>
-          <button class="btn btn-primary" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
+          <button class="btn btn-primary" v-if="!state.isBossGame" @click="restartFromGame">{{ t('loss.retry') }}</button>
           <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>

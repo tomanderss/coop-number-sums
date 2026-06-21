@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.61';
-export const BUILD_HASH = '2b6f132';
+export const BUILD      = '0.62';
+export const BUILD_HASH = '1097e36';
 
 export const CHANGELOG = [
+  {
+    "version": "0.62",
+    "date": "21.06.2026",
+    "changes": [
+      "Boss-Rätsel: jede Woche ein neues Sudden-Death-Rätsel (eine der drei schwersten Stufen, ein Leben, ein Versuch) mit eigener Streak"
+    ]
+  },
   {
     "version": "0.61",
     "date": "21.06.2026",

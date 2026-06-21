@@ -27,6 +27,8 @@ export default {
     changelog: 'Değişiklikler',
     dailyChallenge: 'Günlük bulmaca',
     dailyDone: 'Bugün çözüldü ✓',
+    bossChallenge: 'Patron bulmacası',
+    bossDone: 'Bu hafta zaten denendi',
   },
   setup: {
     title: 'Yeni oyun',
@@ -185,6 +187,10 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count} günlük seri',
+  },
+  boss: {
+    streakBadge: '🔥 {count} haftalık seri',
+    tryAgainNextWeek: 'Gelecek hafta tekrar deneyin',
   },
   share: {
     button: 'Paylaş',

@@ -12,6 +12,7 @@ const KEYS = {
   BACKUP_SLOT: 'cns_bk_slot',
   SEEN_VERSION: 'cns_seen_version',
   DAILY: 'cns_daily',
+  BOSS: 'cns_boss',
 };
 const BACKUP_COUNT = 3;
 const bk = (i) => `cns_bk_${i}`;
@@ -135,6 +136,37 @@ function isNextCalendarDay(prevDateStr, dateStr) {
   return Math.round((cur - prev) / 86400000) === 1;
 }
 
+// ─── Boss-Rätsel-Streak (wöchentlich, ein Versuch pro ISO-Kalenderwoche) ──────
+const EMPTY_BOSS = { lastAttemptedWeek: null, lastCompletedWeek: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0 };
+export function loadBoss() { return { ...EMPTY_BOSS, ...load(KEYS.BOSS, {}) }; }
+export function saveBoss(b) { save(KEYS.BOSS, b); }
+
+// Nur bei einem GEWONNENEN Boss-Rätsel aufrufen. Idempotent wie
+// recordDailyResult: ein erneutes Laden derselben Woche (z.B. nach Reload)
+// zählt den Streak nicht doppelt.
+export function recordBossWin(weekStr) {
+  const b = loadBoss();
+  b.lastAttemptedWeek = weekStr;
+  if (b.lastCompletedWeek === weekStr) return b;
+  b.currentStreak++;
+  b.bestStreak = Math.max(b.bestStreak, b.currentStreak);
+  b.lastCompletedWeek = weekStr;
+  b.totalCompleted++;
+  saveBoss(b);
+  return b;
+}
+
+// Bricht die Streak SOFORT (abweichend vom Tagesrätsel-Muster, das nur bei
+// einer Kalenderlücke zurücksetzt) — verstärkt bewusst den
+// Sudden-Death-Charakter des Boss-Formats.
+export function recordBossLoss(weekStr) {
+  const b = loadBoss();
+  b.lastAttemptedWeek = weekStr;
+  b.currentStreak = 0;
+  saveBoss(b);
+  return b;
+}
+
 // Wird nur bei einem GEWONNENEN Tagesrätsel aufgerufen. Idempotent: ein
 // erneutes Lösen desselben Tages (z.B. nach Neuladen der Seite) zählt den
 // Streak nicht doppelt. Nutzt bewusst den rohen, ungekürzten Stand statt
@@ -165,6 +197,7 @@ export function createBackup(label = 'auto') {
       activeGame: load(KEYS.ACTIVE_GAME, null),
       stats: load(KEYS.STATS, {}),
       daily: load(KEYS.DAILY, {}),
+      boss: load(KEYS.BOSS, {}),
     };
     localStorage.setItem(bk(slot), JSON.stringify(snapshot));
     localStorage.setItem(KEYS.BACKUP_SLOT, String((slot + 1) % BACKUP_COUNT));
@@ -190,6 +223,7 @@ export function restoreBackup(slotIdx) {
     if (data.settings) save(KEYS.SETTINGS, data.settings);
     if (data.stats) save(KEYS.STATS, data.stats);
     if (data.daily) save(KEYS.DAILY, data.daily);
+    if (data.boss) save(KEYS.BOSS, data.boss);
     if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
     return true;
   } catch (e) { log('storage', `Backup-Slot ${slotIdx} wiederherstellen fehlgeschlagen`, e); return false; }
@@ -208,6 +242,7 @@ export async function exportToFile(type = 'manual') {
     activeGame: load(KEYS.ACTIVE_GAME, null),
     stats: load(KEYS.STATS, {}),
     daily: load(KEYS.DAILY, {}),
+    boss: load(KEYS.BOSS, {}),
   }, null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   if (navigator.canShare) {
@@ -229,6 +264,7 @@ export function importFromFile(jsonText) {
   if (data.settings) save(KEYS.SETTINGS, data.settings);
   if (data.stats) save(KEYS.STATS, data.stats);
   if (data.daily) save(KEYS.DAILY, data.daily);
+  if (data.boss) save(KEYS.BOSS, data.boss);
   if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
   return data;
 }
@@ -241,6 +277,7 @@ export function deleteAllData() {
   remove(KEYS.SEEN_VERSION);
   remove(KEYS.BACKUP_SLOT);
   remove(KEYS.DAILY);
+  remove(KEYS.BOSS);
   for (let i = 0; i < BACKUP_COUNT; i++) remove(bk(i));
   clearLog();
 }
