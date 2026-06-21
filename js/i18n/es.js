@@ -27,6 +27,8 @@ export default {
     changelog: 'Novedades',
     dailyChallenge: 'Reto diario',
     dailyDone: 'Resuelto hoy ✓',
+    bossChallenge: 'Desafío del jefe',
+    bossDone: 'Ya intentado esta semana',
   },
   setup: {
     title: 'Nueva partida',
@@ -185,6 +187,10 @@ export default {
   },
   daily: {
     streakBadge: '🔥 Racha de {count} días',
+  },
+  boss: {
+    streakBadge: '🔥 Racha de {count} semanas',
+    tryAgainNextWeek: 'Inténtalo de nuevo la próxima semana',
   },
   share: {
     button: 'Compartir',

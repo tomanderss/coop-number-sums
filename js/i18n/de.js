@@ -27,6 +27,8 @@ export default {
     changelog: 'Änderungen',
     dailyChallenge: 'Tagesrätsel',
     dailyDone: 'Heute schon gelöst ✓',
+    bossChallenge: 'Boss-Rätsel',
+    bossDone: 'Diese Woche schon versucht',
   },
   setup: {
     title: 'Neues Spiel',
@@ -185,6 +187,10 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count} Tage Streak',
+  },
+  boss: {
+    streakBadge: '🔥 {count} Wochen Streak',
+    tryAgainNextWeek: 'Nächste Woche wieder versuchen',
   },
   share: {
     button: 'Teilen',

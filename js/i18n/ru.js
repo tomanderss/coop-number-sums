@@ -27,6 +27,8 @@ export default {
     changelog: 'Изменения',
     dailyChallenge: 'Ежедневная головоломка',
     dailyDone: 'Сегодня решено ✓',
+    bossChallenge: 'Босс-головоломка',
+    bossDone: 'Уже пройдено на этой неделе',
   },
   setup: {
     title: 'Новая игра',
@@ -185,6 +187,10 @@ export default {
   },
   daily: {
     streakBadge: '🔥 Серия {count} дней',
+  },
+  boss: {
+    streakBadge: '🔥 Серия {count} недель',
+    tryAgainNextWeek: 'Попробуйте снова на следующей неделе',
   },
   share: {
     button: 'Поделиться',
