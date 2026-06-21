@@ -150,6 +150,9 @@ export default {
     livesEnabled: '❤️ Жизни / лимит ошибок',
     misc: 'Прочее',
     showTimer: '⏱ Показывать таймер',
+    a11y: 'Доступность',
+    colorBlindMode: '🎨 Кооп-цвета для дальтоников',
+    colorBlindModeHint: 'Использует палитру цветов игроков с более высоким контрастом для нарушений цветовосприятия красно-зелёного/сине-жёлтого типа.',
     coop: 'Кооператив',
     displayName: 'Отображаемое имя',
     myColor: 'Мой цвет',
@@ -226,5 +229,11 @@ export default {
     schwer: 'Сложно',
     extrem: 'Экстремально',
     mashallah: 'Машалла',
+  },
+  a11y: {
+    cellLabel: 'Строка {row}, столбец {col}, значение {value}, {status}',
+    cellKept: 'обведено',
+    cellRemoved: 'зачёркнуто',
+    cellUnmarked: 'не отмечено',
   },
 };

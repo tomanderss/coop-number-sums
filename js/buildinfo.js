@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.58';
-export const BUILD_HASH = 'd8eaa2b';
+export const BUILD      = '0.59';
+export const BUILD_HASH = 'e84d591';
 
 export const CHANGELOG = [
+  {
+    "version": "0.59",
+    "date": "21.06.2026",
+    "changes": [
+      "Barrierefreiheit: Spielfeldzellen haben jetzt eine Rolle/Beschreibung für Screenreader und lassen sich per Tastatur (Enter/Leertaste) bedienen",
+      "Neue Einstellung: farbenblind-sichere Coop-Farbpalette mit höherem Kontrast für Rot-Grün-/Blau-Gelb-Sehschwäche",
+      "Tippflächen der Symbol-Buttons von 40 auf 44 px vergrößert, sichtbarer Fokusring beim Bedienen per Tastatur"
+    ]
+  },
   {
     "version": "0.58",
     "date": "21.06.2026",

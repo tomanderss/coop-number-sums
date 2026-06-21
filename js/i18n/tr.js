@@ -150,6 +150,9 @@ export default {
     livesEnabled: '❤️ Can / hata sınırı',
     misc: 'Diğer',
     showTimer: '⏱ Zamanlayıcıyı göster',
+    a11y: 'Erişilebilirlik',
+    colorBlindMode: '🎨 Renk körlüğüne uygun coop renkleri',
+    colorBlindModeHint: 'Kırmızı-yeşil/mavi-sarı renk görme bozukluğu için daha yüksek kontrastlı bir oyuncu renk paleti kullanır.',
     coop: 'Coop',
     displayName: 'Görünen ad',
     myColor: 'Benim rengim',
@@ -226,5 +229,11 @@ export default {
     schwer: 'Zor',
     extrem: 'Aşırı',
     mashallah: 'Maşallah',
+  },
+  a11y: {
+    cellLabel: '{row}. satır, {col}. sütun, değer {value}, {status}',
+    cellKept: 'daire içine alındı',
+    cellRemoved: 'üzeri çizildi',
+    cellUnmarked: 'işaretsiz',
   },
 };
