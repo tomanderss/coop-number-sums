@@ -31,6 +31,10 @@ export default {
   setup: {
     title: 'Новая игра',
     start: 'Начали! 🚀',
+    standardTab: 'Стандарт',
+    customTab: 'Свой размер',
+    customSizeLabel: 'Размер поля',
+    customHint: 'Свои размеры не засчитываются в лучшие результаты или серии.',
   },
   game: {
     loading: 'Создание головоломки…',

@@ -31,6 +31,10 @@ export default {
   setup: {
     title: 'Novo jogo',
     start: 'Vamos lá! 🚀',
+    standardTab: 'Padrão',
+    customTab: 'Tamanho personalizado',
+    customSizeLabel: 'Tamanho da grade',
+    customHint: 'Tamanhos personalizados não contam para os melhores tempos ou sequências.',
   },
   game: {
     loading: 'Criando o quebra-cabeça…',

@@ -31,6 +31,10 @@ export default {
   setup: {
     title: 'Neues Spiel',
     start: "Los geht's! 🚀",
+    standardTab: 'Standard',
+    customTab: 'Eigene Größe',
+    customSizeLabel: 'Rastergröße',
+    customHint: 'Eigene Größen zählen nicht zu Bestzeiten oder Streaks.',
   },
   game: {
     loading: 'Rätsel wird erstellt…',

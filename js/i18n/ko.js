@@ -31,6 +31,10 @@ export default {
   setup: {
     title: '새 게임',
     start: '시작하기! 🚀',
+    standardTab: '표준',
+    customTab: '맞춤 크기',
+    customSizeLabel: '격자 크기',
+    customHint: '맞춤 크기는 최고 기록이나 연속 기록에 반영되지 않습니다.',
   },
   game: {
     loading: '퍼즐 생성 중…',

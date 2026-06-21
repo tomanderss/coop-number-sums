@@ -31,6 +31,10 @@ export default {
   setup: {
     title: 'Nuova partita',
     start: 'Si parte! 🚀',
+    standardTab: 'Standard',
+    customTab: 'Dimensione personalizzata',
+    customSizeLabel: 'Dimensione griglia',
+    customHint: 'Le dimensioni personalizzate non contano per i record o le serie.',
   },
   game: {
     loading: 'Creazione del puzzle…',

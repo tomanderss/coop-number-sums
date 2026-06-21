@@ -31,6 +31,10 @@ export default {
   setup: {
     title: 'Nouvelle partie',
     start: "C'est parti ! 🚀",
+    standardTab: 'Standard',
+    customTab: 'Taille personnalisée',
+    customSizeLabel: 'Taille de la grille',
+    customHint: 'Les tailles personnalisées ne comptent pas pour les meilleurs temps ni les séries.',
   },
   game: {
     loading: 'Création du puzzle…',
