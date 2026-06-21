@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.55';
-export const BUILD_HASH = 'edadd61';
+export const BUILD      = '0.56';
+export const BUILD_HASH = '2c6a611';
 
 export const CHANGELOG = [
+  {
+    "version": "0.56",
+    "date": "21.06.2026",
+    "changes": [
+      "Fix: Verlässt der Host eine laufende Coop-Runde, wird der Mitspieler nicht mehr aus dem Spiel geworfen – er übernimmt jetzt wie bei einem unerwarteten Verbindungsabbruch die Host-Rolle und spielt weiter."
+    ]
+  },
   {
     "version": "0.55",
     "date": "21.06.2026",

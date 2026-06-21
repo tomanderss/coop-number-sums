@@ -583,12 +583,6 @@ function handleCoopMsg(msg) {
     state.coop.players = msg.players;
   } else if (msg.type === Coop.MSG.RETRY) {
     restartPuzzle(msg.startTime);
-  } else if (msg.type === Coop.MSG.CLOSE) {
-    coopReset();
-    showToast(t('coop.partnerLeftGame'), 'info', 3000);
-    saveActiveGame(null);
-    refreshResume();
-    navigate('home');
   }
 }
 
@@ -859,10 +853,14 @@ function restartPuzzle(startTime) {
   startTimer(); persistGame();
 }
 
-// Schließt die Coop-Lobby für BEIDE Spieler — egal wer "Zum Menü" klickt.
+// Verlässt man die Coop-Lobby selbst (auch mitten in der laufenden Runde), bekommt
+// das NICHT automatisch das Spiel für den Partner – der eigene players/$uid-Eintrag
+// verschwindet aus der RTDB (siehe Coop.leave()/coopReset()) und der Partner reagiert
+// darauf genauso wie auf einen unerwarteten Verbindungsabbruch: er übernimmt bei
+// laufender Runde selbst die Host-Rolle und spielt weiter (siehe promoteToHost()/
+// onClose() bzw. onLeave() in startHosting/startJoining).
 function quitToHome() {
   const wasCoop = state.coop.active;
-  if (wasCoop) coopSend({ type: Coop.MSG.CLOSE });
   if (state.coop.role) coopReset();
   saveActiveGame(!wasCoop && state.status === 'playing' ? activeSnapshot() : null);
   refreshResume();
