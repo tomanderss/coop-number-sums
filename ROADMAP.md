@@ -14,8 +14,8 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 
 | # | Feature | Branch | Status |
 |---|---------|--------|--------|
-| 0 | ROADMAP.md (dieses Setup) | `claude/feat-roadmap` | 🚧 in Arbeit |
-| F6 | Barrierefreiheit (Farbenblind-Palette, ARIA, Tippflächen) | `claude/feat-a11y` | ⬜ offen |
+| 0 | ROADMAP.md (dieses Setup) | `claude/feat-roadmap` | ✅ fertig |
+| F6 | Barrierefreiheit (Farbenblind-Palette, ARIA, Tippflächen) | `claude/feat-a11y` | ✅ fertig |
 | F8 | Profanitätsfilter für Coop-Namen | `claude/feat-profanity` | ⬜ offen |
 | F10 | Eigene Rätselgröße/-schwierigkeit (Custom-Modus) | `claude/feat-custom-size` | ⬜ offen |
 | F15 | Boss-Rätsel (wöchentliches Sudden-Death) | `claude/feat-boss` | ⬜ offen |
@@ -35,23 +35,36 @@ Reihenfolge und jedes einzelnen Features stehen im ursprünglichen Plan
 
 ## Aktueller Stand
 
-- **Aktueller Branch:** `claude/feat-roadmap`
-- **Letzter abgeschlossener Schritt:** ROADMAP.md erstellt.
-- **Nächster Schritt:** ROADMAP.md committen, pushen, PR öffnen, nach
-  grünem CI nach `master` mergen. Danach: Branch `claude/feat-a11y` von
-  `master` anlegen und mit Feature 6 (Barrierefreiheit) beginnen.
+- **Aktueller Branch:** `master` (nächster Feature-Branch noch nicht
+  angelegt)
+- **Letzter abgeschlossener Schritt:** Feature 6 (Barrierefreiheit)
+  vollständig: Farbenblind-Palette, ARIA-Labels + Tastaturbedienung für
+  Zellen, 44px-Tippflächen, Fokusring; i18n in allen 10 Sprachen ergänzt;
+  Unit- (85/85) und E2E-Tests (35/35) grün; PR #43 nach grünem CI nach
+  `master` gemerged (zusammen mit PR #42 ROADMAP.md-Setup).
+- **Nächster Schritt:** Branch `claude/feat-profanity` von `master`
+  anlegen und mit Feature 8 (Profanitätsfilter für Coop-Namen) beginnen
+  (siehe ursprünglicher Plan: neue Datei `js/profanity.js`, Hook in
+  `confirmCoopIdentity()` + Settings-`coopName`-Input).
 
 ## Pro-Feature-Checkliste (Referenz)
 
 1. Branch von `master` anlegen (`claude/feat-<kurzname>`)
 2. Implementieren in `js/`
-3. i18n: mindestens `de.js` + `en.js` ergänzen
+3. i18n: **alle 10 Sprachdateien** (`de`, `en`, `es`, `fr`, `it`, `ja`,
+   `ko`, `pt-BR`, `ru`, `tr`) ergänzen — `test/unit/i18n.test.js` erzwingt
+   strikte Schlüssel-Parität über alle Locales, nicht nur de+en.
 4. Neue `storage.js`-Keys in alle vier Backup/Export-Funktionen
    (`createBackup`, `loadBackups`/`restoreBackup`, `exportToFile`,
    `importFromFile`) **und** `deleteAllData()` eintragen
-5. Unit-/E2E-Tests ergänzen, `npm test` grün
-6. `changes.txt`-Eintrag + `node build.js` ausführen
-7. Commit + Push + PR öffnen
-8. CI grün → PR nach `master` mergen
-9. Diese Datei (`ROADMAP.md`) aktualisieren (Status-Tabelle + Aktueller
-   Stand) — auf `master` nach dem Merge committen
+5. Bei neuen Helper-Funktionen, die im `<template>`-String verwendet
+   werden: unbedingt auch im `setup()`-Return-Objekt auflisten — Vues
+   Runtime-Compiler sieht nur explizit zurückgegebene Bindings, nicht
+   beliebige Modul-Scope-Funktionen (sonst `TypeError: <fn> is not a
+   function` zur Laufzeit, siehe Feature 6 Postmortem).
+6. Unit-/E2E-Tests ergänzen, `npm test` grün
+7. `changes.txt`-Eintrag + `node build.js` ausführen
+8. Commit + Push + PR öffnen
+9. CI grün → PR nach `master` mergen
+10. Diese Datei (`ROADMAP.md`) aktualisieren (Status-Tabelle + Aktueller
+    Stand) — auf `master` nach dem Merge committen
