@@ -236,4 +236,7 @@ export default {
     cellRemoved: 'crossed out',
     cellUnmarked: 'unmarked',
   },
+  error: {
+    profanity: 'Please choose a different name.',
+  },
 };

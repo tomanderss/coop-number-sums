@@ -236,4 +236,7 @@ export default {
     cellRemoved: 'üzeri çizildi',
     cellUnmarked: 'işaretsiz',
   },
+  error: {
+    profanity: 'Lütfen başka bir ad seç.',
+  },
 };

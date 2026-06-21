@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.59';
-export const BUILD_HASH = 'e84d591';
+export const BUILD      = '0.60';
+export const BUILD_HASH = 'b5dfb46';
 
 export const CHANGELOG = [
+  {
+    "version": "0.60",
+    "date": "21.06.2026",
+    "changes": [
+      "Profanitätsfilter: anstößige Coop-Anzeigenamen werden beim Bestätigen und in den Einstellungen abgelehnt"
+    ]
+  },
   {
     "version": "0.59",
     "date": "21.06.2026",
