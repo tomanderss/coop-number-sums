@@ -7,7 +7,6 @@ import { getDailyChallenge, todayDateStr } from './daily.js';
 import { getBossChallenge } from './boss.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
-import { hasProfanity } from './profanity.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import {
@@ -926,22 +925,12 @@ function chipTextColor(hex) {
 function confirmCoopIdentity() {
   const name = (state.coop.nameDraft || '').trim();
   if (!name) return;
-  if (hasProfanity(name)) {
-    showToast(t('error.profanity'), 'error');
-    return;
-  }
   state.settings.coopName = name;
   state.coop.identityConfirmed = true;
   // Tagesrätsel-Einstieg überspringt die Hosten/Beitreten-Auswahl -- hier gibt
   // es nur "gemeinsam das heutige Rätsel lösen", also direkt zur Host-Lobby
   // (Gäste treten wie gewohnt über den geteilten Code bei).
   if (state.coop.isDaily) state.coop.role = 'host';
-}
-function onCoopNameBlur() {
-  if (hasProfanity(state.settings.coopName)) {
-    state.settings.coopName = '';
-    showToast(t('error.profanity'), 'error');
-  }
 }
 // Beim Einstieg ins Coop-Menü erscheint das Namens-Gate jedes Mal erneut (man
 // kann den Namen also immer ändern), wird aber mit dem zuletzt gespeicherten
@@ -1743,7 +1732,7 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch,
-      chipTextColor, confirmCoopIdentity, onCoopNameBlur, playerColor, goCoop, goCoopDaily, applyUpdate,
+      chipTextColor, confirmCoopIdentity, playerColor, goCoop, goCoopDaily, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
       startBossGame, bossInfo, bossAttemptedThisWeek,
       startTrainingGame, applyTrainingStep,
@@ -2359,7 +2348,7 @@ const App = {
         <div class="set-group-title">{{ t('settings.coop') }}</div>
         <div class="set-row col">
           <span class="set-row-label">{{ t('settings.displayName') }}</span>
-          <input class="text-input" v-model="state.settings.coopName" maxlength="32" :placeholder="t('common.namePlaceholder')" @blur="onCoopNameBlur" />
+          <input class="text-input" v-model="state.settings.coopName" maxlength="32" :placeholder="t('common.namePlaceholder')" />
         </div>
         <div class="set-row col">
           <span class="set-row-label">{{ t('settings.myColor') }}</span>

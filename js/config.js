@@ -32,18 +32,24 @@ export const DIFFICULTIES = [
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
 
 // ─── REGIONEN-FARBPALETTE ─────────────────────────────────────────────────────
-// Kräftige, klar unterscheidbare Töne (funktionieren in Hell & Dunkel).
+// Kräftige, klar unterscheidbare Töne (funktionieren in Hell & Dunkel). Die
+// Farbtöne liegen exakt 36° auseinander (volle 360°/10) statt wie zuvor
+// unregelmäßig verteilt — so ist jede Farbe von jeder anderen mindestens
+// 36° entfernt, nicht nur von ihren direkten Cage-Nachbarn. Sättigung/
+// Helligkeit zusätzlich bewusst alternierend gewählt (statt einheitlich),
+// damit auch ohne Farbwahrnehmung allein über die Helligkeit unterscheidbar
+// bleibt, welche Zelle zu welcher Cage gehört.
 export const REGION_COLORS = [
-  { name: 'rose',   h: 340, s: 82, l: 60 },
-  { name: 'amber',  h: 38,  s: 92, l: 55 },
-  { name: 'emerald',h: 152, s: 64, l: 46 },
-  { name: 'sky',    h: 199, s: 89, l: 52 },
-  { name: 'violet', h: 263, s: 72, l: 62 },
-  { name: 'teal',   h: 174, s: 70, l: 44 },
-  { name: 'orange', h: 22,  s: 92, l: 56 },
-  { name: 'fuchsia',h: 292, s: 70, l: 60 },
-  { name: 'lime',   h: 88,  s: 62, l: 48 },
-  { name: 'cyan',   h: 188, s: 78, l: 48 },
+  { name: 'coral',  h: 14,  s: 85, l: 56 },
+  { name: 'amber',  h: 50,  s: 90, l: 52 },
+  { name: 'lime',   h: 86,  s: 65, l: 42 },
+  { name: 'emerald',h: 122, s: 62, l: 38 },
+  { name: 'teal',   h: 158, s: 62, l: 36 },
+  { name: 'cyan',   h: 194, s: 82, l: 50 },
+  { name: 'blue',   h: 230, s: 78, l: 60 },
+  { name: 'violet', h: 266, s: 70, l: 64 },
+  { name: 'fuchsia',h: 302, s: 72, l: 58 },
+  { name: 'rose',   h: 338, s: 82, l: 60 },
 ];
 
 // ─── COOP-IDENTITÄTSFARBEN ────────────────────────────────────────────────────

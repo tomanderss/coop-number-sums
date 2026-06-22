@@ -211,11 +211,14 @@ function buildRegions(id, K, rows, cols) {
 
 // Minimaler Winkelabstand auf dem Farbkreis (0–180°) — Farben mit kleinerem
 // Abstand gelten als "zu ähnlich" und werden ebenfalls gebannt.
-const HUE_SIM_THRESHOLD = 40;
+const HUE_SIM_THRESHOLD = 55;
 function hueDist(a, b) { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
 
 // Färbung: benachbarte Cages verschieden UND nicht zu ähnlich im Farbton,
 // dabei möglichst viele Farben nutzen (seltenste erlaubte Farbe bevorzugt).
+// "Benachbart" zählt auch diagonal/über Eck (nicht nur orthogonal) — sonst
+// können sich zwei nur an einer Ecke berührende Cages eine zu ähnliche Farbe
+// teilen, was im Raster trotzdem leicht übersehen wird.
 function colorRegions(regions, idGrid, rows, cols) {
   const k = regions.length;
   const adj = Array.from({ length: k }, () => new Set());
@@ -224,6 +227,8 @@ function colorRegions(regions, idGrid, rows, cols) {
     const a = idGrid[idx(r, c)];
     if (c < cols - 1) { const b = idGrid[idx(r, c + 1)]; if (b !== a) { adj[a].add(b); adj[b].add(a); } }
     if (r < rows - 1) { const b = idGrid[idx(r + 1, c)]; if (b !== a) { adj[a].add(b); adj[b].add(a); } }
+    if (r < rows - 1 && c < cols - 1) { const b = idGrid[idx(r + 1, c + 1)]; if (b !== a) { adj[a].add(b); adj[b].add(a); } }
+    if (r < rows - 1 && c > 0) { const b = idGrid[idx(r + 1, c - 1)]; if (b !== a) { adj[a].add(b); adj[b].add(a); } }
   }
   const usage = new Array(REGION_COLORS.length).fill(0);
   for (let i = 0; i < k; i++) {

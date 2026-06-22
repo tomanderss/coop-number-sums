@@ -203,11 +203,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Cages werden eingefärbt (keine Umrandung); die Färbung verschwindet, sobald
    die Cage aufgelöst ist (dann fehlt die .region-Klasse → normaler Hintergrund). */
 .cell.region {
-  background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .30);
+  background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .48);
   --rcol: hsl(var(--rc-h) calc(var(--rc-s)) calc(var(--rc-l) - 8%));
   transition: background .25s;
 }
-:root[data-theme="light"] .cell.region { background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .26); }
+:root[data-theme="light"] .cell.region { background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .38); }
 
 .rchip {
   position: absolute; top: 2px; left: 2px; z-index: 3;
@@ -397,11 +397,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 /* ─── Trainingsmodus: Erklär-Banner (kein Vollbild-Overlay, siehe app.js) ─── */
+/* Teil des normalen Flex-Spalten-Flusses von .screen.game (wie .toolbar/
+   .check-row) statt position:fixed -- so schrumpft .board-wrap (flex:1 1
+   auto) automatisch um den Platz des Banners, statt dass das Banner das
+   Spielfeld am unteren Rand überdeckt. */
 .training-banner {
-  position: fixed; bottom: calc(env(safe-area-inset-bottom) + 24px); left: 50%; transform: translateX(-50%);
-  width: calc(100% - 32px); max-width: 420px; background: var(--bg2); display: flex; flex-direction: column;
+  flex: 0 0 auto; margin: 8px auto 0; width: 100%; max-width: 420px;
+  background: var(--bg2); display: flex; flex-direction: column;
   align-items: stretch; gap: 10px; padding: 14px 18px; border-radius: 18px; box-shadow: 0 8px 24px var(--shadow);
-  z-index: 80;
 }
 .training-text { display: flex; flex-direction: column; gap: 4px; text-align: left; }
 .training-text b { font-size: .92rem; }

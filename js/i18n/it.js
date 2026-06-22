@@ -325,6 +325,5 @@ export default {
     cellUnmarked: 'non segnata',
   },
   error: {
-    profanity: 'Scegli un altro nome.',
   },
 };

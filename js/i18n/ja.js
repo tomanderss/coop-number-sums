@@ -325,6 +325,5 @@ export default {
     cellUnmarked: '未マーク',
   },
   error: {
-    profanity: '別の名前を選んでください。',
   },
 };

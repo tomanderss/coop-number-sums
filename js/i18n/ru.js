@@ -325,6 +325,5 @@ export default {
     cellUnmarked: 'не отмечено',
   },
   error: {
-    profanity: 'Пожалуйста, выберите другое имя.',
   },
 };

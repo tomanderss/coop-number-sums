@@ -325,6 +325,5 @@ export default {
     cellUnmarked: 'işaretsiz',
   },
   error: {
-    profanity: 'Lütfen başka bir ad seç.',
   },
 };

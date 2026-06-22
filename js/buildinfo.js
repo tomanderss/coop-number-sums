@@ -1,8 +1,18 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.71';
-export const BUILD_HASH = '18fe49f';
+export const BUILD      = '0.72';
+export const BUILD_HASH = '6e09d87';
 
 export const CHANGELOG = [
+  {
+    "version": "0.72",
+    "date": "22.06.2026",
+    "changes": [
+      "Profanitätsfilter für Coop-Namen entfernt: jeder Anzeigename ist erlaubt.",
+      "Eigene Rätselgröße (Custom-Modus) wieder entfernt.",
+      "Trainingsmodus: Erklär-Banner überdeckt das Spielfeld nicht mehr.",
+      "Cage-Farben deutlich klarer unterscheidbar: auch über Eck benachbarte Cages erhalten verschiedene Farbtöne, kräftigerer Kontrast."
+    ]
+  },
   {
     "version": "0.71",
     "date": "22.06.2026",
