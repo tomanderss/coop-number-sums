@@ -29,6 +29,8 @@ export default {
     dailyDone: '本日クリア済み ✓',
     dailyCoop: '今日は一緒にプレイ',
     dailyCoopHint: 'デイリーパズルをコープで解く',
+    raceMode: 'レースモード',
+    raceHint: '1対1の対戦レース',
     bossChallenge: 'ボスパズル',
     bossDone: '今週は挑戦済み',
     history: '履歴',
@@ -166,6 +168,14 @@ export default {
     matchResult: '対戦結果',
     weWon: 'チームの勝利です！ ({myPct}% vs. {oppPct}%)',
     weLost: '相手チームが先に完了しました。 ({myPct}% vs. {oppPct}%)',
+  },
+  race: {
+    startMatch: 'レース開始 🚀',
+    waitingForOpponent: '対戦相手を待っています…',
+    opponentProgress: '相手: {pct}%',
+    matchResult: 'レース結果',
+    youWon: 'あなたがミスなく最初に完成しました！ ({myPct}% vs. {oppPct}%)',
+    youLost: '対戦相手がミスなく先に完成しました。 ({myPct}% vs. {oppPct}%)',
   },
   settings: {
     title: '設定',

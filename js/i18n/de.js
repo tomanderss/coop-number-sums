@@ -29,6 +29,8 @@ export default {
     dailyDone: 'Heute schon gelöst ✓',
     dailyCoop: 'Heute zusammen spielen',
     dailyCoopHint: 'Tagesrätsel im Coop lösen',
+    raceMode: 'Race-Modus',
+    raceHint: '1-gegen-1-Wettrennen',
     bossChallenge: 'Boss-Rätsel',
     bossDone: 'Diese Woche schon versucht',
     history: 'Verlauf',
@@ -166,6 +168,14 @@ export default {
     matchResult: 'Match-Ergebnis',
     weWon: 'Euer Team hat gewonnen! ({myPct}% vs. {oppPct}%)',
     weLost: 'Das andere Team war schneller. ({myPct}% vs. {oppPct}%)',
+  },
+  race: {
+    startMatch: 'Rennen starten 🚀',
+    waitingForOpponent: 'Warte auf den Gegner…',
+    opponentProgress: 'Gegner: {pct}%',
+    matchResult: 'Rennergebnis',
+    youWon: 'Du warst fehlerfrei zuerst fertig! ({myPct}% vs. {oppPct}%)',
+    youLost: 'Dein Gegner war zuerst fehlerfrei fertig. ({myPct}% vs. {oppPct}%)',
   },
   settings: {
     title: 'Einstellungen',

@@ -15,6 +15,7 @@ const KEYS = {
   BOSS: 'cns_boss',
   HISTORY: 'cns_history',
   ACHIEVEMENTS: 'cns_achievements',
+  RACE: 'cns_race',
 };
 const HISTORY_MAX = 20;
 const BACKUP_COUNT = 3;
@@ -186,6 +187,26 @@ export function recordDailyResult(dateStr) {
   return d;
 }
 
+// ─── Race-/Duell-Modus (1v1, einfacher Zähler ohne Periodenbindung) ──────────
+const EMPTY_RACE = { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null };
+export function loadRace() { return { ...EMPTY_RACE, ...load(KEYS.RACE, {}) }; }
+export function saveRace(r) { save(KEYS.RACE, r); }
+
+export function recordRaceWin(timeMs) {
+  const r = loadRace();
+  r.racesPlayed++; r.racesWon++;
+  if (r.fastestWinMs == null || timeMs < r.fastestWinMs) r.fastestWinMs = timeMs;
+  saveRace(r);
+  return r;
+}
+
+export function recordRaceLoss() {
+  const r = loadRace();
+  r.racesPlayed++; r.racesLost++;
+  saveRace(r);
+  return r;
+}
+
 // ─── Verlauf gelöster Rätsel (Ringpuffer, neueste zuerst) ─────────────────────
 // Speichert je Partie den Seed statt des vollen Puzzles — generatePuzzle({
 // difficulty, seed, dim }) reproduziert das exakte Rätsel für "erneut spielen".
@@ -227,6 +248,7 @@ export function createBackup(label = 'auto') {
       boss: load(KEYS.BOSS, {}),
       history: load(KEYS.HISTORY, []),
       achievements: load(KEYS.ACHIEVEMENTS, {}),
+      race: load(KEYS.RACE, {}),
     };
     localStorage.setItem(bk(slot), JSON.stringify(snapshot));
     localStorage.setItem(KEYS.BACKUP_SLOT, String((slot + 1) % BACKUP_COUNT));
@@ -255,6 +277,7 @@ export function restoreBackup(slotIdx) {
     if (data.boss) save(KEYS.BOSS, data.boss);
     if (data.history) save(KEYS.HISTORY, data.history);
     if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
+    if (data.race) save(KEYS.RACE, data.race);
     if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
     return true;
   } catch (e) { log('storage', `Backup-Slot ${slotIdx} wiederherstellen fehlgeschlagen`, e); return false; }
@@ -276,6 +299,7 @@ export async function exportToFile(type = 'manual') {
     boss: load(KEYS.BOSS, {}),
     history: load(KEYS.HISTORY, []),
     achievements: load(KEYS.ACHIEVEMENTS, {}),
+    race: load(KEYS.RACE, {}),
   }, null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   if (navigator.canShare) {
@@ -300,6 +324,7 @@ export function importFromFile(jsonText) {
   if (data.boss) save(KEYS.BOSS, data.boss);
   if (data.history) save(KEYS.HISTORY, data.history);
   if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
+  if (data.race) save(KEYS.RACE, data.race);
   if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
   return data;
 }
@@ -315,6 +340,7 @@ export function deleteAllData() {
   remove(KEYS.BOSS);
   remove(KEYS.HISTORY);
   remove(KEYS.ACHIEVEMENTS);
+  remove(KEYS.RACE);
   for (let i = 0; i < BACKUP_COUNT; i++) remove(bk(i));
   clearLog();
 }

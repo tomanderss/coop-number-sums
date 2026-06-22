@@ -29,6 +29,8 @@ export default {
     dailyDone: '오늘 해결 완료 ✓',
     dailyCoop: '오늘 함께 플레이',
     dailyCoopHint: '오늘의 퍼즐을 코업으로 풀기',
+    raceMode: '레이스 모드',
+    raceHint: '1대1 대결 레이스',
     bossChallenge: '보스 퍼즐',
     bossDone: '이번 주 이미 시도함',
     history: '기록',
@@ -166,6 +168,14 @@ export default {
     matchResult: '매치 결과',
     weWon: '우리 팀이 승리했습니다! ({myPct}% vs. {oppPct}%)',
     weLost: '상대 팀이 먼저 끝냈습니다. ({myPct}% vs. {oppPct}%)',
+  },
+  race: {
+    startMatch: '레이스 시작 🚀',
+    waitingForOpponent: '상대를 기다리는 중…',
+    opponentProgress: '상대: {pct}%',
+    matchResult: '레이스 결과',
+    youWon: '실수 없이 먼저 완료했습니다! ({myPct}% vs. {oppPct}%)',
+    youLost: '상대가 실수 없이 먼저 완료했습니다. ({myPct}% vs. {oppPct}%)',
   },
   settings: {
     title: '설정',

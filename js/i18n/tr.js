@@ -29,6 +29,8 @@ export default {
     dailyDone: 'Bugün çözüldü ✓',
     dailyCoop: 'Bugün birlikte oyna',
     dailyCoopHint: 'Günlük bulmacayı co-op modunda çöz',
+    raceMode: 'Yarış Modu',
+    raceHint: "1'e 1 düello yarışı",
     bossChallenge: 'Patron bulmacası',
     bossDone: 'Bu hafta zaten denendi',
     history: 'Geçmiş',
@@ -166,6 +168,14 @@ export default {
     matchResult: 'Maç sonucu',
     weWon: 'Takımınız kazandı! ({myPct}% vs. {oppPct}%)',
     weLost: 'Diğer takım önce bitirdi. ({myPct}% vs. {oppPct}%)',
+  },
+  race: {
+    startMatch: 'Yarışı başlat 🚀',
+    waitingForOpponent: 'Rakip bekleniyor…',
+    opponentProgress: 'Rakip: {pct}%',
+    matchResult: 'Yarış sonucu',
+    youWon: 'Hatasız olarak önce bitirdin! ({myPct}% vs. {oppPct}%)',
+    youLost: 'Rakibin hatasız olarak önce bitirdi. ({myPct}% vs. {oppPct}%)',
   },
   settings: {
     title: 'Ayarlar',
