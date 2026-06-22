@@ -25,7 +25,7 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 | F12a | Coop-Raumkapazität auf 4 erhöhen + Start-Button-Lobby | `claude/feat-coop-4players` | ✅ fertig |
 | F12c | Lokaler Pass-and-Play-Modus | `claude/feat-pass-and-play` | ✅ fertig |
 | F4 | Tagesrätsel im Coop | `claude/feat-daily-coop` | ✅ fertig |
-| F12b | Team-vs-Team (2v2) | `claude/feat-team-vs-team` | ⬜ offen |
+| F12b | Team-vs-Team (2v2) | `claude/feat-team-vs-team` | ✅ fertig |
 | F11 | Race-/Duell-Modus | `claude/feat-race` | ⬜ offen |
 
 Reihenfolge: Solo-Block (F6 → F8 → F10 → F15 → F3 → F1 → F5), dann
@@ -36,63 +36,75 @@ Reihenfolge und jedes einzelnen Features stehen im ursprünglichen Plan
 ## Aktueller Stand
 
 - **Aktueller Branch:** `master` (nächster Feature-Branch
-  `claude/feat-team-vs-team` noch nicht angelegt)
-- **Letzter abgeschlossener Schritt:** Feature 4 (Tagesrätsel im Coop)
-  vollständig: neuer "Heute zusammen spielen"-Button auf dem Home-Screen
-  (`goCoopDaily()`, stabile Klasse `.daily-coop-btn` analog
-  `.daily-btn`/`.boss-btn`/`.training-btn`) setzt `state.coop.isDaily=true`
-  und `state.coop.lobbyDiffId` auf die heutige Tagesschwierigkeit, bevor er
-  zum Coop-Screen navigiert. `confirmCoopIdentity()` überspringt bei
-  `isDaily` die Host/Join/Pass-and-Play-Auswahl und routet direkt zu
-  `role='host'`. Host-Setup-Screen zeigt bei `isDaily` eine feste,
-  nicht wählbare Schwierigkeitskarte statt des `option-grid` (verschachteltes
-  `<template v-if/v-else>` um den bestehenden Block). `startCoopMatch()`
-  zieht bei `isDaily` Seed+Schwierigkeit aus `getDailyChallenge()`
-  (daily.js) statt einer freien Generierung — alle Mitspieler lösen exakt
-  das heutige Rätsel, da der Host das volle Puzzle ohnehin per `MSG.INIT`
-  verteilt (`isDaily` wird im INIT-Payload mitgeschickt, von
-  `handleCoopMsg()` auf `state.coop.isDaily` zurückgespiegelt; eine normale
-  Coop-Folgerunde über `newGame()` schickt `isDaily:false` und löscht damit
-  ein eventuell noch gesetztes Flag beim Gast). Zählt bewusst **nicht** zur
-  Solo-Daily-Streak — `win()`/`lose()`/`giveUp()` bucketen ausschließlich
-  über `state.coop.active`, daher **keine Änderung an `recordDailyResult()`
-  und keine neuen `storage.js`-Keys** nötig (auf den optionalen separaten
-  `coopDaily`-Zähler aus dem ursprünglichen Plan bewusst verzichtet, da
-  bereits voll über die bestehenden `coopWon`/`coopBestTimeMs`-Felder
-  abgedeckt). Neuer Game-Chip `📅 {{ t('game.coopDailyTag') }}` zeigt die
-  Tagesrätsel-Kennzeichnung im laufenden Coop-Spiel. i18n: `home.dailyCoop`,
-  `home.dailyCoopHint`, `game.coopDailyTag`, `daily.coopIntro` in allen 10
-  Sprachen ergänzt. Debug-Hook `window.__cns` um `getDailyChallenge`
-  erweitert (Seed-Paritäts-Checks in Tests, ohne den FNV-1a-Hash im Testcode
-  zu duplizieren). Neue E2E-Tests in `test/e2e/dailycoop.spec.js` (4 Tests:
-  Host-Setup überspringt die Auswahl + zeigt feste Schwierigkeit, Abbrechen
-  löscht das Flag, Hosten+Start nutzt denselben Seed wie der Solo-Daily,
-  Sieg zählt als Coop-Sieg statt Daily-Streak) — die ersten beiden
-  Matchstart-Tests pushten initial nur **einen** Fake-Gast und scheiterten
-  dadurch mit `Test timeout … waiting for '.screen.game'`, weil
-  `canStartCoopMatch()` zusätzlich den echten (asynchronen, gegen die
-  Live-Firebase-Instanz laufenden) Host-Eintrag aus `onOpen()` braucht, der
-  in diesem Sandbox-Netzwerk nicht zuverlässig/rechtzeitig ankommt — Fix:
-  wie im bestehenden `coop.spec.js`-Host-Test **zwei** Fake-Gäste pushen,
-  damit `players.length>=2` unabhängig vom echten Host-Roundtrip erreicht
-  wird. 109/109 Unit-Tests, 60/60 E2E-Tests grün; PR #60 nach grünem CI nach
-  `master` gemerged.
-- **Nächster Schritt:** Branch `claude/feat-team-vs-team` von `master`
-  anlegen und mit Feature 12b (Team-vs-Team, 2v2) beginnen — viertes Feature
-  des Coop-Blocks (siehe ursprünglicher Plan: Formations-Lobby lässt bis zu
-  4 Spieler beitreten und sich in Team A/Team B einteilen; startet der Host,
-  entstehen zwei eigenständige, gekoppelte Coop-Räume mit demselben Seed
-  — `generatePuzzle({difficulty, seed})` lokal pro Team-Host, kein
-  Rätsel-Versand über die Team-Grenze, um kein Antwort-Leak zu riskieren;
-  neue dünne RTDB-Struktur `/teamMatches/{matchCode}/` nur für aggregierten
-  Fortschritt (Prozent korrekt, Fehleranzahl), **keine** zellweise
-  Synchronisation zwischen den Teams; `database.rules.json` braucht eine
-  neue `teamMatches`-Sektion — **muss manuell in der Firebase Console/CLI
-  deployed werden**, dafür gibt es im Repo keinen automatisierten Schritt;
-  neuer `state.team`-Substate getrennt von `state.coop`; Match-Ende: sobald
-  ein Team fertig ist, sofortiger Eingabe-Stopp für beide Teams, kein
-  Zu-Ende-Spielen für eigene Stats; profitiert von der in F12a
-  generalisierten 4-Spieler-Lobby/Roster-Logik als Formations-Lobby).
+  `claude/feat-race` noch nicht angelegt)
+- **Letzter abgeschlossener Schritt:** Feature 12b (Team-vs-Team, 2v2)
+  vollständig — **mit einer bewussten Architekturabweichung vom
+  ursprünglichen Plantext**: statt zwei eigenständiger, gekoppelter
+  Coop-Räume + einer separaten `/teamMatches/{matchCode}/`-RTDB-Struktur
+  wird der **bestehende Einzel-Raum aus F12a wiederverwendet** (kein zweiter
+  Raum, kein neues RTDB-Top-Level-Schema, kein manueller
+  `database.rules.json`-Deploy nötig). Host aktiviert `state.coop.teamMode`
+  in der bestehenden 4-Spieler-Lobby; jeder Spieler bekommt ein `team`-Feld
+  (`'A'|'B'|null`) per Klick auf seinen Roster-Chip (`cycleTeam(id)`,
+  zyklisch null→A→B→null). Start-Button bleibt deaktiviert, bis beide Teams
+  mindestens einen Spieler haben. Gameplay-Events laufen team-intern über
+  neue `teamEvents/{team}`-RTDB-Kanäle (`sendTeamEvent`/`listenTeamEvents`
+  in `js/coop.js`) statt über den gemeinsamen `events`-Kanal — dadurch
+  **keine zellweise Synchronisation über die Teamgrenze**, kein
+  Antwort-Leak. Nur aggregierter Fortschritt (`pct`/`mistakes`) wird über
+  `teamProgress/{team}` (`setTeamProgress`/`listenTeamProgress`) sichtbar
+  gemacht. `MSG.TEAM_START` (raumweit, `{seed, difficulty}`) startet beide
+  Teams synchron mit demselben Seed (`generatePuzzle({difficulty, seed})`
+  lokal pro Client, kein Rätsel-Versand über die Teamgrenze).
+  `MSG.TEAM_DONE` (raumweit, `{team, outcome}`) beendet das Match hart und
+  sofort für beide Teams, sobald ein Team fertig ist — Sieger-Logik: bei
+  `outcome==='won'` gewinnt das fertige Team, bei `'lost'`/`'gaveup'`
+  gewinnt automatisch das andere Team; kein Weiterspielen für eigene Stats,
+  keine Retry-/Neues-Spiel-Buttons auf dem Team-Ergebnis-Screen. Neuer
+  `state.team`-Substate (`active`, `myTeam`, `matchOver`, `winningTeam`,
+  Gegner-Fortschritt) getrennt von `state.coop`, neue `.coop-chip`-Anzeigen
+  ("Team A"/"Gegner X%") im laufenden Spiel. i18n: `team.*` (Toggle-Label,
+  Zuweisungs-Hinweis, Team-Labels, Start-Button, Warte-Hinweis,
+  Gegner-Fortschritt, Match-Ergebnis-Texte) in allen 10 Sprachen ergänzt.
+  Vue-3-Bugfix nebenbei behoben: Lobby-Roster-Template kombinierte `v-if`
+  (Team- vs. Normal-Anzeige) mit `v-for` auf demselben Element — in Vue 3
+  mehrdeutig/unsicher (andere Präzedenz als Vue 2) — gefixt durch
+  Verschachtelung in `<template v-if>`/`<template v-else>`-Wrapper statt
+  beider Direktiven auf demselben Tag. Debug-Hook `window.__cns` um
+  `handleCoopMsg` erweitert, damit E2E-Tests ein eingehendes `TEAM_DONE` vom
+  Gegnerteam simulieren können (gleiches Muster wie der bereits vorhandene
+  `getDailyChallenge`-Hook). Neue E2E-Tests in `test/e2e/team.spec.js` (5
+  Tests: Team-Toggle sichtbar, Roster gated Start-Button bis beide Teams
+  besetzt sind, Match-Start zeigt Team-/Gegner-Chip, Gegner gewinnt erzwingt
+  sofortige Niederlage ohne Retry-Buttons, Gegner gibt auf → automatischer
+  Sieg) — die ersten Testversuche klickten noch durch den echten
+  `Coop.hostGame()`-Netzwerkaufruf, der in diesem Sandbox-Netzwerk
+  zuverlässig binnen ~500ms mit einem Verbindungsfehler scheitert und dabei
+  `state.coop.waitingForGuest` mitten im mehrstufigen Test zurücksetzt
+  (4 von 5 Tests flacker/timeout) — Fix: wie im bestehenden
+  `coop.spec.js`-Gast-Test die echten `hostGame()`/`onOpen()`-Effekte direkt
+  per `page.evaluate()` simulieren (`role`/`code`/`teamMode`/
+  `waitingForGuest`/`myId`/`hostId`/`players` setzen) statt den echten
+  Netzwerkaufruf zu klicken. 109/109 Unit-Tests, 65/65 E2E-Tests grün
+  (inkl. 15/15 bei `--repeat-each=3` auf `team.spec.js` zur
+  Flakiness-Kontrolle); PR #62 nach grünem CI nach `master` gemerged.
+- **Nächster Schritt:** Branch `claude/feat-race` von `master` anlegen und
+  mit Feature 11 (Race-/Duell-Modus, v1: nur "wer als Erster fehlerfrei
+  fertig ist, gewinnt") beginnen — letztes Feature des Rollouts (siehe
+  ursprünglicher Plan: neue eigenständige Datei `js/race.js`, neue
+  RTDB-Struktur `/races/{code}/` mit `meta`/`players/{uid}`/
+  `progress/{uid}` — Fortschritt **nie** zellweise, nur `pct`/`mistakes`/
+  `finished`/`lastUpdate`, gedrosselt alle 2-3s gepusht statt bei jeder
+  Markierung; gemeinsamer Seed, `generatePuzzle({difficulty, seed})` lokal
+  bei beiden Spielern, kein Rätsel-Versand nötig; Leben/Fehleranzeige-
+  Einstellungen werden in der Race-Runde ignoriert — immer sofortige
+  Fehleranzeige mit unbegrenzter Selbstkorrektur; eigene Lobby mit
+  Code-Eingabe + Identitäts-Gate analog Coop, Gegner-Fortschrittsanzeige
+  als Prozent-Chip, eigener Sieg/Niederlage-Screen mit Wettkampf-Wortwahl;
+  `database.rules.json` braucht eine neue `races`-Sektion — **muss manuell
+  in der Firebase Console/CLI deployed werden**; neuer `storage.js`-Key
+  `KEYS.RACE` (`racesPlayed`/`racesWon`/`racesLost`/`fastestWinMs`) in alle
+  vier Backup/Export-Funktionen + `deleteAllData()` eintragen).
 
 ## Pro-Feature-Checkliste (Referenz)
 
