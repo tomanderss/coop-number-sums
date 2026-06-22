@@ -27,6 +27,8 @@ export default {
     changelog: 'Changelog',
     dailyChallenge: 'Daily challenge',
     dailyDone: 'Solved today ✓',
+    dailyCoop: 'Play together today',
+    dailyCoopHint: 'Solve today\'s challenge in coop',
     bossChallenge: 'Boss challenge',
     bossDone: 'Already attempted this week',
     history: 'History',
@@ -46,6 +48,7 @@ export default {
     coopTag: 'CO-OP',
     coopOfflineSuffix: ' · offline',
     localTag: 'Pass & Play',
+    coopDailyTag: 'Daily challenge',
     pauseTitle: 'Pause',
     giveUpTitle: 'Give up',
     giveUpConfirmTitle: 'Give up?',
@@ -198,6 +201,7 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count} day streak',
+    coopIntro: 'Solve today\'s daily challenge together. Share the code with your teammates -- the difficulty is the same for everyone.',
   },
   boss: {
     streakBadge: '🔥 {count} week streak',

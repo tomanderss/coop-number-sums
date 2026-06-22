@@ -27,6 +27,8 @@ export default {
     changelog: 'Изменения',
     dailyChallenge: 'Ежедневная головоломка',
     dailyDone: 'Сегодня решено ✓',
+    dailyCoop: 'Играть вместе сегодня',
+    dailyCoopHint: 'Решить ежедневную головоломку в коопе',
     bossChallenge: 'Босс-головоломка',
     bossDone: 'Уже пройдено на этой неделе',
     history: 'История',
@@ -46,6 +48,7 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · офлайн',
     localTag: 'По очереди',
+    coopDailyTag: 'Ежедневная головоломка',
     pauseTitle: 'Пауза',
     giveUpTitle: 'Сдаться',
     giveUpConfirmTitle: 'Сдаться?',
@@ -198,6 +201,7 @@ export default {
   },
   daily: {
     streakBadge: '🔥 Серия {count} дней',
+    coopIntro: 'Решите сегодняшнюю ежедневную головоломку вместе. Поделитесь кодом с напарниками — сложность одинакова для всех.',
   },
   boss: {
     streakBadge: '🔥 Серия {count} недель',
