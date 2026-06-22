@@ -40,10 +40,6 @@ export default {
   setup: {
     title: 'Nueva partida',
     start: '¡Vamos! 🚀',
-    standardTab: 'Estándar',
-    customTab: 'Tamaño personalizado',
-    customSizeLabel: 'Tamaño de la cuadrícula',
-    customHint: 'Los tamaños personalizados no cuentan para las mejores marcas ni las rachas.',
   },
   game: {
     loading: 'Creando puzzle…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Jefe derrotado', desc: 'Gana el reto jefe por primera vez.' },
     bossStreak3: { title: 'Cazador de jefes', desc: 'Racha de 3 semanas en el reto jefe.' },
     coopFirstWin: { title: 'Debut en equipo', desc: 'Gana un rompecabezas en modo cooperativo.' },
-    customSolved: { title: 'A tu manera', desc: 'Resuelve un rompecabezas de tamaño personalizado.' },
     historyFull: { title: 'Bien documentado', desc: 'Acumula 20 entradas en tu historial.' },
   },
   history: {

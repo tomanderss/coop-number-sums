@@ -40,10 +40,6 @@ export default {
   setup: {
     title: 'Nouvelle partie',
     start: "C'est parti ! 🚀",
-    standardTab: 'Standard',
-    customTab: 'Taille personnalisée',
-    customSizeLabel: 'Taille de la grille',
-    customHint: 'Les tailles personnalisées ne comptent pas pour les meilleurs temps ni les séries.',
   },
   game: {
     loading: 'Création du puzzle…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss vaincu', desc: 'Gagne le défi boss pour la première fois.' },
     bossStreak3: { title: 'Chasseur de boss', desc: 'Série de 3 semaines au défi boss.' },
     coopFirstWin: { title: 'Débuts en équipe', desc: 'Gagne un puzzle en mode coopératif.' },
-    customSolved: { title: 'À ta façon', desc: 'Résous un puzzle de taille personnalisée.' },
     historyFull: { title: 'Bien documenté', desc: 'Accumule 20 entrées dans ton historique.' },
   },
   history: {

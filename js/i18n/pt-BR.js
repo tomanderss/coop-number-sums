@@ -40,10 +40,6 @@ export default {
   setup: {
     title: 'Novo jogo',
     start: 'Vamos lá! 🚀',
-    standardTab: 'Padrão',
-    customTab: 'Tamanho personalizado',
-    customSizeLabel: 'Tamanho da grade',
-    customHint: 'Tamanhos personalizados não contam para os melhores tempos ou sequências.',
   },
   game: {
     loading: 'Criando o quebra-cabeça…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Chefe derrotado', desc: 'Vença o desafio chefe pela primeira vez.' },
     bossStreak3: { title: 'Caçador de chefes', desc: 'Sequência de 3 semanas no desafio chefe.' },
     coopFirstWin: { title: 'Debute em equipe', desc: 'Vença um quebra-cabeça no modo cooperativo.' },
-    customSolved: { title: 'Do seu jeito', desc: 'Resolva um quebra-cabeça de tamanho personalizado.' },
     historyFull: { title: 'Bem documentado', desc: 'Acumule 20 entradas no histórico.' },
   },
   history: {

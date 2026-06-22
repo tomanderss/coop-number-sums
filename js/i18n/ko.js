@@ -40,10 +40,6 @@ export default {
   setup: {
     title: '새 게임',
     start: '시작하기! 🚀',
-    standardTab: '표준',
-    customTab: '맞춤 크기',
-    customSizeLabel: '격자 크기',
-    customHint: '맞춤 크기는 최고 기록이나 연속 기록에 반영되지 않습니다.',
   },
   game: {
     loading: '퍼즐 생성 중…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: '보스 격파', desc: '보스 챌린지에서 처음으로 승리했습니다.' },
     bossStreak3: { title: '보스 헌터', desc: '보스 챌린지 3주 연속 승리.' },
     coopFirstWin: { title: '팀 데뷔', desc: '코업 모드에서 퍼즐을 승리했습니다.' },
-    customSolved: { title: '나만의 방식', desc: '맞춤 크기 퍼즐을 풀었습니다.' },
     historyFull: { title: '기록의 달인', desc: '기록에 20개 항목을 모았습니다.' },
   },
   history: {

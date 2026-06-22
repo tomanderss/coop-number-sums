@@ -40,10 +40,6 @@ export default {
   setup: {
     title: '新しいゲーム',
     start: 'スタート！🚀',
-    standardTab: '標準',
-    customTab: 'カスタムサイズ',
-    customSizeLabel: 'グリッドサイズ',
-    customHint: 'カスタムサイズはベストタイムや連続記録には反映されません。',
   },
   game: {
     loading: 'パズルを作成中…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: 'ボス撃破', desc: 'ボスチャレンジに初めて勝利する。' },
     bossStreak3: { title: 'ボスハンター', desc: 'ボスチャレンジを3週連続クリア。' },
     coopFirstWin: { title: 'チームデビュー', desc: 'コープモードでパズルに勝利する。' },
-    customSolved: { title: '我が道', desc: 'カスタムサイズのパズルを解く。' },
     historyFull: { title: '記録魔', desc: '履歴に20件集める。' },
   },
   history: {

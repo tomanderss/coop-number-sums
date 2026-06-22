@@ -40,10 +40,6 @@ export default {
   setup: {
     title: 'Yeni oyun',
     start: 'Hadi başlayalım! 🚀',
-    standardTab: 'Standart',
-    customTab: 'Özel boyut',
-    customSizeLabel: 'Izgara boyutu',
-    customHint: 'Özel boyutlar en iyi süreler veya seri sayımına dahil edilmez.',
   },
   game: {
     loading: 'Bulmaca oluşturuluyor…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss yenildi', desc: 'Boss mücadelesini ilk kez kazan.' },
     bossStreak3: { title: 'Boss avcısı', desc: 'Boss mücadelesinde 3 haftalık seri.' },
     coopFirstWin: { title: 'Takım debütü', desc: 'Co-op modunda bir bulmaca kazan.' },
-    customSolved: { title: 'Kendi yolun', desc: 'Özel boyutlu bir bulmaca çöz.' },
     historyFull: { title: 'İyi belgelenmiş', desc: 'Geçmişte 20 kayıt topla.' },
   },
   history: {

@@ -40,10 +40,6 @@ export default {
   setup: {
     title: 'Neues Spiel',
     start: "Los geht's! 🚀",
-    standardTab: 'Standard',
-    customTab: 'Eigene Größe',
-    customSizeLabel: 'Rastergröße',
-    customHint: 'Eigene Größen zählen nicht zu Bestzeiten oder Streaks.',
   },
   game: {
     loading: 'Rätsel wird erstellt…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss bezwungen', desc: 'Gewinne das Boss-Rätsel zum ersten Mal.' },
     bossStreak3: { title: 'Boss-Bezwinger', desc: '3 Wochen Boss-Rätsel-Streak in Folge.' },
     coopFirstWin: { title: 'Team-Premiere', desc: 'Gewinne ein Rätsel im Coop-Modus.' },
-    customSolved: { title: 'Eigene Wege', desc: 'Löse ein Rätsel mit eigener Rastergröße.' },
     historyFull: { title: 'Gut dokumentiert', desc: 'Sammle 20 Einträge im Verlauf.' },
   },
   history: {

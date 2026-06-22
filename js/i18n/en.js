@@ -40,10 +40,6 @@ export default {
   setup: {
     title: 'New game',
     start: "Let's go! 🚀",
-    standardTab: 'Standard',
-    customTab: 'Custom size',
-    customSizeLabel: 'Grid size',
-    customHint: "Custom sizes don't count toward best times or streaks.",
   },
   game: {
     loading: 'Creating puzzle…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss defeated', desc: 'Win the boss challenge for the first time.' },
     bossStreak3: { title: 'Boss slayer', desc: '3-week boss challenge streak.' },
     coopFirstWin: { title: 'Team debut', desc: 'Win a puzzle in co-op mode.' },
-    customSolved: { title: 'Your own way', desc: 'Solve a custom-size puzzle.' },
     historyFull: { title: 'Well documented', desc: 'Collect 20 entries in your history.' },
   },
   history: {

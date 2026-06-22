@@ -40,10 +40,6 @@ export default {
   setup: {
     title: 'Новая игра',
     start: 'Начали! 🚀',
-    standardTab: 'Стандарт',
-    customTab: 'Свой размер',
-    customSizeLabel: 'Размер поля',
-    customHint: 'Свои размеры не засчитываются в лучшие результаты или серии.',
   },
   game: {
     loading: 'Создание головоломки…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Босс побеждён', desc: 'Победи в боссе впервые.' },
     bossStreak3: { title: 'Охотник на боссов', desc: '3 недели подряд побед в боссе.' },
     coopFirstWin: { title: 'Командный дебют', desc: 'Победи в головоломке в кооперативном режиме.' },
-    customSolved: { title: 'Свой путь', desc: 'Реши головоломку собственного размера.' },
     historyFull: { title: 'Хорошо документировано', desc: 'Собери 20 записей в истории.' },
   },
   history: {

@@ -40,10 +40,6 @@ export default {
   setup: {
     title: 'Nuova partita',
     start: 'Si parte! 🚀',
-    standardTab: 'Standard',
-    customTab: 'Dimensione personalizzata',
-    customSizeLabel: 'Dimensione griglia',
-    customHint: 'Le dimensioni personalizzate non contano per i record o le serie.',
   },
   game: {
     loading: 'Creazione del puzzle…',
@@ -261,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss sconfitto', desc: 'Vinci la sfida boss per la prima volta.' },
     bossStreak3: { title: 'Cacciatore di boss', desc: 'Serie di 3 settimane nella sfida boss.' },
     coopFirstWin: { title: 'Debutto di squadra', desc: 'Vinci un puzzle in modalità cooperativa.' },
-    customSolved: { title: 'A modo tuo', desc: 'Risolvi un puzzle di dimensione personalizzata.' },
     historyFull: { title: 'Ben documentato', desc: 'Raccogli 20 voci nella cronologia.' },
   },
   history: {
