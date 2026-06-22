@@ -95,6 +95,22 @@ const state = reactive({
     activePlayerIdx: 0,           // Index in players, wer aktuell am Zug ist
     turnHandoff: false,           // true während des "Gerät weitergeben"-Overlays
     localNames: [],               // Entwurf der Spielernamen im Pass-and-Play-Setup
+
+    teamMode: false,               // Host-Lobby-Toggle: Team-vs-Team statt normalem Coop
+  },
+
+  // Team-vs-Team (Feature 12b) — getrennt von state.coop, da es einen zweiten,
+  // nur aggregiert sichtbaren "Gegner" gibt. Die Formations-Lobby (Team-
+  // Zuweisung pro Spieler) läuft über state.coop.players[].team im selben Raum
+  // wie normaler Coop; siehe startTeamMatch()/applyTeamStart() für Details.
+  team: {
+    active: false,         // true während eines laufenden Team-vs-Team-Matches
+    myTeam: null,           // 'A' | 'B'
+    matchOver: false,       // true sobald ein Team fertig ist (hartes Match-Ende für beide)
+    winningTeam: null,      // 'A' | 'B', sobald matchOver
+    opponentPct: 0,         // zuletzt bekannter Fortschritt des Gegner-Teams (nur Prozent, keine Zellinhalte)
+    opponentMistakes: 0,
+    myPct: 0,               // eigener Fortschritt zum Zeitpunkt des Match-Endes (für den Vergleichs-Screen)
   },
 
   // UI
@@ -566,6 +582,7 @@ function setMark(r, c, next, user, fromId) {
 
 function afterMove() {
   persistGame();
+  if (state.team.active) pushTeamProgress();
   if (isSolved()) win();
 }
 
@@ -614,6 +631,31 @@ function isSolved() {
     for (let c = 0; c < p.cols; c++)
       if (!cellCorrect(r, c)) return false;
   return true;
+}
+
+// ─── TEAM-VS-TEAM: aggregierter Fortschritt fürs Gegner-Team ──────────────────
+// Nur ein Prozentwert + Fehlerzahl wandern über teamProgress/{team} -- nie
+// Zellinhalte (sonst Antwort-Leak an die Gegenseite, siehe Plan).
+function teamProgressPct() {
+  const p = state.puzzle; if (!p) return 0;
+  let total = 0, correct = 0;
+  for (let r = 0; r < p.rows; r++)
+    for (let c = 0; c < p.cols; c++) { total++; if (cellCorrect(r, c)) correct++; }
+  return total ? Math.round((correct / total) * 100) : 0;
+}
+let teamProgressThrottle = 0;
+function pushTeamProgress() {
+  const now = Date.now();
+  if (now - teamProgressThrottle < 2000) return;
+  teamProgressThrottle = now;
+  Coop.setTeamProgress(state.team.myTeam, { pct: teamProgressPct(), mistakes: state.mistakes });
+}
+// Empfängt den Fortschritt BEIDER Teams (eigener + gegnerischer) -- die eigene
+// Hälfte wird einfach ignoriert, da der lokale Stand ohnehin genauer ist.
+function onTeamProgressUpdate(progressByTeam) {
+  const opponentTeam = state.team.myTeam === 'A' ? 'B' : 'A';
+  const opp = progressByTeam[opponentTeam];
+  if (opp) { state.team.opponentPct = opp.pct || 0; state.team.opponentMistakes = opp.mistakes || 0; }
 }
 
 // "Prüfen"-Modus (Fehler erst auf Knopfdruck). by: wer den Check ausgelöst hat
@@ -706,9 +748,16 @@ function undo(broadcast = true) {
 // ─── COOP ────────────────────────────────────────────────────────────────────
 const CODE_RE = /^\d{6}$/;
 
+// Im Team-vs-Team-Modus laufen Zug-Nachrichten (MOVE/MISTAKE/UNDO/HINT/CHECK/
+// PAUSE/START/RETRY/STATUS) über den team-skopierten Kanal statt des raumweiten
+// Event-Logs -- so erreichen sie nie das gegnerische Team. Das "Team X ist
+// fertig"-Signal (TEAM_DONE) wird bewusst NICHT über coopSend() verschickt,
+// sondern direkt über Coop.send() (siehe win()), da es absichtlich beide Teams
+// erreichen muss.
 function coopSend(msg) {
   if (!state.coop.active || !state.coop.connected) return;
-  Coop.send(msg);
+  if (state.team.active) Coop.sendTeamEvent(state.team.myTeam, msg);
+  else Coop.send(msg);
 }
 
 function handleCoopMsg(msg) {
@@ -750,9 +799,24 @@ function handleCoopMsg(msg) {
   } else if (msg.type === Coop.MSG.ROSTER) {
     state.coop.players = msg.players;
     if (msg.hostId) state.coop.hostId = msg.hostId;
+    state.coop.teamMode = !!msg.teamMode;
     updateConnectedFlag();
   } else if (msg.type === Coop.MSG.RETRY) {
     restartPuzzle(msg.startTime);
+  } else if (msg.type === Coop.MSG.TEAM_START) {
+    applyTeamStart(msg.seed, msg.difficulty);
+  } else if (msg.type === Coop.MSG.TEAM_DONE) {
+    if (!state.team.active || state.team.matchOver) return;
+    state.team.matchOver = true;
+    // "won" entscheidet das eigene Team; "lost"/"gaveup" gibt den Sieg automatisch
+    // an die Gegenseite (kein Zu-Ende-Spielen für eigene Stats, siehe Plan).
+    state.team.winningTeam = msg.outcome === 'won' ? msg.team : (msg.team === 'A' ? 'B' : 'A');
+    if (msg.team === state.team.myTeam) return; // eigenes Team meldet sich direkt aus win()/lose()/giveUp()
+    if (state.status === 'playing') {
+      const remote = { timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed };
+      if (state.team.winningTeam === state.team.myTeam) win(remote);
+      else lose(remote);
+    }
   }
 }
 
@@ -766,6 +830,9 @@ function coopReset() {
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
   state.coop.local = false; state.coop.activePlayerIdx = 0; state.coop.turnHandoff = false; state.coop.localNames = [];
   state.coop.isDaily = false;
+  state.coop.teamMode = false;
+  state.team.active = false; state.team.myTeam = null; state.team.matchOver = false;
+  state.team.winningTeam = null; state.team.opponentPct = 0; state.team.opponentMistakes = 0; state.team.myPct = 0;
 }
 
 // ─── SPIELER-IDENTITÄT (Namen & Farben) ────────────────────────────────────────
@@ -787,8 +854,19 @@ function pickAvailableColor(requested, others) {
 function upsertPlayer(id, name, requestedColor) {
   const others = state.coop.players.filter(p => p.id !== id);
   const color = pickAvailableColor(requestedColor, others);
-  state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color }];
+  const existing = state.coop.players.find(p => p.id === id);
+  state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color, team: existing?.team ?? null }];
   updateConnectedFlag();
+}
+// Nur der Host weist Teams zu (Formations-Lobby) — zyklisch None → A → B → None,
+// per Klick auf den jeweiligen Roster-Chip. team fließt einfach als zusätzliches
+// Feld über den bestehenden ROSTER-Broadcast mit, kein eigener MSG-Typ nötig.
+function cycleTeam(id) {
+  if (state.coop.role !== 'host') return;
+  const p = state.coop.players.find(pl => pl.id === id);
+  if (!p) return;
+  p.team = p.team === 'A' ? 'B' : p.team === 'B' ? null : 'A';
+  broadcastRoster();
 }
 function removePlayer(id) {
   state.coop.players = state.coop.players.filter(p => p.id !== id);
@@ -804,7 +882,7 @@ function updateConnectedFlag() {
 // Lobby vor dem Start nötig) — bewusst über Coop.send direkt statt coopSend(),
 // dessen Guard `state.coop.active` voraussetzt.
 function broadcastRoster() {
-  Coop.send({ type: Coop.MSG.ROSTER, players: state.coop.players, hostId: state.coop.hostId });
+  Coop.send({ type: Coop.MSG.ROSTER, players: state.coop.players, hostId: state.coop.hostId, teamMode: state.coop.teamMode });
 }
 function playerColor(id) { return state.coop.players.find(p => p.id === id)?.color || null; }
 function chipTextColor(hex) {
@@ -944,6 +1022,56 @@ function startCoopMatch() {
   state.coop.awaitingStart = true;
   navigate('game');
   Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime, isDaily: state.coop.isDaily });
+}
+
+// ─── TEAM-VS-TEAM (Feature 12b) ───────────────────────────────────────────────
+// Mindestens ein Spieler pro Team -- die Formations-Lobby ist dieselbe
+// COOP_MAX_PLAYERS-Lobby aus F12a, nur mit einer zusätzlichen Team-Zuweisung
+// pro Spieler (state.coop.players[].team, per cycleTeam() gesetzt).
+function canStartTeamMatch() {
+  if (state.coop.role !== 'host') return false;
+  const a = state.coop.players.filter(p => p.team === 'A').length;
+  const b = state.coop.players.filter(p => p.team === 'B').length;
+  return a >= 1 && b >= 1;
+}
+// Statt das fertige Puzzle zu verschicken (wie INIT es für normalen Coop tut),
+// wandert hier nur Seed+Schwierigkeit raumweit (beide Teams empfangen es) --
+// jeder Client generiert sein (für beide Teams identisches) Rätsel lokal über
+// generatePuzzle({difficulty, seed}), kein Antwort-Leak. Innerhalb eines Teams
+// laufen Züge danach wie gewohnt über coopSend()/MOVE usw., das jetzt automatisch
+// auf den team-skopierten Kanal umleitet (siehe coopSend()).
+function startTeamMatch() {
+  if (!canStartTeamMatch()) return;
+  const seed = Math.floor(Math.random() * 2 ** 31);
+  const difficulty = state.coop.lobbyDiffId;
+  applyTeamStart(seed, difficulty);
+  Coop.send({ type: Coop.MSG.TEAM_START, seed, difficulty });
+}
+function applyTeamStart(seed, difficulty) {
+  const me = state.coop.players.find(p => p.id === state.coop.myId);
+  state.team.myTeam = me?.team || 'A';
+  state.team.active = true;
+  state.team.matchOver = false;
+  state.team.winningTeam = null;
+  state.team.opponentPct = 0;
+  state.team.opponentMistakes = 0;
+  state.team.myPct = 0;
+  log('game', `Puzzle-Generierung gestartet (Team-Match)`, { difficulty, seed, team: state.team.myTeam });
+  let puzzle;
+  try {
+    puzzle = generatePuzzle({ difficulty, seed });
+  } catch (e) {
+    log('game', `Puzzle-Generierung fehlgeschlagen (Team-Match)`, e);
+    throw e;
+  }
+  log('game', `Puzzle generiert (Team-Match)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
+  loadPuzzleIntoState(puzzle, null);
+  state.coop.active = true;
+  state.coop.waitingForGuest = false;
+  state.coop.awaitingStart = true;
+  Coop.listenTeamEvents(state.team.myTeam, handleCoopMsg);
+  Coop.listenTeamProgress(onTeamProgressUpdate);
+  navigate('game');
 }
 
 // ─── PASS-AND-PLAY (lokal, ein Gerät, kein Netz) ──────────────────────────────
@@ -1111,6 +1239,18 @@ function checkAchievements() {
   showToast(t('achievements.unlockedToast', { name }) + (newly.length > 1 ? ` (+${newly.length - 1})` : ''), 'success', 3500);
 }
 
+// Meldet das eigene Team als fertig (Sieg ODER Niederlage/Aufgabe) raumweit --
+// bewusst über Coop.send direkt statt coopSend(), da die Nachricht BEIDE Teams
+// erreichen muss, nicht nur das eigene. "won" entscheidet den Sieg selbst; bei
+// "lost"/"gaveup" gewinnt automatisch das andere Team (kein Zu-Ende-Spielen
+// für eigene Stats, siehe Plan).
+function broadcastTeamDone(outcome) {
+  state.team.matchOver = true;
+  state.team.winningTeam = outcome === 'won' ? state.team.myTeam : (state.team.myTeam === 'A' ? 'B' : 'A');
+  state.team.myPct = teamProgressPct();
+  Coop.send({ type: Coop.MSG.TEAM_DONE, team: state.team.myTeam, outcome });
+}
+
 function win(remote) {
   if (state.status === 'won') return;
   state.status = 'won';
@@ -1161,6 +1301,7 @@ function win(remote) {
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
+  if (state.team.active && !remote) broadcastTeamDone('won');
 }
 
 function lose(remote) {
@@ -1194,6 +1335,7 @@ function lose(remote) {
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
+  if (state.team.active && !remote) broadcastTeamDone('lost');
 }
 
 function giveUp(remote) {
@@ -1226,6 +1368,7 @@ function giveUp(remote) {
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
+  if (state.team.active && !remote) broadcastTeamDone('gaveup');
 }
 
 // Rein lokal: zeigt das fertige Feld nur auf diesem Gerät an, ohne den Partner
@@ -1515,8 +1658,12 @@ const App = {
     }
     const coopPerformance = computed(() => {
       if (!state.coop.active || !state.puzzle || !state.coop.players.length) return [];
+      // Im Team-vs-Team-Modus nur das eigene Team auswerten -- die Gegenseite
+      // hat ohnehin nie Zugriff auf dieses Puzzle/diese markedBy-Daten bekommen.
+      const roster = state.team.active ? state.coop.players.filter(pl => pl.team === state.team.myTeam) : state.coop.players;
+      if (!roster.length) return [];
       const p = state.puzzle;
-      const raw = state.coop.players.map(pl => {
+      const raw = roster.map(pl => {
         let correctKept = 0, correctRemoved = 0;
         for (let r = 0; r < p.rows; r++)
           for (let c = 0; c < p.cols; c++) {
@@ -1576,6 +1723,7 @@ const App = {
       cellClasses, cellStyle, cellAriaLabel, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
+      cycleTeam, canStartTeamMatch, startTeamMatch,
       initPassAndPlaySetup, setLocalPlayerCount, onLocalNameBlur, canStartPassAndPlay,
       startPassAndPlayMatch, endLocalTurn, confirmTurnHandoff,
       chipTextColor, confirmCoopIdentity, onCoopNameBlur, playerColor, goCoop, goCoopDaily, applyUpdate,
@@ -1712,6 +1860,8 @@ const App = {
           </span>
           <span v-if="state.coop.active && state.coop.local" class="chip coop-chip">🔄 {{ t('game.localTag') }}</span>
           <span v-if="state.coop.active && state.coop.isDaily" class="chip coop-chip">📅 {{ t('game.coopDailyTag') }}</span>
+          <span v-if="state.team.active" class="chip coop-chip">🆚 {{ t('team.label'+state.team.myTeam) }}</span>
+          <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>
           <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
             <button class="zoom-btn" @click="setZoom(0.15)">+</button>
@@ -1719,7 +1869,7 @@ const App = {
         </div>
 
         <div v-if="state.coop.active && state.coop.players.length" class="coop-roster">
-          <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
+          <span v-for="p in (state.team.active ? state.coop.players.filter(pl=>pl.team===state.team.myTeam) : state.coop.players)" :key="p.id" class="player-chip"
                 :style="{ background: p.color, color: chipTextColor(p.color) }">
             {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
           </span>
@@ -1874,12 +2024,16 @@ const App = {
               </div>
             </div>
           </div>
+          <div v-if="state.team.active" class="team-result">
+            <div class="perf-title">{{ t('team.matchResult') }}</div>
+            <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
+          </div>
           <div v-if="state.isDailyGame" class="highscore-badge">{{ t('daily.streakBadge', { count: state.daily.currentStreak }) }}</div>
           <div v-if="state.isBossGame" class="highscore-badge">{{ t('boss.streakBadge', { count: state.boss.currentStreak }) }}</div>
           <button v-if="state.isDailyGame" class="btn btn-ghost" @click="shareDailyResult">📤 {{ t('share.button') }}</button>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.isDailyGame && !state.isBossGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
-          <p v-else-if="state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
+          <button class="btn btn-primary" v-else-if="!state.team.active && !state.isDailyGame && !state.isBossGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
+          <p v-else-if="!state.team.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('win.viewBoard') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -1904,10 +2058,14 @@ const App = {
               </div>
             </div>
           </div>
+          <div v-if="state.team.active" class="team-result">
+            <div class="perf-title">{{ t('team.matchResult') }}</div>
+            <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
+          </div>
           <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.isBossGame" @click="restartFromGame">{{ t('loss.retry') }}</button>
-          <button class="btn btn-ghost" v-if="!state.isTrainingGame && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.isBossGame && !state.team.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-ghost" v-if="!state.isTrainingGame && !state.team.active && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -1917,10 +2075,14 @@ const App = {
           <div class="result-emoji">🏳</div>
           <h2>{{ t('gaveup.title') }}</h2>
           <p class="result-msg">{{ t('loss.msg') }}</p>
+          <div v-if="state.team.active" class="team-result">
+            <div class="perf-title">{{ t('team.matchResult') }}</div>
+            <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
+          </div>
           <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.isBossGame" @click="restartFromGame">{{ t('loss.retry') }}</button>
-          <button class="btn btn-ghost" v-if="!state.isTrainingGame && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.isBossGame && !state.team.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-ghost" v-if="!state.isTrainingGame && !state.team.active && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -2080,6 +2242,9 @@ const App = {
               </button>
             </div>
           </template>
+          <div v-if="!state.coop.isDaily" class="set-row" @click="state.coop.teamMode=!state.coop.teamMode">
+            <span>{{ t('team.toggleLabel') }}</span><span class="switch" :class="{on:state.coop.teamMode}"><i></i></span>
+          </div>
           <button class="btn btn-primary" @click="startHosting">{{ t('coop.startHosting') }}</button>
         </template>
         <template v-else>
@@ -2087,17 +2252,28 @@ const App = {
           <div class="coop-code">{{ state.coop.code }}</div>
           <p class="coop-subtext">{{ t('coop.shareCode') }}</p>
           <button class="btn btn-ghost btn-sm" @click="shareCoopInvite">📤 {{ t('coop.shareInvite') }}</button>
+          <p v-if="state.coop.teamMode" class="coop-subtext">{{ t('team.assignHint') }}</p>
           <div class="coop-roster" v-if="state.coop.players.length">
-            <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
-                  :style="{ background: p.color, color: chipTextColor(p.color) }">
-              {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
-            </span>
+            <template v-if="state.coop.teamMode">
+              <button v-for="p in state.coop.players" :key="p.id" type="button" class="player-chip team-chip"
+                    :style="{ background: p.color, color: chipTextColor(p.color) }" @click="cycleTeam(p.id)">
+                {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+                <b>{{ p.team ? t('team.label'+p.team) : t('team.unassigned') }}</b>
+              </button>
+            </template>
+            <template v-else>
+              <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
+                    :style="{ background: p.color, color: chipTextColor(p.color) }">
+                {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+              </span>
+            </template>
           </div>
           <p class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: COOP_MAX_PLAYERS }) }}</p>
-          <button class="btn btn-primary" :disabled="!canStartCoopMatch()" @click="startCoopMatch">{{ t('coop.startMatch') }}</button>
-          <div v-if="!canStartCoopMatch()" class="coop-waiting">
+          <button v-if="state.coop.teamMode" class="btn btn-primary" :disabled="!canStartTeamMatch()" @click="startTeamMatch">{{ t('team.startMatch') }}</button>
+          <button v-else class="btn btn-primary" :disabled="!canStartCoopMatch()" @click="startCoopMatch">{{ t('coop.startMatch') }}</button>
+          <div v-if="state.coop.teamMode ? !canStartTeamMatch() : !canStartCoopMatch()" class="coop-waiting">
             <div class="spinner"></div>
-            <div class="loading-tx">{{ t('coop.waitingForGuest') }}</div>
+            <div class="loading-tx">{{ t(state.coop.teamMode ? 'team.waitingForTeams' : 'coop.waitingForGuest') }}</div>
           </div>
         </template>
         <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
@@ -2120,6 +2296,7 @@ const App = {
           <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
                 :style="{ background: p.color, color: chipTextColor(p.color) }">
             {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+            <b v-if="state.coop.teamMode">{{ p.team ? t('team.label'+p.team) : t('team.unassigned') }}</b>
           </span>
         </div>
         <p v-if="state.coop.waitingForGuest && state.coop.myId" class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: COOP_MAX_PLAYERS }) }}</p>
@@ -2407,8 +2584,12 @@ function cellStyle(r, c) {
 // ─── BOOTSTRAP ────────────────────────────────────────────────────────────────
 const app = createApp(App);
 app.mount('#app');
-// Debug-Hook nur lokal (nie auf der echten Domain aktiv)
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, getDailyChallenge };
+// Debug-Hook nur lokal (nie auf der echten Domain aktiv). handleCoopMsg ist
+// hier zusätzlich exponiert, damit E2E-Tests einen Team-vs-Team-TEAM_DONE
+// vom "Gegner-Team" simulieren können, ohne einen echten zweiten Firebase-
+// Client zu brauchen (gleiches Muster wie getDailyChallenge für die
+// Tagesrätsel-Coop-Tests).
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, getDailyChallenge, handleCoopMsg };
 
 nextTick(() => {
   const splash = document.getElementById('splash');

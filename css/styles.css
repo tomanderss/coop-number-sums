@@ -369,6 +369,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .result-stats b { font-size: 1.4rem; }
 .result-stats small { color: var(--text2); font-size: .74rem; }
 
+/* ─── Team-vs-Team: Match-Ergebnis & Team-Chip in der Lobby ─── */
+.team-result { display: flex; flex-direction: column; gap: 4px; text-align: left; margin: 2px 0 4px; }
+.team-chip.player-chip b { margin-left: 5px; font-weight: 700; opacity: .85; }
+
 /* ─── Coop: Team-Performance & MVP (Gewonnen/Verloren-Screen) ─── */
 .coop-performance { display: flex; flex-direction: column; gap: 8px; text-align: left; margin: 2px 0 4px; }
 .perf-title { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }

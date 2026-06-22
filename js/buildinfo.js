@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.68';
-export const BUILD_HASH = 'b94f407';
+export const BUILD      = '0.69';
+export const BUILD_HASH = 'cfeee01';
 
 export const CHANGELOG = [
+  {
+    "version": "0.69",
+    "date": "22.06.2026",
+    "changes": [
+      "Neuer Team-vs-Team-Modus (2 gegen 2): Spieler im Coop-Raum lassen sich Teams zuordnen, wer als Team zuerst fertig ist, gewinnt sofort für beide Teams"
+    ]
+  },
   {
     "version": "0.68",
     "date": "22.06.2026",
