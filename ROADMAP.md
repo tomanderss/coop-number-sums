@@ -19,7 +19,7 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 | F8 | Profanitätsfilter für Coop-Namen | `claude/feat-profanity` | ✅ fertig |
 | F10 | Eigene Rätselgröße/-schwierigkeit (Custom-Modus) | `claude/feat-custom-size` | ✅ fertig |
 | F15 | Boss-Rätsel (wöchentliches Sudden-Death) | `claude/feat-boss` | ✅ fertig |
-| F3 | Replay/Verlauf gelöster Rätsel | `claude/feat-history` | ⬜ offen |
+| F3 | Replay/Verlauf gelöster Rätsel | `claude/feat-history` | ✅ fertig |
 | F1 | Achievements/Badges | `claude/feat-achievements` | ⬜ offen |
 | F5 | Trainings-/Lernmodus | `claude/feat-training` | ⬜ offen |
 | F12a | Coop-Raumkapazität auf 4 erhöhen + Start-Button-Lobby | `claude/feat-coop-4players` | ⬜ offen |
@@ -37,38 +37,40 @@ Reihenfolge und jedes einzelnen Features stehen im ursprünglichen Plan
 
 - **Aktueller Branch:** `master` (nächster Feature-Branch noch nicht
   angelegt)
-- **Letzter abgeschlossener Schritt:** Feature 15 (Boss-Rätsel)
-  vollständig: neue Datei `js/boss.js` (analog `js/daily.js`) mit eigener
-  `isoWeekStr()` (ISO-Kalenderwoche, Montag-Start, lokale Zeit) +
-  FNV-1a-Seed, rotierend über die 3 schwersten `DIFFICULTIES`
-  (`schwer`/`extrem`/`mashallah`); neuer `KEYS.BOSS`-Storage-Key
-  `{lastAttemptedWeek, lastCompletedWeek, currentStreak, bestStreak,
-  totalCompleted}` mit `recordBossWin()`/`recordBossLoss()` — Streak
-  bricht bei Niederlage **sofort** statt erst bei Wochen-Lücke; in allen
-  vier Backup/Export-Funktionen + `deleteAllData()` ergänzt;
-  `state.isBossGame` mit fest `maxLives=lives=1` unabhängig von
-  `settings.livesEnabled`; eigener `startBossGame()`; Loss-/Gaveup-Screen
-  ohne Retry-Button + Hinweistext "nächste Woche wieder versuchen";
-  Win-Screen mit Streak-Badge statt "nächstes Rätsel"-Button;
-  Home-Screen-Button analog Tagesrätsel mit Wochen-Status + Streak-Badge;
-  solo-only. i18n (`home.bossChallenge`/`bossDone`, `boss.streakBadge`/
-  `tryAgainNextWeek`) in allen 10 Sprachen ergänzt; Unit- (95/95) und
-  E2E-Tests (40/40, inkl. 3 neuer Tests in `test/e2e/boss.spec.js`) grün;
-  PR #48 nach grünem CI nach `master` gemerged. (Davor: Feature 10
-  (Custom-Modus) + ROADMAP-Update, PR #46/#47 gemerged.)
-- **Nächster Schritt:** Branch `claude/feat-history` von `master` anlegen
-  und mit Feature 3 (Replay/Verlauf gelöster Rätsel) beginnen (siehe
-  ursprünglicher Plan: kein Zug-Log vorhanden, daher v1 = Snapshot
-  abgeschlossener Rätsel statt zugweises Playback; neuer Storage-Key
-  `KEYS.HISTORY` = Ringpuffer (z.B. letzte 20) mit `{difficulty, dim,
-  seed, marks, timeMs, outcome, ts}` — Seed statt vollem Puzzle
-  gespeichert, `generatePuzzle({difficulty, seed, dim})` reproduziert das
-  exakte Rätsel; neue Funktion `recordHistory()` in storage.js, aufgerufen
-  in `win()/lose()/giveUp()`; `KEYS.HISTORY` in alle vier Backup/Export-
-  Funktionen + `deleteAllData()` eintragen; neuer "history"-Screen
-  (`state.screen`, `navigate()`) mit Liste gelöster Rätsel →
-  Endboard/Lösung ansehen oder per Seed erneut spielen; i18n
-  `history.*`).
+- **Letzter abgeschlossener Schritt:** Feature 3 (Replay/Verlauf gelöster
+  Rätsel) vollständig: neuer `KEYS.HISTORY`-Storage-Key in `storage.js` =
+  Ringpuffer der letzten 20 abgeschlossenen Rätsel
+  (`{difficulty, dim, seed, marks, timeMs, outcome, coop, ts}`), Seed statt
+  vollem Puzzle gespeichert — `generatePuzzle({difficulty, seed, dim})`
+  reproduziert das exakte Rätsel deterministisch; `recordHistory()`
+  aufgerufen in `win()/lose()/giveUp()`; in allen vier Backup/Export-
+  Funktionen + `deleteAllData()` ergänzt. Neuer "history"-Screen
+  (`state.screen`, `navigate('history')`) mit Liste gelöster Rätsel; "Ansehen"
+  öffnet ein rein lesbares Endboard-Overlay (`state.historyDetail`), das
+  bewusst **nicht** `state.puzzle`/`state.marks`/`state.status` wiederverwendet
+  (Daten-Sicherheits-Lehre aus dem Plan: `quitToHome()`/`revealSolution()`
+  hängen an genau diesem State, eine geteilte Nutzung hätte ein laufendes,
+  resumable Spiel überschreiben können); "Erneut spielen" regeneriert per
+  Seed eine frische, spielbare Partie. Home-Button ans Ende des
+  `.home-grid` angehängt (nicht dazwischen), damit bestehende
+  nth-index-basierte E2E-Tests (`home.spec.js`/`settings.spec.js`) ohne
+  Anpassung weiterlaufen. i18n (`home.history`, `history.*` inkl.
+  `history.outcome.{won,lost,gaveup}`) in allen 10 Sprachen ergänzt;
+  Unit-Tests weiterhin grün, 3 neue E2E-Tests in `test/e2e/history.spec.js`
+  (leerer Zustand, Sieg → Ansehen/Replay, Niederlage) — 43/43 E2E-Tests
+  grün; PR #50 nach grünem CI nach `master` gemerged.
+- **Nächster Schritt:** Branch `claude/feat-achievements` von `master`
+  anlegen und mit Feature 1 (Achievements/Badges) beginnen (siehe
+  ursprünglicher Plan: neue Datei `js/achievements.js` mit
+  `ACHIEVEMENTS`-Definitionen (id, i18n-Key, Icon, Bedingung) +
+  `evaluate(context)` → neu freigeschaltete ids; neuer Storage-Key
+  `KEYS.ACHIEVEMENTS` = `{ id: unlockedTs }`; Hooks nach `recordResult()`
+  in `win()/lose()/giveUp()` sowie nach Daily-/Boss-Recording, Context u.a.
+  outcome, `mistakes===0`, `coop`, `newHighscore`, difficulty, Daily-/
+  Boss-Streak, Bestzeit, "erster Coop-Sieg"; Freischaltung → Toast +
+  Badges-Ansicht (eigener Screen oder Sektion im Stats-Screen);
+  `KEYS.ACHIEVEMENTS` in alle vier Backup/Export-Funktionen +
+  `deleteAllData()` eintragen; i18n `achievements.*`).
 
 ## Pro-Feature-Checkliste (Referenz)
 
