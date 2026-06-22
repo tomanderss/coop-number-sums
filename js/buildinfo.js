@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.66';
-export const BUILD_HASH = 'a5a211a';
+export const BUILD      = '0.67';
+export const BUILD_HASH = '6b4e939';
 
 export const CHANGELOG = [
+  {
+    "version": "0.67",
+    "date": "22.06.2026",
+    "changes": [
+      "Pass-and-Play: lokaler Mehrspieler-Modus an einem Gerät, kein Netz nötig"
+    ]
+  },
   {
     "version": "0.66",
     "date": "22.06.2026",
