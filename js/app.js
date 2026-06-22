@@ -77,7 +77,6 @@ const state = reactive({
     connected: false,          // Partner verbunden
     waitingForGuest: false,    // Host: Raum offen, wartet auf Join / Gast: verbindet
     lobbyDiffId: 'mittel',
-    isDaily: false,             // true: Host-Lobby nutzt das heutige Tagesrätsel statt freier Schwierigkeitswahl
     error: null,               // Inline-Fehlermeldung im Lobby-Screen
     myId: null,                // eigene Firebase-uid dieser Session (Host wie Gast)
     hostId: null,               // uid des aktuell amtierenden Hosts (für deterministische Host-Übernahme bei Disconnect)
@@ -272,9 +271,6 @@ function newGame(diffId) {
   state.isBossGame = false;
   state.bossWeekStr = null;
   state.isTrainingGame = false;
-  // Eine reguläre Coop-Folgerunde ("nächstes Rätsel" nach einem gemeinsam
-  // gelösten Tagesrätsel) ist wieder frei gewählt, kein Tagesrätsel mehr.
-  state.coop.isDaily = false;
   state.generating = true;
   state.screen = 'game';
   // kurze Verzögerung, damit die Lade-Animation sichtbar wird (große Felder)
@@ -293,7 +289,7 @@ function newGame(diffId) {
     if (state.coop.active && state.coop.role === 'host') {
       state.coop.awaitingStart = true;
       startTimer();
-      coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime, isDaily: false });
+      coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
     } else {
       startTimer();
     }
@@ -792,7 +788,6 @@ function handleCoopMsg(msg) {
     state.coop.connected = true;
     state.coop.waitingForGuest = false;
     state.coop.awaitingStart = true;
-    state.coop.isDaily = !!msg.isDaily;
     navigate('game');
   } else if (msg.type === Coop.MSG.START) {
     if (state.coop.awaitingStart) startCoopGame(msg.startTime);
@@ -855,7 +850,6 @@ function coopReset() {
   state.coop.connected = false; state.coop.waitingForGuest = false;
   state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
-  state.coop.isDaily = false;
   state.coop.teamMode = false;
   state.coop.raceMode = false;
   state.team.active = false; state.team.myTeam = null; state.team.matchOver = false;
@@ -927,10 +921,6 @@ function confirmCoopIdentity() {
   if (!name) return;
   state.settings.coopName = name;
   state.coop.identityConfirmed = true;
-  // Tagesrätsel-Einstieg überspringt die Hosten/Beitreten-Auswahl -- hier gibt
-  // es nur "gemeinsam das heutige Rätsel lösen", also direkt zur Host-Lobby
-  // (Gäste treten wie gewohnt über den geteilten Code bei).
-  if (state.coop.isDaily) state.coop.role = 'host';
 }
 // Beim Einstieg ins Coop-Menü erscheint das Namens-Gate jedes Mal erneut (man
 // kann den Namen also immer ändern), wird aber mit dem zuletzt gespeicherten
@@ -938,17 +928,6 @@ function confirmCoopIdentity() {
 function goCoop() {
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
-  navigate('coop');
-}
-// Einstieg über den "heute zusammen spielen"-Button auf dem Home-Screen --
-// identisches Namens-Gate wie goCoop(), aber mit vorgesetzter lobbyDiffId
-// (heutige Tagesschwierigkeit) und isDaily-Flag, das confirmCoopIdentity()
-// direkt zur Host-Lobby weiterleitet.
-function goCoopDaily() {
-  state.coop.nameDraft = state.settings.coopName;
-  state.coop.identityConfirmed = false;
-  state.coop.isDaily = true;
-  state.coop.lobbyDiffId = getDailyChallenge().difficulty;
   navigate('coop');
 }
 // Einstieg über den Race-/Duell-Home-Button -- identisches Namens-Gate, aber
@@ -1030,17 +1009,11 @@ function canStartCoopMatch() {
 }
 function startCoopMatch() {
   if (!canStartCoopMatch()) return;
-  // Tagesrätsel im Coop: statt einer frischen, zufälligen Generierung denselben
-  // deterministischen Seed wie im Solo-Tagesrätsel verwenden (getDailyChallenge(),
-  // daily.js) -- alle Mitspieler lösen so exakt das heutige Rätsel. Zählt aber
-  // bewusst NICHT zur Solo-Daily-Streak (kein Aufruf von recordDailyResult()),
-  // sondern wie jeder andere Coop-Sieg über die bestehenden coopWon/coopBestTimeMs-
-  // Statistikfelder (siehe win()/lose()/giveUp(), die nur state.coop.active prüfen).
-  const { difficulty, seed } = state.coop.isDaily ? getDailyChallenge() : { difficulty: state.coop.lobbyDiffId, seed: undefined };
-  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty, isDaily: state.coop.isDaily, players: state.coop.players.length });
+  const difficulty = state.coop.lobbyDiffId;
+  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty, players: state.coop.players.length });
   let puzzle;
   try {
-    puzzle = generatePuzzle({ difficulty, seed });
+    puzzle = generatePuzzle({ difficulty });
   } catch (e) {
     log('game', `Puzzle-Generierung fehlgeschlagen (Coop)`, e);
     throw e;
@@ -1051,7 +1024,7 @@ function startCoopMatch() {
   state.coop.waitingForGuest = false;
   state.coop.awaitingStart = true;
   navigate('game');
-  Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime, isDaily: state.coop.isDaily });
+  Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
 }
 
 // ─── TEAM-VS-TEAM (Feature 12b) ───────────────────────────────────────────────
@@ -1736,7 +1709,7 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch,
-      chipTextColor, confirmCoopIdentity, playerColor, goCoop, goCoopDaily, applyUpdate,
+      chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
       startBossGame, bossInfo, bossAttemptedThisWeek,
       startTrainingGame, applyTrainingStep,
@@ -1772,9 +1745,6 @@ const App = {
           <span class="btn-ic">📅</span>
           <span class="btn-tx"><b>{{ t('home.dailyChallenge') }}</b><small>{{ dailyDoneToday ? t('home.dailyDone') : t('difficulty.'+dailyInfo.difficulty) }}</small></span>
           <span v-if="state.daily.currentStreak>0" class="badge-soon">🔥{{ state.daily.currentStreak }}</span>
-        </button>
-        <button class="btn btn-ghost daily-coop-btn" :disabled="!coopAvailable" @click="goCoopDaily">
-          <span class="btn-ic">📅👥</span><span class="btn-tx"><b>{{ t('home.dailyCoop') }}</b><small>{{ t('home.dailyCoopHint') }}</small></span>
         </button>
         <button class="btn btn-ghost race-btn" :disabled="!coopAvailable" @click="goRace">
           <span class="btn-ic">🆚</span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
@@ -1859,7 +1829,6 @@ const App = {
           <span v-if="state.coop.active" class="chip coop-chip" :class="state.coop.connected ? 'coop-on' : 'coop-off'">
             👥 {{ t('game.coopTag') }}{{ state.coop.connected ? '' : t('game.coopOfflineSuffix') }}
           </span>
-          <span v-if="state.coop.active && state.coop.isDaily" class="chip coop-chip">📅 {{ t('game.coopDailyTag') }}</span>
           <span v-if="state.team.active" class="chip coop-chip">🆚 {{ t('team.label'+state.team.myTeam) }}</span>
           <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>
           <span v-if="state.race.active" class="chip coop-chip">🆚 {{ state.race.opponentName }}</span>
@@ -2228,32 +2197,21 @@ const App = {
       <!-- Host: Code festlegen + Schwierigkeit → warte auf Gast -->
       <div v-else-if="state.coop.role === 'host'" class="coop-body">
         <template v-if="!state.coop.waitingForGuest">
-          <p v-if="state.coop.isDaily" class="coop-tagline">{{ t('daily.coopIntro') }}</p>
           <div class="coop-code-label">{{ t('coop.setCode') }}</div>
           <input class="coop-input" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
                  :placeholder="t('common.codePlaceholder')" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
-          <template v-if="state.coop.isDaily">
-            <div class="setup-label">{{ t('common.difficulty') }}</div>
-            <div class="opt-card active">
-              <span class="opt-emoji">{{ DIFF_BY_ID[state.coop.lobbyDiffId].emoji }}</span>
-              <span class="opt-name">{{ t('difficulty.'+state.coop.lobbyDiffId) }}</span>
-              <span class="opt-desc">{{ DIFF_BY_ID[state.coop.lobbyDiffId].dim.r }}×{{ DIFF_BY_ID[state.coop.lobbyDiffId].dim.c }}</span>
-            </div>
-          </template>
-          <template v-else>
-            <div class="setup-label">{{ t('common.difficulty') }}</div>
-            <div class="option-grid">
-              <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
-                      :class="{active: state.coop.lobbyDiffId===d.id}"
-                      @click="state.coop.lobbyDiffId=d.id">
-                <span class="opt-emoji">{{ d.emoji }}</span>
-                <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
-                <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-                <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
-              </button>
-            </div>
-          </template>
-          <div v-if="!state.coop.isDaily && !state.coop.raceMode" class="set-row" @click="state.coop.teamMode=!state.coop.teamMode">
+          <div class="setup-label">{{ t('common.difficulty') }}</div>
+          <div class="option-grid">
+            <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
+                    :class="{active: state.coop.lobbyDiffId===d.id}"
+                    @click="state.coop.lobbyDiffId=d.id">
+              <span class="opt-emoji">{{ d.emoji }}</span>
+              <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
+              <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+            </button>
+          </div>
+          <div v-if="!state.coop.raceMode" class="set-row" @click="state.coop.teamMode=!state.coop.teamMode">
             <span>{{ t('team.toggleLabel') }}</span><span class="switch" :class="{on:state.coop.teamMode}"><i></i></span>
           </div>
           <button class="btn btn-primary" @click="startHosting">{{ t('coop.startHosting') }}</button>
