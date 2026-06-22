@@ -81,6 +81,11 @@ export const COOP_COLORS_CB = [
   { id: 'violett',   name: 'Violett',   hex: '#7B5EA7' },
 ];
 
+// Maximale Anzahl gleichzeitig aktiver Spieler pro Coop-Raum (geteiltes Gitter).
+// Leben/Herzen skalieren NICHT mit der Spielerzahl — bewusster Trade-off, dass
+// bei 4 Spielern die gemeinsamen Leben schneller aufgebraucht sind.
+export const COOP_MAX_PLAYERS = 4;
+
 // ─── STANDARD-EINSTELLUNGEN ───────────────────────────────────────────────────
 export const DEFAULT_SETTINGS = {
   darkMode: true,            // Dunkelmodus ist Standard

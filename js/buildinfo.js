@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.65';
-export const BUILD_HASH = '7d7a0e3';
+export const BUILD      = '0.66';
+export const BUILD_HASH = 'a5a211a';
 
 export const CHANGELOG = [
+  {
+    "version": "0.66",
+    "date": "22.06.2026",
+    "changes": [
+      "Coop-Raumkapazität auf bis zu 4 Spieler erhöht — Host startet die Runde jetzt per Button aus einer echten Warte-Lobby statt automatisch beim ersten Beitritt."
+    ]
+  },
   {
     "version": "0.65",
     "date": "22.06.2026",

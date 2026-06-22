@@ -143,6 +143,10 @@ export default {
     lobbyTitle: 'Os colegas de equipe estão na sala',
     lobbyMsg: 'O quebra-cabeça está pronto — comecem quando os dois estiverem prontos.',
     lobbyStart: 'Começar 🚀',
+    playerJoinedLobby: '{name} entrou na sala 👋',
+    playersCount: '{n}/{max} jogadores',
+    startMatch: 'Iniciar partida 🚀',
+    waitingForHostStart: 'Esperando o anfitrião iniciar…',
   },
   settings: {
     title: 'Configurações',

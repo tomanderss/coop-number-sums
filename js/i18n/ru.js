@@ -143,6 +143,10 @@ export default {
     lobbyTitle: 'Товарищи по команде в лобби',
     lobbyMsg: 'Пазл готов — начните, когда оба будете готовы.',
     lobbyStart: 'Начать 🚀',
+    playerJoinedLobby: '{name} присоединился к лобби 👋',
+    playersCount: '{n}/{max} игроков',
+    startMatch: 'Начать игру 🚀',
+    waitingForHostStart: 'Ожидание начала от хоста…',
   },
   settings: {
     title: 'Настройки',

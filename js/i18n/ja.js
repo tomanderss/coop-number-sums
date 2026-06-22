@@ -143,6 +143,10 @@ export default {
     lobbyTitle: '仲間がロビーにいます',
     lobbyMsg: 'パズルの準備ができました。両方の準備が整ったら開始してください。',
     lobbyStart: '開始 🚀',
+    playerJoinedLobby: '{name}さんがロビーに参加しました 👋',
+    playersCount: '{n}/{max}人のプレイヤー',
+    startMatch: '対戦を開始 🚀',
+    waitingForHostStart: 'ホストの開始を待っています…',
   },
   settings: {
     title: '設定',

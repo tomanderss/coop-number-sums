@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, CUSTOM_SIZES, LIVES, HINTS } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, CUSTOM_SIZES, LIVES, HINTS, COOP_MAX_PLAYERS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
 import { getDailyChallenge, todayDateStr } from './daily.js';
 import { getBossChallenge } from './boss.js';
@@ -79,6 +79,7 @@ const state = reactive({
     lobbyDiffId: 'mittel',
     error: null,               // Inline-Fehlermeldung im Lobby-Screen
     myId: null,                // eigene Firebase-uid dieser Session (Host wie Gast)
+    hostId: null,               // uid des aktuell amtierenden Hosts (für deterministische Host-Übernahme bei Disconnect)
     players: [],                // [{id, name, color}] — alle bekannten Mitspieler inkl. mir selbst
     nameDraft: '',              // Entwurf im Namens-Gate, bevor er bestätigt wird
     identityConfirmed: false,   // true sobald das Namens-Gate in dieser Coop-Session bestätigt wurde
@@ -722,9 +723,12 @@ function handleCoopMsg(msg) {
     if (state.coop.role === 'host') {
       upsertPlayer(msg.author, msg.name, msg.color);
       broadcastRoster();
+      showToast(t('coop.playerJoinedLobby', { name: (msg.name || '').trim() || t('common.defaultPlayerName') }));
     }
   } else if (msg.type === Coop.MSG.ROSTER) {
     state.coop.players = msg.players;
+    if (msg.hostId) state.coop.hostId = msg.hostId;
+    updateConnectedFlag();
   } else if (msg.type === Coop.MSG.RETRY) {
     restartPuzzle(msg.startTime);
   }
@@ -737,7 +741,7 @@ function coopReset() {
   state.coop.active = false; state.coop.role = null; state.coop.code = '';
   state.coop.connected = false; state.coop.waitingForGuest = false;
   state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
-  state.coop.myId = null; state.coop.players = []; state.coop.awaitingStart = false;
+  state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
 }
 
 // ─── SPIELER-IDENTITÄT (Namen & Farben) ────────────────────────────────────────
@@ -760,12 +764,23 @@ function upsertPlayer(id, name, requestedColor) {
   const others = state.coop.players.filter(p => p.id !== id);
   const color = pickAvailableColor(requestedColor, others);
   state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color }];
+  updateConnectedFlag();
 }
 function removePlayer(id) {
   state.coop.players = state.coop.players.filter(p => p.id !== id);
+  updateConnectedFlag();
 }
+// "Verbunden" heißt hier "mindestens ein anderer Spieler ist aktuell im Raum" —
+// generalisiert das frühere binäre Host/Gast-Partner-Flag auf bis zu
+// COOP_MAX_PLAYERS Mitspieler.
+function updateConnectedFlag() {
+  state.coop.connected = state.coop.players.some(p => p.id !== state.coop.myId);
+}
+// Roster-Broadcast läuft unabhängig vom "Spiel aktiv"-Status (auch schon in der
+// Lobby vor dem Start nötig) — bewusst über Coop.send direkt statt coopSend(),
+// dessen Guard `state.coop.active` voraussetzt.
 function broadcastRoster() {
-  coopSend({ type: Coop.MSG.ROSTER, players: state.coop.players });
+  Coop.send({ type: Coop.MSG.ROSTER, players: state.coop.players, hostId: state.coop.hostId });
 }
 function playerColor(id) { return state.coop.players.find(p => p.id === id)?.color || null; }
 function chipTextColor(hex) {
@@ -799,13 +814,25 @@ function goCoop() {
   navigate('coop');
 }
 
-// Wird aufgerufen, wenn der Gast die Verbindung zum Host unerwartet verliert
-// (Tab eingeschlafen, Netzwerkausfall) während die Runde noch läuft: der Gast
-// übernimmt lokal die Host-Rolle (Identitäts-Arbitrierung für künftige Mitspieler) —
-// die Raumdaten in der RTDB leben unabhängig vom "Host", ein Transport-Neuaufbau
-// ist anders als bei PeerJS nicht nötig.
+// Bei bis zu COOP_MAX_PLAYERS Spielern könnten mehrere Gäste gleichzeitig den
+// Host-Verlust bemerken — damit nicht mehrere sich parallel selbst befördern,
+// wird deterministisch (ohne weitere Netzwerk-Roundtrips) der nach uid kleinste
+// verbleibende Spieler zum neuen Host: jeder Client berechnet dasselbe Ergebnis
+// lokal aus seiner aktuellen Roster-Kopie.
+function pickNewHostId() {
+  const ids = state.coop.players.map(p => p.id).filter(Boolean).sort();
+  return ids[0] || null;
+}
+// Wird aufgerufen, wenn ein Spieler bemerkt, dass der bisherige Host die
+// Verbindung unerwartet verloren hat (Tab eingeschlafen, Netzwerkausfall)
+// während die Runde noch läuft: der per pickNewHostId() bestimmte Spieler
+// übernimmt lokal die Host-Rolle (Identitäts-Arbitrierung für künftige
+// Mitspieler) — die Raumdaten in der RTDB leben unabhängig vom "Host", ein
+// Transport-Neuaufbau ist anders als bei PeerJS nicht nötig.
 function promoteToHost() {
   state.coop.role = 'host';
+  state.coop.hostId = state.coop.myId;
+  broadcastRoster();
   showToast(t('coop.becameHost'), 'info', 4000);
 }
 
@@ -824,6 +851,7 @@ function startHosting() {
     color: state.settings.coopMyColor,
     onOpen(id) {
       state.coop.myId = id;
+      state.coop.hostId = id;
       upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor);
     },
     onError(e) {
@@ -831,33 +859,45 @@ function startHosting() {
       state.coop.error = e.type === 'code-taken'
         ? t('coop.errorCodeTaken') : t('coop.errorConnection');
     },
-    onJoin() {
-      log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty: state.coop.lobbyDiffId });
-      let puzzle;
-      try {
-        puzzle = generatePuzzle({ difficulty: state.coop.lobbyDiffId });
-      } catch (e) {
-        log('game', `Puzzle-Generierung fehlgeschlagen (Coop)`, e);
-        throw e;
-      }
-      log('game', `Puzzle generiert (Coop)`, { difficulty: state.coop.lobbyDiffId, rows: puzzle.rows, cols: puzzle.cols });
-      loadPuzzleIntoState(puzzle, null);
-      state.coop.active = true;
-      state.coop.connected = true;
-      state.coop.waitingForGuest = false;
-      state.coop.awaitingStart = true;
-      navigate('game');
-      Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
-      showToast(t('coop.partnerConnected'));
+    // Das eigentliche Hinzufügen zur Roster-Liste passiert über die vom
+    // beitretenden Spieler gesendete IDENTITY-Nachricht (handleCoopMsg) — hier
+    // genügt ein Diagnose-Log, der Spieler erscheint sobald IDENTITY eintrifft.
+    onJoin(id) {
+      log('game', `Mitspieler in Lobby beigetreten (Coop)`, { id });
     },
     onLeave(id) {
-      state.coop.connected = false;
       removePlayer(id);
       broadcastRoster();
       if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected'), 'info', 3000);
     },
     onMessage: handleCoopMsg,
   });
+}
+
+// Vom Host per Button ausgelöst, sobald mindestens ein weiterer Spieler in der
+// Lobby ist — ersetzt das frühere automatische Spielstart-Verhalten beim
+// ersten Beitritt, da bei bis zu COOP_MAX_PLAYERS Spielern Zeit zum Beitreten
+// für Spieler 3/4 bleiben muss.
+function canStartCoopMatch() {
+  return state.coop.role === 'host' && state.coop.players.length >= 2;
+}
+function startCoopMatch() {
+  if (!canStartCoopMatch()) return;
+  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty: state.coop.lobbyDiffId, players: state.coop.players.length });
+  let puzzle;
+  try {
+    puzzle = generatePuzzle({ difficulty: state.coop.lobbyDiffId });
+  } catch (e) {
+    log('game', `Puzzle-Generierung fehlgeschlagen (Coop)`, e);
+    throw e;
+  }
+  log('game', `Puzzle generiert (Coop)`, { difficulty: state.coop.lobbyDiffId, rows: puzzle.rows, cols: puzzle.cols });
+  loadPuzzleIntoState(puzzle, null);
+  state.coop.active = true;
+  state.coop.waitingForGuest = false;
+  state.coop.awaitingStart = true;
+  navigate('game');
+  Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
 }
 
 function startJoining() {
@@ -873,8 +913,8 @@ function startJoining() {
     color: state.settings.coopMyColor,
     onOpen(id) {
       // Eigene ID dieser Session sichern und sofort dem Host die eigene Identität
-      // melden — coopSend() blockt hier noch (state.coop.connected wird erst beim
-      // INIT true), daher direkt über die Transportschicht senden.
+      // melden — coopSend() blockt hier noch (state.coop.connected wird erst nach
+      // der ersten ROSTER-Antwort true), daher direkt über die Transportschicht senden.
       state.coop.myId = id;
       upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor);
       Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor });
@@ -887,14 +927,28 @@ function startJoining() {
         e.type === 'timeout'        ? t('coop.errorTimeout') : t('coop.errorConnection');
     },
     onMessage: handleCoopMsg,
-    onClose() {
-      state.coop.connected = false;
+    onClose(id) {
       if (coopIntentionalLeave) return;
-      if (state.coop.active && state.status === 'playing') {
+      // Nur reagieren, wenn der Host (oder, bei noch unbekannter hostId, der
+      // einzig bekannte Stand) gegangen ist — ein abreisender Mitspieler, der
+      // nicht der Host war, betrifft die eigene Verbindung nicht. Greift sowohl
+      // in der Lobby (vor Spielstart) als auch in der laufenden Runde, damit bei
+      // bis zu COOP_MAX_PLAYERS Spielern auch ein Host-Wechsel mitten in der
+      // Warte-Lobby den Raum nicht verwaisen lässt.
+      const wasHost = !state.coop.hostId || id === state.coop.hostId;
+      removePlayer(id);
+      if (!wasHost) return;
+      if (state.coop.players.length <= 1) {
+        // Niemand außer mir selbst übrig — keine Übernahme nötig.
+        showToast(t('coop.hostDisconnected'), 'info', 3000);
+        return;
+      }
+      const newHostId = pickNewHostId();
+      if (newHostId === state.coop.myId) {
         showToast(t('coop.hostDisconnectedPromoting'), 'info', 3000);
         promoteToHost();
       } else {
-        showToast(t('coop.hostDisconnected'), 'info', 3000);
+        state.coop.hostId = newHostId;
       }
     },
   });
@@ -1387,6 +1441,7 @@ const App = {
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
+      startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
       chipTextColor, confirmCoopIdentity, onCoopNameBlur, playerColor, goCoop, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
       startBossGame, bossInfo, bossAttemptedThisWeek,
@@ -1860,7 +1915,15 @@ const App = {
           <div class="coop-code">{{ state.coop.code }}</div>
           <p class="coop-subtext">{{ t('coop.shareCode') }}</p>
           <button class="btn btn-ghost btn-sm" @click="shareCoopInvite">📤 {{ t('coop.shareInvite') }}</button>
-          <div class="coop-waiting">
+          <div class="coop-roster" v-if="state.coop.players.length">
+            <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
+                  :style="{ background: p.color, color: chipTextColor(p.color) }">
+              {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+            </span>
+          </div>
+          <p class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: COOP_MAX_PLAYERS }) }}</p>
+          <button class="btn btn-primary" :disabled="!canStartCoopMatch()" @click="startCoopMatch">{{ t('coop.startMatch') }}</button>
+          <div v-if="!canStartCoopMatch()" class="coop-waiting">
             <div class="spinner"></div>
             <div class="loading-tx">{{ t('coop.waitingForGuest') }}</div>
           </div>
@@ -1869,7 +1932,7 @@ const App = {
         <button class="btn btn-ghost" style="margin-top:8px" @click="coopReset(); state.coop.role=null">{{ t('common.cancel') }}</button>
       </div>
 
-      <!-- Gast: Code eingeben → verbinden -->
+      <!-- Gast: Code eingeben → verbinden → Lobby (warten auf Hoststart) -->
       <div v-else-if="state.coop.role === 'guest'" class="coop-body">
         <div class="coop-code-label">{{ t('coop.enterHostCode') }}</div>
         <input class="coop-input" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
@@ -1877,9 +1940,17 @@ const App = {
                @input="state.coop.code=state.coop.code.replace(/\D/g,'')"
                @keydown.enter="startJoining" />
         <button class="btn btn-primary" :disabled="state.coop.waitingForGuest || state.coop.code.length!==6" @click="startJoining">
-          <span v-if="state.coop.waitingForGuest"><span class="spinner-inline"></span> {{ t('coop.connecting') }}</span>
+          <span v-if="state.coop.waitingForGuest && !state.coop.myId"><span class="spinner-inline"></span> {{ t('coop.connecting') }}</span>
+          <span v-else-if="state.coop.waitingForGuest">{{ t('coop.waitingForHostStart') }}</span>
           <span v-else>{{ t('coop.connect') }}</span>
         </button>
+        <div class="coop-roster" v-if="state.coop.waitingForGuest && state.coop.myId && state.coop.players.length">
+          <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
+                :style="{ background: p.color, color: chipTextColor(p.color) }">
+            {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+          </span>
+        </div>
+        <p v-if="state.coop.waitingForGuest && state.coop.myId" class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: COOP_MAX_PLAYERS }) }}</p>
         <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
         <button class="btn btn-ghost" style="margin-top:4px" @click="coopReset(); state.coop.role=null">{{ t('common.back') }}</button>
       </div>

@@ -143,6 +143,10 @@ export default {
     lobbyTitle: 'Takım arkadaşların lobide',
     lobbyMsg: 'Bulmaca hazır — ikiniz de hazır olduğunuzda başlayın.',
     lobbyStart: 'Başlat 🚀',
+    playerJoinedLobby: '{name} lobiye katıldı 👋',
+    playersCount: '{n}/{max} oyuncu',
+    startMatch: 'Maçı başlat 🚀',
+    waitingForHostStart: 'Ev sahibinin başlatması bekleniyor…',
   },
   settings: {
     title: 'Ayarlar',
