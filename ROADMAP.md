@@ -26,7 +26,9 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 | F12c | Lokaler Pass-and-Play-Modus | `claude/feat-pass-and-play` | ✅ fertig |
 | F4 | Tagesrätsel im Coop | `claude/feat-daily-coop` | ✅ fertig |
 | F12b | Team-vs-Team (2v2) | `claude/feat-team-vs-team` | ✅ fertig |
-| F11 | Race-/Duell-Modus | `claude/feat-race` | ⬜ offen |
+| F11 | Race-/Duell-Modus | `claude/feat-race` | ✅ fertig |
+
+**Alle 11 geplanten Features sind abgeschlossen.**
 
 Reihenfolge: Solo-Block (F6 → F8 → F10 → F15 → F3 → F1 → F5), dann
 Coop-Block (F12a → F12c → F4 → F12b → F11). Details/Begründung der
@@ -35,76 +37,58 @@ Reihenfolge und jedes einzelnen Features stehen im ursprünglichen Plan
 
 ## Aktueller Stand
 
-- **Aktueller Branch:** `master` (nächster Feature-Branch
-  `claude/feat-race` noch nicht angelegt)
-- **Letzter abgeschlossener Schritt:** Feature 12b (Team-vs-Team, 2v2)
+- **Aktueller Branch:** `master` — Rollout abgeschlossen, kein offener
+  Feature-Branch mehr.
+- **Letzter abgeschlossener Schritt:** Feature 11 (Race-/Duell-Modus, v1)
   vollständig — **mit einer bewussten Architekturabweichung vom
-  ursprünglichen Plantext**: statt zwei eigenständiger, gekoppelter
-  Coop-Räume + einer separaten `/teamMatches/{matchCode}/`-RTDB-Struktur
-  wird der **bestehende Einzel-Raum aus F12a wiederverwendet** (kein zweiter
-  Raum, kein neues RTDB-Top-Level-Schema, kein manueller
-  `database.rules.json`-Deploy nötig). Host aktiviert `state.coop.teamMode`
-  in der bestehenden 4-Spieler-Lobby; jeder Spieler bekommt ein `team`-Feld
-  (`'A'|'B'|null`) per Klick auf seinen Roster-Chip (`cycleTeam(id)`,
-  zyklisch null→A→B→null). Start-Button bleibt deaktiviert, bis beide Teams
-  mindestens einen Spieler haben. Gameplay-Events laufen team-intern über
-  neue `teamEvents/{team}`-RTDB-Kanäle (`sendTeamEvent`/`listenTeamEvents`
-  in `js/coop.js`) statt über den gemeinsamen `events`-Kanal — dadurch
-  **keine zellweise Synchronisation über die Teamgrenze**, kein
-  Antwort-Leak. Nur aggregierter Fortschritt (`pct`/`mistakes`) wird über
-  `teamProgress/{team}` (`setTeamProgress`/`listenTeamProgress`) sichtbar
-  gemacht. `MSG.TEAM_START` (raumweit, `{seed, difficulty}`) startet beide
-  Teams synchron mit demselben Seed (`generatePuzzle({difficulty, seed})`
-  lokal pro Client, kein Rätsel-Versand über die Teamgrenze).
-  `MSG.TEAM_DONE` (raumweit, `{team, outcome}`) beendet das Match hart und
-  sofort für beide Teams, sobald ein Team fertig ist — Sieger-Logik: bei
-  `outcome==='won'` gewinnt das fertige Team, bei `'lost'`/`'gaveup'`
-  gewinnt automatisch das andere Team; kein Weiterspielen für eigene Stats,
-  keine Retry-/Neues-Spiel-Buttons auf dem Team-Ergebnis-Screen. Neuer
-  `state.team`-Substate (`active`, `myTeam`, `matchOver`, `winningTeam`,
-  Gegner-Fortschritt) getrennt von `state.coop`, neue `.coop-chip`-Anzeigen
-  ("Team A"/"Gegner X%") im laufenden Spiel. i18n: `team.*` (Toggle-Label,
-  Zuweisungs-Hinweis, Team-Labels, Start-Button, Warte-Hinweis,
-  Gegner-Fortschritt, Match-Ergebnis-Texte) in allen 10 Sprachen ergänzt.
-  Vue-3-Bugfix nebenbei behoben: Lobby-Roster-Template kombinierte `v-if`
-  (Team- vs. Normal-Anzeige) mit `v-for` auf demselben Element — in Vue 3
-  mehrdeutig/unsicher (andere Präzedenz als Vue 2) — gefixt durch
-  Verschachtelung in `<template v-if>`/`<template v-else>`-Wrapper statt
-  beider Direktiven auf demselben Tag. Debug-Hook `window.__cns` um
-  `handleCoopMsg` erweitert, damit E2E-Tests ein eingehendes `TEAM_DONE` vom
-  Gegnerteam simulieren können (gleiches Muster wie der bereits vorhandene
-  `getDailyChallenge`-Hook). Neue E2E-Tests in `test/e2e/team.spec.js` (5
-  Tests: Team-Toggle sichtbar, Roster gated Start-Button bis beide Teams
-  besetzt sind, Match-Start zeigt Team-/Gegner-Chip, Gegner gewinnt erzwingt
-  sofortige Niederlage ohne Retry-Buttons, Gegner gibt auf → automatischer
-  Sieg) — die ersten Testversuche klickten noch durch den echten
-  `Coop.hostGame()`-Netzwerkaufruf, der in diesem Sandbox-Netzwerk
-  zuverlässig binnen ~500ms mit einem Verbindungsfehler scheitert und dabei
-  `state.coop.waitingForGuest` mitten im mehrstufigen Test zurücksetzt
-  (4 von 5 Tests flacker/timeout) — Fix: wie im bestehenden
-  `coop.spec.js`-Gast-Test die echten `hostGame()`/`onOpen()`-Effekte direkt
-  per `page.evaluate()` simulieren (`role`/`code`/`teamMode`/
-  `waitingForGuest`/`myId`/`hostId`/`players` setzen) statt den echten
-  Netzwerkaufruf zu klicken. 109/109 Unit-Tests, 65/65 E2E-Tests grün
-  (inkl. 15/15 bei `--repeat-each=3` auf `team.spec.js` zur
-  Flakiness-Kontrolle); PR #62 nach grünem CI nach `master` gemerged.
-- **Nächster Schritt:** Branch `claude/feat-race` von `master` anlegen und
-  mit Feature 11 (Race-/Duell-Modus, v1: nur "wer als Erster fehlerfrei
-  fertig ist, gewinnt") beginnen — letztes Feature des Rollouts (siehe
-  ursprünglicher Plan: neue eigenständige Datei `js/race.js`, neue
-  RTDB-Struktur `/races/{code}/` mit `meta`/`players/{uid}`/
-  `progress/{uid}` — Fortschritt **nie** zellweise, nur `pct`/`mistakes`/
-  `finished`/`lastUpdate`, gedrosselt alle 2-3s gepusht statt bei jeder
-  Markierung; gemeinsamer Seed, `generatePuzzle({difficulty, seed})` lokal
-  bei beiden Spielern, kein Rätsel-Versand nötig; Leben/Fehleranzeige-
-  Einstellungen werden in der Race-Runde ignoriert — immer sofortige
-  Fehleranzeige mit unbegrenzter Selbstkorrektur; eigene Lobby mit
-  Code-Eingabe + Identitäts-Gate analog Coop, Gegner-Fortschrittsanzeige
-  als Prozent-Chip, eigener Sieg/Niederlage-Screen mit Wettkampf-Wortwahl;
-  `database.rules.json` braucht eine neue `races`-Sektion — **muss manuell
-  in der Firebase Console/CLI deployed werden**; neuer `storage.js`-Key
-  `KEYS.RACE` (`racesPlayed`/`racesWon`/`racesLost`/`fastestWinMs`) in alle
-  vier Backup/Export-Funktionen + `deleteAllData()` eintragen).
+  ursprünglichen Plantext**: statt einer neuen eigenständigen Datei
+  `js/race.js` + neuer RTDB-Struktur `/races/{code}/` wird der **bestehende
+  Coop-Raum/die bestehende Lobby aus F12a/F12b wiederverwendet**
+  (`state.coop.raceMode`-Flag, client-seitig auf 2 Spieler begrenzt via
+  `Coop.joinGame({..., maxPlayers: 2})`) — kein neues RTDB-Top-Level-Schema,
+  kein manueller `database.rules.json`-Deploy nötig. Architektonische
+  Kernentscheidung zur Leak-Vermeidung: `state.coop.active` wird während des
+  laufenden Race-Matches **nie** gesetzt (anders als bei Team-vs-Team) —
+  dadurch lösen `setMark()`/`registerMistake()`/`doCheck()` per Konstruktion
+  keinerlei `coopSend()`-Aufrufe aus, es gibt also keine zellweise
+  Übertragung, die einen Leak ermöglichen könnte. Drei getrennte Flags
+  (`state.isRaceGame` für UI/Leben/Sofort-Fehleranzeige,
+  `state.coop.raceMode` für den Lobby-Vorlauf, `state.race.active` für den
+  laufenden Match-Zustand) statt eines einzigen — spiegelt das bestehende
+  `isBossGame`/`coop.isDaily`- bzw. `isCustomGame`/`team.active`-Muster.
+  `MSG.RACE_START` (`{seed, difficulty}`) startet beide Seiten synchron mit
+  demselben Seed; `MSG.RACE_DONE` (`{outcome}`) beendet das Match hart und
+  sofort — bei `outcome==='won'` gewinnt der Absender, bei
+  `'lost'`/`'gaveup'` gewinne ich automatisch (kein Selbst-Skip-Check nötig
+  wie bei `TEAM_DONE`, da Race strikt 1v1 ist). `recordRaceWin`/
+  `recordRaceLoss` (neuer `storage.js`-Key `KEYS.RACE`:
+  `racesPlayed`/`racesWon`/`racesLost`/`fastestWinMs`, in alle vier
+  Backup/Export-Funktionen + `deleteAllData()` eingetragen) werden
+  unconditional auf `remote` aufgerufen (Stats müssen für beide Seiten
+  erfasst werden), während `broadcastRaceDone(...)` nur bei `!remote`
+  gesendet wird (kein Re-Broadcast-Loop). Neuer Home-Button
+  (`home.raceMode`/`home.raceHint`) sowie `race.*`-i18n-Keys
+  (`startMatch`/`waitingForOpponent`/`opponentProgress`/`matchResult`/
+  `youWon`/`youLost`) in allen 10 Sprachen ergänzt. Neue Unit-Tests für die
+  `storage.js`-Race-Funktionen sowie `test/e2e/race.spec.js` (6 Tests:
+  Pass-and-Play/Team-Toggle in der Race-Lobby ausgeblendet, Spielerzahl-Cap
+  bei 2 gated den Start-Button, Match-Start zeigt Gegner-Chip +
+  Fortschritts-Chip, Gegner gewinnt erzwingt sofortige Niederlage ohne
+  Retry-Buttons, Gegner gibt auf → automatischer Sieg). Nebenbei behobene
+  Test-Kollision: der neue Race-Home-Button teilte sich initial die Klasse
+  `.btn-coop` mit dem bestehenden Coop-Button, wodurch `.btn-coop`-Selektoren
+  in `coop.spec.js`/`home.spec.js`/`passandplay.spec.js`/`team.spec.js`
+  plötzlich mehrdeutig wurden (strict-mode violation) — gefixt durch
+  `btn-ghost race-btn` statt `btn-coop race-btn` für den neuen Button (beide
+  Klassen sind visuell identisch gestylt). 115/115 Unit-Tests, 71/71
+  E2E-Tests grün; PR #64 nach grünem CI nach `master` gemerged.
+- **Nächster Schritt:** Keiner aus diesem Rollout — alle 11 geplanten
+  Features (F6, F8, F10, F15, F3, F1, F5, F12a, F12c, F4, F12b, F11) sind
+  gemerged. Bei Bedarf separat zu klären: der manuelle
+  `database.rules.json`-Deploy für Team-vs-Team/Race ist weiterhin ein
+  externer, nicht automatisierbarer Schritt (siehe ursprünglicher Plan) —
+  ohne ihn funktionieren die RTDB-Teilfunktionen dieser beiden Features in
+  Produktion nicht.
 
 ## Pro-Feature-Checkliste (Referenz)
 
