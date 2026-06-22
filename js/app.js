@@ -90,14 +90,6 @@ const state = reactive({
     mistakesByPlayer: {},        // id -> Anzahl Fehler dieses Spielers im laufenden Rätsel
     awaitingStart: false,        // Rätsel ist generiert, aber die Zeit läuft noch nicht — wartet auf Start-Klick
 
-    // Pass-and-Play (lokal, ein Gerät, kein Netz) — siehe startPassAndPlayMatch().
-    // `connected` bleibt für die ganze Session false (kein echter Raum), wodurch
-    // coopSend() automatisch zum No-op wird, ohne weitere Sonderfälle nötig sind.
-    local: false,                 // true während einer Pass-and-Play-Session
-    activePlayerIdx: 0,           // Index in players, wer aktuell am Zug ist
-    turnHandoff: false,           // true während des "Gerät weitergeben"-Overlays
-    localNames: [],               // Entwurf der Spielernamen im Pass-and-Play-Setup
-
     teamMode: false,               // Host-Lobby-Toggle: Team-vs-Team statt normalem Coop
     raceMode: false,               // Host-Lobby-Toggle: Race-/Duell-Modus (1v1, getrennte Fortschritte) statt normalem Coop
   },
@@ -210,7 +202,7 @@ function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandl
 // "Nachricht angekommen" dazu führen, dass beide Seiten eine leicht andere Zeit
 // einfrieren (der gemeldete ca. 1-Sekunden-Unterschied).
 function pauseGame(broadcast = true, remoteElapsed) {
-  if (state.status !== 'playing' || state.paused || state.coop.awaitingStart || state.coop.turnHandoff) return;
+  if (state.status !== 'playing' || state.paused || state.coop.awaitingStart) return;
   state.paused = true;
   state.elapsed = remoteElapsed != null ? remoteElapsed : Date.now() - state.startTime; // einfrieren
   stopTimer();
@@ -305,21 +297,12 @@ function newGame(diffId, customDim) {
     log('game', `Puzzle generiert`, { difficulty: diffId, rows: puzzle.rows, cols: puzzle.cols });
     loadPuzzleIntoState(puzzle, null);
     state.generating = false;
-    // Pass-and-Play (state.coop.local) nutzt zwar role==='host' für die
-    // bestehenden Berechtigungs-Checks (nächstes Rätsel, neues Spiel …) weiter,
-    // braucht aber keine Lobby/INIT-Übertragung — es gibt kein zweites Gerät,
-    // das auf das Rätsel warten müsste.
-    if (state.coop.active && state.coop.role === 'host' && !state.coop.local) {
+    if (state.coop.active && state.coop.role === 'host') {
       state.coop.awaitingStart = true;
       startTimer();
       coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime, isDaily: false });
     } else {
       startTimer();
-      if (state.coop.local && state.coop.players.length) {
-        state.coop.activePlayerIdx = 0;
-        state.coop.myId = state.coop.players[0].id;
-        state.coop.turnHandoff = false;
-      }
     }
   }, 30);
 }
@@ -755,7 +738,7 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
 // einmalige Warnung, dass damit keine Bestzeit mehr möglich ist — bei Abbruch
 // bleibt hintWarnShown false, sodass die Warnung beim nächsten Versuch erneut kommt.
 function useHint() {
-  if (state.status !== 'playing' || state.hintsLeft <= 0) return;
+  if (state.status !== 'playing' || state.hintsLeft <= 0 || state.isRaceGame) return;
   if (!state.hintWarnShown) {
     ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => {
       state.hintWarnShown = true;
@@ -882,7 +865,6 @@ function coopReset() {
   state.coop.connected = false; state.coop.waitingForGuest = false;
   state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
-  state.coop.local = false; state.coop.activePlayerIdx = 0; state.coop.turnHandoff = false; state.coop.localNames = [];
   state.coop.isDaily = false;
   state.coop.teamMode = false;
   state.coop.raceMode = false;
@@ -959,9 +941,9 @@ function confirmCoopIdentity() {
   }
   state.settings.coopName = name;
   state.coop.identityConfirmed = true;
-  // Tagesrätsel-Einstieg überspringt die Hosten/Beitreten/Pass-and-Play-Auswahl --
-  // hier gibt es nur "gemeinsam das heutige Rätsel lösen", also direkt zur
-  // Host-Lobby (Gäste treten wie gewohnt über den geteilten Code bei).
+  // Tagesrätsel-Einstieg überspringt die Hosten/Beitreten-Auswahl -- hier gibt
+  // es nur "gemeinsam das heutige Rätsel lösen", also direkt zur Host-Lobby
+  // (Gäste treten wie gewohnt über den geteilten Code bei).
   if (state.coop.isDaily) state.coop.role = 'host';
 }
 function onCoopNameBlur() {
@@ -990,8 +972,8 @@ function goCoopDaily() {
   navigate('coop');
 }
 // Einstieg über den Race-/Duell-Home-Button -- identisches Namens-Gate, aber
-// mit gesetztem raceMode-Flag, das in der Lobby Pass-and-Play/Team-Toggle
-// ausblendet und die Spielerzahl der Lobby auf 2 begrenzt (siehe startJoining()).
+// mit gesetztem raceMode-Flag, das in der Lobby den Team-Toggle ausblendet und
+// die Spielerzahl der Lobby auf 2 begrenzt (siehe startJoining()).
 function goRace() {
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
@@ -1190,89 +1172,6 @@ function applyRaceStart(seed, difficulty) {
   state.coop.awaitingStart = true;
   Coop.listenRaceProgress(onRaceProgressUpdate);
   navigate('game');
-}
-
-// ─── PASS-AND-PLAY (lokal, ein Gerät, kein Netz) ──────────────────────────────
-// Wiederverwendung der Coop-Infrastruktur: state.coop.active/role/players/myId
-// werden genauso gesetzt wie bei echtem Netz-Coop (role bleibt 'host', damit
-// alle bestehenden host-gegateten Aktionen wie "nächstes Rätsel"/"neues Spiel"
-// unverändert funktionieren) -- nur state.coop.connected bleibt dauerhaft
-// false, wodurch coopSend() automatisch zum No-op wird (siehe dessen Guard).
-function initPassAndPlaySetup() {
-  state.coop.role = 'local';
-  state.coop.localNames = [state.settings.coopName || '', ''];
-  state.coop.lobbyDiffId = state.sel.difficulty;
-}
-function setLocalPlayerCount(n) {
-  n = Math.max(2, Math.min(COOP_MAX_PLAYERS, n));
-  const names = state.coop.localNames.slice(0, n);
-  while (names.length < n) names.push('');
-  state.coop.localNames = names;
-}
-function onLocalNameBlur(i) {
-  if (hasProfanity(state.coop.localNames[i])) {
-    state.coop.localNames[i] = '';
-    showToast(t('error.profanity'), 'error');
-  }
-}
-function canStartPassAndPlay() {
-  return state.coop.localNames.length >= 2 &&
-    state.coop.localNames.every(n => (n || '').trim() && !hasProfanity(n));
-}
-function startPassAndPlayMatch() {
-  if (!canStartPassAndPlay()) return;
-  const names = state.coop.localNames.map(n => n.trim());
-  state.isDailyGame = false; state.dailyDateStr = null;
-  state.isBossGame = false; state.bossWeekStr = null;
-  state.isTrainingGame = false; state.isCustomGame = false;
-  state.generating = true;
-  state.screen = 'game';
-  setTimeout(() => {
-    log('game', `Puzzle-Generierung gestartet (Pass-and-Play)`, { difficulty: state.coop.lobbyDiffId, players: names.length });
-    let puzzle;
-    try {
-      puzzle = generatePuzzle({ difficulty: state.coop.lobbyDiffId });
-    } catch (e) {
-      log('game', `Puzzle-Generierung fehlgeschlagen (Pass-and-Play)`, e);
-      throw e;
-    }
-    log('game', `Puzzle generiert (Pass-and-Play)`, { difficulty: state.coop.lobbyDiffId, rows: puzzle.rows, cols: puzzle.cols });
-    loadPuzzleIntoState(puzzle, null);
-    state.generating = false;
-    const players = [];
-    names.forEach((name) => { players.push({ id: `local${players.length}`, name, color: pickAvailableColor(null, players) }); });
-    state.coop.players = players;
-    state.coop.active = true;
-    state.coop.role = 'host';
-    state.coop.local = true;
-    state.coop.connected = false;
-    state.coop.awaitingStart = false;
-    state.coop.myId = players[0].id;
-    state.coop.hostId = players[0].id;
-    state.coop.activePlayerIdx = 0;
-    state.coop.turnHandoff = false;
-    startTimer();
-  }, 30);
-}
-
-// Explizite "Zug beenden"-Grenze (statt nach jeder einzelnen Markierung) --
-// pausiert die Zeit wie pauseGame(), wechselt aber zusätzlich myId auf den
-// nächsten Spieler, sobald die Übergabe bestätigt ist. Dadurch springen
-// Markierungs-Zuordnung (markedBy) und das bestehende "(Du)"-Roster-Suffix
-// automatisch mit, ohne eigene Anzeige-Logik.
-function endLocalTurn() {
-  if (state.status !== 'playing' || state.paused || state.coop.turnHandoff) return;
-  state.elapsed = Date.now() - state.startTime;
-  stopTimer();
-  state.coop.activePlayerIdx = (state.coop.activePlayerIdx + 1) % state.coop.players.length;
-  state.coop.turnHandoff = true;
-}
-function confirmTurnHandoff() {
-  if (!state.coop.turnHandoff) return;
-  state.coop.myId = state.coop.players[state.coop.activePlayerIdx]?.id ?? state.coop.myId;
-  state.coop.turnHandoff = false;
-  state.startTime = Date.now() - state.elapsed;
-  startTimer();
 }
 
 function startJoining() {
@@ -1534,11 +1433,6 @@ function restartPuzzle(startTime) {
   state.status = 'playing'; state.solutionShown = false; state.newHighscore = false; state.elapsed = 0;
   state.wouldHaveBeenBest = false; state.hintWarnShown = false;
   state.startTime = startTime ?? Date.now();
-  if (state.coop.local && state.coop.players.length) {
-    state.coop.activePlayerIdx = 0;
-    state.coop.myId = state.coop.players[0].id;
-    state.coop.turnHandoff = false;
-  }
   startTimer(); persistGame();
 }
 
@@ -1866,8 +1760,6 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch,
-      initPassAndPlaySetup, setLocalPlayerCount, onLocalNameBlur, canStartPassAndPlay,
-      startPassAndPlayMatch, endLocalTurn, confirmTurnHandoff,
       chipTextColor, confirmCoopIdentity, onCoopNameBlur, playerColor, goCoop, goCoopDaily, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
       startBossGame, bossInfo, bossAttemptedThisWeek,
@@ -1982,7 +1874,7 @@ const App = {
           <div class="hud-item timer" v-if="state.settings.showTimer">⏱ {{ fmtTime(state.elapsed) }}</div>
         </div>
         <div class="top-actions">
-          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing' && !state.coop.awaitingStart && !state.coop.turnHandoff" @click="pauseGame" :title="t('game.pauseTitle')">
+          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing' && !state.coop.awaitingStart" @click="pauseGame" :title="t('game.pauseTitle')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
           </button>
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="ask(t('game.giveUpConfirmTitle'), t('game.giveUpConfirmMsg'), giveUp)" :title="t('game.giveUpTitle')">
@@ -2001,10 +1893,9 @@ const App = {
         <div class="game-meta">
           <span class="chip">{{ DIFF_BY_ID[state.puzzle.difficulty].emoji }} {{ t('difficulty.'+state.puzzle.difficulty) }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
-          <span v-if="state.coop.active && !state.coop.local" class="chip coop-chip" :class="state.coop.connected ? 'coop-on' : 'coop-off'">
+          <span v-if="state.coop.active" class="chip coop-chip" :class="state.coop.connected ? 'coop-on' : 'coop-off'">
             👥 {{ t('game.coopTag') }}{{ state.coop.connected ? '' : t('game.coopOfflineSuffix') }}
           </span>
-          <span v-if="state.coop.active && state.coop.local" class="chip coop-chip">🔄 {{ t('game.localTag') }}</span>
           <span v-if="state.coop.active && state.coop.isDaily" class="chip coop-chip">📅 {{ t('game.coopDailyTag') }}</span>
           <span v-if="state.team.active" class="chip coop-chip">🆚 {{ t('team.label'+state.team.myTeam) }}</span>
           <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>
@@ -2023,12 +1914,7 @@ const App = {
           </span>
         </div>
 
-        <div v-if="state.coop.local && state.status==='playing' && !state.coop.turnHandoff" class="coop-roster">
-          <span class="coop-subtext">{{ t('passandplay.currentTurn', { name: state.coop.players[state.coop.activePlayerIdx]?.name }) }}</span>
-          <button class="btn btn-ghost btn-sm" @click="endLocalTurn">{{ t('passandplay.endTurn') }}</button>
-        </div>
-
-        <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart || state.coop.turnHandoff }">
+        <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
           <div class="board" :style="gridStyle">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolved(c-1), pulse: state.justResolved['col-'+(c-1)]}">
@@ -2079,7 +1965,7 @@ const App = {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="11" cy="13" rx="8" ry="7"/><path d="m16.5 7.5 3.2-3.2a1.6 1.6 0 0 1 2.3 2.3l-3.2 3.2-2.3-2.3z"/></svg>
             </span>
           </div>
-          <button class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" :title="t('game.hintTitle')" :aria-label="t('game.hintTitle')">
+          <button v-if="!state.isRaceGame" class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" :title="t('game.hintTitle')" :aria-label="t('game.hintTitle')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5"/><path d="M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-4 11.6c.8.7 1.2 1.3 1.3 2.4h5.4c.1-1.1.5-1.7 1.3-2.4A6.5 6.5 0 0 0 12 2.5z"/></svg>
           </button>
         </div>
@@ -2125,17 +2011,6 @@ const App = {
           <div class="pause-time">⏱ {{ fmtTime(state.elapsed) }}</div>
           <p class="result-msg">{{ t('pause.msg') }}</p>
           <button class="btn btn-primary" @click="resumeFromPause">{{ t('pause.resume') }}</button>
-          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
-        </div>
-      </div>
-
-      <!-- Pass-and-Play: Geräteübergabe zwischen Zügen -->
-      <div v-if="state.coop.turnHandoff" class="overlay pause-overlay">
-        <div class="result-card">
-          <div class="result-emoji">🔄</div>
-          <h2>{{ t('passandplay.handoffTitle') }}</h2>
-          <p class="result-msg">{{ t('passandplay.handoffMsg', { name: state.coop.players[state.coop.activePlayerIdx]?.name }) }}</p>
-          <button class="btn btn-primary" @click="confirmTurnHandoff">{{ t('passandplay.handoffReady') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
@@ -2193,8 +2068,18 @@ const App = {
       <div v-if="state.status==='lost' && !state.solutionShown" class="overlay">
         <div class="result-card lose">
           <div class="result-emoji">💔</div>
-          <h2>{{ t('loss.title') }}</h2>
-          <p class="result-msg">{{ t('loss.msg') }}</p>
+          <template v-if="state.team.active">
+            <h2>{{ t('team.matchResult') }}</h2>
+            <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
+          </template>
+          <template v-else-if="state.race.active">
+            <h2>{{ t('race.matchResult') }}</h2>
+            <p class="result-msg">{{ t(state.race.winner==='me' ? 'race.youWon' : 'race.youLost', { myPct: state.race.myPct, oppPct: state.race.opponentPct }) }}</p>
+          </template>
+          <template v-else>
+            <h2>{{ t('loss.title') }}</h2>
+            <p class="result-msg">{{ t('loss.msg') }}</p>
+          </template>
           <div v-if="coopPerformance.length" class="coop-performance">
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>
             <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
@@ -2210,14 +2095,6 @@ const App = {
               </div>
             </div>
           </div>
-          <div v-if="state.team.active" class="team-result">
-            <div class="perf-title">{{ t('team.matchResult') }}</div>
-            <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
-          </div>
-          <div v-if="state.race.active" class="team-result">
-            <div class="perf-title">{{ t('race.matchResult') }}</div>
-            <p class="result-msg">{{ t(state.race.winner==='me' ? 'race.youWon' : 'race.youLost', { myPct: state.race.myPct, oppPct: state.race.opponentPct }) }}</p>
-          </div>
           <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
           <button class="btn btn-primary" v-else-if="!state.isBossGame && !state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
@@ -2230,15 +2107,15 @@ const App = {
         <div class="result-card lose">
           <div class="result-emoji">🏳</div>
           <h2>{{ t('gaveup.title') }}</h2>
-          <p class="result-msg">{{ t('loss.msg') }}</p>
-          <div v-if="state.team.active" class="team-result">
-            <div class="perf-title">{{ t('team.matchResult') }}</div>
+          <template v-if="state.team.active">
             <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
-          </div>
-          <div v-if="state.race.active" class="team-result">
-            <div class="perf-title">{{ t('race.matchResult') }}</div>
+          </template>
+          <template v-else-if="state.race.active">
             <p class="result-msg">{{ t(state.race.winner==='me' ? 'race.youWon' : 'race.youLost', { myPct: state.race.myPct, oppPct: state.race.opponentPct }) }}</p>
-          </div>
+          </template>
+          <template v-else>
+            <p class="result-msg">{{ t('loss.msg') }}</p>
+          </template>
           <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
           <button class="btn btn-primary" v-else-if="!state.isBossGame && !state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
@@ -2368,10 +2245,6 @@ const App = {
           <span class="btn-ic">🔗</span>
           <span class="btn-tx"><b>{{ t('coop.join') }}</b><small>{{ t('coop.joinHint') }}</small></span>
         </button>
-        <button v-if="!state.coop.raceMode" class="btn btn-coop" @click="initPassAndPlaySetup">
-          <span class="btn-ic">🔄</span>
-          <span class="btn-tx"><b>{{ t('coop.localOption') }}</b><small>{{ t('coop.localHint') }}</small></span>
-        </button>
       </div>
 
       <!-- Host: Code festlegen + Schwierigkeit → warte auf Gast -->
@@ -2465,30 +2338,6 @@ const App = {
         <button class="btn btn-ghost" style="margin-top:4px" @click="coopReset(); state.coop.role=null">{{ t('common.back') }}</button>
       </div>
 
-      <!-- Pass-and-Play: Spieleranzahl + Namen + Schwierigkeit, alles lokal, kein Netz -->
-      <div v-else-if="state.coop.role === 'local'" class="coop-body">
-        <p class="coop-tagline">{{ t('passandplay.intro') }}</p>
-        <div class="setup-label">{{ t('passandplay.playerCountLabel') }}</div>
-        <div class="option-grid">
-          <button v-for="n in (COOP_MAX_PLAYERS-1)" :key="n" class="opt-card" :class="{active: state.coop.localNames.length===n+1}" @click="setLocalPlayerCount(n+1)">
-            <span class="opt-name">{{ n+1 }}</span>
-          </button>
-        </div>
-        <input v-for="(n,i) in state.coop.localNames" :key="i" class="text-input" v-model="state.coop.localNames[i]" maxlength="32"
-               :placeholder="t('passandplay.playerLabel', { n: i+1 })" @blur="onLocalNameBlur(i)" />
-        <div class="setup-label">{{ t('common.difficulty') }}</div>
-        <div class="option-grid">
-          <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
-                  :class="{active: state.coop.lobbyDiffId===d.id}"
-                  @click="state.coop.lobbyDiffId=d.id">
-            <span class="opt-emoji">{{ d.emoji }}</span>
-            <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
-            <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-          </button>
-        </div>
-        <button class="btn btn-primary" :disabled="!canStartPassAndPlay()" @click="startPassAndPlayMatch">{{ t('passandplay.start') }}</button>
-        <button class="btn btn-ghost" style="margin-top:8px" @click="coopReset(); state.coop.role=null">{{ t('common.cancel') }}</button>
-      </div>
     </section>
 
     <!-- ══ SETTINGS ══ -->
