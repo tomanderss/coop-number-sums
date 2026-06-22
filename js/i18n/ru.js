@@ -29,6 +29,8 @@ export default {
     dailyDone: 'Сегодня решено ✓',
     dailyCoop: 'Играть вместе сегодня',
     dailyCoopHint: 'Решить ежедневную головоломку в коопе',
+    raceMode: 'Режим гонки',
+    raceHint: 'Дуэль 1 на 1',
     bossChallenge: 'Босс-головоломка',
     bossDone: 'Уже пройдено на этой неделе',
     history: 'История',
@@ -166,6 +168,14 @@ export default {
     matchResult: 'Результат матча',
     weWon: 'Ваша команда победила! ({myPct}% против {oppPct}%)',
     weLost: 'Другая команда финишировала первой. ({myPct}% против {oppPct}%)',
+  },
+  race: {
+    startMatch: 'Начать гонку 🚀',
+    waitingForOpponent: 'Ожидание соперника…',
+    opponentProgress: 'Соперник: {pct}%',
+    matchResult: 'Результат гонки',
+    youWon: 'Вы закончили первым без ошибок! ({myPct}% против {oppPct}%)',
+    youLost: 'Соперник закончил первым без ошибок. ({myPct}% против {oppPct}%)',
   },
   settings: {
     title: 'Настройки',

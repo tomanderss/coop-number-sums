@@ -31,6 +31,7 @@ let unsubLeave = null;
 let unsubEvents = null;
 let unsubTeamEvents = null;
 let unsubTeamProgress = null;
+let unsubRaceProgress = null;
 
 export function isAvailable() { return typeof window !== 'undefined' && typeof fetch !== 'undefined'; }
 
@@ -106,7 +107,7 @@ export async function hostGame({ code, name, color, onOpen, onError, onJoin, onL
 }
 
 // ─── GAST ─────────────────────────────────────────────────────────────────────
-export async function joinGame({ code, name, color, onOpen, onError, onMessage, onClose }) {
+export async function joinGame({ code, name, color, onOpen, onError, onMessage, onClose, maxPlayers = COOP_MAX_PLAYERS }) {
   try {
     const f = await ensureDb();
     log('coop', `Trete Raum ${code} bei – prüfe Existenz…`);
@@ -116,7 +117,7 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
       onError && onError({ type: 'code-not-found' });
       return;
     }
-    if (playersSnap.size >= COOP_MAX_PLAYERS) {
+    if (playersSnap.size >= maxPlayers) {
       log('coop', `Raum ${code} bereits voll`);
       onError && onError({ type: 'room-full' });
       return;
@@ -190,11 +191,32 @@ export function listenTeamProgress(onUpdate) {
   unsubTeamProgress = fb.onValue(ref, (snap) => onUpdate && onUpdate(snap.val() || {}));
 }
 
+// ─── Race-/Duell-Modus: aggregierter Fortschritt pro Spieler ─────────────────
+// Wie teamProgress, nur pro uid statt pro Team — race ist strikt 1v1 und
+// sendet NIE Zug-Events über Coop.send()/coopSend() (state.coop.active bleibt
+// während des Rennens absichtlich false), nur diesen aggregierten Fortschritt.
+export async function setRaceProgress(uid, payload) {
+  if (!fb || !roomCode) return;
+  try {
+    await fb.set(fb.ref(fb.db, `rooms/${roomCode}/raceProgress/${uid}`), payload);
+  } catch (e) {
+    log('coop', 'Renn-Fortschritt schreiben fehlgeschlagen', e);
+  }
+}
+
+export function listenRaceProgress(onUpdate) {
+  if (!fb || !roomCode) return;
+  unsubRaceProgress && unsubRaceProgress();
+  const ref = fb.ref(fb.db, `rooms/${roomCode}/raceProgress`);
+  unsubRaceProgress = fb.onValue(ref, (snap) => onUpdate && onUpdate(snap.val() || {}));
+}
+
 export async function leave() {
   const f = fb, code = roomCode, playerRef = myPlayerRef;
   unsubJoin && unsubJoin(); unsubLeave && unsubLeave(); unsubEvents && unsubEvents();
   unsubTeamEvents && unsubTeamEvents(); unsubTeamProgress && unsubTeamProgress();
-  unsubJoin = unsubLeave = unsubEvents = unsubTeamEvents = unsubTeamProgress = null;
+  unsubRaceProgress && unsubRaceProgress();
+  unsubJoin = unsubLeave = unsubEvents = unsubTeamEvents = unsubTeamProgress = unsubRaceProgress = null;
   roomCode = null; myPlayerRef = null;
   if (!f || !playerRef) return;
   try {
@@ -213,4 +235,5 @@ export const MSG = {
   INIT: 'init', MOVE: 'move', UNDO: 'undo', CHECK: 'check', STATUS: 'status', PAUSE: 'pause', HINT: 'hint',
   RETRY: 'retry', IDENTITY: 'identity', ROSTER: 'roster', MISTAKE: 'mistake', START: 'start',
   TEAM_START: 'teamStart', TEAM_DONE: 'teamDone',
+  RACE_START: 'raceStart', RACE_DONE: 'raceDone',
 };

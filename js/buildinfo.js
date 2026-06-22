@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.69';
-export const BUILD_HASH = 'cfeee01';
+export const BUILD      = '0.70';
+export const BUILD_HASH = 'bdd637c';
 
 export const CHANGELOG = [
+  {
+    "version": "0.70",
+    "date": "22.06.2026",
+    "changes": [
+      "Neuer Race-/Duell-Modus: 1-gegen-1-Wettrennen auf demselben Rätsel -- wer als Erster fehlerfrei fertig ist, gewinnt; Fortschritt des Gegners wird laufend angezeigt"
+    ]
+  },
   {
     "version": "0.69",
     "date": "22.06.2026",

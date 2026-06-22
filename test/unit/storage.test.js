@@ -16,6 +16,7 @@ const {
   loadStats, recordResult, loadSeenVersion, saveSeenVersion,
   createBackup, loadBackups, restoreBackup, importFromFile, generateId,
   loadDaily, recordDailyResult, loadAchievements, unlockAchievements,
+  loadRace, recordRaceWin, recordRaceLoss,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
 const { todayDateStr } = await import('../../js/daily.js');
@@ -249,5 +250,52 @@ describe('storage.achievements', () => {
     const a = unlockAchievements(['tenWins']);
     assert.ok(a.firstWin > 0);
     assert.ok(a.tenWins > 0);
+  });
+});
+
+describe('storage.race', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('loadRace returns empty defaults when nothing is stored', () => {
+    assert.deepEqual(loadRace(), { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null });
+  });
+
+  test('recordRaceWin increments played/won and sets fastestWinMs', () => {
+    const r = recordRaceWin(5000);
+    assert.equal(r.racesPlayed, 1);
+    assert.equal(r.racesWon, 1);
+    assert.equal(r.racesLost, 0);
+    assert.equal(r.fastestWinMs, 5000);
+    assert.deepEqual(loadRace(), r);
+  });
+
+  test('a faster win lowers fastestWinMs', () => {
+    recordRaceWin(9000);
+    const r = recordRaceWin(3000);
+    assert.equal(r.fastestWinMs, 3000);
+    assert.equal(r.racesPlayed, 2);
+    assert.equal(r.racesWon, 2);
+  });
+
+  test('a slower win does not raise fastestWinMs', () => {
+    recordRaceWin(3000);
+    const r = recordRaceWin(9000);
+    assert.equal(r.fastestWinMs, 3000);
+  });
+
+  test('recordRaceLoss increments played/lost and leaves fastestWinMs untouched', () => {
+    recordRaceWin(4000);
+    const r = recordRaceLoss();
+    assert.equal(r.racesPlayed, 2);
+    assert.equal(r.racesWon, 1);
+    assert.equal(r.racesLost, 1);
+    assert.equal(r.fastestWinMs, 4000);
+  });
+
+  test('recordRaceLoss without a prior win keeps fastestWinMs null', () => {
+    const r = recordRaceLoss();
+    assert.equal(r.racesPlayed, 1);
+    assert.equal(r.racesLost, 1);
+    assert.equal(r.fastestWinMs, null);
   });
 });

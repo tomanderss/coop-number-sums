@@ -29,6 +29,8 @@ export default {
     dailyDone: 'Solved today ✓',
     dailyCoop: 'Play together today',
     dailyCoopHint: 'Solve today\'s challenge in coop',
+    raceMode: 'Race mode',
+    raceHint: '1-vs-1 head-to-head race',
     bossChallenge: 'Boss challenge',
     bossDone: 'Already attempted this week',
     history: 'History',
@@ -166,6 +168,14 @@ export default {
     matchResult: 'Match result',
     weWon: 'Your team won! ({myPct}% vs. {oppPct}%)',
     weLost: 'The other team finished first. ({myPct}% vs. {oppPct}%)',
+  },
+  race: {
+    startMatch: 'Start race 🚀',
+    waitingForOpponent: 'Waiting for opponent…',
+    opponentProgress: 'Opponent: {pct}%',
+    matchResult: 'Race result',
+    youWon: 'You finished first, mistake-free! ({myPct}% vs. {oppPct}%)',
+    youLost: 'Your opponent finished first, mistake-free. ({myPct}% vs. {oppPct}%)',
   },
   settings: {
     title: 'Settings',
