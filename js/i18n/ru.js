@@ -13,6 +13,7 @@ export default {
     pickColorTitle: 'Выбери свой цвет',
     defaultPlayerName: 'Игрок',
     youSuffix: ' (Ты)',
+    you: 'Ты',
   },
   home: {
     resume: 'Продолжить',
@@ -61,6 +62,7 @@ export default {
     hintUsedNotice: 'Использована подсказка – лучшее время в этой партии уже недостижимо',
     hintConfirmTitle: 'Использовать подсказку?',
     hintConfirmMsg: 'С подсказкой лучшее время в этой партии будет недостижимо. Продолжить всё равно?',
+    progressLabel: 'Прогресс: {pct}%',
   },
   pause: {
     title: 'На паузе',

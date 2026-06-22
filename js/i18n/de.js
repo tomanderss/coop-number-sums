@@ -13,6 +13,7 @@ export default {
     pickColorTitle: 'Eigene Farbe wählen',
     defaultPlayerName: 'Spieler',
     youSuffix: ' (Du)',
+    you: 'Du',
   },
   home: {
     resume: 'Fortsetzen',
@@ -61,6 +62,7 @@ export default {
     hintUsedNotice: 'Hinweis genutzt – keine Bestzeit mehr möglich diese Partie',
     hintConfirmTitle: 'Hinweis nehmen?',
     hintConfirmMsg: 'Mit einem Hinweis ist in dieser Partie keine Bestzeit mehr möglich. Trotzdem fortfahren?',
+    progressLabel: 'Fortschritt: {pct}%',
   },
   pause: {
     title: 'Pausiert',

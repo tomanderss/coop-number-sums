@@ -13,6 +13,7 @@ export default {
     pickColorTitle: 'Elige tu color',
     defaultPlayerName: 'Jugador',
     youSuffix: ' (Tú)',
+    you: 'Tú',
   },
   home: {
     resume: 'Continuar',
@@ -61,6 +62,7 @@ export default {
     hintUsedNotice: 'Pista usada – ya no es posible un mejor tiempo en esta partida',
     hintConfirmTitle: '¿Usar una pista?',
     hintConfirmMsg: 'Con una pista no podrás conseguir un mejor tiempo en esta partida. ¿Continuar de todos modos?',
+    progressLabel: 'Progreso: {pct}%',
   },
   pause: {
     title: 'En pausa',

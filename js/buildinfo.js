@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.72';
-export const BUILD_HASH = '6e09d87';
+export const BUILD      = '0.73';
+export const BUILD_HASH = '517c290';
 
 export const CHANGELOG = [
+  {
+    "version": "0.73",
+    "date": "22.06.2026",
+    "changes": [
+      "Eigener Fortschritt wird jetzt immer als Prozentzahl + Fortschrittsbalken angezeigt. Im 1v1-Rennmodus liegen der eigene und der gegnerische Balken direkt übereinander für den direkten Vergleich."
+    ]
+  },
   {
     "version": "0.72",
     "date": "22.06.2026",

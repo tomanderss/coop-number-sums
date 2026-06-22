@@ -13,6 +13,7 @@ export default {
     pickColorTitle: '自分の色を選ぶ',
     defaultPlayerName: 'プレイヤー',
     youSuffix: '（あなた）',
+    you: 'あなた',
   },
   home: {
     resume: '続ける',
@@ -61,6 +62,7 @@ export default {
     hintUsedNotice: 'ヒントを使用しました – 今回はベストタイムを狙えません',
     hintConfirmTitle: 'ヒントを使いますか？',
     hintConfirmMsg: 'ヒントを使うと今回のベストタイムは記録されません。続けますか？',
+    progressLabel: '進捗: {pct}%',
   },
   pause: {
     title: '一時停止中',

@@ -13,6 +13,7 @@ export default {
     pickColorTitle: 'Scegli il tuo colore',
     defaultPlayerName: 'Giocatore',
     youSuffix: ' (Tu)',
+    you: 'Tu',
   },
   home: {
     resume: 'Riprendi',
@@ -61,6 +62,7 @@ export default {
     hintUsedNotice: 'Suggerimento usato – nessun nuovo record possibile in questa partita',
     hintConfirmTitle: 'Usare un suggerimento?',
     hintConfirmMsg: 'Con un suggerimento non sarà possibile un nuovo record in questa partita. Continuare comunque?',
+    progressLabel: 'Progresso: {pct}%',
   },
   pause: {
     title: 'In pausa',
