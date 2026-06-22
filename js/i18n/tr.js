@@ -13,6 +13,7 @@ export default {
     pickColorTitle: 'Kendi rengini seç',
     defaultPlayerName: 'Oyuncu',
     youSuffix: ' (Sen)',
+    you: 'Sen',
   },
   home: {
     resume: 'Devam et',
@@ -61,6 +62,7 @@ export default {
     hintUsedNotice: 'İpucu kullanıldı – bu oyunda artık en iyi süre mümkün değil',
     hintConfirmTitle: 'İpucu kullanılsın mı?',
     hintConfirmMsg: 'İpucu kullanırsan bu oyunda en iyi süre elde edemezsin. Yine de devam edilsin mi?',
+    progressLabel: 'İlerleme: {pct}%',
   },
   pause: {
     title: 'Duraklatıldı',

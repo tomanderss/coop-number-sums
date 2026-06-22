@@ -75,7 +75,12 @@ test.describe('race mode', () => {
     expect(await page.evaluate(() => window.__cns.state.race.active)).toBe(true);
     expect(await page.evaluate(() => window.__cns.state.isRaceGame)).toBe(true);
     await expect(page.locator('.coop-chip', { hasText: 'Mara' })).toBeVisible();
-    await expect(page.locator('.coop-chip', { hasText: '0%' })).toBeVisible();
+    // Eigener + Gegner-Fortschrittsbalken liegen im Race-Modus übereinander.
+    await expect(page.locator('.progress-row .progress-line')).toHaveCount(2);
+    await expect(page.locator('.progress-row .progress-pct', { hasText: '0%' })).toHaveCount(2);
+    // Bei 0% ist die Füllung selbst absichtlich leer (siehe Plan: "leeres
+    // Rechteck, das sich auffüllt") -- nur der Balken-Rahmen muss sichtbar sein.
+    await expect(page.locator('.progress-row .progress-bar').nth(1)).toBeVisible();
   });
 
   test('the opponent finishing first ends the match immediately and hides the rematch buttons', async ({ page }) => {

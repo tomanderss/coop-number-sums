@@ -13,6 +13,7 @@ export default {
     pickColorTitle: 'Pick your own color',
     defaultPlayerName: 'Player',
     youSuffix: ' (You)',
+    you: 'You',
   },
   home: {
     resume: 'Resume',
@@ -61,6 +62,7 @@ export default {
     hintUsedNotice: 'Hint used – no best time possible this round',
     hintConfirmTitle: 'Use a hint?',
     hintConfirmMsg: 'Using a hint means no best time can be set this round. Continue anyway?',
+    progressLabel: 'Progress: {pct}%',
   },
   pause: {
     title: 'Paused',

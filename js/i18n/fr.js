@@ -13,6 +13,7 @@ export default {
     pickColorTitle: 'Choisir sa couleur',
     defaultPlayerName: 'Joueur',
     youSuffix: ' (Toi)',
+    you: 'Toi',
   },
   home: {
     resume: 'Reprendre',
@@ -61,6 +62,7 @@ export default {
     hintUsedNotice: 'Indice utilisé – plus de meilleur temps possible pour cette partie',
     hintConfirmTitle: 'Utiliser un indice ?',
     hintConfirmMsg: "Avec un indice, plus de meilleur temps possible pour cette partie. Continuer malgré tout ?",
+    progressLabel: 'Progression : {pct}%',
   },
   pause: {
     title: 'En pause',

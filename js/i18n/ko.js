@@ -13,6 +13,7 @@ export default {
     pickColorTitle: '색상 선택',
     defaultPlayerName: '플레이어',
     youSuffix: ' (나)',
+    you: '나',
   },
   home: {
     resume: '이어하기',
@@ -61,6 +62,7 @@ export default {
     hintUsedNotice: '힌트를 사용했습니다 – 이번 게임에서는 최고 기록을 세울 수 없습니다',
     hintConfirmTitle: '힌트를 사용하시겠습니까?',
     hintConfirmMsg: '힌트를 사용하면 이번 게임에서 최고 기록을 세울 수 없습니다. 계속하시겠습니까?',
+    progressLabel: '진행률: {pct}%',
   },
   pause: {
     title: '일시정지됨',

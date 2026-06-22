@@ -1706,6 +1706,10 @@ const App = {
       }
       return { kept, total };
     });
+    // Eigener Fortschritt (0-100) für die Fortschrittsanzeige im HUD -- reaktiver
+    // Wrapper um progressPct(), das dieselbe Berechnung schon fürs Team-/Race-
+    // Throttle-Pushing nutzt (siehe dort), hier aber ungedrosselt für die lokale UI.
+    const myProgressPct = computed(() => progressPct());
     const gridStyle = computed(() => ({
       gridTemplateColumns: `var(--hdr) repeat(${state.puzzle?.cols || 1}, var(--cell))`,
       gridTemplateRows: `var(--hdr) repeat(${state.puzzle?.rows || 1}, var(--cell))`,
@@ -1722,7 +1726,7 @@ const App = {
 
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS,
-      livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
+      livesArr, lifeLossColor, coopPerformance, mvpId, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, newGame, goNextPuzzle, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
@@ -1859,11 +1863,26 @@ const App = {
           <span v-if="state.team.active" class="chip coop-chip">🆚 {{ t('team.label'+state.team.myTeam) }}</span>
           <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>
           <span v-if="state.race.active" class="chip coop-chip">🆚 {{ state.race.opponentName }}</span>
-          <span v-if="state.race.active" class="chip coop-chip">{{ t('race.opponentProgress', { pct: state.race.opponentPct }) }}</span>
           <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
             <button class="zoom-btn" @click="setZoom(0.15)">+</button>
           </span>
+        </div>
+
+        <!-- Eigener Fortschritt (immer sichtbar); im Race-Modus zusätzlich der
+             Gegner-Balken direkt darunter, damit beide Balken auf einen Blick
+             verglichen werden können. -->
+        <div class="progress-row">
+          <div class="progress-line" :aria-label="t('game.progressLabel', { pct: myProgressPct })">
+            <span v-if="state.race.active" class="progress-label">{{ t('common.you') }}</span>
+            <span class="progress-pct">{{ myProgressPct }}%</span>
+            <span class="progress-bar"><span class="progress-bar-fill mine" :style="{ width: myProgressPct + '%' }"></span></span>
+          </div>
+          <div class="progress-line" v-if="state.race.active" :aria-label="t('race.opponentProgress', { pct: state.race.opponentPct })">
+            <span class="progress-label">{{ state.race.opponentName }}</span>
+            <span class="progress-pct">{{ state.race.opponentPct }}%</span>
+            <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.race.opponentPct + '%', background: state.race.opponentColor }"></span></span>
+          </div>
         </div>
 
         <div v-if="state.coop.active && state.coop.players.length" class="coop-roster">
