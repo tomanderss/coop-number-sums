@@ -23,7 +23,7 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 | F1 | Achievements/Badges | `claude/feat-achievements` | ✅ fertig |
 | F5 | Trainings-/Lernmodus | `claude/feat-training` | ✅ fertig |
 | F12a | Coop-Raumkapazität auf 4 erhöhen + Start-Button-Lobby | `claude/feat-coop-4players` | ✅ fertig |
-| F12c | Lokaler Pass-and-Play-Modus | `claude/feat-pass-and-play` | ⬜ offen |
+| F12c | Lokaler Pass-and-Play-Modus | `claude/feat-pass-and-play` | ✅ fertig |
 | F4 | Tagesrätsel im Coop | `claude/feat-daily-coop` | ⬜ offen |
 | F12b | Team-vs-Team (2v2) | `claude/feat-team-vs-team` | ⬜ offen |
 | F11 | Race-/Duell-Modus | `claude/feat-race` | ⬜ offen |
@@ -36,51 +36,55 @@ Reihenfolge und jedes einzelnen Features stehen im ursprünglichen Plan
 ## Aktueller Stand
 
 - **Aktueller Branch:** `master` (nächster Feature-Branch
-  `claude/feat-pass-and-play` noch nicht angelegt)
-- **Letzter abgeschlossener Schritt:** Feature 12a (Coop-Raumkapazität auf 4
-  erhöhen + Start-Button-Lobby) vollständig: neue Konstante
-  `COOP_MAX_PLAYERS = 4` in `js/config.js`, ersetzt die bisherige harte
-  `playersSnap.size >= 2`-Kapazitätsprüfung in `coop.js`s `joinGame()`.
-  Deterministische Host-Migration über `pickNewHostId()` (kleinste
-  verbleibende Spieler-uid lexikografisch — jeder Client berechnet das
-  unabhängig identisch) statt eines zentralen Failover-Mechanismus.
-  Generalisiertes `connected`-Flag (`updateConnectedFlag()`,
-  `state.coop.connected = players.some(p => p.id !== myId)`).
-  `startHosting()`s automatischer Spielstart beim ersten Beitritt wurde zu
-  einer echten Warte-Lobby mit explizitem Host-"Start"-Button
-  (`canStartCoopMatch()`/`startCoopMatch()`, gated auf Host-Rolle + ≥2
-  Spieler) — Spieler 3/4 können dadurch noch rechtzeitig beitreten.
-  `broadcastRoster()` ruft `Coop.send()` direkt statt über `coopSend()`,
-  da Roster-Updates auch während der Vor-Spiel-Lobby funktionieren müssen
-  (umgeht den sonst aktiven Guard). `state.coop.hostId` wird Gästen per
-  zusätzlichem Feld im bestehenden `MSG.ROSTER`-Broadcast mitgeteilt.
-  Ein subtiler Bug wurde vor dem Testen gefunden und behoben: `coop.js`s
-  `onLeave`-Callback gab die Spieler-id nicht an `onClose` weiter (war
-  `() => onClose && onClose()`, nötig für die Host-Migrationslogik in
-  `app.js`s `startJoining()` ist aber `onClose(id)` — gefixt zu
-  `(id) => onClose && onClose(id)`). i18n: 4 neue `coop.*`-Keys
-  (`playerJoinedLobby`, `playersCount`, `startMatch`,
-  `waitingForHostStart`) in allen 10 Sprachen ergänzt. Keine neuen
-  `storage.js`-Keys nötig (kein Backup/Export-Eintrag erforderlich). Neue
-  E2E-Tests in `test/e2e/coop.spec.js` (Host-Lobby gated Start-Button +
-  Navigation ins Spiel; Gast sieht Roster + "Warte auf Start durch
-  Host…") — 51/51 E2E-Tests grün, 109/109 Unit-Tests grün; PR #56 nach
-  grünem CI nach `master` gemerged.
-- **Nächster Schritt:** Branch `claude/feat-pass-and-play` von `master`
-  anlegen und mit Feature 12c (Lokaler Pass-and-Play-Modus) beginnen —
-  zweites Feature des Coop-Blocks (siehe ursprünglicher Plan: kein Netzwerk
-  nötig, `state.markedBy` speichert bereits pro Zelle, wer sie markiert
-  hat; Umsetzung als Variante des bestehenden Coop-State
-  (`state.coop.connected = false` dauerhaft, der existierende Guard
-  `if (!state.coop.active || !state.coop.connected)` macht
-  `Coop.send()`-Aufrufe automatisch zu No-ops); neu:
-  `state.coop.activePlayerIdx` + ein "Gerät an Spieler X
-  weitergeben"-Vollbild-Overlay als Rundenwechsel-Grenze, empfohlen per
-  explizitem "Zug beenden"-Button statt nach jeder einzelnen Markierung;
-  Team-Performance/Sieg-Screen funktioniert unverändert, da er nur
-  `state.coop.players` + `state.markedBy` liest; keine `storage.js`-
-  Schemaänderung, Ergebnisse laufen über die bestehenden
-  `coop`-Statistikfelder).
+  `claude/feat-daily-coop` noch nicht angelegt)
+- **Letzter abgeschlossener Schritt:** Feature 12c (Lokaler
+  Pass-and-Play-Modus) vollständig: mehrere Spieler (2–4, `COOP_MAX_PLAYERS`)
+  teilen sich ein Gerät und lösen ein Rätsel abwechselnd, ganz ohne
+  Netzwerk. Maximale Wiederverwendung der bestehenden Coop-Infrastruktur
+  statt eines parallelen Codepfads: `state.coop.active/role/players/myId`
+  werden genauso gesetzt wie bei echtem Netz-Coop (Rolle bleibt `'host'`,
+  damit alle host-gegateten Aktionen unverändert funktionieren), nur
+  `state.coop.connected` bleibt dauerhaft `false`, wodurch der bestehende
+  `coopSend()`-Guard (`if (!state.coop.active || !state.coop.connected)
+  return;`) Netzwerk-Sends automatisch zu No-ops macht — keine neue
+  Bedingung an irgendeiner Aufrufstelle nötig. Neuer dritter Button auf dem
+  Coop-Rollenauswahlbildschirm (`initPassAndPlaySetup`, Klasse `.btn-coop`
+  statt `.btn-ghost`, um die bestehende Playwright-Selektor-Eindeutigkeit
+  auf diesem Screen — `.coop-body .btn-ghost` matcht dort exakt den
+  "Beitreten"-Button — nicht zu brechen). Eigener Setup-Screen
+  (`state.coop.role==='local'`): Spieleranzahl per `option-grid` (Muster
+  wie `CUSTOM_SIZES`-Auswahl, `setLocalPlayerCount()`), Name pro Spieler
+  mit Profanitätsfilter (`onLocalNameBlur()`), Schwierigkeitswahl,
+  `startPassAndPlayMatch()` generiert das Rätsel und befüllt
+  `state.coop.players` mit synthetischen ids (`local0`, `local1`, …).
+  Rundenwechsel über explizites "Zug beenden" (`endLocalTurn()`, pausiert
+  die Zeit analog zu `pauseGame()`) + Geräteübergabe-Vollbild-Overlay
+  (`state.coop.turnHandoff`, `confirmTurnHandoff()` schaltet
+  `state.coop.myId` auf den nächsten Spieler um — dadurch springen
+  Markierungs-Attribution und das bestehende "(Du)"-Roster-Suffix
+  automatisch mit). `restartPuzzle()` setzt die Zugreihenfolge bei
+  Retry auf Spieler 1 zurück. `win()`/`lose()`/`giveUp()` bucketen
+  Pass-and-Play-Ergebnisse unverändert über die bestehenden
+  `state.coop.active`-gesteuerten Coop-Statistikfelder — **keine neuen
+  `storage.js`-Keys** nötig. i18n: `coop.localOption`/`localHint`,
+  `game.localTag` + komplettes neues `passandplay.*`-Objekt in allen 10
+  Sprachen ergänzt. Neue E2E-Tests in `test/e2e/passandplay.spec.js` (5
+  Tests: Setup-Defaults + Namens-Gate, Spieleranzahl erhöhen, Matchstart
+  mit korrektem ersten Spieler, Zugwechsel-Overlay + Spielerwechsel, Sieg
+  ohne jede Netzwerkaktivität) — 56/56 E2E-Tests grün, 109/109 Unit-Tests
+  grün; PR #58 nach grünem CI nach `master` gemerged.
+- **Nächster Schritt:** Branch `claude/feat-daily-coop` von `master`
+  anlegen und mit Feature 4 (Tagesrätsel im Coop) beginnen — drittes
+  Feature des Coop-Blocks (siehe ursprünglicher Plan: Host startet einen
+  Coop-Raum, der statt frischer Generierung das deterministische Puzzle aus
+  `getDailyChallenge()` (daily.js) verwendet, Raum als "daily" geflaggt,
+  Verteilung über den bestehenden Coop-`INIT`-Pfad; Coop-Daily zählt
+  **nicht** zur Solo-Daily-Streak, sondern wird als normaler Coop-Sieg
+  gewertet (optional separater `coopDaily`-Zähler), kein Eingriff in
+  `recordDailyResult()`; Einstieg über einen Button "heute zusammen
+  spielen" auf dem Daily-Screen, der den Coop-Host-Flow mit dem heutigen
+  Daily-Seed öffnet; profitiert von der in F12a generalisierten
+  Lobby/Start-Button-Logik).
 
 ## Pro-Feature-Checkliste (Referenz)
 
