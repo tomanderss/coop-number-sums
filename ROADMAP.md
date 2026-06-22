@@ -20,7 +20,7 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 | F10 | Eigene Rätselgröße/-schwierigkeit (Custom-Modus) | `claude/feat-custom-size` | ✅ fertig |
 | F15 | Boss-Rätsel (wöchentliches Sudden-Death) | `claude/feat-boss` | ✅ fertig |
 | F3 | Replay/Verlauf gelöster Rätsel | `claude/feat-history` | ✅ fertig |
-| F1 | Achievements/Badges | `claude/feat-achievements` | ⬜ offen |
+| F1 | Achievements/Badges | `claude/feat-achievements` | ✅ fertig |
 | F5 | Trainings-/Lernmodus | `claude/feat-training` | ⬜ offen |
 | F12a | Coop-Raumkapazität auf 4 erhöhen + Start-Button-Lobby | `claude/feat-coop-4players` | ⬜ offen |
 | F12c | Lokaler Pass-and-Play-Modus | `claude/feat-pass-and-play` | ⬜ offen |
@@ -37,40 +37,37 @@ Reihenfolge und jedes einzelnen Features stehen im ursprünglichen Plan
 
 - **Aktueller Branch:** `master` (nächster Feature-Branch noch nicht
   angelegt)
-- **Letzter abgeschlossener Schritt:** Feature 3 (Replay/Verlauf gelöster
-  Rätsel) vollständig: neuer `KEYS.HISTORY`-Storage-Key in `storage.js` =
-  Ringpuffer der letzten 20 abgeschlossenen Rätsel
-  (`{difficulty, dim, seed, marks, timeMs, outcome, coop, ts}`), Seed statt
-  vollem Puzzle gespeichert — `generatePuzzle({difficulty, seed, dim})`
-  reproduziert das exakte Rätsel deterministisch; `recordHistory()`
-  aufgerufen in `win()/lose()/giveUp()`; in allen vier Backup/Export-
-  Funktionen + `deleteAllData()` ergänzt. Neuer "history"-Screen
-  (`state.screen`, `navigate('history')`) mit Liste gelöster Rätsel; "Ansehen"
-  öffnet ein rein lesbares Endboard-Overlay (`state.historyDetail`), das
-  bewusst **nicht** `state.puzzle`/`state.marks`/`state.status` wiederverwendet
-  (Daten-Sicherheits-Lehre aus dem Plan: `quitToHome()`/`revealSolution()`
-  hängen an genau diesem State, eine geteilte Nutzung hätte ein laufendes,
-  resumable Spiel überschreiben können); "Erneut spielen" regeneriert per
-  Seed eine frische, spielbare Partie. Home-Button ans Ende des
-  `.home-grid` angehängt (nicht dazwischen), damit bestehende
-  nth-index-basierte E2E-Tests (`home.spec.js`/`settings.spec.js`) ohne
-  Anpassung weiterlaufen. i18n (`home.history`, `history.*` inkl.
-  `history.outcome.{won,lost,gaveup}`) in allen 10 Sprachen ergänzt;
-  Unit-Tests weiterhin grün, 3 neue E2E-Tests in `test/e2e/history.spec.js`
-  (leerer Zustand, Sieg → Ansehen/Replay, Niederlage) — 43/43 E2E-Tests
-  grün; PR #50 nach grünem CI nach `master` gemerged.
-- **Nächster Schritt:** Branch `claude/feat-achievements` von `master`
-  anlegen und mit Feature 1 (Achievements/Badges) beginnen (siehe
-  ursprünglicher Plan: neue Datei `js/achievements.js` mit
-  `ACHIEVEMENTS`-Definitionen (id, i18n-Key, Icon, Bedingung) +
-  `evaluate(context)` → neu freigeschaltete ids; neuer Storage-Key
-  `KEYS.ACHIEVEMENTS` = `{ id: unlockedTs }`; Hooks nach `recordResult()`
-  in `win()/lose()/giveUp()` sowie nach Daily-/Boss-Recording, Context u.a.
-  outcome, `mistakes===0`, `coop`, `newHighscore`, difficulty, Daily-/
-  Boss-Streak, Bestzeit, "erster Coop-Sieg"; Freischaltung → Toast +
-  Badges-Ansicht (eigener Screen oder Sektion im Stats-Screen);
-  `KEYS.ACHIEVEMENTS` in alle vier Backup/Export-Funktionen +
-  `deleteAllData()` eintragen; i18n `achievements.*`).
+- **Letzter abgeschlossener Schritt:** Feature 1 (Achievements/Badges)
+  vollständig: neue Datei `js/achievements.js` mit 15 `ACHIEVEMENTS`-
+  Definitionen (id, Icon, `check(ctx)`) + reiner `evaluate(ctx, unlockedIds)`
+  → neu freigeschaltete ids. Neuer Storage-Key `KEYS.ACHIEVEMENTS` =
+  `{ id: unlockedTs }` (`loadAchievements`/`unlockAchievements`), in allen
+  vier Backup/Export-Funktionen + `deleteAllData()` ergänzt. Neue Funktion
+  `checkAchievements()` in `app.js`, aufgerufen am Ende von `win()/lose()/
+  giveUp()` (Kontext aus bestehendem state: outcome, perfect, difficulty,
+  coop, custom, totalWon, currentStreak/coopCurrentStreak, dailyStreak,
+  bossWin/bossStreak, historyLength, wonAllDifficulties); Freischaltung →
+  Toast (`achievements.unlockedToast`). Neue Übersicht über einen Button
+  im **Stats-Screen** erreichbar (`navigate('achievements')`) — bewusst
+  nicht im `.home-grid`, um die bestehenden nth-index-basierten E2E-Tests
+  (`home.spec.js`/`settings.spec.js`) nicht zu gefährden (Lehre aus Feature
+  3). `ACHIEVEMENTS` zusätzlich im `setup()`-Return-Objekt, da im Template
+  per `v-for` referenziert. i18n (`stats.achievementsButton`,
+  `achievements.*` inkl. 15× `{title, desc}`) in allen 10 Sprachen ergänzt.
+  Neue Unit-Tests (`achievements.test.js`, erweiterte `storage.test.js`)
+  und 2 neue E2E-Tests in `test/e2e/achievements.spec.js` (Start gesperrt,
+  Sieg schaltet `firstWin` frei + Toast) — 45/45 E2E-Tests grün; PR #52
+  nach grünem CI nach `master` gemerged.
+- **Nächster Schritt:** Branch `claude/feat-training` von `master`
+  anlegen und mit Feature 5 (Trainings-/Lernmodus) beginnen (siehe
+  ursprünglicher Plan: v1 nutzt das bestehende `findHintCell()`
+  (generator.js:376-389) + die Constraint-Struktur (`model`, solver.js:31-79),
+  um pro Schritt eine logisch erzwungene Zelle zu zeigen und in einfacher
+  Sprache zu begründen, welcher der drei Constraint-Typen greift
+  (Zeilensumme/Spaltensumme/Cage-Summe); neuer "training"-Screen mit
+  Schritt-für-Schritt-Durchlauf eines leichten Rätsels + Erklär-Overlay +
+  "nächster Schritt"-Button; Solo, kein Netz, keine neuen Storage-Keys;
+  i18n `training.*`).
 
 ## Pro-Feature-Checkliste (Referenz)
 
