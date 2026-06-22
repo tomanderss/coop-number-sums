@@ -22,7 +22,7 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 | F3 | Replay/Verlauf gelöster Rätsel | `claude/feat-history` | ✅ fertig |
 | F1 | Achievements/Badges | `claude/feat-achievements` | ✅ fertig |
 | F5 | Trainings-/Lernmodus | `claude/feat-training` | ✅ fertig |
-| F12a | Coop-Raumkapazität auf 4 erhöhen + Start-Button-Lobby | `claude/feat-coop-4players` | ⬜ offen |
+| F12a | Coop-Raumkapazität auf 4 erhöhen + Start-Button-Lobby | `claude/feat-coop-4players` | ✅ fertig |
 | F12c | Lokaler Pass-and-Play-Modus | `claude/feat-pass-and-play` | ⬜ offen |
 | F4 | Tagesrätsel im Coop | `claude/feat-daily-coop` | ⬜ offen |
 | F12b | Team-vs-Team (2v2) | `claude/feat-team-vs-team` | ⬜ offen |
@@ -36,51 +36,51 @@ Reihenfolge und jedes einzelnen Features stehen im ursprünglichen Plan
 ## Aktueller Stand
 
 - **Aktueller Branch:** `master` (nächster Feature-Branch
-  `claude/feat-coop-4players` noch nicht angelegt)
-- **Letzter abgeschlossener Schritt:** Feature 5 (Trainings-/Lernmodus)
-  vollständig: neue Datei `js/training.js` mit `findTrainingStep(puzzle,
-  marks)` (nutzt die bestehende Constraint-Struktur, um pro Aufruf eine
-  logisch erzwungene Zelle + Begründungstyp zu liefern: `sumReached` /
-  `allRemainingNeeded` / `tooLarge`, je Zeilen-/Spalten-/Käfig-Constraint)
-  und `isFullyTier1Solvable(puzzle)` (Generator-Filter, der garantiert nur
-  Rätsel auswählt, die sich komplett über erzwungene Tier-1-Schritte lösen
-  lassen). Neuer Home-Button `.training-btn` (in `.home-actions`, bewusst
-  **nicht** in `.home-grid`, um die nth-index-basierten E2E-Tests in
-  `home.spec.js`/`settings.spec.js` nicht zu gefährden — gleiche Lehre wie
-  bei Feature 1/Achievements). `state.isTrainingGame`-Flag steuert: (a) ein
-  fixes `.training-banner`-Overlay mit Zielsumme, betroffener Gruppe und
-  Begründungstext + "Anwenden"-Button (wendet exakt den einen vorgeschlagenen
-  Schritt an), (b) `onCellTap` ignoriert manuelle Taps, solange ein
-  erzwungener Schritt aussteht, (c) Sieg-/Niederlage-/Aufgeben-Overlays
-  zeigen statt der üblichen "nächstes Rätsel"/"neues Spiel"-Aktionen einen
-  "Weiteres Beispiel"-Button (`startTrainingGame()`), (d) keine
-  Statistik-/Highscore-Schreibung. Visuelles Markieren der vorgeschlagenen
-  Zelle über neue CSS-Klasse `.cell.training-highlight` (gepulster
-  Box-Shadow). Keine neuen `storage.js`-Keys nötig. i18n: neue
-  `home.trainingMode`/`home.trainingHint` + komplettes `training.*`-Objekt
-  in allen 10 Sprachen ergänzt (dabei zwei Apostroph-Escaping-Bugs in
-  `fr.js`/`it.js` gefunden und nach bestehender Konvention behoben — siehe
-  PR). Neue Unit-Tests (`training.test.js`, 5/5) und neue
-  `test/e2e/training.spec.js` (4 Tests: Start liefert lösbares Rätsel,
-  Schritt-für-Schritt-Lösen ohne Stats-Änderung, Sieg-Screen bietet
-  "weiteres Beispiel" statt "nächstes Rätsel", Zell-Taps werden bei
-  ausstehendem Schritt ignoriert) — 49/49 E2E-Tests grün; PR #54 nach
+  `claude/feat-pass-and-play` noch nicht angelegt)
+- **Letzter abgeschlossener Schritt:** Feature 12a (Coop-Raumkapazität auf 4
+  erhöhen + Start-Button-Lobby) vollständig: neue Konstante
+  `COOP_MAX_PLAYERS = 4` in `js/config.js`, ersetzt die bisherige harte
+  `playersSnap.size >= 2`-Kapazitätsprüfung in `coop.js`s `joinGame()`.
+  Deterministische Host-Migration über `pickNewHostId()` (kleinste
+  verbleibende Spieler-uid lexikografisch — jeder Client berechnet das
+  unabhängig identisch) statt eines zentralen Failover-Mechanismus.
+  Generalisiertes `connected`-Flag (`updateConnectedFlag()`,
+  `state.coop.connected = players.some(p => p.id !== myId)`).
+  `startHosting()`s automatischer Spielstart beim ersten Beitritt wurde zu
+  einer echten Warte-Lobby mit explizitem Host-"Start"-Button
+  (`canStartCoopMatch()`/`startCoopMatch()`, gated auf Host-Rolle + ≥2
+  Spieler) — Spieler 3/4 können dadurch noch rechtzeitig beitreten.
+  `broadcastRoster()` ruft `Coop.send()` direkt statt über `coopSend()`,
+  da Roster-Updates auch während der Vor-Spiel-Lobby funktionieren müssen
+  (umgeht den sonst aktiven Guard). `state.coop.hostId` wird Gästen per
+  zusätzlichem Feld im bestehenden `MSG.ROSTER`-Broadcast mitgeteilt.
+  Ein subtiler Bug wurde vor dem Testen gefunden und behoben: `coop.js`s
+  `onLeave`-Callback gab die Spieler-id nicht an `onClose` weiter (war
+  `() => onClose && onClose()`, nötig für die Host-Migrationslogik in
+  `app.js`s `startJoining()` ist aber `onClose(id)` — gefixt zu
+  `(id) => onClose && onClose(id)`). i18n: 4 neue `coop.*`-Keys
+  (`playerJoinedLobby`, `playersCount`, `startMatch`,
+  `waitingForHostStart`) in allen 10 Sprachen ergänzt. Keine neuen
+  `storage.js`-Keys nötig (kein Backup/Export-Eintrag erforderlich). Neue
+  E2E-Tests in `test/e2e/coop.spec.js` (Host-Lobby gated Start-Button +
+  Navigation ins Spiel; Gast sieht Roster + "Warte auf Start durch
+  Host…") — 51/51 E2E-Tests grün, 109/109 Unit-Tests grün; PR #56 nach
   grünem CI nach `master` gemerged.
-- **Nächster Schritt:** Branch `claude/feat-coop-4players` von `master`
-  anlegen und mit Feature 12a (Coop-Raumkapazität auf 4 erhöhen +
-  Start-Button-Lobby) beginnen — erstes Feature des Coop-Blocks (siehe
-  ursprünglicher Plan: `coop.js:114` `playersSnap.size >= 2` durch
-  konfigurierbare Konstante `COOP_MAX_PLAYERS = 4` in `config.js` ersetzen;
-  veralteten "max. 2 Spieler"-Kommentar in `coop.js:10-12` aktualisieren;
-  `startHosting()`s `onJoin`-Callback (app.js:715-733) von Auto-Start beim
-  ersten Beitritt auf eine echte Warte-Lobby mit explizitem Host-
-  "Start"-Button umstellen, damit Spieler 3/4 noch rechtzeitig beitreten
-  können; `pickAvailableColor()`/Herzen-Reihe/`.coop-roster`-Chips/
-  Team-Performance-Panel sind laut Plan bereits spieleranzahl-agnostisch —
-  kurzer visueller Check bei 4 Spielern reicht; i18n: Lobby-Text "wartet
-  auf Spieler (n/4)" statt der bisherigen Singular-Formulierung
-  `coop.waitingForGuest`, ohne ICU-Pluralregeln zu benötigen, da `t()` nur
-  flache `{param}`-Substitution unterstützt).
+- **Nächster Schritt:** Branch `claude/feat-pass-and-play` von `master`
+  anlegen und mit Feature 12c (Lokaler Pass-and-Play-Modus) beginnen —
+  zweites Feature des Coop-Blocks (siehe ursprünglicher Plan: kein Netzwerk
+  nötig, `state.markedBy` speichert bereits pro Zelle, wer sie markiert
+  hat; Umsetzung als Variante des bestehenden Coop-State
+  (`state.coop.connected = false` dauerhaft, der existierende Guard
+  `if (!state.coop.active || !state.coop.connected)` macht
+  `Coop.send()`-Aufrufe automatisch zu No-ops); neu:
+  `state.coop.activePlayerIdx` + ein "Gerät an Spieler X
+  weitergeben"-Vollbild-Overlay als Rundenwechsel-Grenze, empfohlen per
+  explizitem "Zug beenden"-Button statt nach jeder einzelnen Markierung;
+  Team-Performance/Sieg-Screen funktioniert unverändert, da er nur
+  `state.coop.players` + `state.markedBy` liest; keine `storage.js`-
+  Schemaänderung, Ergebnisse laufen über die bestehenden
+  `coop`-Statistikfelder).
 
 ## Pro-Feature-Checkliste (Referenz)
 
