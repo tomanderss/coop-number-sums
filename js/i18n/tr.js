@@ -30,6 +30,8 @@ export default {
     bossChallenge: 'Patron bulmacası',
     bossDone: 'Bu hafta zaten denendi',
     history: 'Geçmiş',
+    trainingMode: 'Eğitim modu',
+    trainingHint: 'Adım adım öğren',
   },
   setup: {
     title: 'Yeni oyun',
@@ -193,6 +195,22 @@ export default {
   boss: {
     streakBadge: '🔥 {count} haftalık seri',
     tryAgainNextWeek: 'Gelecek hafta tekrar deneyin',
+  },
+  training: {
+    apply: 'Uygula',
+    another: 'Başka bir örnek',
+    doneMsg: 'Tamamlandı! Şimdi kalanını özgürce bitirebilirsin.',
+    target: 'Hedef: {n}',
+    group: {
+      row: '{n}. satır',
+      col: '{n}. sütun',
+      region: '{n}. kafes',
+    },
+    reason: {
+      sumReached: 'Toplam burada zaten ulaşıldı – kalan tüm sayılar kaldırılmalı.',
+      allRemainingNeeded: 'Hedefe ulaşmak için tam olarak kalan sayılar gerekiyor – hepsi tutulmalı.',
+      tooLarge: 'Bu sayı hâlâ eksik olan miktardan büyük – kaldırılmalı.',
+    },
   },
   achievements: {
     title: 'Başarımlar',

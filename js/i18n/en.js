@@ -30,6 +30,8 @@ export default {
     bossChallenge: 'Boss challenge',
     bossDone: 'Already attempted this week',
     history: 'History',
+    trainingMode: 'Training mode',
+    trainingHint: 'Learn step by step',
   },
   setup: {
     title: 'New game',
@@ -193,6 +195,22 @@ export default {
   boss: {
     streakBadge: '🔥 {count} week streak',
     tryAgainNextWeek: 'Try again next week',
+  },
+  training: {
+    apply: 'Apply',
+    another: 'Another example',
+    doneMsg: 'Done! You can now finish the rest freely.',
+    target: 'Target: {n}',
+    group: {
+      row: 'Row {n}',
+      col: 'Column {n}',
+      region: 'Cage {n}',
+    },
+    reason: {
+      sumReached: 'The sum is already reached here – all remaining numbers must be removed.',
+      allRemainingNeeded: 'Exactly the remaining numbers are still missing to reach the target – they must all be kept.',
+      tooLarge: 'This number is larger than what is still missing – it must be removed.',
+    },
   },
   achievements: {
     title: 'Achievements',

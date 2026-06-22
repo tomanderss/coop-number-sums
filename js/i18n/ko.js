@@ -30,6 +30,8 @@ export default {
     bossChallenge: '보스 퍼즐',
     bossDone: '이번 주 이미 시도함',
     history: '기록',
+    trainingMode: '트레이닝 모드',
+    trainingHint: '단계별로 배우기',
   },
   setup: {
     title: '새 게임',
@@ -193,6 +195,22 @@ export default {
   boss: {
     streakBadge: '🔥 {count}주 연속',
     tryAgainNextWeek: '다음 주에 다시 시도하세요',
+  },
+  training: {
+    apply: '적용',
+    another: '다른 예제',
+    doneMsg: '완료! 이제 나머지는 자유롭게 풀 수 있어요.',
+    target: '목표: {n}',
+    group: {
+      row: '{n}행',
+      col: '{n}열',
+      region: '{n}번 케이지',
+    },
+    reason: {
+      sumReached: '여기서 합계는 이미 도달했습니다 – 남은 숫자는 모두 제거해야 합니다.',
+      allRemainingNeeded: '목표에 도달하려면 남은 숫자가 정확히 필요합니다 – 모두 유지해야 합니다.',
+      tooLarge: '이 숫자는 아직 부족한 양보다 큽니다 – 제거해야 합니다.',
+    },
   },
   achievements: {
     title: '업적',

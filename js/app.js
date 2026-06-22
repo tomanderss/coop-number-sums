@@ -9,6 +9,7 @@ import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { hasProfanity } from './profanity.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
+import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
@@ -40,6 +41,9 @@ const state = reactive({
   isBossGame: false,          // true, während das laufende Rätsel das wöchentliche Boss-Rätsel ist
   bossWeekStr: null,          // ISO-Kalenderwoche, für die das laufende Boss-Rätsel generiert wurde
   isCustomGame: false,        // true, während das laufende Rätsel eine eigene (nicht in Stats gezählte) Größe hat
+  isTrainingGame: false,      // true, während der Trainingsmodus (Schritt-für-Schritt-Erklärung) läuft
+  trainingStep: null,         // aktuell erklärter Schritt { r, c, action, reason, group } oder null
+  trainingDone: false,        // true, sobald keine weiteren Tier-1-Schritte mehr gefunden wurden
   marks: [],                 // 'none' | 'kept' | 'removed'
   cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint, hintMark }
   lives: 0, maxLives: 0,
@@ -227,6 +231,7 @@ function newGame(diffId, customDim) {
   state.dailyDateStr = null;
   state.isBossGame = false;
   state.bossWeekStr = null;
+  state.isTrainingGame = false;
   // Custom-Größe ist bewusst auf Solo beschränkt (siehe Setup-Template, das den
   // Tab dafür in aktiver Coop-Session ausblendet) — hier zusätzlich abgesichert,
   // damit ein evtl. noch gesetztes state.sel.custom aus einer früheren Solo-
@@ -279,6 +284,7 @@ function startDailyGame() {
   state.dailyDateStr = dateStr;
   state.isBossGame = false;
   state.bossWeekStr = null;
+  state.isTrainingGame = false;
   state.isCustomGame = false;
   state.generating = true;
   state.screen = 'game';
@@ -309,6 +315,7 @@ function startBossGame() {
   state.isDailyGame = false;
   state.dailyDateStr = null;
   state.isCustomGame = false;
+  state.isTrainingGame = false;
   state.generating = true;
   state.screen = 'game';
   setTimeout(() => {
@@ -325,6 +332,51 @@ function startBossGame() {
     state.generating = false;
     startTimer();
   }, 30);
+}
+
+// Trainingsmodus: Schritt-für-Schritt-Erklärung erzwungener Züge (siehe
+// training.js). Das Rätsel wird GEZIELT so ausgewählt, dass es sich komplett
+// mit den einfachen, in Worten erklärbaren Tier-1-Schritten lösen lässt --
+// sonst würde der Durchlauf plötzlich auf ein Rätsel treffen, das v1 nicht
+// erklären kann. Solo, kein Netz, keine eigenen Storage-Keys (siehe Plan).
+const TRAINING_GEN_BUDGET = 40; // Versuche, bis ein voll Tier-1-lösbares Rätsel gefunden ist
+function startTrainingGame() {
+  state.isTrainingGame = true;
+  state.isDailyGame = false; state.dailyDateStr = null;
+  state.isBossGame = false; state.bossWeekStr = null;
+  state.isCustomGame = false;
+  state.trainingStep = null;
+  state.trainingDone = false;
+  state.generating = true;
+  state.screen = 'game';
+  setTimeout(() => {
+    log('game', `Trainingsrätsel-Generierung gestartet`);
+    let puzzle = generatePuzzle({ difficulty: 'sehrleicht' });
+    for (let i = 0; i < TRAINING_GEN_BUDGET && !isFullyTier1Solvable(puzzle); i++) {
+      puzzle = generatePuzzle({ difficulty: 'sehrleicht' });
+    }
+    log('game', `Trainingsrätsel generiert`, { rows: puzzle.rows, cols: puzzle.cols });
+    loadPuzzleIntoState(puzzle, null);
+    state.generating = false;
+    startTimer();
+    trainingNextStep();
+  }, 30);
+}
+
+// Sucht den nächsten erzwungenen Schritt und zeigt ihn als Erklär-Overlay an
+// -- die Markierung selbst passiert erst im "anwenden"-Klick (applyTrainingStep),
+// damit die Begründung zuerst gelesen werden kann, bevor sich das Feld ändert.
+function trainingNextStep() {
+  state.trainingStep = findTrainingStep(state.puzzle, state.marks);
+  state.trainingDone = !state.trainingStep;
+}
+
+function applyTrainingStep() {
+  const step = state.trainingStep;
+  if (!step) return;
+  setMark(step.r, step.c, step.action, false);
+  state.trainingStep = null;
+  if (state.status === 'playing') trainingNextStep();
 }
 
 function loadPuzzleIntoState(puzzle, saved) {
@@ -417,7 +469,7 @@ let suppressClickUntil = 0;  // Date.now()-Zeitstempel; bis dahin wird der näch
 
 function canLongPressRestore(r, c) {
   if (state.status !== 'playing' || state.generating || state.paused) return false;
-  if (state.coop.active) return false;
+  if (state.coop.active || state.isTrainingGame) return false;
   if (state.settings.errorReveal !== 'onCheck') return false;
   const mk = state.marks[r][c];
   if (state.tool === 'eraser' && mk === 'removed') return true;
@@ -453,6 +505,11 @@ function onCellPointerCancel() {
 function onCellTap(r, c) {
   if (Date.now() < suppressClickUntil) { suppressClickUntil = 0; return; }
   if (state.status !== 'playing' || state.generating || state.paused) return;
+  // Solange noch erzwungene Schritte existieren, steuert ausschließlich der
+  // "nächster Schritt"-Button -- erst wenn Tier-1-Logik nicht mehr weiterkommt
+  // (trainingDone, sollte dank TRAINING_GEN_BUDGET praktisch nie vorkommen),
+  // darf frei zu Ende getippt werden.
+  if (state.isTrainingGame && !state.trainingDone) return;
   const cur = state.marks[r][c];
   if (cur !== 'none') return; // already marked — only undo can reverse
   const next = state.tool === 'pen' ? 'kept' : 'removed';
@@ -882,10 +939,10 @@ function win(remote) {
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
-  // Custom-Rätsel (eigene Rastergröße) fließen bewusst nicht in die nach
-  // Schwierigkeit gebucketeten Streaks/Bestzeiten ein, da sie nicht mit den
-  // festen Standardmaßen vergleichbar sind.
-  if (state.isCustomGame) {
+  // Custom-Rätsel (eigene Rastergröße) und Trainingsrätsel (geführter
+  // Lernmodus, keine echte eigene Leistung) fließen bewusst nicht in die nach
+  // Schwierigkeit gebucketeten Streaks/Bestzeiten ein.
+  if (state.isCustomGame || state.isTrainingGame) {
     state.wouldHaveBeenBest = false;
     state.newHighscore = false;
   } else {
@@ -906,12 +963,17 @@ function win(remote) {
   }
   if (state.isDailyGame) state.daily = recordDailyResult(state.dailyDateStr);
   if (state.isBossGame) state.boss = recordBossWin(state.bossWeekStr);
-  state.puzzleHistory = recordHistory({
-    difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
-    seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
-    timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
-  });
-  checkAchievements();
+  // Trainingsrätsel landen bewusst nicht im Verlauf/in den Achievements (siehe
+  // oben) -- sie werden beliebig oft wiederholt und sollen den Ringpuffer bzw.
+  // "perfektes Spiel"-artige Erfolge nicht verwässern.
+  if (!state.isTrainingGame) {
+    state.puzzleHistory = recordHistory({
+      difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
+      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+      timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
+    });
+    checkAchievements();
+  }
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -928,7 +990,7 @@ function lose(remote) {
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
-  if (!state.isCustomGame) {
+  if (!state.isCustomGame && !state.isTrainingGame) {
     const { stats } = recordResult({
       difficulty: state.puzzle.difficulty, outcome: 'lost',
       timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
@@ -937,12 +999,14 @@ function lose(remote) {
     state.stats = stats;
   }
   if (state.isBossGame) state.boss = recordBossLoss(state.bossWeekStr);
-  state.puzzleHistory = recordHistory({
-    difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
-    seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
-    timeMs: state.elapsed, outcome: 'lost', coop: state.coop.active,
-  });
-  checkAchievements();
+  if (!state.isTrainingGame) {
+    state.puzzleHistory = recordHistory({
+      difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
+      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+      timeMs: state.elapsed, outcome: 'lost', coop: state.coop.active,
+    });
+    checkAchievements();
+  }
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -960,7 +1024,7 @@ function giveUp(remote) {
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
-  if (!state.isCustomGame) {
+  if (!state.isCustomGame && !state.isTrainingGame) {
     const { stats } = recordResult({
       difficulty: state.puzzle.difficulty, outcome: 'gaveup',
       timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
@@ -969,12 +1033,12 @@ function giveUp(remote) {
     state.stats = stats;
   }
   if (state.isBossGame) state.boss = recordBossLoss(state.bossWeekStr);
-  state.puzzleHistory = recordHistory({
+  if (!state.isTrainingGame) state.puzzleHistory = recordHistory({
     difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
     seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
     timeMs: state.elapsed, outcome: 'gaveup', coop: state.coop.active,
   });
-  checkAchievements();
+  if (!state.isTrainingGame) checkAchievements();
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -1018,7 +1082,7 @@ function restartPuzzle(startTime) {
 function quitToHome() {
   const wasCoop = state.coop.active;
   if (state.coop.role) coopReset();
-  saveActiveGame(!wasCoop && state.status === 'playing' ? activeSnapshot() : null);
+  saveActiveGame(!wasCoop && state.status === 'playing' && !state.isTrainingGame ? activeSnapshot() : null);
   refreshResume();
   navigate('home');
 }
@@ -1044,7 +1108,9 @@ function activeSnapshot() {
   };
 }
 function persistGame() {
-  if (state.status !== 'playing') { saveActiveGame(null); return; }
+  // Trainingsrätsel werden nie persistiert/fortgesetzt -- sie sind als
+  // wiederholbarer Lerndurchlauf gedacht, kein "Spielstand".
+  if (state.status !== 'playing' || state.isTrainingGame) { saveActiveGame(null); return; }
   const now = Date.now();
   if (now - saveThrottle < 400) return;
   saveThrottle = now;
@@ -1324,6 +1390,7 @@ const App = {
       chipTextColor, confirmCoopIdentity, onCoopNameBlur, playerColor, goCoop, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
       startBossGame, bossInfo, bossAttemptedThisWeek,
+      startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       t, i18nState, SUPPORTED_LOCALES,
     };
@@ -1361,6 +1428,10 @@ const App = {
           <span class="btn-ic">👹</span>
           <span class="btn-tx"><b>{{ t('home.bossChallenge') }}</b><small>{{ bossAttemptedThisWeek ? t('home.bossDone') : t('difficulty.'+bossInfo.difficulty) }}</small></span>
           <span v-if="state.boss.currentStreak>0" class="badge-soon">🔥{{ state.boss.currentStreak }}</span>
+        </button>
+        <button class="btn training-btn btn-ghost" @click="startTrainingGame">
+          <span class="btn-ic">🎓</span>
+          <span class="btn-tx"><b>{{ t('home.trainingMode') }}</b><small>{{ t('home.trainingHint') }}</small></span>
         </button>
         <div class="home-grid">
           <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> {{ t('home.stats') }}</button>
@@ -1496,7 +1567,7 @@ const App = {
         <!-- Werkzeug-Umschalter (Radierer / Stift) — während der Lösungsanzeige
              ausgeblendet, da Bearbeiten dort ohnehin nicht möglich/sinnvoll ist
              und die Buttons sonst von der .review-bar verdeckt würden. -->
-        <div v-if="!state.solutionShown" class="toolbar">
+        <div v-if="!state.solutionShown && (!state.isTrainingGame || state.trainingDone)" class="toolbar">
           <button class="round-btn" :disabled="!state.history.length" @click="undo" :title="t('game.undoTitle')" :aria-label="t('game.undoTitle')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-4"/></svg>
           </button>
@@ -1513,10 +1584,28 @@ const App = {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5"/><path d="M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-4 11.6c.8.7 1.2 1.3 1.3 2.4h5.4c.1-1.1.5-1.7 1.3-2.4A6.5 6.5 0 0 0 12 2.5z"/></svg>
           </button>
         </div>
-        <div v-if="!state.solutionShown && state.settings.errorReveal==='onCheck'" class="check-row">
+        <div v-if="!state.solutionShown && state.settings.errorReveal==='onCheck' && (!state.isTrainingGame || state.trainingDone)" class="check-row">
           <button class="btn btn-primary btn-check" @click="doCheck()">{{ t('game.check') }}</button>
         </div>
       </template>
+
+      <!-- Trainingsmodus: Erklär-Banner für den nächsten erzwungenen Schritt.
+           Bewusst kein Vollbild-Overlay (wie Pause/Coop-Lobby) -- das Feld
+           bleibt sichtbar, die betroffene Zelle ist per .training-highlight
+           markiert (siehe cellClasses), damit Erklärung und Zelle zusammen
+           erkennbar sind. -->
+      <div v-if="state.isTrainingGame && state.status==='playing' && !state.paused && !state.solutionShown" class="training-banner">
+        <template v-if="state.trainingStep">
+          <div class="training-text">
+            <b>{{ t('training.group.'+state.trainingStep.group.kind, { n: state.trainingStep.group.ref+1 }) }} ({{ t('training.target', { n: state.trainingStep.group.target }) }})</b>
+            <span>{{ t('training.reason.'+state.trainingStep.reason) }}</span>
+          </div>
+          <button class="btn btn-primary btn-sm" @click="applyTrainingStep">{{ t('training.apply') }}</button>
+        </template>
+        <template v-else-if="state.trainingDone">
+          <div class="training-text">{{ t('training.doneMsg') }}</div>
+        </template>
+      </div>
 
       <!-- Coop-Lobby: Rätsel ist da, Zeit läuft erst nach "Starten" -->
       <div v-if="state.coop.awaitingStart" class="overlay coop-lobby-overlay">
@@ -1576,7 +1665,8 @@ const App = {
           <div v-if="state.isDailyGame" class="highscore-badge">{{ t('daily.streakBadge', { count: state.daily.currentStreak }) }}</div>
           <div v-if="state.isBossGame" class="highscore-badge">{{ t('boss.streakBadge', { count: state.boss.currentStreak }) }}</div>
           <button v-if="state.isDailyGame" class="btn btn-ghost" @click="shareDailyResult">📤 {{ t('share.button') }}</button>
-          <button class="btn btn-primary" v-if="!state.isDailyGame && !state.isBossGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
+          <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.isDailyGame && !state.isBossGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
           <p v-else-if="state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('win.viewBoard') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -1603,8 +1693,9 @@ const App = {
             </div>
           </div>
           <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
-          <button class="btn btn-primary" v-if="!state.isBossGame" @click="restartFromGame">{{ t('loss.retry') }}</button>
-          <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">{{ t('common.newGame') }}</button>
+          <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.isBossGame" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-ghost" v-if="!state.isTrainingGame && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -1615,8 +1706,9 @@ const App = {
           <h2>{{ t('gaveup.title') }}</h2>
           <p class="result-msg">{{ t('loss.msg') }}</p>
           <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
-          <button class="btn btn-primary" v-if="!state.isBossGame" @click="restartFromGame">{{ t('loss.retry') }}</button>
-          <button class="btn btn-ghost" v-if="!state.coop.active || state.coop.role==='host'" @click="navigate('setup')">{{ t('common.newGame') }}</button>
+          <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.isBossGame" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-ghost" v-if="!state.isTrainingGame && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -2027,6 +2119,7 @@ function cellClasses(r, c) {
     solnc: state.solutionShown && state.puzzle.solution[r][c],
     'coop-mark': state.coop.active && !!state.markedBy[r][c],
     'coop-mark-removed': state.coop.active && !!state.markedBy[r][c] && mk === 'removed' && state.settings.coopRemovedOutline,
+    'training-highlight': state.isTrainingGame && state.trainingStep?.r === r && state.trainingStep?.c === c,
   };
 }
 function cellStyle(r, c) {

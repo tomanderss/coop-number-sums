@@ -232,6 +232,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .cell.flash::after { border-color: var(--bad) !important; background: var(--bad); }
 @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 .cell.hinted { background: var(--good-soft) !important; animation: hintGlow 1.2s ease; }
+/* Trainingsmodus: hebt die Zelle hervor, die der aktuelle erklärte Schritt
+   betrifft — eigener Stil statt .hinted, da letzteres nach 1.2s verblasst und
+   hier dauerhaft sichtbar bleiben muss, bis der Schritt angewendet wird. */
+.cell.training-highlight { box-shadow: inset 0 0 0 3px var(--accent2); animation: trainingPulse 1.4s ease infinite; }
+@keyframes trainingPulse { 0%,100% { box-shadow: inset 0 0 0 3px var(--accent2); } 50% { box-shadow: inset 0 0 0 5px var(--accent2); } }
 @keyframes hintGlow { 0%,100% { box-shadow: inset 0 0 0 0 var(--good); } 50% { box-shadow: inset 0 0 0 3px var(--good); } }
 .cell.solnc::after { content: ''; position: absolute; inset: 11%; border: 2.5px solid var(--good); border-radius: 50%; }
 /* permanente Hinweis-Markierung (anders als .hinted, das nach 1.2s verblasst):
@@ -386,6 +391,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   padding: 10px 10px 10px 20px; border-radius: 999px; box-shadow: 0 8px 24px var(--shadow);
   font-weight: 800; z-index: 80;
 }
+
+/* ─── Trainingsmodus: Erklär-Banner (kein Vollbild-Overlay, siehe app.js) ─── */
+.training-banner {
+  position: fixed; bottom: calc(env(safe-area-inset-bottom) + 24px); left: 50%; transform: translateX(-50%);
+  width: calc(100% - 32px); max-width: 420px; background: var(--bg2); display: flex; flex-direction: column;
+  align-items: stretch; gap: 10px; padding: 14px 18px; border-radius: 18px; box-shadow: 0 8px 24px var(--shadow);
+  z-index: 80;
+}
+.training-text { display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.training-text b { font-size: .92rem; }
+.training-text span { color: var(--text2); font-size: .86rem; }
 
 /* ─── Confetti ─── */
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
