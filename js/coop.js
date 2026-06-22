@@ -29,6 +29,8 @@ let myPlayerRef = null;
 let unsubJoin = null;
 let unsubLeave = null;
 let unsubEvents = null;
+let unsubTeamEvents = null;
+let unsubTeamProgress = null;
 
 export function isAvailable() { return typeof window !== 'undefined' && typeof fetch !== 'undefined'; }
 
@@ -142,10 +144,57 @@ export async function send(msg) {
   }
 }
 
+// ─── Team-vs-Team: team-skopierte Kanäle innerhalb desselben Raums ────────────
+// Statt zwei separater, gekoppelter Räume (eigenes RTDB-Schema, manueller Regel-
+// Deploy) leben Zug-Events pro Team unter rooms/{code}/teamEvents/{team} — ein
+// neuer Kind-Pfad unterhalb des bestehenden Raums, der bereits über die
+// $code-Ebene der Security Rules schreibbar ist (kein .validate dort definiert,
+// kein Rules-Update nötig). Jeder Client lauscht ausschließlich auf den Kanal
+// des EIGENEN Teams, nie auf den des Gegner-Teams — so verlassen Zellpositionen
+// nie den Client der jeweils anderen Seite. Aggregierter Fortschritt (Prozent/
+// Fehlerzahl, kein Zell-Inhalt) läuft separat über teamProgress/{team}, das
+// gegenseitig sichtbar sein darf.
+export async function sendTeamEvent(team, msg) {
+  if (!fb || !roomCode) return;
+  try {
+    await fb.push(fb.ref(fb.db, `rooms/${roomCode}/teamEvents/${team}`), { ...msg, author: fb.uid, ts: fb.serverTimestamp() });
+  } catch (e) {
+    log('coop', `Senden von Team-Event "${msg.type}" fehlgeschlagen`, e);
+  }
+}
+
+export function listenTeamEvents(team, onMessage) {
+  if (!fb || !roomCode) return;
+  unsubTeamEvents && unsubTeamEvents();
+  const ref = fb.ref(fb.db, `rooms/${roomCode}/teamEvents/${team}`);
+  unsubTeamEvents = fb.onChildAdded(ref, (snap) => {
+    const msg = snap.val();
+    if (!msg || msg.author === fb.uid) return;
+    onMessage && onMessage(msg);
+  });
+}
+
+export async function setTeamProgress(team, payload) {
+  if (!fb || !roomCode) return;
+  try {
+    await fb.set(fb.ref(fb.db, `rooms/${roomCode}/teamProgress/${team}`), payload);
+  } catch (e) {
+    log('coop', 'Team-Fortschritt schreiben fehlgeschlagen', e);
+  }
+}
+
+export function listenTeamProgress(onUpdate) {
+  if (!fb || !roomCode) return;
+  unsubTeamProgress && unsubTeamProgress();
+  const ref = fb.ref(fb.db, `rooms/${roomCode}/teamProgress`);
+  unsubTeamProgress = fb.onValue(ref, (snap) => onUpdate && onUpdate(snap.val() || {}));
+}
+
 export async function leave() {
   const f = fb, code = roomCode, playerRef = myPlayerRef;
   unsubJoin && unsubJoin(); unsubLeave && unsubLeave(); unsubEvents && unsubEvents();
-  unsubJoin = unsubLeave = unsubEvents = null;
+  unsubTeamEvents && unsubTeamEvents(); unsubTeamProgress && unsubTeamProgress();
+  unsubJoin = unsubLeave = unsubEvents = unsubTeamEvents = unsubTeamProgress = null;
   roomCode = null; myPlayerRef = null;
   if (!f || !playerRef) return;
   try {
@@ -163,4 +212,5 @@ export async function leave() {
 export const MSG = {
   INIT: 'init', MOVE: 'move', UNDO: 'undo', CHECK: 'check', STATUS: 'status', PAUSE: 'pause', HINT: 'hint',
   RETRY: 'retry', IDENTITY: 'identity', ROSTER: 'roster', MISTAKE: 'mistake', START: 'start',
+  TEAM_START: 'teamStart', TEAM_DONE: 'teamDone',
 };
