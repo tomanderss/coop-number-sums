@@ -29,6 +29,7 @@ export default {
     dailyDone: '오늘 해결 완료 ✓',
     bossChallenge: '보스 퍼즐',
     bossDone: '이번 주 이미 시도함',
+    history: '기록',
   },
   setup: {
     title: '새 게임',
@@ -191,6 +192,17 @@ export default {
   boss: {
     streakBadge: '🔥 {count}주 연속',
     tryAgainNextWeek: '다음 주에 다시 시도하세요',
+  },
+  history: {
+    title: '기록',
+    empty: '아직 해결한 퍼즐이 없습니다.',
+    view: '보기',
+    replay: '다시 플레이',
+    outcome: {
+      won: '해결함',
+      lost: '실패함',
+      gaveup: '포기함',
+    },
   },
   share: {
     button: '공유',

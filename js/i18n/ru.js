@@ -29,6 +29,7 @@ export default {
     dailyDone: 'Сегодня решено ✓',
     bossChallenge: 'Босс-головоломка',
     bossDone: 'Уже пройдено на этой неделе',
+    history: 'История',
   },
   setup: {
     title: 'Новая игра',
@@ -191,6 +192,17 @@ export default {
   boss: {
     streakBadge: '🔥 Серия {count} недель',
     tryAgainNextWeek: 'Попробуйте снова на следующей неделе',
+  },
+  history: {
+    title: 'История',
+    empty: 'Решённых головоломок пока нет.',
+    view: 'Посмотреть',
+    replay: 'Сыграть снова',
+    outcome: {
+      won: 'Решено',
+      lost: 'Проиграно',
+      gaveup: 'Сдался',
+    },
   },
   share: {
     button: 'Поделиться',

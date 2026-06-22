@@ -12,7 +12,7 @@ import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
   exportToFile, importFromFile, deleteAllData, loadDaily, recordDailyResult,
-  loadBoss, recordBossWin, recordBossLoss,
+  loadBoss, recordBossWin, recordBossLoss, loadHistory, recordHistory,
 } from './storage.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
@@ -27,6 +27,8 @@ const state = reactive({
   stats: loadStats(),
   daily: loadDaily(),        // { lastCompletedDate, currentStreak, bestStreak, totalCompleted }
   boss: loadBoss(),          // { lastAttemptedWeek, lastCompletedWeek, currentStreak, bestStreak, totalCompleted }
+  puzzleHistory: loadHistory(), // Ringpuffer gelöster Rätsel (neueste zuerst), siehe storage.js
+  historyDetail: null,       // { entry, puzzle, cellMeta } während der Endboard-Ansicht eines Verlauf-Eintrags, sonst null
 
   // Spiel
   puzzle: null,
@@ -877,6 +879,11 @@ function win(remote) {
   }
   if (state.isDailyGame) state.daily = recordDailyResult(state.dailyDateStr);
   if (state.isBossGame) state.boss = recordBossWin(state.bossWeekStr);
+  state.puzzleHistory = recordHistory({
+    difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
+    seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+    timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
+  });
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -902,6 +909,11 @@ function lose(remote) {
     state.stats = stats;
   }
   if (state.isBossGame) state.boss = recordBossLoss(state.bossWeekStr);
+  state.puzzleHistory = recordHistory({
+    difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
+    seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+    timeMs: state.elapsed, outcome: 'lost', coop: state.coop.active,
+  });
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -928,6 +940,11 @@ function giveUp(remote) {
     state.stats = stats;
   }
   if (state.isBossGame) state.boss = recordBossLoss(state.bossWeekStr);
+  state.puzzleHistory = recordHistory({
+    difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
+    seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+    timeMs: state.elapsed, outcome: 'gaveup', coop: state.coop.active,
+  });
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -1079,9 +1096,64 @@ function resetStats() {
 function doDeleteAllData() {
   ask(t('settings.deleteAllConfirmTitle'), t('settings.deleteAllConfirmMsg'), () => {
     deleteAllData();
-    state.settings = loadSettings(); state.stats = loadStats(); state.daily = loadDaily(); applyTheme(); applyLocale(); refreshResume();
+    state.settings = loadSettings(); state.stats = loadStats(); state.daily = loadDaily(); state.boss = loadBoss(); state.puzzleHistory = loadHistory(); applyTheme(); applyLocale(); refreshResume();
     showToast(t('settings.deleteAllDone'), 'success');
   });
+}
+
+// ─── VERLAUF GELÖSTER RÄTSEL ───────────────────────────────────────────────────
+// v1 = Snapshot abgeschlossener Rätsel (Endboard + Seed), kein zugweises
+// Playback — es gibt aktuell keinen vollständigen Zug-Log (nur Single-Level-
+// Undo, siehe state.history), siehe ROADMAP/Plan.
+function openHistoryDetail(entry) {
+  const puzzle = generatePuzzle({ difficulty: entry.difficulty, seed: entry.seed, dim: entry.dim });
+  state.historyDetail = { entry, puzzle, cellMeta: buildCellMeta(puzzle) };
+}
+function closeHistoryDetail() { state.historyDetail = null; }
+function historyGridStyle(puzzle) {
+  const avail = Math.min(window.innerWidth - 80, 420);
+  const cellPx = Math.max(20, Math.min(40, Math.floor(avail / (puzzle.cols + 1))));
+  return {
+    gridTemplateColumns: `var(--hdr) repeat(${puzzle.cols}, var(--cell))`,
+    gridTemplateRows: `var(--hdr) repeat(${puzzle.rows}, var(--cell))`,
+    '--cell': cellPx + 'px', '--hdr': cellPx + 'px',
+    '--fs': Math.max(9, Math.round(cellPx * 0.4)) + 'px',
+  };
+}
+function historyCellClasses(r, c) {
+  const m = state.historyDetail.cellMeta[r][c];
+  const mk = state.historyDetail.entry.marks?.[r]?.[c] || 'none';
+  return {
+    kept: mk === 'kept', removed: mk === 'removed', region: m.region >= 0,
+    strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
+  };
+}
+function historyCellStyle(r, c) {
+  const m = state.historyDetail.cellMeta[r][c];
+  const st = { fontSize: 'var(--fs)' };
+  if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; }
+  return st;
+}
+// Erzeugt per Seed exakt dasselbe Rätsel neu und startet eine frische,
+// spielbare Partie damit (kein zugweises Fortsetzen — ein neuer Versuch).
+// Weicht die gespeicherte Dimension von der Standardgröße der Schwierigkeit
+// ab, war es ein Custom-Spiel — dieselbe Ausschlussregel wie bei newGame().
+function replayHistoryEntry(entry) {
+  state.historyDetail = null;
+  const stdDim = DIFF_BY_ID[entry.difficulty]?.dim;
+  const isCustom = !stdDim || stdDim.r !== entry.dim.r || stdDim.c !== entry.dim.c;
+  state.isDailyGame = false; state.dailyDateStr = null;
+  state.isBossGame = false; state.bossWeekStr = null;
+  state.isCustomGame = !state.coop.active && isCustom;
+  state.generating = true;
+  state.screen = 'game';
+  setTimeout(() => {
+    log('game', `Verlauf-Replay gestartet`, { difficulty: entry.difficulty, seed: entry.seed, dim: entry.dim });
+    const puzzle = generatePuzzle({ difficulty: entry.difficulty, seed: entry.seed, dim: entry.dim });
+    loadPuzzleIntoState(puzzle, null);
+    state.generating = false;
+    startTimer();
+  }, 30);
 }
 
 // ─── TEILEN (viraler Loop) ─────────────────────────────────────────────────────
@@ -1222,6 +1294,7 @@ const App = {
       chipTextColor, confirmCoopIdentity, onCoopNameBlur, playerColor, goCoop, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
       startBossGame, bossInfo, bossAttemptedThisWeek,
+      openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       t, i18nState, SUPPORTED_LOCALES,
     };
   },
@@ -1264,6 +1337,7 @@ const App = {
           <button class="btn btn-ghost" @click="navigate('settings')"><span class="btn-ic">⚙️</span> {{ t('home.settings') }}</button>
           <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">❓</span> {{ t('home.howto') }}</button>
           <button class="btn btn-ghost" @click="state.modal='changelog'"><span class="btn-ic">📝</span> {{ t('home.changelog') }}</button>
+          <button class="btn btn-ghost" @click="navigate('history')"><span class="btn-ic">🕘</span> {{ t('home.history') }}</button>
         </div>
       </div>
       <div class="home-version">v{{ BUILD }}</div>
@@ -1566,6 +1640,30 @@ const App = {
       </div>
     </section>
 
+    <!-- ══ VERLAUF ══ -->
+    <section v-else-if="state.screen==='history'" class="screen history">
+      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('history.title') }}</h2><span></span></header>
+      <div class="history-body">
+        <div v-if="!state.puzzleHistory.length" class="empty">{{ t('history.empty') }}</div>
+        <div v-for="h in state.puzzleHistory" :key="h.ts" class="history-row">
+          <div class="history-row-main">
+            <span class="history-outcome" :class="'outcome-'+h.outcome">{{ h.outcome==='won' ? '🏆' : (h.outcome==='lost' ? '💔' : '🏳') }}</span>
+            <span class="diff-name">{{ DIFF_BY_ID[h.difficulty]?.emoji }} {{ t('difficulty.'+h.difficulty) }}</span>
+            <span class="chip">{{ h.dim.r }}×{{ h.dim.c }}</span>
+            <span v-if="h.coop" class="chip coop-chip">👥</span>
+          </div>
+          <div class="history-row-sub">
+            <span>{{ t('history.outcome.'+h.outcome) }} · {{ fmtTime(h.timeMs) }}</span>
+            <span class="history-date">{{ new Date(h.ts).toLocaleString('de-DE') }}</span>
+          </div>
+          <div class="history-row-actions">
+            <button class="btn btn-ghost btn-sm" @click="openHistoryDetail(h)">{{ t('history.view') }}</button>
+            <button class="btn btn-primary btn-sm" @click="replayHistoryEntry(h)">{{ t('history.replay') }}</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ══ COOP ══ -->
     <section v-else-if="state.screen==='coop'" class="screen coop-screen">
       <header class="topbar">
@@ -1775,6 +1873,31 @@ const App = {
           <button class="btn btn-sm btn-primary" @click="doRestore(b.slot)">{{ t('backups.load') }}</button>
         </div>
         <button class="btn btn-ghost" @click="state.modal=null">{{ t('common.close') }}</button>
+      </div>
+    </div>
+
+    <div v-if="state.historyDetail" class="modal-bg" @click.self="closeHistoryDetail">
+      <div class="modal modal-history">
+        <h3>{{ DIFF_BY_ID[state.historyDetail.entry.difficulty]?.emoji }} {{ t('difficulty.'+state.historyDetail.entry.difficulty) }} · {{ state.historyDetail.entry.dim.r }}×{{ state.historyDetail.entry.dim.c }}</h3>
+        <div class="board-wrap">
+          <div class="board" :style="historyGridStyle(state.historyDetail.puzzle)">
+            <div class="corner"></div>
+            <div v-for="c in state.historyDetail.puzzle.cols" :key="'hch'+c" class="hdr col-hdr">
+              <span class="tgt">{{ state.historyDetail.puzzle.colTargets[c-1] }}</span>
+            </div>
+            <template v-for="r in state.historyDetail.puzzle.rows" :key="'hr'+r">
+              <div class="hdr row-hdr">
+                <span class="tgt">{{ state.historyDetail.puzzle.rowTargets[r-1] }}</span>
+              </div>
+              <div v-for="c in state.historyDetail.puzzle.cols" :key="'h'+r+'-'+c"
+                   class="cell" :class="historyCellClasses(r-1,c-1)" :style="historyCellStyle(r-1,c-1)">
+                <span v-if="state.historyDetail.cellMeta[r-1][c-1].chip!=null" class="rchip">{{ state.historyDetail.cellMeta[r-1][c-1].chip }}</span>
+                <span class="cnum">{{ state.historyDetail.puzzle.values[r-1][c-1] }}</span>
+              </div>
+            </template>
+          </div>
+        </div>
+        <button class="btn btn-primary" @click="closeHistoryDetail">{{ t('common.close') }}</button>
       </div>
     </div>
 

@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.62';
-export const BUILD_HASH = '1097e36';
+export const BUILD      = '0.63';
+export const BUILD_HASH = 'c1b0d80';
 
 export const CHANGELOG = [
+  {
+    "version": "0.63",
+    "date": "21.06.2026",
+    "changes": [
+      "Verlauf: gelöste Rätsel werden jetzt gespeichert und können angesehen oder per Seed erneut gespielt werden"
+    ]
+  },
   {
     "version": "0.62",
     "date": "21.06.2026",

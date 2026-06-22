@@ -29,6 +29,7 @@ export default {
     dailyDone: 'Bugün çözüldü ✓',
     bossChallenge: 'Patron bulmacası',
     bossDone: 'Bu hafta zaten denendi',
+    history: 'Geçmiş',
   },
   setup: {
     title: 'Yeni oyun',
@@ -191,6 +192,17 @@ export default {
   boss: {
     streakBadge: '🔥 {count} haftalık seri',
     tryAgainNextWeek: 'Gelecek hafta tekrar deneyin',
+  },
+  history: {
+    title: 'Geçmiş',
+    empty: 'Henüz çözülmüş bulmaca yok.',
+    view: 'Görüntüle',
+    replay: 'Tekrar oyna',
+    outcome: {
+      won: 'Çözüldü',
+      lost: 'Kaybedildi',
+      gaveup: 'Bırakıldı',
+    },
   },
   share: {
     button: 'Paylaş',
