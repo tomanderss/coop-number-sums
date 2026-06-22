@@ -40,16 +40,11 @@ export default {
   setup: {
     title: 'Yeni oyun',
     start: 'Hadi başlayalım! 🚀',
-    standardTab: 'Standart',
-    customTab: 'Özel boyut',
-    customSizeLabel: 'Izgara boyutu',
-    customHint: 'Özel boyutlar en iyi süreler veya seri sayımına dahil edilmez.',
   },
   game: {
     loading: 'Bulmaca oluşturuluyor…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' · çevrimdışı',
-    localTag: 'Sırayla Oyna',
     coopDailyTag: 'Günlük bulmaca',
     pauseTitle: 'Duraklat',
     giveUpTitle: 'Bırak',
@@ -125,8 +120,6 @@ export default {
     hostHint: 'Kod belirle ve bulmaca oluştur',
     join: 'Katıl',
     joinHint: 'Ev sahibinin kodunu gir',
-    localOption: 'Sırayla Oyna',
-    localHint: 'Tek cihazda birden çok oyuncu, ağ gerekmez',
     setCode: 'Kod belirle (6 hane)',
     startHosting: 'Ev sahipliği yap 🚀',
     yourCode: 'Senin kodun',
@@ -230,17 +223,6 @@ export default {
     streakBadge: '🔥 {count} haftalık seri',
     tryAgainNextWeek: 'Gelecek hafta tekrar deneyin',
   },
-  passandplay: {
-    intro: 'Birden çok oyuncu bir cihazı paylaşır ve her turdan sonra elden ele geçirir.',
-    playerCountLabel: 'Oyuncu sayısı',
-    playerLabel: 'Oyuncu {n} adı',
-    start: 'Oyunu başlat',
-    currentTurn: 'Sıra {name}\'de',
-    endTurn: 'Turu bitir',
-    handoffTitle: 'Cihazı devret',
-    handoffMsg: 'Sırada {name} var. Cihazı devret, hazır mısın?',
-    handoffReady: 'Hazır',
-  },
   training: {
     apply: 'Uygula',
     another: 'Başka bir örnek',
@@ -275,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss yenildi', desc: 'Boss mücadelesini ilk kez kazan.' },
     bossStreak3: { title: 'Boss avcısı', desc: 'Boss mücadelesinde 3 haftalık seri.' },
     coopFirstWin: { title: 'Takım debütü', desc: 'Co-op modunda bir bulmaca kazan.' },
-    customSolved: { title: 'Kendi yolun', desc: 'Özel boyutlu bir bulmaca çöz.' },
     historyFull: { title: 'İyi belgelenmiş', desc: 'Geçmişte 20 kayıt topla.' },
   },
   history: {
@@ -344,6 +325,5 @@ export default {
     cellUnmarked: 'işaretsiz',
   },
   error: {
-    profanity: 'Lütfen başka bir ad seç.',
   },
 };

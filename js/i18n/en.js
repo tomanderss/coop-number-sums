@@ -40,16 +40,11 @@ export default {
   setup: {
     title: 'New game',
     start: "Let's go! 🚀",
-    standardTab: 'Standard',
-    customTab: 'Custom size',
-    customSizeLabel: 'Grid size',
-    customHint: "Custom sizes don't count toward best times or streaks.",
   },
   game: {
     loading: 'Creating puzzle…',
     coopTag: 'CO-OP',
     coopOfflineSuffix: ' · offline',
-    localTag: 'Pass & Play',
     coopDailyTag: 'Daily challenge',
     pauseTitle: 'Pause',
     giveUpTitle: 'Give up',
@@ -125,8 +120,6 @@ export default {
     hostHint: 'Set a code & create the puzzle',
     join: 'Join',
     joinHint: "Enter the host's code",
-    localOption: 'Pass & Play',
-    localHint: 'Multiple players on one device, no network needed',
     setCode: 'Set code (6 digits)',
     startHosting: 'Host 🚀',
     yourCode: 'Your code',
@@ -230,17 +223,6 @@ export default {
     streakBadge: '🔥 {count} week streak',
     tryAgainNextWeek: 'Try again next week',
   },
-  passandplay: {
-    intro: 'Multiple players share one device and pass it on after each turn.',
-    playerCountLabel: 'Number of players',
-    playerLabel: 'Player {n} name',
-    start: 'Start game',
-    currentTurn: '{name}\'s turn',
-    endTurn: 'End turn',
-    handoffTitle: 'Pass the device',
-    handoffMsg: 'It\'s {name}\'s turn next. Pass the device and ready?',
-    handoffReady: 'Ready',
-  },
   training: {
     apply: 'Apply',
     another: 'Another example',
@@ -275,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss defeated', desc: 'Win the boss challenge for the first time.' },
     bossStreak3: { title: 'Boss slayer', desc: '3-week boss challenge streak.' },
     coopFirstWin: { title: 'Team debut', desc: 'Win a puzzle in co-op mode.' },
-    customSolved: { title: 'Your own way', desc: 'Solve a custom-size puzzle.' },
     historyFull: { title: 'Well documented', desc: 'Collect 20 entries in your history.' },
   },
   history: {
@@ -344,6 +325,5 @@ export default {
     cellUnmarked: 'unmarked',
   },
   error: {
-    profanity: 'Please choose a different name.',
   },
 };

@@ -40,16 +40,11 @@ export default {
   setup: {
     title: '新しいゲーム',
     start: 'スタート！🚀',
-    standardTab: '標準',
-    customTab: 'カスタムサイズ',
-    customSizeLabel: 'グリッドサイズ',
-    customHint: 'カスタムサイズはベストタイムや連続記録には反映されません。',
   },
   game: {
     loading: 'パズルを作成中…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' ・オフライン',
-    localTag: 'パス＆プレイ',
     coopDailyTag: 'デイリーパズル',
     pauseTitle: '一時停止',
     giveUpTitle: 'ギブアップ',
@@ -125,8 +120,6 @@ export default {
     hostHint: 'コードを設定してパズルを作成',
     join: '参加する',
     joinHint: 'ホストのコードを入力',
-    localOption: 'パス＆プレイ',
-    localHint: '1台の端末で複数プレイヤー、ネット不要',
     setCode: 'コードを設定（6桁）',
     startHosting: 'ホストする 🚀',
     yourCode: 'あなたのコード',
@@ -230,17 +223,6 @@ export default {
     streakBadge: '🔥 {count}週連続',
     tryAgainNextWeek: '来週またチャレンジしよう',
   },
-  passandplay: {
-    intro: '複数のプレイヤーが1台の端末を共有し、各ターン後に手渡しします。',
-    playerCountLabel: 'プレイヤー数',
-    playerLabel: 'プレイヤー{n}の名前',
-    start: 'ゲーム開始',
-    currentTurn: '{name}の番です',
-    endTurn: 'ターン終了',
-    handoffTitle: '端末を手渡してください',
-    handoffMsg: '次は{name}の番です。端末を渡して準備できましたか？',
-    handoffReady: '準備完了',
-  },
   training: {
     apply: '適用',
     another: '別の例',
@@ -275,7 +257,6 @@ export default {
     bossFirstWin: { title: 'ボス撃破', desc: 'ボスチャレンジに初めて勝利する。' },
     bossStreak3: { title: 'ボスハンター', desc: 'ボスチャレンジを3週連続クリア。' },
     coopFirstWin: { title: 'チームデビュー', desc: 'コープモードでパズルに勝利する。' },
-    customSolved: { title: '我が道', desc: 'カスタムサイズのパズルを解く。' },
     historyFull: { title: '記録魔', desc: '履歴に20件集める。' },
   },
   history: {
@@ -344,6 +325,5 @@ export default {
     cellUnmarked: '未マーク',
   },
   error: {
-    profanity: '別の名前を選んでください。',
   },
 };

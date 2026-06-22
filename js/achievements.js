@@ -17,7 +17,6 @@ export const ACHIEVEMENTS = [
   { id: 'bossFirstWin', icon: '👹', check: (ctx) => ctx.bossWin },
   { id: 'bossStreak3', icon: '👑', check: (ctx) => ctx.bossStreak >= 3 },
   { id: 'coopFirstWin', icon: '👥', check: (ctx) => ctx.outcome === 'won' && ctx.coop },
-  { id: 'customSolved', icon: '🧩', check: (ctx) => ctx.outcome === 'won' && ctx.custom },
   { id: 'historyFull', icon: '🕘', check: (ctx) => ctx.historyLength >= 20 },
 ];
 

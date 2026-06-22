@@ -40,16 +40,11 @@ export default {
   setup: {
     title: 'Novo jogo',
     start: 'Vamos lá! 🚀',
-    standardTab: 'Padrão',
-    customTab: 'Tamanho personalizado',
-    customSizeLabel: 'Tamanho da grade',
-    customHint: 'Tamanhos personalizados não contam para os melhores tempos ou sequências.',
   },
   game: {
     loading: 'Criando o quebra-cabeça…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' · offline',
-    localTag: 'Passa e Joga',
     coopDailyTag: 'Desafio diário',
     pauseTitle: 'Pausa',
     giveUpTitle: 'Desistir',
@@ -125,8 +120,6 @@ export default {
     hostHint: 'Definir código e criar o quebra-cabeça',
     join: 'Entrar',
     joinHint: 'Digite o código do anfitrião',
-    localOption: 'Passa e Joga',
-    localHint: 'Vários jogadores em um dispositivo, sem rede',
     setCode: 'Definir código (6 dígitos)',
     startHosting: 'Hospedar 🚀',
     yourCode: 'Seu código',
@@ -230,17 +223,6 @@ export default {
     streakBadge: '🔥 Sequência de {count} semanas',
     tryAgainNextWeek: 'Tente novamente na próxima semana',
   },
-  passandplay: {
-    intro: 'Vários jogadores compartilham um dispositivo e o passam após cada turno.',
-    playerCountLabel: 'Número de jogadores',
-    playerLabel: 'Nome do jogador {n}',
-    start: 'Iniciar partida',
-    currentTurn: 'Vez de {name}',
-    endTurn: 'Terminar turno',
-    handoffTitle: 'Passar o dispositivo',
-    handoffMsg: 'Agora é a vez de {name}. Passe o dispositivo, pronto?',
-    handoffReady: 'Pronto',
-  },
   training: {
     apply: 'Aplicar',
     another: 'Outro exemplo',
@@ -275,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Chefe derrotado', desc: 'Vença o desafio chefe pela primeira vez.' },
     bossStreak3: { title: 'Caçador de chefes', desc: 'Sequência de 3 semanas no desafio chefe.' },
     coopFirstWin: { title: 'Debute em equipe', desc: 'Vença um quebra-cabeça no modo cooperativo.' },
-    customSolved: { title: 'Do seu jeito', desc: 'Resolva um quebra-cabeça de tamanho personalizado.' },
     historyFull: { title: 'Bem documentado', desc: 'Acumule 20 entradas no histórico.' },
   },
   history: {
@@ -344,6 +325,5 @@ export default {
     cellUnmarked: 'sem marcação',
   },
   error: {
-    profanity: 'Escolha outro nome.',
   },
 };

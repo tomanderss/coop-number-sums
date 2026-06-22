@@ -40,16 +40,11 @@ export default {
   setup: {
     title: 'Nuova partita',
     start: 'Si parte! 🚀',
-    standardTab: 'Standard',
-    customTab: 'Dimensione personalizzata',
-    customSizeLabel: 'Dimensione griglia',
-    customHint: 'Le dimensioni personalizzate non contano per i record o le serie.',
   },
   game: {
     loading: 'Creazione del puzzle…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' · offline',
-    localTag: 'Passa e gioca',
     coopDailyTag: 'Sfida del giorno',
     pauseTitle: 'Pausa',
     giveUpTitle: 'Abbandona',
@@ -125,8 +120,6 @@ export default {
     hostHint: 'Imposta un codice e crea il puzzle',
     join: 'Unisciti',
     joinHint: "Inserisci il codice dell'host",
-    localOption: 'Passa e gioca',
-    localHint: 'Più giocatori su un dispositivo, senza rete',
     setCode: 'Imposta codice (6 cifre)',
     startHosting: 'Ospita 🚀',
     yourCode: 'Il tuo codice',
@@ -230,17 +223,6 @@ export default {
     streakBadge: '🔥 Serie di {count} settimane',
     tryAgainNextWeek: 'Riprova la prossima settimana',
   },
-  passandplay: {
-    intro: 'Più giocatori condividono un dispositivo e se lo passano dopo ogni turno.',
-    playerCountLabel: 'Numero di giocatori',
-    playerLabel: 'Nome giocatore {n}',
-    start: 'Inizia partita',
-    currentTurn: 'Turno di {name}',
-    endTurn: 'Termina turno',
-    handoffTitle: 'Passa il dispositivo',
-    handoffMsg: 'Tocca a {name}. Passa il dispositivo, pronto?',
-    handoffReady: 'Pronto',
-  },
   training: {
     apply: 'Applica',
     another: 'Un altro esempio',
@@ -275,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss sconfitto', desc: 'Vinci la sfida boss per la prima volta.' },
     bossStreak3: { title: 'Cacciatore di boss', desc: 'Serie di 3 settimane nella sfida boss.' },
     coopFirstWin: { title: 'Debutto di squadra', desc: 'Vinci un puzzle in modalità cooperativa.' },
-    customSolved: { title: 'A modo tuo', desc: 'Risolvi un puzzle di dimensione personalizzata.' },
     historyFull: { title: 'Ben documentato', desc: 'Raccogli 20 voci nella cronologia.' },
   },
   history: {
@@ -344,6 +325,5 @@ export default {
     cellUnmarked: 'non segnata',
   },
   error: {
-    profanity: 'Scegli un altro nome.',
   },
 };

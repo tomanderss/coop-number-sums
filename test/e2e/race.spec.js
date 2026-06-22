@@ -37,11 +37,6 @@ test.describe('race mode', () => {
     });
   }
 
-  test('pass-and-play is not offered as a race option', async ({ page }) => {
-    await goToRaceHostChoice(page);
-    await expect(page.locator('.coop-body .btn-coop')).toHaveCount(0);
-  });
-
   test('the team toggle is not offered in a race lobby', async ({ page }) => {
     await goToRaceHostChoice(page);
     await page.locator('.coop-input').fill('123456');

@@ -40,16 +40,11 @@ export default {
   setup: {
     title: 'Новая игра',
     start: 'Начали! 🚀',
-    standardTab: 'Стандарт',
-    customTab: 'Свой размер',
-    customSizeLabel: 'Размер поля',
-    customHint: 'Свои размеры не засчитываются в лучшие результаты или серии.',
   },
   game: {
     loading: 'Создание головоломки…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' · офлайн',
-    localTag: 'По очереди',
     coopDailyTag: 'Ежедневная головоломка',
     pauseTitle: 'Пауза',
     giveUpTitle: 'Сдаться',
@@ -125,8 +120,6 @@ export default {
     hostHint: 'Задать код и создать головоломку',
     join: 'Присоединиться',
     joinHint: 'Введите код хоста',
-    localOption: 'По очереди',
-    localHint: 'Несколько игроков на одном устройстве, без сети',
     setCode: 'Задать код (6 цифр)',
     startHosting: 'Создать сессию 🚀',
     yourCode: 'Твой код',
@@ -230,17 +223,6 @@ export default {
     streakBadge: '🔥 Серия {count} недель',
     tryAgainNextWeek: 'Попробуйте снова на следующей неделе',
   },
-  passandplay: {
-    intro: 'Несколько игроков делят одно устройство и передают его после каждого хода.',
-    playerCountLabel: 'Количество игроков',
-    playerLabel: 'Имя игрока {n}',
-    start: 'Начать игру',
-    currentTurn: 'Ход игрока {name}',
-    endTurn: 'Завершить ход',
-    handoffTitle: 'Передайте устройство',
-    handoffMsg: 'Следующий ход — {name}. Передайте устройство, готовы?',
-    handoffReady: 'Готово',
-  },
   training: {
     apply: 'Применить',
     another: 'Другой пример',
@@ -275,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Босс побеждён', desc: 'Победи в боссе впервые.' },
     bossStreak3: { title: 'Охотник на боссов', desc: '3 недели подряд побед в боссе.' },
     coopFirstWin: { title: 'Командный дебют', desc: 'Победи в головоломке в кооперативном режиме.' },
-    customSolved: { title: 'Свой путь', desc: 'Реши головоломку собственного размера.' },
     historyFull: { title: 'Хорошо документировано', desc: 'Собери 20 записей в истории.' },
   },
   history: {
@@ -344,6 +325,5 @@ export default {
     cellUnmarked: 'не отмечено',
   },
   error: {
-    profanity: 'Пожалуйста, выберите другое имя.',
   },
 };

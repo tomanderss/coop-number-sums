@@ -40,16 +40,11 @@ export default {
   setup: {
     title: 'Nouvelle partie',
     start: "C'est parti ! 🚀",
-    standardTab: 'Standard',
-    customTab: 'Taille personnalisée',
-    customSizeLabel: 'Taille de la grille',
-    customHint: 'Les tailles personnalisées ne comptent pas pour les meilleurs temps ni les séries.',
   },
   game: {
     loading: 'Création du puzzle…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' · hors ligne',
-    localTag: 'Jouer à tour de rôle',
     coopDailyTag: 'Défi du jour',
     pauseTitle: 'Pause',
     giveUpTitle: 'Abandonner',
@@ -125,8 +120,6 @@ export default {
     hostHint: 'Définir un code et créer le puzzle',
     join: 'Rejoindre',
     joinHint: "Entrer le code de l'hôte",
-    localOption: 'Jouer à tour de rôle',
-    localHint: 'Plusieurs joueurs sur un seul appareil, pas de réseau nécessaire',
     setCode: 'Définir un code (6 chiffres)',
     startHosting: 'Héberger 🚀',
     yourCode: 'Ton code',
@@ -230,17 +223,6 @@ export default {
     streakBadge: '🔥 Série de {count} semaines',
     tryAgainNextWeek: 'Réessaie la semaine prochaine',
   },
-  passandplay: {
-    intro: 'Plusieurs joueurs partagent un appareil et se le passent après chaque tour.',
-    playerCountLabel: 'Nombre de joueurs',
-    playerLabel: 'Nom du joueur {n}',
-    start: 'Démarrer la partie',
-    currentTurn: 'Au tour de {name}',
-    endTurn: 'Terminer le tour',
-    handoffTitle: 'Passer l\'appareil',
-    handoffMsg: 'C\'est au tour de {name}. Passez l\'appareil et prêt(e) ?',
-    handoffReady: 'Prêt',
-  },
   training: {
     apply: 'Appliquer',
     another: 'Un autre exemple',
@@ -275,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss vaincu', desc: 'Gagne le défi boss pour la première fois.' },
     bossStreak3: { title: 'Chasseur de boss', desc: 'Série de 3 semaines au défi boss.' },
     coopFirstWin: { title: 'Débuts en équipe', desc: 'Gagne un puzzle en mode coopératif.' },
-    customSolved: { title: 'À ta façon', desc: 'Résous un puzzle de taille personnalisée.' },
     historyFull: { title: 'Bien documenté', desc: 'Accumule 20 entrées dans ton historique.' },
   },
   history: {
@@ -344,6 +325,5 @@ export default {
     cellUnmarked: 'non marquée',
   },
   error: {
-    profanity: 'Merci de choisir un autre nom.',
   },
 };

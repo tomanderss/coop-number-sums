@@ -40,16 +40,11 @@ export default {
   setup: {
     title: 'Neues Spiel',
     start: "Los geht's! 🚀",
-    standardTab: 'Standard',
-    customTab: 'Eigene Größe',
-    customSizeLabel: 'Rastergröße',
-    customHint: 'Eigene Größen zählen nicht zu Bestzeiten oder Streaks.',
   },
   game: {
     loading: 'Rätsel wird erstellt…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' · offline',
-    localTag: 'Pass & Play',
     coopDailyTag: 'Tagesrätsel',
     pauseTitle: 'Pause',
     giveUpTitle: 'Aufgeben',
@@ -125,8 +120,6 @@ export default {
     hostHint: 'Code festlegen & Rätsel erstellen',
     join: 'Beitreten',
     joinHint: 'Code des Hosts eingeben',
-    localOption: 'Pass & Play',
-    localHint: 'Mehrere Spieler an einem Gerät, kein Netz nötig',
     setCode: 'Code festlegen (6 Ziffern)',
     startHosting: 'Hosten 🚀',
     yourCode: 'Dein Code',
@@ -230,17 +223,6 @@ export default {
     streakBadge: '🔥 {count} Wochen Streak',
     tryAgainNextWeek: 'Nächste Woche wieder versuchen',
   },
-  passandplay: {
-    intro: 'Mehrere Spieler teilen sich ein Gerät und geben es nach jedem Zug weiter.',
-    playerCountLabel: 'Anzahl Spieler',
-    playerLabel: 'Name Spieler {n}',
-    start: 'Spiel starten',
-    currentTurn: 'Am Zug: {name}',
-    endTurn: 'Zug beenden',
-    handoffTitle: 'Gerät weitergeben',
-    handoffMsg: 'Als Nächstes ist {name} dran. Gerät weitergeben und bereit?',
-    handoffReady: 'Bereit',
-  },
   training: {
     apply: 'Anwenden',
     another: 'Weiteres Beispiel',
@@ -275,7 +257,6 @@ export default {
     bossFirstWin: { title: 'Boss bezwungen', desc: 'Gewinne das Boss-Rätsel zum ersten Mal.' },
     bossStreak3: { title: 'Boss-Bezwinger', desc: '3 Wochen Boss-Rätsel-Streak in Folge.' },
     coopFirstWin: { title: 'Team-Premiere', desc: 'Gewinne ein Rätsel im Coop-Modus.' },
-    customSolved: { title: 'Eigene Wege', desc: 'Löse ein Rätsel mit eigener Rastergröße.' },
     historyFull: { title: 'Gut dokumentiert', desc: 'Sammle 20 Einträge im Verlauf.' },
   },
   history: {
@@ -344,6 +325,5 @@ export default {
     cellUnmarked: 'unmarkiert',
   },
   error: {
-    profanity: 'Bitte wähle einen anderen Namen.',
   },
 };

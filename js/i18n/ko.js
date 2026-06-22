@@ -40,16 +40,11 @@ export default {
   setup: {
     title: '새 게임',
     start: '시작하기! 🚀',
-    standardTab: '표준',
-    customTab: '맞춤 크기',
-    customSizeLabel: '격자 크기',
-    customHint: '맞춤 크기는 최고 기록이나 연속 기록에 반영되지 않습니다.',
   },
   game: {
     loading: '퍼즐 생성 중…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' · 오프라인',
-    localTag: '패스 앤 플레이',
     coopDailyTag: '오늘의 퍼즐',
     pauseTitle: '일시정지',
     giveUpTitle: '포기',
@@ -125,8 +120,6 @@ export default {
     hostHint: '코드를 설정하고 퍼즐 생성',
     join: '참가',
     joinHint: '호스트 코드 입력',
-    localOption: '패스 앤 플레이',
-    localHint: '한 기기에서 여러 플레이어, 네트워크 불필요',
     setCode: '코드 설정 (6자리)',
     startHosting: '호스트하기 🚀',
     yourCode: '내 코드',
@@ -230,17 +223,6 @@ export default {
     streakBadge: '🔥 {count}주 연속',
     tryAgainNextWeek: '다음 주에 다시 시도하세요',
   },
-  passandplay: {
-    intro: '여러 플레이어가 한 기기를 공유하며 매 턴 후 전달합니다.',
-    playerCountLabel: '플레이어 수',
-    playerLabel: '플레이어 {n} 이름',
-    start: '게임 시작',
-    currentTurn: '{name}의 차례',
-    endTurn: '턴 종료',
-    handoffTitle: '기기 전달',
-    handoffMsg: '다음은 {name}의 차례입니다. 기기를 전달하고 준비되셨나요?',
-    handoffReady: '준비됨',
-  },
   training: {
     apply: '적용',
     another: '다른 예제',
@@ -275,7 +257,6 @@ export default {
     bossFirstWin: { title: '보스 격파', desc: '보스 챌린지에서 처음으로 승리했습니다.' },
     bossStreak3: { title: '보스 헌터', desc: '보스 챌린지 3주 연속 승리.' },
     coopFirstWin: { title: '팀 데뷔', desc: '코업 모드에서 퍼즐을 승리했습니다.' },
-    customSolved: { title: '나만의 방식', desc: '맞춤 크기 퍼즐을 풀었습니다.' },
     historyFull: { title: '기록의 달인', desc: '기록에 20개 항목을 모았습니다.' },
   },
   history: {
@@ -344,6 +325,5 @@ export default {
     cellUnmarked: '표시 없음',
   },
   error: {
-    profanity: '다른 이름을 선택해 주세요.',
   },
 };

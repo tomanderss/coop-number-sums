@@ -1,8 +1,27 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.70';
-export const BUILD_HASH = 'bdd637c';
+export const BUILD      = '0.72';
+export const BUILD_HASH = '6e09d87';
 
 export const CHANGELOG = [
+  {
+    "version": "0.72",
+    "date": "22.06.2026",
+    "changes": [
+      "Profanitätsfilter für Coop-Namen entfernt: jeder Anzeigename ist erlaubt.",
+      "Eigene Rätselgröße (Custom-Modus) wieder entfernt.",
+      "Trainingsmodus: Erklär-Banner überdeckt das Spielfeld nicht mehr.",
+      "Cage-Farben deutlich klarer unterscheidbar: auch über Eck benachbarte Cages erhalten verschiedene Farbtöne, kräftigerer Kontrast."
+    ]
+  },
+  {
+    "version": "0.71",
+    "date": "22.06.2026",
+    "changes": [
+      "Race-/Team-Modus: Niederlage durch einen schnelleren Gegner zeigt jetzt das korrekte Wettkampf-Ergebnis statt der irreführenden \"Keine Leben mehr\"-Meldung",
+      "Im Race-Modus (1vs1) gibt es jetzt konsequenterweise keine Hinweise mehr -- passend dazu, dass dort auch keine Leben angezeigt werden",
+      "Pass-and-Play entfernt: der lokale Mehrspieler-Modus an einem Gerät wurde mangels Nutzen wieder ausgebaut"
+    ]
+  },
   {
     "version": "0.70",
     "date": "22.06.2026",
