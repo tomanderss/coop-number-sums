@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.67';
-export const BUILD_HASH = '6b4e939';
+export const BUILD      = '0.68';
+export const BUILD_HASH = 'b94f407';
 
 export const CHANGELOG = [
+  {
+    "version": "0.68",
+    "date": "22.06.2026",
+    "changes": [
+      "Neu: Tagesrätsel im Coop -- \"Heute zusammen spielen\" auf dem Home-Screen startet einen Coop-Raum mit dem heutigen Tagesrätsel-Seed, alle Mitspieler lösen exakt dasselbe Rätsel"
+    ]
+  },
   {
     "version": "0.67",
     "date": "22.06.2026",

@@ -27,6 +27,8 @@ export default {
     changelog: 'Nouveautés',
     dailyChallenge: 'Défi du jour',
     dailyDone: 'Résolu aujourd\'hui ✓',
+    dailyCoop: 'Jouer ensemble aujourd\'hui',
+    dailyCoopHint: 'Résoudre le défi du jour en coop',
     bossChallenge: 'Défi du boss',
     bossDone: 'Déjà tenté cette semaine',
     history: 'Historique',
@@ -46,6 +48,7 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · hors ligne',
     localTag: 'Jouer à tour de rôle',
+    coopDailyTag: 'Défi du jour',
     pauseTitle: 'Pause',
     giveUpTitle: 'Abandonner',
     giveUpConfirmTitle: 'Abandonner ?',
@@ -198,6 +201,7 @@ export default {
   },
   daily: {
     streakBadge: '🔥 Série de {count} jours',
+    coopIntro: 'Résolvez ensemble le défi du jour. Partagez le code avec vos coéquipiers, la difficulté est la même pour tous.',
   },
   boss: {
     streakBadge: '🔥 Série de {count} semaines',

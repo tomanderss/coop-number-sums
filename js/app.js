@@ -77,6 +77,7 @@ const state = reactive({
     connected: false,          // Partner verbunden
     waitingForGuest: false,    // Host: Raum offen, wartet auf Join / Gast: verbindet
     lobbyDiffId: 'mittel',
+    isDaily: false,             // true: Host-Lobby nutzt das heutige Tagesrätsel statt freier Schwierigkeitswahl
     error: null,               // Inline-Fehlermeldung im Lobby-Screen
     myId: null,                // eigene Firebase-uid dieser Session (Host wie Gast)
     hostId: null,               // uid des aktuell amtierenden Hosts (für deterministische Host-Übernahme bei Disconnect)
@@ -241,6 +242,9 @@ function newGame(diffId, customDim) {
   state.isBossGame = false;
   state.bossWeekStr = null;
   state.isTrainingGame = false;
+  // Eine reguläre Coop-Folgerunde ("nächstes Rätsel" nach einem gemeinsam
+  // gelösten Tagesrätsel) ist wieder frei gewählt, kein Tagesrätsel mehr.
+  state.coop.isDaily = false;
   // Custom-Größe ist bewusst auf Solo beschränkt (siehe Setup-Template, das den
   // Tab dafür in aktiver Coop-Session ausblendet) — hier zusätzlich abgesichert,
   // damit ein evtl. noch gesetztes state.sel.custom aus einer früheren Solo-
@@ -268,7 +272,7 @@ function newGame(diffId, customDim) {
     if (state.coop.active && state.coop.role === 'host' && !state.coop.local) {
       state.coop.awaitingStart = true;
       startTimer();
-      coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+      coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime, isDaily: false });
     } else {
       startTimer();
       if (state.coop.local && state.coop.players.length) {
@@ -726,6 +730,7 @@ function handleCoopMsg(msg) {
     state.coop.connected = true;
     state.coop.waitingForGuest = false;
     state.coop.awaitingStart = true;
+    state.coop.isDaily = !!msg.isDaily;
     navigate('game');
   } else if (msg.type === Coop.MSG.START) {
     if (state.coop.awaitingStart) startCoopGame(msg.startTime);
@@ -760,6 +765,7 @@ function coopReset() {
   state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
   state.coop.local = false; state.coop.activePlayerIdx = 0; state.coop.turnHandoff = false; state.coop.localNames = [];
+  state.coop.isDaily = false;
 }
 
 // ─── SPIELER-IDENTITÄT (Namen & Farben) ────────────────────────────────────────
@@ -816,6 +822,10 @@ function confirmCoopIdentity() {
   }
   state.settings.coopName = name;
   state.coop.identityConfirmed = true;
+  // Tagesrätsel-Einstieg überspringt die Hosten/Beitreten/Pass-and-Play-Auswahl --
+  // hier gibt es nur "gemeinsam das heutige Rätsel lösen", also direkt zur
+  // Host-Lobby (Gäste treten wie gewohnt über den geteilten Code bei).
+  if (state.coop.isDaily) state.coop.role = 'host';
 }
 function onCoopNameBlur() {
   if (hasProfanity(state.settings.coopName)) {
@@ -829,6 +839,17 @@ function onCoopNameBlur() {
 function goCoop() {
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
+  navigate('coop');
+}
+// Einstieg über den "heute zusammen spielen"-Button auf dem Home-Screen --
+// identisches Namens-Gate wie goCoop(), aber mit vorgesetzter lobbyDiffId
+// (heutige Tagesschwierigkeit) und isDaily-Flag, das confirmCoopIdentity()
+// direkt zur Host-Lobby weiterleitet.
+function goCoopDaily() {
+  state.coop.nameDraft = state.settings.coopName;
+  state.coop.identityConfirmed = false;
+  state.coop.isDaily = true;
+  state.coop.lobbyDiffId = getDailyChallenge().difficulty;
   navigate('coop');
 }
 
@@ -901,21 +922,28 @@ function canStartCoopMatch() {
 }
 function startCoopMatch() {
   if (!canStartCoopMatch()) return;
-  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty: state.coop.lobbyDiffId, players: state.coop.players.length });
+  // Tagesrätsel im Coop: statt einer frischen, zufälligen Generierung denselben
+  // deterministischen Seed wie im Solo-Tagesrätsel verwenden (getDailyChallenge(),
+  // daily.js) -- alle Mitspieler lösen so exakt das heutige Rätsel. Zählt aber
+  // bewusst NICHT zur Solo-Daily-Streak (kein Aufruf von recordDailyResult()),
+  // sondern wie jeder andere Coop-Sieg über die bestehenden coopWon/coopBestTimeMs-
+  // Statistikfelder (siehe win()/lose()/giveUp(), die nur state.coop.active prüfen).
+  const { difficulty, seed } = state.coop.isDaily ? getDailyChallenge() : { difficulty: state.coop.lobbyDiffId, seed: undefined };
+  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty, isDaily: state.coop.isDaily, players: state.coop.players.length });
   let puzzle;
   try {
-    puzzle = generatePuzzle({ difficulty: state.coop.lobbyDiffId });
+    puzzle = generatePuzzle({ difficulty, seed });
   } catch (e) {
     log('game', `Puzzle-Generierung fehlgeschlagen (Coop)`, e);
     throw e;
   }
-  log('game', `Puzzle generiert (Coop)`, { difficulty: state.coop.lobbyDiffId, rows: puzzle.rows, cols: puzzle.cols });
+  log('game', `Puzzle generiert (Coop)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
   loadPuzzleIntoState(puzzle, null);
   state.coop.active = true;
   state.coop.waitingForGuest = false;
   state.coop.awaitingStart = true;
   navigate('game');
-  Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+  Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime, isDaily: state.coop.isDaily });
 }
 
 // ─── PASS-AND-PLAY (lokal, ein Gerät, kein Netz) ──────────────────────────────
@@ -1550,7 +1578,7 @@ const App = {
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
       initPassAndPlaySetup, setLocalPlayerCount, onLocalNameBlur, canStartPassAndPlay,
       startPassAndPlayMatch, endLocalTurn, confirmTurnHandoff,
-      chipTextColor, confirmCoopIdentity, onCoopNameBlur, playerColor, goCoop, applyUpdate,
+      chipTextColor, confirmCoopIdentity, onCoopNameBlur, playerColor, goCoop, goCoopDaily, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
       startBossGame, bossInfo, bossAttemptedThisWeek,
       startTrainingGame, applyTrainingStep,
@@ -1586,6 +1614,9 @@ const App = {
           <span class="btn-ic">📅</span>
           <span class="btn-tx"><b>{{ t('home.dailyChallenge') }}</b><small>{{ dailyDoneToday ? t('home.dailyDone') : t('difficulty.'+dailyInfo.difficulty) }}</small></span>
           <span v-if="state.daily.currentStreak>0" class="badge-soon">🔥{{ state.daily.currentStreak }}</span>
+        </button>
+        <button class="btn btn-ghost daily-coop-btn" :disabled="!coopAvailable" @click="goCoopDaily">
+          <span class="btn-ic">📅👥</span><span class="btn-tx"><b>{{ t('home.dailyCoop') }}</b><small>{{ t('home.dailyCoopHint') }}</small></span>
         </button>
         <button class="btn boss-btn" :class="bossAttemptedThisWeek ? 'btn-ghost' : 'btn-daily'" :disabled="bossAttemptedThisWeek" @click="startBossGame">
           <span class="btn-ic">👹</span>
@@ -1680,6 +1711,7 @@ const App = {
             👥 {{ t('game.coopTag') }}{{ state.coop.connected ? '' : t('game.coopOfflineSuffix') }}
           </span>
           <span v-if="state.coop.active && state.coop.local" class="chip coop-chip">🔄 {{ t('game.localTag') }}</span>
+          <span v-if="state.coop.active && state.coop.isDaily" class="chip coop-chip">📅 {{ t('game.coopDailyTag') }}</span>
           <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
             <button class="zoom-btn" @click="setZoom(0.15)">+</button>
@@ -2023,20 +2055,31 @@ const App = {
       <!-- Host: Code festlegen + Schwierigkeit → warte auf Gast -->
       <div v-else-if="state.coop.role === 'host'" class="coop-body">
         <template v-if="!state.coop.waitingForGuest">
+          <p v-if="state.coop.isDaily" class="coop-tagline">{{ t('daily.coopIntro') }}</p>
           <div class="coop-code-label">{{ t('coop.setCode') }}</div>
           <input class="coop-input" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
                  :placeholder="t('common.codePlaceholder')" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
-          <div class="setup-label">{{ t('common.difficulty') }}</div>
-          <div class="option-grid">
-            <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
-                    :class="{active: state.coop.lobbyDiffId===d.id}"
-                    @click="state.coop.lobbyDiffId=d.id">
-              <span class="opt-emoji">{{ d.emoji }}</span>
-              <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
-              <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
-            </button>
-          </div>
+          <template v-if="state.coop.isDaily">
+            <div class="setup-label">{{ t('common.difficulty') }}</div>
+            <div class="opt-card active">
+              <span class="opt-emoji">{{ DIFF_BY_ID[state.coop.lobbyDiffId].emoji }}</span>
+              <span class="opt-name">{{ t('difficulty.'+state.coop.lobbyDiffId) }}</span>
+              <span class="opt-desc">{{ DIFF_BY_ID[state.coop.lobbyDiffId].dim.r }}×{{ DIFF_BY_ID[state.coop.lobbyDiffId].dim.c }}</span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="setup-label">{{ t('common.difficulty') }}</div>
+            <div class="option-grid">
+              <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
+                      :class="{active: state.coop.lobbyDiffId===d.id}"
+                      @click="state.coop.lobbyDiffId=d.id">
+                <span class="opt-emoji">{{ d.emoji }}</span>
+                <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
+                <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
+                <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+              </button>
+            </div>
+          </template>
           <button class="btn btn-primary" @click="startHosting">{{ t('coop.startHosting') }}</button>
         </template>
         <template v-else>
@@ -2365,7 +2408,7 @@ function cellStyle(r, c) {
 const app = createApp(App);
 app.mount('#app');
 // Debug-Hook nur lokal (nie auf der echten Domain aktiv)
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved };
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, getDailyChallenge };
 
 nextTick(() => {
   const splash = document.getElementById('splash');

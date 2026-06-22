@@ -27,6 +27,8 @@ export default {
     changelog: '업데이트 내역',
     dailyChallenge: '오늘의 퍼즐',
     dailyDone: '오늘 해결 완료 ✓',
+    dailyCoop: '오늘 함께 플레이',
+    dailyCoopHint: '오늘의 퍼즐을 코업으로 풀기',
     bossChallenge: '보스 퍼즐',
     bossDone: '이번 주 이미 시도함',
     history: '기록',
@@ -46,6 +48,7 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · 오프라인',
     localTag: '패스 앤 플레이',
+    coopDailyTag: '오늘의 퍼즐',
     pauseTitle: '일시정지',
     giveUpTitle: '포기',
     giveUpConfirmTitle: '포기하시겠습니까?',
@@ -198,6 +201,7 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count}일 연속',
+    coopIntro: '오늘의 퍼즐을 함께 풀어보세요. 코드를 팀원과 공유하세요. 난이도는 모두 동일합니다.',
   },
   boss: {
     streakBadge: '🔥 {count}주 연속',

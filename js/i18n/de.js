@@ -27,6 +27,8 @@ export default {
     changelog: 'Änderungen',
     dailyChallenge: 'Tagesrätsel',
     dailyDone: 'Heute schon gelöst ✓',
+    dailyCoop: 'Heute zusammen spielen',
+    dailyCoopHint: 'Tagesrätsel im Coop lösen',
     bossChallenge: 'Boss-Rätsel',
     bossDone: 'Diese Woche schon versucht',
     history: 'Verlauf',
@@ -46,6 +48,7 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · offline',
     localTag: 'Pass & Play',
+    coopDailyTag: 'Tagesrätsel',
     pauseTitle: 'Pause',
     giveUpTitle: 'Aufgeben',
     giveUpConfirmTitle: 'Aufgeben?',
@@ -198,6 +201,7 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count} Tage Streak',
+    coopIntro: 'Löst gemeinsam das heutige Tagesrätsel. Code mit Mitspielern teilen, Schwierigkeit ist für alle gleich.',
   },
   boss: {
     streakBadge: '🔥 {count} Wochen Streak',
