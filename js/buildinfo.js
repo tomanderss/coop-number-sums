@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.63';
-export const BUILD_HASH = 'c1b0d80';
+export const BUILD      = '0.64';
+export const BUILD_HASH = '0382a1f';
 
 export const CHANGELOG = [
+  {
+    "version": "0.64",
+    "date": "22.06.2026",
+    "changes": [
+      "🏅 Achievements/Badges: 15 Erfolge zum Freischalten (erster Sieg, Siegesserien, perfektes Spiel, schwerste Stufe, Coop-Sieg, Daily-/Boss-Streaks u.v.m.) — Übersicht über die Stats-Seite erreichbar"
+    ]
+  },
   {
     "version": "0.63",
     "date": "21.06.2026",

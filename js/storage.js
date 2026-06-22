@@ -14,6 +14,7 @@ const KEYS = {
   DAILY: 'cns_daily',
   BOSS: 'cns_boss',
   HISTORY: 'cns_history',
+  ACHIEVEMENTS: 'cns_achievements',
 };
 const HISTORY_MAX = 20;
 const BACKUP_COUNT = 3;
@@ -199,6 +200,16 @@ export function recordHistory(entry) {
   return h;
 }
 
+// ─── Achievements/Badges (id -> Freischalt-Zeitstempel) ───────────────────────
+export function loadAchievements() { return load(KEYS.ACHIEVEMENTS, {}); }
+export function unlockAchievements(ids) {
+  const a = loadAchievements();
+  const now = Date.now();
+  for (const id of ids) if (!a[id]) a[id] = now;
+  save(KEYS.ACHIEVEMENTS, a);
+  return a;
+}
+
 // ─── Rollende Backups (3 Slots) ───────────────────────────────────────────────
 let _lastBackupTs = 0;
 export function createBackup(label = 'auto') {
@@ -215,6 +226,7 @@ export function createBackup(label = 'auto') {
       daily: load(KEYS.DAILY, {}),
       boss: load(KEYS.BOSS, {}),
       history: load(KEYS.HISTORY, []),
+      achievements: load(KEYS.ACHIEVEMENTS, {}),
     };
     localStorage.setItem(bk(slot), JSON.stringify(snapshot));
     localStorage.setItem(KEYS.BACKUP_SLOT, String((slot + 1) % BACKUP_COUNT));
@@ -242,6 +254,7 @@ export function restoreBackup(slotIdx) {
     if (data.daily) save(KEYS.DAILY, data.daily);
     if (data.boss) save(KEYS.BOSS, data.boss);
     if (data.history) save(KEYS.HISTORY, data.history);
+    if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
     if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
     return true;
   } catch (e) { log('storage', `Backup-Slot ${slotIdx} wiederherstellen fehlgeschlagen`, e); return false; }
@@ -262,6 +275,7 @@ export async function exportToFile(type = 'manual') {
     daily: load(KEYS.DAILY, {}),
     boss: load(KEYS.BOSS, {}),
     history: load(KEYS.HISTORY, []),
+    achievements: load(KEYS.ACHIEVEMENTS, {}),
   }, null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   if (navigator.canShare) {
@@ -285,6 +299,7 @@ export function importFromFile(jsonText) {
   if (data.daily) save(KEYS.DAILY, data.daily);
   if (data.boss) save(KEYS.BOSS, data.boss);
   if (data.history) save(KEYS.HISTORY, data.history);
+  if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
   if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
   return data;
 }
@@ -299,6 +314,7 @@ export function deleteAllData() {
   remove(KEYS.DAILY);
   remove(KEYS.BOSS);
   remove(KEYS.HISTORY);
+  remove(KEYS.ACHIEVEMENTS);
   for (let i = 0; i < BACKUP_COUNT; i++) remove(bk(i));
   clearLog();
 }

@@ -15,7 +15,7 @@ const {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame,
   loadStats, recordResult, loadSeenVersion, saveSeenVersion,
   createBackup, loadBackups, restoreBackup, importFromFile, generateId,
-  loadDaily, recordDailyResult,
+  loadDaily, recordDailyResult, loadAchievements, unlockAchievements,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
 const { todayDateStr } = await import('../../js/daily.js');
@@ -221,5 +221,33 @@ describe('storage.generateId', () => {
   test('produces unique-looking ids', () => {
     const ids = new Set(Array.from({ length: 20 }, () => generateId()));
     assert.equal(ids.size, 20);
+  });
+});
+
+describe('storage.achievements', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('loadAchievements is empty when nothing unlocked', () => {
+    assert.deepEqual(loadAchievements(), {});
+  });
+
+  test('unlockAchievements records a timestamp per id and persists it', () => {
+    const a = unlockAchievements(['firstWin']);
+    assert.ok(a.firstWin > 0);
+    assert.deepEqual(loadAchievements(), a);
+  });
+
+  test('unlockAchievements does not overwrite an already-unlocked timestamp', () => {
+    const first = unlockAchievements(['firstWin']);
+    const ts = first.firstWin;
+    const second = unlockAchievements(['firstWin']);
+    assert.equal(second.firstWin, ts);
+  });
+
+  test('unlockAchievements merges new ids with previously unlocked ones', () => {
+    unlockAchievements(['firstWin']);
+    const a = unlockAchievements(['tenWins']);
+    assert.ok(a.firstWin > 0);
+    assert.ok(a.tenWins > 0);
   });
 });

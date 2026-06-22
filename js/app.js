@@ -8,11 +8,13 @@ import { getBossChallenge } from './boss.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { hasProfanity } from './profanity.js';
+import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
   exportToFile, importFromFile, deleteAllData, loadDaily, recordDailyResult,
   loadBoss, recordBossWin, recordBossLoss, loadHistory, recordHistory,
+  loadAchievements, unlockAchievements,
 } from './storage.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
@@ -28,6 +30,7 @@ const state = reactive({
   daily: loadDaily(),        // { lastCompletedDate, currentStreak, bestStreak, totalCompleted }
   boss: loadBoss(),          // { lastAttemptedWeek, lastCompletedWeek, currentStreak, bestStreak, totalCompleted }
   puzzleHistory: loadHistory(), // Ringpuffer gelöster Rätsel (neueste zuerst), siehe storage.js
+  achievements: loadAchievements(), // { id: Freischalt-Zeitstempel }, siehe storage.js
   historyDetail: null,       // { entry, puzzle, cellMeta } während der Endboard-Ansicht eines Verlauf-Eintrags, sonst null
 
   // Spiel
@@ -844,6 +847,30 @@ function startJoining() {
 // abweichende Zeit/Fehler/Hinweise, damit beide Seiten exakt denselben Endstand zeigen).
 // Die Coop-Lobby/Verbindung bleibt nach Rundenende bestehen — sie schließt erst,
 // wenn ein Spieler aktiv "Zum Menü" klickt (siehe quitToHome).
+// Nach jeder abgeschlossenen Partie aufgerufen (win/lose/giveUp) -- baut einen
+// Kontext-Snapshot aus dem aktuellen state und prüft ihn gegen achievements.js.
+function checkAchievements() {
+  const ctx = {
+    outcome: state.status,
+    perfect: (state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0,
+    difficulty: state.puzzle?.difficulty,
+    coop: state.coop.active,
+    custom: state.isCustomGame,
+    totalWon: (state.stats.won || 0) + (state.stats.coopWon || 0),
+    currentStreak: state.coop.active ? state.stats.coopCurrentStreak : state.stats.currentStreak,
+    dailyStreak: state.daily.currentStreak,
+    bossWin: state.isBossGame && state.status === 'won',
+    bossStreak: state.boss.currentStreak,
+    historyLength: state.puzzleHistory.length,
+    wonAllDifficulties: DIFFICULTIES.every(d => (state.stats.byDifficulty[d.id]?.won || 0) > 0 || (state.stats.byDifficulty[d.id]?.coopWon || 0) > 0),
+  };
+  const newly = evaluateAchievements(ctx, Object.keys(state.achievements));
+  if (!newly.length) return;
+  state.achievements = unlockAchievements(newly);
+  const name = t('achievements.' + newly[0] + '.title');
+  showToast(t('achievements.unlockedToast', { name }) + (newly.length > 1 ? ` (+${newly.length - 1})` : ''), 'success', 3500);
+}
+
 function win(remote) {
   if (state.status === 'won') return;
   state.status = 'won';
@@ -884,6 +911,7 @@ function win(remote) {
     seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
     timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
   });
+  checkAchievements();
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -914,6 +942,7 @@ function lose(remote) {
     seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
     timeMs: state.elapsed, outcome: 'lost', coop: state.coop.active,
   });
+  checkAchievements();
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -945,6 +974,7 @@ function giveUp(remote) {
     seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
     timeMs: state.elapsed, outcome: 'gaveup', coop: state.coop.active,
   });
+  checkAchievements();
   saveActiveGame(null);
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -1282,7 +1312,7 @@ const App = {
     const bossAttemptedThisWeek = computed(() => state.boss.lastAttemptedWeek === bossInfo.value.weekStr);
 
     return {
-      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, CUSTOM_SIZES,
+      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, CUSTOM_SIZES, ACHIEVEMENTS,
       livesArr, lifeLossColor, coopPerformance, mvpId, progress, gridStyle, coopAvailable,
       navigate, newGame, goNextPuzzle, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
@@ -1636,7 +1666,24 @@ const App = {
             </div>
           </div>
         </div>
+        <button class="btn btn-ghost" @click="navigate('achievements')">{{ t('stats.achievementsButton') }}</button>
         <button class="btn btn-danger-ghost" @click="resetStats">{{ t('stats.reset') }}</button>
+      </div>
+    </section>
+
+    <!-- ══ ACHIEVEMENTS ══ -->
+    <section v-else-if="state.screen==='achievements'" class="screen achievements">
+      <header class="topbar"><button class="icon-btn" @click="navigate('stats')">‹</button><h2>{{ t('achievements.title') }}</h2><span></span></header>
+      <div class="achievements-body">
+        <div v-for="a in ACHIEVEMENTS" :key="a.id" class="achievement-row" :class="{ unlocked: !!state.achievements[a.id] }">
+          <span class="achievement-icon">{{ state.achievements[a.id] ? a.icon : '🔒' }}</span>
+          <div class="achievement-text">
+            <div class="achievement-name">{{ t('achievements.'+a.id+'.title') }}</div>
+            <div class="achievement-desc">{{ t('achievements.'+a.id+'.desc') }}</div>
+            <div v-if="state.achievements[a.id]" class="achievement-date">{{ t('achievements.unlockedOn', { date: new Date(state.achievements[a.id]).toLocaleDateString('de-DE') }) }}</div>
+            <div v-else class="achievement-date locked">{{ t('achievements.locked') }}</div>
+          </div>
+        </div>
       </div>
     </section>
 
