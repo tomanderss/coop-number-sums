@@ -30,6 +30,8 @@ export default {
     bossChallenge: 'Défi du boss',
     bossDone: 'Déjà tenté cette semaine',
     history: 'Historique',
+    trainingMode: 'Mode entraînement',
+    trainingHint: 'Apprends étape par étape',
   },
   setup: {
     title: 'Nouvelle partie',
@@ -193,6 +195,22 @@ export default {
   boss: {
     streakBadge: '🔥 Série de {count} semaines',
     tryAgainNextWeek: 'Réessaie la semaine prochaine',
+  },
+  training: {
+    apply: 'Appliquer',
+    another: 'Un autre exemple',
+    doneMsg: 'Terminé ! Tu peux maintenant finir le reste librement.',
+    target: 'Objectif : {n}',
+    group: {
+      row: 'Ligne {n}',
+      col: 'Colonne {n}',
+      region: 'Cage {n}',
+    },
+    reason: {
+      sumReached: 'La somme est déjà atteinte ici – tous les nombres restants doivent être retirés.',
+      allRemainingNeeded: 'Il manque exactement les nombres restants pour atteindre l\'objectif – ils doivent tous être conservés.',
+      tooLarge: 'Ce nombre est plus grand que ce qu\'il manque encore – il doit être retiré.',
+    },
   },
   achievements: {
     title: 'Succès',

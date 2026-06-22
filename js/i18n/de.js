@@ -30,6 +30,8 @@ export default {
     bossChallenge: 'Boss-Rätsel',
     bossDone: 'Diese Woche schon versucht',
     history: 'Verlauf',
+    trainingMode: 'Trainingsmodus',
+    trainingHint: 'Schritt für Schritt lernen',
   },
   setup: {
     title: 'Neues Spiel',
@@ -193,6 +195,22 @@ export default {
   boss: {
     streakBadge: '🔥 {count} Wochen Streak',
     tryAgainNextWeek: 'Nächste Woche wieder versuchen',
+  },
+  training: {
+    apply: 'Anwenden',
+    another: 'Weiteres Beispiel',
+    doneMsg: 'Geschafft! Du kannst den Rest jetzt frei zu Ende tippen.',
+    target: 'Ziel: {n}',
+    group: {
+      row: 'Zeile {n}',
+      col: 'Spalte {n}',
+      region: 'Käfig {n}',
+    },
+    reason: {
+      sumReached: 'Die Summe ist hier schon erreicht – alle übrigen Zahlen müssen entfernt werden.',
+      allRemainingNeeded: 'Es fehlen noch genau die übrigen Zahlen bis zum Ziel – sie müssen alle behalten werden.',
+      tooLarge: 'Diese Zahl ist größer als der noch fehlende Rest – sie muss entfernt werden.',
+    },
   },
   achievements: {
     title: 'Achievements',

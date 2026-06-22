@@ -30,6 +30,8 @@ export default {
     bossChallenge: 'Desafío del jefe',
     bossDone: 'Ya intentado esta semana',
     history: 'Historial',
+    trainingMode: 'Modo entrenamiento',
+    trainingHint: 'Aprende paso a paso',
   },
   setup: {
     title: 'Nueva partida',
@@ -193,6 +195,22 @@ export default {
   boss: {
     streakBadge: '🔥 Racha de {count} semanas',
     tryAgainNextWeek: 'Inténtalo de nuevo la próxima semana',
+  },
+  training: {
+    apply: 'Aplicar',
+    another: 'Otro ejemplo',
+    doneMsg: '¡Listo! Ahora puedes terminar el resto libremente.',
+    target: 'Objetivo: {n}',
+    group: {
+      row: 'Fila {n}',
+      col: 'Columna {n}',
+      region: 'Jaula {n}',
+    },
+    reason: {
+      sumReached: 'La suma ya se ha alcanzado aquí: hay que eliminar todos los números restantes.',
+      allRemainingNeeded: 'Faltan exactamente los números restantes para alcanzar el objetivo: hay que mantenerlos todos.',
+      tooLarge: 'Este número es mayor que lo que aún falta: hay que eliminarlo.',
+    },
   },
   achievements: {
     title: 'Logros',

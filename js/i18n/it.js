@@ -30,6 +30,8 @@ export default {
     bossChallenge: 'Sfida del boss',
     bossDone: 'Già tentata questa settimana',
     history: 'Cronologia',
+    trainingMode: 'Modalità allenamento',
+    trainingHint: 'Impara passo dopo passo',
   },
   setup: {
     title: 'Nuova partita',
@@ -193,6 +195,22 @@ export default {
   boss: {
     streakBadge: '🔥 Serie di {count} settimane',
     tryAgainNextWeek: 'Riprova la prossima settimana',
+  },
+  training: {
+    apply: 'Applica',
+    another: 'Un altro esempio',
+    doneMsg: 'Fatto! Ora puoi finire il resto liberamente.',
+    target: 'Obiettivo: {n}',
+    group: {
+      row: 'Riga {n}',
+      col: 'Colonna {n}',
+      region: 'Gabbia {n}',
+    },
+    reason: {
+      sumReached: 'La somma è già raggiunta qui: tutti i numeri rimanenti devono essere rimossi.',
+      allRemainingNeeded: 'Mancano esattamente i numeri rimanenti per raggiungere l\'obiettivo: devono essere tutti mantenuti.',
+      tooLarge: 'Questo numero è più grande di quanto manca ancora: deve essere rimosso.',
+    },
   },
   achievements: {
     title: 'Obiettivi',

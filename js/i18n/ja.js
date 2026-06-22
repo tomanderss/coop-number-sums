@@ -30,6 +30,8 @@ export default {
     bossChallenge: 'ボスパズル',
     bossDone: '今週は挑戦済み',
     history: '履歴',
+    trainingMode: 'トレーニングモード',
+    trainingHint: 'ステップごとに学ぶ',
   },
   setup: {
     title: '新しいゲーム',
@@ -193,6 +195,22 @@ export default {
   boss: {
     streakBadge: '🔥 {count}週連続',
     tryAgainNextWeek: '来週またチャレンジしよう',
+  },
+  training: {
+    apply: '適用',
+    another: '別の例',
+    doneMsg: '完了！残りは自由に進めて大丈夫です。',
+    target: '目標: {n}',
+    group: {
+      row: '行 {n}',
+      col: '列 {n}',
+      region: 'ケージ {n}',
+    },
+    reason: {
+      sumReached: 'すでに合計に達しています – 残りの数字はすべて削除する必要があります。',
+      allRemainingNeeded: '目標に達するには残りの数字がちょうど必要です – すべて残す必要があります。',
+      tooLarge: 'この数字は残りの不足分より大きいです – 削除する必要があります。',
+    },
   },
   achievements: {
     title: '実績',

@@ -30,6 +30,8 @@ export default {
     bossChallenge: 'Desafio do chefão',
     bossDone: 'Já tentado esta semana',
     history: 'Histórico',
+    trainingMode: 'Modo de treinamento',
+    trainingHint: 'Aprenda passo a passo',
   },
   setup: {
     title: 'Novo jogo',
@@ -193,6 +195,22 @@ export default {
   boss: {
     streakBadge: '🔥 Sequência de {count} semanas',
     tryAgainNextWeek: 'Tente novamente na próxima semana',
+  },
+  training: {
+    apply: 'Aplicar',
+    another: 'Outro exemplo',
+    doneMsg: 'Pronto! Agora você pode terminar o resto livremente.',
+    target: 'Meta: {n}',
+    group: {
+      row: 'Linha {n}',
+      col: 'Coluna {n}',
+      region: 'Gaiola {n}',
+    },
+    reason: {
+      sumReached: 'A soma já foi alcançada aqui – todos os números restantes devem ser removidos.',
+      allRemainingNeeded: 'Faltam exatamente os números restantes para alcançar a meta – todos devem ser mantidos.',
+      tooLarge: 'Esse número é maior do que o que ainda falta – ele deve ser removido.',
+    },
   },
   achievements: {
     title: 'Conquistas',
