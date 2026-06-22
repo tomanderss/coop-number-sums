@@ -143,6 +143,10 @@ export default {
     lobbyTitle: 'I compagni sono nella lobby',
     lobbyMsg: 'Il puzzle è pronto — iniziate quando siete entrambi pronti.',
     lobbyStart: 'Inizia 🚀',
+    playerJoinedLobby: '{name} si è unito alla lobby 👋',
+    playersCount: '{n}/{max} giocatori',
+    startMatch: 'Inizia la partita 🚀',
+    waitingForHostStart: 'In attesa che l\'host avvii…',
   },
   settings: {
     title: 'Impostazioni',

@@ -143,6 +143,10 @@ export default {
     lobbyTitle: 'Les coéquipiers sont dans le salon',
     lobbyMsg: 'Le puzzle est prêt — démarrez quand vous êtes tous les deux prêts.',
     lobbyStart: 'Démarrer 🚀',
+    playerJoinedLobby: '{name} a rejoint le salon 👋',
+    playersCount: '{n}/{max} joueurs',
+    startMatch: 'Démarrer la partie 🚀',
+    waitingForHostStart: "En attente du démarrage par l'hôte…",
   },
   settings: {
     title: 'Paramètres',

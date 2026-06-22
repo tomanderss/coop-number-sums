@@ -143,6 +143,10 @@ export default {
     lobbyTitle: 'Los compañeros están en la sala',
     lobbyMsg: 'El rompecabezas está listo — empezad cuando los dos estéis preparados.',
     lobbyStart: 'Empezar 🚀',
+    playerJoinedLobby: '{name} se unió a la sala 👋',
+    playersCount: '{n}/{max} jugadores',
+    startMatch: 'Iniciar partida 🚀',
+    waitingForHostStart: 'Esperando a que el anfitrión empiece…',
   },
   settings: {
     title: 'Ajustes',

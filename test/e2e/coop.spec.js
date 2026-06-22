@@ -43,6 +43,61 @@ test.describe('coop', () => {
     await expect(page.locator('.coop-waiting')).toBeVisible();
   });
 
+  test('host flow: lobby roster gates the start button and starting navigates to the game', async ({ page }) => {
+    await goToCoop(page);
+    await page.locator('.coop-body .text-input').fill('Tom');
+    await page.locator('.coop-body .btn-primary').click();
+
+    await page.locator('.coop-body .btn-primary').click(); // "Host" option
+    await page.locator('.coop-input').fill('123456');
+    await page.locator('.option-grid .opt-card').first().click();
+    await page.locator('.coop-body .btn-primary').click(); // "start hosting"
+
+    await expect(page.locator('.coop-body .btn-primary')).toBeDisabled();
+
+    // Simulate a second (and third) player joining the lobby without a real
+    // second Firebase client -- canStartCoopMatch() only cares about the
+    // roster length, so pushing directly into the reactive state is enough
+    // to exercise the start-button gating and the roster/count rendering.
+    await page.evaluate(() => {
+      window.__cns.state.coop.players.push(
+        { id: 'fake-guest-1', name: 'Mara', color: '#f00' },
+        { id: 'fake-guest-2', name: 'Alex', color: '#00f' },
+      );
+    });
+
+    expect(await page.locator('.coop-roster .player-chip').count()).toBeGreaterThanOrEqual(2);
+    await expect(page.locator('.coop-body .btn-primary')).toBeEnabled();
+
+    await page.locator('.coop-body .btn-primary').click(); // "start match"
+    await page.waitForSelector('.screen.game');
+    await expect(page.locator('.coop-lobby-overlay')).toBeVisible();
+  });
+
+  test('guest flow: shows roster and "waiting for host to start" once connected', async ({ page }) => {
+    await goToCoop(page);
+    await page.locator('.coop-body .text-input').fill('Tom');
+    await page.locator('.coop-body .btn-primary').click();
+    await page.locator('.coop-body .btn-ghost').click(); // "Join" option
+
+    // Simulate a successful join without a real Firebase round-trip: set the
+    // exact flags startJoining()'s onOpen would set, then assert the template
+    // renders the new "waiting for host" state + roster instead of the old
+    // connecting spinner / connect button.
+    await page.evaluate(() => {
+      const s = window.__cns.state.coop;
+      s.waitingForGuest = true;
+      s.myId = 'fake-me';
+      s.players.push(
+        { id: 'fake-me', name: 'Tom', color: '#000' },
+        { id: 'fake-host', name: 'Mara', color: '#f00' },
+      );
+    });
+
+    await expect(page.locator('.coop-roster .player-chip')).toHaveCount(2);
+    await expect(page.locator('.coop-body .btn-primary')).toHaveText('Warte auf Start durch Host…');
+  });
+
   test('host flow: cancel returns to the host/join choice', async ({ page }) => {
     await goToCoop(page);
     await page.locator('.coop-body .text-input').fill('Tom');

@@ -143,6 +143,10 @@ export default {
     lobbyTitle: '동료가 로비에 있습니다',
     lobbyMsg: '퍼즐이 준비되었습니다. 둘 다 준비되면 시작하세요.',
     lobbyStart: '시작 🚀',
+    playerJoinedLobby: '{name}님이 로비에 참가했습니다 👋',
+    playersCount: '{n}/{max}명의 플레이어',
+    startMatch: '게임 시작 🚀',
+    waitingForHostStart: '호스트의 시작을 기다리는 중…',
   },
   settings: {
     title: '설정',

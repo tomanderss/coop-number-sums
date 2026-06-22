@@ -143,6 +143,10 @@ export default {
     lobbyTitle: 'Mitspieler sind in der Lobby',
     lobbyMsg: 'Das Rätsel ist bereit — startet, wenn ihr beide so weit seid.',
     lobbyStart: 'Starten 🚀',
+    playerJoinedLobby: '{name} ist der Lobby beigetreten 👋',
+    playersCount: '{n}/{max} Spieler',
+    startMatch: 'Spiel starten 🚀',
+    waitingForHostStart: 'Warte auf Start durch Host…',
   },
   settings: {
     title: 'Einstellungen',

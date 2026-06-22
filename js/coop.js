@@ -8,8 +8,10 @@
 // Anwesenheit läuft über onDisconnect() statt eines eigenen Heartbeats: RTDB
 // entfernt den eigenen players/{uid}-Eintrag serverseitig, sobald die
 // Verbindung abreißt (Tab-Schließen, Netzwerkausfall, eingeschlafenes Gerät).
-// Da ein Raum max. 2 Spieler hat, genügt ein einziger "Partner kam/ging"-
-// Listener auf players/ — symmetrisch für Host wie Gast.
+// Ein Raum hat bis zu COOP_MAX_PLAYERS Spieler (config.js) — der onChildAdded/
+// onChildRemoved-Listener auf players/ generalisiert dafür ohne Codeänderung,
+// da er ohnehin pro Spieler einzeln feuert statt eine feste Paarstruktur
+// anzunehmen.
 //
 // Firebase wird bewusst nie statisch importiert (siehe ensureDb()), damit
 // Solo-Spieler die SDK-Dateien nie laden.
@@ -19,6 +21,7 @@
 // Bedarf anhand eines vom Nutzer exportierten Protokolls nachvollzogen werden
 // können, ohne dass dafür eigene Server-Logs nötig wären.
 import { log } from './debuglog.js';
+import { COOP_MAX_PLAYERS } from './config.js';
 
 let fb = null;       // { db, uid, ref, push, set, get, remove, onChildAdded, onChildRemoved, onDisconnect, serverTimestamp }
 let roomCode = null;
@@ -111,7 +114,7 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
       onError && onError({ type: 'code-not-found' });
       return;
     }
-    if (playersSnap.size >= 2) {
+    if (playersSnap.size >= COOP_MAX_PLAYERS) {
       log('coop', `Raum ${code} bereits voll`);
       onError && onError({ type: 'room-full' });
       return;
@@ -120,7 +123,7 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
     await f.set(myPlayerRef, { name, color, role: 'guest', joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
-    attachListeners(f, code, { onJoin: null, onLeave: () => onClose && onClose(), onMessage });
+    attachListeners(f, code, { onJoin: null, onLeave: (id) => onClose && onClose(id), onMessage });
     log('coop', `Raum ${code} beigetreten`, { uid: f.uid });
     onOpen && onOpen(f.uid);
   } catch (e) {
