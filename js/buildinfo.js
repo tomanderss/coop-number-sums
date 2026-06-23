@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.80';
-export const BUILD_HASH = '5e8a470';
+export const BUILD      = '0.81';
+export const BUILD_HASH = '5b6342a';
 
 export const CHANGELOG = [
+  {
+    "version": "0.81",
+    "date": "23.06.2026",
+    "changes": [
+      "Race-Modus: Prozentanzeige des Gegners bleibt jetzt zuverlässig synchron, auch bei schnellen Zügen",
+      "Race-Modus: nach einem Match direkt eine neue Runde mit Schwierigkeitsauswahl starten, statt den Raum verlassen zu müssen"
+    ]
+  },
   {
     "version": "0.80",
     "date": "23.06.2026",

@@ -84,7 +84,7 @@ test.describe('race mode', () => {
     await expect(page.locator('.progress-row .progress-bar').nth(1)).toBeVisible();
   });
 
-  test('the opponent finishing first ends the match immediately and hides the rematch buttons', async ({ page }) => {
+  test('the opponent finishing first ends the match immediately and offers a rematch instead of retry/new game', async ({ page }) => {
     await simulateHostedRaceLobby(page);
 
     await page.locator('.coop-body .btn-primary').click();
@@ -99,8 +99,14 @@ test.describe('race mode', () => {
     await expect(page.locator('.result-card.lose')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.race.matchOver)).toBe(true);
     expect(await page.evaluate(() => window.__cns.state.race.winner)).toBe('opponent');
-    // No "retry"/"new game" buttons in race mode -- the match is simply over.
-    await expect(page.locator('.result-card.lose .btn-primary')).toHaveCount(0);
+    // Solo "retry"/"new game" buttons stay hidden in race mode -- only the
+    // race-specific rematch button (host) takes their place.
+    await expect(page.locator('.result-card.lose .btn-primary')).toHaveCount(1);
+
+    await page.locator('.result-card.lose .btn-primary').click();
+    await expect(page.locator('.screen.coop-screen')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.race.active)).toBe(false);
+    expect(await page.evaluate(() => window.__cns.state.coop.waitingForGuest)).toBe(true);
   });
 
   test('the opponent giving up awards the win to me', async ({ page }) => {
@@ -117,6 +123,15 @@ test.describe('race mode', () => {
 
     await expect(page.locator('.result-card.win')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.race.winner)).toBe('me');
+
+    // Winning offers the same host-side rematch button as losing does --
+    // no separate "next puzzle"/"new game" path in race mode.
+    await expect(page.locator('.result-card.win .btn-primary')).toHaveCount(1);
+
+    await page.locator('.result-card.win .btn-primary').click();
+    await expect(page.locator('.screen.coop-screen')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.race.active)).toBe(false);
+    expect(await page.evaluate(() => window.__cns.state.coop.waitingForGuest)).toBe(true);
   });
 
   // Regression: registerMistake()/applyRemoteMistake()/doCheck() used to skip

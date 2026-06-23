@@ -177,6 +177,7 @@ export default {
     youWonMistakes: '먼저 완료했습니다! ({myPct}% vs. {oppPct}%)',
     youLostClean: '상대가 더 빠르게 실수 없이 완료했습니다 — 당신이 더 느려서 레이스가 종료되었습니다. ({myPct}% vs. {oppPct}%)',
     youLostMistakes: '상대가 더 빨랐습니다 — 당신이 더 느려서 레이스가 종료되었습니다. ({myPct}% vs. {oppPct}%)',
+    rematch: '다시 플레이 🔁',
   },
   settings: {
     title: '설정',

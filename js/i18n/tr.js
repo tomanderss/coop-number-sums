@@ -177,6 +177,7 @@ export default {
     youWonMistakes: 'Önce bitirdin! ({myPct}% vs. {oppPct}%)',
     youLostClean: 'Rakibin daha hızlıydı ve hatasız bitirdi — yarış, sen daha yavaş olduğun için bitti. ({myPct}% vs. {oppPct}%)',
     youLostMistakes: 'Rakibin daha hızlıydı — yarış, sen daha yavaş olduğun için bitti. ({myPct}% vs. {oppPct}%)',
+    rematch: 'Tekrar oyna 🔁',
   },
   settings: {
     title: 'Ayarlar',
