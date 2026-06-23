@@ -1,8 +1,22 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.77';
-export const BUILD_HASH = '22d6ae8';
+export const BUILD      = '0.79';
+export const BUILD_HASH = '4077c75';
 
 export const CHANGELOG = [
+  {
+    "version": "0.79",
+    "date": "23.06.2026",
+    "changes": [
+      "Fehler behoben: Beim Abbrechen des Trainingsmodus blieb die Trainings-Schaltfläche (\"nächster Zug\"/\"super, geschafft!\") fälschlicherweise im nächsten Spiel sichtbar"
+    ]
+  },
+  {
+    "version": "0.78",
+    "date": "23.06.2026",
+    "changes": [
+      "Farbenblind-Modus wirkt jetzt global im gesamten Spiel (richtig/falsch, Hinweise, Leben, Toasts, ...) statt nur auf die Coop-Spielerfarben"
+    ]
+  },
   {
     "version": "0.77",
     "date": "23.06.2026",
