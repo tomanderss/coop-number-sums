@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp } from './helpers.js';
 
-// Training mode now starts from inside the how-to modal (home-grid -> "?").
+// Training mode now starts from inside the how-to modal (top-left "?" icon).
 // .training-btn is a stable hook independent of any other class toggling.
 async function openHowtoModal(page) {
-  await page.locator('.home-grid .btn-ghost').nth(1).click();
+  await page.locator('.home-howto-btn').click();
   await expect(page.locator('.modal .rules')).toBeVisible();
 }
 const trainingBtn = (page) => page.locator('.modal .training-btn');

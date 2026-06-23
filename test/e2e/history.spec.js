@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, startNewGame, solveActivePuzzle } from './helpers.js';
 
-// home-grid now only holds stats/howto/history (settings moved to a top-right
-// gear icon, changelog moved into settings) — see js/app.js.
-const historyBtn = (page) => page.locator('.home-grid .btn-ghost').nth(2);
+// home-grid now only holds stats/history (settings is a top-right gear icon,
+// howto is a top-left "?" icon, changelog moved into settings) — see js/app.js.
+const historyBtn = (page) => page.locator('.home-grid .btn-ghost').nth(1);
 
 test.describe('history', () => {
   test('shows an empty state before any puzzle has been solved', async ({ page }) => {

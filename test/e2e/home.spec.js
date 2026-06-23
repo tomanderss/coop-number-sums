@@ -35,7 +35,7 @@ test.describe('home screen', () => {
 
   test('opens and closes the how-to modal', async ({ page }) => {
     await gotoApp(page);
-    await page.locator('.home-grid .btn-ghost').nth(1).click();
+    await page.locator('.home-howto-btn').click();
     await expect(page.locator('.modal .rules')).toBeVisible();
     await page.locator('.modal .btn-primary').click();
     await expect(page.locator('.modal-bg')).toHaveCount(0);

@@ -1,8 +1,22 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.76';
-export const BUILD_HASH = '703e666';
+export const BUILD      = '0.77';
+export const BUILD_HASH = '22d6ae8';
 
 export const CHANGELOG = [
+  {
+    "version": "0.77",
+    "date": "23.06.2026",
+    "changes": [
+      "Viel mehr Achievements zum Freischalten, inkl. Fortschrittsanzeige",
+      "Tagesrätsel entfernt – die Streak lebt weiter und zählt jetzt jede gespielte Partie",
+      "Neue Erinnerung beim App-Start, falls die Spiel-Streak gerissen ist",
+      "Anleitung-Button ist jetzt ein eigenes Icon neben den Einstellungen",
+      "Race-Statistiken (1v1 & 2v2) jetzt übersichtlich in der Statistik-Ansicht",
+      "Statistik-Kacheln werden immer angezeigt, auch ohne Daten",
+      "Solo-Modus-Button deutlicher vom Coop-Modus abgegrenzt",
+      "Kleinere Bugfixes (doppeltes Icon beim Changelog-Button entfernt)"
+    ]
+  },
   {
     "version": "0.76",
     "date": "23.06.2026",
