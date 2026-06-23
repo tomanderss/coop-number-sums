@@ -17,6 +17,29 @@ test.describe('gameplay', () => {
     await expect(page.locator('.diff-row').first().locator('.chip').first()).toContainText('1 / 1');
   });
 
+  // Graded win animation (Punkt 10): ein makelloser Sieg (0 Fehler, 0 Hinweise)
+  // bekommt zusätzlich zum normalen Konfetti einen goldenen Schimmer + Badge --
+  // ein Sieg MIT Fehler bekommt explizit keines von beidem.
+  test('a flawless win shows the perfect-win badge and shine, a win with a mistake does not', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page, 'sehrleicht');
+    await solveActivePuzzle(page);
+
+    await expect(page.locator('.result-card.win.perfect')).toBeVisible();
+    await expect(page.locator('.perfect-badge')).toBeVisible();
+
+    await page.locator('.result-card.win .btn-ghost', { hasText: '' }).last().click();
+    await expect(page.locator('.screen.home')).toBeVisible();
+    await startNewGame(page, 'sehrleicht');
+
+    await commitMistakes(page, 1);
+    await solveActivePuzzle(page);
+
+    await expect(page.locator('.result-card.win')).toBeVisible();
+    await expect(page.locator('.result-card.win.perfect')).toHaveCount(0);
+    await expect(page.locator('.perfect-badge')).toHaveCount(0);
+  });
+
   test('three deliberate mistakes (lives enabled) trigger the loss screen', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');

@@ -65,6 +65,7 @@ export default {
   win: {
     title: 'Решено!',
     newHighscore: '🏆 Новый лучший результат!',
+    perfectBadge: '✨ Безупречно!',
     missedPrefix: '⏱️ Это был бы новый лучший результат – но не засчитывается из-за',
     missedBoth: 'ошибок и подсказок',
     missedMistakes: 'ошибок',

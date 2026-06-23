@@ -1,8 +1,19 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.81';
-export const BUILD_HASH = 'a8b1c34';
+export const BUILD      = '0.82';
+export const BUILD_HASH = '422fde3';
 
 export const CHANGELOG = [
+  {
+    "version": "0.82",
+    "date": "23.06.2026",
+    "changes": [
+      "Abgestufte Sieg-Animation: makelloser Sieg (0 Fehler, 0 Hinweise) bekommt zusätzliches Konfetti, Glanz und ein Badge",
+      "Cage-Resolve-Sweep: vollständig gelöste Cages leuchten jetzt in der eigenen Cage-Farbe statt nur dem allgemeinen Rand-Puls",
+      "Tippflächen-Audit: Zoom-, Segment- und kleine Buttons erreichen jetzt die 44px-Mindestgröße",
+      "Race-/Team-Spiele bekommen einen dezenten farbigen Akzent-Streifen am oberen Bildschirmrand",
+      "database.rules.json: Schreibvalidierung für Team-vs-Team- und Race-Fortschrittsdaten ergänzt"
+    ]
+  },
   {
     "version": "0.81",
     "date": "23.06.2026",

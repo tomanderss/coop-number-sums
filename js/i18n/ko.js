@@ -65,6 +65,7 @@ export default {
   win: {
     title: '해결했습니다!',
     newHighscore: '🏆 새로운 최고 기록!',
+    perfectBadge: '✨ 완벽해요!',
     missedPrefix: '⏱️ 새로운 최고 기록이 될 수 있었지만 다음 이유로 인정되지 않습니다:',
     missedBoth: '오류와 힌트',
     missedMistakes: '오류',

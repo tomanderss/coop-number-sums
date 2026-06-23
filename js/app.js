@@ -126,6 +126,7 @@ const state = reactive({
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Spiel (zum Fortsetzen)
   confetti: [],
+  perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
   updateReady: false,        // neue App-Version liegt im Service-Worker bereit
 });
 
@@ -392,6 +393,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.solutionShown = false;
   state.newHighscore = false;
   state.wouldHaveBeenBest = false;
+  state.perfectWin = false;
   state.hintWarnShown = false;
   state.elapsed = saved?.elapsed ?? 0;
   // Bei Coop-INIT übernimmt der Gast den exakten Host-Startzeitpunkt, damit beide
@@ -1270,12 +1272,12 @@ function win(remote) {
   state.status = 'won';
   log('game', `Gewonnen`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
-  launchConfetti();
   if (remote) {
     state.elapsed = remote.timeMs;
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
+  launchConfetti((state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0);
   // Trainingsrätsel (geführter Lernmodus, keine echte eigene Leistung)
   // fließen bewusst nicht in die nach Schwierigkeit gebucketeten Streaks/
   // Bestzeiten ein.
@@ -1416,7 +1418,7 @@ function restartPuzzle(startTime) {
   state.hintsUsed = 0; state.mistakes = 0; state.history = []; state.flash = {}; state.justResolved = {};
   state.coop.lifeLossBy = []; state.coop.mistakesByPlayer = {};
   state.status = 'playing'; state.solutionShown = false; state.newHighscore = false; state.elapsed = 0;
-  state.wouldHaveBeenBest = false; state.hintWarnShown = false;
+  state.wouldHaveBeenBest = false; state.perfectWin = false; state.hintWarnShown = false;
   state.startTime = startTime ?? Date.now();
   startTimer(); persistGame();
 }
@@ -1478,19 +1480,24 @@ function resumeGame() {
 }
 
 // ─── CONFETTI ─────────────────────────────────────────────────────────────────
-function launchConfetti() {
+// Bei einem makellosen Sieg (keine Fehler, keine Hinweise) fällt die Animation
+// dichter und länger aus -- abgestufte Belohnung statt eines einzigen festen
+// Effekts für jeden Sieg.
+function launchConfetti(perfect) {
+  state.perfectWin = !!perfect;
   const colors = REGION_COLORS.map(c => `hsl(${c.h} ${c.s}% ${c.l}%)`);
+  const count = perfect ? 160 : 80;
   const pieces = [];
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < count; i++) {
     pieces.push({
       id: i, left: Math.random() * 100,
       delay: Math.random() * 0.5, dur: 1.6 + Math.random() * 1.4,
       color: colors[i % colors.length], rot: Math.random() * 360,
-      size: 6 + Math.random() * 8,
+      size: perfect ? 8 + Math.random() * 10 : 6 + Math.random() * 8,
     });
   }
   state.confetti = pieces;
-  setTimeout(() => { state.confetti = []; }, 3500);
+  setTimeout(() => { state.confetti = []; }, perfect ? 4800 : 3500);
 }
 
 // ─── EINSTELLUNGEN ────────────────────────────────────────────────────────────
@@ -1810,7 +1817,7 @@ const App = {
     </section>
 
     <!-- ══ GAME ══ -->
-    <section v-else-if="state.screen==='game'" class="screen game">
+    <section v-else-if="state.screen==='game'" class="screen game" :class="{ 'race-mode': state.race.active, 'team-mode': state.team.active }">
       <header class="topbar game-top">
         <button class="icon-btn" @click="quitToHome">‹</button>
         <div class="hud">
@@ -1980,9 +1987,10 @@ const App = {
 
       <!-- Gewonnen / Verloren -->
       <div v-if="state.status==='won' && !state.solutionShown" class="overlay">
-        <div class="result-card win">
+        <div class="result-card win" :class="{ perfect: state.perfectWin }">
           <div class="result-emoji">🎉</div>
           <h2>{{ t('win.title') }}</h2>
+          <div v-if="state.perfectWin" class="perfect-badge">{{ t('win.perfectBadge') }}</div>
           <div v-if="state.newHighscore" class="highscore-badge">{{ t('win.newHighscore') }}</div>
           <div v-else-if="state.wouldHaveBeenBest" class="highscore-badge missed">
             {{ t('win.missedPrefix') }}
@@ -2098,7 +2106,7 @@ const App = {
       </transition>
 
       <!-- Confetti -->
-      <div v-if="state.confetti.length" class="confetti">
+      <div v-if="state.confetti.length" class="confetti" :class="{ perfect: state.perfectWin }">
         <i v-for="p in state.confetti" :key="p.id" :style="{left:p.left+'%', background:p.color, animationDelay:p.delay+'s', animationDuration:p.dur+'s', width:p.size+'px', height:p.size+'px', transform:'rotate('+p.rot+'deg)'}"></i>
       </div>
     </section>
@@ -2589,6 +2597,7 @@ function cellClasses(r, c) {
     hinted: m.hint,
     hintmark: m.hintMark,
     'pulse-edge': pe.t || pe.b || pe.l || pe.r,
+    'region-pulse': m.region >= 0 && !!state.justResolved[`region-${m.region}`],
     strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
     solnc: state.solutionShown && state.puzzle.solution[r][c],
     'coop-mark': state.coop.active && !!state.markedBy[r][c],

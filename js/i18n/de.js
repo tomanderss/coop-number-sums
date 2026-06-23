@@ -65,6 +65,7 @@ export default {
   win: {
     title: 'Gelöst!',
     newHighscore: '🏆 Neue Bestzeit!',
+    perfectBadge: '✨ Makellos!',
     missedPrefix: '⏱️ Das wäre eine neue Bestzeit gewesen – zählt aber nicht wegen',
     missedBoth: 'Fehlern und Hinweisen',
     missedMistakes: 'Fehlern',

@@ -75,6 +75,10 @@ test.describe('race mode', () => {
 
     expect(await page.evaluate(() => window.__cns.state.race.active)).toBe(true);
     expect(await page.evaluate(() => window.__cns.state.isRaceGame)).toBe(true);
+    // Subtiler Akzent-Streifen je Modus (Punkt 14): der Game-Screen bekommt im
+    // Race-Match die race-mode-Klasse, nicht die team-mode-Klasse.
+    await expect(page.locator('.screen.game')).toHaveClass(/race-mode/);
+    await expect(page.locator('.screen.game')).not.toHaveClass(/team-mode/);
     await expect(page.locator('.coop-chip', { hasText: 'Mara' })).toBeVisible();
     // Eigener + Gegner-Fortschrittsbalken liegen im Race-Modus übereinander.
     await expect(page.locator('.progress-row .progress-line')).toHaveCount(2);

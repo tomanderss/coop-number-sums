@@ -22,6 +22,28 @@
           "$eventId": {
             ".validate": "newData.hasChildren(['type','author','ts']) && newData.child('author').val() === auth.uid"
           }
+        },
+
+        "teamEvents": {
+          "$team": {
+            "$eventId": {
+              ".validate": "newData.hasChildren(['type','author','ts']) && newData.child('author').val() === auth.uid && ($team === 'A' || $team === 'B')"
+            }
+          }
+        },
+
+        "teamProgress": {
+          "$team": {
+            ".write": "auth != null",
+            ".validate": "newData.hasChildren(['pct','mistakes']) && newData.child('pct').isNumber() && newData.child('mistakes').isNumber() && ($team === 'A' || $team === 'B')"
+          }
+        },
+
+        "raceProgress": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['pct','mistakes']) && newData.child('pct').isNumber() && newData.child('mistakes').isNumber()"
+          }
         }
       }
     }

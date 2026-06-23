@@ -65,6 +65,7 @@ export default {
   win: {
     title: 'Risolto!',
     newHighscore: '🏆 Nuovo record!',
+    perfectBadge: '✨ Impeccabile!',
     missedPrefix: '⏱️ Sarebbe stato un nuovo record – ma non conta a causa di',
     missedBoth: 'errori e suggerimenti',
     missedMistakes: 'errori',
