@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp } from './helpers.js';
+import { gotoApp, commitMistakes } from './helpers.js';
 
 // Race-/Duell-Modus (Feature 11) reuses the existing coop room/lobby, capped
 // to 2 players client-side, but never sets state.coop.active during the live
@@ -84,7 +84,7 @@ test.describe('race mode', () => {
     await expect(page.locator('.progress-row .progress-bar').nth(1)).toBeVisible();
   });
 
-  test('the opponent finishing first ends the match immediately and hides the rematch buttons', async ({ page }) => {
+  test('the opponent finishing first ends the match immediately and offers a rematch instead of retry/new game', async ({ page }) => {
     await simulateHostedRaceLobby(page);
 
     await page.locator('.coop-body .btn-primary').click();
@@ -99,8 +99,14 @@ test.describe('race mode', () => {
     await expect(page.locator('.result-card.lose')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.race.matchOver)).toBe(true);
     expect(await page.evaluate(() => window.__cns.state.race.winner)).toBe('opponent');
-    // No "retry"/"new game" buttons in race mode -- the match is simply over.
-    await expect(page.locator('.result-card.lose .btn-primary')).toHaveCount(0);
+    // Solo "retry"/"new game" buttons stay hidden in race mode -- only the
+    // race-specific rematch button (host) takes their place.
+    await expect(page.locator('.result-card.lose .btn-primary')).toHaveCount(1);
+
+    await page.locator('.result-card.lose .btn-primary').click();
+    await expect(page.locator('.screen.coop-screen')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.race.active)).toBe(false);
+    expect(await page.evaluate(() => window.__cns.state.coop.waitingForGuest)).toBe(true);
   });
 
   test('the opponent giving up awards the win to me', async ({ page }) => {
@@ -117,5 +123,73 @@ test.describe('race mode', () => {
 
     await expect(page.locator('.result-card.win')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.race.winner)).toBe('me');
+
+    // Winning offers the same host-side rematch button as losing does --
+    // no separate "next puzzle"/"new game" path in race mode.
+    await expect(page.locator('.result-card.win .btn-primary')).toHaveCount(1);
+
+    await page.locator('.result-card.win .btn-primary').click();
+    await expect(page.locator('.screen.coop-screen')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.race.active)).toBe(false);
+    expect(await page.evaluate(() => window.__cns.state.coop.waitingForGuest)).toBe(true);
+  });
+
+  // Regression: registerMistake()/applyRemoteMistake()/doCheck() used to skip
+  // life-loss entirely whenever state.isRaceGame was true, so the hearts row
+  // rendered (gated only on settings.livesEnabled, default on) but never
+  // changed -- mistakes were tracked but never cost a heart. Race now follows
+  // the same settings.livesEnabled rule as solo/coop instead of special-casing
+  // itself out of it.
+  test('a mistake in race mode deducts a heart, and running out of hearts ends the race in a loss', async ({ page }) => {
+    await simulateHostedRaceLobby(page);
+    await page.locator('.coop-body .btn-primary').click();
+    await page.waitForSelector('.screen.game');
+    await page.locator('.coop-lobby-overlay .btn-primary').click();
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+
+    await expect(page.locator('.hud-item.lives')).toBeVisible();
+    const initialLives = await page.evaluate(() => window.__cns.state.lives);
+    expect(initialLives).toBeGreaterThan(0);
+
+    await commitMistakes(page, 1);
+    expect(await page.evaluate(() => window.__cns.state.lives)).toBe(initialLives - 1);
+    expect(await page.locator('.heart.empty').count()).toBe(1);
+
+    await commitMistakes(page, initialLives - 1);
+    expect(await page.evaluate(() => window.__cns.state.lives)).toBe(0);
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('lost');
+    await expect(page.locator('.result-card.lose')).toBeVisible();
+    // Confirms a lives-based loss still goes through the race-specific result
+    // branch (state.race.active), not the generic solo "loss.title"/"loss.msg".
+    expect(await page.evaluate(() => window.__cns.state.race.matchOver)).toBe(true);
+    expect(await page.evaluate(() => window.__cns.state.race.winner)).toBe('opponent');
+  });
+
+  // Regression: pauseGame()/resumeFromPause() only ever broadcast via
+  // coopSend(), which is a no-op during a race match (state.coop.active stays
+  // false by design -- see state.race comment). The receiving side already
+  // handled MSG.PAUSE unconditionally (handleCoopMsg doesn't gate on
+  // coop.active), so simulating an incoming PAUSE from the opponent -- exactly
+  // what the fixed sending side now actually transmits via Coop.send() -- must
+  // pause this client and freeze its elapsed time at the broadcast value.
+  test('a PAUSE message from the opponent pauses the race and syncs the frozen elapsed time', async ({ page }) => {
+    await simulateHostedRaceLobby(page);
+    await page.locator('.coop-body .btn-primary').click();
+    await page.waitForSelector('.screen.game');
+    await page.locator('.coop-lobby-overlay .btn-primary').click();
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+
+    await page.evaluate(() => {
+      window.__cns.handleCoopMsg({ type: 'pause', paused: true, elapsed: 12345 });
+    });
+    await expect(page.locator('.pause-overlay')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
+    expect(await page.evaluate(() => window.__cns.state.elapsed)).toBe(12345);
+
+    await page.evaluate(() => {
+      window.__cns.handleCoopMsg({ type: 'pause', paused: false });
+    });
+    await expect(page.locator('.pause-overlay')).not.toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(false);
   });
 });

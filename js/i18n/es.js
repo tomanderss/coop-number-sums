@@ -177,6 +177,7 @@ export default {
     youWonMistakes: '¡Terminaste primero! ({myPct}% vs. {oppPct}%)',
     youLostClean: 'Tu oponente fue más rápido y terminó sin errores — la carrera terminó porque fuiste más lento. ({myPct}% vs. {oppPct}%)',
     youLostMistakes: 'Tu oponente fue más rápido — la carrera terminó porque fuiste más lento. ({myPct}% vs. {oppPct}%)',
+    rematch: 'Jugar de nuevo 🔁',
   },
   settings: {
     title: 'Ajustes',

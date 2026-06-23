@@ -1,8 +1,25 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.79';
-export const BUILD_HASH = '4077c75';
+export const BUILD      = '0.81';
+export const BUILD_HASH = 'a8b1c34';
 
 export const CHANGELOG = [
+  {
+    "version": "0.81",
+    "date": "23.06.2026",
+    "changes": [
+      "Race-Modus: Prozentanzeige des Gegners bleibt jetzt zuverlässig synchron, auch bei schnellen Zügen",
+      "Race-Modus: nach einem Match direkt eine neue Runde mit Schwierigkeitsauswahl starten, statt den Raum verlassen zu müssen"
+    ]
+  },
+  {
+    "version": "0.80",
+    "date": "23.06.2026",
+    "changes": [
+      "Bugfix: Cage-Farben konnten bei dichten Rätseln zweimal exakt identisch nebeneinander liegen (Cage-Grenzen unsichtbar)",
+      "Bugfix: Im Race-Modus zogen Fehler keine Leben mehr ab — Herzen werden nun wie gewohnt verloren",
+      "Bugfix: Pause im Race-Modus pausierte nur lokal — jetzt pausiert/synchronisiert sie beide Spieler"
+    ]
+  },
   {
     "version": "0.79",
     "date": "23.06.2026",

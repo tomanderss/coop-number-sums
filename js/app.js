@@ -208,14 +208,23 @@ function pauseGame(broadcast = true, remoteElapsed) {
   state.paused = true;
   state.elapsed = remoteElapsed != null ? remoteElapsed : Date.now() - state.startTime; // einfrieren
   stopTimer();
-  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
+  if (broadcast) {
+    // Race: state.coop.active bleibt absichtlich false (siehe state.race-Kommentar),
+    // coopSend() wäre hier also ein No-op -- analog zum MSG.START-Versand direkt
+    // über Coop.send(), damit der Gegner trotzdem mitpausiert/-startet wird.
+    if (state.race.active) Coop.send({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
+    else if (state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
+  }
 }
 function resumeFromPause(broadcast = true) {
   if (!state.paused) return;
   state.paused = false;
   state.startTime = Date.now() - state.elapsed; // Zeit fortsetzen
   startTimer();
-  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: false });
+  if (broadcast) {
+    if (state.race.active) Coop.send({ type: Coop.MSG.PAUSE, paused: false });
+    else if (state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: false });
+  }
 }
 
 // ─── COOP-LOBBY: "Bereit?" vor dem eigentlichen Start ─────────────────────────
@@ -546,7 +555,7 @@ function registerMistake() {
   state.mistakes++;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + 1;
   if (state.coop.active) coopSend({ type: Coop.MSG.MISTAKE, by, n: 1 });
-  if (!state.isRaceGame && state.settings.livesEnabled) {
+  if (state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
     showBestTimeNotice(t('game.lifeLostNotice'));
@@ -560,7 +569,7 @@ function registerMistake() {
 function applyRemoteMistake(by, n) {
   state.mistakes += n;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + n;
-  if (!state.isRaceGame && state.settings.livesEnabled) {
+  if (state.settings.livesEnabled) {
     for (let i = 0; i < n; i++) {
       state.lives--;
       state.coop.lifeLossBy.push(by);
@@ -592,11 +601,26 @@ function progressPct() {
   return total ? Math.round((correct / total) * 100) : 0;
 }
 let teamProgressThrottle = 0;
+let teamProgressTimer = null;
+// Reines "leading edge"-Throttle (nur sofort senden, sonst verwerfen) ließ
+// die Gegenseite bei mehreren schnellen Zügen auf einem veralteten Prozentwert
+// sitzen, bis der nächste Zug zufällig außerhalb des Zeitfensters fiel --
+// blieb der Spieler danach kurz stehen (z.B. zum Nachdenken), zeigte die
+// Gegenseite dauerhaft einen falschen Stand. Ein nachgelagerter Timer holt
+// den letzten Stand garantiert nach, auch ohne weiteren Zug.
 function pushTeamProgress() {
   const now = Date.now();
-  if (now - teamProgressThrottle < 2000) return;
-  teamProgressThrottle = now;
-  Coop.setTeamProgress(state.team.myTeam, { pct: progressPct(), mistakes: state.mistakes });
+  const elapsed = now - teamProgressThrottle;
+  if (elapsed >= 2000) {
+    teamProgressThrottle = now;
+    Coop.setTeamProgress(state.team.myTeam, { pct: progressPct(), mistakes: state.mistakes });
+  } else if (!teamProgressTimer) {
+    teamProgressTimer = setTimeout(() => {
+      teamProgressTimer = null;
+      teamProgressThrottle = Date.now();
+      Coop.setTeamProgress(state.team.myTeam, { pct: progressPct(), mistakes: state.mistakes });
+    }, 2000 - elapsed);
+  }
 }
 // Empfängt den Fortschritt BEIDER Teams (eigener + gegnerischer) -- die eigene
 // Hälfte wird einfach ignoriert, da der lokale Stand ohnehin genauer ist.
@@ -606,11 +630,25 @@ function onTeamProgressUpdate(progressByTeam) {
   if (opp) { state.team.opponentPct = opp.pct || 0; state.team.opponentMistakes = opp.mistakes || 0; }
 }
 let raceProgressThrottle = 0;
+let raceProgressTimer = null;
+// Gleicher Fix wie bei pushTeamProgress() oben -- ein reines leading-edge-
+// Throttle ließ den Gegner-Fortschritt im Race auf einem veralteten Stand
+// einfrieren, sobald keine weiteren Züge mehr außerhalb des Zeitfensters
+// kamen. Der Timer garantiert, dass der letzte Stand spätestens nach Ablauf
+// des Throttle-Fensters nachgereicht wird.
 function pushRaceProgress() {
   const now = Date.now();
-  if (now - raceProgressThrottle < 2000) return;
-  raceProgressThrottle = now;
-  Coop.setRaceProgress(state.coop.myId, { pct: progressPct(), mistakes: state.mistakes });
+  const elapsed = now - raceProgressThrottle;
+  if (elapsed >= 2000) {
+    raceProgressThrottle = now;
+    Coop.setRaceProgress(state.coop.myId, { pct: progressPct(), mistakes: state.mistakes });
+  } else if (!raceProgressTimer) {
+    raceProgressTimer = setTimeout(() => {
+      raceProgressTimer = null;
+      raceProgressThrottle = Date.now();
+      Coop.setRaceProgress(state.coop.myId, { pct: progressPct(), mistakes: state.mistakes });
+    }, 2000 - elapsed);
+  }
 }
 // Empfängt den Fortschritt beider Spieler (eigener + Gegner) -- nur der
 // Gegner-Eintrag (per uid) ist relevant, der eigene Stand ist lokal genauer.
@@ -640,7 +678,7 @@ function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = tr
   wrong.forEach(([r, c]) => flashError(r, c));
   state.mistakes += wrong.length;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + wrong.length;
-  if (!state.isRaceGame && state.settings.livesEnabled) {
+  if (state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
     showBestTimeNotice(t('game.lifeLostNotice'));
@@ -800,6 +838,11 @@ function handleCoopMsg(msg) {
 function coopReset() {
   coopIntentionalLeave = true;
   Coop.leave();
+  // Ausstehende nachgelagerte Fortschritts-Pushs (siehe pushTeamProgress()/
+  // pushRaceProgress() oben) dürfen nicht nach dem Verlassen des Raums noch
+  // feuern -- der Raum existiert dann ggf. nicht mehr.
+  clearTimeout(teamProgressTimer); teamProgressTimer = null;
+  clearTimeout(raceProgressTimer); raceProgressTimer = null;
   const keepDiff = state.coop.lobbyDiffId;
   state.coop.active = false; state.coop.role = null; state.coop.code = '';
   state.coop.connected = false; state.coop.waitingForGuest = false;
@@ -1083,6 +1126,23 @@ function applyRaceStart(seed, difficulty) {
   state.coop.awaitingStart = true;
   Coop.listenRaceProgress(onRaceProgressUpdate);
   navigate('game');
+}
+// "Nochmal spielen" nach einem beendeten Race-Match: nur der Host darf das
+// auslösen (er wählt die Schwierigkeit und startet per RACE_START). Raum/
+// Spieler-Verbindung bleiben dabei erhalten -- es wird nur in die bestehende
+// Lobby zurückgekehrt (waitingForGuest), nicht erneut gehostet/beigetreten.
+function rematchRace() {
+  if (state.coop.role !== 'host') return;
+  state.race.active = false;
+  state.race.matchOver = false;
+  state.race.winner = null;
+  state.race.myPct = 0;
+  state.race.opponentPct = 0;
+  state.race.opponentMistakes = 0;
+  state.isRaceGame = false;
+  state.coop.awaitingStart = false;
+  state.coop.waitingForGuest = true;
+  navigate('coop');
 }
 
 function startJoining() {
@@ -1680,7 +1740,7 @@ const App = {
       cellClasses, cellStyle, cellAriaLabel, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
-      cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch,
+      cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
       shareCoopInvite, raceResultMsg,
       startTrainingGame, applyTrainingStep,
@@ -1961,6 +2021,8 @@ const App = {
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
           <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
           <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
+          <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
+          <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('win.viewBoard') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -1997,6 +2059,8 @@ const App = {
           </div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
           <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
+          <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" v-if="!state.isTrainingGame && !state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -2017,6 +2081,8 @@ const App = {
           </template>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
           <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
+          <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" v-if="!state.isTrainingGame && !state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -2208,6 +2274,24 @@ const App = {
               </span>
             </template>
           </div>
+          <!-- Race-Lobby zeigt die Schwierigkeitsauswahl auch hier (anders als
+               Coop/Team) -- damit ist sie nach einem Match-Ende (rematchRace()
+               kehrt in genau diese Ansicht zurück) ohne erneutes Hosten/
+               Beitreten wieder erreichbar ("nochmal spielen" mit ggf. neuer
+               Schwierigkeit). -->
+          <template v-if="state.coop.raceMode">
+            <div class="setup-label">{{ t('common.difficulty') }}</div>
+            <div class="option-grid">
+              <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
+                      :class="{active: state.coop.lobbyDiffId===d.id}"
+                      @click="state.coop.lobbyDiffId=d.id">
+                <span class="opt-emoji">{{ d.emoji }}</span>
+                <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
+                <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
+                <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+              </button>
+            </div>
+          </template>
           <p class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: state.coop.raceMode ? 2 : COOP_MAX_PLAYERS }) }}</p>
           <button v-if="state.coop.teamMode" class="btn btn-primary" :disabled="!canStartTeamMatch()" @click="startTeamMatch">{{ t('team.startMatch') }}</button>
           <button v-else-if="state.coop.raceMode" class="btn btn-primary" :disabled="!canStartRaceMatch()" @click="startRaceMatch">{{ t('race.startMatch') }}</button>
