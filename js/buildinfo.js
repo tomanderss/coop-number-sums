@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.82';
-export const BUILD_HASH = '422fde3';
+export const BUILD      = '0.83';
+export const BUILD_HASH = '47bb7a0';
 
 export const CHANGELOG = [
+  {
+    "version": "0.83",
+    "date": "23.06.2026",
+    "changes": [
+      "Cage-Farben: deutlich kräftigere, stärker unterscheidbare Farbpalette – besonders die drei Grüntöne waren sich bisher zu ähnlich",
+      "Bugfix: benachbarte Cages konnten in dicht gepackten Bereichen trotz \"Ähnlichkeits\"-Regel fast identische Farben bekommen, weil die Regel bei vollem Bann komplett aufgegeben wurde, statt nur schrittweise gelockert zu werden",
+      "Cage-Hintergrundfarbe ist jetzt deutlich satter/kräftiger statt blass-transparent"
+    ]
+  },
   {
     "version": "0.82",
     "date": "23.06.2026",

@@ -236,11 +236,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Cages werden eingefärbt (keine Umrandung); die Färbung verschwindet, sobald
    die Cage aufgelöst ist (dann fehlt die .region-Klasse → normaler Hintergrund). */
 .cell.region {
-  background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .48);
+  background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .64);
   --rcol: hsl(var(--rc-h) calc(var(--rc-s)) calc(var(--rc-l) - 8%));
   transition: background .25s;
 }
-:root[data-theme="light"] .cell.region { background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .38); }
+:root[data-theme="light"] .cell.region { background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .52); }
 
 .rchip {
   position: absolute; top: 2px; left: 2px; z-index: 3;
