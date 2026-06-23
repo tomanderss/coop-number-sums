@@ -28,8 +28,6 @@ export default {
     changelog: '更新履歴',
     dailyChallenge: 'デイリーパズル',
     dailyDone: '本日クリア済み ✓',
-    dailyCoop: '今日は一緒にプレイ',
-    dailyCoopHint: 'デイリーパズルをコープで解く',
     raceMode: 'レースモード',
     raceHint: '1対1の対戦レース',
     bossChallenge: 'ボスパズル',
@@ -46,7 +44,6 @@ export default {
     loading: 'パズルを作成中…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' ・オフライン',
-    coopDailyTag: 'デイリーパズル',
     pauseTitle: '一時停止',
     giveUpTitle: 'ギブアップ',
     giveUpConfirmTitle: 'ギブアップしますか？',
@@ -219,7 +216,6 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count}日連続',
-    coopIntro: '今日のデイリーパズルをみんなで解きましょう。コードを仲間と共有してください。難易度は全員共通です。',
   },
   boss: {
     streakBadge: '🔥 {count}週連続',

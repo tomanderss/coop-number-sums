@@ -28,8 +28,6 @@ export default {
     changelog: 'Değişiklikler',
     dailyChallenge: 'Günlük bulmaca',
     dailyDone: 'Bugün çözüldü ✓',
-    dailyCoop: 'Bugün birlikte oyna',
-    dailyCoopHint: 'Günlük bulmacayı co-op modunda çöz',
     raceMode: 'Yarış Modu',
     raceHint: "1'e 1 düello yarışı",
     bossChallenge: 'Patron bulmacası',
@@ -46,7 +44,6 @@ export default {
     loading: 'Bulmaca oluşturuluyor…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' · çevrimdışı',
-    coopDailyTag: 'Günlük bulmaca',
     pauseTitle: 'Duraklat',
     giveUpTitle: 'Bırak',
     giveUpConfirmTitle: 'Bırakılsın mı?',
@@ -219,7 +216,6 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count} günlük seri',
-    coopIntro: 'Bugünün günlük bulmacasını birlikte çözün. Kodu takım arkadaşlarınızla paylaşın, zorluk herkes için aynıdır.',
   },
   boss: {
     streakBadge: '🔥 {count} haftalık seri',

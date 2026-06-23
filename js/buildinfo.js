@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.73';
-export const BUILD_HASH = '517c290';
+export const BUILD      = '0.74';
+export const BUILD_HASH = '41d8398';
 
 export const CHANGELOG = [
+  {
+    "version": "0.74",
+    "date": "22.06.2026",
+    "changes": [
+      "Coop-Tagesrätsel (\"Heute zusammen spielen\") entfernt -- unnötige Dopplung zum normalen Coop-Modus."
+    ]
+  },
   {
     "version": "0.73",
     "date": "22.06.2026",

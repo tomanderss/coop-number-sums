@@ -28,8 +28,6 @@ export default {
     changelog: 'Novidades',
     dailyChallenge: 'Desafio diário',
     dailyDone: 'Resolvido hoje ✓',
-    dailyCoop: 'Jogar juntos hoje',
-    dailyCoopHint: 'Resolver o desafio diário em coop',
     raceMode: 'Modo corrida',
     raceHint: 'Duelo 1 contra 1',
     bossChallenge: 'Desafio do chefão',
@@ -46,7 +44,6 @@ export default {
     loading: 'Criando o quebra-cabeça…',
     coopTag: 'COOP',
     coopOfflineSuffix: ' · offline',
-    coopDailyTag: 'Desafio diário',
     pauseTitle: 'Pausa',
     giveUpTitle: 'Desistir',
     giveUpConfirmTitle: 'Desistir?',
@@ -219,7 +216,6 @@ export default {
   },
   daily: {
     streakBadge: '🔥 Sequência de {count} dias',
-    coopIntro: 'Resolvam juntos o desafio diário de hoje. Compartilhe o código com seus colegas de equipe; a dificuldade é igual para todos.',
   },
   boss: {
     streakBadge: '🔥 Sequência de {count} semanas',

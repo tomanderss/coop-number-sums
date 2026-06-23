@@ -28,8 +28,6 @@ export default {
     changelog: 'Changelog',
     dailyChallenge: 'Daily challenge',
     dailyDone: 'Solved today ✓',
-    dailyCoop: 'Play together today',
-    dailyCoopHint: 'Solve today\'s challenge in coop',
     raceMode: 'Race mode',
     raceHint: '1-vs-1 head-to-head race',
     bossChallenge: 'Boss challenge',
@@ -46,7 +44,6 @@ export default {
     loading: 'Creating puzzle…',
     coopTag: 'CO-OP',
     coopOfflineSuffix: ' · offline',
-    coopDailyTag: 'Daily challenge',
     pauseTitle: 'Pause',
     giveUpTitle: 'Give up',
     giveUpConfirmTitle: 'Give up?',
@@ -219,7 +216,6 @@ export default {
   },
   daily: {
     streakBadge: '🔥 {count} day streak',
-    coopIntro: 'Solve today\'s daily challenge together. Share the code with your teammates -- the difficulty is the same for everyone.',
   },
   boss: {
     streakBadge: '🔥 {count} week streak',
