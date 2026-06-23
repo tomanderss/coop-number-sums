@@ -32,24 +32,28 @@ export const DIFFICULTIES = [
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
 
 // ─── REGIONEN-FARBPALETTE ─────────────────────────────────────────────────────
-// Kräftige, klar unterscheidbare Töne (funktionieren in Hell & Dunkel). Die
-// Farbtöne liegen exakt 36° auseinander (volle 360°/10) statt wie zuvor
-// unregelmäßig verteilt — so ist jede Farbe von jeder anderen mindestens
-// 36° entfernt, nicht nur von ihren direkten Cage-Nachbarn. Sättigung/
-// Helligkeit zusätzlich bewusst alternierend gewählt (statt einheitlich),
-// damit auch ohne Farbwahrnehmung allein über die Helligkeit unterscheidbar
-// bleibt, welche Zelle zu welcher Cage gehört.
+// Kräftige, klar unterscheidbare Töne (funktionieren in Hell & Dunkel). Der
+// Grünbereich (lime/emerald/teal) bekam Nutzer-Feedback ("zu ähnlich, zu
+// soft"): drei Grüntöne liegen nah beieinander auf dem Farbkreis und wurden
+// vorher zusätzlich mit fast identischer Sättigung/Helligkeit kombiniert, was
+// sie nebeneinander praktisch ununterscheidbar machte. Jetzt: größere
+// Hue-Abstände UND bewusst stark unterschiedliche Helligkeit/Sättigung pro
+// Grünton (hell-satt / sehr dunkel / mittel-blaustichig), damit die drei
+// auch ohne exaktes Farbsehen klar als eigene Farben lesbar sind. Restliche
+// Paletten-Töne entsprechend kräftiger (höhere Sättigung) für mehr Kontrast
+// insgesamt. Siehe auch HUE_SIM_THRESHOLD (generator.js) für die
+// Mindestabstands-Logik zwischen direkt benachbarten Cages.
 export const REGION_COLORS = [
-  { name: 'coral',  h: 14,  s: 85, l: 56 },
-  { name: 'amber',  h: 50,  s: 90, l: 52 },
-  { name: 'lime',   h: 86,  s: 65, l: 42 },
-  { name: 'emerald',h: 122, s: 62, l: 38 },
-  { name: 'teal',   h: 158, s: 62, l: 36 },
-  { name: 'cyan',   h: 194, s: 82, l: 50 },
-  { name: 'blue',   h: 230, s: 78, l: 60 },
-  { name: 'violet', h: 266, s: 70, l: 64 },
-  { name: 'fuchsia',h: 302, s: 72, l: 58 },
-  { name: 'rose',   h: 338, s: 82, l: 60 },
+  { name: 'coral',  h: 8,   s: 88, l: 58 },
+  { name: 'amber',  h: 42,  s: 92, l: 54 },
+  { name: 'lime',   h: 78,  s: 80, l: 54 },
+  { name: 'emerald',h: 136, s: 75, l: 30 },
+  { name: 'teal',   h: 180, s: 80, l: 44 },
+  { name: 'cyan',   h: 202, s: 88, l: 56 },
+  { name: 'blue',   h: 228, s: 82, l: 62 },
+  { name: 'violet', h: 264, s: 75, l: 66 },
+  { name: 'fuchsia',h: 300, s: 78, l: 58 },
+  { name: 'rose',   h: 336, s: 85, l: 60 },
 ];
 
 // ─── COOP-IDENTITÄTSFARBEN ────────────────────────────────────────────────────

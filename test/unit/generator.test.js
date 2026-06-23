@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeRng, generatePuzzle, findHintCell } from '../../js/generator.js';
 import { logicalSolve, countSolutions } from '../../js/solver.js';
-import { DIFFICULTIES } from '../../js/config.js';
+import { DIFFICULTIES, REGION_COLORS } from '../../js/config.js';
 
 describe('generator.makeRng', () => {
   test('is deterministic for a given seed', () => {
@@ -130,6 +130,39 @@ describe('generator cage colors', () => {
               assert.notEqual(
                 puzzle.regions[a].colorIndex, puzzle.regions[b].colorIndex,
                 `${diff.id} seed ${seed}: adjacent cages ${a} and ${b} share colorIndex ${puzzle.regions[a].colorIndex}`,
+              );
+            }
+          }
+        }
+      }
+    }
+  });
+
+  test('adjacent cages stay far apart in hue, not just non-identical, across many seeds', () => {
+    // Regression: colorRegions()' "all colors banned" relax path used to drop
+    // the similarity threshold to 0 entirely (only avoiding an exact repeat),
+    // which let directly-touching cages end up with barely-distinguishable
+    // hues (e.g. two different greens) even though they were never the exact
+    // same colorIndex -- exactly the "too similar" report this guards against.
+    function hueDist(a, b) { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+    for (const diff of DIFFICULTIES) {
+      for (let seed = 0; seed < 25; seed++) {
+        const puzzle = generatePuzzle({ difficulty: diff.id, seed });
+        const idGrid = Array.from({ length: puzzle.rows }, () => new Array(puzzle.cols).fill(-1));
+        for (const reg of puzzle.regions) for (const [r, c] of reg.cells) idGrid[r][c] = reg.id;
+        for (let r = 0; r < puzzle.rows; r++) {
+          for (let c = 0; c < puzzle.cols; c++) {
+            const a = idGrid[r][c];
+            for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+              const nr = r + dr, nc = c + dc;
+              if (nr < 0 || nr >= puzzle.rows || nc < 0 || nc >= puzzle.cols) continue;
+              const b = idGrid[nr][nc];
+              if (b === a) continue;
+              const ha = REGION_COLORS[puzzle.regions[a].colorIndex].h;
+              const hb = REGION_COLORS[puzzle.regions[b].colorIndex].h;
+              assert.ok(
+                hueDist(ha, hb) >= 30,
+                `${diff.id} seed ${seed}: adjacent cages ${a} and ${b} only ${hueDist(ha, hb)}deg apart in hue`,
               );
             }
           }

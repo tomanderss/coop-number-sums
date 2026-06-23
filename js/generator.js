@@ -211,7 +211,7 @@ function buildRegions(id, K, rows, cols) {
 
 // Minimaler Winkelabstand auf dem Farbkreis (0–180°) — Farben mit kleinerem
 // Abstand gelten als "zu ähnlich" und werden ebenfalls gebannt.
-const HUE_SIM_THRESHOLD = 55;
+const HUE_SIM_THRESHOLD = 65;
 function hueDist(a, b) { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
 
 // Färbung: benachbarte Cages verschieden UND nicht zu ähnlich im Farbton,
@@ -232,33 +232,33 @@ function colorRegions(regions, idGrid, rows, cols) {
   }
   const usage = new Array(REGION_COLORS.length).fill(0);
   for (let i = 0; i < k; i++) {
-    const banned = new Set();
+    const nbHues = [];
+    const nbColors = new Set();
     for (const nb of adj[i]) {
       if (nb >= i) continue;
-      const nbIdx = regions[nb].colorIndex;
-      const nbHue = REGION_COLORS[nbIdx].h;
-      for (let ci = 0; ci < REGION_COLORS.length; ci++) {
-        if (hueDist(REGION_COLORS[ci].h, nbHue) < HUE_SIM_THRESHOLD) banned.add(ci);
-      }
+      nbColors.add(regions[nb].colorIndex);
+      nbHues.push(REGION_COLORS[regions[nb].colorIndex].h);
     }
     let best = -1, bestU = Infinity;
-    for (let col = 0; col < REGION_COLORS.length; col++) {
-      if (banned.has(col)) continue;
-      if (usage[col] < bestU) { bestU = usage[col]; best = col; }
-    }
-    if (best === -1) { // all colors too similar — relax and just avoid exact match
-      banned.clear(); // banned war vom Schwellenwert-Durchlauf bereits voll (sonst wären wir
-                       // nie hier) -- ohne dieses clear() bleiben alle 10 Farben weiterhin
-                       // "verboten" und best fällt unten ungeprüft auf 0 zurück, was exakt zur
-                       // gemeldeten Farbkollision führte
-      for (const nb of adj[i]) if (nb < i) banned.add(regions[nb].colorIndex);
-      best = -1; bestU = Infinity;
+    // Bei dicht benachbarten Cages (viele Nachbarn mit breit gestreuten Farben)
+    // kann der volle HUE_SIM_THRESHOLD jede der 10 Farben gleichzeitig bannen.
+    // Statt dann komplett aufzugeben und nur noch exakte Duplikate zu meiden
+    // (das führte genau zu den gemeldeten "fast identischen" Nachbarfarben),
+    // wird der Schwellenwert schrittweise gelockert — die am Ende gewählte
+    // Farbe bleibt so immer so unterscheidbar wie unter den Umständen möglich.
+    for (let threshold = HUE_SIM_THRESHOLD; best === -1 && threshold > 0; threshold -= 10) {
       for (let col = 0; col < REGION_COLORS.length; col++) {
-        if (banned.has(col)) continue;
+        if (nbHues.some(h => hueDist(REGION_COLORS[col].h, h) < threshold)) continue;
         if (usage[col] < bestU) { bestU = usage[col]; best = col; }
       }
-      if (best === -1) best = 0; // nur falls wirklich alle 10 Farben exakt von Nachbarn belegt sind
     }
+    if (best === -1) { // nur falls wirklich alle 10 Farben exakt von Nachbarn belegt sind
+      for (let col = 0; col < REGION_COLORS.length; col++) {
+        if (nbColors.has(col)) continue;
+        if (usage[col] < bestU) { bestU = usage[col]; best = col; }
+      }
+    }
+    if (best === -1) best = 0;
     regions[i].colorIndex = best; usage[best]++;
   }
 }
