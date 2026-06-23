@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.78';
-export const BUILD_HASH = 'bad2918';
+export const BUILD      = '0.79';
+export const BUILD_HASH = '4077c75';
 
 export const CHANGELOG = [
+  {
+    "version": "0.79",
+    "date": "23.06.2026",
+    "changes": [
+      "Fehler behoben: Beim Abbrechen des Trainingsmodus blieb die Trainings-Schaltfläche (\"nächster Zug\"/\"super, geschafft!\") fälschlicherweise im nächsten Spiel sichtbar"
+    ]
+  },
   {
     "version": "0.78",
     "date": "23.06.2026",

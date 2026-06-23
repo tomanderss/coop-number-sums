@@ -316,9 +316,6 @@ function goNextPuzzle() {
 // erklären kann. Solo, kein Netz, keine eigenen Storage-Keys (siehe Plan).
 const TRAINING_GEN_BUDGET = 40; // Versuche, bis ein voll Tier-1-lösbares Rätsel gefunden ist
 function startTrainingGame() {
-  state.isTrainingGame = true;
-  state.trainingStep = null;
-  state.trainingDone = false;
   state.generating = true;
   state.screen = 'game';
   setTimeout(() => {
@@ -329,6 +326,12 @@ function startTrainingGame() {
     }
     log('game', `Trainingsrätsel generiert`, { rows: puzzle.rows, cols: puzzle.cols });
     loadPuzzleIntoState(puzzle, null);
+    // Erst NACH loadPuzzleIntoState setzen, da dieses isTrainingGame/trainingStep/
+    // trainingDone als generischer Reset-Punkt für alle Spielstart-Pfade auf false
+    // zurücksetzt (siehe dort) -- sonst würde der Reset diese Zeilen sofort überschreiben.
+    state.isTrainingGame = true;
+    state.trainingStep = null;
+    state.trainingDone = false;
     state.generating = false;
     startTimer();
     trainingNextStep();
@@ -352,6 +355,14 @@ function applyTrainingStep() {
 }
 
 function loadPuzzleIntoState(puzzle, saved) {
+  // Genereller Reset-Punkt für alle Spielstart-Pfade (Solo, Coop, Race, Team,
+  // Fortsetzen, Daily/Boss) -- ohne den blieb der Trainingsmodus-Banner nach
+  // einem Abbruch per Zurück-Button (quitToHome() setzt isTrainingGame nicht
+  // zurück) in jedem danach gestarteten "normalen" Spiel sichtbar. startTrainingGame()
+  // setzt isTrainingGame direkt NACH diesem Aufruf wieder auf true.
+  state.isTrainingGame = false;
+  state.trainingStep = null;
+  state.trainingDone = false;
   state.puzzle = puzzle;
   state.cellMeta = buildCellMeta(puzzle);
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;

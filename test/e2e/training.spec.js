@@ -87,4 +87,40 @@ test.describe('training mode', () => {
     const marksAfter = await page.evaluate(() => JSON.stringify(window.__cns.state.marks));
     expect(marksAfter).toBe(marksBefore);
   });
+
+  // Regression: only newGame() ever reset state.isTrainingGame back to false.
+  // Quitting training mid-puzzle (back button -> quitToHome()) left it stuck
+  // true; any *other* game-start path that doesn't go through newGame() --
+  // joining/hosting coop, race, team-vs-team -- never reset it either, so the
+  // training banner resurfaced in that next "normal" game. All of those paths
+  // funnel through handleCoopMsg's INIT case (loadPuzzleIntoState), which is
+  // reachable here via the window.__cns test hook without needing a real
+  // Firebase round-trip (same UI/state-machine boundary as the coop e2e tests).
+  test('quitting training mid-puzzle does not leak the training banner into a subsequent coop game', async ({ page }) => {
+    await gotoApp(page);
+    await openHowtoModal(page);
+    await trainingBtn(page).click();
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+    await expect(page.locator('.training-banner')).toBeVisible();
+
+    // Abort the tutorial mid-puzzle via the back button (quitToHome()), then
+    // simulate receiving a coop INIT message for a fresh, unrelated game --
+    // exactly what a guest joining a room (or a team/race match start) does.
+    await page.locator('.game-top .icon-btn').first().click();
+    await expect(page.locator('.screen.home')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.isTrainingGame)).toBe(true);
+
+    await page.evaluate(() => {
+      window.__cns.handleCoopMsg({
+        type: 'init',
+        puzzle: { rows: 4, cols: 4, rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1], values: Array.from({ length: 4 }, () => Array(4).fill(1)), solution: Array.from({ length: 4 }, () => Array(4).fill(true)), regions: [], difficulty: 'leicht' },
+        marks: null, markedBy: null, startTime: Date.now(),
+      });
+    });
+    await page.waitForSelector('.screen.game');
+
+    expect(await page.evaluate(() => window.__cns.state.isTrainingGame)).toBe(false);
+    await expect(page.locator('.training-banner')).not.toBeVisible();
+  });
 });
