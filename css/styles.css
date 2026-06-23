@@ -72,6 +72,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ─── Home ─── */
 .home { position: relative; justify-content: center; gap: 26px; text-align: center; }
 .home-settings-btn { position: absolute; top: 0; right: 0; z-index: 1; }
+.home-howto-btn { position: absolute; top: 0; left: 0; z-index: 1; }
+.home-streak-badge {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px; height: 44px;
+  font-size: .95rem; font-weight: 800; color: var(--text2);
+}
 .brand { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 10px; }
 .brand-logo {
   width: 92px; height: 92px; border-radius: 26px; display: block;
@@ -106,19 +112,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn-danger { background: var(--bad); color: #fff; }
 .btn-danger-ghost { background: var(--bg2); color: var(--bad); margin-top: 14px; }
 .btn-sm { padding: 8px 14px; font-size: .85rem; }
-/* Tagesrätsel-Button: nur solange er noch nicht erledigt ist auffällig/"spielerisch"
-   gestaltet (warmer Gradient + leichtes Pulsieren), damit man ihn nicht übersieht —
-   nach Abschluss fällt er zurück auf den neutralen .btn-ghost-Look. */
-.btn-daily {
-  background: linear-gradient(135deg, #f59e0b, #f97316); color: #1a1304;
-  box-shadow: 0 4px 18px rgba(249,115,22,.5);
-  animation: dailyglow 2.2s ease-in-out infinite;
-}
-.btn-daily .badge-soon { background: rgba(26,19,4,.2); color: #1a1304; }
-@keyframes dailyglow {
-  0%, 100% { box-shadow: 0 4px 18px rgba(249,115,22,.5); }
-  50% { box-shadow: 0 4px 26px rgba(249,115,22,.85); }
-}
 /* Fixe Icon-Spaltenbreite, damit unterschiedlich breite Emoji-Icons (z.B. 📡
    vs. 🔗) die Zentrierung des Buttons nicht sichtbar verschieben. */
 .btn .btn-ic { font-size: 1.3rem; width: 28px; flex-shrink: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
@@ -465,6 +458,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .modal-history .board-wrap { align-self: center; }
 
 /* ─── Achievements ─── */
+.achievements-progress { display: flex; flex-direction: column; gap: 6px; padding: 0 4px 12px; flex: none; }
+.achievements-progress-label { font-size: .82rem; font-weight: 700; color: var(--text2); }
 .achievements-body { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; overflow-y: auto; padding: 0 4px 12px; }
 .achievement-row { display: flex; align-items: center; gap: 12px; background: var(--bg2); padding: 12px 16px; border-radius: 12px; opacity: .55; }
 .achievement-row.unlocked { opacity: 1; }

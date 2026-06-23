@@ -15,11 +15,11 @@ const {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame,
   loadStats, recordResult, loadSeenVersion, saveSeenVersion,
   createBackup, loadBackups, restoreBackup, importFromFile, generateId,
-  loadDaily, recordDailyResult, loadAchievements, unlockAchievements,
+  loadStreak, recordStreakResult, loadAchievements, unlockAchievements,
   loadRace, recordRaceWin, recordRaceLoss,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
-const { todayDateStr } = await import('../../js/daily.js');
+const { todayDateStr } = await import('../../js/streak.js');
 
 describe('storage.settings', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });
@@ -163,15 +163,18 @@ describe('storage.importFromFile', () => {
   });
 });
 
-describe('storage.recordDailyResult', () => {
+describe('storage.recordStreakResult', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });
 
-  test('loadDaily returns empty defaults when nothing is stored', () => {
-    assert.deepEqual(loadDaily(), { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0 });
+  test('loadStreak returns empty defaults when nothing is stored', () => {
+    assert.deepEqual(loadStreak(), {
+      lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0,
+      lossNoticeShown: false, justLost: false,
+    });
   });
 
   test('a first completion starts a streak of 1', () => {
-    const d = recordDailyResult('2026-06-18');
+    const d = recordStreakResult('2026-06-18');
     assert.equal(d.currentStreak, 1);
     assert.equal(d.bestStreak, 1);
     assert.equal(d.totalCompleted, 1);
@@ -179,39 +182,47 @@ describe('storage.recordDailyResult', () => {
   });
 
   test('completing the next calendar day continues the streak', () => {
-    recordDailyResult('2026-06-18');
-    const d = recordDailyResult('2026-06-19');
+    recordStreakResult('2026-06-18');
+    const d = recordStreakResult('2026-06-19');
     assert.equal(d.currentStreak, 2);
     assert.equal(d.bestStreak, 2);
   });
 
   test('skipping a day resets the streak to 1, but keeps bestStreak', () => {
-    recordDailyResult('2026-06-18');
-    recordDailyResult('2026-06-19');
-    const d = recordDailyResult('2026-06-25');
+    recordStreakResult('2026-06-18');
+    recordStreakResult('2026-06-19');
+    const d = recordStreakResult('2026-06-25');
     assert.equal(d.currentStreak, 1);
     assert.equal(d.bestStreak, 2);
   });
 
   test('replaying the same day again is idempotent (no double count)', () => {
-    recordDailyResult('2026-06-18');
-    const d = recordDailyResult('2026-06-18');
+    recordStreakResult('2026-06-18');
+    const d = recordStreakResult('2026-06-18');
     assert.equal(d.currentStreak, 1);
     assert.equal(d.totalCompleted, 1);
   });
 
-  test('loadDaily resets a stale streak once a day was skipped, without waiting for the next completion', () => {
-    recordDailyResult('2026-06-18'); // long in the past relative to any real "today" this test runs on
-    const d = loadDaily();
+  test('loadStreak resets a stale streak once a day was skipped, without waiting for the next completion', () => {
+    recordStreakResult('2026-06-18'); // long in the past relative to any real "today" this test runs on
+    const d = loadStreak();
     assert.equal(d.currentStreak, 0);
     assert.equal(d.bestStreak, 1);
     assert.equal(d.totalCompleted, 1);
     assert.equal(d.lastCompletedDate, '2026-06-18');
   });
 
-  test('loadDaily keeps a streak alive when the last completion was today', () => {
-    recordDailyResult(todayDateStr());
-    const d = loadDaily();
+  test('loadStreak flags justLost exactly once after a streak breaks', () => {
+    recordStreakResult('2026-06-18');
+    const first = loadStreak();
+    assert.equal(first.justLost, true);
+    const second = loadStreak();
+    assert.equal(second.justLost, false);
+  });
+
+  test('loadStreak keeps a streak alive when the last completion was today', () => {
+    recordStreakResult(todayDateStr());
+    const d = loadStreak();
     assert.equal(d.currentStreak, 1);
   });
 });
@@ -256,46 +267,59 @@ describe('storage.achievements', () => {
 describe('storage.race', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });
 
-  test('loadRace returns empty defaults when nothing is stored', () => {
-    assert.deepEqual(loadRace(), { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null });
+  const EMPTY_MODE = { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null };
+
+  test('loadRace returns empty defaults for both modes when nothing is stored', () => {
+    assert.deepEqual(loadRace(), { '1v1': EMPTY_MODE, '2v2': EMPTY_MODE });
   });
 
-  test('recordRaceWin increments played/won and sets fastestWinMs', () => {
-    const r = recordRaceWin(5000);
-    assert.equal(r.racesPlayed, 1);
-    assert.equal(r.racesWon, 1);
-    assert.equal(r.racesLost, 0);
-    assert.equal(r.fastestWinMs, 5000);
+  test('recordRaceWin increments played/won and sets fastestWinMs for the given mode', () => {
+    const r = recordRaceWin('1v1', 5000);
+    assert.equal(r['1v1'].racesPlayed, 1);
+    assert.equal(r['1v1'].racesWon, 1);
+    assert.equal(r['1v1'].racesLost, 0);
+    assert.equal(r['1v1'].fastestWinMs, 5000);
+    assert.deepEqual(r['2v2'], EMPTY_MODE);
     assert.deepEqual(loadRace(), r);
   });
 
   test('a faster win lowers fastestWinMs', () => {
-    recordRaceWin(9000);
-    const r = recordRaceWin(3000);
-    assert.equal(r.fastestWinMs, 3000);
-    assert.equal(r.racesPlayed, 2);
-    assert.equal(r.racesWon, 2);
+    recordRaceWin('1v1', 9000);
+    const r = recordRaceWin('1v1', 3000);
+    assert.equal(r['1v1'].fastestWinMs, 3000);
+    assert.equal(r['1v1'].racesPlayed, 2);
+    assert.equal(r['1v1'].racesWon, 2);
   });
 
   test('a slower win does not raise fastestWinMs', () => {
-    recordRaceWin(3000);
-    const r = recordRaceWin(9000);
-    assert.equal(r.fastestWinMs, 3000);
+    recordRaceWin('1v1', 3000);
+    const r = recordRaceWin('1v1', 9000);
+    assert.equal(r['1v1'].fastestWinMs, 3000);
   });
 
   test('recordRaceLoss increments played/lost and leaves fastestWinMs untouched', () => {
-    recordRaceWin(4000);
-    const r = recordRaceLoss();
-    assert.equal(r.racesPlayed, 2);
-    assert.equal(r.racesWon, 1);
-    assert.equal(r.racesLost, 1);
-    assert.equal(r.fastestWinMs, 4000);
+    recordRaceWin('1v1', 4000);
+    const r = recordRaceLoss('1v1');
+    assert.equal(r['1v1'].racesPlayed, 2);
+    assert.equal(r['1v1'].racesWon, 1);
+    assert.equal(r['1v1'].racesLost, 1);
+    assert.equal(r['1v1'].fastestWinMs, 4000);
   });
 
   test('recordRaceLoss without a prior win keeps fastestWinMs null', () => {
-    const r = recordRaceLoss();
-    assert.equal(r.racesPlayed, 1);
-    assert.equal(r.racesLost, 1);
-    assert.equal(r.fastestWinMs, null);
+    const r = recordRaceLoss('1v1');
+    assert.equal(r['1v1'].racesPlayed, 1);
+    assert.equal(r['1v1'].racesLost, 1);
+    assert.equal(r['1v1'].fastestWinMs, null);
+  });
+
+  test('1v1 and 2v2 stats are tracked independently', () => {
+    recordRaceWin('1v1', 5000);
+    recordRaceLoss('2v2');
+    const r = loadRace();
+    assert.equal(r['1v1'].racesWon, 1);
+    assert.equal(r['1v1'].racesLost, 0);
+    assert.equal(r['2v2'].racesWon, 0);
+    assert.equal(r['2v2'].racesLost, 1);
   });
 });

@@ -27,7 +27,7 @@ test.describe('settings', () => {
 
     await page.reload();
     await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
-    await expect(page.locator('.btn-primary .btn-tx b').first()).toHaveText('New game');
+    await expect(page.locator('.btn-primary .btn-tx b').first()).toHaveText('Solo mode');
   });
 
   // The 8 non-DE/EN locales are machine-translated (accepted as-is per product

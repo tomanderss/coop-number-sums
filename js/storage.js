@@ -3,7 +3,7 @@
 
 import { DEFAULT_SETTINGS } from './config.js';
 import { log, clearLog } from './debuglog.js';
-import { todayDateStr } from './daily.js';
+import { todayDateStr } from './streak.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -52,6 +52,10 @@ const EMPTY_STATS = {
   // verfälscht (und umgekehrt).
   coopPlayed: 0, coopWon: 0, coopLost: 0, coopGaveup: 0,
   coopCurrentStreak: 0, coopBestStreak: 0, coopTotalTimeMs: 0, coopHintsUsed: 0,
+  // Gesamtzähler perfekter Siege (0 Fehler, 0 Hinweise) — getrennt von der
+  // Bestzeit-Logik unten, da hier jeder perfekte Sieg zählt, nicht nur der
+  // schnellste je Schwierigkeit.
+  perfectWins: 0, coopPerfectWins: 0,
   // id -> { played, won, lost, gaveup, sumTimeMs, bestTimeMs,
   //         coopPlayed, coopWon, coopLost, coopGaveup, coopSumTimeMs, coopBestTimeMs }
   // Die coop*-Felder zählen ausschließlich Coop-Partien getrennt von den
@@ -92,11 +96,13 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
     if (coop) {
       s.coopWon++; s.coopCurrentStreak++; s.coopBestStreak = Math.max(s.coopBestStreak, s.coopCurrentStreak);
       s.coopTotalTimeMs += timeMs || 0;
+      if (perfect) s.coopPerfectWins++;
       d.coopWon++; d.coopSumTimeMs += timeMs || 0;
       if (perfect && (d.coopBestTimeMs == null || timeMs < d.coopBestTimeMs)) { d.coopBestTimeMs = timeMs; newHighscore = true; }
     } else {
       s.won++; s.currentStreak++; s.bestStreak = Math.max(s.bestStreak, s.currentStreak);
       s.totalTimeMs += timeMs || 0;
+      if (perfect) s.perfectWins++;
       d.won++; d.sumTimeMs += timeMs || 0;
       if (perfect && (d.bestTimeMs == null || timeMs < d.bestTimeMs)) { d.bestTimeMs = timeMs; newHighscore = true; }
     }
@@ -113,24 +119,34 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
 export function loadSeenVersion() { return load(KEYS.SEEN_VERSION, null); }
 export function saveSeenVersion(v) { save(KEYS.SEEN_VERSION, v); }
 
-// ─── Tagesrätsel-Streak ────────────────────────────────────────────────────────
-const EMPTY_DAILY = { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0 };
-function loadRawDaily() { return { ...EMPTY_DAILY, ...load(KEYS.DAILY, {}) }; }
+// ─── Tägliche Spiel-Streak ─────────────────────────────────────────────────────
+// KEYS.DAILY/"daily" (Name/Backup-Feld) bewusst unverändert gelassen, obwohl es
+// inzwischen jede Partie (Solo/Coop/Race, kein Trainingsmodus) zählt statt nur
+// das frühere Tagesrätsel — so bleiben bereits gespeicherte/exportierte Daten
+// kompatibel.
+const EMPTY_DAILY = { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0, lossNoticeShown: false };
+function loadRawStreak() { return { ...EMPTY_DAILY, ...load(KEYS.DAILY, {}) }; }
 
-// Ein Streak gilt nur als "noch lebendig", solange das letzte abgeschlossene
-// Tagesrätsel heute oder gestern war — wurde mindestens ein ganzer Kalendertag
-// ausgelassen, ist der Streak gerissen. recordDailyResult() würde das beim
-// nächsten Lösen zwar ohnehin korrekt auf 1 zurücksetzen, aber bis dahin zeigte
-// loadDaily() fälschlich noch den alten (bereits gerissenen) Streak an.
-export function loadDaily() {
-  const d = loadRawDaily();
+// Ein Streak gilt nur als "noch lebendig", solange die letzte gespielte Partie
+// heute oder gestern war — wurde mindestens ein ganzer Kalendertag ausgelassen,
+// ist der Streak gerissen. justLost wird genau einmal pro Riss true (per
+// lossNoticeShown persistiert), damit der Verlust-Hinweis beim App-Start nicht
+// bei jedem Öffnen erneut erscheint.
+export function loadStreak() {
+  const d = loadRawStreak();
   const today = todayDateStr();
+  let justLost = false;
   if (d.currentStreak > 0 && d.lastCompletedDate !== today && !isNextCalendarDay(d.lastCompletedDate, today)) {
     d.currentStreak = 0;
+    if (!d.lossNoticeShown) {
+      d.lossNoticeShown = true;
+      justLost = true;
+    }
+    saveStreak(d);
   }
-  return d;
+  return { ...d, justLost };
 }
-export function saveDaily(d) { save(KEYS.DAILY, d); }
+export function saveStreak(d) { save(KEYS.DAILY, d); }
 
 function isNextCalendarDay(prevDateStr, dateStr) {
   if (!prevDateStr) return false;
@@ -139,38 +155,54 @@ function isNextCalendarDay(prevDateStr, dateStr) {
   return Math.round((cur - prev) / 86400000) === 1;
 }
 
-// Wird nur bei einem GEWONNENEN Tagesrätsel aufgerufen. Idempotent: ein
-// erneutes Lösen desselben Tages (z.B. nach Neuladen der Seite) zählt den
-// Streak nicht doppelt. Nutzt bewusst den rohen, ungekürzten Stand statt
-// loadDaily() — hier ist dateStr die maßgebliche "Quelle der Wahrheit" für
-// den aktuellen Tag, nicht die echte Systemzeit.
-export function recordDailyResult(dateStr) {
-  const d = loadRawDaily();
+// Wird nach jeder abgeschlossenen Partie (Solo/Coop/Race, kein Trainingsmodus)
+// aufgerufen. Idempotent: mehrere Partien am selben Tag zählen den Streak nur
+// einmal. Nutzt bewusst den rohen, ungekürzten Stand statt loadStreak() — hier
+// ist dateStr die maßgebliche "Quelle der Wahrheit" für den aktuellen Tag, nicht
+// die echte Systemzeit.
+export function recordStreakResult(dateStr = todayDateStr()) {
+  const d = loadRawStreak();
   if (d.lastCompletedDate === dateStr) return d;
   d.currentStreak = isNextCalendarDay(d.lastCompletedDate, dateStr) ? d.currentStreak + 1 : 1;
   d.bestStreak = Math.max(d.bestStreak, d.currentStreak);
   d.lastCompletedDate = dateStr;
   d.totalCompleted++;
-  saveDaily(d);
+  d.lossNoticeShown = false;
+  saveStreak(d);
   return d;
 }
 
-// ─── Race-/Duell-Modus (1v1, einfacher Zähler ohne Periodenbindung) ──────────
-const EMPTY_RACE = { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null };
-export function loadRace() { return { ...EMPTY_RACE, ...load(KEYS.RACE, {}) }; }
+// ─── Race-/Duell-Modus (1v1 und 2v2, einfache Zähler ohne Periodenbindung) ───
+const EMPTY_RACE_MODE = { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null };
+const EMPTY_RACE = { '1v1': { ...EMPTY_RACE_MODE }, '2v2': { ...EMPTY_RACE_MODE } };
+
+// Ältere Speicherstände hatten eine flache Form ({racesPlayed,...} ohne
+// Modus-Aufteilung) — wird hier transparent als "1v1"-Daten übernommen, statt
+// beim Umstieg auf die Modus-Aufteilung verloren zu gehen.
+function migrateRace(loaded) {
+  if (loaded && typeof loaded.racesPlayed === 'number') {
+    return { '1v1': { ...EMPTY_RACE_MODE, ...loaded }, '2v2': { ...EMPTY_RACE_MODE } };
+  }
+  return {
+    '1v1': { ...EMPTY_RACE_MODE, ...(loaded?.['1v1'] || {}) },
+    '2v2': { ...EMPTY_RACE_MODE, ...(loaded?.['2v2'] || {}) },
+  };
+}
+export function loadRace() { return migrateRace(load(KEYS.RACE, {})); }
 export function saveRace(r) { save(KEYS.RACE, r); }
 
-export function recordRaceWin(timeMs) {
+export function recordRaceWin(mode, timeMs) {
   const r = loadRace();
-  r.racesPlayed++; r.racesWon++;
-  if (r.fastestWinMs == null || timeMs < r.fastestWinMs) r.fastestWinMs = timeMs;
+  const m = r[mode];
+  m.racesPlayed++; m.racesWon++;
+  if (m.fastestWinMs == null || timeMs < m.fastestWinMs) m.fastestWinMs = timeMs;
   saveRace(r);
   return r;
 }
 
-export function recordRaceLoss() {
+export function recordRaceLoss(mode) {
   const r = loadRace();
-  r.racesPlayed++; r.racesLost++;
+  r[mode].racesPlayed++; r[mode].racesLost++;
   saveRace(r);
   return r;
 }

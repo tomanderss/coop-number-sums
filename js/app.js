@@ -3,7 +3,7 @@ import { createApp, reactive, computed, watch, nextTick, onMounted } from './vue
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
-import { getDailyChallenge, todayDateStr } from './daily.js';
+import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
@@ -11,7 +11,7 @@ import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
-  exportToFile, importFromFile, deleteAllData, loadDaily, recordDailyResult,
+  exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
 } from './storage.js';
@@ -26,7 +26,8 @@ const state = reactive({
   screen: 'home',            // home | setup | game | settings | stats
   settings: loadSettings(),
   stats: loadStats(),
-  daily: loadDaily(),        // { lastCompletedDate, currentStreak, bestStreak, totalCompleted }
+  streak: loadStreak(),      // { lastCompletedDate, currentStreak, bestStreak, totalCompleted }
+  streakLostNotice: false,   // true, wenn beim Start ein Streak-Verlust angezeigt werden soll
   raceStats: loadRace(),     // { racesPlayed, racesWon, racesLost, fastestWinMs } — getrennt von state.race (laufendes Match)
   puzzleHistory: loadHistory(), // Ringpuffer gelöster Rätsel (neueste zuerst), siehe storage.js
   achievements: loadAchievements(), // { id: Freischalt-Zeitstempel }, siehe storage.js
@@ -34,8 +35,6 @@ const state = reactive({
 
   // Spiel
   puzzle: null,
-  isDailyGame: false,         // true, während das laufende Rätsel das Tagesrätsel ist
-  dailyDateStr: null,         // Kalendertag, für den das laufende Tagesrätsel generiert wurde
   isRaceGame: false,          // true, während ein Race-/Duell-Match (1v1) läuft
   isTrainingGame: false,      // true, während der Trainingsmodus (Schritt-für-Schritt-Erklärung) läuft
   trainingStep: null,         // aktuell erklärter Schritt { r, c, action, reason, group } oder null
@@ -162,6 +161,10 @@ function coopAvgTimeFor(diffId) {
   if (!d || !d.coopWon) return null;
   return d.coopSumTimeMs / d.coopWon;
 }
+function racePct(modeStats) {
+  if (!modeStats.racesPlayed) return 0;
+  return Math.round((modeStats.racesWon / modeStats.racesPlayed) * 100);
+}
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
   const tc = document.querySelector('meta[name="theme-color"]');
@@ -267,8 +270,6 @@ function buildCellMeta(puzzle) {
 // In einer aktiven Coop-Session (als Host) wird das neue Rätsel an den Partner
 // gesendet, statt dass dieser selbst eines wählen müsste — die Lobby bleibt erhalten.
 function newGame(diffId) {
-  state.isDailyGame = false;
-  state.dailyDateStr = null;
   state.isTrainingGame = false;
   state.generating = true;
   state.screen = 'game';
@@ -307,33 +308,6 @@ function goNextPuzzle() {
   }
 }
 
-// Tagesrätsel: deterministisch aus dem Kalendertag abgeleitet (gleicher Seed +
-// gleiche, auf sehrleicht/leicht/mittel begrenzte Schwierigkeit für alle
-// Spieler weltweit am selben Tag, siehe daily.js). Bewusst solo-only — kein
-// Coop-Pendant, das würde die Determinismus-Garantie unnötig verkomplizieren.
-function startDailyGame() {
-  const { dateStr, seed, difficulty } = getDailyChallenge();
-  state.isDailyGame = true;
-  state.dailyDateStr = dateStr;
-  state.isTrainingGame = false;
-  state.generating = true;
-  state.screen = 'game';
-  setTimeout(() => {
-    log('game', `Tagesrätsel-Generierung gestartet`, { dateStr, difficulty });
-    let puzzle;
-    try {
-      puzzle = generatePuzzle({ difficulty, seed });
-    } catch (e) {
-      log('game', `Tagesrätsel-Generierung fehlgeschlagen`, e);
-      throw e;
-    }
-    log('game', `Tagesrätsel generiert`, { dateStr, difficulty, rows: puzzle.rows, cols: puzzle.cols });
-    loadPuzzleIntoState(puzzle, null);
-    state.generating = false;
-    startTimer();
-  }, 30);
-}
-
 // Trainingsmodus: Schritt-für-Schritt-Erklärung erzwungener Züge (siehe
 // training.js). Das Rätsel wird GEZIELT so ausgewählt, dass es sich komplett
 // mit den einfachen, in Worten erklärbaren Tier-1-Schritten lösen lässt --
@@ -342,7 +316,6 @@ function startDailyGame() {
 const TRAINING_GEN_BUDGET = 40; // Versuche, bis ein voll Tier-1-lösbares Rätsel gefunden ist
 function startTrainingGame() {
   state.isTrainingGame = true;
-  state.isDailyGame = false; state.dailyDateStr = null;
   state.trainingStep = null;
   state.trainingDone = false;
   state.generating = true;
@@ -1169,11 +1142,22 @@ function checkAchievements() {
   const ctx = {
     outcome: state.status,
     perfect: (state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0,
+    mistakes: state.mistakes || 0,
+    hintsUsedGame: state.hintsUsed || 0,
     difficulty: state.puzzle?.difficulty,
     coop: state.coop.active,
+    isRace: state.isRaceGame,
+    isTeam: state.team.active,
+    timeMs: state.elapsed,
+    hour: new Date().getHours(),
     totalWon: (state.stats.won || 0) + (state.stats.coopWon || 0),
+    totalPlayed: (state.stats.played || 0) + (state.stats.coopPlayed || 0),
+    perfectWins: state.coop.active ? state.stats.coopPerfectWins : state.stats.perfectWins,
     currentStreak: state.coop.active ? state.stats.coopCurrentStreak : state.stats.currentStreak,
-    dailyStreak: state.daily.currentStreak,
+    coopWon: state.stats.coopWon || 0,
+    raceWon1v1: state.raceStats['1v1']?.racesWon || 0,
+    raceWon2v2: state.raceStats['2v2']?.racesWon || 0,
+    streak: state.streak.currentStreak,
     historyLength: state.puzzleHistory.length,
     wonAllDifficulties: DIFFICULTIES.every(d => (state.stats.byDifficulty[d.id]?.won || 0) > 0 || (state.stats.byDifficulty[d.id]?.coopWon || 0) > 0),
   };
@@ -1242,8 +1226,9 @@ function win(remote) {
     state.stats = stats;
     state.newHighscore = newHighscore;
   }
-  if (state.isDailyGame) state.daily = recordDailyResult(state.dailyDateStr);
-  if (state.isRaceGame) state.raceStats = recordRaceWin(state.elapsed);
+  if (!state.isTrainingGame) state.streak = recordStreakResult();
+  if (state.isRaceGame) state.raceStats = recordRaceWin('1v1', state.elapsed);
+  if (state.team.active) state.raceStats = recordRaceWin('2v2', state.elapsed);
   // Trainingsrätsel landen bewusst nicht im Verlauf/in den Achievements (siehe
   // oben) -- sie werden beliebig oft wiederholt und sollen den Ringpuffer bzw.
   // "perfektes Spiel"-artige Erfolge nicht verwässern.
@@ -1281,7 +1266,9 @@ function lose(remote) {
     });
     state.stats = stats;
   }
-  if (state.isRaceGame) state.raceStats = recordRaceLoss();
+  if (!state.isTrainingGame) state.streak = recordStreakResult();
+  if (state.isRaceGame) state.raceStats = recordRaceLoss('1v1');
+  if (state.team.active) state.raceStats = recordRaceLoss('2v2');
   if (!state.isTrainingGame) {
     state.puzzleHistory = recordHistory({
       difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
@@ -1317,7 +1304,9 @@ function giveUp(remote) {
     });
     state.stats = stats;
   }
-  if (state.isRaceGame) state.raceStats = recordRaceLoss();
+  if (!state.isTrainingGame) state.streak = recordStreakResult();
+  if (state.isRaceGame) state.raceStats = recordRaceLoss('1v1');
+  if (state.team.active) state.raceStats = recordRaceLoss('2v2');
   if (!state.isTrainingGame) state.puzzleHistory = recordHistory({
     difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
     seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
@@ -1392,7 +1381,6 @@ function activeSnapshot() {
     hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
     elapsed: state.elapsed, difficulty: state.puzzle.difficulty,
     hintMarks: collectHintMarks(),
-    isDailyGame: state.isDailyGame, dailyDateStr: state.dailyDateStr,
     ts: Date.now(),
   };
 }
@@ -1412,8 +1400,6 @@ function refreshResume() {
 function resumeGame() {
   const g = state.resumeAvailable;
   if (!g) return;
-  state.isDailyGame = !!g.isDailyGame;
-  state.dailyDateStr = g.dailyDateStr || null;
   navigate('game');
   loadPuzzleIntoState(g.puzzle, g);
   startTimer();
@@ -1478,7 +1464,7 @@ function resetStats() {
 function doDeleteAllData() {
   ask(t('settings.deleteAllConfirmTitle'), t('settings.deleteAllConfirmMsg'), () => {
     deleteAllData();
-    state.settings = loadSettings(); state.stats = loadStats(); state.daily = loadDaily(); state.puzzleHistory = loadHistory(); applyTheme(); applyLocale(); refreshResume();
+    state.settings = loadSettings(); state.stats = loadStats(); state.streak = loadStreak(); state.puzzleHistory = loadHistory(); applyTheme(); applyLocale(); refreshResume();
     showToast(t('settings.deleteAllDone'), 'success');
   });
 }
@@ -1520,7 +1506,6 @@ function historyCellStyle(r, c) {
 // spielbare Partie damit (kein zugweises Fortsetzen — ein neuer Versuch).
 function replayHistoryEntry(entry) {
   state.historyDetail = null;
-  state.isDailyGame = false; state.dailyDateStr = null;
   state.generating = true;
   state.screen = 'game';
   setTimeout(() => {
@@ -1545,11 +1530,6 @@ async function shareText(text) {
     catch (e) { log('app', 'Kopieren fehlgeschlagen', e); }
   }
 }
-function shareDailyResult() {
-  shareText(t('share.dailyResult', {
-    time: fmtTime(state.elapsed), streak: state.daily.currentStreak, url: location.origin + location.pathname,
-  }));
-}
 function shareCoopInvite() {
   shareText(t('share.coopInvite', { code: state.coop.code, url: location.origin + location.pathname }));
 }
@@ -1564,6 +1544,7 @@ function maybeShowWhatsNew() {
   if (seen !== BUILD && CHANGELOG.length) { state.showWhatsNew = true; }
 }
 function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD); }
+function dismissStreakLostNotice() { state.streakLostNotice = false; }
 
 // ─── APP-UPDATE (Service Worker) ──────────────────────────────────────────────
 // Hält den im "waiting" wartenden Worker, bis der Nutzer aktiv aktualisiert.
@@ -1588,6 +1569,7 @@ function init() {
   applyLocale();
   refreshResume();
   maybeShowWhatsNew();
+  if (state.streak.justLost) state.streakLostNotice = true;
   window.addEventListener('resize', computeCellSize);
   nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); });
 }
@@ -1661,8 +1643,6 @@ const App = {
     }));
     onMounted(init);
     const coopAvailable = computed(() => Coop.isAvailable());
-    const dailyInfo = computed(() => getDailyChallenge());
-    const dailyDoneToday = computed(() => state.daily.lastCompletedDate === dailyInfo.value.dateStr);
     // Die "fehlerfrei"-Formulierung gilt nur, wenn die jeweilige Seite tatsächlich
     // 0 Fehler hatte -- vorher war der Text unabhängig von state.mistakes/
     // state.race.opponentMistakes immer als "fehlerfrei" formuliert.
@@ -1675,21 +1655,22 @@ const App = {
       const key = r.opponentMistakes === 0 ? 'race.youLostClean' : 'race.youLostMistakes';
       return t(key, { myPct: r.myPct, oppPct: r.opponentPct });
     });
+    const achievementsUnlockedCount = computed(() => Object.keys(state.achievements).length);
 
     return {
-      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS,
+      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, coopPerformance, mvpId, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, newGame, goNextPuzzle, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
-      resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, loadBackups,
+      resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, loadBackups,
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool, restartFromGame,
-      startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, giveUp,
+      startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
-      startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite, raceResultMsg,
+      shareCoopInvite, raceResultMsg,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       t, i18nState, SUPPORTED_LOCALES,
@@ -1700,6 +1681,8 @@ const App = {
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
+      <button class="icon-btn home-howto-btn" @click="state.modal='howto'" :aria-label="t('home.howto')" :title="t('home.howto')">?</button>
+      <span v-if="state.streak.currentStreak>0" class="home-streak-badge">🔥{{ state.streak.currentStreak }}</span>
       <button class="icon-btn home-settings-btn" @click="navigate('settings')" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       <div class="brand">
         <img class="brand-logo" src="./icons/icon-192.png" alt="" />
@@ -1714,24 +1697,17 @@ const App = {
           </span>
         </button>
         <button class="btn btn-primary" @click="navigate('setup')">
-          <span class="btn-ic">➕</span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
+          <span class="btn-ic">🧩</span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
         <button class="btn btn-coop" :disabled="!coopAvailable" @click="goCoop">
           <span class="btn-ic">👥</span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
           <span v-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
         </button>
-        <button class="btn daily-btn" :class="dailyDoneToday ? 'btn-ghost' : 'btn-daily'" @click="startDailyGame">
-          <span class="btn-ic">📅</span>
-          <span class="btn-tx"><b>{{ t('home.dailyChallenge') }}</b><small>{{ dailyDoneToday ? t('home.dailyDone') : t('difficulty.'+dailyInfo.difficulty) }}</small></span>
-          <span v-if="state.daily.currentStreak>0" class="badge-soon">🔥{{ state.daily.currentStreak }}</span>
-        </button>
         <button class="btn btn-ghost race-btn" :disabled="!coopAvailable" @click="state.modal='raceChoice'">
           <span class="btn-ic">🆚</span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
-          <span v-if="state.raceStats.racesWon>0" class="badge-soon">🏁{{ state.raceStats.racesWon }}</span>
         </button>
         <div class="home-grid">
           <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> {{ t('home.stats') }}</button>
-          <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">❓</span> {{ t('home.howto') }}</button>
           <button class="btn btn-ghost" @click="navigate('history')"><span class="btn-ic">🕘</span> {{ t('home.history') }}</button>
         </div>
       </div>
@@ -1970,10 +1946,8 @@ const App = {
             <div class="perf-title">{{ t('race.matchResult') }}</div>
             <p class="result-msg">{{ raceResultMsg }}</p>
           </div>
-          <div v-if="state.isDailyGame" class="highscore-badge">{{ t('daily.streakBadge', { count: state.daily.currentStreak }) }}</div>
-          <button v-if="state.isDailyGame" class="btn btn-ghost" @click="shareDailyResult">📤 {{ t('share.button') }}</button>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && !state.isDailyGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
           <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('win.viewBoard') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -2064,20 +2038,39 @@ const App = {
             <div class="diff-sub-label">{{ t('stats.solo') }}</div>
             <div class="diff-row-sub">
               <span class="chip">🥇 {{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
-              <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
-              <span v-if="avgTimeFor(d.id)!=null" class="chip">⌀ {{ fmtTime(avgTimeFor(d.id)) }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-              <span v-if="state.stats.byDifficulty[d.id]?.gaveup" class="chip">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}<span class="chip-label">{{ t('stats.gaveupLabel') }}</span></span>
-              <span v-if="state.stats.byDifficulty[d.id]?.lost" class="chip">💔 {{ state.stats.byDifficulty[d.id].lost }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
+              <span class="chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              <span class="chip">⌀ {{ avgTimeFor(d.id)!=null ? fmtTime(avgTimeFor(d.id)) : '-:--' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
+              <span class="chip">🏳 {{ (state.stats.byDifficulty[d.id]?.gaveup)||0 }}<span class="chip-label">{{ t('stats.gaveupLabel') }}</span></span>
+              <span class="chip">💔 {{ (state.stats.byDifficulty[d.id]?.lost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
             </div>
           </div>
           <div class="diff-sub">
             <div class="diff-sub-label coop">{{ t('stats.coop') }}</div>
             <div class="diff-row-sub">
               <span class="chip coop-chip">🥇 {{ (state.stats.byDifficulty[d.id]?.coopWon)||0 }} / {{ (state.stats.byDifficulty[d.id]?.coopPlayed)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
-              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="chip coop-chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
-              <span v-if="coopAvgTimeFor(d.id)!=null" class="chip coop-chip">⌀ {{ fmtTime(coopAvgTimeFor(d.id)) }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-              <span v-if="state.stats.byDifficulty[d.id]?.coopGaveup" class="chip coop-chip">🏳 {{ state.stats.byDifficulty[d.id].coopGaveup }}<span class="chip-label">{{ t('stats.gaveupLabel') }}</span></span>
-              <span v-if="state.stats.byDifficulty[d.id]?.coopLost" class="chip coop-chip">💔 {{ state.stats.byDifficulty[d.id].coopLost }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
+              <span class="chip coop-chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              <span class="chip coop-chip">⌀ {{ coopAvgTimeFor(d.id)!=null ? fmtTime(coopAvgTimeFor(d.id)) : '-:--' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
+              <span class="chip coop-chip">🏳 {{ (state.stats.byDifficulty[d.id]?.coopGaveup)||0 }}<span class="chip-label">{{ t('stats.gaveupLabel') }}</span></span>
+              <span class="chip coop-chip">💔 {{ (state.stats.byDifficulty[d.id]?.coopLost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="stats-section-title">{{ t('stats.raceSection') }}</div>
+        <div class="diff-row">
+          <div class="diff-sub">
+            <div class="diff-sub-label">{{ t('stats.race1v1') }}</div>
+            <div class="diff-row-sub">
+              <span class="chip">🥇 {{ state.raceStats['1v1'].racesWon }} / {{ state.raceStats['1v1'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+              <span class="chip">📈 {{ racePct(state.raceStats['1v1']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
+              <span class="chip best-time-chip">🏆 {{ state.raceStats['1v1'].fastestWinMs!=null ? fmtTime(state.raceStats['1v1'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+            </div>
+          </div>
+          <div class="diff-sub">
+            <div class="diff-sub-label coop">{{ t('stats.race2v2') }}</div>
+            <div class="diff-row-sub">
+              <span class="chip coop-chip">🥇 {{ state.raceStats['2v2'].racesWon }} / {{ state.raceStats['2v2'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+              <span class="chip coop-chip">📈 {{ racePct(state.raceStats['2v2']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
+              <span class="chip coop-chip best-time-chip">🏆 {{ state.raceStats['2v2'].fastestWinMs!=null ? fmtTime(state.raceStats['2v2'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
             </div>
           </div>
         </div>
@@ -2090,6 +2083,10 @@ const App = {
     <section v-else-if="state.screen==='achievements'" class="screen achievements">
       <header class="topbar"><button class="icon-btn" @click="navigate('stats')">‹</button><h2>{{ t('achievements.title') }}</h2><span></span></header>
       <div class="achievements-body">
+        <div class="achievements-progress">
+          <span class="achievements-progress-label">{{ t('achievements.progress', { unlocked: achievementsUnlockedCount, total: ACHIEVEMENTS.length }) }}</span>
+          <div class="progress-bar"><span class="progress-bar-fill" :style="{ width: (achievementsUnlockedCount / ACHIEVEMENTS.length * 100) + '%' }"></span></div>
+        </div>
         <div v-for="a in ACHIEVEMENTS" :key="a.id" class="achievement-row" :class="{ unlocked: !!state.achievements[a.id] }">
           <span class="achievement-icon">{{ state.achievements[a.id] ? a.icon : '🔒' }}</span>
           <div class="achievement-text">
@@ -2308,7 +2305,7 @@ const App = {
         </label>
         <button class="btn btn-ghost" @click="openBackups">{{ t('settings.autoBackups') }}</button>
         <button class="btn btn-ghost" @click="doExportLog">{{ t('settings.exportLog') }}</button>
-        <button class="btn btn-ghost" @click="state.modal='changelog'">📝 {{ t('settings.changelog') }}</button>
+        <button class="btn btn-ghost" @click="state.modal='changelog'">{{ t('settings.changelog') }}</button>
         <a class="btn btn-ghost" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
         <a class="btn btn-ghost" href="./imprint.html" target="_blank" rel="noopener">{{ t('settings.imprint') }}</a>
         <button class="btn btn-danger-ghost" @click="doDeleteAllData">{{ t('settings.deleteAllData') }}</button>
@@ -2432,6 +2429,15 @@ const App = {
       </div>
     </div>
 
+    <div v-if="state.streakLostNotice" class="modal-bg">
+      <div class="modal">
+        <div class="whatsnew-badge">{{ t('streak.lostBadge') }}</div>
+        <h3>{{ t('streak.lostTitle') }}</h3>
+        <p class="confirm-msg">{{ t('streak.lostBody', { best: state.streak.bestStreak }) }}</p>
+        <button class="btn btn-primary" @click="dismissStreakLostNotice">{{ t('common.ok') }}</button>
+      </div>
+    </div>
+
     <div v-if="state.updateReady" class="modal-bg">
       <div class="modal">
         <div class="whatsnew-badge">{{ t('update.badge') }}</div>
@@ -2514,9 +2520,8 @@ app.mount('#app');
 // Debug-Hook nur lokal (nie auf der echten Domain aktiv). handleCoopMsg ist
 // hier zusätzlich exponiert, damit E2E-Tests einen Team-vs-Team-TEAM_DONE
 // vom "Gegner-Team" simulieren können, ohne einen echten zweiten Firebase-
-// Client zu brauchen (gleiches Muster wie getDailyChallenge für die
-// Tagesrätsel-Coop-Tests).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, getDailyChallenge, handleCoopMsg };
+// Client zu brauchen.
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg };
 
 nextTick(() => {
   const splash = document.getElementById('splash');
