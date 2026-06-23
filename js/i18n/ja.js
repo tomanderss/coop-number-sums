@@ -30,8 +30,6 @@ export default {
     dailyDone: '本日クリア済み ✓',
     raceMode: 'レースモード',
     raceHint: '1対1の対戦レース',
-    bossChallenge: 'ボスパズル',
-    bossDone: '今週は挑戦済み',
     history: '履歴',
     trainingMode: 'トレーニングモード',
     trainingHint: 'ステップごとに学ぶ',
@@ -217,10 +215,6 @@ export default {
   daily: {
     streakBadge: '🔥 {count}日連続',
   },
-  boss: {
-    streakBadge: '🔥 {count}週連続',
-    tryAgainNextWeek: '来週またチャレンジしよう',
-  },
   training: {
     apply: '適用',
     another: '別の例',
@@ -252,8 +246,6 @@ export default {
     streak10: { title: '止まらない', desc: '10連勝する。' },
     dailyWeek: { title: '週間ルーティン', desc: 'デイリーチャレンジを7日連続クリア。' },
     dailyMonth: { title: '月間チャンピオン', desc: 'デイリーチャレンジを30日連続クリア。' },
-    bossFirstWin: { title: 'ボス撃破', desc: 'ボスチャレンジに初めて勝利する。' },
-    bossStreak3: { title: 'ボスハンター', desc: 'ボスチャレンジを3週連続クリア。' },
     coopFirstWin: { title: 'チームデビュー', desc: 'コープモードでパズルに勝利する。' },
     historyFull: { title: '記録魔', desc: '履歴に20件集める。' },
   },

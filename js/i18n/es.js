@@ -30,8 +30,6 @@ export default {
     dailyDone: 'Resuelto hoy ✓',
     raceMode: 'Modo carrera',
     raceHint: 'Duelo 1 contra 1',
-    bossChallenge: 'Desafío del jefe',
-    bossDone: 'Ya intentado esta semana',
     history: 'Historial',
     trainingMode: 'Modo entrenamiento',
     trainingHint: 'Aprende paso a paso',
@@ -217,10 +215,6 @@ export default {
   daily: {
     streakBadge: '🔥 Racha de {count} días',
   },
-  boss: {
-    streakBadge: '🔥 Racha de {count} semanas',
-    tryAgainNextWeek: 'Inténtalo de nuevo la próxima semana',
-  },
   training: {
     apply: 'Aplicar',
     another: 'Otro ejemplo',
@@ -252,8 +246,6 @@ export default {
     streak10: { title: 'Imparable', desc: 'Gana 10 rompecabezas seguidos.' },
     dailyWeek: { title: 'Ritual semanal', desc: 'Racha de 7 días en el reto diario.' },
     dailyMonth: { title: 'Campeón mensual', desc: 'Racha de 30 días en el reto diario.' },
-    bossFirstWin: { title: 'Jefe derrotado', desc: 'Gana el reto jefe por primera vez.' },
-    bossStreak3: { title: 'Cazador de jefes', desc: 'Racha de 3 semanas en el reto jefe.' },
     coopFirstWin: { title: 'Debut en equipo', desc: 'Gana un rompecabezas en modo cooperativo.' },
     historyFull: { title: 'Bien documentado', desc: 'Acumula 20 entradas en tu historial.' },
   },

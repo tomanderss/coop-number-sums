@@ -30,8 +30,6 @@ export default {
     dailyDone: 'Resolvido hoje ✓',
     raceMode: 'Modo corrida',
     raceHint: 'Duelo 1 contra 1',
-    bossChallenge: 'Desafio do chefão',
-    bossDone: 'Já tentado esta semana',
     history: 'Histórico',
     trainingMode: 'Modo de treinamento',
     trainingHint: 'Aprenda passo a passo',
@@ -217,10 +215,6 @@ export default {
   daily: {
     streakBadge: '🔥 Sequência de {count} dias',
   },
-  boss: {
-    streakBadge: '🔥 Sequência de {count} semanas',
-    tryAgainNextWeek: 'Tente novamente na próxima semana',
-  },
   training: {
     apply: 'Aplicar',
     another: 'Outro exemplo',
@@ -252,8 +246,6 @@ export default {
     streak10: { title: 'Imparável', desc: 'Vença 10 quebra-cabeças seguidos.' },
     dailyWeek: { title: 'Ritual semanal', desc: 'Sequência de 7 dias no desafio diário.' },
     dailyMonth: { title: 'Campeão do mês', desc: 'Sequência de 30 dias no desafio diário.' },
-    bossFirstWin: { title: 'Chefe derrotado', desc: 'Vença o desafio chefe pela primeira vez.' },
-    bossStreak3: { title: 'Caçador de chefes', desc: 'Sequência de 3 semanas no desafio chefe.' },
     coopFirstWin: { title: 'Debute em equipe', desc: 'Vença um quebra-cabeça no modo cooperativo.' },
     historyFull: { title: 'Bem documentado', desc: 'Acumule 20 entradas no histórico.' },
   },

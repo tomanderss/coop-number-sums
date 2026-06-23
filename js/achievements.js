@@ -14,8 +14,6 @@ export const ACHIEVEMENTS = [
   { id: 'streak10', icon: '🔥', check: (ctx) => ctx.currentStreak >= 10 },
   { id: 'dailyWeek', icon: '📅', check: (ctx) => ctx.dailyStreak >= 7 },
   { id: 'dailyMonth', icon: '📆', check: (ctx) => ctx.dailyStreak >= 30 },
-  { id: 'bossFirstWin', icon: '👹', check: (ctx) => ctx.bossWin },
-  { id: 'bossStreak3', icon: '👑', check: (ctx) => ctx.bossStreak >= 3 },
   { id: 'coopFirstWin', icon: '👥', check: (ctx) => ctx.outcome === 'won' && ctx.coop },
   { id: 'historyFull', icon: '🕘', check: (ctx) => ctx.historyLength >= 20 },
 ];

@@ -12,7 +12,6 @@ const KEYS = {
   BACKUP_SLOT: 'cns_bk_slot',
   SEEN_VERSION: 'cns_seen_version',
   DAILY: 'cns_daily',
-  BOSS: 'cns_boss',
   HISTORY: 'cns_history',
   ACHIEVEMENTS: 'cns_achievements',
   RACE: 'cns_race',
@@ -140,37 +139,6 @@ function isNextCalendarDay(prevDateStr, dateStr) {
   return Math.round((cur - prev) / 86400000) === 1;
 }
 
-// ─── Boss-Rätsel-Streak (wöchentlich, ein Versuch pro ISO-Kalenderwoche) ──────
-const EMPTY_BOSS = { lastAttemptedWeek: null, lastCompletedWeek: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0 };
-export function loadBoss() { return { ...EMPTY_BOSS, ...load(KEYS.BOSS, {}) }; }
-export function saveBoss(b) { save(KEYS.BOSS, b); }
-
-// Nur bei einem GEWONNENEN Boss-Rätsel aufrufen. Idempotent wie
-// recordDailyResult: ein erneutes Laden derselben Woche (z.B. nach Reload)
-// zählt den Streak nicht doppelt.
-export function recordBossWin(weekStr) {
-  const b = loadBoss();
-  b.lastAttemptedWeek = weekStr;
-  if (b.lastCompletedWeek === weekStr) return b;
-  b.currentStreak++;
-  b.bestStreak = Math.max(b.bestStreak, b.currentStreak);
-  b.lastCompletedWeek = weekStr;
-  b.totalCompleted++;
-  saveBoss(b);
-  return b;
-}
-
-// Bricht die Streak SOFORT (abweichend vom Tagesrätsel-Muster, das nur bei
-// einer Kalenderlücke zurücksetzt) — verstärkt bewusst den
-// Sudden-Death-Charakter des Boss-Formats.
-export function recordBossLoss(weekStr) {
-  const b = loadBoss();
-  b.lastAttemptedWeek = weekStr;
-  b.currentStreak = 0;
-  saveBoss(b);
-  return b;
-}
-
 // Wird nur bei einem GEWONNENEN Tagesrätsel aufgerufen. Idempotent: ein
 // erneutes Lösen desselben Tages (z.B. nach Neuladen der Seite) zählt den
 // Streak nicht doppelt. Nutzt bewusst den rohen, ungekürzten Stand statt
@@ -245,7 +213,6 @@ export function createBackup(label = 'auto') {
       activeGame: load(KEYS.ACTIVE_GAME, null),
       stats: load(KEYS.STATS, {}),
       daily: load(KEYS.DAILY, {}),
-      boss: load(KEYS.BOSS, {}),
       history: load(KEYS.HISTORY, []),
       achievements: load(KEYS.ACHIEVEMENTS, {}),
       race: load(KEYS.RACE, {}),
@@ -274,7 +241,6 @@ export function restoreBackup(slotIdx) {
     if (data.settings) save(KEYS.SETTINGS, data.settings);
     if (data.stats) save(KEYS.STATS, data.stats);
     if (data.daily) save(KEYS.DAILY, data.daily);
-    if (data.boss) save(KEYS.BOSS, data.boss);
     if (data.history) save(KEYS.HISTORY, data.history);
     if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
     if (data.race) save(KEYS.RACE, data.race);
@@ -296,7 +262,6 @@ export async function exportToFile(type = 'manual') {
     activeGame: load(KEYS.ACTIVE_GAME, null),
     stats: load(KEYS.STATS, {}),
     daily: load(KEYS.DAILY, {}),
-    boss: load(KEYS.BOSS, {}),
     history: load(KEYS.HISTORY, []),
     achievements: load(KEYS.ACHIEVEMENTS, {}),
     race: load(KEYS.RACE, {}),
@@ -321,7 +286,6 @@ export function importFromFile(jsonText) {
   if (data.settings) save(KEYS.SETTINGS, data.settings);
   if (data.stats) save(KEYS.STATS, data.stats);
   if (data.daily) save(KEYS.DAILY, data.daily);
-  if (data.boss) save(KEYS.BOSS, data.boss);
   if (data.history) save(KEYS.HISTORY, data.history);
   if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
   if (data.race) save(KEYS.RACE, data.race);
@@ -337,7 +301,6 @@ export function deleteAllData() {
   remove(KEYS.SEEN_VERSION);
   remove(KEYS.BACKUP_SLOT);
   remove(KEYS.DAILY);
-  remove(KEYS.BOSS);
   remove(KEYS.HISTORY);
   remove(KEYS.ACHIEVEMENTS);
   remove(KEYS.RACE);
