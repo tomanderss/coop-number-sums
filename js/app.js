@@ -176,6 +176,11 @@ function applyLocale() {
 function navigate(screen) {
   state.screen = screen;
   if (screen === 'game') startTimer(); else stopTimer();
+  // overflow-anchor:none allein verhinderte nicht jeden Fall eines mittig
+  // startenden Screens (z.B. wenn ein Banner erst nach dem ersten Layout
+  // einklappt) -- expliziter Scroll-Reset nach dem Render macht "oben
+  // starten" unabhängig vom genauen Lade-Timing einzelner Inhalte.
+  nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); });
 }
 
 // ─── TIMER ────────────────────────────────────────────────────────────────────
@@ -796,6 +801,9 @@ function handleCoopMsg(msg) {
     if (!state.race.active || state.race.matchOver) return;
     state.race.matchOver = true;
     state.race.winner = msg.outcome === 'won' ? 'opponent' : 'me';
+    state.race.opponentPct = msg.finalPct ?? state.race.opponentPct;
+    state.race.opponentMistakes = msg.finalMistakes ?? state.race.opponentMistakes;
+    state.race.myPct = progressPct();
     if (state.status === 'playing') {
       const remote = { timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed };
       if (state.race.winner === 'me') win(remote);
@@ -893,12 +901,14 @@ function goCoop() {
   navigate('coop');
 }
 // Einstieg über den Race-/Duell-Home-Button -- identisches Namens-Gate, aber
-// mit gesetztem raceMode-Flag, das in der Lobby den Team-Toggle ausblendet und
-// die Spielerzahl der Lobby auf 2 begrenzt (siehe startJoining()).
-function goRace() {
+// mit gesetztem raceMode- oder teamMode-Flag je gewähltem Modus (1v1 oder
+// 2v2), das die Spielerzahl der Lobby entsprechend begrenzt (siehe startJoining()).
+function goRace(mode) {
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
-  state.coop.raceMode = true;
+  state.coop.raceMode = mode !== '2v2';
+  state.coop.teamMode = mode === '2v2';
+  state.modal = null;
   navigate('coop');
 }
 
@@ -954,9 +964,10 @@ function startHosting() {
       log('game', `Mitspieler in Lobby beigetreten (Coop)`, { id });
     },
     onLeave(id) {
+      const leavingName = state.coop.players.find(p => p.id === id)?.name || t('common.defaultPlayerName');
       removePlayer(id);
       broadcastRoster();
-      if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected'), 'info', 3000);
+      if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
     },
     onMessage: handleCoopMsg,
   });
@@ -1126,16 +1137,20 @@ function startJoining() {
       // bis zu COOP_MAX_PLAYERS Spielern auch ein Host-Wechsel mitten in der
       // Warte-Lobby den Raum nicht verwaisen lässt.
       const wasHost = !state.coop.hostId || id === state.coop.hostId;
+      const leavingName = state.coop.players.find(p => p.id === id)?.name || t('common.defaultPlayerName');
       removePlayer(id);
-      if (!wasHost) return;
+      if (!wasHost) {
+        showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
+        return;
+      }
       if (state.coop.players.length <= 1) {
         // Niemand außer mir selbst übrig — keine Übernahme nötig.
-        showToast(t('coop.hostDisconnected'), 'info', 3000);
+        showToast(t('coop.hostDisconnected', { name: leavingName }), 'info', 3000);
         return;
       }
       const newHostId = pickNewHostId();
       if (newHostId === state.coop.myId) {
-        showToast(t('coop.hostDisconnectedPromoting'), 'info', 3000);
+        showToast(t('coop.hostDisconnectedPromoting', { name: leavingName }), 'info', 3000);
         promoteToHost();
       } else {
         state.coop.hostId = newHostId;
@@ -1191,7 +1206,7 @@ function broadcastRaceDone(outcome) {
   state.race.matchOver = true;
   state.race.winner = outcome === 'won' ? 'me' : 'opponent';
   state.race.myPct = progressPct();
-  Coop.send({ type: Coop.MSG.RACE_DONE, from: state.coop.myId, outcome });
+  Coop.send({ type: Coop.MSG.RACE_DONE, from: state.coop.myId, outcome, finalPct: state.race.myPct, finalMistakes: state.mistakes });
 }
 
 function win(remote) {
@@ -1574,6 +1589,7 @@ function init() {
   refreshResume();
   maybeShowWhatsNew();
   window.addEventListener('resize', computeCellSize);
+  nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1647,6 +1663,18 @@ const App = {
     const coopAvailable = computed(() => Coop.isAvailable());
     const dailyInfo = computed(() => getDailyChallenge());
     const dailyDoneToday = computed(() => state.daily.lastCompletedDate === dailyInfo.value.dateStr);
+    // Die "fehlerfrei"-Formulierung gilt nur, wenn die jeweilige Seite tatsächlich
+    // 0 Fehler hatte -- vorher war der Text unabhängig von state.mistakes/
+    // state.race.opponentMistakes immer als "fehlerfrei" formuliert.
+    const raceResultMsg = computed(() => {
+      const r = state.race;
+      if (r.winner === 'me') {
+        const key = state.mistakes === 0 ? 'race.youWonClean' : 'race.youWonMistakes';
+        return t(key, { myPct: r.myPct, oppPct: r.opponentPct });
+      }
+      const key = r.opponentMistakes === 0 ? 'race.youLostClean' : 'race.youLostMistakes';
+      return t(key, { myPct: r.myPct, oppPct: r.opponentPct });
+    });
 
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS,
@@ -1661,7 +1689,7 @@ const App = {
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
-      startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
+      startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite, raceResultMsg,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       t, i18nState, SUPPORTED_LOCALES,
@@ -1672,6 +1700,7 @@ const App = {
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
+      <button class="icon-btn home-settings-btn" @click="navigate('settings')" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       <div class="brand">
         <img class="brand-logo" src="./icons/icon-192.png" alt="" />
         <h1 class="brand-title">Coop<br>Number Sums</h1>
@@ -1696,19 +1725,13 @@ const App = {
           <span class="btn-tx"><b>{{ t('home.dailyChallenge') }}</b><small>{{ dailyDoneToday ? t('home.dailyDone') : t('difficulty.'+dailyInfo.difficulty) }}</small></span>
           <span v-if="state.daily.currentStreak>0" class="badge-soon">🔥{{ state.daily.currentStreak }}</span>
         </button>
-        <button class="btn btn-ghost race-btn" :disabled="!coopAvailable" @click="goRace">
+        <button class="btn btn-ghost race-btn" :disabled="!coopAvailable" @click="state.modal='raceChoice'">
           <span class="btn-ic">🆚</span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
           <span v-if="state.raceStats.racesWon>0" class="badge-soon">🏁{{ state.raceStats.racesWon }}</span>
         </button>
-        <button class="btn training-btn btn-ghost" @click="startTrainingGame">
-          <span class="btn-ic">🎓</span>
-          <span class="btn-tx"><b>{{ t('home.trainingMode') }}</b><small>{{ t('home.trainingHint') }}</small></span>
-        </button>
         <div class="home-grid">
           <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> {{ t('home.stats') }}</button>
-          <button class="btn btn-ghost" @click="navigate('settings')"><span class="btn-ic">⚙️</span> {{ t('home.settings') }}</button>
           <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">❓</span> {{ t('home.howto') }}</button>
-          <button class="btn btn-ghost" @click="state.modal='changelog'"><span class="btn-ic">📝</span> {{ t('home.changelog') }}</button>
           <button class="btn btn-ghost" @click="navigate('history')"><span class="btn-ic">🕘</span> {{ t('home.history') }}</button>
         </div>
       </div>
@@ -1743,7 +1766,7 @@ const App = {
       <header class="topbar game-top">
         <button class="icon-btn" @click="quitToHome">‹</button>
         <div class="hud">
-          <div class="hud-item lives" v-if="state.settings.livesEnabled && !state.isRaceGame">
+          <div class="hud-item lives" v-if="state.settings.livesEnabled">
             <span v-for="(full,i) in livesArr" :key="i" class="heart" :class="{empty:!full}">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
               <i v-if="!full && state.coop.active && lifeLossColor(i)" class="heart-strike" :style="{background: lifeLossColor(i)}"></i>
@@ -1945,7 +1968,7 @@ const App = {
           </div>
           <div v-if="state.race.active" class="team-result">
             <div class="perf-title">{{ t('race.matchResult') }}</div>
-            <p class="result-msg">{{ t(state.race.winner==='me' ? 'race.youWon' : 'race.youLost', { myPct: state.race.myPct, oppPct: state.race.opponentPct }) }}</p>
+            <p class="result-msg">{{ raceResultMsg }}</p>
           </div>
           <div v-if="state.isDailyGame" class="highscore-badge">{{ t('daily.streakBadge', { count: state.daily.currentStreak }) }}</div>
           <button v-if="state.isDailyGame" class="btn btn-ghost" @click="shareDailyResult">📤 {{ t('share.button') }}</button>
@@ -1965,7 +1988,7 @@ const App = {
           </template>
           <template v-else-if="state.race.active">
             <h2>{{ t('race.matchResult') }}</h2>
-            <p class="result-msg">{{ t(state.race.winner==='me' ? 'race.youWon' : 'race.youLost', { myPct: state.race.myPct, oppPct: state.race.opponentPct }) }}</p>
+            <p class="result-msg">{{ raceResultMsg }}</p>
           </template>
           <template v-else>
             <h2>{{ t('loss.title') }}</h2>
@@ -2001,7 +2024,7 @@ const App = {
             <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
           </template>
           <template v-else-if="state.race.active">
-            <p class="result-msg">{{ t(state.race.winner==='me' ? 'race.youWon' : 'race.youLost', { myPct: state.race.myPct, oppPct: state.race.opponentPct }) }}</p>
+            <p class="result-msg">{{ raceResultMsg }}</p>
           </template>
           <template v-else>
             <p class="result-msg">{{ t('loss.msg') }}</p>
@@ -2040,21 +2063,21 @@ const App = {
           <div class="diff-sub">
             <div class="diff-sub-label">{{ t('stats.solo') }}</div>
             <div class="diff-row-sub">
-              <span class="chip">{{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
-              <span v-if="avgTimeFor(d.id)!=null" class="chip">⌀ {{ fmtTime(avgTimeFor(d.id)) }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.gaveup" class="chip">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.lost" class="chip">💔 {{ state.stats.byDifficulty[d.id].lost }}</span>
+              <span class="chip">🥇 {{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+              <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              <span v-if="avgTimeFor(d.id)!=null" class="chip">⌀ {{ fmtTime(avgTimeFor(d.id)) }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
+              <span v-if="state.stats.byDifficulty[d.id]?.gaveup" class="chip">🏳 {{ state.stats.byDifficulty[d.id].gaveup }}<span class="chip-label">{{ t('stats.gaveupLabel') }}</span></span>
+              <span v-if="state.stats.byDifficulty[d.id]?.lost" class="chip">💔 {{ state.stats.byDifficulty[d.id].lost }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
             </div>
           </div>
           <div class="diff-sub">
             <div class="diff-sub-label coop">{{ t('stats.coop') }}</div>
             <div class="diff-row-sub">
-              <span class="chip coop-chip">{{ (state.stats.byDifficulty[d.id]?.coopWon)||0 }} / {{ (state.stats.byDifficulty[d.id]?.coopPlayed)||0 }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="chip coop-chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
-              <span v-if="coopAvgTimeFor(d.id)!=null" class="chip coop-chip">⌀ {{ fmtTime(coopAvgTimeFor(d.id)) }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.coopGaveup" class="chip coop-chip">🏳 {{ state.stats.byDifficulty[d.id].coopGaveup }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.coopLost" class="chip coop-chip">💔 {{ state.stats.byDifficulty[d.id].coopLost }}</span>
+              <span class="chip coop-chip">🥇 {{ (state.stats.byDifficulty[d.id]?.coopWon)||0 }} / {{ (state.stats.byDifficulty[d.id]?.coopPlayed)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="chip coop-chip best-time-chip">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              <span v-if="coopAvgTimeFor(d.id)!=null" class="chip coop-chip">⌀ {{ fmtTime(coopAvgTimeFor(d.id)) }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
+              <span v-if="state.stats.byDifficulty[d.id]?.coopGaveup" class="chip coop-chip">🏳 {{ state.stats.byDifficulty[d.id].coopGaveup }}<span class="chip-label">{{ t('stats.gaveupLabel') }}</span></span>
+              <span v-if="state.stats.byDifficulty[d.id]?.coopLost" class="chip coop-chip">💔 {{ state.stats.byDifficulty[d.id].coopLost }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
             </div>
           </div>
         </div>
@@ -2152,9 +2175,6 @@ const App = {
               <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
               <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
             </button>
-          </div>
-          <div v-if="!state.coop.raceMode" class="set-row" @click="state.coop.teamMode=!state.coop.teamMode">
-            <span>{{ t('team.toggleLabel') }}</span><span class="switch" :class="{on:state.coop.teamMode}"><i></i></span>
           </div>
           <button class="btn btn-primary" @click="startHosting">{{ t('coop.startHosting') }}</button>
         </template>
@@ -2288,6 +2308,7 @@ const App = {
         </label>
         <button class="btn btn-ghost" @click="openBackups">{{ t('settings.autoBackups') }}</button>
         <button class="btn btn-ghost" @click="doExportLog">{{ t('settings.exportLog') }}</button>
+        <button class="btn btn-ghost" @click="state.modal='changelog'">📝 {{ t('settings.changelog') }}</button>
         <a class="btn btn-ghost" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
         <a class="btn btn-ghost" href="./imprint.html" target="_blank" rel="noopener">{{ t('settings.imprint') }}</a>
         <button class="btn btn-danger-ghost" @click="doDeleteAllData">{{ t('settings.deleteAllData') }}</button>
@@ -2318,7 +2339,25 @@ const App = {
           <li v-if="!state.coop.active && state.settings.errorReveal==='onCheck'" v-html="t('howto.rule8OnCheck')"></li>
           <li v-html="t('howto.rule9')"></li>
         </ol>
+        <button class="btn btn-ghost training-btn" @click="state.modal=null; startTrainingGame()">
+          <span class="btn-ic">🎓</span>
+          <span class="btn-tx"><b>{{ t('home.trainingMode') }}</b><small>{{ t('home.trainingHint') }}</small></span>
+        </button>
         <button class="btn btn-primary" @click="state.modal=null">{{ t('howto.understood') }}</button>
+      </div>
+    </div>
+
+    <div v-if="state.modal==='raceChoice'" class="modal-bg" @click.self="state.modal=null">
+      <div class="modal">
+        <h3>{{ t('home.raceMode') }}</h3>
+        <p class="coop-tagline">{{ t('race.choiceHint') }}</p>
+        <button class="btn btn-primary" @click="goRace('1v1')">
+          <span class="btn-ic">🆚</span><span class="btn-tx"><b>{{ t('race.choice1v1') }}</b><small>{{ t('home.raceHint') }}</small></span>
+        </button>
+        <button class="btn btn-ghost" @click="goRace('2v2')">
+          <span class="btn-ic">👥</span><span class="btn-tx"><b>{{ t('race.choice2v2') }}</b><small>{{ t('team.assignHint') }}</small></span>
+        </button>
+        <button class="btn btn-ghost" style="margin-top:8px" @click="state.modal=null">{{ t('common.cancel') }}</button>
       </div>
     </div>
 

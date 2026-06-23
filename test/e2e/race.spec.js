@@ -11,6 +11,7 @@ test.describe('race mode', () => {
   async function goToRaceHostChoice(page) {
     await gotoApp(page);
     await page.locator('.race-btn').click();
+    await page.locator('.modal-bg .btn-primary').click(); // "1 vs 1" choice
     await page.waitForSelector('.screen.coop-screen');
     await page.locator('.coop-body .text-input').fill('Tom');
     await page.locator('.coop-body .btn-primary').click(); // confirm identity

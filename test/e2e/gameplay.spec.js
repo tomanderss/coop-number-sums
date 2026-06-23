@@ -14,7 +14,7 @@ test.describe('gameplay', () => {
     await expect(page.locator('.screen.home')).toBeVisible();
 
     await page.locator('.home-grid .btn-ghost').nth(0).click();
-    await expect(page.locator('.diff-row').first().locator('.chip').first()).toHaveText('1 / 1');
+    await expect(page.locator('.diff-row').first().locator('.chip').first()).toContainText('1 / 1');
   });
 
   test('three deliberate mistakes (lives enabled) trigger the loss screen', async ({ page }) => {

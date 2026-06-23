@@ -27,7 +27,7 @@ test.describe('home screen', () => {
 
   test('navigates to settings and back to home', async ({ page }) => {
     await gotoApp(page);
-    await page.locator('.home-grid .btn-ghost').nth(1).click();
+    await page.locator('.home-settings-btn').click();
     await expect(page.locator('.screen.settings')).toBeVisible();
     await page.locator('.screen.settings .icon-btn').click();
     await expect(page.locator('.screen.home')).toBeVisible();
@@ -35,15 +35,17 @@ test.describe('home screen', () => {
 
   test('opens and closes the how-to modal', async ({ page }) => {
     await gotoApp(page);
-    await page.locator('.home-grid .btn-ghost').nth(2).click();
+    await page.locator('.home-grid .btn-ghost').nth(1).click();
     await expect(page.locator('.modal .rules')).toBeVisible();
     await page.locator('.modal .btn-primary').click();
     await expect(page.locator('.modal-bg')).toHaveCount(0);
   });
 
-  test('opens and closes the changelog modal', async ({ page }) => {
+  test('opens and closes the changelog modal from settings', async ({ page }) => {
     await gotoApp(page);
-    await page.locator('.home-grid .btn-ghost').nth(3).click();
+    await page.locator('.home-settings-btn').click();
+    await expect(page.locator('.screen.settings')).toBeVisible();
+    await page.locator('.screen.settings button:has-text("Changelog")').click();
     await expect(page.locator('.modal-bg .changelog')).toBeVisible();
     await page.locator('.modal-bg .btn-primary').click();
     await expect(page.locator('.modal-bg')).toHaveCount(0);
