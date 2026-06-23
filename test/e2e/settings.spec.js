@@ -17,6 +17,22 @@ test.describe('settings', () => {
     expect(isOnAfterReload).toBe(!wasOn);
   });
 
+  test('colorblind mode toggle applies a global CSS class and persists across reload', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-settings-btn').click();
+    const row = page.locator('.set-row', { hasText: '🎨' });
+    await expect(row).toBeVisible();
+    const isColorblind = () => page.evaluate(() => document.documentElement.classList.contains('colorblind'));
+    expect(await isColorblind()).toBe(false);
+
+    await row.locator('.switch').click();
+    await expect.poll(isColorblind).toBe(true);
+
+    await page.reload();
+    await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
+    expect(await isColorblind()).toBe(true);
+  });
+
   test('switching language updates UI text immediately and persists', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();

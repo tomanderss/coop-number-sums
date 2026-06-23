@@ -167,6 +167,7 @@ function racePct(modeStats) {
 }
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
+  document.documentElement.classList.toggle('colorblind', state.settings.colorBlindMode);
   const tc = document.querySelector('meta[name="theme-color"]');
   if (tc) tc.setAttribute('content', state.settings.darkMode ? '#0b1020' : '#eef2f9');
 }
@@ -1424,7 +1425,7 @@ function launchConfetti() {
 // ─── EINSTELLUNGEN ────────────────────────────────────────────────────────────
 function toggleSetting(key) {
   state.settings[key] = !state.settings[key];
-  if (key === 'darkMode') applyTheme();
+  if (key === 'darkMode' || key === 'colorBlindMode') applyTheme();
 }
 function setSetting(key, val) {
   state.settings[key] = val;

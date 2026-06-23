@@ -20,6 +20,20 @@
   --warn: #d97706;
   --shadow: rgba(20,30,60,.14);
 }
+/* Farbenblind-Modus: ersetzt überall im Spiel das Grün/Rot-Paar (richtig/falsch,
+   Hinweis/Fehler, Leben, Toasts, ...) durch ein Blau/Orange-Paar (Okabe-Ito-
+   Palette) — das einzige Farbpaar, das für alle gängigen Formen von Farbenblindheit
+   (Rot-Grün wie Blau-Gelb) zuverlässig unterscheidbar bleibt. Eigene Helligkeits-
+   Stufen je Theme, damit der Kontrast wie beim Original erhalten bleibt.
+   Höhere Spezifität als die [data-theme]-Regeln oben, Reihenfolge ist egal. */
+:root[data-theme="dark"].colorblind {
+  --good: #56B4E9; --good-soft: rgba(86,180,233,.20);
+  --bad: #E69F00; --bad-soft: rgba(230,159,0,.22);
+}
+:root[data-theme="light"].colorblind {
+  --good: #0072B2; --good-soft: rgba(0,114,178,.16);
+  --bad: #D55E00; --bad-soft: rgba(213,94,0,.14);
+}
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #rotate-fix { margin: 0; height: 100%; }

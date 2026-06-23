@@ -104,7 +104,10 @@ export const DEFAULT_SETTINGS = {
   coopMyColor: '#3b82f6',    // eigene Spielerfarbe im Coop-Modus (Default: Blau)
   coopRemovedOutline: true,  // farbige Umrandung an gelöschten Zellen, die zeigt, wer sie gelöscht hat (rein optisch)
   language: null,           // UI-Sprache; null = noch nicht erkannt/gewählt -> Auto-Detect via navigator.language
-  colorBlindMode: false,    // farbenblind-sichere Coop-Spielerpalette (COOP_COLORS_CB) statt der Standardpalette
+  colorBlindMode: false,    // farbenblind-freundlicher Modus, global: ersetzt Grün/Rot
+                            // (richtig/falsch, Hinweis/Fehler, Leben, Toasts, ...) durch
+                            // Blau/Orange (css/styles.css) UND nutzt COOP_COLORS_CB statt
+                            // COOP_COLORS für die Coop-Spielerpalette.
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)
