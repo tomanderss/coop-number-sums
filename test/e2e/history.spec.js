@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, startNewGame, solveActivePuzzle } from './helpers.js';
 
-// The history button is appended after stats/settings/howto/changelog in the
-// home-grid (see js/app.js) so existing nth-index-based tests for those four
-// buttons keep working untouched.
-const historyBtn = (page) => page.locator('.home-grid .btn-ghost').nth(4);
+// home-grid now only holds stats/howto/history (settings moved to a top-right
+// gear icon, changelog moved into settings) — see js/app.js.
+const historyBtn = (page) => page.locator('.home-grid .btn-ghost').nth(2);
 
 test.describe('history', () => {
   test('shows an empty state before any puzzle has been solved', async ({ page }) => {

@@ -9,9 +9,13 @@ import { gotoApp } from './helpers.js';
 // machine, which we drive directly via window.__cns (state + the exposed
 // handleCoopMsg) to simulate messages a real opposing-team client would send.
 test.describe('team vs team', () => {
+  // Team-vs-Team is now only reachable through the unified Race entry point
+  // (home -> "Race-Modus" -> "2 gegen 2" choice), not via a separate in-lobby
+  // toggle on the plain Coop screen.
   async function goToCoopHostChoice(page) {
     await gotoApp(page);
-    await page.locator('.btn-coop').click();
+    await page.locator('.race-btn').click();
+    await page.locator('.modal-bg .btn-ghost').first().click(); // "2 vs 2" choice
     await page.waitForSelector('.screen.coop-screen');
     await page.locator('.coop-body .text-input').fill('Tom');
     await page.locator('.coop-body .btn-primary').click(); // confirm identity
@@ -42,11 +46,11 @@ test.describe('team vs team', () => {
     });
   }
 
-  test('the team toggle is visible on the host setup screen', async ({ page }) => {
+  test('choosing 2v2 from the race menu starts a team host lobby directly, without a separate toggle', async ({ page }) => {
     await goToCoopHostChoice(page);
     await page.locator('.coop-input').fill('123456');
-    await expect(page.locator('.coop-body .set-row')).toBeVisible();
-    await expect(page.locator('.coop-body .set-row')).toContainText('Team');
+    expect(await page.evaluate(() => window.__cns.state.coop.teamMode)).toBe(true);
+    await expect(page.locator('.coop-body .set-row')).toHaveCount(0);
   });
 
   test('hosted team lobby shows a team-assignable roster that gates the start button', async ({ page }) => {

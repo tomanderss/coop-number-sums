@@ -4,7 +4,7 @@ import { gotoApp } from './helpers.js';
 test.describe('settings', () => {
   test('dark mode toggle persists across reload', async ({ page }) => {
     await gotoApp(page);
-    await page.locator('.home-grid .btn-ghost').nth(1).click();
+    await page.locator('.home-settings-btn').click();
     const switchEl = page.locator('.set-row .switch').first();
     const wasOn = await switchEl.evaluate(el => el.classList.contains('on'));
     await switchEl.click();
@@ -12,14 +12,14 @@ test.describe('settings', () => {
 
     await page.reload();
     await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
-    await page.locator('.home-grid .btn-ghost').nth(1).click();
+    await page.locator('.home-settings-btn').click();
     const isOnAfterReload = await page.locator('.set-row .switch').first().evaluate(el => el.classList.contains('on'));
     expect(isOnAfterReload).toBe(!wasOn);
   });
 
   test('switching language updates UI text immediately and persists', async ({ page }) => {
     await gotoApp(page);
-    await page.locator('.home-grid .btn-ghost').nth(1).click();
+    await page.locator('.home-settings-btn').click();
     await expect(page.locator('h2')).toHaveText('Einstellungen');
 
     await page.locator('select.text-input').selectOption('en');
@@ -41,7 +41,7 @@ test.describe('settings', () => {
       page.on('pageerror', e => pageErrors.push(e.message));
 
       await gotoApp(page);
-      await page.locator('.home-grid .btn-ghost').nth(1).click();
+      await page.locator('.home-settings-btn').click();
       await page.locator('select.text-input').selectOption(locale);
       await page.locator('.screen.settings .icon-btn').click();
       await expect(page.locator('.screen.home')).toBeVisible();

@@ -1,8 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp } from './helpers.js';
 
-// .training-btn is a stable hook independent of any class toggling.
-const trainingBtn = (page) => page.locator('.home-actions > .training-btn');
+// Training mode now starts from inside the how-to modal (home-grid -> "?").
+// .training-btn is a stable hook independent of any other class toggling.
+async function openHowtoModal(page) {
+  await page.locator('.home-grid .btn-ghost').nth(1).click();
+  await expect(page.locator('.modal .rules')).toBeVisible();
+}
+const trainingBtn = (page) => page.locator('.modal .training-btn');
 
 // Clicks the training banner's "apply" button repeatedly until the puzzle is
 // solved (each click applies exactly one logically forced step). The
@@ -26,6 +31,7 @@ async function applyAllTrainingSteps(page) {
 test.describe('training mode', () => {
   test('starts a puzzle that is fully explainable via forced steps', async ({ page }) => {
     await gotoApp(page);
+    await openHowtoModal(page);
     await expect(trainingBtn(page)).toBeVisible();
     await trainingBtn(page).click();
     await page.waitForSelector('.screen.game');
@@ -40,6 +46,7 @@ test.describe('training mode', () => {
     await gotoApp(page);
     const statsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('cns_stats') || 'null'));
 
+    await openHowtoModal(page);
     await trainingBtn(page).click();
     await page.waitForSelector('.screen.game');
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
@@ -55,6 +62,7 @@ test.describe('training mode', () => {
 
   test('the win screen offers another training example instead of "next puzzle"', async ({ page }) => {
     await gotoApp(page);
+    await openHowtoModal(page);
     await trainingBtn(page).click();
     await page.waitForSelector('.screen.game');
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
@@ -69,6 +77,7 @@ test.describe('training mode', () => {
 
   test('cell taps are ignored while a forced step is pending', async ({ page }) => {
     await gotoApp(page);
+    await openHowtoModal(page);
     await trainingBtn(page).click();
     await page.waitForSelector('.screen.game');
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);

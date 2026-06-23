@@ -1,8 +1,22 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.75';
-export const BUILD_HASH = '4e8bc84';
+export const BUILD      = '0.76';
+export const BUILD_HASH = '703e666';
 
 export const CHANGELOG = [
+  {
+    "version": "0.76",
+    "date": "23.06.2026",
+    "changes": [
+      "Statistik-Karten zeigen jetzt Wortbeschriftungen statt nur Symbole, Solo- und Coop-Werte als eigene Karten",
+      "Startbildschirm überarbeitet: Einstellungen wandern auf ein Zahnrad oben rechts, Trainingsmodus startet jetzt aus der Anleitung, Team-vs-Team ist Teil des Race-Modus (1v1/2v2-Auswahl), Changelog liegt jetzt in den Einstellungen",
+      "Fix: Startbildschirm scrollt beim Öffnen immer ganz nach oben",
+      "Fix: Race-Modus zeigt nach einer Niederlage die korrekte Prozentzahl und erklärt in Worten, dass der Gegner schneller war",
+      "Fix: \"fehlerfrei\"-Texte im Race-Modus berücksichtigen jetzt die tatsächliche Fehleranzahl beider Spieler",
+      "Fix: Fortschrittsbalken im Race-Modus beginnen und enden unabhängig vom Namen an derselben Position",
+      "Fix: Verlassen-Meldungen in der Lobby nennen jetzt den Namen, genau wie Beitreten-Meldungen",
+      "Fix: eigene Leben werden im Race-Modus wieder angezeigt"
+    ]
+  },
   {
     "version": "0.75",
     "date": "23.06.2026",
