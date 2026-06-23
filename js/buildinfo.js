@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.79';
-export const BUILD_HASH = '4077c75';
+export const BUILD      = '0.80';
+export const BUILD_HASH = '5e8a470';
 
 export const CHANGELOG = [
+  {
+    "version": "0.80",
+    "date": "23.06.2026",
+    "changes": [
+      "Bugfix: Cage-Farben konnten bei dichten Rätseln zweimal exakt identisch nebeneinander liegen (Cage-Grenzen unsichtbar)",
+      "Bugfix: Im Race-Modus zogen Fehler keine Leben mehr ab — Herzen werden nun wie gewohnt verloren",
+      "Bugfix: Pause im Race-Modus pausierte nur lokal — jetzt pausiert/synchronisiert sie beide Spieler"
+    ]
+  },
   {
     "version": "0.79",
     "date": "23.06.2026",

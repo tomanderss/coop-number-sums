@@ -247,13 +247,17 @@ function colorRegions(regions, idGrid, rows, cols) {
       if (usage[col] < bestU) { bestU = usage[col]; best = col; }
     }
     if (best === -1) { // all colors too similar — relax and just avoid exact match
+      banned.clear(); // banned war vom Schwellenwert-Durchlauf bereits voll (sonst wären wir
+                       // nie hier) -- ohne dieses clear() bleiben alle 10 Farben weiterhin
+                       // "verboten" und best fällt unten ungeprüft auf 0 zurück, was exakt zur
+                       // gemeldeten Farbkollision führte
       for (const nb of adj[i]) if (nb < i) banned.add(regions[nb].colorIndex);
-      best = 0; bestU = Infinity;
+      best = -1; bestU = Infinity;
       for (let col = 0; col < REGION_COLORS.length; col++) {
         if (banned.has(col)) continue;
         if (usage[col] < bestU) { bestU = usage[col]; best = col; }
       }
-      if (best === -1) best = 0;
+      if (best === -1) best = 0; // nur falls wirklich alle 10 Farben exakt von Nachbarn belegt sind
     }
     regions[i].colorIndex = best; usage[best]++;
   }

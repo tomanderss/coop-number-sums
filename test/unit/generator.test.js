@@ -105,6 +105,40 @@ describe('generator.generatePuzzle', () => {
   });
 });
 
+describe('generator cage colors', () => {
+  test('no two orthogonally/diagonally adjacent cages share the exact same color, across many seeds', () => {
+    // Regression: colorRegions()' "all colors too similar" relax fallback used
+    // to reuse an already-fully-banned Set without clearing it, which silently
+    // fell through to a hardcoded colorIndex 0 regardless of whether a neighbor
+    // already used it -- a guaranteed literal collision whenever a neighbor's
+    // colorIndex was 0. Run across many seeds/difficulties so any future
+    // regression in colorRegions() is caught even if a single seed wouldn't
+    // happen to trigger the relax branch.
+    for (const diff of DIFFICULTIES) {
+      for (let seed = 0; seed < 25; seed++) {
+        const puzzle = generatePuzzle({ difficulty: diff.id, seed });
+        const idGrid = Array.from({ length: puzzle.rows }, () => new Array(puzzle.cols).fill(-1));
+        for (const reg of puzzle.regions) for (const [r, c] of reg.cells) idGrid[r][c] = reg.id;
+        for (let r = 0; r < puzzle.rows; r++) {
+          for (let c = 0; c < puzzle.cols; c++) {
+            const a = idGrid[r][c];
+            for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+              const nr = r + dr, nc = c + dc;
+              if (nr < 0 || nr >= puzzle.rows || nc < 0 || nc >= puzzle.cols) continue;
+              const b = idGrid[nr][nc];
+              if (b === a) continue;
+              assert.notEqual(
+                puzzle.regions[a].colorIndex, puzzle.regions[b].colorIndex,
+                `${diff.id} seed ${seed}: adjacent cages ${a} and ${b} share colorIndex ${puzzle.regions[a].colorIndex}`,
+              );
+            }
+          }
+        }
+      }
+    }
+  });
+});
+
 describe('generator.findHintCell', () => {
   test('returns null when the board is fully and correctly marked', () => {
     const puzzle = generatePuzzle({ difficulty: 'sehrleicht', seed: 11 });

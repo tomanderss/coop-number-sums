@@ -208,14 +208,23 @@ function pauseGame(broadcast = true, remoteElapsed) {
   state.paused = true;
   state.elapsed = remoteElapsed != null ? remoteElapsed : Date.now() - state.startTime; // einfrieren
   stopTimer();
-  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
+  if (broadcast) {
+    // Race: state.coop.active bleibt absichtlich false (siehe state.race-Kommentar),
+    // coopSend() wäre hier also ein No-op -- analog zum MSG.START-Versand direkt
+    // über Coop.send(), damit der Gegner trotzdem mitpausiert/-startet wird.
+    if (state.race.active) Coop.send({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
+    else if (state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
+  }
 }
 function resumeFromPause(broadcast = true) {
   if (!state.paused) return;
   state.paused = false;
   state.startTime = Date.now() - state.elapsed; // Zeit fortsetzen
   startTimer();
-  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: false });
+  if (broadcast) {
+    if (state.race.active) Coop.send({ type: Coop.MSG.PAUSE, paused: false });
+    else if (state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: false });
+  }
 }
 
 // ─── COOP-LOBBY: "Bereit?" vor dem eigentlichen Start ─────────────────────────
@@ -546,7 +555,7 @@ function registerMistake() {
   state.mistakes++;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + 1;
   if (state.coop.active) coopSend({ type: Coop.MSG.MISTAKE, by, n: 1 });
-  if (!state.isRaceGame && state.settings.livesEnabled) {
+  if (state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
     showBestTimeNotice(t('game.lifeLostNotice'));
@@ -560,7 +569,7 @@ function registerMistake() {
 function applyRemoteMistake(by, n) {
   state.mistakes += n;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + n;
-  if (!state.isRaceGame && state.settings.livesEnabled) {
+  if (state.settings.livesEnabled) {
     for (let i = 0; i < n; i++) {
       state.lives--;
       state.coop.lifeLossBy.push(by);
@@ -640,7 +649,7 @@ function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = tr
   wrong.forEach(([r, c]) => flashError(r, c));
   state.mistakes += wrong.length;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + wrong.length;
-  if (!state.isRaceGame && state.settings.livesEnabled) {
+  if (state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
     showBestTimeNotice(t('game.lifeLostNotice'));
