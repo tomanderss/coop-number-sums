@@ -30,8 +30,6 @@ export default {
     dailyDone: 'Solved today ✓',
     raceMode: 'Race mode',
     raceHint: '1-vs-1 head-to-head race',
-    bossChallenge: 'Boss challenge',
-    bossDone: 'Already attempted this week',
     history: 'History',
     trainingMode: 'Training mode',
     trainingHint: 'Learn step by step',
@@ -217,10 +215,6 @@ export default {
   daily: {
     streakBadge: '🔥 {count} day streak',
   },
-  boss: {
-    streakBadge: '🔥 {count} week streak',
-    tryAgainNextWeek: 'Try again next week',
-  },
   training: {
     apply: 'Apply',
     another: 'Another example',
@@ -252,8 +246,6 @@ export default {
     streak10: { title: 'Unstoppable', desc: 'Win 10 puzzles in a row.' },
     dailyWeek: { title: 'Weekly ritual', desc: '7-day daily challenge streak.' },
     dailyMonth: { title: 'Monthly champion', desc: '30-day daily challenge streak.' },
-    bossFirstWin: { title: 'Boss defeated', desc: 'Win the boss challenge for the first time.' },
-    bossStreak3: { title: 'Boss slayer', desc: '3-week boss challenge streak.' },
     coopFirstWin: { title: 'Team debut', desc: 'Win a puzzle in co-op mode.' },
     historyFull: { title: 'Well documented', desc: 'Collect 20 entries in your history.' },
   },

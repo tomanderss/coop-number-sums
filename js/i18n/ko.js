@@ -30,8 +30,6 @@ export default {
     dailyDone: '오늘 해결 완료 ✓',
     raceMode: '레이스 모드',
     raceHint: '1대1 대결 레이스',
-    bossChallenge: '보스 퍼즐',
-    bossDone: '이번 주 이미 시도함',
     history: '기록',
     trainingMode: '트레이닝 모드',
     trainingHint: '단계별로 배우기',
@@ -217,10 +215,6 @@ export default {
   daily: {
     streakBadge: '🔥 {count}일 연속',
   },
-  boss: {
-    streakBadge: '🔥 {count}주 연속',
-    tryAgainNextWeek: '다음 주에 다시 시도하세요',
-  },
   training: {
     apply: '적용',
     another: '다른 예제',
@@ -252,8 +246,6 @@ export default {
     streak10: { title: '멈출 수 없음', desc: '10연승을 달성했습니다.' },
     dailyWeek: { title: '주간 루틴', desc: '데일리 챌린지 7일 연속 달성.' },
     dailyMonth: { title: '월간 챔피언', desc: '데일리 챌린지 30일 연속 달성.' },
-    bossFirstWin: { title: '보스 격파', desc: '보스 챌린지에서 처음으로 승리했습니다.' },
-    bossStreak3: { title: '보스 헌터', desc: '보스 챌린지 3주 연속 승리.' },
     coopFirstWin: { title: '팀 데뷔', desc: '코업 모드에서 퍼즐을 승리했습니다.' },
     historyFull: { title: '기록의 달인', desc: '기록에 20개 항목을 모았습니다.' },
   },

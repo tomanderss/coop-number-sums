@@ -30,8 +30,6 @@ export default {
     dailyDone: 'Сегодня решено ✓',
     raceMode: 'Режим гонки',
     raceHint: 'Дуэль 1 на 1',
-    bossChallenge: 'Босс-головоломка',
-    bossDone: 'Уже пройдено на этой неделе',
     history: 'История',
     trainingMode: 'Режим обучения',
     trainingHint: 'Учись шаг за шагом',
@@ -217,10 +215,6 @@ export default {
   daily: {
     streakBadge: '🔥 Серия {count} дней',
   },
-  boss: {
-    streakBadge: '🔥 Серия {count} недель',
-    tryAgainNextWeek: 'Попробуйте снова на следующей неделе',
-  },
   training: {
     apply: 'Применить',
     another: 'Другой пример',
@@ -252,8 +246,6 @@ export default {
     streak10: { title: 'Неудержимый', desc: 'Победи 10 раз подряд.' },
     dailyWeek: { title: 'Недельный ритуал', desc: '7 дней подряд в ежедневном задании.' },
     dailyMonth: { title: 'Чемпион месяца', desc: '30 дней подряд в ежедневном задании.' },
-    bossFirstWin: { title: 'Босс побеждён', desc: 'Победи в боссе впервые.' },
-    bossStreak3: { title: 'Охотник на боссов', desc: '3 недели подряд побед в боссе.' },
     coopFirstWin: { title: 'Командный дебют', desc: 'Победи в головоломке в кооперативном режиме.' },
     historyFull: { title: 'Хорошо документировано', desc: 'Собери 20 записей в истории.' },
   },

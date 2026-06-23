@@ -30,8 +30,6 @@ export default {
     dailyDone: 'Bugün çözüldü ✓',
     raceMode: 'Yarış Modu',
     raceHint: "1'e 1 düello yarışı",
-    bossChallenge: 'Patron bulmacası',
-    bossDone: 'Bu hafta zaten denendi',
     history: 'Geçmiş',
     trainingMode: 'Eğitim modu',
     trainingHint: 'Adım adım öğren',
@@ -217,10 +215,6 @@ export default {
   daily: {
     streakBadge: '🔥 {count} günlük seri',
   },
-  boss: {
-    streakBadge: '🔥 {count} haftalık seri',
-    tryAgainNextWeek: 'Gelecek hafta tekrar deneyin',
-  },
   training: {
     apply: 'Uygula',
     another: 'Başka bir örnek',
@@ -252,8 +246,6 @@ export default {
     streak10: { title: 'Durdurulamaz', desc: 'Üst üste 10 bulmaca kazan.' },
     dailyWeek: { title: 'Haftalık ritüel', desc: 'Günlük meydan okumada 7 günlük seri.' },
     dailyMonth: { title: 'Ayın şampiyonu', desc: 'Günlük meydan okumada 30 günlük seri.' },
-    bossFirstWin: { title: 'Boss yenildi', desc: 'Boss mücadelesini ilk kez kazan.' },
-    bossStreak3: { title: 'Boss avcısı', desc: 'Boss mücadelesinde 3 haftalık seri.' },
     coopFirstWin: { title: 'Takım debütü', desc: 'Co-op modunda bir bulmaca kazan.' },
     historyFull: { title: 'İyi belgelenmiş', desc: 'Geçmişte 20 kayıt topla.' },
   },

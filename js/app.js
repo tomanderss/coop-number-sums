@@ -4,7 +4,6 @@ import { BUILD, CHANGELOG } from './buildinfo.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
 import { getDailyChallenge, todayDateStr } from './daily.js';
-import { getBossChallenge } from './boss.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
@@ -13,7 +12,7 @@ import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
   exportToFile, importFromFile, deleteAllData, loadDaily, recordDailyResult,
-  loadBoss, recordBossWin, recordBossLoss, loadHistory, recordHistory,
+  loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
 } from './storage.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -28,7 +27,6 @@ const state = reactive({
   settings: loadSettings(),
   stats: loadStats(),
   daily: loadDaily(),        // { lastCompletedDate, currentStreak, bestStreak, totalCompleted }
-  boss: loadBoss(),          // { lastAttemptedWeek, lastCompletedWeek, currentStreak, bestStreak, totalCompleted }
   raceStats: loadRace(),     // { racesPlayed, racesWon, racesLost, fastestWinMs } — getrennt von state.race (laufendes Match)
   puzzleHistory: loadHistory(), // Ringpuffer gelöster Rätsel (neueste zuerst), siehe storage.js
   achievements: loadAchievements(), // { id: Freischalt-Zeitstempel }, siehe storage.js
@@ -38,8 +36,6 @@ const state = reactive({
   puzzle: null,
   isDailyGame: false,         // true, während das laufende Rätsel das Tagesrätsel ist
   dailyDateStr: null,         // Kalendertag, für den das laufende Tagesrätsel generiert wurde
-  isBossGame: false,          // true, während das laufende Rätsel das wöchentliche Boss-Rätsel ist
-  bossWeekStr: null,          // ISO-Kalenderwoche, für die das laufende Boss-Rätsel generiert wurde
   isRaceGame: false,          // true, während ein Race-/Duell-Match (1v1) läuft
   isTrainingGame: false,      // true, während der Trainingsmodus (Schritt-für-Schritt-Erklärung) läuft
   trainingStep: null,         // aktuell erklärter Schritt { r, c, action, reason, group } oder null
@@ -268,8 +264,6 @@ function buildCellMeta(puzzle) {
 function newGame(diffId) {
   state.isDailyGame = false;
   state.dailyDateStr = null;
-  state.isBossGame = false;
-  state.bossWeekStr = null;
   state.isTrainingGame = false;
   state.generating = true;
   state.screen = 'game';
@@ -316,8 +310,6 @@ function startDailyGame() {
   const { dateStr, seed, difficulty } = getDailyChallenge();
   state.isDailyGame = true;
   state.dailyDateStr = dateStr;
-  state.isBossGame = false;
-  state.bossWeekStr = null;
   state.isTrainingGame = false;
   state.generating = true;
   state.screen = 'game';
@@ -337,35 +329,6 @@ function startDailyGame() {
   }, 30);
 }
 
-// Boss-Rätsel: wöchentlich rotierendes Sudden-Death-Format (siehe boss.js) — genau
-// ein Versuch pro ISO-Kalenderwoche, erzwungenes einzelnes Leben (siehe
-// loadPuzzleIntoState), kein Retry bei Niederlage (siehe Verlust-Screen-Template).
-// Solo-only aus demselben Grund wie das Tagesrätsel.
-function startBossGame() {
-  const { weekStr, seed, difficulty } = getBossChallenge();
-  state.isBossGame = true;
-  state.bossWeekStr = weekStr;
-  state.isDailyGame = false;
-  state.dailyDateStr = null;
-  state.isTrainingGame = false;
-  state.generating = true;
-  state.screen = 'game';
-  setTimeout(() => {
-    log('game', `Boss-Rätsel-Generierung gestartet`, { weekStr, difficulty });
-    let puzzle;
-    try {
-      puzzle = generatePuzzle({ difficulty, seed });
-    } catch (e) {
-      log('game', `Boss-Rätsel-Generierung fehlgeschlagen`, e);
-      throw e;
-    }
-    log('game', `Boss-Rätsel generiert`, { weekStr, difficulty, rows: puzzle.rows, cols: puzzle.cols });
-    loadPuzzleIntoState(puzzle, null);
-    state.generating = false;
-    startTimer();
-  }, 30);
-}
-
 // Trainingsmodus: Schritt-für-Schritt-Erklärung erzwungener Züge (siehe
 // training.js). Das Rätsel wird GEZIELT so ausgewählt, dass es sich komplett
 // mit den einfachen, in Worten erklärbaren Tier-1-Schritten lösen lässt --
@@ -375,7 +338,6 @@ const TRAINING_GEN_BUDGET = 40; // Versuche, bis ein voll Tier-1-lösbares Räts
 function startTrainingGame() {
   state.isTrainingGame = true;
   state.isDailyGame = false; state.dailyDateStr = null;
-  state.isBossGame = false; state.bossWeekStr = null;
   state.trainingStep = null;
   state.trainingDone = false;
   state.generating = true;
@@ -416,8 +378,8 @@ function loadPuzzleIntoState(puzzle, saved) {
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
   state.marks = saved?.marks || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill('none'));
   state.markedBy = saved?.markedBy || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill(null));
-  state.maxLives = saved?.maxLives ?? (state.isBossGame ? 1 : LIVES);
-  state.lives = saved?.lives ?? (state.isBossGame ? 1 : LIVES);
+  state.maxLives = saved?.maxLives ?? LIVES;
+  state.lives = saved?.lives ?? LIVES;
   state.hintsLeft = saved?.hintsLeft ?? HINTS;
   state.hintsUsed = saved?.hintsUsed ?? 0;
   state.mistakes = saved?.mistakes ?? 0;
@@ -594,7 +556,7 @@ function registerMistake() {
   state.mistakes++;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + 1;
   if (state.coop.active) coopSend({ type: Coop.MSG.MISTAKE, by, n: 1 });
-  if (!state.isRaceGame && (state.isBossGame || state.settings.livesEnabled)) {
+  if (!state.isRaceGame && state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
     showBestTimeNotice(t('game.lifeLostNotice'));
@@ -608,7 +570,7 @@ function registerMistake() {
 function applyRemoteMistake(by, n) {
   state.mistakes += n;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + n;
-  if (!state.isRaceGame && (state.isBossGame || state.settings.livesEnabled)) {
+  if (!state.isRaceGame && state.settings.livesEnabled) {
     for (let i = 0; i < n; i++) {
       state.lives--;
       state.coop.lifeLossBy.push(by);
@@ -688,7 +650,7 @@ function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = tr
   wrong.forEach(([r, c]) => flashError(r, c));
   state.mistakes += wrong.length;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + wrong.length;
-  if (!state.isRaceGame && (state.isBossGame || state.settings.livesEnabled)) {
+  if (!state.isRaceGame && state.settings.livesEnabled) {
     state.lives--;
     if (state.coop.active) state.coop.lifeLossBy.push(by);
     showBestTimeNotice(t('game.lifeLostNotice'));
@@ -1197,8 +1159,6 @@ function checkAchievements() {
     totalWon: (state.stats.won || 0) + (state.stats.coopWon || 0),
     currentStreak: state.coop.active ? state.stats.coopCurrentStreak : state.stats.currentStreak,
     dailyStreak: state.daily.currentStreak,
-    bossWin: state.isBossGame && state.status === 'won',
-    bossStreak: state.boss.currentStreak,
     historyLength: state.puzzleHistory.length,
     wonAllDifficulties: DIFFICULTIES.every(d => (state.stats.byDifficulty[d.id]?.won || 0) > 0 || (state.stats.byDifficulty[d.id]?.coopWon || 0) > 0),
   };
@@ -1268,7 +1228,6 @@ function win(remote) {
     state.newHighscore = newHighscore;
   }
   if (state.isDailyGame) state.daily = recordDailyResult(state.dailyDateStr);
-  if (state.isBossGame) state.boss = recordBossWin(state.bossWeekStr);
   if (state.isRaceGame) state.raceStats = recordRaceWin(state.elapsed);
   // Trainingsrätsel landen bewusst nicht im Verlauf/in den Achievements (siehe
   // oben) -- sie werden beliebig oft wiederholt und sollen den Ringpuffer bzw.
@@ -1307,7 +1266,6 @@ function lose(remote) {
     });
     state.stats = stats;
   }
-  if (state.isBossGame) state.boss = recordBossLoss(state.bossWeekStr);
   if (state.isRaceGame) state.raceStats = recordRaceLoss();
   if (!state.isTrainingGame) {
     state.puzzleHistory = recordHistory({
@@ -1344,7 +1302,6 @@ function giveUp(remote) {
     });
     state.stats = stats;
   }
-  if (state.isBossGame) state.boss = recordBossLoss(state.bossWeekStr);
   if (state.isRaceGame) state.raceStats = recordRaceLoss();
   if (!state.isTrainingGame) state.puzzleHistory = recordHistory({
     difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
@@ -1421,7 +1378,6 @@ function activeSnapshot() {
     elapsed: state.elapsed, difficulty: state.puzzle.difficulty,
     hintMarks: collectHintMarks(),
     isDailyGame: state.isDailyGame, dailyDateStr: state.dailyDateStr,
-    isBossGame: state.isBossGame, bossWeekStr: state.bossWeekStr,
     ts: Date.now(),
   };
 }
@@ -1443,8 +1399,6 @@ function resumeGame() {
   if (!g) return;
   state.isDailyGame = !!g.isDailyGame;
   state.dailyDateStr = g.dailyDateStr || null;
-  state.isBossGame = !!g.isBossGame;
-  state.bossWeekStr = g.bossWeekStr || null;
   navigate('game');
   loadPuzzleIntoState(g.puzzle, g);
   startTimer();
@@ -1509,7 +1463,7 @@ function resetStats() {
 function doDeleteAllData() {
   ask(t('settings.deleteAllConfirmTitle'), t('settings.deleteAllConfirmMsg'), () => {
     deleteAllData();
-    state.settings = loadSettings(); state.stats = loadStats(); state.daily = loadDaily(); state.boss = loadBoss(); state.puzzleHistory = loadHistory(); applyTheme(); applyLocale(); refreshResume();
+    state.settings = loadSettings(); state.stats = loadStats(); state.daily = loadDaily(); state.puzzleHistory = loadHistory(); applyTheme(); applyLocale(); refreshResume();
     showToast(t('settings.deleteAllDone'), 'success');
   });
 }
@@ -1552,7 +1506,6 @@ function historyCellStyle(r, c) {
 function replayHistoryEntry(entry) {
   state.historyDetail = null;
   state.isDailyGame = false; state.dailyDateStr = null;
-  state.isBossGame = false; state.bossWeekStr = null;
   state.generating = true;
   state.screen = 'game';
   setTimeout(() => {
@@ -1694,8 +1647,6 @@ const App = {
     const coopAvailable = computed(() => Coop.isAvailable());
     const dailyInfo = computed(() => getDailyChallenge());
     const dailyDoneToday = computed(() => state.daily.lastCompletedDate === dailyInfo.value.dateStr);
-    const bossInfo = computed(() => getBossChallenge());
-    const bossAttemptedThisWeek = computed(() => state.boss.lastAttemptedWeek === bossInfo.value.weekStr);
 
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS,
@@ -1711,7 +1662,6 @@ const App = {
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
       startDailyGame, dailyInfo, dailyDoneToday, shareDailyResult, shareCoopInvite,
-      startBossGame, bossInfo, bossAttemptedThisWeek,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       t, i18nState, SUPPORTED_LOCALES,
@@ -1749,11 +1699,6 @@ const App = {
         <button class="btn btn-ghost race-btn" :disabled="!coopAvailable" @click="goRace">
           <span class="btn-ic">🆚</span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
           <span v-if="state.raceStats.racesWon>0" class="badge-soon">🏁{{ state.raceStats.racesWon }}</span>
-        </button>
-        <button class="btn boss-btn" :class="bossAttemptedThisWeek ? 'btn-ghost' : 'btn-daily'" :disabled="bossAttemptedThisWeek" @click="startBossGame">
-          <span class="btn-ic">👹</span>
-          <span class="btn-tx"><b>{{ t('home.bossChallenge') }}</b><small>{{ bossAttemptedThisWeek ? t('home.bossDone') : t('difficulty.'+bossInfo.difficulty) }}</small></span>
-          <span v-if="state.boss.currentStreak>0" class="badge-soon">🔥{{ state.boss.currentStreak }}</span>
         </button>
         <button class="btn training-btn btn-ghost" @click="startTrainingGame">
           <span class="btn-ic">🎓</span>
@@ -2003,10 +1948,9 @@ const App = {
             <p class="result-msg">{{ t(state.race.winner==='me' ? 'race.youWon' : 'race.youLost', { myPct: state.race.myPct, oppPct: state.race.opponentPct }) }}</p>
           </div>
           <div v-if="state.isDailyGame" class="highscore-badge">{{ t('daily.streakBadge', { count: state.daily.currentStreak }) }}</div>
-          <div v-if="state.isBossGame" class="highscore-badge">{{ t('boss.streakBadge', { count: state.boss.currentStreak }) }}</div>
           <button v-if="state.isDailyGame" class="btn btn-ghost" @click="shareDailyResult">📤 {{ t('share.button') }}</button>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && !state.isDailyGame && !state.isBossGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && !state.isDailyGame && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
           <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('win.viewBoard') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -2042,9 +1986,8 @@ const App = {
               </div>
             </div>
           </div>
-          <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.isBossGame && !state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
           <button class="btn btn-ghost" v-if="!state.isTrainingGame && !state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -2063,9 +2006,8 @@ const App = {
           <template v-else>
             <p class="result-msg">{{ t('loss.msg') }}</p>
           </template>
-          <div v-if="state.isBossGame" class="result-msg">{{ t('boss.tryAgainNextWeek') }}</div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.isBossGame && !state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
           <button class="btn btn-ghost" v-if="!state.isTrainingGame && !state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>

@@ -30,8 +30,6 @@ export default {
     dailyDone: 'Heute schon gelöst ✓',
     raceMode: 'Race-Modus',
     raceHint: '1-gegen-1-Wettrennen',
-    bossChallenge: 'Boss-Rätsel',
-    bossDone: 'Diese Woche schon versucht',
     history: 'Verlauf',
     trainingMode: 'Trainingsmodus',
     trainingHint: 'Schritt für Schritt lernen',
@@ -217,10 +215,6 @@ export default {
   daily: {
     streakBadge: '🔥 {count} Tage Streak',
   },
-  boss: {
-    streakBadge: '🔥 {count} Wochen Streak',
-    tryAgainNextWeek: 'Nächste Woche wieder versuchen',
-  },
   training: {
     apply: 'Anwenden',
     another: 'Weiteres Beispiel',
@@ -252,8 +246,6 @@ export default {
     streak10: { title: 'Unaufhaltsam', desc: 'Gewinne 10 Rätsel in Folge.' },
     dailyWeek: { title: 'Wochen-Ritual', desc: '7 Tage Tagesrätsel-Streak.' },
     dailyMonth: { title: 'Monats-Champion', desc: '30 Tage Tagesrätsel-Streak.' },
-    bossFirstWin: { title: 'Boss bezwungen', desc: 'Gewinne das Boss-Rätsel zum ersten Mal.' },
-    bossStreak3: { title: 'Boss-Bezwinger', desc: '3 Wochen Boss-Rätsel-Streak in Folge.' },
     coopFirstWin: { title: 'Team-Premiere', desc: 'Gewinne ein Rätsel im Coop-Modus.' },
     historyFull: { title: 'Gut dokumentiert', desc: 'Sammle 20 Einträge im Verlauf.' },
   },

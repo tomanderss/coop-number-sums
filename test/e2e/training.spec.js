@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp } from './helpers.js';
 
-// .training-btn is a stable hook independent of any class toggling, mirroring
-// the .boss-btn pattern used elsewhere for the other special home buttons.
+// .training-btn is a stable hook independent of any class toggling.
 const trainingBtn = (page) => page.locator('.home-actions > .training-btn');
 
 // Clicks the training banner's "apply" button repeatedly until the puzzle is

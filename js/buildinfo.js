@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.74';
-export const BUILD_HASH = '41d8398';
+export const BUILD      = '0.75';
+export const BUILD_HASH = '4e8bc84';
 
 export const CHANGELOG = [
+  {
+    "version": "0.75",
+    "date": "23.06.2026",
+    "changes": [
+      "Boss-Rätsel entfernt -- inkl. Streak, Achievements und Home-Button."
+    ]
+  },
   {
     "version": "0.74",
     "date": "22.06.2026",
