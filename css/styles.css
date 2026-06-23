@@ -61,7 +61,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    ist bei Zoom pannbar. Ohne das konnte man beim Lösen versehentlich die ganze
    Seite hoch/runter schieben, sobald Header+Werkzeugleiste+Brett zusammen
    etwas höher als der Bildschirm waren. */
-.screen.game { overflow: hidden; }
+.screen.game { overflow: hidden; position: relative; }
+/* Subtiler Akzent-Streifen je Modus (reine CSS-Variable, kein neues Farbsystem
+   und keine freie Akzentfarbe -- nur ein dezenter visueller Hinweis, in welchem
+   Modus man gerade spielt). Im normalen Solo-/2-Spieler-Coop-Spiel bleibt
+   --mode-accent unbesetzt und der Streifen unsichtbar. */
+.screen.game::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--mode-accent, transparent); z-index: 5; pointer-events: none;
+}
+.screen.game.race-mode { --mode-accent: #f97316; }
+.screen.game.team-mode { --mode-accent: #14b8a6; }
 /* Solange ein Modal offen ist (z.B. Anleitung), darf der dahinterliegende
    Screen nicht mitscrollen, auch wenn der Wisch auf dem Modal-Inhalt dessen
    eigene Scroll-Grenze erreicht — overscroll-behavior/touch-action allein
@@ -125,7 +135,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn-ghost { background: var(--bg2); }
 .btn-danger { background: var(--bad); color: #fff; }
 .btn-danger-ghost { background: var(--bg2); color: var(--bad); margin-top: 14px; }
-.btn-sm { padding: 8px 14px; font-size: .85rem; }
+.btn-sm { min-height: 44px; padding: 8px 14px; font-size: .85rem; }
 /* Fixe Icon-Spaltenbreite, damit unterschiedlich breite Emoji-Icons (z.B. 📡
    vs. 🔗) die Zentrierung des Buttons nicht sichtbar verschieben. */
 .btn .btn-ic { font-size: 1.3rem; width: 28px; flex-shrink: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
@@ -173,7 +183,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .game-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; flex: 0 0 auto; }
 .chip { background: var(--bg2); color: var(--text2); font-size: .76rem; font-weight: 700; padding: 5px 10px; border-radius: 999px; }
 .zoomctl { margin-left: auto; display: flex; gap: 6px; }
-.zoom-btn { width: 30px; height: 30px; border-radius: 9px; background: var(--bg2); font-size: 1.1rem; font-weight: 800; color: var(--text2); box-shadow: 0 2px 6px var(--shadow); }
+/* 40x40 statt vormals 30x30 -- liegt jetzt nah an der 44px-Tippflächen-Richtlinie
+   (F6), ohne die schmale HUD-Reihe neben den Chips zu sprengen. */
+.zoom-btn { width: 40px; height: 40px; border-radius: 11px; background: var(--bg2); font-size: 1.2rem; font-weight: 800; color: var(--text2); box-shadow: 0 2px 6px var(--shadow); }
 
 /* ─── Fortschrittsanzeige: Prozent + Balken (immer sichtbar im Spiel) ───────── */
 /* Der Balken ist ein leeres, umrandetes Rechteck -- die rechte Kante markiert
@@ -290,6 +302,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   70% { opacity: 1; }
   100% { opacity: 0; }
 }
+/* Cage-Resolve-Sweep: zusätzlich zum Rand-Puls oben (der für Reihe/Spalte/Cage
+   gleich aussieht) bekommt eine vollständig gelöste Cage einen kurzen,
+   farbigen Glanz in der eigenen Cage-Farbe (--rc-h/s/l, von cellStyle()
+   gesetzt) statt nur dem statischen Rand — macht "diese Cage ist fertig"
+   visuell von "diese Reihe/Spalte ist fertig" unterscheidbar. */
+.cell.region-pulse::after {
+  content: ''; position: absolute; inset: -1.5px; z-index: 5; pointer-events: none;
+  border-radius: 3px;
+  background: radial-gradient(circle, hsl(var(--rc-h, 0) calc(var(--rc-s, 0%) + 10%) calc(var(--rc-l, 50%) + 18%) / .7), transparent 75%);
+  animation: cageSweep .9s ease-out;
+}
+@keyframes cageSweep {
+  0% { opacity: 0; transform: scale(.55); }
+  35% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
 
 /* ─── Hochformat-Zwang ────────────────────────────────────────────────────────
    Das App-Layout (max-width 540px, "Telefon"-Optik) ist ausschließlich für
@@ -382,6 +410,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   text-align: center; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px var(--shadow);
   animation: pop .4s cubic-bezier(.2,1.3,.5,1);
 }
+/* Makelloser Sieg (0 Fehler, 0 Hinweise) bekommt einen goldenen Schimmer statt
+   des normalen Schattens -- abgestufte Belohnung zum sonst identischen Sieg-Screen. */
+.result-card.win.perfect {
+  box-shadow: 0 20px 60px var(--shadow), 0 0 0 2px rgba(251,191,36,.55), 0 0 32px rgba(251,191,36,.35);
+  animation: pop .4s cubic-bezier(.2,1.3,.5,1), perfectShine 2.2s ease-in-out .4s 2;
+}
+@keyframes perfectShine {
+  0%, 100% { box-shadow: 0 20px 60px var(--shadow), 0 0 0 2px rgba(251,191,36,.55), 0 0 32px rgba(251,191,36,.35); }
+  50% { box-shadow: 0 20px 60px var(--shadow), 0 0 0 2px rgba(251,191,36,.85), 0 0 52px rgba(251,191,36,.6); }
+}
+.perfect-badge {
+  background: linear-gradient(135deg, #fde68a, #fbbf24); color: #1a1304;
+  font-weight: 800; font-size: .78rem; padding: 5px 14px; border-radius: 999px;
+  align-self: center; letter-spacing: .3px; text-transform: uppercase;
+}
 .result-emoji { font-size: 3.4rem; }
 .result-card h2 { margin: 0; font-size: 1.5rem; font-weight: 900; }
 .result-msg { color: var(--text2); margin: 0; }
@@ -435,6 +478,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
 .confetti i { position: absolute; top: -20px; border-radius: 2px; animation: fall linear forwards; }
 @keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: .9; } }
+/* Makelloser Sieg: dichteres, leicht glänzendes Konfetti (mehr/größere Teile
+   kommen bereits aus app.js -- hier nur der zusätzliche Glanz pro Teilchen). */
+.confetti.perfect i { filter: brightness(1.2) drop-shadow(0 0 4px rgba(255,255,255,.6)); }
 
 /* ─── Stats ─── */
 /* Kleines horizontales Padding, damit der Box-Shadow der Stat-Boxen (und der
@@ -518,7 +564,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .switch.on { background: var(--accent); box-shadow: inset 0 0 0 2px var(--accent2); }
 .switch.on i { transform: translateX(24px); }
 .seg { display: flex; background: var(--bg3); border-radius: 10px; padding: 4px; gap: 4px; }
-.seg button { flex: 1; padding: 9px; border-radius: 8px; font-weight: 700; color: var(--text2); font-size: .9rem; }
+.seg button { flex: 1; min-height: 44px; padding: 9px; border-radius: 8px; font-weight: 700; color: var(--text2); font-size: .9rem; }
 .seg button.active { background: var(--accent); color: #fff; }
 .file-btn { display: flex; }
 
@@ -596,6 +642,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    jeweiligen Spielerfarbe hinterlegt — so sieht man auf einen Blick, wer da ist. */
 .coop-roster { display: flex; gap: 6px; flex-wrap: wrap; margin: -4px 0 10px; flex: 0 0 auto; }
 .player-chip { font-size: .78rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; line-height: 1.3; }
+/* Team-Zuweisungs-Chip ist ein echter Button (Lobby-Formation) -- bekommt
+   anders als die rein dekorativen .player-chip-Anzeigen eine 44px-Tippfläche. */
+.player-chip.team-chip { min-height: 44px; padding: 4px 14px; }
 
 /* ─── Coop Farb-Kennzeichnung pro Zelle ─── */
 /* Eingekreist: Ring in Spieler-Farbe statt Standard-Akzent */

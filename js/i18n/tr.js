@@ -65,6 +65,7 @@ export default {
   win: {
     title: 'Çözüldü!',
     newHighscore: '🏆 Yeni en iyi süre!',
+    perfectBadge: '✨ Kusursuz!',
     missedPrefix: '⏱️ Bu yeni bir en iyi süre olurdu – ama şu nedenle geçerli değil:',
     missedBoth: 'hatalar ve ipuçları',
     missedMistakes: 'hatalar',

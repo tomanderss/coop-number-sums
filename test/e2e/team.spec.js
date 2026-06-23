@@ -90,6 +90,10 @@ test.describe('team vs team', () => {
     expect(await page.evaluate(() => window.__cns.state.team.myTeam)).toBe('A');
     await expect(page.locator('.coop-chip', { hasText: 'Team A' })).toBeVisible();
     await expect(page.locator('.coop-chip', { hasText: 'Gegner' })).toBeVisible();
+    // Subtiler Akzent-Streifen je Modus (Punkt 14): Team-Match -> team-mode,
+    // nicht race-mode.
+    await expect(page.locator('.screen.game')).toHaveClass(/team-mode/);
+    await expect(page.locator('.screen.game')).not.toHaveClass(/race-mode/);
   });
 
   test('the opposing team finishing first ends the match immediately and hides the rematch buttons', async ({ page }) => {

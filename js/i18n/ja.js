@@ -65,6 +65,7 @@ export default {
   win: {
     title: '解けました！',
     newHighscore: '🏆 新ベストタイム！',
+    perfectBadge: '✨ パーフェクト！',
     missedPrefix: '⏱️ ベストタイムでしたが、次の理由により記録されません：',
     missedBoth: 'ミスとヒント',
     missedMistakes: 'ミス',

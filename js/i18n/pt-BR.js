@@ -65,6 +65,7 @@ export default {
   win: {
     title: 'Resolvido!',
     newHighscore: '🏆 Novo melhor tempo!',
+    perfectBadge: '✨ Impecável!',
     missedPrefix: '⏱️ Esse seria um novo melhor tempo – mas não conta devido a',
     missedBoth: 'erros e dicas',
     missedMistakes: 'erros',
