@@ -185,7 +185,25 @@ function navigate(screen) {
   // startenden Screens (z.B. wenn ein Banner erst nach dem ersten Layout
   // einklappt) -- expliziter Scroll-Reset nach dem Render macht "oben
   // starten" unabhängig vom genauen Lade-Timing einzelner Inhalte.
-  nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); });
+  nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); scheduleScrollLockUpdate(); });
+}
+
+// overflow-y:auto auf .screen ist nötig, damit lange Inhalte (z.B. Stats,
+// Verlauf) scrollen können -- aber iOS/Safari erlaubt das elastische
+// Zieh-und-Zurückschnapp-Gefühl auf JEDEM overflow:auto-Container, auch wenn
+// dessen Inhalt gar nicht über den sichtbaren Bereich hinausgeht. Deshalb hier
+// pro Screen messen, ob tatsächlich etwas zu scrollen ist, und sonst per Klasse
+// auf overflow:hidden umschalten (siehe .screen.no-overflow in styles.css) --
+// echtes Scrollen bleibt unberührt, nur das sinnlose Wabbeln verschwindet.
+let scrollLockRaf = null;
+function updateScreenScrollLock() {
+  const el = document.querySelector('.screen');
+  if (!el) return;
+  el.classList.toggle('no-overflow', el.scrollHeight <= el.clientHeight + 1);
+}
+function scheduleScrollLockUpdate() {
+  if (scrollLockRaf) return;
+  scrollLockRaf = requestAnimationFrame(() => { scrollLockRaf = null; updateScreenScrollLock(); });
 }
 
 // ─── TIMER ────────────────────────────────────────────────────────────────────
@@ -1654,7 +1672,12 @@ function init() {
   maybeShowWhatsNew();
   if (state.streak.justLost) state.streakLostNotice = true;
   window.addEventListener('resize', computeCellSize);
-  nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); });
+  window.addEventListener('resize', scheduleScrollLockUpdate);
+  // Deckt jede Inhaltsänderung ab (Badges, Sprache, dynamische Banner), ohne
+  // jedes betroffene state-Feld einzeln verdrahten zu müssen.
+  const appEl = document.querySelector('.app');
+  if (appEl) new MutationObserver(scheduleScrollLockUpdate).observe(appEl, { childList: true, subtree: true, attributes: true, characterData: true });
+  nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); scheduleScrollLockUpdate(); });
 }
 
 // ════════════════════════════════════════════════════════════════════════════

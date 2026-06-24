@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.85';
-export const BUILD_HASH = '57be5b3';
+export const BUILD      = '0.86';
+export const BUILD_HASH = '14ee768';
 
 export const CHANGELOG = [
+  {
+    "version": "0.86",
+    "date": "24.06.2026",
+    "changes": [
+      "Fix: Home- und andere Screens wabbelten beim Ziehen mit dem Finger, auch wenn es nichts zu scrollen gab"
+    ]
+  },
   {
     "version": "0.85",
     "date": "24.06.2026",
