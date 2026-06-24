@@ -95,6 +95,11 @@ const state = reactive({
     myTeam: null,           // 'A' | 'B'
     matchOver: false,       // true sobald ein Team fertig ist (hartes Match-Ende für beide)
     winningTeam: null,      // 'A' | 'B', sobald matchOver
+    endReason: null,        // 'won' | 'lost' | 'gaveup' -- WARUM das Match endete (das Team, das
+                            // den Ausschlag gegeben hat, hat selbst fertiggelöst/alle Leben
+                            // verloren/aufgegeben), nötig damit der Ergebnis-Screen nicht
+                            // pauschal "Gelöst!" zeigt, wenn man nur durchs Leben-/Aufgabe-Ende
+                            // der Gegenseite gewonnen hat.
     opponentPct: 0,         // zuletzt bekannter Fortschritt des Gegner-Teams (nur Prozent, keine Zellinhalte)
     opponentMistakes: 0,
     myPct: 0,               // eigener Fortschritt zum Zeitpunkt des Match-Endes (für den Vergleichs-Screen)
@@ -112,6 +117,12 @@ const state = reactive({
     opponentColor: '#888',
     matchOver: false,        // true sobald einer fertig ist (hartes Match-Ende für beide)
     winner: null,            // 'me' | 'opponent', sobald matchOver
+    endReason: null,         // 'won' | 'lost' | 'gaveup' -- WARUM das Match endete (Outcome der
+                             // Seite, die das Match ausgelöst hat: echtes Fertiglösen, alle
+                             // Leben verloren oder aufgegeben). Zusammen mit winner ergibt das
+                             // 6 eindeutige, unterscheidbare Szenarien für den Ergebnis-Screen --
+                             // ohne dieses Feld zeigte "Gelöst!" auch dann, wenn man nur gewonnen
+                             // hat, weil der Gegner alle Leben verlor oder aufgab.
     myPct: 0,
     opponentPct: 0,
     opponentMistakes: 0,
@@ -849,6 +860,7 @@ function handleCoopMsg(msg) {
     // "won" entscheidet das eigene Team; "lost"/"gaveup" gibt den Sieg automatisch
     // an die Gegenseite (kein Zu-Ende-Spielen für eigene Stats, siehe Plan).
     state.team.winningTeam = msg.outcome === 'won' ? msg.team : (msg.team === 'A' ? 'B' : 'A');
+    state.team.endReason = msg.outcome;
     if (msg.team === state.team.myTeam) return; // eigenes Team meldet sich direkt aus win()/lose()/giveUp()
     if (state.status === 'playing') {
       const remote = { timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed };
@@ -864,6 +876,7 @@ function handleCoopMsg(msg) {
     if (!state.race.active || state.race.matchOver) return;
     state.race.matchOver = true;
     state.race.winner = msg.outcome === 'won' ? 'opponent' : 'me';
+    state.race.endReason = msg.outcome;
     state.race.opponentPct = msg.finalPct ?? state.race.opponentPct;
     state.race.opponentMistakes = msg.finalMistakes ?? state.race.opponentMistakes;
     state.race.myPct = progressPct();
@@ -891,9 +904,9 @@ function coopReset() {
   state.coop.teamMode = false;
   state.coop.raceMode = false;
   state.team.active = false; state.team.myTeam = null; state.team.matchOver = false;
-  state.team.winningTeam = null; state.team.opponentPct = 0; state.team.opponentMistakes = 0; state.team.myPct = 0;
+  state.team.winningTeam = null; state.team.endReason = null; state.team.opponentPct = 0; state.team.opponentMistakes = 0; state.team.myPct = 0;
   state.race.active = false; state.race.opponentId = null; state.race.opponentName = '';
-  state.race.opponentColor = '#888'; state.race.matchOver = false; state.race.winner = null;
+  state.race.opponentColor = '#888'; state.race.matchOver = false; state.race.winner = null; state.race.endReason = null;
   state.race.myPct = 0; state.race.opponentPct = 0; state.race.opponentMistakes = 0;
   state.isRaceGame = false;
 }
@@ -1097,6 +1110,7 @@ function applyTeamStart(seed, difficulty) {
   state.team.active = true;
   state.team.matchOver = false;
   state.team.winningTeam = null;
+  state.team.endReason = null;
   state.team.opponentPct = 0;
   state.team.opponentMistakes = 0;
   state.team.myPct = 0;
@@ -1148,6 +1162,7 @@ function applyRaceStart(seed, difficulty) {
   state.race.active = true;
   state.race.matchOver = false;
   state.race.winner = null;
+  state.race.endReason = null;
   state.race.myPct = 0;
   state.race.opponentPct = 0;
   state.race.opponentMistakes = 0;
@@ -1176,6 +1191,7 @@ function rematchRace() {
   state.race.active = false;
   state.race.matchOver = false;
   state.race.winner = null;
+  state.race.endReason = null;
   state.race.myPct = 0;
   state.race.opponentPct = 0;
   state.race.opponentMistakes = 0;
@@ -1288,6 +1304,7 @@ function checkAchievements() {
 function broadcastTeamDone(outcome) {
   state.team.matchOver = true;
   state.team.winningTeam = outcome === 'won' ? state.team.myTeam : (state.team.myTeam === 'A' ? 'B' : 'A');
+  state.team.endReason = outcome;
   state.team.myPct = progressPct();
   Coop.send({ type: Coop.MSG.TEAM_DONE, team: state.team.myTeam, outcome });
 }
@@ -1301,6 +1318,7 @@ function broadcastTeamDone(outcome) {
 function broadcastRaceDone(outcome) {
   state.race.matchOver = true;
   state.race.winner = outcome === 'won' ? 'me' : 'opponent';
+  state.race.endReason = outcome;
   state.race.myPct = progressPct();
   Coop.send({ type: Coop.MSG.RACE_DONE, from: state.coop.myId, outcome, finalPct: state.race.myPct, finalMistakes: state.mistakes });
 }
@@ -1772,14 +1790,45 @@ const App = {
     // Die "fehlerfrei"-Formulierung gilt nur, wenn die jeweilige Seite tatsächlich
     // 0 Fehler hatte -- vorher war der Text unabhängig von state.mistakes/
     // state.race.opponentMistakes immer als "fehlerfrei" formuliert.
+    // state.race.endReason verrät, WARUM das Match endete (Outcome der Seite, die
+    // es ausgelöst hat) -- ohne das wurde hier immer "fehlerfrei zuerst fertig"
+    // behauptet, selbst wenn der Sieg nur daraus kam, dass der Gegner alle Leben
+    // verloren oder aufgegeben hat (und umgekehrt bei der eigenen Niederlage).
     const raceResultMsg = computed(() => {
       const r = state.race;
       if (r.winner === 'me') {
+        if (r.endReason === 'lost') return t('race.youWonByOpponentLives', { myPct: r.myPct, oppPct: r.opponentPct });
+        if (r.endReason === 'gaveup') return t('race.youWonByOpponentGaveup', { myPct: r.myPct, oppPct: r.opponentPct });
         const key = state.mistakes === 0 ? 'race.youWonClean' : 'race.youWonMistakes';
         return t(key, { myPct: r.myPct, oppPct: r.opponentPct });
       }
+      if (r.endReason === 'lost') return t('race.youLostByLives', { myPct: r.myPct, oppPct: r.opponentPct });
+      if (r.endReason === 'gaveup') return t('race.youLostByGaveup', { myPct: r.myPct, oppPct: r.opponentPct });
       const key = r.opponentMistakes === 0 ? 'race.youLostClean' : 'race.youLostMistakes';
       return t(key, { myPct: r.myPct, oppPct: r.opponentPct });
+    });
+    // Analog zu raceResultMsg: state.team.endReason unterscheidet ein echtes
+    // Fertiglösen vom automatischen Sieg/der automatischen Niederlage durch
+    // Leben-Verlust/Aufgabe der jeweiligen Seite.
+    const teamResultMsg = computed(() => {
+      const tm = state.team;
+      const won = tm.winningTeam === tm.myTeam;
+      if (won) {
+        if (tm.endReason === 'lost') return t('team.weWonByOpponentLives', { myPct: tm.myPct, oppPct: tm.opponentPct });
+        if (tm.endReason === 'gaveup') return t('team.weWonByOpponentGaveup', { myPct: tm.myPct, oppPct: tm.opponentPct });
+        return t('team.weWon', { myPct: tm.myPct, oppPct: tm.opponentPct });
+      }
+      if (tm.endReason === 'lost') return t('team.weLostByLives', { myPct: tm.myPct, oppPct: tm.opponentPct });
+      if (tm.endReason === 'gaveup') return t('team.weLostByGaveup', { myPct: tm.myPct, oppPct: tm.opponentPct });
+      return t('team.weLost', { myPct: tm.myPct, oppPct: tm.opponentPct });
+    });
+    // Das WIN-Overlay zeigte bisher immer t('win.title') ("Gelöst!"), auch wenn
+    // der Sieg im Team-/Race-Modus nur daraus kam, dass die Gegenseite alle Leben
+    // verloren oder aufgegeben hat -- man hat dann selbst nichts "gelöst".
+    const winTitle = computed(() => {
+      if (state.race.active && state.race.endReason && state.race.endReason !== 'won') return t('race.winTitleAuto');
+      if (state.team.active && state.team.endReason && state.team.endReason !== 'won') return t('team.winTitleAuto');
+      return t('win.title');
     });
     const achievementsUnlockedCount = computed(() => Object.keys(state.achievements).length);
 
@@ -1796,7 +1845,7 @@ const App = {
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
-      shareCoopInvite, raceResultMsg,
+      shareCoopInvite, raceResultMsg, teamResultMsg, winTitle,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       t, i18nState, SUPPORTED_LOCALES,
@@ -2048,7 +2097,7 @@ const App = {
       <div v-if="state.status==='won' && !state.solutionShown" class="overlay">
         <div class="result-card win" :class="{ perfect: state.perfectWin }">
           <div class="result-emoji">🎉</div>
-          <h2>{{ t('win.title') }}</h2>
+          <h2>{{ winTitle }}</h2>
           <div v-if="state.perfectWin" class="perfect-badge">{{ t('win.perfectBadge') }}</div>
           <div v-if="state.newHighscore" class="highscore-badge">{{ t('win.newHighscore') }}</div>
           <div v-else-if="state.wouldHaveBeenBest" class="highscore-badge missed">
@@ -2079,7 +2128,7 @@ const App = {
           </div>
           <div v-if="state.team.active" class="team-result">
             <div class="perf-title">{{ t('team.matchResult') }}</div>
-            <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
+            <p class="result-msg">{{ teamResultMsg }}</p>
           </div>
           <div v-if="state.race.active" class="team-result">
             <div class="perf-title">{{ t('race.matchResult') }}</div>
@@ -2099,7 +2148,7 @@ const App = {
           <div class="result-emoji">💔</div>
           <template v-if="state.team.active">
             <h2>{{ t('team.matchResult') }}</h2>
-            <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
+            <p class="result-msg">{{ teamResultMsg }}</p>
           </template>
           <template v-else-if="state.race.active">
             <h2>{{ t('race.matchResult') }}</h2>
@@ -2138,7 +2187,7 @@ const App = {
           <div class="result-emoji">🏳</div>
           <h2>{{ t('gaveup.title') }}</h2>
           <template v-if="state.team.active">
-            <p class="result-msg">{{ t(state.team.winningTeam===state.team.myTeam ? 'team.weWon' : 'team.weLost', { myPct: state.team.myPct, oppPct: state.team.opponentPct }) }}</p>
+            <p class="result-msg">{{ teamResultMsg }}</p>
           </template>
           <template v-else-if="state.race.active">
             <p class="result-msg">{{ raceResultMsg }}</p>
