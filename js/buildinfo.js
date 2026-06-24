@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.84';
-export const BUILD_HASH = '778521a';
+export const BUILD      = '0.85';
+export const BUILD_HASH = '57be5b3';
 
 export const CHANGELOG = [
+  {
+    "version": "0.85",
+    "date": "24.06.2026",
+    "changes": [
+      "Interne Aufräumarbeiten (keine sichtbaren Änderungen)"
+    ]
+  },
   {
     "version": "0.84",
     "date": "24.06.2026",
