@@ -205,6 +205,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .progress-bar-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width .3s ease; }
 .progress-bar-fill.opp { background: var(--text2); }
 
+/* Im Hochformat unsichtbare Wrapper um die Steuerelemente vor/nach dem Brett
+   (siehe Template in app.js) -- "display: contents" lässt ihre Kinder sich
+   exakt wie direkte Flex-Kinder von .screen.game verhalten. Erst im
+   Querformat (Media Query unten) werden sie zu echten Grid-Boxen. */
+.game-sidebar-top, .game-sidebar-bottom { display: contents; }
+
 /* ─── Board ─── */
 /* Feld zentriert, wenn es passt – sonst voll scroll-/verschiebbar (margin:auto
    statt justify/align center, damit bei Überlauf der obere/linke Rand erreichbar
@@ -328,41 +334,47 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   100% { opacity: 0; transform: scale(1.35); }
 }
 
-/* ─── Hochformat-Zwang ────────────────────────────────────────────────────────
-   Das App-Layout (max-width 540px, "Telefon"-Optik) ist ausschließlich für
-   Hochformat ausgelegt. manifest.json setzt "orientation: portrait-primary" für
-   installierte PWAs (echte OS-Sperre, z.B. Android-Chrome im Standalone-Modus),
-   das greift aber nicht im normalen Browser-Tab oder auf iOS. Als universellen
-   Fallback drehen wir hier stattdessen #rotate-fix (Wrapper um Splash/App/Err
-   in index.html) per CSS-Transform zurück in Hochformat, sobald das Gerät
-   physisch quer liegt — kein Hinweis-Screen, das Spiel bleibt einfach
-   durchgängig im Hochformat bedienbar. WICHTIG: bewusst NICHT direkt auf
-   <html> (frühere Version dieses Fixes) — das Root-Element ist gleichzeitig
-   der "initial containing block" der Seite, "position: absolute" darauf ist
-   also ein Sonderfall relativ zu sich selbst, den Browser inkonsistent
-   behandeln (in der Praxis: keine Wirkung). Ein dedizierter Wrapper mit
-   "position: fixed" relativ zum echten Viewport ist eindeutig definiert.
-   Da "transform" am Wrapper gleichzeitig einen neuen Containing-Block für
-   alle position:fixed-Kindelemente erzeugt, drehen sich Overlays/Modals
-   etc. darin automatisch mit. Statt einer Breiten-Schwelle (frühere Version:
-   "max-width: 920px") wird hier gezielt auf "pointer: coarse" geprüft, also
-   ob die primäre Eingabe ein Touchscreen ist — Breite/Höhe sind dafür ein
-   unzuverlässiger Näherungswert (z.B. haben große Handys im Querformat
-   durchaus über 920px Breite, etwa iPhone Pro Max mit 932px, wodurch die alte
-   Schwelle dort nie griff), während "pointer: coarse" unabhängig von der
-   Bildschirmgröße direkt die Eingabeart erkennt und normale Desktop-
-   Mausbedienung zuverlässig ausschließt. */
+/* ─── Querformat-Layout (Spiel-Screen) ────────────────────────────────────────
+   Eine reine Web-App kann die Geräte-Rotation nicht zuverlässig sperren (das
+   frühere CSS-Rotations-Hack hier wurde deshalb entfernt, ebenso der native
+   screen.orientation.lock()-Versuch in index.html und "orientation" in
+   manifest.json). Stattdessen bekommt der Spiel-Screen ein eigenes
+   Zwei-Spalten-Layout für Querformat: Spielfeld links, Steuerelemente
+   (Kopfzeile/Fortschritt/Roster oben, Werkzeugleiste/Prüfen-Zeile unten)
+   rechts gestapelt — alles bleibt ohne Scrollen sichtbar.
+   .game-sidebar-top/-bottom sind im Hochformat (Default-Fall, siehe Template
+   in app.js) via "display: contents" unsichtbar für das Layout -- ihre Kinder
+   verhalten sich dort weiterhin exakt wie direkte Flex-Kinder von
+   .screen.game, also keine Hochformat-Änderung. Erst hier im Querformat
+   werden sie zu echten Grid-Boxen. */
 @media screen and (orientation: landscape) and (pointer: coarse) {
-  body { overflow: hidden; }
-  #rotate-fix {
-    position: fixed;
-    top: 100%;
-    left: 0;
-    width: 100vh;
-    height: 100vw;
-    transform-origin: left top;
-    transform: rotate(-90deg);
+  .app.app-game { max-width: 900px; }
+  .screen.game {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "topbar topbar" "board sidetop";
+    column-gap: 10px;
+    overflow: hidden;
   }
+  .screen.game > .topbar.game-top { grid-area: topbar; }
+  .screen.game > .board-wrap { grid-area: board; min-height: 0; }
+  .game-sidebar-top, .game-sidebar-bottom {
+    display: flex; flex-direction: column; min-width: 0; overflow-y: auto;
+  }
+  .game-sidebar-top { grid-area: sidetop; align-self: start; }
+  .game-sidebar-bottom { grid-area: sidetop; align-self: end; }
+  /* Werkzeugleiste ist für die volle Bildschirmbreite im Hochformat
+     ausgelegt (drei weit auseinandergezogene Gruppen) -- in der schmaleren
+     240px-Seitenspalte verkleinert/umbrochen, sonst würde sie überlaufen. */
+  .game-sidebar-bottom .toolbar {
+    flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 12px;
+  }
+  .game-sidebar-bottom .round-btn,
+  .game-sidebar-bottom .tool-ic,
+  .game-sidebar-bottom .tool-pill { width: 46px; height: 46px; }
+  .game-sidebar-bottom .round-btn svg, .game-sidebar-bottom .tool-ic svg { width: 20px; height: 20px; }
+  .game-sidebar-bottom .tool-pill.pen { transform: translateX(50px); }
 }
 
 /* ─── Toolbar (Stift/Radierer) ─── */

@@ -45,11 +45,6 @@
     <div id="err" style="display:none;position:fixed;inset:0;background:#1a0000;color:#ff6b6b;padding:20px;font-family:monospace;font-size:13px;z-index:99999;overflow:auto;white-space:pre-wrap"></div>
   </div>
   <script>
-    // Best-effort echte OS-Sperre (wirkt nur im Standalone/Fullscreen-Kontext
-    // auf unterstützten Browsern, z.B. installierte PWA unter Android-Chrome).
-    // Schlägt überall sonst (iOS, normaler Browser-Tab) lautlos fehl — dafür
-    // sorgt der CSS-Rotations-Fallback in styles.css für den Hochformat-Zwang.
-    try { screen.orientation && screen.orientation.lock('portrait').catch(function(){}); } catch (e) {}
     // Klassisches Script (kein type="module") — kann debuglog.js nicht importieren.
     // Schreibt deshalb direkt im selben Format/Key wie debuglog.js, damit ein
     // späterer exportLogToFile()-Aufruf auch Boot-Fehler und globale Laufzeitfehler
