@@ -306,8 +306,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    gleich aussieht) bekommt eine vollständig gelöste Cage einen kurzen,
    farbigen Glanz in der eigenen Cage-Farbe (--rc-h/s/l, von cellStyle()
    gesetzt) statt nur dem statischen Rand — macht "diese Cage ist fertig"
-   visuell von "diese Reihe/Spalte ist fertig" unterscheidbar. */
-.cell.region-pulse::after {
+   visuell von "diese Reihe/Spalte ist fertig" unterscheidbar. Dieselbe
+   Animation läuft auch, wenn eine ganze Reihe/Spalte fertig wird: jede Zelle
+   behält ihre eigene Cage-Farbe in --rc-h/s/l (cellStyle() setzt die Variable
+   unabhängig davon, ob die Cage selbst schon aufgelöst ist), wodurch die
+   Reihe/Spalte als bunter Sweep aus den beteiligten Cage-Farben aufleuchtet. */
+.cell.region-pulse::after, .cell.row-pulse::after, .cell.col-pulse::after {
   content: ''; position: absolute; inset: -1.5px; z-index: 5; pointer-events: none;
   border-radius: 3px;
   background: radial-gradient(circle, hsl(var(--rc-h, 0) calc(var(--rc-s, 0%) + 10%) calc(var(--rc-l, 50%) + 18%) / .7), transparent 75%);
@@ -475,12 +479,24 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .training-text span { color: var(--text2); font-size: .86rem; }
 
 /* ─── Confetti ─── */
-.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
-.confetti i { position: absolute; top: -20px; border-radius: 2px; animation: fall linear forwards; }
+/* contain: scope Layout/Paint auf den Konfetti-Container, damit das
+   gleichzeitige Animieren von bis zu 160 Teilchen den Rest der Seite
+   (insbesondere die Sieg-Karte darunter) nicht in jedes Repaint mit hineinzieht. */
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; contain: layout style paint; }
+/* will-change befördert jedes Teilchen schon VOR dem ersten Animationsframe auf
+   eine eigene Compositor-Ebene -- ohne das passiert die Layer-Erzeugung für
+   alle Teilchen gleichzeitig im ersten Frame, was genau den Ruckler am Anfang
+   verursacht, den dieser Effekt eigentlich kaschieren soll. */
+.confetti i { position: absolute; top: -20px; border-radius: 2px; animation: fall linear forwards; will-change: transform, opacity; }
 @keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: .9; } }
 /* Makelloser Sieg: dichteres, leicht glänzendes Konfetti (mehr/größere Teile
-   kommen bereits aus app.js -- hier nur der zusätzliche Glanz pro Teilchen). */
-.confetti.perfect i { filter: brightness(1.2) drop-shadow(0 0 4px rgba(255,255,255,.6)); }
+   kommen bereits aus app.js). brightness() statt des vorherigen zusätzlichen
+   drop-shadow(): drop-shadow erzwingt pro Teilchen und Frame eine eigene
+   Weichzeichner-Faltung außerhalb des normalen Compositors -- bei bis zu 160
+   gleichzeitigen Teilchen war genau das die Ursache des Ruckelns am Anfang.
+   brightness() ist eine reine Pixel-Matrix-Operation ohne Faltung und bleibt
+   auf dem GPU-Compositor-Pfad. */
+.confetti.perfect i { filter: brightness(1.25); }
 
 /* ─── Stats ─── */
 /* Kleines horizontales Padding, damit der Box-Shadow der Stat-Boxen (und der
