@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.87';
-export const BUILD_HASH = 'f3f4314';
+export const BUILD      = '0.88';
+export const BUILD_HASH = 'd6a4f00';
 
 export const CHANGELOG = [
+  {
+    "version": "0.88",
+    "date": "24.06.2026",
+    "changes": [
+      "Neu: Home-Screen, Spielauswahl und Coop-Lobby sind im Querformat jetzt ebenfalls komplett ohne Scrollen sichtbar (kompakteres Layout statt einfach nur kleinerer Schrift)"
+    ]
+  },
   {
     "version": "0.87",
     "date": "24.06.2026",
