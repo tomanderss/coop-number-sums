@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.83';
-export const BUILD_HASH = '47bb7a0';
+export const BUILD      = '0.84';
+export const BUILD_HASH = '778521a';
 
 export const CHANGELOG = [
+  {
+    "version": "0.84",
+    "date": "24.06.2026",
+    "changes": [
+      "Der farbige \"Cage gelöst\"-Lichteffekt leuchtet jetzt auch auf, wenn eine ganze Reihe oder Spalte fertig wird, nicht nur bei Cages.",
+      "Das Konfetti am Spielende (vor allem bei einem perfekten Sieg) ruckelt am Anfang deutlich weniger."
+    ]
+  },
   {
     "version": "0.83",
     "date": "23.06.2026",

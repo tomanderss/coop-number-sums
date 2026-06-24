@@ -1,5 +1,5 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
-import { createApp, reactive, computed, watch, nextTick, onMounted } from './vue.esm-browser.prod.js';
+import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
@@ -1496,7 +1496,11 @@ function launchConfetti(perfect) {
       size: perfect ? 8 + Math.random() * 10 : 6 + Math.random() * 8,
     });
   }
-  state.confetti = pieces;
+  // markRaw: die Teilchen ändern sich nach dem Erzeugen nie wieder (reine
+  // CSS-Animation übernimmt den Rest) -- ohne markRaw würde Vue für jedes der
+  // bis zu 160 Objekte einen reaktiven Proxy anlegen, was beim Auslösen genau
+  // den Initial-Ruckler verursacht, den dieser Effekt eigentlich feiern soll.
+  state.confetti = pieces.map(p => markRaw(p));
   setTimeout(() => { state.confetti = []; }, perfect ? 4800 : 3500);
 }
 
@@ -2598,6 +2602,8 @@ function cellClasses(r, c) {
     hintmark: m.hintMark,
     'pulse-edge': pe.t || pe.b || pe.l || pe.r,
     'region-pulse': m.region >= 0 && !!state.justResolved[`region-${m.region}`],
+    'row-pulse': !!state.justResolved[`row-${r}`],
+    'col-pulse': !!state.justResolved[`col-${c}`],
     strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
     solnc: state.solutionShown && state.puzzle.solution[r][c],
     'coop-mark': state.coop.active && !!state.markedBy[r][c],
