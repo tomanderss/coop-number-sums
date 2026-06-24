@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.86';
-export const BUILD_HASH = '14ee768';
+export const BUILD      = '0.87';
+export const BUILD_HASH = 'f3f4314';
 
 export const CHANGELOG = [
+  {
+    "version": "0.87",
+    "date": "24.06.2026",
+    "changes": [
+      "Neu: Querformat-Layout für den Spiel-Screen — Spielfeld links, Steuerelemente rechts gestapelt, alles ohne Scrollen sichtbar",
+      "Entfernt: erzwungene Hochformat-Sperre (war als Web-App ohnehin nicht zuverlässig durchsetzbar)"
+    ]
+  },
   {
     "version": "0.86",
     "date": "24.06.2026",

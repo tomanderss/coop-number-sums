@@ -419,15 +419,35 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.startTime = saved?.startTime ?? (Date.now() - state.elapsed);
   state.zoom = 1;
   computeCellSize();
+  // .board-wrap existiert beim ersten Aufruf (vor dem nächsten Vue-Render) noch
+  // nicht im DOM -- der nextTick-Nachschlag korrigiert die Fallback-Schätzung,
+  // sobald die echte Größe (Hoch- oder Querformat) feststeht.
+  nextTick(computeCellSize);
   persistGame();
 }
 
 // ─── ZELLGRÖSSE (responsiv + Zoom) ────────────────────────────────────────────
+// Misst die tatsächlich verfügbare Fläche von .board-wrap (Breite UND Höhe),
+// damit Zellen im Querformat (wo die Höhe statt der Breite limitiert) nicht zu
+// groß werden. Vor dem ersten Render (DOM noch nicht da) greift ein grober
+// Fallback über window.innerWidth/-Height, den der nextTick-Aufruf in
+// loadPuzzleIntoState() danach durch die echte Messung ersetzt.
 function computeCellSize() {
   if (!state.puzzle) return;
   const cols = state.puzzle.cols;
-  const avail = Math.min(window.innerWidth - 44, 496); // 2*(14px App-Padding + 6px Board-Wrap-Padding) + Sicherheitspuffer
-  const ideal = Math.floor(avail / (cols + 1)); // +1 für Kopfspalte
+  const rows = state.puzzle.rows;
+  const wrap = document.querySelector('.board-wrap');
+  let availW, availH;
+  if (wrap && wrap.clientWidth && wrap.clientHeight) {
+    availW = wrap.clientWidth - 12; // 2*6px Board-Wrap-Padding
+    availH = wrap.clientHeight - 12;
+  } else {
+    availW = Math.min(window.innerWidth - 44, 496); // 2*(14px App-Padding + 6px Board-Wrap-Padding) + Sicherheitspuffer
+    availH = window.innerHeight - 200; // grobe Schätzung für Kopf-/Werkzeugleiste vor dem ersten Render
+  }
+  const idealW = Math.floor(availW / (cols + 1)); // +1 für Kopfspalte
+  const idealH = Math.floor(availH / (rows + 1)); // +1 für Kopfzeile
+  const ideal = Math.min(idealW, idealH);
   const base = Math.max(26, Math.min(56, ideal));
   state.cellPx = Math.round(base * state.zoom);
 }
@@ -1783,7 +1803,7 @@ const App = {
     };
   },
   template: `
-  <div class="app" :class="{ generating: state.generating, 'modal-open': !!state.modal }">
+  <div class="app" :class="{ generating: state.generating, 'modal-open': !!state.modal, 'app-game': state.screen === 'game' }">
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
@@ -1873,6 +1893,12 @@ const App = {
       </div>
 
       <template v-else-if="state.puzzle">
+        <!-- game-sidebar-top/-bottom sind im Hochformat unsichtbare Wrapper
+             (display:contents, siehe styles.css) -- ihre Kinder verhalten sich
+             dort exakt wie bisher als direkte Flex-Kinder von .screen.game.
+             Im Querformat werden sie zu echten Grid-Feldern neben dem
+             Spielfeld (siehe @media ... orientation:landscape). -->
+        <div class="game-sidebar-top">
         <div class="game-meta">
           <span class="chip">{{ DIFF_BY_ID[state.puzzle.difficulty].emoji }} {{ t('difficulty.'+state.puzzle.difficulty) }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
@@ -1910,6 +1936,7 @@ const App = {
             {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
           </span>
         </div>
+        </div>
 
         <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
           <div class="board" :style="gridStyle">
@@ -1946,6 +1973,7 @@ const App = {
           </div>
         </div>
 
+        <div class="game-sidebar-bottom">
         <!-- Werkzeug-Umschalter (Radierer / Stift) — während der Lösungsanzeige
              ausgeblendet, da Bearbeiten dort ohnehin nicht möglich/sinnvoll ist
              und die Buttons sonst von der .review-bar verdeckt würden. -->
@@ -1968,6 +1996,7 @@ const App = {
         </div>
         <div v-if="!state.solutionShown && state.settings.errorReveal==='onCheck' && !state.isRaceGame && (!state.isTrainingGame || state.trainingDone)" class="check-row">
           <button class="btn btn-primary btn-check" @click="doCheck()">{{ t('game.check') }}</button>
+        </div>
         </div>
       </template>
 

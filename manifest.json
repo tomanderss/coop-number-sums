@@ -6,7 +6,6 @@
   "display": "standalone",
   "background_color": "#0b1020",
   "theme_color": "#0b1020",
-  "orientation": "portrait-primary",
   "categories": ["games", "puzzle"],
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
