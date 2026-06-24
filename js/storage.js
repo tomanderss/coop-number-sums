@@ -70,7 +70,7 @@ export function loadStats() {
   // sobald noch nichts in localStorage steht.
   return { ...EMPTY_STATS, ...loaded, byDifficulty: { ...(loaded.byDifficulty || {}) } };
 }
-export function saveStats(s) { save(KEYS.STATS, s); }
+function saveStats(s) { save(KEYS.STATS, s); }
 
 // outcome: 'won' | 'lost' (alle Leben verloren) | 'gaveup' (Aufgeben-Button)
 // Highscore (bestTimeMs je Schwierigkeit) gilt NUR für perfekte Spiele: keine
@@ -146,7 +146,7 @@ export function loadStreak() {
   }
   return { ...d, justLost };
 }
-export function saveStreak(d) { save(KEYS.DAILY, d); }
+function saveStreak(d) { save(KEYS.DAILY, d); }
 
 function isNextCalendarDay(prevDateStr, dateStr) {
   if (!prevDateStr) return false;
@@ -189,7 +189,7 @@ function migrateRace(loaded) {
   };
 }
 export function loadRace() { return migrateRace(load(KEYS.RACE, {})); }
-export function saveRace(r) { save(KEYS.RACE, r); }
+function saveRace(r) { save(KEYS.RACE, r); }
 
 export function recordRaceWin(mode, timeMs) {
   const r = loadRace();
