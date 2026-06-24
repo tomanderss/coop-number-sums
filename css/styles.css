@@ -51,7 +51,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .app {
   max-width: 540px; margin: 0 auto; height: 100dvh; overflow: hidden;
   display: flex; flex-direction: column;
-  padding: env(safe-area-inset-top) 14px calc(env(safe-area-inset-bottom) + 12px);
+  /* Links/rechts zusätzlich zum festen 14px-Innenabstand das jeweilige
+     safe-area-inset addieren -- im Hochformat ist das meist 0 (kein
+     Unterschied zu vorher), im Querformat liegen Dynamic Island/Notch und
+     abgerundete Ecken seitlich und würden Buttons sonst überdecken. */
+  padding: env(safe-area-inset-top) calc(env(safe-area-inset-right) + 14px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 14px);
 }
 /* Jeder Screen bekommt seine eigene Scroll-Box (statt die ganze Seite wachsen zu
    lassen) — sonst könnte z.B. ein gezoomtes Spielfeld die fixe Werkzeugleiste
