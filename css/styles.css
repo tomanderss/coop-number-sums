@@ -378,6 +378,24 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .screen.coop-screen .coop-code { font-size: 2rem; padding: 10px 0; }
   .screen.coop-screen .coop-tagline { padding: 0; }
 
+  /* Statistik/Erfolge/Verlauf bleiben bewusst scrollbar (unterschiedlich lange
+     Listen) -- nutzen die Breite im Querformat aber über ein rein
+     breiten-getriebenes Auto-Fit-Grid statt einer einzigen langen Spalte.
+     minmax(260px,1fr) ist relativ zur verfügbaren Breite, kein fixer
+     Geräte-Breakpoint -- kollabiert auf schmalen Geräten automatisch auf
+     eine Spalte. */
+  /* Höhere Spezifität als die ungated Basisregel (".stats-body, .settings-body
+     { display:flex }" weiter unten in der Datei) -- gleiche Spezifität +
+     spätere Position in der Quellreihenfolge würde sonst diese Media-Query-
+     Regel trotz zutreffender Bedingung überschreiben. */
+  .screen.stats .stats-body, .screen.achievements .achievements-body, .screen.history .history-body {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-items: start; align-content: start;
+  }
+  .stats-section-title, .stats-body > .btn { grid-column: 1 / -1; }
+  .achievements-progress { grid-column: 1 / -1; }
+  .history-body > .empty { grid-column: 1 / -1; }
+
   .screen.game {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 240px;
@@ -404,6 +422,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .game-sidebar-bottom .tool-pill { width: 46px; height: 46px; }
   .game-sidebar-bottom .round-btn svg, .game-sidebar-bottom .tool-ic svg { width: 20px; height: 20px; }
   .game-sidebar-bottom .tool-pill.pen { transform: translateX(50px); }
+
+  /* Trainingsmodus-Erklärbanner ist ein direktes Geschwister-Element von
+     board-wrap/sidebar innerhalb von .screen.game -- ohne explizite
+     grid-area würde es im Grid-Auto-Placement in eine unsichtbare,
+     abgeschnittene implizite Zeile rutschen (.screen.game hat
+     overflow:hidden). Eigene dritte Zeile über volle Breite dafür. */
+  .screen.game.training-mode {
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas: "topbar topbar" "board sidetop" "trainbanner trainbanner";
+  }
+  .screen.game.training-mode .training-banner { grid-area: trainbanner; }
 }
 
 /* ─── Toolbar (Stift/Radierer) ─── */
@@ -454,11 +483,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .pause-time { font-size: 1.6rem; font-weight: 900; color: var(--accent2); font-variant-numeric: tabular-nums; }
 
 /* ─── Overlay / Result ─── */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; animation: fadein .25s; padding: 20px; touch-action: none; overscroll-behavior: contain; }
+/* margin:auto auf der Karte statt align/justify-content:center auf .overlay
+   (gleiches Muster wie .board-wrap/.board) -- bei wenig Höhe (z.B. Querformat
+   mit vielen Team-Performance-Zeilen) bleibt die Karte dadurch von oben an
+   scrollbar, statt dass align-items:center sie unerreichbar nach oben aus dem
+   sichtbaren Bereich zentriert. */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; z-index: 50; animation: fadein .25s; padding: 20px; touch-action: pan-y; overscroll-behavior: contain; overflow-y: auto; }
 .result-card {
   background: var(--bg2); border-radius: 22px; padding: 28px 24px; width: 100%; max-width: 360px;
   text-align: center; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px var(--shadow);
-  animation: pop .4s cubic-bezier(.2,1.3,.5,1);
+  animation: pop .4s cubic-bezier(.2,1.3,.5,1); margin: auto; flex-shrink: 0;
 }
 /* Makelloser Sieg (0 Fehler, 0 Hinweise) bekommt einen goldenen Schimmer statt
    des normalen Schattens -- abgestufte Belohnung zum sonst identischen Sieg-Screen. */

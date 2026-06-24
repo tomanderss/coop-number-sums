@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.88';
-export const BUILD_HASH = 'd6a4f00';
+export const BUILD      = '0.89';
+export const BUILD_HASH = '0079bf2';
 
 export const CHANGELOG = [
+  {
+    "version": "0.89",
+    "date": "24.06.2026",
+    "changes": [
+      "Querformat-Optimierung erweitert: Statistik/Achievements/Verlauf nutzen jetzt ein dynamisches Mehrspalten-Layout statt einer einzelnen langen Liste, der Trainingsmodus-Erklärbanner war im Querformat unsichtbar (Grid-Layout-Fehler) und wurde behoben, und Popups/Overlays (Pause, Sieg, Niederlage, Aufgegeben, Coop-Lobby) bleiben jetzt auch bei wenig Höhe vollständig erreichbar und scrollbar."
+    ]
+  },
   {
     "version": "0.88",
     "date": "24.06.2026",
