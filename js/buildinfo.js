@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.95';
-export const BUILD_HASH = '0e7c0dc';
+export const BUILD      = '0.96';
+export const BUILD_HASH = 'c337519';
 
 export const CHANGELOG = [
+  {
+    "version": "0.96",
+    "date": "24.06.2026",
+    "changes": [
+      "Race- und Team-Modus: Der Ergebnis-Screen zeigte beim Sieg immer \"Gelöst!\", auch wenn man nur gewann, weil der Gegner/das andere Team alle Leben verloren oder aufgegeben hat -- jetzt zeigt der Titel passend \"Sieg!\" und der Text erklärt den tatsächlichen Ausgang (Sieg durch Leben-Verlust/Aufgabe der Gegenseite bzw. eigene Niederlage durch Leben-Verlust/Aufgabe)."
+    ]
+  },
   {
     "version": "0.95",
     "date": "24.06.2026",
