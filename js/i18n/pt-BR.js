@@ -31,6 +31,7 @@ export default {
     history: 'Histórico',
     trainingMode: 'Modo de treinamento',
     trainingHint: 'Aprenda passo a passo',
+    donate: 'Apoie-me',
   },
   setup: {
     title: 'Novo jogo',

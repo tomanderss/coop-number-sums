@@ -31,6 +31,7 @@ export default {
     history: 'Cronologia',
     trainingMode: 'Modalità allenamento',
     trainingHint: 'Impara passo dopo passo',
+    donate: 'Sostienimi',
   },
   setup: {
     title: 'Nuova partita',

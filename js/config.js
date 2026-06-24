@@ -96,6 +96,13 @@ export const COOP_COLORS_CB = [
 // bei 4 Spielern die gemeinsamen Leben schneller aufgebraucht sind.
 export const COOP_MAX_PLAYERS = 4;
 
+// Link für den freiwilligen Unterstützer-Button (Startbildschirm-Kopfzeile +
+// Einstellungen). Bewusst eine einfache, bedingungslose Spendenseite ohne
+// Gegenleistung (kein Feature-Unlock o.ä.) — sonst rechtlich keine Schenkung
+// mehr, sondern steuerpflichtiges Entgelt. TODO: echten Ko-fi-/Spendenlink
+// eintragen, bevor dieser Button live geht.
+export const DONATE_URL = 'https://ko-fi.com/REPLACE_ME';
+
 // ─── STANDARD-EINSTELLUNGEN ───────────────────────────────────────────────────
 export const DEFAULT_SETTINGS = {
   darkMode: true,            // Dunkelmodus ist Standard

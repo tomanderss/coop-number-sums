@@ -31,6 +31,7 @@ export default {
     history: 'История',
     trainingMode: 'Режим обучения',
     trainingHint: 'Учись шаг за шагом',
+    donate: 'Поддержать меня',
   },
   setup: {
     title: 'Новая игра',

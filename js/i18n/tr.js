@@ -31,6 +31,7 @@ export default {
     history: 'Geçmiş',
     trainingMode: 'Eğitim modu',
     trainingHint: 'Adım adım öğren',
+    donate: 'Beni destekle',
   },
   setup: {
     title: 'Yeni oyun',

@@ -31,6 +31,7 @@ export default {
     history: 'Historique',
     trainingMode: 'Mode entraînement',
     trainingHint: 'Apprends étape par étape',
+    donate: 'Soutenez-moi',
   },
   setup: {
     title: 'Nouvelle partie',

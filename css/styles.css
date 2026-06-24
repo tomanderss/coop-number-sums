@@ -100,8 +100,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* ─── Home ─── */
 .home { position: relative; justify-content: center; gap: 26px; text-align: center; }
-.home-settings-btn { position: absolute; top: 0; right: 0; z-index: 1; }
-.home-howto-btn { position: absolute; top: 0; left: 0; z-index: 1; }
+.home-donate-btn { position: absolute; top: 0; left: 0; z-index: 1; text-decoration: none; }
+.home-donate-heart {
+  position: absolute; bottom: -3px; right: -3px; font-size: .6rem; line-height: 1;
+  filter: drop-shadow(0 1px 2px var(--shadow));
+  animation: donate-heart-pulse 2.6s ease-in-out infinite;
+}
+@keyframes donate-heart-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-donate-heart { animation: none; }
+}
+.home-topbar-right { position: absolute; top: 0; right: 0; z-index: 1; display: flex; gap: 8px; }
 .home-streak-badge {
   position: absolute; top: 0; left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 2px; height: 44px;
