@@ -1864,7 +1864,7 @@ const App = {
     </section>
 
     <!-- ══ GAME ══ -->
-    <section v-else-if="state.screen==='game'" class="screen game" :class="{ 'race-mode': state.race.active, 'team-mode': state.team.active }">
+    <section v-else-if="state.screen==='game'" class="screen game" :class="{ 'race-mode': state.race.active, 'team-mode': state.team.active, 'training-mode': state.isTrainingGame }">
       <header class="topbar game-top">
         <button class="icon-btn" @click="quitToHome">‹</button>
         <div class="hud">
