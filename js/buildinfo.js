@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.92';
-export const BUILD_HASH = 'c01d21e';
+export const BUILD      = '0.93';
+export const BUILD_HASH = 'df6d174';
 
 export const CHANGELOG = [
+  {
+    "version": "0.93",
+    "date": "24.06.2026",
+    "changes": [
+      "Echten Ko-fi-Spendenlink hinterlegt"
+    ]
+  },
   {
     "version": "0.92",
     "date": "24.06.2026",
