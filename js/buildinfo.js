@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.89';
-export const BUILD_HASH = '0079bf2';
+export const BUILD      = '0.90';
+export const BUILD_HASH = '183bac6';
 
 export const CHANGELOG = [
+  {
+    "version": "0.90",
+    "date": "24.06.2026",
+    "changes": [
+      "Android-CI-Workflow repariert: GitHub Actions lehnte die Pipeline als ungültig ab, weil Secrets in einer if-Bedingung referenziert wurden (dort nicht erlaubt) -- der Check läuft jetzt im Build-Skript selbst."
+    ]
+  },
   {
     "version": "0.89",
     "date": "24.06.2026",
