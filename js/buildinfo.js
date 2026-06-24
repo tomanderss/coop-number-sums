@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.94';
-export const BUILD_HASH = '6b31210';
+export const BUILD      = '0.95';
+export const BUILD_HASH = '0e7c0dc';
 
 export const CHANGELOG = [
+  {
+    "version": "0.95",
+    "date": "24.06.2026",
+    "changes": [
+      "Querformat: seitliches Safe-Area-Padding ergänzt, damit Buttons nicht mehr von Dynamic Island/Notch/abgerundeten Ecken verdeckt werden"
+    ]
+  },
   {
     "version": "0.94",
     "date": "24.06.2026",
