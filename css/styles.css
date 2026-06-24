@@ -348,7 +348,36 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    .screen.game, also keine Hochformat-Änderung. Erst hier im Querformat
    werden sie zu echten Grid-Boxen. */
 @media screen and (orientation: landscape) and (pointer: coarse) {
+  .app { max-width: 820px; }
   .app.app-game { max-width: 900px; }
+
+  /* Home, Setup, Coop-Lobby: Logo/Buttons/Auswahlkarten verkleinert und (wo
+     möglich) nebeneinander statt untereinander angeordnet, damit sie auf der
+     viel niedrigeren Querformat-Höhe komplett ohne Scrollen passen. */
+  .screen.home {
+    flex-direction: row; justify-content: center; align-items: center; gap: 30px;
+  }
+  .home .brand { margin-top: 0; gap: 4px; }
+  .home .brand-logo { width: 56px; height: 56px; border-radius: 14px; }
+  .home .brand-title { font-size: 1.05rem; margin-top: 0; }
+  .home-actions { width: 360px; flex: 0 0 auto; gap: 8px; }
+  .home .btn { padding: 9px 14px; gap: 10px; }
+  .home .btn .btn-tx small { font-size: .66rem; }
+  .home-grid .btn { padding: 9px 8px; }
+  .home-version { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); margin-top: 0; }
+
+  .screen.setup .setup-body, .screen.coop-screen .coop-body { gap: 8px; }
+  .screen.setup .option-grid, .screen.coop-screen .option-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .screen.setup .opt-card, .screen.coop-screen .opt-card { padding: 8px 10px; }
+  .screen.setup .btn-start { margin-top: 10px; }
+  /* Code-Eingabe/-Anzeige ist für Hochformat groß ausgelegt (2.1rem/3.4rem) --
+     in der knapperen Querformat-Höhe verkleinert, damit z.B. die Schwierigkeits-
+     karten darunter im Host-Lobby-Screen nicht aus dem sichtbaren Bereich
+     gedrückt werden. */
+  .screen.coop-screen .coop-input { font-size: 1.3rem; padding: 9px; }
+  .screen.coop-screen .coop-code { font-size: 2rem; padding: 10px 0; }
+  .screen.coop-screen .coop-tagline { padding: 0; }
+
   .screen.game {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 240px;
