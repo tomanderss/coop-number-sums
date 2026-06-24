@@ -19,7 +19,7 @@ export default {
   home: {
     resume: '이어하기',
     newGame: '솔로 모드',
-    newGameHint: '난이도 선택',
+    newGameHint: '혼자 풀기',
     coopMode: '협동 모드',
     coopHint: '함께 풀기',
     comingSoon: '곧 출시',

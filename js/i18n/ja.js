@@ -19,7 +19,7 @@ export default {
   home: {
     resume: '続ける',
     newGame: 'ソロモード',
-    newGameHint: '難易度を選ぶ',
+    newGameHint: '一人で解く',
     coopMode: 'Coopモード',
     coopHint: '一緒に解く',
     comingSoon: '近日公開',

@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.90';
-export const BUILD_HASH = '183bac6';
+export const BUILD      = '0.91';
+export const BUILD_HASH = 'e3abe21';
 
 export const CHANGELOG = [
+  {
+    "version": "0.91",
+    "date": "24.06.2026",
+    "changes": [
+      "Hauptmenü: Der Solo-Modus-Button zeigte als Untertext eine Anweisung (\"Schwierigkeit wählen\") statt einer Beschreibung wie bei Coop/Race -- heißt jetzt passend \"Allein lösen\" (in allen 10 Sprachen angepasst)."
+    ]
+  },
   {
     "version": "0.90",
     "date": "24.06.2026",

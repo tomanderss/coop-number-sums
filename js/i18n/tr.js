@@ -19,7 +19,7 @@ export default {
   home: {
     resume: 'Devam et',
     newGame: 'Solo mod',
-    newGameHint: 'Zorluk seç',
+    newGameHint: 'Tek başına çöz',
     coopMode: 'Coop modu',
     coopHint: 'Birlikte çözün',
     comingSoon: 'çok yakında',

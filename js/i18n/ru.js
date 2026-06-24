@@ -19,7 +19,7 @@ export default {
   home: {
     resume: 'Продолжить',
     newGame: 'Соло-режим',
-    newGameHint: 'Выбрать сложность',
+    newGameHint: 'Решить в одиночку',
     coopMode: 'Кооператив',
     coopHint: 'Решайте вместе',
     comingSoon: 'скоро',
