@@ -19,7 +19,7 @@ export default {
   home: {
     resume: 'Continuar',
     newGame: 'Modo solo',
-    newGameHint: 'Elegir dificultad',
+    newGameHint: 'Resolver solo',
     coopMode: 'Modo cooperativo',
     coopHint: 'Resolved juntos',
     comingSoon: 'pronto',
