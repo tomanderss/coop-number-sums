@@ -31,6 +31,7 @@ export default {
     history: '履歴',
     trainingMode: 'トレーニングモード',
     trainingHint: 'ステップごとに学ぶ',
+    donate: '支援する',
   },
   setup: {
     title: '新しいゲーム',

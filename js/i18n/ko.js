@@ -31,6 +31,7 @@ export default {
     history: '기록',
     trainingMode: '트레이닝 모드',
     trainingHint: '단계별로 배우기',
+    donate: '후원하기',
   },
   setup: {
     title: '새 게임',

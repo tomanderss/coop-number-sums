@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.91';
-export const BUILD_HASH = 'e3abe21';
+export const BUILD      = '0.92';
+export const BUILD_HASH = 'c01d21e';
 
 export const CHANGELOG = [
+  {
+    "version": "0.92",
+    "date": "24.06.2026",
+    "changes": [
+      "Unterstützer-Button in der Startbildschirm-Kopfzeile (oben links)"
+    ]
+  },
   {
     "version": "0.91",
     "date": "24.06.2026",

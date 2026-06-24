@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL } from './config.js';
 import { generatePuzzle, findHintCell } from './generator.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
@@ -1793,7 +1793,7 @@ const App = {
       revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool, restartFromGame,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct, giveUp,
-      startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS,
+      startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
       shareCoopInvite, raceResultMsg,
@@ -1807,9 +1807,12 @@ const App = {
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
-      <button class="icon-btn home-howto-btn" @click="state.modal='howto'" :aria-label="t('home.howto')" :title="t('home.howto')">?</button>
+      <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')">☕</a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge">🔥{{ state.streak.currentStreak }}</span>
-      <button class="icon-btn home-settings-btn" @click="navigate('settings')" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
+      <div class="home-topbar-right">
+        <button class="icon-btn home-howto-btn" @click="state.modal='howto'" :aria-label="t('home.howto')" :title="t('home.howto')">?</button>
+        <button class="icon-btn home-settings-btn" @click="navigate('settings')" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
+      </div>
       <div class="brand">
         <img class="brand-logo" src="./icons/icon-192.png" alt="" />
         <h1 class="brand-title">Coop<br>Number Sums</h1>
