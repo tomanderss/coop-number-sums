@@ -73,13 +73,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .screen.game { overflow: hidden; position: relative; }
 /* Subtiler Akzent-Streifen je Modus (reine CSS-Variable, kein neues Farbsystem
    und keine freie Akzentfarbe -- nur ein dezenter visueller Hinweis, in welchem
-   Modus man gerade spielt). Im normalen Solo-/2-Spieler-Coop-Spiel bleibt
-   --mode-accent unbesetzt und der Streifen unsichtbar. */
+   Modus man gerade spielt). Im normalen Solo-/2-Spieler-Coop-Spiel UND im
+   1v1-Wettkampf bleibt --mode-accent unbesetzt und der Streifen unsichtbar. */
 .screen.game::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
   background: var(--mode-accent, transparent); z-index: 5; pointer-events: none;
 }
-.screen.game.race-mode { --mode-accent: #f97316; }
 .screen.game.team-mode { --mode-accent: #14b8a6; }
 /* Solange ein Modal offen ist (z.B. Anleitung), darf der dahinterliegende
    Screen nicht mitscrollen, auch wenn der Wisch auf dem Modal-Inhalt dessen
@@ -298,7 +297,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .cell.training-highlight { box-shadow: inset 0 0 0 3px var(--accent2); animation: trainingPulse 1.4s ease infinite; }
 @keyframes trainingPulse { 0%,100% { box-shadow: inset 0 0 0 3px var(--accent2); } 50% { box-shadow: inset 0 0 0 5px var(--accent2); } }
 @keyframes hintGlow { 0%,100% { box-shadow: inset 0 0 0 0 var(--good); } 50% { box-shadow: inset 0 0 0 3px var(--good); } }
-.cell.solnc::after { content: ''; position: absolute; inset: 11%; border: 2.5px solid var(--good); border-radius: 50%; }
 /* permanente Hinweis-Markierung (anders als .hinted, das nach 1.2s verblasst):
    eingekreiste Zahl bekommt einen grünen statt blauen Ring; gelöschte Zahl
    bekommt einen kleinen grünen Punkt — beides bleibt für den Rest des Rätsels. */
@@ -521,7 +519,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   50% { box-shadow: 0 20px 60px var(--shadow), 0 0 0 2px rgba(251,191,36,.85), 0 0 52px rgba(251,191,36,.6); }
 }
 .perfect-badge {
-  background: linear-gradient(135deg, #fde68a, #fbbf24); color: #1a1304;
+  /* Dunkler statt gelber Hintergrund -- bei gelbem Hintergrund verschwand das
+     ebenfalls gelb/weiß gerenderte ✨-Emoji (kein Kontrast zur Badge-Farbe). */
+  background: linear-gradient(135deg, #78350f, #451a03); color: #fde68a;
   font-weight: 800; font-size: .78rem; padding: 5px 14px; border-radius: 999px;
   align-self: center; letter-spacing: .3px; text-transform: uppercase;
 }
@@ -539,6 +539,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* ─── Coop: Team-Performance & MVP (Gewonnen/Verloren-Screen) ─── */
 .coop-performance { display: flex; flex-direction: column; gap: 8px; text-align: left; margin: 2px 0 4px; }
+/* Gegner-Team-Leben-Verlust im 2v2-Ergebnis-Screen — einfache Chip-Reihe statt
+   der ausführlichen .perf-row-Karten des eigenen Teams, da hier nur die
+   Fehlerzahl pro Gegner-Spieler zählt, keine Korrekt/Falsch-Aufschlüsselung. */
+.opponent-team-performance { display: flex; flex-direction: column; gap: 6px; text-align: left; margin: 2px 0 4px; }
+.opponent-team-performance .chip { margin-right: 6px; }
 .perf-title { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
 .perf-row { background: var(--bg3); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
 .perf-row.mvp { box-shadow: 0 0 0 2px #fbbf24 inset; }
@@ -548,17 +553,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .perf-bar { height: 5px; border-radius: 999px; background: var(--bg); overflow: hidden; }
 .perf-bar-fill { height: 100%; border-radius: 999px; }
 .perf-nums { display: flex; flex-wrap: wrap; gap: 8px; font-size: .72rem; color: var(--text2); }
-/* Schwebende Pille statt randloser Balken (Punkt: "anorganisch", verdeckt
-   Buttons) — folgt demselben Muster wie .toast/.best-time-banner, damit sie
-   sich ins restliche App-Design einfügt. Der Toolbar wird beim Anzeigen der
-   Lösung ohnehin ausgeblendet (siehe app.js), daher reicht ein normaler
-   Toast-Abstand statt fester Pixel-Reserve für den Toolbar. */
-.review-bar {
-  position: fixed; bottom: calc(env(safe-area-inset-bottom) + 24px); left: 50%; transform: translateX(-50%);
-  max-width: calc(100% - 32px); background: var(--bg2); display: flex; align-items: center; gap: 14px;
-  padding: 10px 10px 10px 20px; border-radius: 999px; box-shadow: 0 8px 24px var(--shadow);
-  font-weight: 800; z-index: 80;
-}
 
 /* ─── Trainingsmodus: Erklär-Banner (kein Vollbild-Overlay, siehe app.js) ─── */
 /* Teil des normalen Flex-Spalten-Flusses von .screen.game (wie .toolbar/
