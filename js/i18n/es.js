@@ -86,7 +86,6 @@ export default {
   loss: {
     title: 'Sin vidas',
     msg: 'No pasa nada – ¡inténtalo de nuevo!',
-    retry: 'Reintentar',
     showSolution: 'Mostrar solución',
   },
   gaveup: {

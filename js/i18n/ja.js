@@ -86,7 +86,6 @@ export default {
   loss: {
     title: 'ライフがなくなりました',
     msg: '大丈夫、もう一度挑戦しよう！',
-    retry: 'もう一度試す',
     showSolution: '解答を見る',
   },
   gaveup: {

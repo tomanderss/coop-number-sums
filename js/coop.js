@@ -57,6 +57,15 @@ function withTimeout(promise) {
 }
 
 function attachListeners(f, code, { onJoin, onLeave, onMessage }) {
+  // Defensive: falls eine vorherige Session (derselbe Tab, neue Lobby ohne
+  // zwischenzeitlichen leave()-Aufruf) noch Listener auf dem alten Raum hängen
+  // hat, müssen die ZUERST abgehängt werden -- sonst überschreiben wir nur die
+  // Referenzvariablen, während die alten Listener weiterlaufen und Events aus
+  // der alten Session (z.B. doppelte MISTAKE-Events) parallel zu den neuen
+  // verarbeiten. Genau das war die Ursache für falsch gezählte Fehler nach
+  // Lobby-Verlassen-und-wieder-Beitreten.
+  unsubJoin && unsubJoin(); unsubLeave && unsubLeave(); unsubEvents && unsubEvents();
+
   const playersRef = f.ref(f.db, `rooms/${code}/players`);
   const eventsRef = f.ref(f.db, `rooms/${code}/events`);
 
@@ -233,7 +242,7 @@ export async function leave() {
 
 export const MSG = {
   INIT: 'init', MOVE: 'move', UNDO: 'undo', CHECK: 'check', STATUS: 'status', PAUSE: 'pause', HINT: 'hint',
-  RETRY: 'retry', IDENTITY: 'identity', ROSTER: 'roster', MISTAKE: 'mistake', START: 'start',
+  IDENTITY: 'identity', ROSTER: 'roster', MISTAKE: 'mistake', START: 'start',
   TEAM_START: 'teamStart', TEAM_DONE: 'teamDone',
   RACE_START: 'raceStart', RACE_DONE: 'raceDone',
 };

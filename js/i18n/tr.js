@@ -86,7 +86,6 @@ export default {
   loss: {
     title: 'Can kalmadı',
     msg: 'Sorun değil – tekrar dene!',
-    retry: 'Tekrar dene',
     showSolution: 'Çözümü göster',
   },
   gaveup: {

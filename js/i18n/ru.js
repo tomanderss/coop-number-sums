@@ -86,7 +86,6 @@ export default {
   loss: {
     title: 'Жизни закончились',
     msg: 'Не проблема – попробуй снова!',
-    retry: 'Попробовать снова',
     showSolution: 'Показать решение',
   },
   gaveup: {

@@ -86,7 +86,6 @@ export default {
   loss: {
     title: '목숨이 모두 소진되었습니다',
     msg: '괜찮아요 – 다시 시도해보세요!',
-    retry: '다시 시도',
     showSolution: '정답 보기',
   },
   gaveup: {

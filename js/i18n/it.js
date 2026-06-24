@@ -86,7 +86,6 @@ export default {
   loss: {
     title: 'Vite finite',
     msg: 'Nessun problema – riprova!',
-    retry: 'Riprova',
     showSolution: 'Mostra soluzione',
   },
   gaveup: {

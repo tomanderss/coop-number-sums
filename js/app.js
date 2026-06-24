@@ -355,6 +355,7 @@ function goNextPuzzle() {
 // erklären kann. Solo, kein Netz, keine eigenen Storage-Keys (siehe Plan).
 const TRAINING_GEN_BUDGET = 40; // Versuche, bis ein voll Tier-1-lösbares Rätsel gefunden ist
 function startTrainingGame() {
+  coopReset();
   state.generating = true;
   state.screen = 'game';
   setTimeout(() => {
@@ -799,7 +800,7 @@ function undo(broadcast = true) {
 const CODE_RE = /^\d{6}$/;
 
 // Im Team-vs-Team-Modus laufen Zug-Nachrichten (MOVE/MISTAKE/UNDO/HINT/CHECK/
-// PAUSE/START/RETRY/STATUS) über den team-skopierten Kanal statt des raumweiten
+// PAUSE/START/STATUS) über den team-skopierten Kanal statt des raumweiten
 // Event-Logs -- so erreichen sie nie das gegnerische Team. Das "Team X ist
 // fertig"-Signal (TEAM_DONE) wird bewusst NICHT über coopSend() verschickt,
 // sondern direkt über Coop.send() (siehe win()), da es absichtlich beide Teams
@@ -850,8 +851,6 @@ function handleCoopMsg(msg) {
     if (msg.hostId) state.coop.hostId = msg.hostId;
     state.coop.teamMode = !!msg.teamMode;
     updateConnectedFlag();
-  } else if (msg.type === Coop.MSG.RETRY) {
-    restartPuzzle(msg.startTime);
   } else if (msg.type === Coop.MSG.TEAM_START) {
     applyTeamStart(msg.seed, msg.difficulty);
   } else if (msg.type === Coop.MSG.TEAM_DONE) {
@@ -977,6 +976,7 @@ function confirmCoopIdentity() {
 // kann den Namen also immer ändern), wird aber mit dem zuletzt gespeicherten
 // Namen vorbefüllt, damit man ihn im Normalfall nur bestätigen muss.
 function goCoop() {
+  coopReset();
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
   navigate('coop');
@@ -985,6 +985,7 @@ function goCoop() {
 // mit gesetztem raceMode- oder teamMode-Flag je gewähltem Modus (1v1 oder
 // 2v2), das die Spielerzahl der Lobby entsprechend begrenzt (siehe startJoining()).
 function goRace(mode) {
+  coopReset();
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
   state.coop.raceMode = mode !== '2v2';
@@ -1465,20 +1466,6 @@ function revealSolution() {
   state.solutionShown = true;
 }
 
-function restartPuzzle(startTime) {
-  log('game', `Puzzle neu gestartet`);
-  state.marks = Array.from({ length: state.puzzle.rows }, () => Array(state.puzzle.cols).fill('none'));
-  state.markedBy = Array.from({ length: state.puzzle.rows }, () => Array(state.puzzle.cols).fill(null));
-  state.cellMeta = buildCellMeta(state.puzzle); // setzt auch hint/hintMark zurück
-  state.lives = LIVES; state.maxLives = LIVES; state.hintsLeft = HINTS;
-  state.hintsUsed = 0; state.mistakes = 0; state.history = []; state.flash = {}; state.justResolved = {};
-  state.coop.lifeLossBy = []; state.coop.mistakesByPlayer = {};
-  state.status = 'playing'; state.solutionShown = false; state.newHighscore = false; state.elapsed = 0;
-  state.wouldHaveBeenBest = false; state.perfectWin = false; state.hintWarnShown = false;
-  state.startTime = startTime ?? Date.now();
-  startTimer(); persistGame();
-}
-
 // Verlässt man die Coop-Lobby selbst (auch mitten in der laufenden Runde), bekommt
 // das NICHT automatisch das Spiel für den Partner – der eigene players/$uid-Eintrag
 // verschwindet aus der RTDB (siehe Coop.leave()/coopReset()) und der Partner reagiert
@@ -1839,8 +1826,8 @@ const App = {
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, loadBackups,
-      revealSolution, restartPuzzle, quitToHome, setZoom, pauseGame, resumeFromPause, startCoopRound,
-      cellClasses, cellStyle, cellAriaLabel, toggleTool, restartFromGame,
+      revealSolution, quitToHome, setZoom, pauseGame, resumeFromPause, startCoopRound,
+      cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
@@ -1874,7 +1861,7 @@ const App = {
             <small>{{ t('difficulty.'+state.resumeAvailable.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailable.elapsed||0) }}</small>
           </span>
         </button>
-        <button class="btn btn-primary" @click="navigate('setup')">
+        <button class="btn btn-primary" @click="coopReset(); navigate('setup')">
           <span class="btn-ic">🧩</span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
         <button class="btn btn-coop" :disabled="!coopAvailable" @click="goCoop">
@@ -1895,7 +1882,7 @@ const App = {
     <!-- ══ SETUP ══ -->
     <section v-else-if="state.screen==='setup'" class="screen setup">
       <header class="topbar">
-        <button class="icon-btn" @click="navigate('home')">‹</button>
+        <button class="icon-btn" @click="coopReset(); navigate('home')">‹</button>
         <h2>{{ t('setup.title') }}</h2><span></span>
       </header>
       <div class="setup-body">
@@ -2174,10 +2161,10 @@ const App = {
             </div>
           </div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('common.newGame') }}</button>
+          <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
           <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
-          <button class="btn btn-ghost" v-if="!state.isTrainingGame && !state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -2196,10 +2183,10 @@ const App = {
             <p class="result-msg">{{ t('loss.msg') }}</p>
           </template>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active" @click="restartFromGame">{{ t('loss.retry') }}</button>
+          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('common.newGame') }}</button>
+          <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
           <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
-          <button class="btn btn-ghost" v-if="!state.isTrainingGame && !state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="navigate('setup')">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="revealSolution">{{ t('loss.showSolution') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -2666,10 +2653,6 @@ const App = {
 
 // Methoden, die das Template über setup() referenziert
 function toggleTool() { state.tool = state.tool === 'pen' ? 'eraser' : 'pen'; state.settings.confirmTool = state.tool; }
-function restartFromGame(broadcast = true) {
-  restartPuzzle();
-  if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.RETRY, startTime: state.startTime });
-}
 
 // Liefert, welche Seiten dieser Zelle zum ÄUSSEREN Rand einer gerade fertig
 // gewordenen Reihe/Spalte/Cage gehören (für den Fertig-Puls, Punkt 3: nur die

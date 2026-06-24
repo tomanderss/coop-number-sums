@@ -30,7 +30,7 @@ test.describe('history', () => {
     await expect(row.locator('.history-outcome')).toHaveText('🏆');
 
     // "Ansehen" opens a read-only board overlay without touching the live game state
-    // (state.puzzle/state.status, which quitToHome/restartFromGame rely on for resuming).
+    // (state.puzzle/state.status, which quitToHome/goNextPuzzle rely on for resuming).
     await row.locator('.btn-ghost', { hasText: 'Ansehen' }).click();
     await expect(page.locator('.modal-history')).toBeVisible();
     const liveState = await page.evaluate(() => ({ puzzle: window.__cns.state.puzzle, status: window.__cns.state.status }));
