@@ -42,8 +42,10 @@ jobs:
       # Signierter Release-Build (App Bundle) läuft nur, wenn die nötigen
       # Secrets hinterlegt sind (siehe README, Abschnitt "Native Apps") —
       # noch nicht der Fall, da bisher kein Android-Upload-Keystore existiert.
+      # Der Secrets-Check passiert bewusst im Shell-Skript statt in einem
+      # `if:` am Step (GitHub Actions erlaubt den `secrets`-Context nicht in
+      # `if:`-Bedingungen).
       - name: Build signed release bundle
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         working-directory: android
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -51,6 +53,10 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "Kein ANDROID_KEYSTORE_BASE64-Secret hinterlegt, signierter Release-Build wird übersprungen."
+            exit 0
+          fi
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
           cat > keystore.properties <<EOF
           storeFile=$(pwd)/release.keystore
@@ -60,8 +66,11 @@ jobs:
           EOF
           ./gradlew bundleRelease
 
+      # `hashFiles()` statt `secrets` im `if:` (siehe Begründung oben) -- liefert
+      # einen leeren String, wenn der Build-Step übersprungen wurde und die
+      # Datei nicht existiert.
       - uses: actions/upload-artifact@v4
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: ${{ hashFiles('android/app/build/outputs/bundle/release/app-release.aab') != '' }}
         with:
           name: app-release-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
