@@ -126,6 +126,9 @@ const state = reactive({
     myPct: 0,
     opponentPct: 0,
     opponentMistakes: 0,
+    rematchPending: false,  // true nur nach einem beendeten Match bis zum nächsten Hosten --
+                             // steuert, ob die Race-Lobby ihre eigene Schwierigkeitsauswahl
+                             // nochmal zeigt (siehe rematchRace()/startHosting()).
   },
 
   // UI
@@ -269,6 +272,10 @@ function startCoopGame(startTime) {
 }
 function startCoopRound() {
   if (!state.coop.awaitingStart) return;
+  // Nur der Host darf final starten, und erst sobald alle Mitspieler bereit
+  // sind (siehe Bereit-System oben) -- verhindert, dass jemand noch nicht
+  // hingeschaut hat, wenn die gemeinsame Zeit zu laufen beginnt.
+  if (state.coop.role !== 'host' || !allGuestsReady()) return;
   const startTime = Date.now();
   startCoopGame(startTime);
   // Race-Matches halten state.coop.active absichtlich auf false (siehe
@@ -328,6 +335,7 @@ function newGame(diffId) {
     state.generating = false;
     if (state.coop.active && state.coop.role === 'host') {
       state.coop.awaitingStart = true;
+      resetReadyFlags();
       startTimer();
       coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
     } else {
@@ -850,6 +858,13 @@ function handleCoopMsg(msg) {
     if (msg.hostId) state.coop.hostId = msg.hostId;
     state.coop.teamMode = !!msg.teamMode;
     updateConnectedFlag();
+  } else if (msg.type === Coop.MSG.READY) {
+    // Nur der Host wertet Bereit-Meldungen aus und verteilt die Liste neu --
+    // exakt das gleiche Muster wie IDENTITY (Konfliktauflösung/Quelle der Wahrheit).
+    if (state.coop.role === 'host') {
+      const p = state.coop.players.find(pl => pl.id === msg.author);
+      if (p) { p.ready = true; broadcastRoster(); }
+    }
   } else if (msg.type === Coop.MSG.TEAM_START) {
     applyTeamStart(msg.seed, msg.difficulty);
   } else if (msg.type === Coop.MSG.TEAM_DONE) {
@@ -907,6 +922,7 @@ function coopReset() {
   state.race.active = false; state.race.opponentId = null; state.race.opponentName = '';
   state.race.opponentColor = '#888'; state.race.matchOver = false; state.race.winner = null; state.race.endReason = null;
   state.race.myPct = 0; state.race.opponentPct = 0; state.race.opponentMistakes = 0;
+  state.race.rematchPending = false;
   state.isRaceGame = false;
 }
 
@@ -930,7 +946,7 @@ function upsertPlayer(id, name, requestedColor) {
   const others = state.coop.players.filter(p => p.id !== id);
   const color = pickAvailableColor(requestedColor, others);
   const existing = state.coop.players.find(p => p.id === id);
-  state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color, team: existing?.team ?? null }];
+  state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color, team: existing?.team ?? null, ready: existing?.ready ?? false }];
   updateConnectedFlag();
 }
 // Nur der Host weist Teams zu (Formations-Lobby) — zyklisch None → A → B → None,
@@ -958,6 +974,39 @@ function updateConnectedFlag() {
 // dessen Guard `state.coop.active` voraussetzt.
 function broadcastRoster() {
   Coop.send({ type: Coop.MSG.ROSTER, players: state.coop.players, hostId: state.coop.hostId, teamMode: state.coop.teamMode });
+}
+// ─── BEREIT-SYSTEM (vor Mehrspieler-Start) ─────────────────────────────────────
+// Alle Mitspieler außer dem Host müssen "Bereit" bestätigen, bevor der Host das
+// Match final starten kann (siehe startCoopRound()/.coop-lobby-overlay) — der
+// Host selbst zählt dabei nie als "Mitspieler", der bereit sein muss.
+function nonHostPlayers() {
+  return state.coop.players.filter(p => p.id !== state.coop.hostId);
+}
+function readyCount() {
+  return nonHostPlayers().filter(p => p.ready).length;
+}
+function allGuestsReady() {
+  const others = nonHostPlayers();
+  return others.length > 0 && others.every(p => p.ready);
+}
+function myReady() {
+  return !!state.coop.players.find(p => p.id === state.coop.myId)?.ready;
+}
+// Vom Host bei jedem neuen Rätsel/Match aufgerufen, damit sich alle erneut
+// bereit melden müssen (siehe startCoopMatch()/startTeamMatch()/startRaceMatch()/
+// newGame()) -- Bereit-Status gilt immer nur für die laufende Runde.
+function resetReadyFlags() {
+  state.coop.players.forEach(p => { p.ready = false; });
+  broadcastRoster();
+}
+// Von einem Mitspieler (nie vom Host) ausgelöst -- bewusst über Coop.send()
+// direkt statt coopSend(), damit der Host die Meldung auch dann sieht, wenn der
+// Mitspieler im Team-vs-Team-Modus im gegnerischen Team sitzt (siehe IDENTITY).
+function markReady() {
+  if (state.coop.role === 'host') return;
+  const me = state.coop.players.find(p => p.id === state.coop.myId);
+  if (me) me.ready = true;
+  Coop.send({ type: Coop.MSG.READY });
 }
 function playerColor(id) { return state.coop.players.find(p => p.id === id)?.color || null; }
 function chipTextColor(hex) {
@@ -1025,6 +1074,7 @@ function startHosting() {
   state.coop.error = null;
   state.coop.myId = null;
   state.coop.players = [];
+  state.race.rematchPending = false;
   Coop.hostGame({
     code: state.coop.code,
     name: state.settings.coopName,
@@ -1078,6 +1128,7 @@ function startCoopMatch() {
   state.coop.active = true;
   state.coop.waitingForGuest = false;
   state.coop.awaitingStart = true;
+  resetReadyFlags();
   navigate('game');
   Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
 }
@@ -1100,6 +1151,7 @@ function canStartTeamMatch() {
 // auf den team-skopierten Kanal umleitet (siehe coopSend()).
 function startTeamMatch() {
   if (!canStartTeamMatch()) return;
+  resetReadyFlags();
   const seed = Math.floor(Math.random() * 2 ** 31);
   const difficulty = state.coop.lobbyDiffId;
   applyTeamStart(seed, difficulty);
@@ -1145,6 +1197,7 @@ function canStartRaceMatch() {
 // seed}) -- kein Antwort-Leak, da nie das fertige Puzzle verschickt wird.
 function startRaceMatch() {
   if (!canStartRaceMatch()) return;
+  resetReadyFlags();
   const seed = Math.floor(Math.random() * 2 ** 31);
   const difficulty = state.coop.lobbyDiffId;
   applyRaceStart(seed, difficulty);
@@ -1197,6 +1250,7 @@ function rematchRace() {
   state.race.myPct = 0;
   state.race.opponentPct = 0;
   state.race.opponentMistakes = 0;
+  state.race.rematchPending = true;
   state.isRaceGame = false;
   state.coop.awaitingStart = false;
   state.coop.waitingForGuest = true;
@@ -1839,6 +1893,7 @@ const App = {
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
+      nonHostPlayers, readyCount, allGuestsReady, myReady, markReady,
       shareCoopInvite, raceResultMsg, teamResultMsg, winTitle,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
@@ -1953,6 +2008,7 @@ const App = {
           </span>
           <span v-if="state.team.active" class="chip coop-chip">🆚 {{ t('team.label'+state.team.myTeam) }}</span>
           <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>
+          <span v-if="state.team.active" class="chip coop-chip">{{ t('win.mistakesCount', { count: state.team.opponentMistakes }) }}</span>
           <span v-if="state.race.active" class="chip coop-chip">🆚 {{ state.race.opponentName }}</span>
           <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
@@ -1971,7 +2027,7 @@ const App = {
           </div>
           <div class="progress-line" v-if="state.race.active" :aria-label="t('race.opponentProgress', { pct: state.race.opponentPct })">
             <span class="progress-label">{{ state.race.opponentName }}</span>
-            <span class="progress-pct">{{ state.race.opponentPct }}%</span>
+            <span class="progress-pct">{{ state.race.opponentPct }}% · {{ t('win.mistakesCount', { count: state.race.opponentMistakes }) }}</span>
             <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.race.opponentPct + '%', background: state.race.opponentColor }"></span></span>
           </div>
         </div>
@@ -2067,7 +2123,21 @@ const App = {
           <div class="result-emoji">👥</div>
           <h2>{{ t('coop.lobbyTitle') }}</h2>
           <p class="result-msg">{{ t('coop.lobbyMsg') }}</p>
-          <button class="btn btn-primary" @click="startCoopRound">{{ t('coop.lobbyStart') }}</button>
+          <div class="coop-roster" v-if="nonHostPlayers().length">
+            <span v-for="p in nonHostPlayers()" :key="p.id" class="player-chip" :class="{ 'ready-chip': p.ready }"
+                  :style="{ background: p.color, color: chipTextColor(p.color) }">
+              {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+              {{ p.ready ? '✅' : '⏳' }}
+            </span>
+          </div>
+          <template v-if="state.coop.role === 'host'">
+            <p class="coop-subtext">{{ t('coop.readyCount', { n: readyCount(), total: nonHostPlayers().length }) }}</p>
+            <button class="btn btn-primary" :disabled="!allGuestsReady()" @click="startCoopRound">{{ t('coop.lobbyStart') }}</button>
+          </template>
+          <template v-else>
+            <button v-if="!myReady()" class="btn btn-primary" @click="markReady">{{ t('coop.markReady') }}</button>
+            <p v-else class="coop-subtext">{{ t('coop.waitingForHostFinalStart') }}</p>
+          </template>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
@@ -2395,12 +2465,13 @@ const App = {
               </span>
             </template>
           </div>
-          <!-- Race-Lobby zeigt die Schwierigkeitsauswahl auch hier (anders als
-               Coop/Team) -- damit ist sie nach einem Match-Ende (rematchRace()
-               kehrt in genau diese Ansicht zurück) ohne erneutes Hosten/
-               Beitreten wieder erreichbar ("nochmal spielen" mit ggf. neuer
-               Schwierigkeit). -->
-          <template v-if="state.coop.raceMode">
+          <!-- Race-Lobby zeigt die Schwierigkeitsauswahl ein zweites Mal NUR
+               nach einem beendeten Match (rematchRace() setzt rematchPending),
+               damit "nochmal spielen" ohne erneutes Hosten/Beitreten eine neue
+               Schwierigkeit wählen kann. Beim allerersten Hosten wurde die
+               Schwierigkeit bereits in der Ansicht davor gewählt -- ein
+               zweites Grid hier würde nur unnötig Platz verbrauchen/scrollen. -->
+          <template v-if="state.coop.raceMode && state.race.rematchPending">
             <div class="setup-label">{{ t('common.difficulty') }}</div>
             <div class="option-grid">
               <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"

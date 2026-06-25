@@ -70,6 +70,7 @@ test.describe('race mode', () => {
 
     await page.locator('.coop-body .btn-primary').click(); // "start race"
     await page.waitForSelector('.screen.game');
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' }));
     await page.locator('.coop-lobby-overlay .btn-primary').click(); // dismiss "ready?" lobby
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 
@@ -93,6 +94,7 @@ test.describe('race mode', () => {
 
     await page.locator('.coop-body .btn-primary').click();
     await page.waitForSelector('.screen.game');
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' }));
     await page.locator('.coop-lobby-overlay .btn-primary').click();
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 
@@ -118,6 +120,7 @@ test.describe('race mode', () => {
 
     await page.locator('.coop-body .btn-primary').click();
     await page.waitForSelector('.screen.game');
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' }));
     await page.locator('.coop-lobby-overlay .btn-primary').click();
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 
@@ -148,6 +151,7 @@ test.describe('race mode', () => {
     await simulateHostedRaceLobby(page);
     await page.locator('.coop-body .btn-primary').click();
     await page.waitForSelector('.screen.game');
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' }));
     await page.locator('.coop-lobby-overlay .btn-primary').click();
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 
@@ -180,6 +184,7 @@ test.describe('race mode', () => {
     await simulateHostedRaceLobby(page);
     await page.locator('.coop-body .btn-primary').click();
     await page.waitForSelector('.screen.game');
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' }));
     await page.locator('.coop-lobby-overlay .btn-primary').click();
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 

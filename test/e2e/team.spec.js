@@ -83,6 +83,10 @@ test.describe('team vs team', () => {
     await page.locator('.coop-body .btn-primary').click(); // "start match"
 
     await page.waitForSelector('.screen.game');
+    await page.evaluate(() => {
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' });
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-2' });
+    });
     await page.locator('.coop-lobby-overlay .btn-primary').click(); // dismiss "ready?" lobby
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 
@@ -105,6 +109,10 @@ test.describe('team vs team', () => {
     await teamChips.nth(2).click(); // guest2 -> Team B
     await page.locator('.coop-body .btn-primary').click();
     await page.waitForSelector('.screen.game');
+    await page.evaluate(() => {
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' });
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-2' });
+    });
     await page.locator('.coop-lobby-overlay .btn-primary').click();
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 
@@ -130,6 +138,10 @@ test.describe('team vs team', () => {
     await teamChips.nth(2).click(); // guest2 -> Team B
     await page.locator('.coop-body .btn-primary').click();
     await page.waitForSelector('.screen.game');
+    await page.evaluate(() => {
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' });
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-2' });
+    });
     await page.locator('.coop-lobby-overlay .btn-primary').click();
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 

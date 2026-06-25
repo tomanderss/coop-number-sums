@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.102';
-export const BUILD_HASH = '17f2571';
+export const BUILD      = '0.103';
+export const BUILD_HASH = '9564f48';
 
 export const CHANGELOG = [
+  {
+    "version": "0.103",
+    "date": "25.06.2026",
+    "changes": [
+      "Wettkampf-Lobby-Layout-Bug behoben: Wartebildschirm beim Hosten passt wieder auf eine Seite, ohne Zoom/Scrollen",
+      "Wettkampf: Fehleranzahl des Gegners bzw. gegnerischen Teams wird jetzt live während des Spiels angezeigt",
+      "Mehrspieler-Bereit-System: Mitspieler müssen erst \"Bereit\" drücken, bevor der Host das Spiel final starten kann"
+    ]
+  },
   {
     "version": "0.102",
     "date": "25.06.2026",
