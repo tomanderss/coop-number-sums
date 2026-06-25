@@ -281,7 +281,11 @@ function startCoopRound() {
   // Race-Matches halten state.coop.active absichtlich auf false (siehe
   // state.race-Kommentar), wodurch coopSend()s Guard das START-Signal
   // verschlucken würde -- hier muss roh über Coop.send() verschickt werden.
-  if (state.race.active) Coop.send({ type: Coop.MSG.START, startTime });
+  // Team-Matches haben state.coop.active zwar auf true, aber coopSend()
+  // leitet bei aktivem Team-Modus auf den team-skopierten Kanal um (siehe
+  // coopSend()) -- das START-Signal muss aber BEIDE Teams erreichen, daher
+  // auch hier roh über Coop.send() verschicken statt über coopSend().
+  if (state.race.active || state.team.active) Coop.send({ type: Coop.MSG.START, startTime });
   else coopSend({ type: Coop.MSG.START, startTime });
 }
 

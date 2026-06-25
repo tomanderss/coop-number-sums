@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.103';
-export const BUILD_HASH = '9564f48';
+export const BUILD      = '0.104';
+export const BUILD_HASH = '508f72f';
 
 export const CHANGELOG = [
+  {
+    "version": "0.104",
+    "date": "25.06.2026",
+    "changes": [
+      "Bugfix: Im Team-vs-Team-Modus startete das Spiel beim Klick auf \"Starten\" nur für das eigene Team -- das gegnerische Team blieb in der Lobby haengen, da das Startsignal faelschlich ueber den team-internen Kanal statt raumweit verschickt wurde."
+    ]
+  },
   {
     "version": "0.103",
     "date": "25.06.2026",
