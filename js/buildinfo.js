@@ -1,8 +1,22 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.103';
-export const BUILD_HASH = '9564f48';
+export const BUILD      = '0.105';
+export const BUILD_HASH = 'c002ed6';
 
 export const CHANGELOG = [
+  {
+    "version": "0.105",
+    "date": "25.06.2026",
+    "changes": [
+      "Wettkampf-Fortschrittsbalken (1 gegen 1 / 2 gegen 2) richten sich wieder exakt an derselben Stelle aus -- die Fehleranzahl des Gegners steht jetzt in Namensgröße unterhalb seines Namens statt den Prozent-Balken zu verschieben."
+    ]
+  },
+  {
+    "version": "0.104",
+    "date": "25.06.2026",
+    "changes": [
+      "Bugfix: Im Team-vs-Team-Modus startete das Spiel beim Klick auf \"Starten\" nur für das eigene Team -- das gegnerische Team blieb in der Lobby haengen, da das Startsignal faelschlich ueber den team-internen Kanal statt raumweit verschickt wurde."
+    ]
+  },
   {
     "version": "0.103",
     "date": "25.06.2026",

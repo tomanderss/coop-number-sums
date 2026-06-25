@@ -281,7 +281,11 @@ function startCoopRound() {
   // Race-Matches halten state.coop.active absichtlich auf false (siehe
   // state.race-Kommentar), wodurch coopSend()s Guard das START-Signal
   // verschlucken würde -- hier muss roh über Coop.send() verschickt werden.
-  if (state.race.active) Coop.send({ type: Coop.MSG.START, startTime });
+  // Team-Matches haben state.coop.active zwar auf true, aber coopSend()
+  // leitet bei aktivem Team-Modus auf den team-skopierten Kanal um (siehe
+  // coopSend()) -- das START-Signal muss aber BEIDE Teams erreichen, daher
+  // auch hier roh über Coop.send() verschicken statt über coopSend().
+  if (state.race.active || state.team.active) Coop.send({ type: Coop.MSG.START, startTime });
   else coopSend({ type: Coop.MSG.START, startTime });
 }
 
@@ -2026,8 +2030,11 @@ const App = {
             <span class="progress-bar"><span class="progress-bar-fill mine" :style="{ width: myProgressPct + '%' }"></span></span>
           </div>
           <div class="progress-line" v-if="state.race.active" :aria-label="t('race.opponentProgress', { pct: state.race.opponentPct })">
-            <span class="progress-label">{{ state.race.opponentName }}</span>
-            <span class="progress-pct">{{ state.race.opponentPct }}% · {{ t('win.mistakesCount', { count: state.race.opponentMistakes }) }}</span>
+            <span class="progress-label-col">
+              <span class="progress-label">{{ state.race.opponentName }}</span>
+              <span class="progress-label">{{ t('win.mistakesCount', { count: state.race.opponentMistakes }) }}</span>
+            </span>
+            <span class="progress-pct">{{ state.race.opponentPct }}%</span>
             <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.race.opponentPct + '%', background: state.race.opponentColor }"></span></span>
           </div>
         </div>
