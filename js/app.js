@@ -336,16 +336,12 @@ function newGame(diffId) {
   }, 30);
 }
 
-// Gewonnenes Coop-Rätsel → statt direkt erneut derselben Schwierigkeit (wie im
-// Solo-Modus) zur Schwierigkeitsauswahl, vorbefüllt mit der zuletzt gespielten —
-// der Host kann so für die nächste Runde bewusst eine andere Schwierigkeit wählen.
+// Nach jedem Solo-/Coop-Spiel geht's NIE direkt erneut in dieselbe Schwierigkeit,
+// sondern immer zur Schwierigkeitsauswahl, vorbefüllt mit der zuletzt gespielten —
+// so wird eine bewusste Bestätigung erzwungen, bevor das nächste Rätsel startet.
 function goNextPuzzle() {
-  if (state.coop.active && state.coop.role === 'host') {
-    state.sel.difficulty = state.puzzle.difficulty;
-    navigate('setup');
-  } else {
-    newGame(state.puzzle.difficulty);
-  }
+  state.sel.difficulty = state.puzzle.difficulty;
+  navigate('setup');
 }
 
 // Trainingsmodus: Schritt-für-Schritt-Erklärung erzwungener Züge (siehe
