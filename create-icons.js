@@ -1,8 +1,9 @@
 // create-icons.js — erzeugt icons/icon-192.png & icon-512.png ohne Abhängigkeiten
 // (reiner PNG-Encoder via Node-zlib). Motiv: ein nachgestellter Mini-Ausschnitt
-// der oberen linken Spielfeld-Ecke — Eck-Header, zwei Spalten- und Zeilensummen,
-// ein 2x2-Block echter Puzzle-Zellen mit Cage-Farben, Summen-Badge und einer
-// eingekreisten "kept"-Zahl (wie im echten Spiel).
+// der oberen linken Spielfeld-Ecke — Eck-Header, zwei zweizeilige Spalten- und
+// Zeilensummen (aktuelle Summe klein/gedämpft über der Zielsumme, wie im echten
+// Spiel), ein 2x2-Block echter Puzzle-Zellen mit Cage-Farben, Summen-Badge und
+// einer eingekreisten "kept"-Zahl (wie im echten Spiel).
 import { deflateSync } from 'zlib';
 import { writeFileSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
@@ -38,7 +39,7 @@ function encodePNG(width, height, rgba) {
   return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', Buffer.alloc(0))]);
 }
 
-// ── Farben (wie im echten App-Theme / REGION_COLORS) ───────────────────────────
+// ── Farben (wie im echten App-Theme, siehe css/styles.css) ────────────────────
 function hslToRgb(h, s, l) {
   s /= 100; l /= 100;
   const c = (1 - Math.abs(2 * l - 1)) * s;
@@ -53,14 +54,16 @@ function hslToRgb(h, s, l) {
   else [r1, g1, b1] = [c, 0, x];
   return [(r1 + m) * 255, (g1 + m) * 255, (b1 + m) * 255];
 }
-const WHITE = [255, 255, 255];
-const BG = [11, 16, 32];          // --bg
-const HDR_BG = [26, 33, 56];      // --bg2-artige Header-/Eckzelle
-const TEXT2 = [154, 166, 194];    // --text2 (gedämpfte Spaltensumme)
-const VIOLET = hslToRgb(263, 72, 62);       // REGION_COLORS.violet
-const VIOLET_DARK = hslToRgb(263, 72, 46);  // Summen-Badge (dunklere Schattierung)
-const TEAL = hslToRgb(174, 70, 44);         // REGION_COLORS.teal
-const TEAL_DARK = hslToRgb(174, 70, 30);
+const BG = [11, 16, 32];           // --bg
+const HDR_BG = [35, 44, 74];       // --hdr-bg
+const CORNER_BG = [24, 36, 68];    // --accent-soft (16%) über --bg geblendet
+const INK = [232, 237, 247];       // --ink / --text (Zielsumme, Zellenziffern, Chip-Text)
+const TEXT3 = [93, 105, 135];      // --text3 (gedämpfte aktuelle Summe)
+const ACCENT = [91, 140, 255];     // --accent (Ring um "kept"-Zahlen)
+const GREEN = hslToRgb(100, 45, 48);       // Cage-Farbe
+const GREEN_DARK = hslToRgb(100, 45, 40);  // Summen-Badge (rc-l - 8%)
+const PURPLE = hslToRgb(263, 72, 62);      // REGION_COLORS.violet
+const PURPLE_DARK = hslToRgb(263, 72, 54); // Summen-Badge (rc-l - 8%)
 
 // ── Sieben-Segment-Ziffern (ohne Schriftart) ───────────────────────────────────
 // Box-Koordinaten: Breite 0..1, Höhe 0..1.8. `t` = Segmentdicke (Anteil von 1).
@@ -108,13 +111,23 @@ function digitCoverage(digit, lx, ly, t) {
   }
   return false;
 }
-// Zentriert eine Ziffer in einer Box (boxW/boxH), `scale` = Ziffernbreite relativ
-// zur Boxbreite (Ziffernhöhe ergibt sich aus dem festen 1:1.8-Seitenverhältnis).
-function digitCentered(px, py, boxX, boxY, boxW, boxH, digit, scale, t = 0.24) {
+// Zentriert eine oder mehrere Ziffern (z.B. "23") in einer Box (boxW/boxH).
+// `scale` = Breite EINER Ziffer relativ zur Boxbreite (Höhe ergibt sich aus dem
+// festen 1:1.8-Seitenverhältnis); mehrere Ziffern werden mit `gapFrac` (Anteil
+// der Ziffernbreite) Abstand nebeneinander gesetzt und als Gruppe zentriert.
+function digitsCentered(px, py, boxX, boxY, boxW, boxH, value, scale, t = 0.24, gapFrac = 0.22) {
+  const digits = String(value).split('').map(Number);
   const dw = scale * boxW, dh = dw * 1.8;
-  const dx = boxX + (boxW - dw) / 2, dy = boxY + (boxH - dh) / 2;
-  const lx = (px - dx) / dw, ly = (py - dy) / dh * 1.8;
-  return digitCoverage(digit, lx, ly, t);
+  const gap = gapFrac * dw;
+  const totalW = digits.length * dw + (digits.length - 1) * gap;
+  const startX = boxX + (boxW - totalW) / 2;
+  const dy = boxY + (boxH - dh) / 2;
+  for (let i = 0; i < digits.length; i++) {
+    const dx = startX + i * (dw + gap);
+    const lx = (px - dx) / dw, ly = (py - dy) / dh * 1.8;
+    if (digitCoverage(digits[i], lx, ly, t)) return true;
+  }
+  return false;
 }
 
 // ── Geometrie- / Treffertests ──────────────────────────────────────────────────
@@ -138,6 +151,34 @@ function isInsideCard(px, py, N) {
   return inRoundedRect(px, py, 0.06 * N, 0.06 * N, 0.88 * N, 0.88 * N, 0.16 * N);
 }
 
+// Wie `digitsCentered`, aber die Zifferngröße wird relativ zur Boxhöhe statt
+// zur Boxbreite vorgegeben (`heightScale`) — nötig für die Header-Bänder
+// (cur/tgt), deren Höhe unabhängig von der (gleich breiten) Zellenbreite ist.
+function digitsCenteredH(px, py, boxX, boxY, boxW, boxH, value, heightScale, t = 0.24, gapFrac = 0.22) {
+  const digits = String(value).split('').map(Number);
+  const dh = heightScale * boxH, dw = dh / 1.8;
+  const gap = gapFrac * dw;
+  const totalW = digits.length * dw + (digits.length - 1) * gap;
+  const startX = boxX + (boxW - totalW) / 2;
+  const dy = boxY + (boxH - dh) / 2;
+  for (let i = 0; i < digits.length; i++) {
+    const dx = startX + i * (dw + gap);
+    const lx = (px - dx) / dw, ly = (py - dy) / dh * 1.8;
+    if (digitCoverage(digits[i], lx, ly, t)) return true;
+  }
+  return false;
+}
+// Zweizeilige Header-Zelle: kleine, gedämpfte "aktuelle Summe" (`cur`) über der
+// großen Zielsumme (`tgt`) in Akzentweiß — spiegelt `.hdr .cur`/`.hdr .tgt` aus
+// css/styles.css 1:1 (Größenverhältnis ~.58:.92 der Schriftgröße).
+function headerDigit(px, py, x, y, w, h, cur, tgt) {
+  const curH = h * 0.38, tgtH = h - curH;
+  if (py < y + curH) {
+    return digitsCenteredH(px, py, x, y, w, curH, cur, 0.62, 0.26) ? TEXT3 : HDR_BG;
+  }
+  return digitsCenteredH(px, py, x, y + curH, w, tgtH, tgt, 0.80) ? INK : HDR_BG;
+}
+
 // ── Zeichnen ──────────────────────────────────────────────────────────────────
 function pixelColor(px, py, N) {
   const x0 = 0.06 * N, y0 = 0.06 * N, W = 0.88 * N, H = 0.88 * N, R = 0.16 * N;
@@ -150,40 +191,40 @@ function pixelColor(px, py, N) {
   const cellR = cellW * 0.16; // weich abgerundete Zellenecken statt scharfer Kanten
 
   // Eck-Header
-  if (inRoundedRect(px, py, x0, y0, hdr, hdr, cellR)) return HDR_BG;
-  // Spaltensummen (oben)
+  if (inRoundedRect(px, py, x0, y0, hdr, hdr, cellR)) return CORNER_BG;
+  // Spaltensummen (oben), zweizeilig: aktuelle Summe 0 über Zielsumme
   if (py >= y0 && py < y0 + hdr) {
-    if (px >= colX0 && px < colX0 + cellW) return inRoundedRect(px, py, colX0, y0, cellW, hdr, cellR) ? (digitCentered(px, py, colX0, y0, cellW, hdr, 6, 0.42) ? TEXT2 : HDR_BG) : BG;
-    if (px >= colX1 && px < colX1 + cellW) return inRoundedRect(px, py, colX1, y0, cellW, hdr, cellR) ? (digitCentered(px, py, colX1, y0, cellW, hdr, 4, 0.42) ? TEXT2 : HDR_BG) : BG;
+    if (px >= colX0 && px < colX0 + cellW) return inRoundedRect(px, py, colX0, y0, cellW, hdr, cellR) ? headerDigit(px, py, colX0, y0, cellW, hdr, 0, 23) : BG;
+    if (px >= colX1 && px < colX1 + cellW) return inRoundedRect(px, py, colX1, y0, cellW, hdr, cellR) ? headerDigit(px, py, colX1, y0, cellW, hdr, 0, 7) : BG;
   }
-  // Zeilensummen (links)
+  // Zeilensummen (links), zweizeilig
   if (px >= x0 && px < x0 + hdr) {
-    if (py >= rowY0 && py < rowY0 + cellW) return inRoundedRect(px, py, x0, rowY0, hdr, cellW, cellR) ? (digitCentered(px, py, x0, rowY0, hdr, cellW, 9, 0.46) ? WHITE : HDR_BG) : BG;
-    if (py >= rowY1 && py < rowY1 + cellW) return inRoundedRect(px, py, x0, rowY1, hdr, cellW, cellR) ? (digitCentered(px, py, x0, rowY1, hdr, cellW, 5, 0.46) ? WHITE : HDR_BG) : BG;
+    if (py >= rowY0 && py < rowY0 + cellW) return inRoundedRect(px, py, x0, rowY0, hdr, cellW, cellR) ? headerDigit(px, py, x0, rowY0, hdr, cellW, 0, 10) : BG;
+    if (py >= rowY1 && py < rowY1 + cellW) return inRoundedRect(px, py, x0, rowY1, hdr, cellW, cellR) ? headerDigit(px, py, x0, rowY1, hdr, cellW, 0, 27) : BG;
   }
   // 2x2-Block echter Puzzle-Zellen
   const cells = [
-    { x: colX0, y: rowY0, col: VIOLET, dark: VIOLET_DARK, digit: 7, badge: 3, ring: true },
-    { x: colX1, y: rowY0, col: TEAL,   dark: TEAL_DARK,   digit: 4, badge: null, ring: false },
-    { x: colX0, y: rowY1, col: TEAL,   dark: TEAL_DARK,   digit: 8, badge: null, ring: false },
-    { x: colX1, y: rowY1, col: VIOLET, dark: VIOLET_DARK, digit: 5, badge: null, ring: false },
+    { x: colX0, y: rowY0, col: GREEN, dark: GREEN_DARK, digit: 2, badge: 15, ring: true },
+    { x: colX1, y: rowY0, col: GREEN, dark: GREEN_DARK, digit: 2, badge: null, ring: false },
+    { x: colX0, y: rowY1, col: GREEN, dark: GREEN_DARK, digit: 8, badge: null, ring: false },
+    { x: colX1, y: rowY1, col: PURPLE, dark: PURPLE_DARK, digit: 2, badge: 16, ring: true },
   ];
   for (const c of cells) {
     if (px >= c.x && px < c.x + cellW && py >= c.y && py < c.y + cellW) {
       if (!inRoundedRect(px, py, c.x, c.y, cellW, cellW, cellR)) return BG;
       if (c.badge != null) {
-        const bx = c.x + cellW * 0.1, by = c.y + cellW * 0.1, bw = cellW * 0.46, bh = cellW * 0.3, br = bh * 0.42;
+        const bx = c.x + cellW * 0.08, by = c.y + cellW * 0.1, bw = cellW * 0.56, bh = cellW * 0.3, br = bh * 0.4;
         if (inRoundedRect(px, py, bx, by, bw, bh, br)) {
-          return digitCentered(px, py, bx, by, bw, bh, c.badge, 0.32) ? WHITE : c.dark;
+          return digitsCentered(px, py, bx, by, bw, bh, c.badge, 0.26) ? INK : c.dark;
         }
       }
       if (c.ring) {
         const rcx = c.x + cellW * 0.56, rcy = c.y + cellW * 0.62, rOuter = cellW * 0.27, sw = cellW * 0.08;
-        if (digitCentered(px, py, rcx - rOuter * 0.62, rcy - rOuter * 0.62, rOuter * 1.24, rOuter * 1.24, c.digit, 0.7)) return WHITE;
-        if (inRing(px, py, rcx, rcy, rOuter, sw)) return WHITE;
+        if (digitsCentered(px, py, rcx - rOuter * 0.62, rcy - rOuter * 0.62, rOuter * 1.24, rOuter * 1.24, c.digit, 0.7)) return INK;
+        if (inRing(px, py, rcx, rcy, rOuter, sw)) return ACCENT;
         return c.col;
       }
-      return digitCentered(px, py, c.x, c.y, cellW, cellW, c.digit, 0.5) ? WHITE : c.col;
+      return digitsCentered(px, py, c.x, c.y, cellW, cellW, c.digit, 0.44) ? INK : c.col;
     }
   }
   return BG;

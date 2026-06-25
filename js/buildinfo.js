@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.99';
-export const BUILD_HASH = '6b239d5';
+export const BUILD      = '0.100';
+export const BUILD_HASH = '76301f2';
 
 export const CHANGELOG = [
+  {
+    "version": "0.100",
+    "date": "25.06.2026",
+    "changes": [
+      "Neues App-Icon: detailgetreuer Mini-Ausschnitt des Spielfelds mit zweizeiligen Summenanzeigen, grünen/violetten Cage-Farben und blauem \"Behalten\"-Ring"
+    ]
+  },
   {
     "version": "0.99",
     "date": "25.06.2026",
