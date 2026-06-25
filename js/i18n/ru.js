@@ -153,6 +153,7 @@ export default {
   },
   team: {
     assignHint: 'Нажмите на игрока, чтобы сменить команду',
+    randomize: 'Перемешать команды',
     labelA: 'Команда A',
     labelB: 'Команда B',
     unassigned: 'Без команды',

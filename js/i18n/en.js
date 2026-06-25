@@ -153,6 +153,7 @@ export default {
   },
   team: {
     assignHint: 'Tap a player to switch their team',
+    randomize: 'Shuffle teams',
     labelA: 'Team A',
     labelB: 'Team B',
     unassigned: 'No team',

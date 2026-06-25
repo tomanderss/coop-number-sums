@@ -153,6 +153,7 @@ export default {
   },
   team: {
     assignHint: 'Toque em um jogador para trocar o time',
+    randomize: 'Sortear times',
     labelA: 'Time A',
     labelB: 'Time B',
     unassigned: 'Sem time',

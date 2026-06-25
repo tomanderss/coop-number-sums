@@ -152,4 +152,18 @@ test.describe('team vs team', () => {
     await expect(page.locator('.result-card.win')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.team.winningTeam)).toBe('A');
   });
+
+  test('the randomize button splits all players into non-null teams, balanced to within one', async ({ page }) => {
+    await simulateHostedTeamLobby(page);
+
+    await expect(page.locator('.coop-body .btn-primary')).toBeDisabled();
+    await page.locator('.randomize-teams-btn').click();
+
+    const teams = await page.evaluate(() => window.__cns.state.coop.players.map(p => p.team));
+    expect(teams.every(t => t === 'A' || t === 'B')).toBe(true);
+    const countA = teams.filter(t => t === 'A').length;
+    const countB = teams.filter(t => t === 'B').length;
+    expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1);
+    await expect(page.locator('.coop-body .btn-primary')).toBeEnabled();
+  });
 });

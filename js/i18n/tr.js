@@ -153,6 +153,7 @@ export default {
   },
   team: {
     assignHint: 'Takımını değiştirmek için bir oyuncuya dokun',
+    randomize: 'Takımları rastgele karıştır',
     labelA: 'Takım A',
     labelB: 'Takım B',
     unassigned: 'Takımsız',

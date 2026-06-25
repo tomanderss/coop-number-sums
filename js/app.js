@@ -963,6 +963,20 @@ function cycleTeam(id) {
   p.team = p.team === 'A' ? 'B' : p.team === 'B' ? null : 'A';
   broadcastRoster();
 }
+// Host-only "Zufall"-Button: mischt alle Spieler (Fisher-Yates) und verteilt
+// sie danach abwechselnd auf A/B -- bei einer geraden Spielerzahl (insb. dem
+// namensgebenden 2v2-Fall mit 4 Spielern) ergibt das automatisch ein exaktes
+// 2-gegen-2; bei ungerader Anzahl wird ein Team um genau einen Spieler größer.
+function randomizeTeams() {
+  if (state.coop.role !== 'host') return;
+  const shuffled = [...state.coop.players];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  shuffled.forEach((p, i) => { p.team = i % 2 === 0 ? 'A' : 'B'; });
+  broadcastRoster();
+}
 function removePlayer(id) {
   state.coop.players = state.coop.players.filter(p => p.id !== id);
   updateConnectedFlag();
@@ -1895,7 +1909,7 @@ const App = {
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
-      cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
+      cycleTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady,
       shareCoopInvite, raceResultMsg, teamResultMsg, winTitle,
@@ -2457,6 +2471,7 @@ const App = {
           <p class="coop-subtext">{{ t('coop.shareCode') }}</p>
           <button class="btn btn-ghost btn-sm" @click="shareCoopInvite">📤 {{ t('coop.shareInvite') }}</button>
           <p v-if="state.coop.teamMode" class="coop-subtext">{{ t('team.assignHint') }}</p>
+          <button v-if="state.coop.teamMode && state.coop.role==='host'" class="btn btn-ghost btn-sm randomize-teams-btn" :disabled="state.coop.players.length<2" @click="randomizeTeams">🔀 {{ t('team.randomize') }}</button>
           <div class="coop-roster" v-if="state.coop.players.length">
             <template v-if="state.coop.teamMode">
               <button v-for="p in state.coop.players" :key="p.id" type="button" class="player-chip team-chip"

@@ -153,6 +153,7 @@ export default {
   },
   team: {
     assignHint: 'Tocca un giocatore per cambiare squadra',
+    randomize: 'Squadre a caso',
     labelA: 'Squadra A',
     labelB: 'Squadra B',
     unassigned: 'Nessuna squadra',

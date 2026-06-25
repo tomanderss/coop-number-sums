@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.105';
-export const BUILD_HASH = 'c002ed6';
+export const BUILD      = '0.106';
+export const BUILD_HASH = '2740019';
 
 export const CHANGELOG = [
+  {
+    "version": "0.106",
+    "date": "25.06.2026",
+    "changes": [
+      "Neuer \"Zufall\"-Button in der 2-gegen-2-Lobby: teilt alle Spieler per Klick zufällig in Team A und Team B auf (statt jeden einzeln per Tippen zuzuweisen)."
+    ]
+  },
   {
     "version": "0.105",
     "date": "25.06.2026",

@@ -153,6 +153,7 @@ export default {
   },
   team: {
     assignHint: 'プレイヤーをタップしてチームを切り替え',
+    randomize: 'チームをランダムに分ける',
     labelA: 'チームA',
     labelB: 'チームB',
     unassigned: 'チーム未設定',

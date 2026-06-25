@@ -153,6 +153,7 @@ export default {
   },
   team: {
     assignHint: '플레이어를 탭하여 팀을 변경하세요',
+    randomize: '팀 무작위 배정',
     labelA: '팀 A',
     labelB: '팀 B',
     unassigned: '팀 없음',

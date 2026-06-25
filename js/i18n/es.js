@@ -153,6 +153,7 @@ export default {
   },
   team: {
     assignHint: 'Toca a un jugador para cambiar su equipo',
+    randomize: 'Repartir al azar',
     labelA: 'Equipo A',
     labelB: 'Equipo B',
     unassigned: 'Sin equipo',
