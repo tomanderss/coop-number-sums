@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.98';
-export const BUILD_HASH = '99c16ea';
+export const BUILD      = '0.99';
+export const BUILD_HASH = '6b239d5';
 
 export const CHANGELOG = [
+  {
+    "version": "0.99",
+    "date": "25.06.2026",
+    "changes": [
+      "\"Neues Spiel\" führt jetzt in jedem Modus zur Schwierigkeitsauswahl statt direkt erneut in dieselbe Schwierigkeit zu starten"
+    ]
+  },
   {
     "version": "0.98",
     "date": "24.06.2026",
