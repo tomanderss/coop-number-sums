@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.106';
-export const BUILD_HASH = '2740019';
+export const BUILD      = '0.107';
+export const BUILD_HASH = '54f0351';
 
 export const CHANGELOG = [
+  {
+    "version": "0.107",
+    "date": "25.06.2026",
+    "changes": [
+      "Fehler im Wettkampf-/Team-Modus werden dem Gegner jetzt sofort gemeldet, statt erst beim nächsten korrekten Zug",
+      "2v2-Lobby: Teams werden jetzt über eine Pfeil-Tabelle (Team A | Spieler | Team B) zugewiesen statt durch Antippen"
+    ]
+  },
   {
     "version": "0.106",
     "date": "25.06.2026",

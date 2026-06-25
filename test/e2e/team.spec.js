@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp } from './helpers.js';
+import { gotoApp, commitMistakes } from './helpers.js';
 
 // Team-vs-Team (Feature 12b) reuses the existing 4-player coop room/lobby --
 // we never simulate a real second Firebase client. Within-team gameplay sync
@@ -56,17 +56,18 @@ test.describe('team vs team', () => {
   test('hosted team lobby shows a team-assignable roster that gates the start button', async ({ page }) => {
     await simulateHostedTeamLobby(page);
 
-    const teamChips = page.locator('.coop-roster .team-chip');
-    await expect(teamChips).toHaveCount(3);
+    const mid = page.locator('.team-picker .team-slot-mid');
+    await expect(mid).toHaveCount(3);
     // No one is assigned to a team yet -- start must stay disabled.
     await expect(page.locator('.coop-body .btn-primary')).toBeDisabled();
 
-    // Own chip + one guest chip -> both Team A. Cycle the guest chip once
-    // more -> Team B, which satisfies "at least one player per team".
-    await teamChips.nth(0).click();
-    await teamChips.nth(1).click();
+    // Own slot + one guest slot -> both Team A via the left ("move to A") arrow.
+    // Swap the guest's arrow once more -> Team B, which satisfies "at least
+    // one player per team".
+    await mid.nth(0).locator('.team-arrow-btn').nth(0).click(); // me -> A
+    await mid.nth(1).locator('.team-arrow-btn').nth(0).click(); // guest1 -> A
     await expect(page.locator('.coop-body .btn-primary')).toBeDisabled(); // both on Team A, no Team B yet
-    await teamChips.nth(1).click(); // cycles Team A -> Team B
+    await mid.nth(1).locator('.team-swap-btn').click(); // guest1: A -> B
     await expect(page.locator('.coop-body .btn-primary')).toBeEnabled();
 
     expect(await page.evaluate(() => window.__cns.state.coop.players.map(p => p.team))).toEqual(['A', 'B', null]);
@@ -75,10 +76,10 @@ test.describe('team vs team', () => {
   test('starting a team match navigates to the game with a team chip and opponent progress', async ({ page }) => {
     await simulateHostedTeamLobby(page);
 
-    const teamChips = page.locator('.coop-roster .team-chip');
-    await teamChips.nth(0).click(); // me -> Team A
-    await teamChips.nth(2).click(); // guest2 -> Team A
-    await teamChips.nth(2).click(); // guest2 -> Team B
+    const mid = page.locator('.team-picker .team-slot-mid');
+    await mid.nth(0).locator('.team-arrow-btn').nth(0).click(); // me -> A
+    await mid.nth(2).locator('.team-arrow-btn').nth(0).click(); // guest2 -> A
+    await mid.nth(2).locator('.team-swap-btn').click(); // guest2: A -> B
     await expect(page.locator('.coop-body .btn-primary')).toBeEnabled();
     await page.locator('.coop-body .btn-primary').click(); // "start match"
 
@@ -100,13 +101,44 @@ test.describe('team vs team', () => {
     await expect(page.locator('.screen.game')).not.toHaveClass(/race-mode/);
   });
 
+  // Regression: a wrong move returns early out of setMark() via
+  // registerMistake() and never reaches afterMove() -- the function that
+  // normally pushes the throttled team progress update. The opposing team
+  // used to only learn about a mistake once a subsequent CORRECT move ran
+  // afterMove(). registerMistake() now pushes an unthrottled update of its
+  // own; Coop.setTeamProgress itself is a frozen module-namespace export and
+  // a no-op in this sandbox, so we assert on the internal throttle timestamp
+  // it stamps immediately before attempting the push.
+  test('a mistake immediately resets the team progress throttle instead of waiting for the next correct move', async ({ page }) => {
+    await simulateHostedTeamLobby(page);
+
+    const mid = page.locator('.team-picker .team-slot-mid');
+    await mid.nth(0).locator('.team-arrow-btn').nth(0).click(); // me -> A
+    await mid.nth(2).locator('.team-arrow-btn').nth(0).click(); // guest2 -> A
+    await mid.nth(2).locator('.team-swap-btn').click(); // guest2: A -> B
+    await page.locator('.coop-body .btn-primary').click(); // "start match"
+
+    await page.waitForSelector('.screen.game');
+    await page.evaluate(() => {
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' });
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-2' });
+    });
+    await page.locator('.coop-lobby-overlay .btn-primary').click();
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+
+    expect(await page.evaluate(() => window.__cns.getProgressThrottle().team)).toBe(0);
+    await commitMistakes(page, 1);
+    const throttledAt = await page.evaluate(() => window.__cns.getProgressThrottle().team);
+    expect(Date.now() - throttledAt).toBeLessThan(2000);
+  });
+
   test('the opposing team finishing first ends the match immediately and hides the rematch buttons', async ({ page }) => {
     await simulateHostedTeamLobby(page);
 
-    const teamChips = page.locator('.coop-roster .team-chip');
-    await teamChips.nth(0).click(); // me -> Team A
-    await teamChips.nth(2).click(); // guest2 -> Team A
-    await teamChips.nth(2).click(); // guest2 -> Team B
+    const mid = page.locator('.team-picker .team-slot-mid');
+    await mid.nth(0).locator('.team-arrow-btn').nth(0).click(); // me -> A
+    await mid.nth(2).locator('.team-arrow-btn').nth(0).click(); // guest2 -> A
+    await mid.nth(2).locator('.team-swap-btn').click(); // guest2: A -> B
     await page.locator('.coop-body .btn-primary').click();
     await page.waitForSelector('.screen.game');
     await page.evaluate(() => {
@@ -132,10 +164,10 @@ test.describe('team vs team', () => {
   test('the opposing team giving up awards the win to my still-playing team by default', async ({ page }) => {
     await simulateHostedTeamLobby(page);
 
-    const teamChips = page.locator('.coop-roster .team-chip');
-    await teamChips.nth(0).click(); // me -> Team A
-    await teamChips.nth(2).click(); // guest2 -> Team A
-    await teamChips.nth(2).click(); // guest2 -> Team B
+    const mid = page.locator('.team-picker .team-slot-mid');
+    await mid.nth(0).locator('.team-arrow-btn').nth(0).click(); // me -> A
+    await mid.nth(2).locator('.team-arrow-btn').nth(0).click(); // guest2 -> A
+    await mid.nth(2).locator('.team-swap-btn').click(); // guest2: A -> B
     await page.locator('.coop-body .btn-primary').click();
     await page.waitForSelector('.screen.game');
     await page.evaluate(() => {

@@ -173,6 +173,28 @@ test.describe('race mode', () => {
     expect(await page.evaluate(() => window.__cns.state.race.winner)).toBe('opponent');
   });
 
+  // Regression: a wrong move returns early out of setMark() via
+  // registerMistake() and never reaches afterMove() -- the function that
+  // normally pushes the throttled progress update. The opponent used to only
+  // learn about a mistake once a subsequent CORRECT move ran afterMove().
+  // registerMistake() now pushes an unthrottled update of its own; we can't
+  // spy on the (frozen, no-op-in-tests) Coop.setRaceProgress call directly,
+  // so we assert on the internal throttle timestamp it stamps immediately
+  // before attempting the push.
+  test('a mistake immediately resets the race progress throttle instead of waiting for the next correct move', async ({ page }) => {
+    await simulateHostedRaceLobby(page);
+    await page.locator('.coop-body .btn-primary').click();
+    await page.waitForSelector('.screen.game');
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' }));
+    await page.locator('.coop-lobby-overlay .btn-primary').click();
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+
+    expect(await page.evaluate(() => window.__cns.getProgressThrottle().race)).toBe(0);
+    await commitMistakes(page, 1);
+    const throttledAt = await page.evaluate(() => window.__cns.getProgressThrottle().race);
+    expect(Date.now() - throttledAt).toBeLessThan(2000);
+  });
+
   // Regression: pauseGame()/resumeFromPause() only ever broadcast via
   // coopSend(), which is a no-op during a race match (state.coop.active stays
   // false by design -- see state.race comment). The receiving side already
