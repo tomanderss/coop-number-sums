@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.101';
-export const BUILD_HASH = '655b719';
+export const BUILD      = '0.102';
+export const BUILD_HASH = '17f2571';
 
 export const CHANGELOG = [
+  {
+    "version": "0.102",
+    "date": "25.06.2026",
+    "changes": [
+      "Querformat-Fix: oberer Sicherheitsabstand ergänzt, damit Icons in der Kopfzeile nicht mehr direkt am oberen Bildschirmrand kleben"
+    ]
+  },
   {
     "version": "0.101",
     "date": "25.06.2026",
