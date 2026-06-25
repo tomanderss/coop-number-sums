@@ -1,8 +1,30 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.96';
-export const BUILD_HASH = 'c337519';
+export const BUILD      = '0.98';
+export const BUILD_HASH = '99c16ea';
 
 export const CHANGELOG = [
+  {
+    "version": "0.98",
+    "date": "24.06.2026",
+    "changes": [
+      "Wettkampf-Modus einheitlich benannt: \"Duell\"/\"Rennen\"/\"Race\" in allen 10 Sprachen durch einen konsistenten Begriff ersetzt",
+      "Sieg/Niederlage-Bildschirm nennt sofort den Grund (z.B. Gegner ohne Leben) statt ihn unter Statistiken zu verstecken",
+      "Gegnername statt \"dein Gegner\" im 1v1- und 2v2-Ergebnis, inkl. Leben-Verlust pro Spieler im Team-Modus",
+      "Prozentanzeigen im Ergebnis-Bildschirm zeigen jetzt eindeutig, welcher Wert zu welchem Spieler/Team gehört",
+      "Niederlage-Titel im Wettkampf/Team-Modus klingt nicht mehr versehentlich nach Sieg",
+      "Nicht mehr benötigte Buttons \"Spielfeld ansehen\" und \"Lösung anzeigen\" entfernt"
+    ]
+  },
+  {
+    "version": "0.97",
+    "date": "24.06.2026",
+    "changes": [
+      "\"Nochmal versuchen\" entfernt: nach Niederlage/Aufgeben startet jetzt immer ein neues Rätsel statt das identische zu wiederholen",
+      "10×10/11×11-Rätsel sind jetzt garantiert ohne Raten lösbar (reine Logik, kein Hypothesen-Schritt nötig)",
+      "Coop-Bug behoben: doppelt zählende Fehler/Leben und falsche \"hat die Lobby verlassen\"-Namen nach Lobby-Verlassen-und-Wiederbeitreten",
+      "Trainingsmodus zeigt nicht mehr fälschlich ein \"Coop offline\"-Abzeichen an"
+    ]
+  },
   {
     "version": "0.96",
     "date": "24.06.2026",
