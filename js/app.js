@@ -621,6 +621,21 @@ function registerMistake() {
     if (state.lives <= 0) { state.lives = 0; lose(); }
   }
   persistGame();
+  // Ohne diese beiden Pushs sah die Gegenseite einen Fehler erst beim nächsten
+  // KORREKTEN Zug (der über afterMove() läuft) -- ein Fehler-Zug selbst kehrt
+  // oben in setMark() vorzeitig zurück und erreicht afterMove() nie. Bewusst
+  // UNGEDROSSELT (wie bei broadcastTeamDone()) statt über den normalen
+  // 2s-Throttle, da Fehler -- anders als jeder einzelne Zug -- selten genug
+  // sind, dass ein Sofort-Push hier kein Kosten-/Schreibvolumen-Problem ist,
+  // für die Gegenseite aber sofort sichtbar sein soll.
+  if (state.team.active) {
+    teamProgressThrottle = Date.now();
+    Coop.setTeamProgress(state.team.myTeam, { pct: progressPct(), mistakes: state.mistakes, mistakesByPlayer: { ...state.coop.mistakesByPlayer } });
+  }
+  if (state.race.active) {
+    raceProgressThrottle = Date.now();
+    Coop.setRaceProgress(state.coop.myId, { pct: progressPct(), mistakes: state.mistakes });
+  }
 }
 
 // Wendet einen vom Partner gemeldeten Fehler an (ohne erneut zu senden — sonst
@@ -953,14 +968,31 @@ function upsertPlayer(id, name, requestedColor) {
   state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color, team: existing?.team ?? null, ready: existing?.ready ?? false }];
   updateConnectedFlag();
 }
-// Nur der Host weist Teams zu (Formations-Lobby) — zyklisch None → A → B → None,
-// per Klick auf den jeweiligen Roster-Chip. team fließt einfach als zusätzliches
-// Feld über den bestehenden ROSTER-Broadcast mit, kein eigener MSG-Typ nötig.
-function cycleTeam(id) {
+// Nur der Host weist Teams zu (Formations-Lobby), per direkter Zielangabe
+// statt zyklischem Tippen auf den Spieler -- die Lobby zeigt dafür eine
+// Tabelle mit Team A links / Team B rechts, dazwischen pro Person ein
+// Tausch-/Zuweisungs-Pfeil, der genau hierher zielt. team fließt einfach als
+// zusätzliches Feld über den bestehenden ROSTER-Broadcast mit, kein eigener
+// MSG-Typ nötig.
+function assignTeam(id, team) {
   if (state.coop.role !== 'host') return;
   const p = state.coop.players.find(pl => pl.id === id);
   if (!p) return;
-  p.team = p.team === 'A' ? 'B' : p.team === 'B' ? null : 'A';
+  p.team = team;
+  broadcastRoster();
+}
+// Host-only "Zufall"-Button: mischt alle Spieler (Fisher-Yates) und verteilt
+// sie danach abwechselnd auf A/B -- bei einer geraden Spielerzahl (insb. dem
+// namensgebenden 2v2-Fall mit 4 Spielern) ergibt das automatisch ein exaktes
+// 2-gegen-2; bei ungerader Anzahl wird ein Team um genau einen Spieler größer.
+function randomizeTeams() {
+  if (state.coop.role !== 'host') return;
+  const shuffled = [...state.coop.players];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  shuffled.forEach((p, i) => { p.team = i % 2 === 0 ? 'A' : 'B'; });
   broadcastRoster();
 }
 function removePlayer(id) {
@@ -1895,7 +1927,7 @@ const App = {
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
-      cycleTeam, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
+      assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady,
       shareCoopInvite, raceResultMsg, teamResultMsg, winTitle,
@@ -2457,20 +2489,42 @@ const App = {
           <p class="coop-subtext">{{ t('coop.shareCode') }}</p>
           <button class="btn btn-ghost btn-sm" @click="shareCoopInvite">📤 {{ t('coop.shareInvite') }}</button>
           <p v-if="state.coop.teamMode" class="coop-subtext">{{ t('team.assignHint') }}</p>
-          <div class="coop-roster" v-if="state.coop.players.length">
-            <template v-if="state.coop.teamMode">
-              <button v-for="p in state.coop.players" :key="p.id" type="button" class="player-chip team-chip"
-                    :style="{ background: p.color, color: chipTextColor(p.color) }" @click="cycleTeam(p.id)">
-                {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
-                <b>{{ p.team ? t('team.label'+p.team) : t('team.unassigned') }}</b>
-              </button>
+          <button v-if="state.coop.teamMode && state.coop.role==='host'" class="btn btn-ghost btn-sm randomize-teams-btn" :disabled="state.coop.players.length<2" @click="randomizeTeams">🔀 {{ t('team.randomize') }}</button>
+          <div class="team-picker" v-if="state.coop.teamMode && state.coop.players.length">
+            <div class="team-picker-header team-picker-header-a">{{ t('team.labelA') }}</div>
+            <div class="team-picker-header team-picker-header-mid"></div>
+            <div class="team-picker-header team-picker-header-b">{{ t('team.labelB') }}</div>
+            <template v-for="p in state.coop.players" :key="p.id">
+              <div class="team-slot team-slot-a">
+                <span v-if="p.team==='A'" class="player-chip" :style="{ background: p.color, color: chipTextColor(p.color) }">
+                  {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+                </span>
+              </div>
+              <div class="team-slot team-slot-mid">
+                <template v-if="!p.team">
+                  <span class="team-mid-name">{{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template></span>
+                  <button type="button" class="team-arrow-btn" :disabled="state.coop.role!=='host'" @click="assignTeam(p.id,'A')" :aria-label="t('team.moveTo',{team:t('team.labelA')})">◀</button>
+                  <button type="button" class="team-arrow-btn" :disabled="state.coop.role!=='host'" @click="assignTeam(p.id,'B')" :aria-label="t('team.moveTo',{team:t('team.labelB')})">▶</button>
+                </template>
+                <template v-else>
+                  <button type="button" class="team-arrow-btn team-swap-btn" :disabled="state.coop.role!=='host'"
+                          @click="assignTeam(p.id, p.team==='A' ? 'B' : 'A')"
+                          :aria-label="t('team.moveTo',{team:t('team.label'+(p.team==='A'?'B':'A'))})">{{ p.team==='A' ? '▶' : '◀' }}</button>
+                  <button type="button" class="team-arrow-btn team-unassign-btn" :disabled="state.coop.role!=='host'" @click="assignTeam(p.id,null)" :aria-label="t('team.unassign')">✕</button>
+                </template>
+              </div>
+              <div class="team-slot team-slot-b">
+                <span v-if="p.team==='B'" class="player-chip" :style="{ background: p.color, color: chipTextColor(p.color) }">
+                  {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+                </span>
+              </div>
             </template>
-            <template v-else>
-              <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
-                    :style="{ background: p.color, color: chipTextColor(p.color) }">
-                {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
-              </span>
-            </template>
+          </div>
+          <div class="coop-roster" v-if="!state.coop.teamMode && state.coop.players.length">
+            <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
+                  :style="{ background: p.color, color: chipTextColor(p.color) }">
+              {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+            </span>
           </div>
           <!-- Race-Lobby zeigt die Schwierigkeitsauswahl ein zweites Mal NUR
                nach einem beendeten Match (rematchRace() setzt rematchPending),
@@ -2813,8 +2867,12 @@ app.mount('#app');
 // Debug-Hook nur lokal (nie auf der echten Domain aktiv). handleCoopMsg ist
 // hier zusätzlich exponiert, damit E2E-Tests einen Team-vs-Team-TEAM_DONE
 // vom "Gegner-Team" simulieren können, ohne einen echten zweiten Firebase-
-// Client zu brauchen.
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg };
+// Client zu brauchen. getProgressThrottle() exponiert die beiden internen
+// Throttle-Zeitstempel, damit E2E-Tests den Sofort-Push aus registerMistake()
+// nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
+// (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
+// `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');

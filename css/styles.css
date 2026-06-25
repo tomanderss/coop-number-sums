@@ -760,6 +760,31 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    anders als die rein dekorativen .player-chip-Anzeigen eine 44px-Tippfläche. */
 .player-chip.team-chip { min-height: 44px; padding: 4px 14px; }
 
+/* ─── Team-Picker (2v2-Lobby: Team A | Pfeile | Team B) ─── */
+/* Jeder Spieler liefert per v-for genau 3 Geschwister-Divs (a/mid/b), die
+   dank CSS-Grid (statt einer Zeilen-Flex-Reihe pro Spieler) automatisch in
+   die 3 Spalten fallen -- kein zusätzliches Wrapper-Element nötig/erlaubt,
+   sonst würde der Grid-Fluss pro Spieler unterbrochen. */
+.team-picker {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  gap: 6px 8px; margin: 2px 0 4px; width: 100%;
+}
+.team-picker-header { font-size: .72rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; text-align: center; padding-bottom: 4px; }
+.team-slot { min-height: 30px; display: flex; align-items: center; }
+.team-slot-a { justify-content: flex-end; }
+.team-slot-b { justify-content: flex-start; }
+.team-slot-mid { justify-content: center; gap: 4px; flex-wrap: nowrap; }
+.team-mid-name { font-size: .78rem; font-weight: 700; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 64px; }
+/* 44px-Tippfläche wie alle anderen interaktiven Lobby-Buttons, aber schmal
+   genug, dass zwei davon (◀▶) nebeneinander in die schmale Mittelspalte passen. */
+.team-arrow-btn {
+  min-width: 38px; min-height: 38px; border-radius: 10px; background: var(--bg3);
+  color: var(--text2); font-size: 1rem; font-weight: 800; flex: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.team-arrow-btn:disabled { opacity: .35; }
+.team-unassign-btn { color: var(--bad); }
+
 /* ─── Coop Farb-Kennzeichnung pro Zelle ─── */
 /* Eingekreist: Ring in Spieler-Farbe statt Standard-Akzent */
 .cell.kept.coop-mark::after { border-color: var(--markcol); }
