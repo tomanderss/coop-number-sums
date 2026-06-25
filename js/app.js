@@ -792,7 +792,7 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
 // einmalige Warnung, dass damit keine Bestzeit mehr möglich ist — bei Abbruch
 // bleibt hintWarnShown false, sodass die Warnung beim nächsten Versuch erneut kommt.
 function useHint() {
-  if (state.status !== 'playing' || state.hintsLeft <= 0 || state.isRaceGame) return;
+  if (state.status !== 'playing' || state.hintsLeft <= 0 || state.isRaceGame || state.team.active) return;
   if (!state.hintWarnShown) {
     ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => {
       state.hintWarnShown = true;
@@ -2128,7 +2128,7 @@ const App = {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="11" cy="13" rx="8" ry="7"/><path d="m16.5 7.5 3.2-3.2a1.6 1.6 0 0 1 2.3 2.3l-3.2 3.2-2.3-2.3z"/></svg>
             </span>
           </div>
-          <button v-if="!state.isRaceGame" class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" :title="t('game.hintTitle')" :aria-label="t('game.hintTitle')">
+          <button v-if="!state.isRaceGame && !state.team.active" class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" :title="t('game.hintTitle')" :aria-label="t('game.hintTitle')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5"/><path d="M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-4 11.6c.8.7 1.2 1.3 1.3 2.4h5.4c.1-1.1.5-1.7 1.3-2.4A6.5 6.5 0 0 0 12 2.5z"/></svg>
           </button>
         </div>

@@ -185,6 +185,33 @@ test.describe('team vs team', () => {
     expect(await page.evaluate(() => window.__cns.state.team.winningTeam)).toBe('A');
   });
 
+  // Regression: useHint() only ever checked state.isRaceGame, so hints stayed
+  // fully available in 2v2 team matches even though they're correctly
+  // disabled in 1v1 races -- a player could get logic-puzzle help in a
+  // competitive mode meant to have none. The hint button must now be hidden
+  // in team mode too (mirrors the existing race-mode v-if).
+  test('the hint button is hidden during an active team match', async ({ page }) => {
+    await simulateHostedTeamLobby(page);
+
+    const mid = page.locator('.team-picker .team-slot-mid');
+    await mid.nth(0).locator('.team-arrow-btn').nth(0).click(); // me -> A
+    await mid.nth(2).locator('.team-arrow-btn').nth(0).click(); // guest2 -> A
+    await mid.nth(2).locator('.team-swap-btn').click(); // guest2: A -> B
+    await page.locator('.coop-body .btn-primary').click(); // "start match"
+
+    await page.waitForSelector('.screen.game');
+    await page.evaluate(() => {
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-1' });
+      window.__cns.handleCoopMsg({ type: 'ready', author: 'fake-guest-2' });
+    });
+    await page.locator('.coop-lobby-overlay .btn-primary').click();
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+
+    expect(await page.evaluate(() => window.__cns.state.team.active)).toBe(true);
+    // Only the undo button remains -- the hint button (also a .round-btn) is gone.
+    await expect(page.locator('.toolbar .round-btn')).toHaveCount(1);
+  });
+
   test('the randomize button splits all players into non-null teams, balanced to within one', async ({ page }) => {
     await simulateHostedTeamLobby(page);
 
