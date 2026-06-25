@@ -1,13 +1,13 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.107';
-export const BUILD_HASH = '31be4b4';
+export const BUILD      = '0.108';
+export const BUILD_HASH = '4130909';
 
 export const CHANGELOG = [
   {
-    "version": "0.106",
+    "version": "0.108",
     "date": "25.06.2026",
     "changes": [
-      "Neuer \"Zufall\"-Button in der 2-gegen-2-Lobby: teilt alle Spieler per Klick zufällig in Team A und Team B auf (statt jeden einzeln per Tippen zuzuweisen)."
+      "Hinweise sind jetzt auch im 2v2-Team-Modus deaktiviert (vorher nur im 1v1-Wettkampf)"
     ]
   },
   {
@@ -16,6 +16,13 @@ export const CHANGELOG = [
     "changes": [
       "Fehler im Wettkampf-/Team-Modus werden dem Gegner jetzt sofort gemeldet, statt erst beim nächsten korrekten Zug",
       "2v2-Lobby: Teams werden jetzt über eine Pfeil-Tabelle (Team A | Spieler | Team B) zugewiesen statt durch Antippen"
+    ]
+  },
+  {
+    "version": "0.106",
+    "date": "25.06.2026",
+    "changes": [
+      "Neuer \"Zufall\"-Button in der 2-gegen-2-Lobby: teilt alle Spieler per Klick zufällig in Team A und Team B auf (statt jeden einzeln per Tippen zuzuweisen)."
     ]
   },
   {
