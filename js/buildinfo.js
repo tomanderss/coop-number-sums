@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.100';
-export const BUILD_HASH = '76301f2';
+export const BUILD      = '0.101';
+export const BUILD_HASH = '655b719';
 
 export const CHANGELOG = [
+  {
+    "version": "0.101",
+    "date": "25.06.2026",
+    "changes": [
+      "App-Icon korrigiert: das ursprünglich bereitgestellte Icon-Design wird jetzt unverändert verwendet (statt einer fehlerhaften Nachbau-Version)"
+    ]
+  },
   {
     "version": "0.100",
     "date": "25.06.2026",
