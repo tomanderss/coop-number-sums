@@ -2030,8 +2030,11 @@ const App = {
             <span class="progress-bar"><span class="progress-bar-fill mine" :style="{ width: myProgressPct + '%' }"></span></span>
           </div>
           <div class="progress-line" v-if="state.race.active" :aria-label="t('race.opponentProgress', { pct: state.race.opponentPct })">
-            <span class="progress-label">{{ state.race.opponentName }}</span>
-            <span class="progress-pct">{{ state.race.opponentPct }}% · {{ t('win.mistakesCount', { count: state.race.opponentMistakes }) }}</span>
+            <span class="progress-label-col">
+              <span class="progress-label">{{ state.race.opponentName }}</span>
+              <span class="progress-label">{{ t('win.mistakesCount', { count: state.race.opponentMistakes }) }}</span>
+            </span>
+            <span class="progress-pct">{{ state.race.opponentPct }}%</span>
             <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.race.opponentPct + '%', background: state.race.opponentColor }"></span></span>
           </div>
         </div>

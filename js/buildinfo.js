@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.104';
-export const BUILD_HASH = '508f72f';
+export const BUILD      = '0.105';
+export const BUILD_HASH = 'c002ed6';
 
 export const CHANGELOG = [
+  {
+    "version": "0.105",
+    "date": "25.06.2026",
+    "changes": [
+      "Wettkampf-Fortschrittsbalken (1 gegen 1 / 2 gegen 2) richten sich wieder exakt an derselben Stelle aus -- die Fehleranzahl des Gegners steht jetzt in Namensgröße unterhalb seines Namens statt den Prozent-Balken zu verschieben."
+    ]
+  },
   {
     "version": "0.104",
     "date": "25.06.2026",
