@@ -104,7 +104,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .icon-btn:active { transform: scale(.92); }
 
 /* ─── Home ─── */
-.home { position: relative; justify-content: center; gap: 26px; text-align: center; }
+/* padding-top reserviert die Höhe der oben absolut positionierten Icons
+   (Spenden-/Hilfe-/Einstellungen-Button, Streak-Flamme) + Mindestabstand --
+   sonst rutscht das zentrierte Logo bei zusätzlichem Inhalt (z.B. dem
+   "Fortsetzen"-Button bei aktivem Spiel) per unsafe centering nach oben in
+   die Icon-Zeile. "safe center" fällt zusätzlich auf Start-Ausrichtung
+   zurück statt zu überlaufen, sobald der Inhalt nicht mehr reinpasst. */
+.home { position: relative; justify-content: center; justify-content: safe center; gap: 26px; text-align: center; padding-top: 60px; }
 .home-donate-btn { position: absolute; top: 0; left: 0; z-index: 1; text-decoration: none; }
 .home-donate-heart {
   position: absolute; bottom: -3px; right: -3px; font-size: .6rem; line-height: 1;
