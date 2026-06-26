@@ -101,6 +101,24 @@ test('Stufe 3: "Auflösen" deckt die Zelle auf, ohne zweite Warnung', async ({ p
   expect(await page.evaluate(({ r, c }) => window.__cns.state.marks[r][c], target)).toBe(target.want);
 });
 
+test('Nach dem Auflösen beginnt der nächste Hinweis wieder bei Stufe 1 (nicht instant Stufe 3)', async ({ page }) => {
+  await gotoApp(page);
+  await startNewGame(page, 'sehrleicht');
+  await solveExceptCorners(page);
+
+  // Kompletter Durchlauf bis Stufe 3 (Auflösen).
+  await startStage1(page);
+  await hintBtn(page).click();              // Stufe 2
+  await page.locator('.hint-banner .btn').click(); // "Auflösen" -> Zelle gelöst, Hinweis verworfen
+  expect(await page.evaluate(() => window.__cns.state.hintNudge)).toBe(null);
+
+  // Neuer Tipp MUSS wieder bei Stufe 1 starten: nur Highlight, kein Banner,
+  // kein sofortiges Auflösen.
+  await hintBtn(page).click();
+  expect(await page.evaluate(() => window.__cns.state.hintNudge?.stage)).toBe(1);
+  await expect(page.locator('.hint-banner')).toBeHidden();
+});
+
 test('Eigener Zug verwirft den Hinweis (auch in Stufe 1)', async ({ page }) => {
   await gotoApp(page);
   await startNewGame(page, 'sehrleicht');
