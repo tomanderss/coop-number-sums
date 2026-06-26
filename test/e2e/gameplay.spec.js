@@ -2,6 +2,29 @@ import { test, expect } from '@playwright/test';
 import { gotoApp, startNewGame, solveActivePuzzle, commitMistakes } from './helpers.js';
 
 test.describe('gameplay', () => {
+  // Regression: the player's chosen color (settings.coopMyColor) used to only
+  // tint marks during an active coop session (cellStyle()/cellClasses() were
+  // gated on state.coop.active). It must now also tint your own marks in solo,
+  // since the setting was generalized from "coop color" to "my color".
+  test('the chosen player color tints a kept mark even outside coop', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => { window.__cns.state.settings.coopMyColor = '#ff00aa'; });
+    await startNewGame(page, 'sehrleicht');
+
+    const result = await page.evaluate(() => {
+      const { state, onCellTap, cellStyle, cellClasses } = window.__cns;
+      const p = state.puzzle;
+      let r, c;
+      outer: for (r = 0; r < p.rows; r++) for (c = 0; c < p.cols; c++) if (p.solution[r][c]) break outer;
+      state.tool = 'pen';
+      onCellTap(r, c);
+      return { markedColor: cellStyle(r, c)['--markcol'], coopMark: !!cellClasses(r, c)['coop-mark'] };
+    });
+
+    expect(result.coopMark).toBe(true);
+    expect(result.markedColor).toBe('#ff00aa');
+  });
+
   test('solving the puzzle shows the win screen and records a highscore', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');

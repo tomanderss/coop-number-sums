@@ -21,6 +21,10 @@ const APP_START = Date.now();
 const splashVersion = document.getElementById('splash-version');
 if (splashVersion) splashVersion.textContent = `v${BUILD}`;
 
+// Sentinel für state.markedBy außerhalb einer aktiven Coop-/Team-/Wettkampf-
+// Lobby (state.coop.myId ist dort null, da keine Firebase-Identität nötig ist).
+const LOCAL_PLAYER_ID = 'local';
+
 // ─── GLOBALER ZUSTAND ─────────────────────────────────────────────────────────
 const state = reactive({
   screen: 'home',            // home | setup | game | settings | stats
@@ -58,7 +62,7 @@ const state = reactive({
   justResolved: {},          // "row-3" | "col-1" | "region-2" -> true (Fertig-Puls)
   cellPx: 48,
   zoom: 1,
-  markedBy: [],               // 2D-Array parallel zu marks: 'me' | 'partner' | null (nur Coop)
+  markedBy: [],               // 2D-Array parallel zu marks: Coop-Spieler-Id, LOCAL_PLAYER_ID (solo/Wettkampf) oder null
 
   // Auswahl im Setup
   sel: { ...DEFAULT_GAME_OPTIONS },
@@ -583,7 +587,11 @@ function setMark(r, c, next, user, fromId) {
 
   state.history = [{ r, c, prev: cur }]; // nur der letzte Zug ist rückgängig machbar
   state.marks[r][c] = next;
-  state.markedBy[r][c] = next === 'none' ? null : (user ? state.coop.myId : fromId);
+  // Außerhalb einer aktiven Coop-/Team-/Wettkampf-Lobby ist state.coop.myId
+  // null (keine Firebase-Identität nötig) -- LOCAL_PLAYER_ID markiert eigene
+  // Züge trotzdem als "meine", damit die eigene Farbe (state.settings.coopMyColor)
+  // auch solo greift (siehe cellStyle()).
+  state.markedBy[r][c] = next === 'none' ? null : (user ? (state.coop.myId || LOCAL_PLAYER_ID) : fromId);
   if (user && state.coop.active) coopSend({ type: Coop.MSG.MOVE, r, c, mark: next, from: state.coop.myId });
 
   if (!wasRow && rowResolved(r)) pulseResolved('row', r);
@@ -2598,6 +2606,13 @@ const App = {
             <option v-for="l in SUPPORTED_LOCALES" :key="l.id" :value="l.id">{{ l.label }}</option>
           </select>
         </div>
+        <div class="set-row col">
+          <span class="set-row-label">{{ t('settings.myColor') }}</span>
+          <div class="coop-swatches">
+            <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" :title="t('common.pickColorTitle')" />
+          </div>
+          <small class="set-hint">{{ t('settings.colorHint') }}</small>
+        </div>
 
         <div class="set-group-title">{{ t('settings.gameHelp') }}</div>
         <div class="set-row col">
@@ -2634,13 +2649,6 @@ const App = {
         <div class="set-row col">
           <span class="set-row-label">{{ t('settings.displayName') }}</span>
           <input class="text-input" v-model="state.settings.coopName" maxlength="32" :placeholder="t('common.namePlaceholder')" />
-        </div>
-        <div class="set-row col">
-          <span class="set-row-label">{{ t('settings.myColor') }}</span>
-          <div class="coop-swatches">
-            <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" :title="t('common.pickColorTitle')" />
-          </div>
-          <small class="set-hint">{{ t('settings.colorHint') }}</small>
         </div>
         <div class="set-row" @click="toggleSetting('coopRemovedOutline')">
           <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
@@ -2842,7 +2850,7 @@ function cellClasses(r, c) {
     'row-pulse': !!state.justResolved[`row-${r}`],
     'col-pulse': !!state.justResolved[`col-${c}`],
     strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
-    'coop-mark': state.coop.active && !!state.markedBy[r][c],
+    'coop-mark': !!state.markedBy[r][c],
     'coop-mark-removed': state.coop.active && !!state.markedBy[r][c] && mk === 'removed' && state.settings.coopRemovedOutline,
     'training-highlight': state.isTrainingGame && state.trainingStep?.r === r && state.trainingStep?.c === c,
   };
@@ -2851,8 +2859,8 @@ function cellStyle(r, c) {
   const m = state.cellMeta[r][c];
   const st = { fontSize: 'var(--fs)' };
   if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; }
-  const who = state.coop.active ? state.markedBy[r][c] : null;
-  if (who) { const col = playerColor(who); if (col) st['--markcol'] = col; }
+  const who = state.markedBy[r][c];
+  if (who) { const col = who === LOCAL_PLAYER_ID ? state.settings.coopMyColor : playerColor(who); if (col) st['--markcol'] = col; }
   const pe = pulseEdges(r, c);
   if (pe.t) st['--pt'] = '3px';
   if (pe.b) st['--pb'] = '3px';
@@ -2872,7 +2880,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, cellStyle, cellClasses, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');
