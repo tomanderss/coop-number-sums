@@ -81,8 +81,9 @@ test.describe('race mode', () => {
     await expect(page.locator('.screen.game')).toHaveClass(/race-mode/);
     await expect(page.locator('.screen.game')).not.toHaveClass(/team-mode/);
     await expect(page.locator('.coop-chip', { hasText: 'Mara' })).toBeVisible();
-    // Eigener + Gegner-Fortschrittsbalken liegen im Race-Modus übereinander.
-    await expect(page.locator('.progress-row .progress-line')).toHaveCount(2);
+    // Eigener + Gegner-Fortschrittsbalken liegen im Race-Modus übereinander,
+    // darunter eine dritte Zeile mit der Gegner-Lebensanzeige (Herzen statt Balken).
+    await expect(page.locator('.progress-row .progress-line')).toHaveCount(3);
     await expect(page.locator('.progress-row .progress-pct', { hasText: '0%' })).toHaveCount(2);
     // Bei 0% ist die Füllung selbst absichtlich leer (siehe Plan: "leeres
     // Rechteck, das sich auffüllt") -- nur der Balken-Rahmen muss sichtbar sein.

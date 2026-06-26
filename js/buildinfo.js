@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.111';
-export const BUILD_HASH = 'e8648dc';
+export const BUILD      = '0.112';
+export const BUILD_HASH = '5751752';
 
 export const CHANGELOG = [
+  {
+    "version": "0.112",
+    "date": "26.06.2026",
+    "changes": [
+      "Wettkampf: Fortschrittsbalken stehen wieder direkt untereinander, Gegner-Fehleranzahl wird jetzt als Herzen statt als Text angezeigt"
+    ]
+  },
   {
     "version": "0.111",
     "date": "26.06.2026",
