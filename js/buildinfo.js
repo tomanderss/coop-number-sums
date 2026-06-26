@@ -1,6 +1,6 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
 export const BUILD      = '0.109';
-export const BUILD_HASH = '7ed1f1d';
+export const BUILD_HASH = '6a9b3e6';
 
 export const CHANGELOG = [
   {
