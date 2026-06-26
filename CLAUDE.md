@@ -98,7 +98,7 @@ CI builds (`.github/workflows/android-build.yml`, `ios-build.yml`) are manually 
 
 1. Add a short German bullet point describing the change to `changes.txt`. This file is the source for the in-app release notes — keep entries concise and user-facing (e.g. `Ladeanzeige beim Verbindungsaufbau ergänzt`).
 
-2. Create a pull request targeting `master` and enable auto-merge so it merges automatically once CI passes. Use the GitHub MCP tools (`mcp__github__create_pull_request`, then `mcp__github__enable_pr_auto_merge`). Do not push directly to `master`.
+2. Create a pull request targeting `master` and **immediately** (in the same turn, before CI starts) call `mcp__github__enable_pr_auto_merge` (method: SQUASH). GitHub only accepts the auto-merge request before CI marks the PR as unstable — so the two calls must happen back-to-back. Do not push directly to `master`.
 
 ## Key conventions
 
