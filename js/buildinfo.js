@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.120';
-export const BUILD_HASH = '2c508f5';
+export const BUILD      = '0.121';
+export const BUILD_HASH = 'e4dab99';
 
 export const CHANGELOG = [
+  {
+    "version": "0.121",
+    "date": "26.06.2026",
+    "changes": [
+      "Hinweis: Nach dem Lösen einer Zelle beginnt der nächste Hinweis wieder bei Stufe 1 (kein versehentliches Sofort-Auflösen durch einen veralteten Hinweis)"
+    ]
+  },
   {
     "version": "0.120",
     "date": "26.06.2026",
