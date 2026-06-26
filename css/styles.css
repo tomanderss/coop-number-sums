@@ -223,16 +223,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .progress-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; flex: 0 0 auto; }
 .progress-line { display: flex; align-items: center; gap: 8px; }
 .progress-label { font-size: .76rem; font-weight: 700; color: var(--text2); flex: 0 0 90px; width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Mehrzeiliges Label (Gegnername + Fehleranzahl untereinander, gleiche Größe
-   wie der Name) -- bewusst NICHT Teil von .progress-pct, sonst hätte die
-   Gegner-Zeile dort mehr Text als die eigene Zeile und der Balken würde an
-   einer anderen Stelle beginnen als der eigene (siehe .progress-bar flex:1). */
-.progress-label-col { display: flex; flex-direction: column; flex: 0 0 90px; width: 90px; overflow: hidden; }
-.progress-label-col .progress-label { width: 100%; }
 .progress-pct { font-size: .76rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; flex: 0 0 auto; min-width: 2.6em; text-align: right; }
 .progress-bar { flex: 1 1 auto; height: 10px; border-radius: 999px; border: 1.5px solid var(--text2); background: transparent; overflow: hidden; }
 .progress-bar-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width .3s ease; }
 .progress-bar-fill.opp { background: var(--text2); }
+/* Gegner-Lebensanzeige im Wettkampf: eigene Zeile UNTER dem Gegner-Balken
+   (statt im selben .progress-line wie der Name), damit beide Balken weiterhin
+   exakt gleich hohe Zeilen sind und direkt untereinander stehen -- ein
+   zweizeiliges Label neben dem Balken hätte align-items:center sonst wieder
+   auseinandergezogen (siehe ehemals .progress-label-col, behoben). Die leere
+   .progress-label davor ist nur ein Platzhalter, damit die Herzen exakt unter
+   dem Gegnernamen beginnen statt unter dem Balken. */
+.opponent-lives { display: flex; gap: 3px; align-items: center; }
+.opponent-lives .heart svg { width: 16px; height: 16px; }
+.opp-heart-strike { background: var(--bad); }
+.hearts-chip { display: inline-flex; align-items: center; gap: 3px; padding: 4px 10px; }
+.hearts-chip .heart svg { width: 14px; height: 14px; }
 
 /* Im Hochformat unsichtbare Wrapper um die Steuerelemente vor/nach dem Brett
    (siehe Template in app.js) -- "display: contents" lässt ihre Kinder sich

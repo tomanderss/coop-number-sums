@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} bereit',
     markReady: 'Bereit ✅',
     waitingForHostFinalStart: 'Bereit! Warte auf den Host…',
+    unmarkReady: 'Zurücknehmen',
   },
   team: {
     assignHint: 'Schicke Spieler per Pfeil in ein Team oder tausche sie',

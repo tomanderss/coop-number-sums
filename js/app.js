@@ -892,6 +892,11 @@ function handleCoopMsg(msg) {
       const p = state.coop.players.find(pl => pl.id === msg.author);
       if (p) { p.ready = true; broadcastRoster(); }
     }
+  } else if (msg.type === Coop.MSG.UNREADY) {
+    if (state.coop.role === 'host') {
+      const p = state.coop.players.find(pl => pl.id === msg.author);
+      if (p) { p.ready = false; broadcastRoster(); }
+    }
   } else if (msg.type === Coop.MSG.TEAM_START) {
     applyTeamStart(msg.seed, msg.difficulty);
   } else if (msg.type === Coop.MSG.TEAM_DONE) {
@@ -1051,6 +1056,14 @@ function markReady() {
   const me = state.coop.players.find(p => p.id === state.coop.myId);
   if (me) me.ready = true;
   Coop.send({ type: Coop.MSG.READY });
+}
+// Gegenstück zu markReady() -- erlaubt das Zurücknehmen einer versehentlichen
+// Bereit-Meldung, solange der Host die Runde noch nicht gestartet hat.
+function unmarkReady() {
+  if (state.coop.role === 'host') return;
+  const me = state.coop.players.find(p => p.id === state.coop.myId);
+  if (me) me.ready = false;
+  Coop.send({ type: Coop.MSG.UNREADY });
 }
 function playerColor(id) { return state.coop.players.find(p => p.id === id)?.color || null; }
 function chipTextColor(hex) {
@@ -1801,6 +1814,17 @@ function init() {
 const App = {
   setup() {
     const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
+    // Gegner-Lebensanzeige im Wettkampf: dieselbe Herzen-Optik wie die eigene
+    // (state.maxLives ist symmetrisch, da beide Seiten dieselbe Schwierigkeit/
+    // Einstellung spielen) -- Fehler des Gegners zählen 1:1 wie eigene Fehler.
+    const opponentLivesArr = computed(() => {
+      const left = Math.max(0, state.maxLives - state.race.opponentMistakes);
+      return Array.from({ length: state.maxLives }, (_, i) => i < left);
+    });
+    const opponentTeamLivesArr = computed(() => {
+      const left = Math.max(0, state.maxLives - state.team.opponentMistakes);
+      return Array.from({ length: state.maxLives }, (_, i) => i < left);
+    });
     // Welcher Spieler hat das Herz an Index i verbraucht? Herzen werden von links
     // gefüllt angezeigt, verbraucht wird aber immer von rechts (höchster Index
     // zuerst) — daher die Umrechnung über die Verlust-Reihenfolge.
@@ -1926,7 +1950,7 @@ const App = {
 
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
-      livesArr, lifeLossColor, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
+      livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, newGame, goNextPuzzle, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
@@ -1937,7 +1961,7 @@ const App = {
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
-      nonHostPlayers, readyCount, allGuestsReady, myReady, markReady,
+      nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       shareCoopInvite, raceResultMsg, teamResultMsg, winTitle,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
@@ -2052,7 +2076,12 @@ const App = {
           </span>
           <span v-if="state.team.active" class="chip coop-chip">🆚 {{ t('team.label'+state.team.myTeam) }}</span>
           <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>
-          <span v-if="state.team.active" class="chip coop-chip">{{ t('win.mistakesCount', { count: state.team.opponentMistakes }) }}</span>
+          <span v-if="state.team.active && state.settings.livesEnabled" class="chip coop-chip hearts-chip" :aria-label="t('win.mistakesCount', { count: state.team.opponentMistakes })">
+            <span v-for="(full,i) in opponentTeamLivesArr" :key="i" class="heart" :class="{empty:!full}">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              <i v-if="!full" class="heart-strike opp-heart-strike"></i>
+            </span>
+          </span>
           <span v-if="state.race.active" class="chip coop-chip">🆚 {{ state.race.opponentName }}</span>
           <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
@@ -2070,12 +2099,18 @@ const App = {
             <span class="progress-bar"><span class="progress-bar-fill mine" :style="{ width: myProgressPct + '%' }"></span></span>
           </div>
           <div class="progress-line" v-if="state.race.active" :aria-label="t('race.opponentProgress', { pct: state.race.opponentPct })">
-            <span class="progress-label-col">
-              <span class="progress-label">{{ state.race.opponentName }}</span>
-              <span class="progress-label">{{ t('win.mistakesCount', { count: state.race.opponentMistakes }) }}</span>
-            </span>
+            <span class="progress-label">{{ state.race.opponentName }}</span>
             <span class="progress-pct">{{ state.race.opponentPct }}%</span>
             <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.race.opponentPct + '%', background: state.race.opponentColor }"></span></span>
+          </div>
+          <div class="progress-line opponent-lives-line" v-if="state.race.active && state.settings.livesEnabled" :aria-label="t('win.mistakesCount', { count: state.race.opponentMistakes })">
+            <span class="progress-label"></span>
+            <span class="opponent-lives">
+              <span v-for="(full,i) in opponentLivesArr" :key="i" class="heart" :class="{empty:!full}">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <i v-if="!full" class="heart-strike opp-heart-strike"></i>
+              </span>
+            </span>
           </div>
         </div>
 
@@ -2183,7 +2218,10 @@ const App = {
           </template>
           <template v-else>
             <button v-if="!myReady()" class="btn btn-primary" @click="markReady">{{ t('coop.markReady') }}</button>
-            <p v-else class="coop-subtext">{{ t('coop.waitingForHostFinalStart') }}</p>
+            <template v-else>
+              <p class="coop-subtext">{{ t('coop.waitingForHostFinalStart') }}</p>
+              <button class="btn btn-ghost" @click="unmarkReady">{{ t('coop.unmarkReady') }}</button>
+            </template>
           </template>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
@@ -2345,6 +2383,7 @@ const App = {
     <section v-else-if="state.screen==='stats'" class="screen stats">
       <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('stats.title') }}</h2><span></span></header>
       <div class="stats-body">
+        <button class="btn btn-ghost achievements-top-btn" @click="navigate('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
         <div class="stats-section-title">{{ t('stats.levelOverview') }}</div>
         <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
           <div class="diff-row-top">
@@ -2390,7 +2429,6 @@ const App = {
             </div>
           </div>
         </div>
-        <button class="btn btn-ghost" @click="navigate('achievements')">{{ t('stats.achievementsButton') }}</button>
         <button class="btn btn-danger-ghost" @click="resetStats">{{ t('stats.reset') }}</button>
       </div>
     </section>

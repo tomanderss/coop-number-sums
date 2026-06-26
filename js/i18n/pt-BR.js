@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} prontos',
     markReady: 'Pronto ✅',
     waitingForHostFinalStart: 'Pronto! Esperando o anfitrião…',
+    unmarkReady: 'Cancelar pronto',
   },
   team: {
     assignHint: 'Envie os jogadores para um time com as setas, ou troque-os de lugar',

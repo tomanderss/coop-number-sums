@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} preparados',
     markReady: 'Preparado ✅',
     waitingForHostFinalStart: '¡Preparado! Esperando al anfitrión…',
+    unmarkReady: 'Cancelar preparado',
   },
   team: {
     assignHint: 'Envía a los jugadores a un equipo con las flechas, o intercámbialos',

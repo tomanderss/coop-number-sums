@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} 準備完了',
     markReady: '準備完了 ✅',
     waitingForHostFinalStart: '準備完了！ホストを待っています…',
+    unmarkReady: '準備をキャンセル',
   },
   team: {
     assignHint: '矢印でプレイヤーをチームに移動、または入れ替えできます',

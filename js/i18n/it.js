@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} pronti',
     markReady: 'Pronto ✅',
     waitingForHostFinalStart: 'Pronto! In attesa dell\'host…',
+    unmarkReady: 'Annulla pronto',
   },
   team: {
     assignHint: 'Usa le freccette per mandare i giocatori in una squadra o scambiarli',

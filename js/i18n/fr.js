@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} prêts',
     markReady: 'Prêt ✅',
     waitingForHostFinalStart: "Prêt ! En attente de l'hôte…",
+    unmarkReady: 'Annuler "prêt"',
   },
   team: {
     assignHint: "Envoyez les joueurs dans une équipe avec les flèches, ou échangez-les",

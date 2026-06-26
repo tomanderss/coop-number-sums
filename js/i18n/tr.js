@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} hazır',
     markReady: 'Hazır ✅',
     waitingForHostFinalStart: 'Hazır! Ev sahibi bekleniyor…',
+    unmarkReady: 'Hazır olmayı geri al',
   },
   team: {
     assignHint: 'Oklarla oyuncuları bir takıma gönder veya yerlerini değiştir',

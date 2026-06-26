@@ -1,8 +1,29 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.111';
-export const BUILD_HASH = 'e8648dc';
+export const BUILD      = '0.114';
+export const BUILD_HASH = '04f0cf8';
 
 export const CHANGELOG = [
+  {
+    "version": "0.114",
+    "date": "26.06.2026",
+    "changes": [
+      "Bereit-Status in der Mehrspieler-Lobby kann jetzt zurückgenommen werden, falls man sich versehentlich bereit gemeldet hat."
+    ]
+  },
+  {
+    "version": "0.113",
+    "date": "26.06.2026",
+    "changes": [
+      "Achievements-Button steht jetzt ganz oben im Statistik-Screen statt unten"
+    ]
+  },
+  {
+    "version": "0.112",
+    "date": "26.06.2026",
+    "changes": [
+      "Wettkampf: Fortschrittsbalken stehen wieder direkt untereinander, Gegner-Fehleranzahl wird jetzt als Herzen statt als Text angezeigt"
+    ]
+  },
   {
     "version": "0.111",
     "date": "26.06.2026",
