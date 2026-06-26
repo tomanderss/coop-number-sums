@@ -808,28 +808,39 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
 
 // Zwei-Stufen-Hinweis:
 //  1. Tipp: sokratische Leitfrage — highlightet die Gruppe (Zeile/Spalte/Käfig),
-//     in der sich der nächste logische Schritt erschließen lässt, und stellt
-//     eine Frage, OHNE Zelle oder Aktion zu verraten. Bewusst KOSTENLOS (keine
-//     Bestzeit-Strafe, kein hintsUsed) — der Spieler denkt selbst weiter und
-//     bleibt "auf eigene Faust".
-//  2. Tipp (Frage steht bereits): löst die konkrete Zelle wirklich auf — das
-//     kostet die Bestzeit, wie der klassische Hinweis. Gibt es keinen einfach in
-//     Worten erklärbaren Schritt (nur Tier-2/2.5-Logik nötig), wird sofort
-//     aufgelöst, ohne Zwischenfrage.
+//     in der sich der nächste logische Schritt erschließen lässt.
+// Dreistufiger Hinweis — jeder Tipp auf den Knopf geht eine Stufe weiter:
+//  Stufe 1: markiert NUR den relevanten Bereich (Zeile/Spalte/Käfig, der den
+//    nächsten Zug erzwingt) — kein Text, keine Lösung. Verdeckt nichts, der
+//    Spieler sucht selbst.
+//  Stufe 2: blendet zusätzlich die sokratische Leitfrage ein (Banner) — erklärt
+//    den Gedanken, ohne die konkrete Zelle/Aktion zu nennen.
+//  Stufe 3: löst die konkrete Zelle wirklich auf — das kostet die Bestzeit, wie
+//    der klassische Hinweis.
+// Stufe 1+2 sind KOSTENLOS (keine Bestzeit-Strafe, kein hintsUsed) — nur das
+// Auflösen zählt. Gibt es keinen einfach erklärbaren Schritt (nur Tier-2/2.5-
+// Logik nötig), wird sofort aufgelöst.
 function useHint() {
   if (state.status !== 'playing' || state.hintsLeft <= 0 || state.isRaceGame || state.team.active) return;
-  // Stufe 2: Es steht schon eine Leitfrage -> jetzt die Zelle wirklich auflösen.
-  if (state.hintNudge) { revealHintNudge(); return; }
-  // Stufe 1: Versuche, eine sokratische Leitfrage zu erzeugen (kostenlos).
+  const n = state.hintNudge;
+  // Stufe 3: Frage steht schon -> Zelle wirklich auflösen.
+  if (n && n.stage >= 2) { revealHintNudge(); return; }
+  // Stufe 2: Bereich ist schon markiert -> jetzt die Leitfrage einblenden.
+  if (n) { n.stage = 2; return; }
+  // Stufe 1: relevanten Bereich finden und nur markieren (kostenlos, kein Text).
   const step = findTrainingStep(state.puzzle, state.marks);
   if (step) {
-    state.hintNudge = { group: step.group, reason: step.reason, rem: step.rem, r: step.r, c: step.c, want: step.action };
-    log('game', `Sokratischer Hinweis gezeigt`, { reason: step.reason, group: step.group.kind });
+    state.hintNudge = { group: step.group, reason: step.reason, rem: step.rem, r: step.r, c: step.c, want: step.action, stage: 1 };
+    log('game', `Hinweis Stufe 1 (Bereich markiert)`, { group: step.group.kind });
     return;
   }
   // Fallback: kein einfacher logischer Schritt -> direkt eine Zelle auflösen.
   confirmThenReveal(() => doUseHint());
 }
+// Hinweis-Banner wegklicken (X) — verwirft die offene Frage komplett, sodass die
+// Werkzeugleiste wieder frei ist; der nächste Tipp auf den Knopf beginnt neu bei
+// Stufe 1.
+function dismissHintNudge() { state.hintNudge = null; }
 // Einmalige Bestzeit-Warnung je Partie, dann die Auflöse-Aktion ausführen — bei
 // Abbruch bleibt hintWarnShown false, sodass die Warnung erneut käme.
 function confirmThenReveal(reveal) {
@@ -839,7 +850,7 @@ function confirmThenReveal(reveal) {
   }
   reveal();
 }
-// Stufe 2: löst genau die Zelle der aktiven Leitfrage auf.
+// Stufe 3: löst genau die Zelle der aktiven Leitfrage auf.
 function revealHintNudge() {
   const n = state.hintNudge;
   if (!n) return;
@@ -2111,7 +2122,7 @@ const App = {
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
-      navigate, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, doCheck,
+      navigate, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, loadBackups,
@@ -2367,16 +2378,19 @@ const App = {
         </template>
       </div>
 
-      <!-- Sokratischer Hinweis: highlightet die Gruppe (hint-group) und stellt
-           eine Leitfrage, ohne die konkrete Zelle/Aktion zu verraten. Ein Tipp
-           auf "Auflösen" (oder erneut auf den Hinweis-Knopf) deckt die Zelle
-           dann wirklich auf. -->
-      <div v-if="state.hintNudge && !state.isTrainingGame && state.status==='playing' && !state.paused" class="hint-banner">
+      <!-- Sokratischer Hinweis, Stufe 2: highlightet den Bereich (hint-group) UND
+           blendet die Leitfrage ein, ohne die konkrete Zelle/Aktion zu verraten.
+           Stufe 1 zeigt nur das Highlight (kein Banner). Per "Auflösen" (oder
+           erneut auf den Hinweis-Knopf) wird die Zelle aufgedeckt; per X wird das
+           Banner weggeklickt, damit es die Werkzeugleiste nicht dauerhaft
+           verdeckt. -->
+      <div v-if="state.hintNudge && state.hintNudge.stage>=2 && !state.isTrainingGame && state.status==='playing' && !state.paused" class="hint-banner">
         <div class="hint-text">
           <b>💡 {{ t('training.group.'+state.hintNudge.group.kind, { n: state.hintNudge.group.ref+1 }) }} ({{ t('training.target', { n: state.hintNudge.group.target }) }})</b>
           <span>{{ t('hint.socratic.'+state.hintNudge.reason, { rem: state.hintNudge.rem }) }}</span>
         </div>
         <button class="btn btn-ghost btn-sm" @click="revealHintNudge">{{ t('hint.reveal') }}</button>
+        <button class="hint-dismiss" @click="dismissHintNudge" :aria-label="t('hint.dismiss')" :title="t('hint.dismiss')">✕</button>
       </div>
 
       <!-- Coop-Lobby: Rätsel ist da, Zeit läuft erst nach "Starten" -->

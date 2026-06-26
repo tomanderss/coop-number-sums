@@ -265,6 +265,7 @@ export default {
   },
   hint: {
     reveal: 'Göster',
+    dismiss: 'İpucunu kapat',
     socratic: {
       sumReached: 'Burada hedef, daire içine alınan sayılarla zaten tam olarak ulaşıldı. Peki geriye kalan, henüz açık olan tüm sayılara ne olmalı?',
       allRemainingNeeded: 'Hedefe tam olarak {rem} kaldı. Henüz açık olan sayıları topla: toplamları tam {rem} ederse bu sana ne anlatır?',

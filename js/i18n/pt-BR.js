@@ -265,6 +265,7 @@ export default {
   },
   hint: {
     reveal: 'Revelar',
+    dismiss: 'Fechar dica',
     socratic: {
       sumReached: 'Aqui o objetivo já foi atingido exatamente com os números circulados. Então, o que deve acontecer com todos os números restantes ainda em aberto?',
       allRemainingNeeded: 'Faltam exatamente {rem} para atingir o objetivo. Some os números ainda em aberto: o que isso diz se juntos dão exatamente {rem}?',
