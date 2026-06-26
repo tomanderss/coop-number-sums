@@ -213,7 +213,7 @@ export default {
     coop: 'Coop',
     displayName: 'Anzeigename',
     myColor: 'Meine Farbe',
-    colorHint: 'Andere Mitspieler bekommen automatisch eine eigene, eindeutige Farbe zugewiesen.',
+    colorHint: 'Hebt deine eigenen Markierungen in jedem Modus farbig hervor — auch solo. Im Coop bekommen andere Mitspieler automatisch eine eigene, eindeutige Farbe zugewiesen.',
     coopRemovedOutline: 'Rahmen bei gelöschten Zahlen',
     coopRemovedOutlineHint: 'Zeigt farbig, wer eine Zahl gelöscht hat — kann bei gelöschten Zahlen verwirren.',
     data: 'Daten',

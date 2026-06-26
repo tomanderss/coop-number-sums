@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.108';
-export const BUILD_HASH = '4130909';
+export const BUILD      = '0.109';
+export const BUILD_HASH = '6a9b3e6';
 
 export const CHANGELOG = [
+  {
+    "version": "0.109",
+    "date": "26.06.2026",
+    "changes": [
+      "Eigene Farbe gilt jetzt überall, nicht mehr nur im Coop-Modus — eigene Markierungen werden auch solo, im Trainings-, Tages-, Boss- und Wettkampf-Modus in der gewählten Farbe hervorgehoben."
+    ]
+  },
   {
     "version": "0.108",
     "date": "25.06.2026",

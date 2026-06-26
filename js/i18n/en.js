@@ -213,7 +213,7 @@ export default {
     coop: 'Co-op',
     displayName: 'Display name',
     myColor: 'My color',
-    colorHint: 'Other teammates automatically get their own unique color.',
+    colorHint: 'Highlights your own marks in every mode — including solo. In co-op, other players automatically get their own unique color.',
     coopRemovedOutline: 'Outline on removed numbers',
     coopRemovedOutlineHint: 'Shows in color who removed a number — can be confusing for hidden cells.',
     data: 'Data',
