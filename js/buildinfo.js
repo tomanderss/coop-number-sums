@@ -1,8 +1,20 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.115';
-export const BUILD_HASH = 'd71616b';
+export const BUILD      = '0.116';
+export const BUILD_HASH = '70d2e91';
 
 export const CHANGELOG = [
+  {
+    "version": "0.116",
+    "date": "26.06.2026",
+    "changes": [
+      "Text lässt sich in der App nicht mehr markieren oder kopieren",
+      "Alle 30 Sekunden wird automatisch nach einer neuen Version gesucht — der Update-Dialog erscheint danach außerhalb eines laufenden Spiels",
+      "App pausiert automatisch wenn man den Tab wechselt oder die App in den Hintergrund schiebt",
+      "Timer-Icon erscheint jetzt zentriert über der Spielzeit",
+      "Coop: Pause-Screen erscheint beim Host nicht mehr vor dem Lobby-Bereit-Screen",
+      "Coop: Über „Zum Menü\" verlassen behält das Spiel als Fortsetzen-Option im Hauptmenü, solange der Raum noch offen ist"
+    ]
+  },
   {
     "version": "0.115",
     "date": "26.06.2026",
