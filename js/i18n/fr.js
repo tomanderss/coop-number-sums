@@ -18,6 +18,7 @@ export default {
   },
   home: {
     resume: 'Reprendre',
+    resumeCoop: 'Reprendre le coop',
     newGame: 'Mode solo',
     newGameHint: 'Résoudre seul',
     coopMode: 'Mode coopératif',
@@ -137,6 +138,8 @@ export default {
     becameHost: "Hôte déconnecté — tu es maintenant l'hôte 📡",
     partnerConnected: 'Partenaire connecté 👥',
     partnerDisconnected: '{name} a quitté le salon',
+    reconnected: 'Reconnecté ✅',
+    errorRoomGone: "Le salon n'existe plus — impossible de reprendre la partie coop.",
     hostDisconnectedPromoting: '{name} (hôte) déconnecté — devient le nouvel hôte…',
     hostDisconnected: "Connexion à {name} (hôte) perdue",
     shareInvite: 'Inviter',

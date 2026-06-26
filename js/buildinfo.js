@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.114';
-export const BUILD_HASH = '04f0cf8';
+export const BUILD      = '0.115';
+export const BUILD_HASH = 'd71616b';
 
 export const CHANGELOG = [
+  {
+    "version": "0.115",
+    "date": "26.06.2026",
+    "changes": [
+      "Lobby bleibt beim Wechsel in den Hintergrund (Bildschirm sperren, App-Wechsel) bis zu 5 Minuten erhalten und verbindet sich beim Zurückkehren automatisch wieder",
+      "Solo- und Coop-Spielstände werden jetzt getrennt gespeichert -- ein laufendes Coop-Spiel überschreibt kein pausiertes Solo-Spiel mehr (und umgekehrt)",
+      "Neuer \"Coop fortsetzen\"-Button auf dem Startbildschirm, getrennt vom Solo-Fortsetzen-Button -- bei beiden gleichzeitig erscheinen sie nebeneinander"
+    ]
+  },
   {
     "version": "0.114",
     "date": "26.06.2026",

@@ -140,6 +140,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .brand-title { font-size: 1.9rem; font-weight: 900; line-height: 1.05; margin: 6px 0 0; letter-spacing: -.5px; }
 .brand-sub { color: var(--text2); font-size: .9rem; }
 .home-actions { display: flex; flex-direction: column; gap: 12px; }
+/* Bei zwei parallel fortsetzbaren Spielen (Solo + Coop) teilen sich beide
+   Buttons die Zeile zu gleichen Hälften statt sich zu stapeln; bei nur einem
+   nimmt er von selbst die volle Breite ein (flex:1 auf einem einzigen Kind). */
+.resume-row { display: flex; gap: 10px; }
+.resume-row .btn-resume { flex: 1; min-width: 0; }
 /* minmax(0,1fr) statt 1fr: ohne das würde der Default min-width:auto eines
    Grid-Items auf dessen min-content (z.B. das unbrechbare Wort "Einstellungen")
    wachsen und die Spalten dadurch wieder ungleich breit machen. */

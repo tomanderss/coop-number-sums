@@ -18,6 +18,7 @@ export default {
   },
   home: {
     resume: 'Fortsetzen',
+    resumeCoop: 'Coop fortsetzen',
     newGame: 'Solo-Modus',
     newGameHint: 'Allein lösen',
     coopMode: 'Coop-Modus',
@@ -137,6 +138,8 @@ export default {
     becameHost: 'Host getrennt — du bist jetzt Host 📡',
     partnerConnected: 'Mitspieler verbunden 👥',
     partnerDisconnected: '{name} hat die Lobby verlassen',
+    reconnected: 'Wieder verbunden ✅',
+    errorRoomGone: 'Raum existiert nicht mehr — Coop-Spiel kann nicht fortgesetzt werden.',
     hostDisconnectedPromoting: '{name} (Host) getrennt — werde neuer Host …',
     hostDisconnected: 'Verbindung zu {name} (Host) getrennt',
     shareInvite: 'Einladen',

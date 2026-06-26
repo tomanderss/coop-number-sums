@@ -18,6 +18,7 @@ export default {
   },
   home: {
     resume: 'Riprendi',
+    resumeCoop: 'Riprendi Coop',
     newGame: 'Modalità solo',
     newGameHint: 'Risolvi da solo',
     coopMode: 'Modalità co-op',
@@ -137,6 +138,8 @@ export default {
     becameHost: 'Host disconnesso — ora sei tu l\'host 📡',
     partnerConnected: 'Compagno connesso 👥',
     partnerDisconnected: '{name} ha lasciato la lobby',
+    reconnected: 'Riconnesso ✅',
+    errorRoomGone: 'La stanza non esiste più — impossibile riprendere la partita coop.',
     hostDisconnectedPromoting: '{name} (host) disconnesso — diventi il nuovo host…',
     hostDisconnected: 'Connessione con {name} (host) persa',
     shareInvite: 'Invita',

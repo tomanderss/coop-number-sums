@@ -18,6 +18,7 @@ export default {
   },
   home: {
     resume: 'Resume',
+    resumeCoop: 'Resume Coop',
     newGame: 'Solo mode',
     newGameHint: 'Solve alone',
     coopMode: 'Co-op mode',
@@ -137,6 +138,8 @@ export default {
     becameHost: 'Host disconnected — you are now the host 📡',
     partnerConnected: 'Teammate connected 👥',
     partnerDisconnected: '{name} left the lobby',
+    reconnected: 'Reconnected ✅',
+    errorRoomGone: "Room no longer exists — the coop game can't be resumed.",
     hostDisconnectedPromoting: '{name} (host) disconnected — becoming new host …',
     hostDisconnected: 'Connection to {name} (host) lost',
     shareInvite: 'Invite',

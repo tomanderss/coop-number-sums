@@ -9,11 +9,13 @@ import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import {
-  loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadStats, recordResult,
+  loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop,
+  loadStats, recordResult,
   loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
+  saveCoopSession, loadCoopSession, clearCoopSession,
 } from './storage.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
@@ -142,7 +144,8 @@ const state = reactive({
   showWhatsNew: false,
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
-  resumeAvailable: null,     // gespeichertes Spiel (zum Fortsetzen)
+  resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
+  resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   confetti: [],
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
   updateReady: false,        // neue App-Version liegt im Service-Worker bereit
@@ -936,6 +939,7 @@ function handleCoopMsg(msg) {
 function coopReset() {
   coopIntentionalLeave = true;
   Coop.leave();
+  clearCoopSession();
   // Ausstehende nachgelagerte Fortschritts-Pushs (siehe pushTeamProgress()/
   // pushRaceProgress() oben) dürfen nicht nach dem Verlassen des Raums noch
   // feuern -- der Raum existiert dann ggf. nicht mehr.
@@ -1488,7 +1492,7 @@ function win(remote) {
     });
     checkAchievements();
   }
-  saveActiveGame(null);
+  persistGame();
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
@@ -1525,7 +1529,7 @@ function lose(remote) {
     });
     checkAchievements();
   }
-  saveActiveGame(null);
+  persistGame();
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
@@ -1561,7 +1565,7 @@ function giveUp(remote) {
     timeMs: state.elapsed, outcome: 'gaveup', coop: state.coop.active,
   });
   if (!state.isTrainingGame) checkAchievements();
-  saveActiveGame(null);
+  persistGame();
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
@@ -1582,7 +1586,11 @@ function quitToHome() {
   // speichern und später zum Fortsetzen anbieten.
   const wasCoop = state.coop.active || state.race.active;
   if (state.coop.role) coopReset();
-  saveActiveGame(!wasCoop && state.status === 'playing' && !state.isTrainingGame ? activeSnapshot() : null);
+  // Solo- und Coop-Spielstände leben in getrennten Storage-Slots (siehe
+  // persistGame()) -- ein Verlassen des einen Modus darf den gespeicherten
+  // Stand des anderen nicht überschreiben/löschen.
+  if (wasCoop) { if (!state.race.active) saveActiveGameCoop(null); }
+  else saveActiveGame(state.status === 'playing' && !state.isTrainingGame ? activeSnapshot() : null);
   refreshResume();
   navigate('home');
 }
@@ -1597,7 +1605,7 @@ function collectHintMarks() {
 }
 function activeSnapshot() {
   return {
-    puzzle: state.puzzle, marks: state.marks, lives: state.lives, maxLives: state.maxLives,
+    puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, lives: state.lives, maxLives: state.maxLives,
     hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
     elapsed: state.elapsed, difficulty: state.puzzle.difficulty,
     hintMarks: collectHintMarks(),
@@ -1605,17 +1613,34 @@ function activeSnapshot() {
   };
 }
 function persistGame() {
+  // Race-Matches sind strikt live/Wettkampf -- ein Fortsetzen nach Verbindungs-
+  // abbruch wäre unfair/sinnlos (siehe state.race-Kommentar), daher nie persistiert.
+  if (state.race.active) return;
+  // Solo- und Coop-Spielstände leben in getrennten Storage-Slots, sonst
+  // überschreibt ein 400ms-Autosave aus dem jeweils anderen Modus den
+  // gespeicherten Stand des anderen.
   // Trainingsrätsel werden nie persistiert/fortgesetzt -- sie sind als
   // wiederholbarer Lerndurchlauf gedacht, kein "Spielstand".
-  if (state.status !== 'playing' || state.isTrainingGame) { saveActiveGame(null); return; }
+  if (state.status !== 'playing' || state.isTrainingGame) {
+    if (state.coop.active) { saveActiveGameCoop(null); clearCoopSession(); }
+    else saveActiveGame(null);
+    return;
+  }
   const now = Date.now();
   if (now - saveThrottle < 400) return;
   saveThrottle = now;
-  saveActiveGame(activeSnapshot());
+  if (state.coop.active) {
+    saveActiveGameCoop(activeSnapshot());
+    saveCoopSession({ code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId });
+  } else {
+    saveActiveGame(activeSnapshot());
+  }
 }
 function refreshResume() {
   const g = loadActiveGame();
   state.resumeAvailable = (g && g.puzzle) ? g : null;
+  const gc = loadActiveGameCoop();
+  state.resumeAvailableCoop = (gc && gc.puzzle) ? gc : null;
 }
 function resumeGame() {
   const g = state.resumeAvailable;
@@ -1623,6 +1648,60 @@ function resumeGame() {
   navigate('game');
   loadPuzzleIntoState(g.puzzle, g);
   startTimer();
+}
+// Fortsetzen eines unterbrochenen Coop-Spiels (kalter Wiederverbindungsfall,
+// siehe Coop.rejoin()) -- state.coop.active/code/role/hostId müssen schon VOR
+// loadPuzzleIntoState() gesetzt sein, da dessen abschließender persistGame()-
+// Aufruf sonst fälschlich den Solo-Slot statt des Coop-Slots beschreibt.
+function resumeCoopGame() {
+  const g = state.resumeAvailableCoop;
+  const sess = loadCoopSession();
+  if (!g || !sess) { state.resumeAvailableCoop = null; saveActiveGameCoop(null); clearCoopSession(); return; }
+  state.coop.active = true;
+  state.coop.code = sess.code;
+  state.coop.role = sess.role;
+  state.coop.hostId = sess.hostId;
+  state.coop.players = [];
+  navigate('game');
+  loadPuzzleIntoState(g.puzzle, g);
+  startTimer();
+  attemptCoopRejoin(sess);
+}
+function attemptCoopRejoin(sess) {
+  coopIntentionalLeave = false;
+  state.coop.waitingForGuest = true;
+  Coop.rejoin({
+    code: sess.code, name: sess.name, color: sess.color, role: sess.role,
+    onOpen(id) {
+      state.coop.myId = id;
+      state.coop.waitingForGuest = false;
+      upsertPlayer(id, sess.name, sess.color);
+      // Informiert einen ggf. noch aktiven Host über die eigene Rückkehr --
+      // identisch zum normalen Beitritts-Pfad (confirmCoopIdentity()), löst
+      // beim Host upsertPlayer()+broadcastRoster() aus (handleCoopMsg/IDENTITY).
+      Coop.send({ type: Coop.MSG.IDENTITY, name: sess.name, color: sess.color });
+      showToast(t('coop.reconnected'), 'success', 2000);
+    },
+    onError() {
+      state.coop.waitingForGuest = false;
+      clearCoopSession();
+      showToast(t('coop.errorRoomGone'), 'error', 3000);
+    },
+    // Bereits vorhandene Mitspieler feuern beim erneuten Anhängen der Listener
+    // sofort ein onChildAdded -- so lernt z.B. ein wiederverbundener Host die
+    // während seiner Abwesenheit unveränderte Mitspielerliste erneut.
+    onJoin(id, data) {
+      upsertPlayer(id, data?.name, data?.color);
+      if (state.coop.role === 'host') broadcastRoster();
+    },
+    onLeave(id) {
+      const leavingName = state.coop.players.find(p => p.id === id)?.name || t('common.defaultPlayerName');
+      removePlayer(id);
+      broadcastRoster();
+      if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
+    },
+    onMessage: handleCoopMsg,
+  });
 }
 
 // ─── CONFETTI ─────────────────────────────────────────────────────────────────
@@ -1951,7 +2030,7 @@ const App = {
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
-      navigate, newGame, goNextPuzzle, resumeGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
+      navigate, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, loadBackups,
@@ -1985,12 +2064,20 @@ const App = {
       </div>
 
       <div class="home-actions">
-        <button v-if="state.resumeAvailable" class="btn btn-resume" @click="resumeGame">
-          <span class="btn-ic">▶</span>
-          <span class="btn-tx"><b>{{ t('home.resume') }}</b>
-            <small>{{ t('difficulty.'+state.resumeAvailable.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailable.elapsed||0) }}</small>
-          </span>
-        </button>
+        <div v-if="state.resumeAvailable || state.resumeAvailableCoop" class="resume-row">
+          <button v-if="state.resumeAvailable" class="btn btn-resume" @click="resumeGame">
+            <span class="btn-ic">▶</span>
+            <span class="btn-tx"><b>{{ t('home.resume') }}</b>
+              <small>{{ t('difficulty.'+state.resumeAvailable.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailable.elapsed||0) }}</small>
+            </span>
+          </button>
+          <button v-if="state.resumeAvailableCoop" class="btn btn-resume" @click="resumeCoopGame">
+            <span class="btn-ic">👥</span>
+            <span class="btn-tx"><b>{{ t('home.resumeCoop') }}</b>
+              <small>{{ t('difficulty.'+state.resumeAvailableCoop.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailableCoop.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailableCoop.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailableCoop.elapsed||0) }}</small>
+            </span>
+          </button>
+        </div>
         <button class="btn btn-primary" @click="coopReset(); navigate('setup')">
           <span class="btn-ic">🧩</span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
@@ -2930,9 +3017,20 @@ nextTick(() => {
   }, remaining);
 });
 
-window.addEventListener('pagehide', () => { if (state.status === 'playing') saveActiveGame(activeSnapshot()); createBackup('close'); });
+// Hintergrund-Gnadenfrist: solange die Coop-Lobby/-Session in der RTDB noch
+// existiert (siehe COOP_SESSION_TTL_MS, storage.js), bleibt der eigene Platz
+// nach Rückkehr aus dem Hintergrund erhalten -- ensurePresence() heilt nur den
+// eigenen players/$uid-Eintrag, ohne Listener neu anzuhängen (warmer Fall,
+// JS-Kontext lief im Hintergrund weiter). Der kalte Fall (JS-Kontext verloren,
+// z.B. App aus dem Speicher entfernt) läuft stattdessen über den "Coop
+// fortsetzen"-Button (resumeCoopGame()/Coop.rejoin()) beim nächsten App-Start.
+window.addEventListener('pagehide', () => { persistGame(); createBackup('close'); });
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') { if (state.status === 'playing') saveActiveGame(activeSnapshot()); createBackup('close'); }
+  if (document.visibilityState === 'hidden') {
+    persistGame(); createBackup('close');
+  } else if (document.visibilityState === 'visible' && state.coop.active) {
+    Coop.ensurePresence({ name: state.settings.coopName, color: state.settings.coopMyColor, role: state.coop.role });
+  }
 });
 
 // Der Service Worker dient ausschließlich dem GitHub-Pages-Update-Banner-Flow

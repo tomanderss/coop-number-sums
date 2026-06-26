@@ -8,6 +8,8 @@ import { todayDateStr } from './streak.js';
 const KEYS = {
   SETTINGS: 'cns_settings',
   ACTIVE_GAME: 'cns_active_game',
+  ACTIVE_GAME_COOP: 'cns_active_game_coop',
+  COOP_SESSION: 'cns_coop_session',
   STATS: 'cns_stats',
   BACKUP_SLOT: 'cns_bk_slot',
   SEEN_VERSION: 'cns_seen_version',
@@ -16,6 +18,7 @@ const KEYS = {
   ACHIEVEMENTS: 'cns_achievements',
   RACE: 'cns_race',
 };
+const COOP_SESSION_TTL_MS = 5 * 60 * 1000;
 const HISTORY_MAX = 20;
 const BACKUP_COUNT = 3;
 const bk = (i) => `cns_bk_${i}`;
@@ -40,8 +43,28 @@ export function loadSettings() {
 export function saveSettings(s) { save(KEYS.SETTINGS, s); }
 
 // ─── Laufendes Spiel (Resume) ─────────────────────────────────────────────────
+// Solo und Coop liegen in getrennten Slots, damit ein laufendes Coop-Spiel nie
+// den Solo-Spielstand überschreibt (und umgekehrt) -- siehe persistGame() in
+// app.js, das je nach state.coop.active in den passenden Slot schreibt.
 export function loadActiveGame() { return load(KEYS.ACTIVE_GAME, null); }
 export function saveActiveGame(g) { if (g) save(KEYS.ACTIVE_GAME, g); else remove(KEYS.ACTIVE_GAME); }
+export function loadActiveGameCoop() { return load(KEYS.ACTIVE_GAME_COOP, null); }
+export function saveActiveGameCoop(g) { if (g) save(KEYS.ACTIVE_GAME_COOP, g); else remove(KEYS.ACTIVE_GAME_COOP); }
+
+// ─── Kurzlebige Coop-Sitzungsdaten (Auto-Reconnect nach Hintergrund) ─────────
+// Wird beim Verstecken der App (visibilitychange) geschrieben, solange eine
+// Coop-Runde aktiv ist, und beim Zurückkehren gelesen, um den Raum innerhalb
+// eines 5-Minuten-Fensters automatisch wieder zu betreten. Bewusst NICHT Teil
+// von Backup/Export/deleteAllData-Snapshots -- es handelt sich um ein
+// kurzlebiges, selbst-verfallendes Wiederverbindungs-Token, kein Nutzerdatum.
+export function saveCoopSession(sess) { save(KEYS.COOP_SESSION, { ...sess, ts: Date.now() }); }
+export function loadCoopSession() {
+  const s = load(KEYS.COOP_SESSION, null);
+  if (!s) return null;
+  if (Date.now() - s.ts > COOP_SESSION_TTL_MS) { remove(KEYS.COOP_SESSION); return null; }
+  return s;
+}
+export function clearCoopSession() { remove(KEYS.COOP_SESSION); }
 
 // ─── Statistik ────────────────────────────────────────────────────────────────
 const EMPTY_STATS = {
@@ -243,6 +266,7 @@ export function createBackup(label = 'auto') {
       ts: now, label, v: 1,
       settings: load(KEYS.SETTINGS, {}),
       activeGame: load(KEYS.ACTIVE_GAME, null),
+      activeGameCoop: load(KEYS.ACTIVE_GAME_COOP, null),
       stats: load(KEYS.STATS, {}),
       daily: load(KEYS.DAILY, {}),
       history: load(KEYS.HISTORY, []),
@@ -277,6 +301,7 @@ export function restoreBackup(slotIdx) {
     if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
     if (data.race) save(KEYS.RACE, data.race);
     if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
+    if (data.activeGameCoop !== undefined) saveActiveGameCoop(data.activeGameCoop);
     return true;
   } catch (e) { log('storage', `Backup-Slot ${slotIdx} wiederherstellen fehlgeschlagen`, e); return false; }
 }
@@ -292,6 +317,7 @@ export async function exportToFile(type = 'manual') {
     ts: Date.now(), v: 1, label: type,
     settings: load(KEYS.SETTINGS, {}),
     activeGame: load(KEYS.ACTIVE_GAME, null),
+    activeGameCoop: load(KEYS.ACTIVE_GAME_COOP, null),
     stats: load(KEYS.STATS, {}),
     daily: load(KEYS.DAILY, {}),
     history: load(KEYS.HISTORY, []),
@@ -322,6 +348,7 @@ export function importFromFile(jsonText) {
   if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
   if (data.race) save(KEYS.RACE, data.race);
   if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
+  if (data.activeGameCoop !== undefined) saveActiveGameCoop(data.activeGameCoop);
   return data;
 }
 
@@ -329,6 +356,8 @@ export function importFromFile(jsonText) {
 export function deleteAllData() {
   remove(KEYS.SETTINGS);
   remove(KEYS.ACTIVE_GAME);
+  remove(KEYS.ACTIVE_GAME_COOP);
+  remove(KEYS.COOP_SESSION);
   remove(KEYS.STATS);
   remove(KEYS.SEEN_VERSION);
   remove(KEYS.BACKUP_SLOT);
