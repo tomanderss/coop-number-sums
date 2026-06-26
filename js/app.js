@@ -149,6 +149,7 @@ const state = reactive({
   confetti: [],
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
   updateReady: false,        // neue App-Version liegt im Service-Worker bereit
+  pendingUpdate: false,      // Update erkannt, aber Spiel läuft noch — Dialog nach Spielende zeigen
 });
 
 let timerHandle = null;
@@ -1498,6 +1499,7 @@ function win(remote) {
   }
   if (state.team.active && !remote) broadcastTeamDone('won');
   if (state.race.active && !remote) broadcastRaceDone('won');
+  if (state.pendingUpdate) { state.pendingUpdate = false; state.updateReady = true; }
 }
 
 function lose(remote) {
@@ -1535,6 +1537,7 @@ function lose(remote) {
   }
   if (state.team.active && !remote) broadcastTeamDone('lost');
   if (state.race.active && !remote) broadcastRaceDone('lost');
+  if (state.pendingUpdate) { state.pendingUpdate = false; state.updateReady = true; }
 }
 
 function giveUp(remote) {
@@ -1571,6 +1574,7 @@ function giveUp(remote) {
   }
   if (state.team.active && !remote) broadcastTeamDone('gaveup');
   if (state.race.active && !remote) broadcastRaceDone('gaveup');
+  if (state.pendingUpdate) { state.pendingUpdate = false; state.updateReady = true; }
 }
 
 // Verlässt man die Coop-Lobby selbst (auch mitten in der laufenden Runde), bekommt
@@ -1857,6 +1861,16 @@ function dismissStreakLostNotice() { state.streakLostNotice = false; }
 // ─── APP-UPDATE (Service Worker) ──────────────────────────────────────────────
 // Hält den im "waiting" wartenden Worker, bis der Nutzer aktiv aktualisiert.
 let waitingWorker = null;
+
+// Zeigt den Update-Dialog — aber nicht mitten im Spiel. Wenn gerade gespielt
+// wird, merkt pendingUpdate das und der Dialog erscheint nach Spielende.
+function offerUpdate() {
+  if (state.screen === 'game' && state.status === 'playing') {
+    state.pendingUpdate = true;
+  } else {
+    state.updateReady = true;
+  }
+}
 let reloadingForUpdate = false;
 function applyUpdate() {
   if (!waitingWorker) { location.reload(); return; }
@@ -2130,7 +2144,7 @@ const App = {
               <i v-if="!full && state.coop.active && lifeLossColor(i)" class="heart-strike" :style="{background: lifeLossColor(i)}"></i>
             </span>
           </div>
-          <div class="hud-item timer" v-if="state.settings.showTimer">⏱ {{ fmtTime(state.elapsed) }}</div>
+          <div class="hud-item timer" v-if="state.settings.showTimer"><span class="timer-icon">⏱</span><span>{{ fmtTime(state.elapsed) }}</span></div>
         </div>
         <div class="top-actions">
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing' && !state.coop.awaitingStart" @click="pauseGame" :title="t('game.pauseTitle')">
@@ -3027,6 +3041,7 @@ nextTick(() => {
 window.addEventListener('pagehide', () => { persistGame(); createBackup('close'); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
+    pauseGame();
     persistGame(); createBackup('close');
   } else if (document.visibilityState === 'visible' && state.coop.active) {
     Coop.ensurePresence({ name: state.settings.coopName, color: state.settings.coopMyColor, role: state.coop.role });
@@ -3048,7 +3063,7 @@ if ('serviceWorker' in navigator && !(window.Capacitor && window.Capacitor.isNat
         // wird — sonst ist es die Erst-Installation (kein "alte Version läuft weiter").
         if (w.state === 'installed' && navigator.serviceWorker.controller) {
           waitingWorker = w;
-          state.updateReady = true;
+          offerUpdate();
           log('sw', `Update verfügbar (wartend)`);
         }
       };
@@ -3059,6 +3074,8 @@ if ('serviceWorker' in navigator && !(window.Capacitor && window.Capacitor.isNat
         if (!nw) return;
         nw.addEventListener('statechange', () => promote(nw));
       });
+      // Alle 30 Sekunden auf neue Deployment-Version prüfen.
+      setInterval(() => reg.update(), 30000);
     }).catch(e => log('sw', `Service-Worker-Registrierung fehlgeschlagen`, e));
   });
 }
