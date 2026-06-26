@@ -263,6 +263,14 @@ export default {
       tooLarge: '이 숫자는 아직 부족한 양보다 큽니다 – 제거해야 합니다.',
     },
   },
+  hint: {
+    reveal: '정답 보기',
+    socratic: {
+      sumReached: '여기서는 동그라미 친 숫자만으로 이미 목표 합에 정확히 도달했습니다. 그렇다면 남아 있는 미정 숫자들은 어떻게 되어야 할까요?',
+      allRemainingNeeded: '목표까지 정확히 {rem} 남았습니다. 아직 정하지 않은 숫자들을 더해 보세요. 합이 정확히 {rem}이라면 무엇을 알 수 있나요?',
+      tooLarge: '목표까지 {rem}밖에 남지 않았습니다. 아직 정하지 않은 숫자 중에 그 하나만으로 이미 {rem}보다 큰 숫자가 있나요?',
+    },
+  },
   achievements: {
     title: '업적',
     progress: '{unlocked} / {total}개 달성',

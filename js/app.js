@@ -55,6 +55,9 @@ const state = reactive({
   newHighscore: false,        // true, wenn beim letzten Sieg eine neue Bestzeit erzielt wurde
   wouldHaveBeenBest: false,   // true, wenn die Zeit ohne Fehler/Hinweise eine neue Bestzeit gewesen wäre
   hintWarnShown: false,       // true, sobald die einmalige Hinweis-Warnung dieser Partie bestätigt wurde
+  hintNudge: null,            // aktiver sokratischer Hinweis { group:{kind,ref,target}, reason, rem, r, c, want }
+                              // — highlightet die Gruppe + zeigt eine Leitfrage, OHNE die Zelle/Aktion zu verraten;
+                              // erst ein zweiter Tipp auf den Hinweis-Knopf löst die Zelle wirklich auf.
   bestTimeNotice: null,       // Text der kurzen Top-Banner-Meldung "Bestzeit nicht mehr möglich"
   tool: 'pen',               // pen | eraser
   startTime: 0,
@@ -441,6 +444,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.wouldHaveBeenBest = false;
   state.perfectWin = false;
   state.hintWarnShown = false;
+  state.hintNudge = null;
   state.elapsed = saved?.elapsed ?? 0;
   // Bei Coop-INIT übernimmt der Gast den exakten Host-Startzeitpunkt, damit beide
   // Seiten dieselbe Zeit anzeigen (sonst Drift durch Verbindungsaufbau-Latenz).
@@ -577,6 +581,7 @@ function onCellTap(r, c) {
 }
 
 function setMark(r, c, next, user, fromId) {
+  if (user) state.hintNudge = null; // eigene Aktion verwirft die offene Leitfrage (Highlight + Banner)
   const cur = state.marks[r][c];
   if (cur === next) return;
 
@@ -801,28 +806,59 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
   afterMove();
 }
 
-// Vor dem ersten Hinweis je Partie (und je Spieler, da state lokal ist) eine
-// einmalige Warnung, dass damit keine Bestzeit mehr möglich ist — bei Abbruch
-// bleibt hintWarnShown false, sodass die Warnung beim nächsten Versuch erneut kommt.
+// Zwei-Stufen-Hinweis:
+//  1. Tipp: sokratische Leitfrage — highlightet die Gruppe (Zeile/Spalte/Käfig),
+//     in der sich der nächste logische Schritt erschließen lässt, und stellt
+//     eine Frage, OHNE Zelle oder Aktion zu verraten. Bewusst KOSTENLOS (keine
+//     Bestzeit-Strafe, kein hintsUsed) — der Spieler denkt selbst weiter und
+//     bleibt "auf eigene Faust".
+//  2. Tipp (Frage steht bereits): löst die konkrete Zelle wirklich auf — das
+//     kostet die Bestzeit, wie der klassische Hinweis. Gibt es keinen einfach in
+//     Worten erklärbaren Schritt (nur Tier-2/2.5-Logik nötig), wird sofort
+//     aufgelöst, ohne Zwischenfrage.
 function useHint() {
   if (state.status !== 'playing' || state.hintsLeft <= 0 || state.isRaceGame || state.team.active) return;
-  if (!state.hintWarnShown) {
-    ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => {
-      state.hintWarnShown = true;
-      doUseHint();
-    });
+  // Stufe 2: Es steht schon eine Leitfrage -> jetzt die Zelle wirklich auflösen.
+  if (state.hintNudge) { revealHintNudge(); return; }
+  // Stufe 1: Versuche, eine sokratische Leitfrage zu erzeugen (kostenlos).
+  const step = findTrainingStep(state.puzzle, state.marks);
+  if (step) {
+    state.hintNudge = { group: step.group, reason: step.reason, rem: step.rem, r: step.r, c: step.c, want: step.action };
+    log('game', `Sokratischer Hinweis gezeigt`, { reason: step.reason, group: step.group.kind });
     return;
   }
-  doUseHint();
+  // Fallback: kein einfacher logischer Schritt -> direkt eine Zelle auflösen.
+  confirmThenReveal(() => doUseHint());
 }
+// Einmalige Bestzeit-Warnung je Partie, dann die Auflöse-Aktion ausführen — bei
+// Abbruch bleibt hintWarnShown false, sodass die Warnung erneut käme.
+function confirmThenReveal(reveal) {
+  if (!state.hintWarnShown) {
+    ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => { state.hintWarnShown = true; reveal(); });
+    return;
+  }
+  reveal();
+}
+// Stufe 2: löst genau die Zelle der aktiven Leitfrage auf.
+function revealHintNudge() {
+  const n = state.hintNudge;
+  if (!n) return;
+  confirmThenReveal(() => { state.hintNudge = null; doRevealCell(n.r, n.c, n.want); });
+}
+// Fallback-Auflösung: eine beliebige noch falsche/offene Zelle aus der Lösung.
 function doUseHint() {
   const hint = findHintCell(state.puzzle, state.marks);
   if (!hint) return;
+  doRevealCell(hint.r, hint.c, hint.want);
+}
+// Gemeinsamer Auflöse-Kern: deckt Zelle (r,c) mit der korrekten Markierung auf,
+// zählt den Hinweis (Bestzeit futsch) und synct ihn im Coop.
+function doRevealCell(r, c, want) {
   log('game', `Hinweis verwendet`, { hintsLeft: state.hintsLeft - 1 });
   state.hintsLeft--; state.hintsUsed++;
-  applyHintEffect(hint.r, hint.c, hint.want);
+  applyHintEffect(r, c, want);
   showBestTimeNotice(t('game.hintUsedNotice'));
-  if (state.coop.active) coopSend({ type: Coop.MSG.HINT, r: hint.r, c: hint.c, mark: hint.want, from: state.coop.myId });
+  if (state.coop.active) coopSend({ type: Coop.MSG.HINT, r, c, mark: want, from: state.coop.myId });
 }
 
 function undo(broadcast = true) {
@@ -2075,7 +2111,7 @@ const App = {
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
-      navigate, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, doCheck,
+      navigate, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, loadBackups,
@@ -2329,6 +2365,18 @@ const App = {
         <template v-else-if="state.trainingDone">
           <div class="training-text">{{ t('training.doneMsg') }}</div>
         </template>
+      </div>
+
+      <!-- Sokratischer Hinweis: highlightet die Gruppe (hint-group) und stellt
+           eine Leitfrage, ohne die konkrete Zelle/Aktion zu verraten. Ein Tipp
+           auf "Auflösen" (oder erneut auf den Hinweis-Knopf) deckt die Zelle
+           dann wirklich auf. -->
+      <div v-if="state.hintNudge && !state.isTrainingGame && state.status==='playing' && !state.paused" class="hint-banner">
+        <div class="hint-text">
+          <b>💡 {{ t('training.group.'+state.hintNudge.group.kind, { n: state.hintNudge.group.ref+1 }) }} ({{ t('training.target', { n: state.hintNudge.group.target }) }})</b>
+          <span>{{ t('hint.socratic.'+state.hintNudge.reason, { rem: state.hintNudge.rem }) }}</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" @click="revealHintNudge">{{ t('hint.reveal') }}</button>
       </div>
 
       <!-- Coop-Lobby: Rätsel ist da, Zeit läuft erst nach "Starten" -->
@@ -3023,7 +3071,19 @@ function cellClasses(r, c) {
     'coop-mark': !!state.markedBy[r][c],
     'coop-mark-removed': state.coop.active && !!state.markedBy[r][c] && mk === 'removed' && state.settings.coopRemovedOutline,
     'training-highlight': state.isTrainingGame && state.trainingStep?.r === r && state.trainingStep?.c === c,
+    'hint-group': inHintGroup(r, c),
   };
+}
+// Gehört Zelle (r,c) zur Gruppe der aktiven sokratischen Leitfrage? Markiert
+// bewusst die GANZE Zeile/Spalte/Käfig (nicht die Zielzelle), damit der Spieler
+// den Schluss selbst zieht, ohne dass die konkrete Zelle verraten wird.
+function inHintGroup(r, c) {
+  const n = state.hintNudge;
+  if (!n) return false;
+  if (n.group.kind === 'row') return r === n.group.ref;
+  if (n.group.kind === 'col') return c === n.group.ref;
+  if (n.group.kind === 'region') return state.cellMeta[r][c].region === n.group.ref;
+  return false;
 }
 function cellStyle(r, c) {
   const m = state.cellMeta[r][c];

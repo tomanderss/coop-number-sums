@@ -263,6 +263,14 @@ export default {
       tooLarge: 'This number is larger than what is still missing – it must be removed.',
     },
   },
+  hint: {
+    reveal: 'Reveal',
+    socratic: {
+      sumReached: 'The target here is already reached exactly with the circled numbers. So what has to happen to all the remaining, still-open numbers?',
+      allRemainingNeeded: 'Exactly {rem} is still missing to reach the target. Add up the still-open numbers – what does it tell you if together they make exactly {rem}?',
+      tooLarge: 'Only {rem} is still missing to reach the target. Is there a still-open number that on its own is already larger than {rem}? Can it belong at all then?',
+    },
+  },
   achievements: {
     title: 'Achievements',
     progress: '{unlocked} / {total} unlocked',

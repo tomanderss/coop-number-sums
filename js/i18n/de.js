@@ -263,6 +263,14 @@ export default {
       tooLarge: 'Diese Zahl ist größer als der noch fehlende Rest – sie muss entfernt werden.',
     },
   },
+  hint: {
+    reveal: 'Auflösen',
+    socratic: {
+      sumReached: 'Das Ziel ist hier mit den eingekreisten Zahlen bereits genau erreicht. Was muss dann mit allen übrigen, noch offenen Zahlen geschehen?',
+      allRemainingNeeded: 'Bis zum Ziel fehlen noch genau {rem}. Zähl die noch offenen Zahlen zusammen – was fällt dir auf, wenn sie zusammen exakt {rem} ergeben?',
+      tooLarge: 'Bis zum Ziel fehlen nur noch {rem}. Gibt es eine noch offene Zahl, die für sich allein schon größer als {rem} ist? Kann die dann überhaupt dazugehören?',
+    },
+  },
   achievements: {
     title: 'Achievements',
     progress: '{unlocked} / {total} freigeschaltet',
