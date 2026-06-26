@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.119';
-export const BUILD_HASH = '45e94c2';
+export const BUILD      = '0.120';
+export const BUILD_HASH = '2c508f5';
 
 export const CHANGELOG = [
+  {
+    "version": "0.120",
+    "date": "26.06.2026",
+    "changes": [
+      "Hinweis: Schon die erste Stufe (Bereich markieren) entwertet jetzt die Bestzeit – die Warnung kommt entsprechend bereits vor Stufe 1"
+    ]
+  },
   {
     "version": "0.119",
     "date": "26.06.2026",

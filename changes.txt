@@ -1,1 +1,0 @@
-Hinweis: Schon die erste Stufe (Bereich markieren) entwertet jetzt die Bestzeit – die Warnung kommt entsprechend bereits vor Stufe 1
