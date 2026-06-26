@@ -263,6 +263,14 @@ export default {
       tooLarge: 'Questo numero è più grande di quanto manca ancora: deve essere rimosso.',
     },
   },
+  hint: {
+    reveal: 'Rivela',
+    socratic: {
+      sumReached: 'Qui l’obiettivo è già raggiunto esattamente con i numeri cerchiati. Cosa deve succedere allora a tutti i numeri rimanenti ancora aperti?',
+      allRemainingNeeded: 'Mancano esattamente {rem} per raggiungere l’obiettivo. Somma i numeri ancora aperti: cosa significa se insieme danno esattamente {rem}?',
+      tooLarge: 'Mancano solo {rem} per raggiungere l’obiettivo. C’è un numero ancora aperto che da solo è già più grande di {rem}?',
+    },
+  },
   achievements: {
     title: 'Obiettivi',
     progress: '{unlocked} / {total} sbloccati',

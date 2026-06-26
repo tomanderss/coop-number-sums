@@ -263,6 +263,14 @@ export default {
       tooLarge: 'Ce nombre est plus grand que ce qu\'il manque encore – il doit être retiré.',
     },
   },
+  hint: {
+    reveal: 'Révéler',
+    socratic: {
+      sumReached: 'Ici, l’objectif est déjà atteint exactement avec les nombres entourés. Que doit-il alors arriver à tous les nombres restants encore ouverts ?',
+      allRemainingNeeded: 'Il manque encore exactement {rem} pour atteindre l’objectif. Additionne les nombres encore ouverts : que remarques-tu s’ils totalisent exactement {rem} ?',
+      tooLarge: 'Il ne manque plus que {rem} pour atteindre l’objectif. Y a-t-il un nombre encore ouvert qui, à lui seul, est déjà plus grand que {rem} ?',
+    },
+  },
   achievements: {
     title: 'Succès',
     progress: '{unlocked} / {total} débloqués',

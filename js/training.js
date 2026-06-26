@@ -13,8 +13,10 @@ function marksToValues(marks) {
 }
 
 // Sucht über alle Gruppen den ersten per Tier-1-Logik erzwingbaren Zug.
-// Liefert { r, c, action: 'kept'|'removed', reason, group: {kind, ref, target} }
+// Liefert { r, c, action: 'kept'|'removed', reason, rem, group: {kind, ref, target} }
 // oder null, wenn keine Gruppe aktuell einen erzwungenen Zug liefert.
+// `rem` = noch fehlende Summe bis zum Ziel (nach Abzug der bereits behaltenen
+// Zahlen) — wird vom sokratischen Hinweis genutzt, um die Leitfrage zu füllen.
 export function findTrainingStep(puzzle, marks) {
   const model = buildModel(puzzle);
   const values = marksToValues(marks);
@@ -31,16 +33,16 @@ export function findTrainingStep(puzzle, marks) {
     const info = { kind: g.kind, ref: g.ref, target: g.target };
     if (rem === 0) {
       const cell = model.cells[und[0]];
-      return { r: cell.r, c: cell.c, action: 'removed', reason: 'sumReached', group: info };
+      return { r: cell.r, c: cell.c, action: 'removed', reason: 'sumReached', rem, group: info };
     }
     const undTotal = und.reduce((s, ci) => s + model.cells[ci].val, 0);
     if (undTotal === rem) {
       const cell = model.cells[und[0]];
-      return { r: cell.r, c: cell.c, action: 'kept', reason: 'allRemainingNeeded', group: info };
+      return { r: cell.r, c: cell.c, action: 'kept', reason: 'allRemainingNeeded', rem, group: info };
     }
     for (const ci of und) {
       const cell = model.cells[ci];
-      if (cell.val > rem) return { r: cell.r, c: cell.c, action: 'removed', reason: 'tooLarge', group: info };
+      if (cell.val > rem) return { r: cell.r, c: cell.c, action: 'removed', reason: 'tooLarge', rem, group: info };
     }
   }
   return null;

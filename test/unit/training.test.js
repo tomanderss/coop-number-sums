@@ -43,6 +43,31 @@ describe('training.findTrainingStep', () => {
     assert.equal(step.reason, 'sumReached');
     assert.equal(step.group.kind, 'row');
   });
+
+  // `rem` (noch fehlende Summe bis zum Ziel) speist die sokratische Leitfrage —
+  // muss je Begründungstyp den richtigen Wert liefern.
+  test('reports rem = 0 when the target is already reached (sumReached)', () => {
+    const marks = [['kept', 'none'], ['none', 'none']]; // Zeile 0 (Ziel 1) schon erreicht
+    const step = findTrainingStep(tinyPuzzle, marks);
+    assert.equal(step.reason, 'sumReached');
+    assert.equal(step.rem, 0);
+  });
+
+  test('reports the remaining sum when a value is too large (tooLarge)', () => {
+    const marks = [['none', 'none'], ['none', 'none']]; // leer: Zeile 0 Ziel 1, Zelle (0,1)=5 > 1
+    const step = findTrainingStep(tinyPuzzle, marks);
+    assert.equal(step.reason, 'tooLarge');
+    assert.equal(step.rem, 1);
+  });
+
+  test('reports the remaining sum when all open values are needed (allRemainingNeeded)', () => {
+    // Zeile 0 (Ziel 1): (0,1) bereits removed -> es bleibt nur (0,0)=1, das exakt 1 ergibt.
+    const marks = [['none', 'removed'], ['none', 'none']];
+    const step = findTrainingStep(tinyPuzzle, marks);
+    assert.equal(step.reason, 'allRemainingNeeded');
+    assert.equal(step.action, 'kept');
+    assert.equal(step.rem, 1);
+  });
 });
 
 describe('training.isFullyTier1Solvable on real generated puzzles', () => {

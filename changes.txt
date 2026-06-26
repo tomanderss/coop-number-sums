@@ -1,0 +1,1 @@
+Hinweis überarbeitet: Der erste Tipp highlightet jetzt die passende Zeile/Spalte/Gruppe und stellt eine Leitfrage, statt die Lösung sofort zu verraten – erst „Auflösen" deckt die Zelle auf

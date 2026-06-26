@@ -595,6 +595,30 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .training-text b { font-size: .92rem; }
 .training-text span { color: var(--text2); font-size: .86rem; }
 
+/* ─── Sokratischer Hinweis ─── */
+/* Leitfrage-Banner: highlightet die betroffene Gruppe und stellt eine Frage,
+   ohne die Zielzelle zu verraten. Als fixes Overlay unten zentriert (statt im
+   Grid-/Flow-Layout des Spielfelds), damit es weder die Feld-Anordnung
+   verschiebt noch in Quer-/Hochformat vom overflow:hidden abgeschnitten wird.
+   Hat einen eigenen "Auflösen"-Knopf, sodass die Werkzeugleiste darunter nicht
+   erreichbar sein muss. */
+.hint-banner {
+  position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: 50%; transform: translateX(-50%);
+  width: calc(100% - 28px); max-width: 440px; z-index: 70;
+  background: var(--bg2); border: 1px solid var(--accent-soft);
+  display: flex; align-items: center; gap: 12px; padding: 13px 16px;
+  border-radius: 16px; box-shadow: 0 10px 30px var(--shadow);
+}
+.hint-text { display: flex; flex-direction: column; gap: 3px; text-align: left; flex: 1; min-width: 0; }
+.hint-text b { font-size: .9rem; }
+.hint-text span { color: var(--text2); font-size: .85rem; line-height: 1.35; }
+.hint-banner .btn { flex: 0 0 auto; }
+/* Gruppen-Highlight: jede Zelle der betroffenen Zeile/Spalte/des Käfigs bekommt
+   einen dezent pulsierenden Akzentring — sanfter als .training-highlight, da
+   hier die GANZE Gruppe (viele Zellen) markiert wird und nicht die Lösung. */
+.cell.hint-group { box-shadow: inset 0 0 0 2px var(--accent); animation: hintGroupPulse 1.6s ease infinite; z-index: 1; }
+@keyframes hintGroupPulse { 0%,100% { box-shadow: inset 0 0 0 2px var(--accent); } 50% { box-shadow: inset 0 0 0 4px var(--accent); } }
+
 /* ─── Confetti ─── */
 /* contain: scope Layout/Paint auf den Konfetti-Container, damit das
    gleichzeitige Animieren von bis zu 160 Teilchen den Rest der Seite

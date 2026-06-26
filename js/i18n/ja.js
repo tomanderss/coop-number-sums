@@ -263,6 +263,14 @@ export default {
       tooLarge: 'この数字は残りの不足分より大きいです – 削除する必要があります。',
     },
   },
+  hint: {
+    reveal: '答えを表示',
+    socratic: {
+      sumReached: 'ここでは丸で囲んだ数字だけで目標にちょうど達しています。では、残りのまだ決めていない数字はどうなるでしょう？',
+      allRemainingNeeded: '目標まであと {rem} です。まだ決めていない数字を足してみてください。合計がちょうど {rem} になるなら、何がわかりますか？',
+      tooLarge: '目標まであと {rem} しかありません。まだ決めていない数字の中に、それ単独ですでに {rem} より大きいものはありませんか？',
+    },
+  },
   achievements: {
     title: '実績',
     progress: '{unlocked} / {total} 解除済み',
