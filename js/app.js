@@ -419,6 +419,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.isTrainingGame = false;
   state.trainingStep = null;
   state.trainingDone = false;
+  state.paused = false;
   state.puzzle = puzzle;
   state.cellMeta = buildCellMeta(puzzle);
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
@@ -1589,12 +1590,25 @@ function quitToHome() {
   // quitToHome() ein verlassenes Rennen fälschlich als Solo-Spielstand
   // speichern und später zum Fortsetzen anbieten.
   const wasCoop = state.coop.active || state.race.active;
+  const wasPlaying = state.status === 'playing' && !state.isTrainingGame;
+  // Coop-Spielstand und Session sichern BEVOR coopReset()/clearCoopSession()
+  // sie wegräumt — nur wenn das Spiel noch lief (kein Race, kein Training).
+  // So bleibt der "Coop fortsetzen"-Button im Hauptmenü sichtbar und der
+  // Spieler kann per resumeCoopGame() wieder beitreten, solange der Raum offen ist.
+  const coopSnap = wasCoop && wasPlaying && !state.race.active ? activeSnapshot() : null;
+  const coopSess = coopSnap ? { code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId } : null;
   if (state.coop.role) coopReset();
   // Solo- und Coop-Spielstände leben in getrennten Storage-Slots (siehe
   // persistGame()) -- ein Verlassen des einen Modus darf den gespeicherten
   // Stand des anderen nicht überschreiben/löschen.
-  if (wasCoop) { if (!state.race.active) saveActiveGameCoop(null); }
-  else saveActiveGame(state.status === 'playing' && !state.isTrainingGame ? activeSnapshot() : null);
+  if (wasCoop) {
+    if (!state.race.active) {
+      if (coopSnap) { saveActiveGameCoop(coopSnap); saveCoopSession(coopSess); }
+      else saveActiveGameCoop(null);
+    }
+  } else {
+    saveActiveGame(wasPlaying ? activeSnapshot() : null);
+  }
   refreshResume();
   navigate('home');
 }
