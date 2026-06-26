@@ -18,6 +18,7 @@ export default {
   },
   home: {
     resume: 'Продолжить',
+    resumeCoop: 'Продолжить кооп',
     newGame: 'Соло-режим',
     newGameHint: 'Решить в одиночку',
     coopMode: 'Кооператив',
@@ -137,6 +138,8 @@ export default {
     becameHost: 'Хост отключился — теперь хост ты 📡',
     partnerConnected: 'Товарищ по команде подключился 👥',
     partnerDisconnected: '{name} покинул лобби',
+    reconnected: 'Снова подключено ✅',
+    errorRoomGone: 'Комната больше не существует — кооп-игру нельзя продолжить.',
     hostDisconnectedPromoting: '{name} (хост) отключился — становишься новым хостом…',
     hostDisconnected: 'Соединение с {name} (хост) потеряно',
     shareInvite: 'Пригласить',

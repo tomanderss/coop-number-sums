@@ -71,7 +71,7 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }) {
 
   unsubJoin = f.onChildAdded(playersRef, (snap) => {
     if (snap.key === f.uid) return;
-    onJoin && onJoin(snap.key);
+    onJoin && onJoin(snap.key, snap.val());
   });
   unsubLeave = f.onChildRemoved(playersRef, (snap) => {
     if (snap.key === f.uid) return;
@@ -141,6 +141,52 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
   } catch (e) {
     log('coop', `Beitreten zu Raum ${code} fehlgeschlagen`, e);
     onError && onError(e);
+  }
+}
+
+// ─── Wiederverbindung nach Hintergrund/Reload ────────────────────────────────
+// rejoin(): kalter Fall — der JS-Kontext (und damit alle Listener) ging
+// verloren (z.B. App aus dem Speicher entfernt, voller Reload). Validiert
+// anders als hostGame()/joinGame() NICHT Kapazität/Belegung erneut, sondern
+// nur, ob der Raum überhaupt noch existiert — wer schon drin war, darf wieder
+// hinein, auch wenn der Raum inzwischen "voll" wäre.
+export async function rejoin({ code, name, color, role, onOpen, onError, onJoin, onLeave, onMessage }) {
+  try {
+    const f = await ensureDb();
+    log('coop', `Verbinde erneut mit Raum ${code}…`);
+    const metaSnap = await withTimeout(f.get(f.ref(f.db, `rooms/${code}/meta`)));
+    if (!metaSnap.exists()) {
+      log('coop', `Raum ${code} existiert nicht mehr`);
+      onError && onError({ type: 'room-gone' });
+      return;
+    }
+    roomCode = code;
+    myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
+    await f.set(myPlayerRef, { name, color, role, joinedAt: f.serverTimestamp() });
+    f.onDisconnect(myPlayerRef).remove();
+    attachListeners(f, code, { onJoin, onLeave, onMessage });
+    log('coop', `Raum ${code} wieder verbunden`, { uid: f.uid });
+    onOpen && onOpen(f.uid);
+  } catch (e) {
+    log('coop', `Wiederverbindung zu Raum ${code} fehlgeschlagen`, e);
+    onError && onError(e);
+  }
+}
+
+// ensurePresence(): warmer Fall — der JS-Kontext (und damit alle Listener)
+// lief weiter, nur die eigene players/$uid-Anwesenheit könnte serverseitig per
+// onDisconnect() entfernt worden sein (kurzer Hintergrund-Zeitraum). Stellt
+// nur den eigenen Eintrag wieder her, fasst Listener nicht erneut an.
+export async function ensurePresence({ name, color, role }) {
+  if (!fb || !roomCode || !myPlayerRef) return;
+  try {
+    const snap = await fb.get(myPlayerRef);
+    if (snap.exists()) return;
+    await fb.set(myPlayerRef, { name, color, role, joinedAt: fb.serverTimestamp() });
+    fb.onDisconnect(myPlayerRef).remove();
+    log('coop', 'Anwesenheit nach Hintergrund wiederhergestellt');
+  } catch (e) {
+    log('coop', 'Anwesenheit wiederherstellen fehlgeschlagen', e);
   }
 }
 

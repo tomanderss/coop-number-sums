@@ -18,6 +18,7 @@ export default {
   },
   home: {
     resume: '続ける',
+    resumeCoop: 'Coopを続ける',
     newGame: 'ソロモード',
     newGameHint: '一人で解く',
     coopMode: 'Coopモード',
@@ -137,6 +138,8 @@ export default {
     becameHost: 'ホストが切断されました — あなたが新しいホストです 📡',
     partnerConnected: '仲間が接続しました 👥',
     partnerDisconnected: '{name}さんがロビーを退出しました',
+    reconnected: '再接続しました ✅',
+    errorRoomGone: 'ルームが存在しません。Coopゲームを再開できません。',
     hostDisconnectedPromoting: 'ホストの{name}さんが切断されました — 新しいホストになっています…',
     hostDisconnected: 'ホストの{name}さんとの接続が切断されました',
     shareInvite: '招待する',

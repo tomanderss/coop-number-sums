@@ -18,6 +18,7 @@ export default {
   },
   home: {
     resume: 'Devam et',
+    resumeCoop: "Coop'u devam ettir",
     newGame: 'Solo mod',
     newGameHint: 'Tek başına çöz',
     coopMode: 'Coop modu',
@@ -137,6 +138,8 @@ export default {
     becameHost: 'Ev sahibinin bağlantısı kesildi — artık ev sahibi sensin 📡',
     partnerConnected: 'Takım arkadaşı bağlandı 👥',
     partnerDisconnected: '{name} lobiden ayrıldı',
+    reconnected: 'Yeniden bağlanıldı ✅',
+    errorRoomGone: 'Oda artık mevcut değil — coop oyunu sürdürülemiyor.',
     hostDisconnectedPromoting: '{name} (ev sahibi) bağlantısı kesildi — yeni ev sahibi oluyorsun…',
     hostDisconnected: '{name} (ev sahibi) ile bağlantı kesildi',
     shareInvite: 'Davet et',

@@ -18,6 +18,7 @@ export default {
   },
   home: {
     resume: 'Continuar',
+    resumeCoop: 'Continuar Coop',
     newGame: 'Modo solo',
     newGameHint: 'Resolver sozinho',
     coopMode: 'Modo cooperativo',
@@ -137,6 +138,8 @@ export default {
     becameHost: 'Anfitrião desconectado — agora você é o anfitrião 📡',
     partnerConnected: 'Parceiro conectado 👥',
     partnerDisconnected: '{name} saiu da sala',
+    reconnected: 'Reconectado ✅',
+    errorRoomGone: 'A sala não existe mais — não é possível continuar a partida coop.',
     hostDisconnectedPromoting: '{name} (anfitrião) desconectado — tornando-se o novo anfitrião…',
     hostDisconnected: 'Conexão com {name} (anfitrião) perdida',
     shareInvite: 'Convidar',

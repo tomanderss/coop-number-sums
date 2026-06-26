@@ -13,6 +13,8 @@ globalThis.localStorage = new MemoryStorage();
 
 const {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame,
+  loadActiveGameCoop, saveActiveGameCoop,
+  saveCoopSession, loadCoopSession, clearCoopSession,
   loadStats, recordResult, loadSeenVersion, saveSeenVersion,
   createBackup, loadBackups, restoreBackup, importFromFile, generateId,
   loadStreak, recordStreakResult, loadAchievements, unlockAchievements,
@@ -49,6 +51,71 @@ describe('storage.activeGame', () => {
     assert.deepEqual(loadActiveGame(), game);
     saveActiveGame(null);
     assert.equal(loadActiveGame(), null);
+  });
+});
+
+describe('storage.activeGameCoop', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('loadActiveGameCoop is null when nothing saved', () => {
+    assert.equal(loadActiveGameCoop(), null);
+  });
+
+  test('saveActiveGameCoop round-trips an object, and null removes it', () => {
+    const game = { difficulty: 'schwer', elapsed: 4321 };
+    saveActiveGameCoop(game);
+    assert.deepEqual(loadActiveGameCoop(), game);
+    saveActiveGameCoop(null);
+    assert.equal(loadActiveGameCoop(), null);
+  });
+
+  test('solo and coop active-game slots do not overwrite each other', () => {
+    saveActiveGame({ difficulty: 'leicht' });
+    saveActiveGameCoop({ difficulty: 'schwer' });
+    assert.deepEqual(loadActiveGame(), { difficulty: 'leicht' });
+    assert.deepEqual(loadActiveGameCoop(), { difficulty: 'schwer' });
+    saveActiveGame(null);
+    assert.equal(loadActiveGame(), null);
+    assert.deepEqual(loadActiveGameCoop(), { difficulty: 'schwer' }); // untouched
+  });
+});
+
+describe('storage.coopSession', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('loadCoopSession is null when nothing saved', () => {
+    assert.equal(loadCoopSession(), null);
+  });
+
+  test('saveCoopSession round-trips the payload plus a timestamp', () => {
+    saveCoopSession({ code: '123456', role: 'host' });
+    const s = loadCoopSession();
+    assert.equal(s.code, '123456');
+    assert.equal(s.role, 'host');
+    assert.ok(s.ts > 0);
+  });
+
+  test('clearCoopSession removes it', () => {
+    saveCoopSession({ code: '123456', role: 'guest' });
+    clearCoopSession();
+    assert.equal(loadCoopSession(), null);
+  });
+
+  test('a session older than the 5-minute TTL expires and is removed on read', () => {
+    saveCoopSession({ code: '123456', role: 'host' });
+    const raw = JSON.parse(globalThis.localStorage.getItem('cns_coop_session'));
+    raw.ts = Date.now() - 6 * 60 * 1000; // 6 minutes ago, past the 5-minute TTL
+    globalThis.localStorage.setItem('cns_coop_session', JSON.stringify(raw));
+    assert.equal(loadCoopSession(), null);
+    assert.equal(globalThis.localStorage.getItem('cns_coop_session'), null); // self-cleaned up
+  });
+
+  test('a session just inside the 5-minute TTL is still valid', () => {
+    saveCoopSession({ code: '123456', role: 'host' });
+    const raw = JSON.parse(globalThis.localStorage.getItem('cns_coop_session'));
+    raw.ts = Date.now() - 4 * 60 * 1000; // 4 minutes ago, still inside the TTL
+    globalThis.localStorage.setItem('cns_coop_session', JSON.stringify(raw));
+    assert.ok(loadCoopSession());
   });
 });
 
