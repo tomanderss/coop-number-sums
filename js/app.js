@@ -612,10 +612,19 @@ function setMark(r, c, next, user, fromId) {
 }
 
 function afterMove() {
+  clearStaleHintNudge();
   persistGame();
   if (state.team.active) pushTeamProgress();
   if (state.race.active) pushRaceProgress();
   if (isSolved()) win();
+}
+// Verwirft den aktiven Hinweis, sobald SEINE Zielzelle gelöst ist — egal wodurch
+// (eigener Zug, Auflösen, Coop-Partner). So bleibt nie ein veralteter Hinweis mit
+// stage≥2 im Kopf hängen, der den nächsten Tipp fälschlich sofort auflösen würde:
+// nach jeder gelösten Zelle beginnt der nächste Hinweis wieder bei Stufe 1.
+function clearStaleHintNudge() {
+  const n = state.hintNudge;
+  if (n && state.marks[n.r][n.c] === n.want) state.hintNudge = null;
 }
 
 function flashError(r, c) {
@@ -819,6 +828,7 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
 // erklärbaren Schritt (nur Tier-2/2.5-Logik nötig), wird sofort aufgelöst.
 function useHint() {
   if (state.status !== 'playing' || state.hintsLeft <= 0 || state.isRaceGame || state.team.active) return;
+  clearStaleHintNudge(); // veralteten Hinweis (Zielzelle schon gelöst) zuerst verwerfen
   const n = state.hintNudge;
   // Stufe 3: Frage steht schon -> Zelle wirklich auflösen (Strafe lief in Stufe 1).
   if (n && n.stage >= 2) { state.hintNudge = null; doRevealCell(n.r, n.c, n.want); return; }

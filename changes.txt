@@ -1,0 +1,1 @@
+Hinweis: Nach dem Lösen einer Zelle beginnt der nächste Hinweis wieder bei Stufe 1 (kein versehentliches Sofort-Auflösen durch einen veralteten Hinweis)
