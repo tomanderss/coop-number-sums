@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.118';
-export const BUILD_HASH = '3db0686';
+export const BUILD      = '0.119';
+export const BUILD_HASH = '45e94c2';
 
 export const CHANGELOG = [
+  {
+    "version": "0.119",
+    "date": "26.06.2026",
+    "changes": [
+      "Hinweis ist jetzt dreistufig: erst nur den relevanten Bereich markieren, dann die Leitfrage einblenden, dann auflösen — und das Hinweis-Banner lässt sich per ✕ wegklicken"
+    ]
+  },
   {
     "version": "0.118",
     "date": "26.06.2026",
