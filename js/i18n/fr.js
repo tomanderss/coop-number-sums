@@ -142,6 +142,7 @@ export default {
     errorRoomGone: "Le salon n'existe plus — impossible de reprendre la partie coop.",
     hostDisconnectedPromoting: '{name} (hôte) déconnecté — devient le nouvel hôte…',
     hostDisconnected: "Connexion à {name} (hôte) perdue",
+    newHostIs: "{name} est maintenant l'hôte 📡",
     shareInvite: 'Inviter',
     lobbyTitle: 'Les coéquipiers sont dans le salon',
     lobbyMsg: 'Le puzzle est prêt — ça démarre dès que tout le monde est prêt.',

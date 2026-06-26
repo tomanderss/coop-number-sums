@@ -142,6 +142,7 @@ export default {
     errorRoomGone: 'ルームが存在しません。Coopゲームを再開できません。',
     hostDisconnectedPromoting: 'ホストの{name}さんが切断されました — 新しいホストになっています…',
     hostDisconnected: 'ホストの{name}さんとの接続が切断されました',
+    newHostIs: '{name}さんが新しいホストになりました 📡',
     shareInvite: '招待する',
     lobbyTitle: '仲間がロビーにいます',
     lobbyMsg: 'パズルの準備ができました。全員の準備が整ったら開始します。',

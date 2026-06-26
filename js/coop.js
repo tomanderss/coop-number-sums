@@ -160,16 +160,30 @@ export async function rejoin({ code, name, color, role, onOpen, onError, onJoin,
       onError && onError({ type: 'room-gone' });
       return;
     }
+    // Prüfen, ob wir noch der aktuelle Host sind — falls inzwischen ein anderer
+    // Spieler die Host-Rolle übernommen hat (meta.hostId wurde von promoteToHost()
+    // aktualisiert), treten wir als Gast wieder bei.
+    const meta = metaSnap.val() || {};
+    const actualRole = meta.hostId === f.uid ? 'host' : 'guest';
     roomCode = code;
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
-    await f.set(myPlayerRef, { name, color, role, joinedAt: f.serverTimestamp() });
+    await f.set(myPlayerRef, { name, color, role: actualRole, joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
     attachListeners(f, code, { onJoin, onLeave, onMessage });
-    log('coop', `Raum ${code} wieder verbunden`, { uid: f.uid });
-    onOpen && onOpen(f.uid);
+    log('coop', `Raum ${code} wieder verbunden als ${actualRole}`, { uid: f.uid });
+    onOpen && onOpen(f.uid, actualRole);
   } catch (e) {
     log('coop', `Wiederverbindung zu Raum ${code} fehlgeschlagen`, e);
     onError && onError(e);
+  }
+}
+
+export async function updateHostId(uid) {
+  if (!fb || !roomCode) return;
+  try {
+    await fb.set(fb.ref(fb.db, `rooms/${roomCode}/meta/hostId`), uid);
+  } catch (e) {
+    log('coop', 'Host-ID in Meta aktualisieren fehlgeschlagen', e);
   }
 }
 

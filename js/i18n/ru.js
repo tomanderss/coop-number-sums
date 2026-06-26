@@ -142,6 +142,7 @@ export default {
     errorRoomGone: 'Комната больше не существует — кооп-игру нельзя продолжить.',
     hostDisconnectedPromoting: '{name} (хост) отключился — становишься новым хостом…',
     hostDisconnected: 'Соединение с {name} (хост) потеряно',
+    newHostIs: '{name} теперь хост 📡',
     shareInvite: 'Пригласить',
     lobbyTitle: 'Товарищи по команде в лобби',
     lobbyMsg: 'Пазл готов — начнётся, когда все будут готовы.',

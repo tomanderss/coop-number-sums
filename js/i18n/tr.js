@@ -142,6 +142,7 @@ export default {
     errorRoomGone: 'Oda artık mevcut değil — coop oyunu sürdürülemiyor.',
     hostDisconnectedPromoting: '{name} (ev sahibi) bağlantısı kesildi — yeni ev sahibi oluyorsun…',
     hostDisconnected: '{name} (ev sahibi) ile bağlantı kesildi',
+    newHostIs: '{name} artık ev sahibi 📡',
     shareInvite: 'Davet et',
     lobbyTitle: 'Takım arkadaşların lobide',
     lobbyMsg: 'Bulmaca hazır — herkes hazır olduğunda başlar.',

@@ -142,6 +142,7 @@ export default {
     errorRoomGone: '방이 더 이상 존재하지 않습니다 — 코업 게임을 이어할 수 없습니다.',
     hostDisconnectedPromoting: '호스트 {name}님의 연결이 끊겼습니다 — 새 호스트가 되는 중…',
     hostDisconnected: '호스트 {name}님과의 연결이 끊겼습니다',
+    newHostIs: '{name}님이 이제 호스트입니다 📡',
     shareInvite: '초대하기',
     lobbyTitle: '동료가 로비에 있습니다',
     lobbyMsg: '퍼즐이 준비되었습니다. 모두 준비되면 시작합니다.',

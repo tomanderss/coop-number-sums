@@ -886,8 +886,20 @@ function handleCoopMsg(msg) {
       showToast(t('coop.playerJoinedLobby', { name: (msg.name || '').trim() || t('common.defaultPlayerName') }));
     }
   } else if (msg.type === Coop.MSG.ROSTER) {
+    const prevHostId = state.coop.hostId;
     state.coop.players = msg.players;
-    if (msg.hostId) state.coop.hostId = msg.hostId;
+    if (msg.hostId) {
+      state.coop.hostId = msg.hostId;
+      // Eigene Rolle korrigieren falls ein anderer Spieler inzwischen Host wurde
+      // (tritt auf wenn der ursprüngliche Host via resumeCoopGame() wieder beitritt).
+      if (state.coop.role === 'host' && msg.hostId !== state.coop.myId) {
+        state.coop.role = 'guest';
+      }
+      if (prevHostId && msg.hostId !== prevHostId && msg.hostId !== state.coop.myId) {
+        const newHostName = msg.players.find(p => p.id === msg.hostId)?.name || t('common.defaultPlayerName');
+        showToast(t('coop.newHostIs', { name: newHostName }), 'info', 3000);
+      }
+    }
     state.coop.teamMode = !!msg.teamMode;
     updateConnectedFlag();
   } else if (msg.type === Coop.MSG.READY) {
@@ -1124,6 +1136,7 @@ function pickNewHostId() {
 function promoteToHost() {
   state.coop.role = 'host';
   state.coop.hostId = state.coop.myId;
+  Coop.updateHostId(state.coop.myId);
   broadcastRoster();
   showToast(t('coop.becameHost'), 'info', 4000);
 }
@@ -1363,17 +1376,16 @@ function startJoining() {
         showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
         return;
       }
-      if (state.coop.players.length <= 1) {
-        // Niemand außer mir selbst übrig — keine Übernahme nötig.
-        showToast(t('coop.hostDisconnected', { name: leavingName }), 'info', 3000);
-        return;
-      }
+      // Auch wenn nur ich selbst übrig bin, Host-Rolle übernehmen — so kann
+      // der ursprüngliche Host (oder ein neuer Mitspieler) wieder beitreten.
       const newHostId = pickNewHostId();
       if (newHostId === state.coop.myId) {
         showToast(t('coop.hostDisconnectedPromoting', { name: leavingName }), 'info', 3000);
         promoteToHost();
-      } else {
+      } else if (newHostId) {
         state.coop.hostId = newHostId;
+      } else {
+        showToast(t('coop.hostDisconnected', { name: leavingName }), 'info', 3000);
       }
     },
   });
@@ -1690,9 +1702,14 @@ function attemptCoopRejoin(sess) {
   state.coop.waitingForGuest = true;
   Coop.rejoin({
     code: sess.code, name: sess.name, color: sess.color, role: sess.role,
-    onOpen(id) {
+    onOpen(id, actualRole) {
       state.coop.myId = id;
       state.coop.waitingForGuest = false;
+      // actualRole kommt von Coop.rejoin(): falls inzwischen ein anderer Host
+      // gewählt wurde, wird die eigene Rolle auf 'guest' korrigiert.
+      if (actualRole && actualRole !== state.coop.role) {
+        state.coop.role = actualRole;
+      }
       upsertPlayer(id, sess.name, sess.color);
       // Informiert einen ggf. noch aktiven Host über die eigene Rückkehr --
       // identisch zum normalen Beitritts-Pfad (confirmCoopIdentity()), löst
@@ -1715,7 +1732,7 @@ function attemptCoopRejoin(sess) {
     onLeave(id) {
       const leavingName = state.coop.players.find(p => p.id === id)?.name || t('common.defaultPlayerName');
       removePlayer(id);
-      broadcastRoster();
+      if (state.coop.role === 'host') broadcastRoster();
       if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
     },
     onMessage: handleCoopMsg,
