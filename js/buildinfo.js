@@ -1,8 +1,18 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.116';
-export const BUILD_HASH = '70d2e91';
+export const BUILD      = '0.117';
+export const BUILD_HASH = '7de9034';
 
 export const CHANGELOG = [
+  {
+    "version": "0.117",
+    "date": "26.06.2026",
+    "changes": [
+      "Coop: Verbleibender Spieler übernimmt Host-Rolle automatisch, auch wenn er zunächst alleine im Raum ist",
+      "Coop: Ursprünglicher Host kann nach „Zum Menü\" wieder beitreten — tritt als Gast bei, wenn inzwischen ein anderer Host ernannt wurde",
+      "Coop: Alle Spieler sehen eine Benachrichtigung, wer die neue Host-Rolle übernommen hat",
+      "Startseite: Alle Inhalte passen ohne Scrollen auf den Bildschirm, kompakteres Layout"
+    ]
+  },
   {
     "version": "0.116",
     "date": "26.06.2026",
