@@ -142,6 +142,7 @@ export default {
     errorRoomGone: 'La stanza non esiste più — impossibile riprendere la partita coop.',
     hostDisconnectedPromoting: '{name} (host) disconnesso — diventi il nuovo host…',
     hostDisconnected: 'Connessione con {name} (host) persa',
+    newHostIs: '{name} è ora il host 📡',
     shareInvite: 'Invita',
     lobbyTitle: 'I compagni sono nella lobby',
     lobbyMsg: 'Il puzzle è pronto — si parte quando tutti sono pronti.',

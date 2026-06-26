@@ -142,6 +142,7 @@ export default {
     errorRoomGone: "Room no longer exists — the coop game can't be resumed.",
     hostDisconnectedPromoting: '{name} (host) disconnected — becoming new host …',
     hostDisconnected: 'Connection to {name} (host) lost',
+    newHostIs: '{name} is now the host 📡',
     shareInvite: 'Invite',
     lobbyTitle: 'Teammates are in the lobby',
     lobbyMsg: "The puzzle is ready — it starts once everyone is ready.",

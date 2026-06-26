@@ -142,6 +142,7 @@ export default {
     errorRoomGone: 'A sala não existe mais — não é possível continuar a partida coop.',
     hostDisconnectedPromoting: '{name} (anfitrião) desconectado — tornando-se o novo anfitrião…',
     hostDisconnected: 'Conexão com {name} (anfitrião) perdida',
+    newHostIs: '{name} é agora o anfitrião 📡',
     shareInvite: 'Convidar',
     lobbyTitle: 'Os colegas de equipe estão na sala',
     lobbyMsg: 'O quebra-cabeça está pronto — começa quando todos estiverem prontos.',

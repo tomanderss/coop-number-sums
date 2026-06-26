@@ -142,6 +142,7 @@ export default {
     errorRoomGone: 'Raum existiert nicht mehr — Coop-Spiel kann nicht fortgesetzt werden.',
     hostDisconnectedPromoting: '{name} (Host) getrennt — werde neuer Host …',
     hostDisconnected: 'Verbindung zu {name} (Host) getrennt',
+    newHostIs: '{name} ist jetzt Host 📡',
     shareInvite: 'Einladen',
     lobbyTitle: 'Mitspieler sind in der Lobby',
     lobbyMsg: 'Das Rätsel ist bereit — es geht los, sobald alle bereit sind.',
