@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.117';
-export const BUILD_HASH = '7de9034';
+export const BUILD      = '0.118';
+export const BUILD_HASH = '3db0686';
 
 export const CHANGELOG = [
+  {
+    "version": "0.118",
+    "date": "26.06.2026",
+    "changes": [
+      "Hinweis überarbeitet: Der erste Tipp highlightet jetzt die passende Zeile/Spalte/Gruppe und stellt eine Leitfrage, statt die Lösung sofort zu verraten – erst „Auflösen\" deckt die Zelle auf"
+    ]
+  },
   {
     "version": "0.117",
     "date": "26.06.2026",
