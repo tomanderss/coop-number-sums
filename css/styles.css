@@ -110,7 +110,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    "Fortsetzen"-Button bei aktivem Spiel) per unsafe centering nach oben in
    die Icon-Zeile. "safe center" fällt zusätzlich auf Start-Ausrichtung
    zurück statt zu überlaufen, sobald der Inhalt nicht mehr reinpasst. */
-.home { position: relative; justify-content: center; justify-content: safe center; gap: 26px; text-align: center; padding-top: 60px; }
+.home { position: relative; justify-content: center; justify-content: safe center; gap: 16px; text-align: center; padding-top: 60px; }
 .home-donate-btn { position: absolute; top: 0; left: 0; z-index: 1; text-decoration: none; }
 .home-donate-heart {
   position: absolute; bottom: -3px; right: -3px; font-size: .6rem; line-height: 1;
@@ -130,28 +130,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: flex; align-items: center; gap: 2px; height: 44px;
   font-size: .95rem; font-weight: 800; color: var(--text2);
 }
-.brand { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 10px; }
+.brand { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 4px; }
 .brand-logo {
-  width: 92px; height: 92px; border-radius: 26px; display: block;
+  width: 72px; height: 72px; border-radius: 20px; display: block;
   box-shadow: 0 12px 38px var(--accent-soft), 0 4px 12px var(--shadow);
   animation: pop .5s cubic-bezier(.2,1.3,.5,1);
 }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.brand-title { font-size: 1.9rem; font-weight: 900; line-height: 1.05; margin: 6px 0 0; letter-spacing: -.5px; }
+.brand-title { font-size: 1.6rem; font-weight: 900; line-height: 1.05; margin: 4px 0 0; letter-spacing: -.5px; }
 .brand-sub { color: var(--text2); font-size: .9rem; }
-.home-actions { display: flex; flex-direction: column; gap: 12px; }
+.home-actions { display: flex; flex-direction: column; gap: 8px; }
+.screen.home .btn { padding: 11px 16px; }
 /* Bei zwei parallel fortsetzbaren Spielen (Solo + Coop) teilen sich beide
    Buttons die Zeile zu gleichen Hälften statt sich zu stapeln; bei nur einem
    nimmt er von selbst die volle Breite ein (flex:1 auf einem einzigen Kind). */
-.resume-row { display: flex; gap: 10px; }
-.resume-row .btn-resume { flex: 1; min-width: 0; }
+.resume-row { display: flex; gap: 8px; }
+.resume-row .btn-resume { flex: 1; min-width: 0; padding: 8px 10px; }
 /* minmax(0,1fr) statt 1fr: ohne das würde der Default min-width:auto eines
    Grid-Items auf dessen min-content (z.B. das unbrechbare Wort "Einstellungen")
    wachsen und die Spalten dadurch wieder ungleich breit machen. */
-.home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.home-grid .btn { white-space: nowrap; padding: 14px 10px; font-size: clamp(.74rem, 3.6vw, .95rem); gap: 8px; }
+.home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.home-grid .btn { white-space: nowrap; padding: 10px 10px; font-size: clamp(.74rem, 3.6vw, .95rem); gap: 8px; }
 .home-grid .btn-ic { width: auto; font-size: 1.15rem; }
-.home-version { color: var(--text3); font-size: .75rem; margin-top: 18px; }
+.home-version { color: var(--text3); font-size: .75rem; margin-top: 6px; }
 
 /* ─── Buttons ─── */
 .btn {
