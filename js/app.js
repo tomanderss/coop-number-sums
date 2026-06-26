@@ -2367,6 +2367,7 @@ const App = {
     <section v-else-if="state.screen==='stats'" class="screen stats">
       <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('stats.title') }}</h2><span></span></header>
       <div class="stats-body">
+        <button class="btn btn-ghost achievements-top-btn" @click="navigate('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
         <div class="stats-section-title">{{ t('stats.levelOverview') }}</div>
         <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
           <div class="diff-row-top">
@@ -2412,7 +2413,6 @@ const App = {
             </div>
           </div>
         </div>
-        <button class="btn btn-ghost" @click="navigate('achievements')">{{ t('stats.achievementsButton') }}</button>
         <button class="btn btn-danger-ghost" @click="resetStats">{{ t('stats.reset') }}</button>
       </div>
     </section>

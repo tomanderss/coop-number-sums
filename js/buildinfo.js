@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.112';
-export const BUILD_HASH = '5751752';
+export const BUILD      = '0.113';
+export const BUILD_HASH = '6f4fa5a';
 
 export const CHANGELOG = [
+  {
+    "version": "0.113",
+    "date": "26.06.2026",
+    "changes": [
+      "Achievements-Button steht jetzt ganz oben im Statistik-Screen statt unten"
+    ]
+  },
   {
     "version": "0.112",
     "date": "26.06.2026",
