@@ -55,6 +55,7 @@ node build.js --major                           # bump major, reset minor
 1. **`changes.txt`** — add a short German user-facing bullet (e.g. `Ladeanzeige beim Verbindungsaufbau ergänzt`). Source for in-app release notes.
 2. **PR + Auto-Merge** — create PR targeting `master`, then call `mcp__github__enable_pr_auto_merge` (SQUASH) **in the same turn immediately after** `create_pull_request`, before CI starts. Never push directly to `master`.
 3. **Update this file** — if the change affects architecture, conventions, commands, or workflow: update CLAUDE.md to reflect it and include the update in the same PR. Keep entries concise.
+4. **Cut a release** — after all feature/fix PRs for a batch are merged into `master`, create a new branch, run `node build.js` (bumps version, writes `js/buildinfo.js`, clears `changes.txt`), commit the result, and open+auto-merge a release PR. The version only becomes visible in-app once this step is done.
 
 ## Key conventions
 
