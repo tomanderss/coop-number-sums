@@ -265,6 +265,7 @@ export default {
   },
   hint: {
     reveal: 'Révéler',
+    dismiss: 'Fermer l’indice',
     socratic: {
       sumReached: 'Ici, l’objectif est déjà atteint exactement avec les nombres entourés. Que doit-il alors arriver à tous les nombres restants encore ouverts ?',
       allRemainingNeeded: 'Il manque encore exactement {rem} pour atteindre l’objectif. Additionne les nombres encore ouverts : que remarques-tu s’ils totalisent exactement {rem} ?',

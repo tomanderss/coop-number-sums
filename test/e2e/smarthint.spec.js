@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, startNewGame } from './helpers.js';
 
-// Sokratischer Hinweis = Zwei-Stufen-Hinweis:
-//  Stufe 1 (erster Tipp): highlightet die betroffene Gruppe und stellt eine
-//    Leitfrage, OHNE die Zelle/Aktion zu verraten — kostenlos (hintsUsed bleibt 0).
-//  Stufe 2 (Auflösen): deckt die konkrete Zelle wirklich auf (hintsUsed +1).
-// Die Werkzeugleiste hat zwei .round-btn (Undo + Hinweis); zu Spielbeginn ist
-// Undo deaktiviert (kein Verlauf), daher ist :not([disabled]) eindeutig der
-// Hinweis-Knopf.
-const hintBtn = (page) => page.locator('.toolbar .round-btn:not([disabled])').last();
+// Dreistufiger Hinweis:
+//  Stufe 1 (1. Tipp): markiert NUR den relevanten Bereich (Highlight), kein
+//    Banner, kostenlos.
+//  Stufe 2 (2. Tipp): blendet zusätzlich die Leitfrage ein (Banner), weiterhin
+//    kostenlos. Per X wegklickbar.
+//  Stufe 3 ("Auflösen"/3. Tipp): deckt die Zelle wirklich auf (hintsUsed +1).
+// Der Hinweis-Knopf ist das letzte .round-btn der Werkzeugleiste (nach Undo).
+const hintBtn = (page) => page.locator('.toolbar .round-btn').last();
 
 // Löst das ganze Rätsel korrekt bis auf die beiden Eck-Zellen (0,0) und
 // (R-1,C-1). Dadurch hat mindestens eine Zeile/Spalte genau eine offene Zelle,
@@ -28,31 +28,75 @@ async function solveExceptCorners(page) {
   });
 }
 
-test('Stufe 1: Leitfrage + Gruppen-Highlight, kostenlos und ohne Auflösung', async ({ page }) => {
+test('Stufe 1: nur der Bereich wird markiert, kein Banner, kostenlos', async ({ page }) => {
   await gotoApp(page);
   await startNewGame(page, 'sehrleicht');
   await solveExceptCorners(page);
 
   await hintBtn(page).click();
 
-  // Banner sichtbar, Gruppe gehighlightet, Nudge im State gesetzt.
-  await expect(page.locator('.hint-banner')).toBeVisible();
   expect(await page.locator('.cell.hint-group').count()).toBeGreaterThan(0);
-  expect(await page.evaluate(() => !!window.__cns.state.hintNudge)).toBe(true);
-  // Gratis: kein Hinweis verbraucht, keine Zelle aufgedeckt, keine Bestätigung.
+  await expect(page.locator('.hint-banner')).toBeHidden(); // Stufe 1 zeigt KEIN Banner
+  expect(await page.evaluate(() => window.__cns.state.hintNudge?.stage)).toBe(1);
   expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(0);
-  await expect(page.locator('.modal-bg')).toBeHidden();
 });
 
-test('Eigener Zug verwirft die offene Leitfrage', async ({ page }) => {
+test('Stufe 2: zweiter Tipp blendet die Leitfrage ein (Highlight bleibt)', async ({ page }) => {
+  await gotoApp(page);
+  await startNewGame(page, 'sehrleicht');
+  await solveExceptCorners(page);
+
+  await hintBtn(page).click(); // Stufe 1
+  await hintBtn(page).click(); // Stufe 2
+
+  await expect(page.locator('.hint-banner')).toBeVisible();
+  expect(await page.locator('.cell.hint-group').count()).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__cns.state.hintNudge?.stage)).toBe(2);
+  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(0); // immer noch gratis
+});
+
+test('X klickt das Banner weg und gibt die Werkzeugleiste frei', async ({ page }) => {
   await gotoApp(page);
   await startNewGame(page, 'sehrleicht');
   await solveExceptCorners(page);
 
   await hintBtn(page).click();
+  await hintBtn(page).click();
   await expect(page.locator('.hint-banner')).toBeVisible();
 
-  // Eine der beiden offenen Eck-Zellen korrekt tippen -> Nudge muss verschwinden.
+  await page.locator('.hint-dismiss').click();
+
+  await expect(page.locator('.hint-banner')).toBeHidden();
+  expect(await page.evaluate(() => window.__cns.state.hintNudge)).toBe(null);
+  expect(await page.locator('.cell.hint-group').count()).toBe(0);
+});
+
+test('Stufe 3: "Auflösen" deckt die Zelle auf (nach einmaliger Bestzeit-Warnung)', async ({ page }) => {
+  await gotoApp(page);
+  await startNewGame(page, 'sehrleicht');
+  await solveExceptCorners(page);
+
+  await hintBtn(page).click();
+  await hintBtn(page).click();
+  await expect(page.locator('.hint-banner')).toBeVisible();
+
+  await page.locator('.hint-banner .btn').click(); // "Auflösen"
+  await expect(page.locator('.modal-bg')).toBeVisible();
+  await page.locator('.modal-bg .btn-danger').click(); // Bestzeit-Warnung bestätigen
+
+  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1);
+  await expect(page.locator('.hint-banner')).toBeHidden();
+  expect(await page.evaluate(() => window.__cns.state.hintNudge)).toBe(null);
+});
+
+test('Eigener Zug verwirft den Hinweis (auch in Stufe 1)', async ({ page }) => {
+  await gotoApp(page);
+  await startNewGame(page, 'sehrleicht');
+  await solveExceptCorners(page);
+
+  await hintBtn(page).click(); // Stufe 1: nur Highlight
+  expect(await page.locator('.cell.hint-group').count()).toBeGreaterThan(0);
+
   await page.evaluate(() => {
     const { state, onCellTap } = window.__cns;
     const p = state.puzzle;
@@ -60,26 +104,6 @@ test('Eigener Zug verwirft die offene Leitfrage', async ({ page }) => {
     onCellTap(0, 0);
   });
 
-  await expect(page.locator('.hint-banner')).toBeHidden();
   expect(await page.evaluate(() => window.__cns.state.hintNudge)).toBe(null);
   expect(await page.locator('.cell.hint-group').count()).toBe(0);
-});
-
-test('Stufe 2: "Auflösen" deckt die Zelle auf (nach einmaliger Bestzeit-Warnung)', async ({ page }) => {
-  await gotoApp(page);
-  await startNewGame(page, 'sehrleicht');
-  await solveExceptCorners(page);
-
-  await hintBtn(page).click();
-  await expect(page.locator('.hint-banner')).toBeVisible();
-
-  // Auflösen -> einmalige Bestzeit-Warnung bestätigen.
-  await page.locator('.hint-banner .btn').click();
-  await expect(page.locator('.modal-bg')).toBeVisible();
-  await page.locator('.modal-bg .btn-danger').click();
-
-  // Zelle aufgedeckt: ein Hinweis verbraucht, Banner & Highlight weg.
-  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1);
-  await expect(page.locator('.hint-banner')).toBeHidden();
-  expect(await page.evaluate(() => window.__cns.state.hintNudge)).toBe(null);
 });

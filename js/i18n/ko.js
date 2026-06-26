@@ -265,6 +265,7 @@ export default {
   },
   hint: {
     reveal: '정답 보기',
+    dismiss: '힌트 닫기',
     socratic: {
       sumReached: '여기서는 동그라미 친 숫자만으로 이미 목표 합에 정확히 도달했습니다. 그렇다면 남아 있는 미정 숫자들은 어떻게 되어야 할까요?',
       allRemainingNeeded: '목표까지 정확히 {rem} 남았습니다. 아직 정하지 않은 숫자들을 더해 보세요. 합이 정확히 {rem}이라면 무엇을 알 수 있나요?',

@@ -613,6 +613,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .hint-text b { font-size: .9rem; }
 .hint-text span { color: var(--text2); font-size: .85rem; line-height: 1.35; }
 .hint-banner .btn { flex: 0 0 auto; }
+.hint-dismiss {
+  flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg3); color: var(--text2); font-size: .72rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
 /* Gruppen-Highlight: jede Zelle der betroffenen Zeile/Spalte/des Käfigs bekommt
    einen dezent pulsierenden Akzentring — sanfter als .training-highlight, da
    hier die GANZE Gruppe (viele Zellen) markiert wird und nicht die Lösung. */

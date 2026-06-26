@@ -265,6 +265,7 @@ export default {
   },
   hint: {
     reveal: '答えを表示',
+    dismiss: 'ヒントを閉じる',
     socratic: {
       sumReached: 'ここでは丸で囲んだ数字だけで目標にちょうど達しています。では、残りのまだ決めていない数字はどうなるでしょう？',
       allRemainingNeeded: '目標まであと {rem} です。まだ決めていない数字を足してみてください。合計がちょうど {rem} になるなら、何がわかりますか？',

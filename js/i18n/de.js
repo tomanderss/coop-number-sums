@@ -265,6 +265,7 @@ export default {
   },
   hint: {
     reveal: 'Auflösen',
+    dismiss: 'Hinweis schließen',
     socratic: {
       sumReached: 'Das Ziel ist hier mit den eingekreisten Zahlen bereits genau erreicht. Was muss dann mit allen übrigen, noch offenen Zahlen geschehen?',
       allRemainingNeeded: 'Bis zum Ziel fehlen noch genau {rem}. Zähl die noch offenen Zahlen zusammen – was fällt dir auf, wenn sie zusammen exakt {rem} ergeben?',

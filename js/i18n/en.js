@@ -265,6 +265,7 @@ export default {
   },
   hint: {
     reveal: 'Reveal',
+    dismiss: 'Dismiss hint',
     socratic: {
       sumReached: 'The target here is already reached exactly with the circled numbers. So what has to happen to all the remaining, still-open numbers?',
       allRemainingNeeded: 'Exactly {rem} is still missing to reach the target. Add up the still-open numbers – what does it tell you if together they make exactly {rem}?',
