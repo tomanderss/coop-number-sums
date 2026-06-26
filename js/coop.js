@@ -242,7 +242,7 @@ export async function leave() {
 
 export const MSG = {
   INIT: 'init', MOVE: 'move', UNDO: 'undo', CHECK: 'check', STATUS: 'status', PAUSE: 'pause', HINT: 'hint',
-  IDENTITY: 'identity', ROSTER: 'roster', MISTAKE: 'mistake', START: 'start', READY: 'ready',
+  IDENTITY: 'identity', ROSTER: 'roster', MISTAKE: 'mistake', START: 'start', READY: 'ready', UNREADY: 'unready',
   TEAM_START: 'teamStart', TEAM_DONE: 'teamDone',
   RACE_START: 'raceStart', RACE_DONE: 'raceDone',
 };

@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} готовы',
     markReady: 'Готов ✅',
     waitingForHostFinalStart: 'Готово! Ожидание хоста…',
+    unmarkReady: 'Отменить готовность',
   },
   team: {
     assignHint: 'Отправляйте игроков в команду с помощью стрелок или меняйте их местами',

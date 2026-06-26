@@ -892,6 +892,11 @@ function handleCoopMsg(msg) {
       const p = state.coop.players.find(pl => pl.id === msg.author);
       if (p) { p.ready = true; broadcastRoster(); }
     }
+  } else if (msg.type === Coop.MSG.UNREADY) {
+    if (state.coop.role === 'host') {
+      const p = state.coop.players.find(pl => pl.id === msg.author);
+      if (p) { p.ready = false; broadcastRoster(); }
+    }
   } else if (msg.type === Coop.MSG.TEAM_START) {
     applyTeamStart(msg.seed, msg.difficulty);
   } else if (msg.type === Coop.MSG.TEAM_DONE) {
@@ -1051,6 +1056,14 @@ function markReady() {
   const me = state.coop.players.find(p => p.id === state.coop.myId);
   if (me) me.ready = true;
   Coop.send({ type: Coop.MSG.READY });
+}
+// Gegenstück zu markReady() -- erlaubt das Zurücknehmen einer versehentlichen
+// Bereit-Meldung, solange der Host die Runde noch nicht gestartet hat.
+function unmarkReady() {
+  if (state.coop.role === 'host') return;
+  const me = state.coop.players.find(p => p.id === state.coop.myId);
+  if (me) me.ready = false;
+  Coop.send({ type: Coop.MSG.UNREADY });
 }
 function playerColor(id) { return state.coop.players.find(p => p.id === id)?.color || null; }
 function chipTextColor(hex) {
@@ -1948,7 +1961,7 @@ const App = {
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
-      nonHostPlayers, readyCount, allGuestsReady, myReady, markReady,
+      nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       shareCoopInvite, raceResultMsg, teamResultMsg, winTitle,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
@@ -2205,7 +2218,10 @@ const App = {
           </template>
           <template v-else>
             <button v-if="!myReady()" class="btn btn-primary" @click="markReady">{{ t('coop.markReady') }}</button>
-            <p v-else class="coop-subtext">{{ t('coop.waitingForHostFinalStart') }}</p>
+            <template v-else>
+              <p class="coop-subtext">{{ t('coop.waitingForHostFinalStart') }}</p>
+              <button class="btn btn-ghost" @click="unmarkReady">{{ t('coop.unmarkReady') }}</button>
+            </template>
           </template>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>

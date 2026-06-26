@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} 준비 완료',
     markReady: '준비 완료 ✅',
     waitingForHostFinalStart: '준비 완료! 호스트를 기다리는 중…',
+    unmarkReady: '준비 취소',
   },
   team: {
     assignHint: '화살표로 플레이어를 팀에 보내거나 서로 교체하세요',

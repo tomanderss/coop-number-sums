@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.113';
-export const BUILD_HASH = '6f4fa5a';
+export const BUILD      = '0.114';
+export const BUILD_HASH = '04f0cf8';
 
 export const CHANGELOG = [
+  {
+    "version": "0.114",
+    "date": "26.06.2026",
+    "changes": [
+      "Bereit-Status in der Mehrspieler-Lobby kann jetzt zurückgenommen werden, falls man sich versehentlich bereit gemeldet hat."
+    ]
+  },
   {
     "version": "0.113",
     "date": "26.06.2026",

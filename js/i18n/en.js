@@ -150,6 +150,7 @@ export default {
     readyCount: '{n}/{total} ready',
     markReady: 'Ready ✅',
     waitingForHostFinalStart: 'Ready! Waiting for the host…',
+    unmarkReady: 'Cancel ready',
   },
   team: {
     assignHint: 'Send players to a team with the arrows, or swap them',
