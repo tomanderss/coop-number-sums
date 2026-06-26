@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.109';
-export const BUILD_HASH = '6a9b3e6';
+export const BUILD      = '0.110';
+export const BUILD_HASH = '02376a2';
 
 export const CHANGELOG = [
+  {
+    "version": "0.110",
+    "date": "26.06.2026",
+    "changes": [
+      "Cages bei Schwer/Extrem/Mashallah wachsen jetzt kompakter und seltener lang gestreckt horizontal"
+    ]
+  },
   {
     "version": "0.109",
     "date": "26.06.2026",

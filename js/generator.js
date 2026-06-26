@@ -76,7 +76,7 @@ function partitionRegions(rng, rows, cols, maxCageSize) {
   const neighbors = neighborsFn(rows, cols);
 
   const minDist = Math.max(1, Math.floor(Math.sqrt(total / K) * 0.8));
-  for (let attempt = 0; attempt < 30; attempt++) {
+  for (let attempt = 0; attempt < 60; attempt++) {
     const id = new Int16Array(total).fill(-1);
     // Saatzellen möglichst gleichmäßig verteilen (Mindestabstand) → balancierte
     // Voronoi-Blobs, die sich leicht exakt ausbalancieren lassen.
@@ -103,11 +103,11 @@ function partitionRegions(rng, rows, cols, maxCageSize) {
     for (let i = 0; i < total; i++) if (id[i] === -1) { const nb = neighbors(i).find(n => id[n] !== -1); id[i] = nb != null ? id[nb] : 0; }
 
     const size = new Array(K).fill(0); for (let i = 0; i < total; i++) size[id[i]]++;
-    if (rebalanceToTarget(id, size, N, total, neighbors, rng, maxCageSize)) {
+    if (rebalanceToTarget(id, size, N, total, neighbors, rng, maxCageSize, cols)) {
       return buildRegions(id, K, rows, cols);
     }
   }
-  return maxCageSize ? partitionBandsCapped(rows, cols, K) : partitionStrips(rng, rows, cols); // garantierter Notnagel
+  return maxCageSize ? partitionBandsCapped(rng, rows, cols, K) : partitionStrips(rng, rows, cols); // garantierter Notnagel
 }
 
 // Balanciert jede Cage auf genau `target` Zellen (ohne maxCageSize) bzw. auf ein
@@ -115,7 +115,7 @@ function partitionRegions(rng, rows, cols, maxCageSize) {
 // nicht glatt aufgeht): verschiebt je eine Zelle entlang eines Pfads (über
 // benachbarte Cages) von einer zu großen zur nächsten zu kleinen Cage. So
 // funktioniert es auch, wenn groß/klein nicht direkt benachbart sind.
-function rebalanceToTarget(id, size, target, total, neighbors, rng, maxCageSize) {
+function rebalanceToTarget(id, size, target, total, neighbors, rng, maxCageSize, cols) {
   const K = size.length;
   const maxSize = maxCageSize || target;
   const minSize = maxCageSize ? Math.max(3, maxCageSize - 2) : target;
@@ -151,6 +151,26 @@ function rebalanceToTarget(id, size, target, total, neighbors, rng, maxCageSize)
       const cands = [];
       for (let i = 0; i < total; i++) if (id[i] === from && neighbors(i).some(n => id[n] === to)) cands.push(i);
       for (let i = cands.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [cands[i], cands[j]] = [cands[j], cands[i]]; }
+      // Zelle bevorzugen, die den Begrenzungsrahmen der Zielcage am wenigsten
+      // aufbläht ⇒ Cages wachsen kompakt nach, statt als dünne Ranke immer
+      // weiter in dieselbe Richtung verlängert zu werden (Hauptursache der
+      // lang gestreckten Cages, nicht nur der seltene Notnagel-Fallback).
+      // Reiner Nachbarn-Zähler scheitert hier: bei einer bereits länglichen
+      // Cage hat die nächste Zelle IN derselben Richtung tendenziell mehr
+      // schon-„to"-Nachbarn als eine quer dazu — das würde die Länge nur
+      // verstärken statt sie zu korrigieren.
+      let toRMin = Infinity, toRMax = -Infinity, toCMin = Infinity, toCMax = -Infinity;
+      for (let i = 0; i < total; i++) if (id[i] === to) {
+        const r = Math.floor(i / cols), c = i % cols;
+        if (r < toRMin) toRMin = r; if (r > toRMax) toRMax = r;
+        if (c < toCMin) toCMin = c; if (c > toCMax) toCMax = c;
+      }
+      cands.sort((a, b) => {
+        const ar = Math.floor(a / cols), ac = a % cols, br = Math.floor(b / cols), bc = b % cols;
+        const aArea = (Math.max(toRMax, ar) - Math.min(toRMin, ar) + 1) * (Math.max(toCMax, ac) - Math.min(toCMin, ac) + 1);
+        const bArea = (Math.max(toRMax, br) - Math.min(toRMin, br) + 1) * (Math.max(toCMax, bc) - Math.min(toCMin, bc) + 1);
+        return aArea - bArea;
+      });
       let moved = false;
       for (const cell of cands) { if (staysConnected(id, from, cell, total, neighbors)) { id[cell] = to; size[from]--; size[to]++; moved = true; break; } }
       if (!moved) { okAll = false; break; }
@@ -160,17 +180,29 @@ function rebalanceToTarget(id, size, target, total, neighbors, rng, maxCageSize)
   return isDone();
 }
 
-// Garantierter Notnagel für gekappte Cage-Größe: Schlangenlinie (Zeilen
-// abwechselnd vor-/rückwärts) über das ganze Feld in K zusammenhängende Bänder
-// à ~total/K Zellen — kein Reparatur-Loop nötig, kann nie fehlschlagen.
-function partitionBandsCapped(rows, cols, K) {
+// Garantierter Notnagel für gekappte Cage-Größe: Schlangenlinie (Zeilen ODER
+// Spalten, zufällig gewählt, abwechselnd vor-/rückwärts) über das ganze Feld
+// in K zusammenhängende Bänder à ~total/K Zellen — kein Reparatur-Loop nötig,
+// kann nie fehlschlagen. Die Achse wird zufällig gewählt, damit dieser
+// Notnagel (sehr selten nötig) nicht immer dieselbe horizontale Bänderung
+// erzeugt, sondern manchmal vertikal.
+function partitionBandsCapped(rng, rows, cols, K) {
   const total = rows * cols;
   const id = new Int16Array(total);
   const order = [];
-  for (let r = 0; r < rows; r++) {
-    const cs = []; for (let c = 0; c < cols; c++) cs.push(c);
-    if (r % 2 === 1) cs.reverse(); // Schlangenlinie ⇒ Bänder bleiben zusammenhängend
-    for (const c of cs) order.push(r * cols + c);
+  const vertical = rng() < 0.5;
+  if (!vertical) {
+    for (let r = 0; r < rows; r++) {
+      const cs = []; for (let c = 0; c < cols; c++) cs.push(c);
+      if (r % 2 === 1) cs.reverse(); // Schlangenlinie ⇒ Bänder bleiben zusammenhängend
+      for (const c of cs) order.push(r * cols + c);
+    }
+  } else {
+    for (let c = 0; c < cols; c++) {
+      const rs = []; for (let r = 0; r < rows; r++) rs.push(r);
+      if (c % 2 === 1) rs.reverse();
+      for (const r of rs) order.push(r * cols + c);
+    }
   }
   const base = Math.floor(total / K), extra = total % K;
   let pos = 0;
