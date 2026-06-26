@@ -23,12 +23,13 @@ Implementierung ausschließlich in `js/` (Root — `www/`, `android/.../public`,
 | F1 | Achievements/Badges | `claude/feat-achievements` | ✅ fertig |
 | F5 | Trainings-/Lernmodus | `claude/feat-training` | ✅ fertig |
 | F12a | Coop-Raumkapazität auf 4 erhöhen + Start-Button-Lobby | `claude/feat-coop-4players` | ✅ fertig |
-| F12c | Lokaler Pass-and-Play-Modus | `claude/feat-pass-and-play` | ✅ fertig |
+| F12c | ~~Lokaler Pass-and-Play-Modus~~ | `claude/feat-pass-and-play` | ❌ wieder entfernt (mangels Nutzen, Commit `fde9647`) |
 | F4 | Tagesrätsel im Coop | `claude/feat-daily-coop` | ✅ fertig |
 | F12b | Team-vs-Team (2v2) | `claude/feat-team-vs-team` | ✅ fertig |
 | F11 | Race-/Duell-Modus | `claude/feat-race` | ✅ fertig |
 
-**Alle 11 geplanten Features sind abgeschlossen.**
+**Alle 11 geplanten Features wurden umgesetzt** — F12c (Pass-and-Play)
+wurde danach mangels Nutzen wieder entfernt und ist nicht mehr Teil der App.
 
 Reihenfolge: Solo-Block (F6 → F8 → F10 → F15 → F3 → F1 → F5), dann
 Coop-Block (F12a → F12c → F4 → F12b → F11). Details/Begründung der
