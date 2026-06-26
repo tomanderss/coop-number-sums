@@ -806,69 +806,72 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
   afterMove();
 }
 
-// Zwei-Stufen-Hinweis:
-//  1. Tipp: sokratische Leitfrage — highlightet die Gruppe (Zeile/Spalte/Käfig),
-//     in der sich der nächste logische Schritt erschließen lässt.
 // Dreistufiger Hinweis — jeder Tipp auf den Knopf geht eine Stufe weiter:
 //  Stufe 1: markiert NUR den relevanten Bereich (Zeile/Spalte/Käfig, der den
 //    nächsten Zug erzwingt) — kein Text, keine Lösung. Verdeckt nichts, der
 //    Spieler sucht selbst.
 //  Stufe 2: blendet zusätzlich die sokratische Leitfrage ein (Banner) — erklärt
 //    den Gedanken, ohne die konkrete Zelle/Aktion zu nennen.
-//  Stufe 3: löst die konkrete Zelle wirklich auf — das kostet die Bestzeit, wie
-//    der klassische Hinweis.
-// Stufe 1+2 sind KOSTENLOS (keine Bestzeit-Strafe, kein hintsUsed) — nur das
-// Auflösen zählt. Gibt es keinen einfach erklärbaren Schritt (nur Tier-2/2.5-
-// Logik nötig), wird sofort aufgelöst.
+//  Stufe 3: löst die konkrete Zelle wirklich auf.
+// Schon Stufe 1 kostet die Bestzeit (jede Hilfe zählt) — daher kommt die
+// einmalige Warnung VOR Stufe 1. Stufe 2/3 lösen dann keine weitere Warnung/
+// Strafe mehr aus (ist ja schon "verbraucht"). Gibt es keinen einfach
+// erklärbaren Schritt (nur Tier-2/2.5-Logik nötig), wird sofort aufgelöst.
 function useHint() {
   if (state.status !== 'playing' || state.hintsLeft <= 0 || state.isRaceGame || state.team.active) return;
   const n = state.hintNudge;
-  // Stufe 3: Frage steht schon -> Zelle wirklich auflösen.
-  if (n && n.stage >= 2) { revealHintNudge(); return; }
+  // Stufe 3: Frage steht schon -> Zelle wirklich auflösen (Strafe lief in Stufe 1).
+  if (n && n.stage >= 2) { state.hintNudge = null; doRevealCell(n.r, n.c, n.want); return; }
   // Stufe 2: Bereich ist schon markiert -> jetzt die Leitfrage einblenden.
   if (n) { n.stage = 2; return; }
-  // Stufe 1: relevanten Bereich finden und nur markieren (kostenlos, kein Text).
-  const step = findTrainingStep(state.puzzle, state.marks);
-  if (step) {
-    state.hintNudge = { group: step.group, reason: step.reason, rem: step.rem, r: step.r, c: step.c, want: step.action, stage: 1 };
-    log('game', `Hinweis Stufe 1 (Bereich markiert)`, { group: step.group.kind });
-    return;
-  }
-  // Fallback: kein einfacher logischer Schritt -> direkt eine Zelle auflösen.
-  confirmThenReveal(() => doUseHint());
+  // Stufe 1: erst warnen (kostet die Bestzeit!), dann Bereich markieren.
+  confirmThenStartHint();
 }
 // Hinweis-Banner wegklicken (X) — verwirft die offene Frage komplett, sodass die
 // Werkzeugleiste wieder frei ist; der nächste Tipp auf den Knopf beginnt neu bei
 // Stufe 1.
 function dismissHintNudge() { state.hintNudge = null; }
-// Einmalige Bestzeit-Warnung je Partie, dann die Auflöse-Aktion ausführen — bei
-// Abbruch bleibt hintWarnShown false, sodass die Warnung erneut käme.
-function confirmThenReveal(reveal) {
-  if (!state.hintWarnShown) {
-    ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => { state.hintWarnShown = true; reveal(); });
-    return;
-  }
-  reveal();
-}
-// Stufe 3: löst genau die Zelle der aktiven Leitfrage auf.
+// "Auflösen"-Knopf im Banner (= Stufe 3): deckt die Zelle auf. Keine erneute
+// Strafe — die lief schon in Stufe 1.
 function revealHintNudge() {
   const n = state.hintNudge;
   if (!n) return;
-  confirmThenReveal(() => { state.hintNudge = null; doRevealCell(n.r, n.c, n.want); });
+  state.hintNudge = null;
+  doRevealCell(n.r, n.c, n.want);
 }
-// Fallback-Auflösung: eine beliebige noch falsche/offene Zelle aus der Lösung.
-function doUseHint() {
+// Einmalige Bestzeit-Warnung je Partie, dann den Hinweis starten — bei Abbruch
+// bleibt hintWarnShown false, sodass die Warnung erneut käme.
+function confirmThenStartHint() {
+  if (!state.hintWarnShown) {
+    ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => { state.hintWarnShown = true; startHint(); });
+    return;
+  }
+  startHint();
+}
+// Stufe 1: zieht die Strafe (Bestzeit futsch) und markiert den relevanten
+// Bereich. Ohne einfach erklärbaren Schritt wird direkt eine Zelle aufgelöst.
+function startHint() {
+  const step = findTrainingStep(state.puzzle, state.marks);
+  registerHintPenalty();
+  if (step) {
+    state.hintNudge = { group: step.group, reason: step.reason, rem: step.rem, r: step.r, c: step.c, want: step.action, stage: 1 };
+    log('game', `Hinweis Stufe 1 (Bereich markiert)`, { group: step.group.kind });
+    return;
+  }
   const hint = findHintCell(state.puzzle, state.marks);
-  if (!hint) return;
-  doRevealCell(hint.r, hint.c, hint.want);
+  if (hint) doRevealCell(hint.r, hint.c, hint.want);
 }
-// Gemeinsamer Auflöse-Kern: deckt Zelle (r,c) mit der korrekten Markierung auf,
-// zählt den Hinweis (Bestzeit futsch) und synct ihn im Coop.
-function doRevealCell(r, c, want) {
-  log('game', `Hinweis verwendet`, { hintsLeft: state.hintsLeft - 1 });
+// Strafe für die Hinweis-Nutzung: zählt den Hinweis (entwertet die Bestzeit) und
+// meldet das einmal sichtbar. Läuft genau einmal je Hinweis-Sequenz (in Stufe 1).
+function registerHintPenalty() {
   state.hintsLeft--; state.hintsUsed++;
-  applyHintEffect(r, c, want);
   showBestTimeNotice(t('game.hintUsedNotice'));
+}
+// Auflöse-Kern: deckt Zelle (r,c) mit der korrekten Markierung auf und synct sie
+// im Coop. Zählt NICHT erneut — die Strafe lief bereits in Stufe 1.
+function doRevealCell(r, c, want) {
+  log('game', `Hinweis aufgelöst`, { r, c });
+  applyHintEffect(r, c, want);
   if (state.coop.active) coopSend({ type: Coop.MSG.HINT, r, c, mark: want, from: state.coop.myId });
 }
 
