@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.110';
-export const BUILD_HASH = '02376a2';
+export const BUILD      = '0.111';
+export const BUILD_HASH = 'e8648dc';
 
 export const CHANGELOG = [
+  {
+    "version": "0.111",
+    "date": "26.06.2026",
+    "changes": [
+      "Mindestabstand zwischen Logo und Kopfzeilen-Icons im Hauptmenü erzwungen, damit das Menü bei aktivem Spiel (\"Fortsetzen\"-Button) nicht mehr nach oben in die Icons/Streak-Flamme rutscht"
+    ]
+  },
   {
     "version": "0.110",
     "date": "26.06.2026",
