@@ -92,6 +92,14 @@ CI builds (`.github/workflows/android-build.yml`, `ios-build.yml`) are manually 
 - `test/e2e/helpers.js` provides shared helpers. Tests drive the app via `window.__cns` (exposed only on localhost).
 - CI runs on push to `master` and all PRs (`.github/workflows/test.yml`).
 
+## Workflow for every code change
+
+**After completing any feature, bug fix, or improvement:**
+
+1. Add a short German bullet point describing the change to `changes.txt`. This file is the source for the in-app release notes — keep entries concise and user-facing (e.g. `Ladeanzeige beim Verbindungsaufbau ergänzt`).
+
+2. Create a pull request targeting `master` and enable auto-merge so it merges automatically once CI passes. Use the GitHub MCP tools (`mcp__github__create_pull_request`, then `mcp__github__enable_pr_auto_merge`). Do not push directly to `master`.
+
 ## Key conventions
 
 - All user-visible strings go through `t()` from `js/i18n/index.js` — no hardcoded UI text.
