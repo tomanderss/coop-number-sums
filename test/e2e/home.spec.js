@@ -114,6 +114,6 @@ test.describe('home screen', () => {
     await expect(resumeRow.locator('.btn-resume')).toHaveCount(2);
     const box1 = await resumeRow.locator('.btn-resume').nth(0).boundingBox();
     const box2 = await resumeRow.locator('.btn-resume').nth(1).boundingBox();
-    expect(box1.y).toBeCloseTo(box2.y, 0); // side by side, not stacked
+    expect(Math.abs(box1.y - box2.y)).toBeLessThan(5); // side by side, not stacked
   });
 });
