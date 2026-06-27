@@ -16,6 +16,7 @@ const ASSETS = [
   './js/vendor/firebase/firebase-auth.js',
   './js/vendor/firebase/firebase-database.js',
   './js/buildinfo.js',
+  './js/music.js',
   './js/app.js',
   './js/i18n/index.js',
   './js/i18n/de.js',
