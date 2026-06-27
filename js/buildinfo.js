@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.123';
-export const BUILD_HASH = '3f983fd';
+export const BUILD      = '0.124';
+export const BUILD_HASH = 'c68170e';
 
 export const CHANGELOG = [
+  {
+    "version": "0.124",
+    "date": "27.06.2026",
+    "changes": [
+      "Hintergrundmusik: ruhige, prozedural erzeugte Zen-Musik mit eigener Wiedererkennungs-Melodie – in den Einstellungen unter „Ton\" pro Bereich schaltbar (Menüs + je Spielmodus, Default an) inkl. Lautstärke; alle an = läuft durchgehend in der ganzen App"
+    ]
+  },
   {
     "version": "0.123",
     "date": "27.06.2026",
