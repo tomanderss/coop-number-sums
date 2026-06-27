@@ -232,13 +232,19 @@ function musicEnabledForMode(mode) {
     : mode === 'coop' ? s.musicCoop
     : s.musicSolo;
 }
-// Einzige Stelle, die Musik startet/stoppt: spielt genau dann, wenn ein Rätsel
-// aktiv läuft (Spielscreen, nicht pausiert, nicht in der Coop-Wartelobby) und
-// die Einstellung für den aktuellen Modus an ist. Wird an allen relevanten
-// Übergängen aufgerufen (navigate, Start, Pause, Sieg/Niederlage, Settings).
+// Einzige Stelle, die Musik startet/stoppt. Zwei Kontexte:
+//  • Aktiv laufendes Rätsel (Spielscreen, nicht pausiert, nicht Coop-Lobby) ->
+//    es greift der Schalter des aktuellen Spielmodus.
+//  • Alles andere (Menüs, Statistik, Verlauf, Pause, Ergebnis-Screen ...) ->
+//    es greift der "Menü/App"-Schalter (musicMenu).
+// Sind alle Schalter an, läuft die Musik nahtlos durch (play() ist idempotent,
+// solange sie schon läuft -> kein Neustart beim Wechsel Menü<->Spiel).
+// Aufgerufen an allen Übergängen (navigate, Start, Pause, Sieg/Niederlage,
+// Settings) sowie bei der ersten Nutzergeste (AudioContext-Freischaltung).
 function updateMusic() {
-  const shouldPlay = state.screen === 'game' && state.status === 'playing'
-    && !state.paused && !state.coop.awaitingStart && musicEnabledForMode(currentMusicMode());
+  const inActiveGame = state.screen === 'game' && state.status === 'playing'
+    && !state.paused && !state.coop.awaitingStart;
+  const shouldPlay = inActiveGame ? musicEnabledForMode(currentMusicMode()) : state.settings.musicMenu;
   if (shouldPlay) Music.play(state.settings.musicVolume);
   else Music.stop();
 }
@@ -1558,7 +1564,7 @@ function win(remote) {
   state.status = 'won';
   log('game', `Gewonnen`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
-  Music.stop();
+  updateMusic();
   if (remote) {
     state.elapsed = remote.timeMs;
     state.mistakes = remote.mistakes;
@@ -1615,7 +1621,7 @@ function lose(remote) {
   state.status = 'lost';
   log('game', `Verloren`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
-  Music.stop();
+  updateMusic();
   if (remote) {
     state.elapsed = remote.timeMs;
     state.mistakes = remote.mistakes;
@@ -1654,7 +1660,7 @@ function giveUp(remote) {
   if (remote && state.status === 'gaveup') return;
   state.status = 'gaveup';
   log('game', `Aufgegeben`, { remote: !!remote, coop: state.coop.active });
-  Music.stop();
+  updateMusic();
   stopTimer();
   if (remote) {
     state.elapsed = remote.timeMs;
@@ -2029,6 +2035,14 @@ function init() {
   const appEl = document.querySelector('.app');
   if (appEl) new MutationObserver(scheduleScrollLockUpdate).observe(appEl, { childList: true, subtree: true, attributes: true, characterData: true });
   nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); scheduleScrollLockUpdate(); });
+  // Menü-/App-Musik: Browser erlauben Audio erst nach einer Nutzergeste. Beim
+  // ersten Tippen irgendwo wird der AudioContext freigeschaltet und (falls
+  // musicMenu an ist) die durchgehende Musik gestartet. updateMusic() selbst ist
+  // idempotent, daher schadet ein einmaliger Aufruf hier nicht.
+  const unlockAudio = () => updateMusic();
+  window.addEventListener('pointerdown', unlockAudio, { once: true });
+  window.addEventListener('keydown', unlockAudio, { once: true });
+  updateMusic();
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2925,6 +2939,9 @@ const App = {
 
         <div class="set-group-title">{{ t('settings.sound') }}</div>
         <small class="set-hint">{{ t('settings.soundHint') }}</small>
+        <div class="set-row" @click="toggleSetting('musicMenu')">
+          <span>{{ t('settings.musicMenu') }}</span><span class="switch" :class="{on:state.settings.musicMenu}"><i></i></span>
+        </div>
         <div class="set-row" @click="toggleSetting('musicSolo')">
           <span>{{ t('settings.musicSolo') }}</span><span class="switch" :class="{on:state.settings.musicSolo}"><i></i></span>
         </div>

@@ -32,7 +32,7 @@ node build.js --major                           # bump major, reset minor
 | `js/coop.js` | Firebase RTDB transport, lazy-loaded (solo never loads Firebase). Events under `/rooms/{code}/events`, presence via `onDisconnect()`. |
 | `js/firebase.js` | Firebase init (anon auth + RTDB). Lazy-loaded by `coop.js`. |
 | `js/achievements.js` | Definitions + pure `evaluate()`. No persistence (→ `storage.js`). |
-| `js/music.js` | Procedural Zen background music via Web Audio (no audio files). Fixed C-major chord cycle + fixed leitmotif (identity) over random pentatonic fills (non-repeating). `play()/stop()/setVolume()/level()`. Driven by `updateMusic()` in `app.js`, gated per mode via `musicSolo/Coop/Competition/Training` settings. |
+| `js/music.js` | Procedural Zen background music via Web Audio (no audio files). Fixed C-major chord cycle + fixed leitmotif (identity) over random pentatonic fills (non-repeating). `play()/stop()/setVolume()/level()`. Driven by `updateMusic()` in `app.js`, gated per area via `musicMenu` (all non-game screens) + `musicSolo/Coop/Competition/Training` settings — all on ⇒ seamless continuous playback. AudioContext unlocked on first user gesture. |
 | `js/i18n/index.js` | Runtime i18n, no build step. Add language: new file + entry in `MESSAGES`/`SUPPORTED_LOCALES`. Fallback: `de`. |
 | `js/app.js` | Vue 3 app. One large `reactive` `state` object for all screens. Exposes `window.__cns = { state, onCellTap, isSolved }` on localhost for E2E tests. |
 | `js/buildinfo.js` | **Auto-generated** by `build.js` — never edit manually. |
