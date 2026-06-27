@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.130';
-export const BUILD_HASH = '1634f2b';
+export const BUILD      = '0.131';
+export const BUILD_HASH = '86639a8';
 
 export const CHANGELOG = [
+  {
+    "version": "0.131",
+    "date": "27.06.2026",
+    "changes": [
+      "Startseite: Hintergrund etwas weniger gezoomt – das Gitter ragt jetzt nur noch knapp über die Bildschirmränder (weniger abgeschnitten)"
+    ]
+  },
   {
     "version": "0.130",
     "date": "27.06.2026",
