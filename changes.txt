@@ -1,0 +1,2 @@
+Startseite: Hintergrund-Gitter wird gestreckt und ragt jetzt auch unten klar über den Bildschirmrand (bis unter den Home-Indicator), nicht nur oben
+Musik: schriller „Arcade"-Ton beim App-Wechsel in den Hintergrund behoben (weiche WaveShaper-Sättigung statt Kompressor, kein Noten-Scheduling mehr im Hintergrund)

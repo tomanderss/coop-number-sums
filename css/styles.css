@@ -125,7 +125,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .app { isolation: isolate; }
 .app.app-home::before {
   content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: url('../icons/icon-1024.png') center / 110vmax no-repeat;
+  /* Breite 110vmax (gewohnter horizontaler Look), Höhe auf 135vmax GESTRECKT:
+     so ragt das Gitter oben UND unten großzügig über den Bildschirm (auch unter
+     den Home-Indicator), ohne dass die Zellen horizontal stärker "reingezoomt"
+     wirken. Bewusst Strecken statt weiter Zoomen. */
+  background: url('../icons/icon-1024.png') center / 110vmax 135vmax no-repeat;
   opacity: .08;
 }
 .home-donate-btn { position: absolute; top: 0; left: 0; z-index: 1; text-decoration: none; }
