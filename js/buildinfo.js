@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.131';
-export const BUILD_HASH = '86639a8';
+export const BUILD      = '0.132';
+export const BUILD_HASH = '0841f71';
 
 export const CHANGELOG = [
+  {
+    "version": "0.132",
+    "date": "27.06.2026",
+    "changes": [
+      "Startseite: Hintergrund-Zoom feinjustiert, sodass das Gitter auch unten zuverlässig über den Rand (unter den Home-Indicator) ragt, ohne zu viel abzuschneiden"
+    ]
+  },
   {
     "version": "0.131",
     "date": "27.06.2026",
