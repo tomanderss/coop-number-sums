@@ -1,0 +1,3 @@
+Startseite: Hintergrund-Gitter ragt jetzt auf allen vier Seiten über die Kante (auch unten) – echtes randloses Infinity
+Startseite: Hintergrund ist beim Zurücknavigieren sofort/statisch da, kein sichtbares Live-Reinzoomen mehr
+Musik: weitere Härtung gegen den kurzen Ton beim App-Wechsel in den Hintergrund (pagehide + sofortige Stummschaltung)
