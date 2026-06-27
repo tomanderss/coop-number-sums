@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.122';
-export const BUILD_HASH = '6119d70';
+export const BUILD      = '0.123';
+export const BUILD_HASH = '3f983fd';
 
 export const CHANGELOG = [
+  {
+    "version": "0.123",
+    "date": "27.06.2026",
+    "changes": [
+      "Startseite: Hintergrund-Gitter füllt jetzt den ganzen Bildschirm und läuft über alle Ränder (Infinity-Look) statt rechteckigem Ausschnitt"
+    ]
+  },
   {
     "version": "0.122",
     "date": "27.06.2026",
