@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.126';
-export const BUILD_HASH = '75947bb';
+export const BUILD      = '0.127';
+export const BUILD_HASH = '412c26f';
 
 export const CHANGELOG = [
+  {
+    "version": "0.127",
+    "date": "27.06.2026",
+    "changes": [
+      "Startseite: Hintergrund-Gitter ragt jetzt auf allen vier Seiten über die Kante (auch unten) – echtes randloses Infinity",
+      "Startseite: Hintergrund ist beim Zurücknavigieren sofort/statisch da, kein sichtbares Live-Reinzoomen mehr",
+      "Musik: weitere Härtung gegen den kurzen Ton beim App-Wechsel in den Hintergrund (pagehide + sofortige Stummschaltung)"
+    ]
+  },
   {
     "version": "0.126",
     "date": "27.06.2026",
