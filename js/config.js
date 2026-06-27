@@ -126,6 +126,16 @@ export const DEFAULT_SETTINGS = {
                             // (richtig/falsch, Hinweis/Fehler, Leben, Toasts, ...) durch
                             // Blau/Orange (css/styles.css) UND nutzt COOP_COLORS_CB statt
                             // COOP_COLORS für die Coop-Spielerpalette.
+  // Prozedurale Zen-Hintergrundmusik (js/music.js), pro Bereich schaltbar.
+  // Default an; Lautstärke 0..1. "competition" deckt Race (1v1) UND Team (2v2) ab.
+  // musicMenu = Menüs/Statistik/Verlauf usw. (alle Nicht-Spiel-Screens). Sind
+  // alle Schalter an, läuft die Musik nahtlos durchgehend in der ganzen App.
+  musicMenu: true,
+  musicSolo: true,
+  musicCoop: true,
+  musicCompetition: true,
+  musicTraining: true,
+  musicVolume: 0.5,
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)

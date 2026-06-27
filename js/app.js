@@ -8,6 +8,7 @@ import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
+import * as Music from './music.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop,
   loadStats, recordResult,
@@ -206,11 +207,46 @@ function applyLocale() {
 function navigate(screen) {
   state.screen = screen;
   if (screen === 'game') startTimer(); else stopTimer();
+  updateMusic();
   // overflow-anchor:none allein verhinderte nicht jeden Fall eines mittig
   // startenden Screens (z.B. wenn ein Banner erst nach dem ersten Layout
   // einklappt) -- expliziter Scroll-Reset nach dem Render macht "oben
   // starten" unabhängig vom genauen Lade-Timing einzelner Inhalte.
   nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); scheduleScrollLockUpdate(); });
+}
+
+// ─── HINTERGRUNDMUSIK ─────────────────────────────────────────────────────────
+// Welcher Spielmodus läuft gerade? Bestimmt, welche Musik-Einstellung greift.
+// "competition" deckt Race (1v1) UND Team (2v2) ab; Team setzt zwar coop.active,
+// wird aber zuerst geprüft, damit es nicht als "coop" zählt.
+function currentMusicMode() {
+  if (state.isTrainingGame) return 'training';
+  if (state.race.active || state.team.active) return 'competition';
+  if (state.coop.active) return 'coop';
+  return 'solo';
+}
+function musicEnabledForMode(mode) {
+  const s = state.settings;
+  return mode === 'training' ? s.musicTraining
+    : mode === 'competition' ? s.musicCompetition
+    : mode === 'coop' ? s.musicCoop
+    : s.musicSolo;
+}
+// Einzige Stelle, die Musik startet/stoppt. Zwei Kontexte:
+//  • Aktiv laufendes Rätsel (Spielscreen, nicht pausiert, nicht Coop-Lobby) ->
+//    es greift der Schalter des aktuellen Spielmodus.
+//  • Alles andere (Menüs, Statistik, Verlauf, Pause, Ergebnis-Screen ...) ->
+//    es greift der "Menü/App"-Schalter (musicMenu).
+// Sind alle Schalter an, läuft die Musik nahtlos durch (play() ist idempotent,
+// solange sie schon läuft -> kein Neustart beim Wechsel Menü<->Spiel).
+// Aufgerufen an allen Übergängen (navigate, Start, Pause, Sieg/Niederlage,
+// Settings) sowie bei der ersten Nutzergeste (AudioContext-Freischaltung).
+function updateMusic() {
+  const inActiveGame = state.screen === 'game' && state.status === 'playing'
+    && !state.paused && !state.coop.awaitingStart;
+  const shouldPlay = inActiveGame ? musicEnabledForMode(currentMusicMode()) : state.settings.musicMenu;
+  if (shouldPlay) Music.play(state.settings.musicVolume);
+  else Music.stop();
 }
 
 // overflow-y:auto auf .screen ist nötig, damit lange Inhalte (z.B. Stats,
@@ -238,6 +274,7 @@ function startTimer() {
   timerHandle = setInterval(() => {
     state.elapsed = Date.now() - state.startTime;
   }, 250);
+  updateMusic(); // ein aktiv laufendes Rätsel ist genau der Moment für Musik
 }
 function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandle = null; } }
 
@@ -252,6 +289,7 @@ function pauseGame(broadcast = true, remoteElapsed) {
   state.paused = true;
   state.elapsed = remoteElapsed != null ? remoteElapsed : Date.now() - state.startTime; // einfrieren
   stopTimer();
+  updateMusic();
   if (broadcast) {
     // Race: state.coop.active bleibt absichtlich false (siehe state.race-Kommentar),
     // coopSend() wäre hier also ein No-op -- analog zum MSG.START-Versand direkt
@@ -265,6 +303,7 @@ function resumeFromPause(broadcast = true) {
   state.paused = false;
   state.startTime = Date.now() - state.elapsed; // Zeit fortsetzen
   startTimer();
+  updateMusic();
   if (broadcast) {
     if (state.race.active) Coop.send({ type: Coop.MSG.PAUSE, paused: false });
     else if (state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: false });
@@ -280,6 +319,7 @@ function startCoopGame(startTime) {
   state.elapsed = 0;
   state.startTime = startTime;
   startTimer();
+  updateMusic();
 }
 function startCoopRound() {
   if (!state.coop.awaitingStart) return;
@@ -1524,6 +1564,7 @@ function win(remote) {
   state.status = 'won';
   log('game', `Gewonnen`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
+  updateMusic();
   if (remote) {
     state.elapsed = remote.timeMs;
     state.mistakes = remote.mistakes;
@@ -1580,6 +1621,7 @@ function lose(remote) {
   state.status = 'lost';
   log('game', `Verloren`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
+  updateMusic();
   if (remote) {
     state.elapsed = remote.timeMs;
     state.mistakes = remote.mistakes;
@@ -1618,6 +1660,7 @@ function giveUp(remote) {
   if (remote && state.status === 'gaveup') return;
   state.status = 'gaveup';
   log('game', `Aufgegeben`, { remote: !!remote, coop: state.coop.active });
+  updateMusic();
   stopTimer();
   if (remote) {
     state.elapsed = remote.timeMs;
@@ -1828,10 +1871,12 @@ function launchConfetti(perfect) {
 function toggleSetting(key) {
   state.settings[key] = !state.settings[key];
   if (key === 'darkMode' || key === 'colorBlindMode') applyTheme();
+  if (key.startsWith('music')) updateMusic();
 }
 function setSetting(key, val) {
   state.settings[key] = val;
   if (key === 'language') applyLocale();
+  if (key === 'musicVolume') { Music.setVolume(val); updateMusic(); }
 }
 watch(() => state.settings, (s) => saveSettings(s), { deep: true });
 
@@ -1990,6 +2035,14 @@ function init() {
   const appEl = document.querySelector('.app');
   if (appEl) new MutationObserver(scheduleScrollLockUpdate).observe(appEl, { childList: true, subtree: true, attributes: true, characterData: true });
   nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); scheduleScrollLockUpdate(); });
+  // Menü-/App-Musik: Browser erlauben Audio erst nach einer Nutzergeste. Beim
+  // ersten Tippen irgendwo wird der AudioContext freigeschaltet und (falls
+  // musicMenu an ist) die durchgehende Musik gestartet. updateMusic() selbst ist
+  // idempotent, daher schadet ein einmaliger Aufruf hier nicht.
+  const unlockAudio = () => updateMusic();
+  window.addEventListener('pointerdown', unlockAudio, { once: true });
+  window.addEventListener('keydown', unlockAudio, { once: true });
+  updateMusic();
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2884,6 +2937,29 @@ const App = {
           <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
         </div>
 
+        <div class="set-group-title">{{ t('settings.sound') }}</div>
+        <small class="set-hint">{{ t('settings.soundHint') }}</small>
+        <div class="set-row" @click="toggleSetting('musicMenu')">
+          <span>{{ t('settings.musicMenu') }}</span><span class="switch" :class="{on:state.settings.musicMenu}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('musicSolo')">
+          <span>{{ t('settings.musicSolo') }}</span><span class="switch" :class="{on:state.settings.musicSolo}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('musicCoop')">
+          <span>{{ t('settings.musicCoop') }}</span><span class="switch" :class="{on:state.settings.musicCoop}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('musicCompetition')">
+          <span>{{ t('settings.musicCompetition') }}</span><span class="switch" :class="{on:state.settings.musicCompetition}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('musicTraining')">
+          <span>{{ t('settings.musicTraining') }}</span><span class="switch" :class="{on:state.settings.musicTraining}"><i></i></span>
+        </div>
+        <div class="set-row col">
+          <span class="set-row-label">{{ t('settings.musicVolume') }}</span>
+          <input type="range" class="set-range" min="0" max="1" step="0.05" :value="state.settings.musicVolume"
+                 @input="setSetting('musicVolume', parseFloat($event.target.value))" />
+        </div>
+
         <div class="set-group-title">{{ t('settings.a11y') }}</div>
         <div class="set-row" @click="toggleSetting('colorBlindMode')">
           <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
@@ -3137,7 +3213,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, cellStyle, cellClasses, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, cellStyle, cellClasses, Music, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');
