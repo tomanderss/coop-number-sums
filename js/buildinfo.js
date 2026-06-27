@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.125';
-export const BUILD_HASH = '3077a96';
+export const BUILD      = '0.126';
+export const BUILD_HASH = '75947bb';
 
 export const CHANGELOG = [
+  {
+    "version": "0.126",
+    "date": "27.06.2026",
+    "changes": [
+      "Einstellungen: Bereiche (Darstellung, Spielhilfe, Ton …) sind jetzt klar mit Trennlinie und kräftiger Überschrift abgegrenzt – übersichtlichere Struktur",
+      "Musik: kein schriller kurzer Ton mehr beim Wechsel in den Hintergrund (Audio wird sauber pausiert und beim Zurückkehren sanft fortgesetzt)"
+    ]
+  },
   {
     "version": "0.125",
     "date": "27.06.2026",
