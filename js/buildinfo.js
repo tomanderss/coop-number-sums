@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.128';
-export const BUILD_HASH = 'ea8fe01';
+export const BUILD      = '0.129';
+export const BUILD_HASH = 'f7b8229';
 
 export const CHANGELOG = [
+  {
+    "version": "0.129",
+    "date": "27.06.2026",
+    "changes": [
+      "Einstellungen: Lautstärke-Regler deutlich kräftiger/dicker – mit gefülltem Pegelbalken und größerem, besser greifbarem Knopf"
+    ]
+  },
   {
     "version": "0.128",
     "date": "27.06.2026",
