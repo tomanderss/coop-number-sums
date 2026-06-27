@@ -2050,6 +2050,12 @@ function init() {
     if (document.hidden) Music.suspendForBackground();
     else Music.resumeFromBackground();
   });
+  // pagehide/pageshow zusätzlich: feuert auf iOS-PWA beim Backgrounding oft
+  // zuverlässiger/früher als visibilitychange -> der Kontext wird sicher
+  // angehalten, bevor das OS die Audio-Session abrupt unterbricht (Glitch).
+  window.addEventListener('pagehide', () => Music.suspendForBackground());
+  window.addEventListener('pageshow', () => Music.resumeFromBackground());
+  window.addEventListener('blur', () => { if (document.hidden) Music.suspendForBackground(); });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2213,7 +2219,7 @@ const App = {
     };
   },
   template: `
-  <div class="app" :class="{ generating: state.generating, 'modal-open': !!state.modal, 'app-game': state.screen === 'game' }">
+  <div class="app" :class="{ generating: state.generating, 'modal-open': !!state.modal, 'app-game': state.screen === 'game', 'app-home': state.screen === 'home' }">
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">

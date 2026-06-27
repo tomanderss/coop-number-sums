@@ -110,18 +110,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    "Fortsetzen"-Button bei aktivem Spiel) per unsafe centering nach oben in
    die Icon-Zeile. "safe center" fällt zusätzlich auf Start-Ausrichtung
    zurück statt zu überlaufen, sobald der Inhalt nicht mehr reinpasst. */
-.home { position: relative; isolation: isolate; justify-content: center; justify-content: safe center; gap: 16px; text-align: center; padding-top: 60px; }
+.home { position: relative; justify-content: center; justify-content: safe center; gap: 16px; text-align: center; padding-top: 60px; }
 /* Großes App-Icon (Zahlengitter) als dezenter, scharfer Vollbild-Hintergrund
-   der Startseite. WICHTIG: position:fixed + inset:0 hängt den Hintergrund am
-   echten Viewport (nicht an .home) -> er ignoriert das Padding und die
-   Safe-Area-Insets von .app und füllt damit wirklich den GANZEN Bildschirm
-   randlos (sonst blieben außen Streifen ohne Gitter, siehe iPhone). `cover`
-   schneidet das Gitter an allen Kanten an (Infinity), nie ein Rechteck. Sehr
-   niedrige Deckkraft -> Buttons in Hell- UND Dunkelmodus voll lesbar.
+   der Startseite. Bewusst an .app (nicht an .home/.screen): .app ist dauerhaft
+   vorhanden und wird beim Navigieren NICHT neu animiert -> der Hintergrund ist
+   sofort/statisch da, ohne sichtbares "Live-Reinzoomen" (.screen hat eine
+   fadein-Animation mit transform, die ein fixed-::before sonst mitverschieben
+   würde). position:fixed + inset:0 hängt am echten Viewport und ignoriert das
+   .app-Padding und die Safe-Area-Insets -> wirklich randlos. background-size
+   110vmax statt cover: das quadratische Bild ist 110% der GRÖSSEREN Viewport-
+   Kante und ragt damit auf ALLEN vier Seiten über die Kante (Infinity), nie ein
+   bündiger Rand. Sehr niedrige Deckkraft -> Buttons in Hell-/Dunkelmodus lesbar.
    1024px-Quelle + KEIN Blur = gestochen scharf. */
-.home::before {
+.app { isolation: isolate; }
+.app.app-home::before {
   content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: url('../icons/icon-1024.png') center / cover no-repeat;
+  background: url('../icons/icon-1024.png') center / 110vmax no-repeat;
   opacity: .08;
 }
 .home-donate-btn { position: absolute; top: 0; left: 0; z-index: 1; text-decoration: none; }
