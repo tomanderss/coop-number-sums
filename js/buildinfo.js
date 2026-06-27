@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.129';
-export const BUILD_HASH = 'f7b8229';
+export const BUILD      = '0.130';
+export const BUILD_HASH = '1634f2b';
 
 export const CHANGELOG = [
+  {
+    "version": "0.130",
+    "date": "27.06.2026",
+    "changes": [
+      "Startseite: Hintergrund wieder uniform gezoomt (statt gestreckt) und so über alle Bildschirmkanten gezogen, dass kein Bildrand mehr sichtbar ist – auch unter dem Home-Indicator des iPhones",
+      "Musik: schriller Ton beim App-Wechsel in den Hintergrund behoben – die Tonausgabe wird beim Verlassen vollständig beendet und beim Zurückkehren neu aufgebaut"
+    ]
+  },
   {
     "version": "0.129",
     "date": "27.06.2026",

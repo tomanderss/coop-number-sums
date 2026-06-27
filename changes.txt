@@ -1,2 +1,0 @@
-Startseite: Hintergrund wieder uniform gezoomt (statt gestreckt) und so über alle Bildschirmkanten gezogen, dass kein Bildrand mehr sichtbar ist – auch unter dem Home-Indicator des iPhones
-Musik: schriller Ton beim App-Wechsel in den Hintergrund behoben – die Tonausgabe wird beim Verlassen vollständig beendet und beim Zurückkehren neu aufgebaut
