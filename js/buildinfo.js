@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.127';
-export const BUILD_HASH = '412c26f';
+export const BUILD      = '0.128';
+export const BUILD_HASH = 'ea8fe01';
 
 export const CHANGELOG = [
+  {
+    "version": "0.128",
+    "date": "27.06.2026",
+    "changes": [
+      "Startseite: Hintergrund-Gitter wird gestreckt und ragt jetzt auch unten klar über den Bildschirmrand (bis unter den Home-Indicator), nicht nur oben",
+      "Musik: schriller „Arcade\"-Ton beim App-Wechsel in den Hintergrund behoben (weiche WaveShaper-Sättigung statt Kompressor, kein Noten-Scheduling mehr im Hintergrund)"
+    ]
+  },
   {
     "version": "0.127",
     "date": "27.06.2026",
