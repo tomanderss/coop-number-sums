@@ -111,13 +111,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    die Icon-Zeile. "safe center" fällt zusätzlich auf Start-Ausrichtung
    zurück statt zu überlaufen, sobald der Inhalt nicht mehr reinpasst. */
 .home { position: relative; isolation: isolate; justify-content: center; justify-content: safe center; gap: 16px; text-align: center; padding-top: 60px; }
-/* Großes App-Icon (Zahlengitter) als dezenter, scharfer Hintergrund der
-   Startseite statt kleinem Logo oben: Ausschnitt unten-rechts, stark
-   herangezoomt, sehr niedrige Deckkraft -> Buttons bleiben in Hell- UND
-   Dunkelmodus voll lesbar. 1024px-Quelle + KEIN Blur = gestochen scharf. */
+/* Großes App-Icon (Zahlengitter) als dezenter, scharfer Vollbild-Hintergrund
+   der Startseite: zentriert, `cover` und mit negativem inset bewusst ÜBER alle
+   Ränder hinaus gezogen -> das Gitter wird an jeder Kante angeschnitten
+   (Infinity-Gefühl), nie ein rechteckiger Ausschnitt. Sehr niedrige Deckkraft,
+   damit die Buttons in Hell- UND Dunkelmodus voll lesbar bleiben. 1024px-Quelle
+   + KEIN Blur = gestochen scharf. */
 .home::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: url('../icons/icon-1024.png') 80% 82% / 230% auto no-repeat;
+  content: ''; position: absolute; inset: -8%; z-index: -1; pointer-events: none;
+  background: url('../icons/icon-1024.png') center / cover no-repeat;
   opacity: .08;
 }
 .home-donate-btn { position: absolute; top: 0; left: 0; z-index: 1; text-decoration: none; }
