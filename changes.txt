@@ -1,0 +1,1 @@
+Startseite: Hintergrund-Gitter füllt jetzt den ganzen Bildschirm und läuft über alle Ränder (Infinity-Look) statt rechteckigem Ausschnitt
