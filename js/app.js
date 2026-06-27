@@ -2035,26 +2035,25 @@ function init() {
   const appEl = document.querySelector('.app');
   if (appEl) new MutationObserver(scheduleScrollLockUpdate).observe(appEl, { childList: true, subtree: true, attributes: true, characterData: true });
   nextTick(() => { document.querySelector('.screen')?.scrollTo(0, 0); scheduleScrollLockUpdate(); });
-  // Menü-/App-Musik: Browser erlauben Audio erst nach einer Nutzergeste. Beim
-  // ersten Tippen irgendwo wird der AudioContext freigeschaltet und (falls
-  // musicMenu an ist) die durchgehende Musik gestartet. updateMusic() selbst ist
-  // idempotent, daher schadet ein einmaliger Aufruf hier nicht.
+  // Menü-/App-Musik: Browser erlauben Audio erst nach einer Nutzergeste. Der
+  // Listener bleibt BESTEHEN (nicht { once }), damit auch nach dem Zurückkehren
+  // aus dem Hintergrund (frischer, zunächst gesperrter AudioContext) der erste
+  // Tap die Musik wieder startet. updateMusic() ist idempotent.
   const unlockAudio = () => updateMusic();
-  window.addEventListener('pointerdown', unlockAudio, { once: true });
-  window.addEventListener('keydown', unlockAudio, { once: true });
+  window.addEventListener('pointerdown', unlockAudio);
+  window.addEventListener('keydown', unlockAudio);
   updateMusic();
-  // App im Hintergrund: AudioContext sauber anhalten (verhindert den schrillen
-  // Glitch, den das OS sonst beim abrupten Unterbrechen erzeugt); zurück im
-  // Vordergrund sanft fortsetzen.
+  // App im Hintergrund: AudioContext KOMPLETT schließen (suspendForBackground),
+  // damit das OS nichts mehr glitchen kann. Zurück im Vordergrund baut
+  // updateMusic() einen frischen Kontext auf (ggf. erst beim ersten Tap, s.o.).
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) Music.suspendForBackground();
-    else Music.resumeFromBackground();
+    else updateMusic();
   });
   // pagehide/pageshow zusätzlich: feuert auf iOS-PWA beim Backgrounding oft
-  // zuverlässiger/früher als visibilitychange -> der Kontext wird sicher
-  // angehalten, bevor das OS die Audio-Session abrupt unterbricht (Glitch).
+  // zuverlässiger/früher als visibilitychange.
   window.addEventListener('pagehide', () => Music.suspendForBackground());
-  window.addEventListener('pageshow', () => Music.resumeFromBackground());
+  window.addEventListener('pageshow', () => updateMusic());
   window.addEventListener('blur', () => { if (document.hidden) Music.suspendForBackground(); });
 }
 
