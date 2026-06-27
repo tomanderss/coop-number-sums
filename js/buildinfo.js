@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.124';
-export const BUILD_HASH = 'c68170e';
+export const BUILD      = '0.125';
+export const BUILD_HASH = '3077a96';
 
 export const CHANGELOG = [
+  {
+    "version": "0.125",
+    "date": "27.06.2026",
+    "changes": [
+      "Startseite: Hintergrund füllt jetzt wirklich den gesamten Bildschirm randlos – auch auf iPhones mit Notch/Safe-Area (vorher blieben außen Streifen ohne Gitter)",
+      "Musik: deutlich höherer Grundpegel (rund 2–3× lauter) und wärmerer, weniger schriller Klang (ruhiger, japanisch-zen, hölzern)"
+    ]
+  },
   {
     "version": "0.124",
     "date": "27.06.2026",

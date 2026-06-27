@@ -1,2 +1,0 @@
-Startseite: Hintergrund füllt jetzt wirklich den gesamten Bildschirm randlos – auch auf iPhones mit Notch/Safe-Area (vorher blieben außen Streifen ohne Gitter)
-Musik: deutlich höherer Grundpegel (rund 2–3× lauter) und wärmerer, weniger schriller Klang (ruhiger, japanisch-zen, hölzern)
