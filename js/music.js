@@ -191,34 +191,21 @@ export function stop() {
   droneVoices = [];
 }
 
-// App geht in den Hintergrund: AudioContext sauber anhalten, damit kein schriller
-// Glitch entsteht (sonst unterbricht das OS die laufenden Oszillatoren abrupt).
-// Erst Master kurz stummschalten (kein Knacken), dann den Kontext suspendieren;
-// die Scheduler-Timer werden gestoppt, damit nichts ins Leere geplant wird.
+// App geht in den Hintergrund: AudioContext KOMPLETT schließen (nicht nur
+// suspendieren). ctx.close() gibt die Audio-Hardware vollständig frei, sodass das
+// OS nichts mehr abrupt unterbrechen/glitchen kann (der schrille "Arcade"-Ton
+// kam genau von so einer System-Unterbrechung). Vorher hart stummschalten, damit
+// das Schließen selbst nicht knackt. `running` bleibt erhalten -> updateMusic()
+// baut beim Zurückkehren einen frischen Kontext auf.
 export function suspendForBackground() {
-  if (!ctx) return;
   if (padTimer) { clearTimeout(padTimer); padTimer = null; }
   if (melodyTimer) { clearTimeout(melodyTimer); melodyTimer = null; }
-  // Sofort hart stummschalten (.value greift augenblicklich, ohne Rampe) — so
-  // ist die letzte ausgehende Puffer-Sekunde leise, falls das OS den Kontext
-  // unterbricht, bevor suspend() greift.
-  try { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.value = 0; } catch {}
-  if (ctx.state === 'running') { try { ctx.suspend(); } catch {} }
-}
-// Zurück aus dem Hintergrund: Kontext fortsetzen, sanft wieder einblenden und die
-// Schleifen neu anstoßen (nur falls die Musik laufen soll).
-export function resumeFromBackground() {
-  if (!running || !ctx) return;
-  const go = () => {
-    try {
-      master.gain.cancelScheduledValues(ctx.currentTime);
-      master.gain.setValueAtTime(0.0001, ctx.currentTime);
-      master.gain.linearRampToValueAtTime(curVolume, ctx.currentTime + 0.6);
-    } catch {}
-    if (!padTimer) padLoop();
-    if (!melodyTimer) melodyTimer = setTimeout(melodyLoop, 600);
-  };
-  if (ctx.state === 'suspended') ctx.resume().then(go).catch(go); else go();
+  if (!ctx) return;
+  try { if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.value = 0; } } catch {}
+  const dead = ctx;
+  ctx = null; master = null; reverb = null; analyser = null; droneVoices = [];
+  running = false; // Graph ist weg -> play() baut alles neu auf
+  try { dead.close(); } catch {}
 }
 
 // Aktueller RMS-Pegel am Master (0..~1) — für Tests/Verifikation.

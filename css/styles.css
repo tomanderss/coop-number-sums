@@ -112,24 +112,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    zurück statt zu überlaufen, sobald der Inhalt nicht mehr reinpasst. */
 .home { position: relative; justify-content: center; justify-content: safe center; gap: 16px; text-align: center; padding-top: 60px; }
 /* Großes App-Icon (Zahlengitter) als dezenter, scharfer Vollbild-Hintergrund
-   der Startseite. Bewusst an .app (nicht an .home/.screen): .app ist dauerhaft
-   vorhanden und wird beim Navigieren NICHT neu animiert -> der Hintergrund ist
-   sofort/statisch da, ohne sichtbares "Live-Reinzoomen" (.screen hat eine
-   fadein-Animation mit transform, die ein fixed-::before sonst mitverschieben
-   würde). position:fixed + inset:0 hängt am echten Viewport und ignoriert das
-   .app-Padding und die Safe-Area-Insets -> wirklich randlos. background-size
-   110vmax statt cover: das quadratische Bild ist 110% der GRÖSSEREN Viewport-
-   Kante und ragt damit auf ALLEN vier Seiten über die Kante (Infinity), nie ein
-   bündiger Rand. Sehr niedrige Deckkraft -> Buttons in Hell-/Dunkelmodus lesbar.
-   1024px-Quelle + KEIN Blur = gestochen scharf. */
+   der Startseite. An .app (dauerhaft vorhanden, wird beim Navigieren NICHT
+   animiert) -> Hintergrund ist sofort/statisch da, ohne "Live-Reinzoomen".
+   WICHTIG gegen den sichtbaren Bildrand ("Rand muss weg") auf dem iPhone:
+   - `cover` (UNIFORM gezoomt, Seitenverhältnis erhalten — NICHT gestreckt).
+   - inset:-12% zieht das fixe Element auf allen Seiten ÜBER die physischen
+     Bildschirmkanten hinaus (inset-% ist viewport-relativ und robust gegen
+     iOS-vh/Safe-Area-Eigenheiten). Dadurch liegt die tatsächliche Bildkante
+     garantiert AUSSERHALB des Schirms (auch hinter Dynamic Island UND unter dem
+     Home-Indicator) -> kein bündiger/sichtbarer Rand mehr.
+   Sehr niedrige Deckkraft -> Buttons in Hell-/Dunkelmodus lesbar. Scharf. */
 .app { isolation: isolate; }
 .app.app-home::before {
-  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  /* Breite 110vmax (gewohnter horizontaler Look), Höhe auf 135vmax GESTRECKT:
-     so ragt das Gitter oben UND unten großzügig über den Bildschirm (auch unter
-     den Home-Indicator), ohne dass die Zellen horizontal stärker "reingezoomt"
-     wirken. Bewusst Strecken statt weiter Zoomen. */
-  background: url('../icons/icon-1024.png') center / 110vmax 135vmax no-repeat;
+  content: ''; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
+  background: url('../icons/icon-1024.png') center / cover no-repeat;
   opacity: .08;
 }
 .home-donate-btn { position: absolute; top: 0; left: 0; z-index: 1; text-decoration: none; }
