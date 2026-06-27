@@ -1,0 +1,2 @@
+Einstellungen: Bereiche (Darstellung, Spielhilfe, Ton …) sind jetzt klar mit Trennlinie und kräftiger Überschrift abgegrenzt – übersichtlichere Struktur
+Musik: kein schriller kurzer Ton mehr beim Wechsel in den Hintergrund (Audio wird sauber pausiert und beim Zurückkehren sanft fortgesetzt)

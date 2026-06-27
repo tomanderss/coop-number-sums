@@ -2043,6 +2043,13 @@ function init() {
   window.addEventListener('pointerdown', unlockAudio, { once: true });
   window.addEventListener('keydown', unlockAudio, { once: true });
   updateMusic();
+  // App im Hintergrund: AudioContext sauber anhalten (verhindert den schrillen
+  // Glitch, den das OS sonst beim abrupten Unterbrechen erzeugt); zurück im
+  // Vordergrund sanft fortsetzen.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) Music.suspendForBackground();
+    else Music.resumeFromBackground();
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════════

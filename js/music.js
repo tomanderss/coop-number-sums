@@ -182,6 +182,36 @@ export function stop() {
   droneVoices = [];
 }
 
+// App geht in den Hintergrund: AudioContext sauber anhalten, damit kein schriller
+// Glitch entsteht (sonst unterbricht das OS die laufenden Oszillatoren abrupt).
+// Erst Master kurz stummschalten (kein Knacken), dann den Kontext suspendieren;
+// die Scheduler-Timer werden gestoppt, damit nichts ins Leere geplant wird.
+export function suspendForBackground() {
+  if (!ctx || ctx.state !== 'running') return;
+  if (padTimer) { clearTimeout(padTimer); padTimer = null; }
+  if (melodyTimer) { clearTimeout(melodyTimer); melodyTimer = null; }
+  try {
+    master.gain.cancelScheduledValues(ctx.currentTime);
+    master.gain.setValueAtTime(0.0001, ctx.currentTime);
+  } catch {}
+  try { ctx.suspend(); } catch {}
+}
+// Zurück aus dem Hintergrund: Kontext fortsetzen, sanft wieder einblenden und die
+// Schleifen neu anstoßen (nur falls die Musik laufen soll).
+export function resumeFromBackground() {
+  if (!running || !ctx) return;
+  const go = () => {
+    try {
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(0.0001, ctx.currentTime);
+      master.gain.linearRampToValueAtTime(curVolume, ctx.currentTime + 0.6);
+    } catch {}
+    if (!padTimer) padLoop();
+    if (!melodyTimer) melodyTimer = setTimeout(melodyLoop, 600);
+  };
+  if (ctx.state === 'suspended') ctx.resume().then(go).catch(go); else go();
+}
+
 // Aktueller RMS-Pegel am Master (0..~1) — für Tests/Verifikation.
 export function level() {
   if (!analyser) return 0;
