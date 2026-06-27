@@ -116,15 +116,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    animiert) -> Hintergrund ist sofort/statisch da, ohne "Live-Reinzoomen".
    WICHTIG gegen den sichtbaren Bildrand ("Rand muss weg") auf dem iPhone:
    - `cover` (UNIFORM gezoomt, Seitenverhältnis erhalten — NICHT gestreckt).
-   - inset:-6% zieht das fixe Element auf allen Seiten knapp ÜBER die physischen
-     Bildschirmkanten hinaus (inset-% ist viewport-relativ und robust gegen
-     iOS-vh/Safe-Area-Eigenheiten). Bewusst nur GERADE so viel Überstand, dass
-     die Bildkante außerhalb des Schirms liegt (auch unter dem Home-Indicator) —
-     so wenig Zoom/Beschnitt wie möglich, aber kein sichtbarer Rand.
+   - inset:-9% zieht das fixe Element auf allen Seiten ÜBER die physischen
+     Bildschirmkanten hinaus (inset-% ist viewport-relativ). Sweetspot: genug
+     Überstand, dass die Bildkante auch unten unter dem iPhone-Home-Indicator
+     außerhalb des Schirms liegt (iOS rechnet die Safe-Area knapper als die reine
+     Geometrie, -6% reichte unten nicht), aber so wenig Zoom/Beschnitt wie nötig.
    Sehr niedrige Deckkraft -> Buttons in Hell-/Dunkelmodus lesbar. Scharf. */
 .app { isolation: isolate; }
 .app.app-home::before {
-  content: ''; position: fixed; inset: -6%; z-index: -1; pointer-events: none;
+  content: ''; position: fixed; inset: -9%; z-index: -1; pointer-events: none;
   background: url('../icons/icon-1024.png') center / cover no-repeat;
   opacity: .08;
 }
