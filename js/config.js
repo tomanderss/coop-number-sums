@@ -135,7 +135,7 @@ export const DEFAULT_SETTINGS = {
   musicCoop: true,
   musicCompetition: true,
   musicTraining: true,
-  musicVolume: 0.5,
+  musicVolume: 0.6,
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)

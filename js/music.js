@@ -44,8 +44,9 @@ const FILL = [-5, -3, 0, 2, 4, 7, 9, 12];
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (a) => a[(Math.random() * a.length) | 0];
 
-// Prozeduraler Hall: kurz abklingendes Rauschen als Impulsantwort.
-function buildReverb(seconds = 3.4, decay = 2.8) {
+// Prozeduraler Hall: abklingendes Rauschen als Impulsantwort. Länger = mehr
+// Raum/Tiefe -> die Musik wirkt "im Hintergrund" statt vordergründig.
+function buildReverb(seconds = 4.8, decay = 3.0) {
   const len = Math.max(1, Math.floor(ctx.sampleRate * seconds));
   const buf = ctx.createBuffer(2, len, ctx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
@@ -58,7 +59,8 @@ function buildReverb(seconds = 3.4, decay = 2.8) {
 }
 
 // Eine Stimme: Oszillator -> Tiefpass -> Hüllkurve -> (trocken + Hall).
-function voice(freq, when, dur, peak, { type = 'sine', cutoff = 1600, detune = 0 } = {}) {
+// Default-Cutoff bewusst tief (warm/weich statt schrill).
+function voice(freq, when, dur, peak, { type = 'sine', cutoff = 1000, detune = 0 } = {}) {
   const osc = ctx.createOscillator();
   osc.type = type; osc.frequency.value = freq; osc.detune.value = detune;
   const lp = ctx.createBiquadFilter();
@@ -73,9 +75,11 @@ function voice(freq, when, dur, peak, { type = 'sine', cutoff = 1600, detune = 0
   osc.onended = () => { try { osc.disconnect(); lp.disconnect(); g.disconnect(); } catch {} };
 }
 
-// Glocken-Melodieton (eine Oktave höher, heller).
+// Melodieton, warm/hölzern (japanisch-zen): in der Grundoktave (NICHT mehr eine
+// Oktave höher -> deutlich weniger schrill), mit tiefem Tiefpass für einen
+// gedämpften Holz-/Koto-artigen Klang.
 function bell(semi, when, dur, peak) {
-  voice(midi(semi + 12), when, dur, peak, { type: 'triangle', cutoff: rand(2200, 3200), detune: rand(-4, 4) });
+  voice(midi(semi), when, dur, peak, { type: 'triangle', cutoff: rand(800, 1300), detune: rand(-4, 4) });
 }
 
 // Konstanter Tonika-Drone (C + G), sehr leise, mit langsamem LFO — Grundton der
@@ -83,9 +87,9 @@ function bell(semi, when, dur, peak) {
 function startDrone() {
   [midi(-12), midi(-5)].forEach((freq, i) => {
     const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
-    const g = ctx.createGain(); g.gain.value = i === 0 ? 0.05 : 0.03;
+    const g = ctx.createGain(); g.gain.value = i === 0 ? 0.13 : 0.08;
     const lfo = ctx.createOscillator(); lfo.frequency.value = rand(0.03, 0.07);
-    const lfoG = ctx.createGain(); lfoG.gain.value = 0.02;
+    const lfoG = ctx.createGain(); lfoG.gain.value = 0.04;
     lfo.connect(lfoG).connect(g.gain);
     osc.connect(g); g.connect(master); g.connect(reverb);
     osc.start(); lfo.start();
@@ -99,8 +103,8 @@ function padLoop() {
   const chord = PROGRESSION[chordIdx % PROGRESSION.length];
   const now = ctx.currentTime;
   chord.tones.forEach((semi, i) => {
-    voice(midi(semi), now + 0.05 + i * 0.08, CHORD_SECONDS + 1.5, rand(0.05, 0.08),
-      { type: 'triangle', cutoff: rand(900, 1500), detune: rand(-5, 5) });
+    voice(midi(semi), now + 0.05 + i * 0.08, CHORD_SECONDS + 1.5, rand(0.13, 0.18),
+      { type: 'triangle', cutoff: rand(650, 1050), detune: rand(-5, 5) });
   });
   chordIdx++;
   padTimer = setTimeout(padLoop, CHORD_SECONDS * 1000);
@@ -113,12 +117,12 @@ function melodyLoop() {
   const now = ctx.currentTime;
   if (Math.random() < 0.4) {
     // Leitmotiv – immer dieselben Töne, gleichmäßig phrasiert.
-    MOTIF.forEach((semi, i) => bell(semi, now + 0.1 + i * 0.42, rand(2.2, 3.2), rand(0.06, 0.1)));
+    MOTIF.forEach((semi, i) => bell(semi, now + 0.1 + i * 0.42, rand(2.2, 3.2), rand(0.14, 0.2)));
     melodyTimer = setTimeout(melodyLoop, rand(7000, 10000));
   } else {
     // Zufällige Füllung: 1–3 Töne, ruhig.
     const n = 1 + ((Math.random() * 3) | 0);
-    for (let i = 0; i < n; i++) bell(pick(FILL), now + 0.1 + i * rand(0.3, 0.7), rand(2.5, 4), rand(0.05, 0.09));
+    for (let i = 0; i < n; i++) bell(pick(FILL), now + 0.1 + i * rand(0.3, 0.7), rand(2.5, 4), rand(0.12, 0.17));
     melodyTimer = setTimeout(melodyLoop, rand(3500, 6500));
   }
 }
@@ -128,8 +132,15 @@ function ensureContext() {
   const AC = window.AudioContext || window.webkitAudioContext;
   ctx = new AC();
   master = ctx.createGain(); master.gain.value = curVolume;
+  // Makeup-Verstärkung: hebt den Grundpegel deutlich an (Stimmen-Peaks sind
+  // bewusst klein gehalten). Der Limiter dahinter fängt Spitzen ab, sodass es
+  // trotz höherer Lautstärke nicht zerrt/schrill wird.
+  const makeup = ctx.createGain(); makeup.gain.value = 1.0;
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -4; limiter.knee.value = 8; limiter.ratio.value = 6;
+  limiter.attack.value = 0.008; limiter.release.value = 0.3;
   analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
-  master.connect(analyser); analyser.connect(ctx.destination);
+  master.connect(makeup); makeup.connect(limiter); limiter.connect(analyser); analyser.connect(ctx.destination);
 }
 
 export function isPlaying() { return running; }

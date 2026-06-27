@@ -112,13 +112,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    zurück statt zu überlaufen, sobald der Inhalt nicht mehr reinpasst. */
 .home { position: relative; isolation: isolate; justify-content: center; justify-content: safe center; gap: 16px; text-align: center; padding-top: 60px; }
 /* Großes App-Icon (Zahlengitter) als dezenter, scharfer Vollbild-Hintergrund
-   der Startseite: zentriert, `cover` und mit negativem inset bewusst ÜBER alle
-   Ränder hinaus gezogen -> das Gitter wird an jeder Kante angeschnitten
-   (Infinity-Gefühl), nie ein rechteckiger Ausschnitt. Sehr niedrige Deckkraft,
-   damit die Buttons in Hell- UND Dunkelmodus voll lesbar bleiben. 1024px-Quelle
-   + KEIN Blur = gestochen scharf. */
+   der Startseite. WICHTIG: position:fixed + inset:0 hängt den Hintergrund am
+   echten Viewport (nicht an .home) -> er ignoriert das Padding und die
+   Safe-Area-Insets von .app und füllt damit wirklich den GANZEN Bildschirm
+   randlos (sonst blieben außen Streifen ohne Gitter, siehe iPhone). `cover`
+   schneidet das Gitter an allen Kanten an (Infinity), nie ein Rechteck. Sehr
+   niedrige Deckkraft -> Buttons in Hell- UND Dunkelmodus voll lesbar.
+   1024px-Quelle + KEIN Blur = gestochen scharf. */
 .home::before {
-  content: ''; position: absolute; inset: -8%; z-index: -1; pointer-events: none;
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background: url('../icons/icon-1024.png') center / cover no-repeat;
   opacity: .08;
 }
