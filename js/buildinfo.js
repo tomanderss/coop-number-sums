@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.121';
-export const BUILD_HASH = 'e4dab99';
+export const BUILD      = '0.122';
+export const BUILD_HASH = '6119d70';
 
 export const CHANGELOG = [
+  {
+    "version": "0.122",
+    "date": "27.06.2026",
+    "changes": [
+      "Startseite: Das App-Icon (Zahlengitter) bildet jetzt dezent und scharf den Hintergrund; das Logo oben bleibt, etwas größer"
+    ]
+  },
   {
     "version": "0.121",
     "date": "26.06.2026",
