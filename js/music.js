@@ -99,7 +99,7 @@ function startDrone() {
 
 // Spielt den aktuellen Akkord als weiches Pad und schaltet danach zum nächsten.
 function padLoop() {
-  if (!running) return;
+  if (!running || document.hidden) return; // im Hintergrund nichts planen (sonst Noten-Schwall)
   const chord = PROGRESSION[chordIdx % PROGRESSION.length];
   const now = ctx.currentTime;
   chord.tones.forEach((semi, i) => {
@@ -113,7 +113,7 @@ function padLoop() {
 // Melodie: spielt mal das feste Leitmotiv (Wiedererkennung), mal eine zufällige
 // Füllung aus der Pentatonik (Variation).
 function melodyLoop() {
-  if (!running) return;
+  if (!running || document.hidden) return; // im Hintergrund nichts planen (sonst Noten-Schwall)
   const now = ctx.currentTime;
   if (Math.random() < 0.4) {
     // Leitmotiv – immer dieselben Töne, gleichmäßig phrasiert.
@@ -127,20 +127,29 @@ function melodyLoop() {
   }
 }
 
+// Weiche Sättigungskennlinie (tanh) für den WaveShaper: begrenzt Spitzen sanft
+// statt hart zu clippen — bewusst STATT eines DynamicsCompressors, da dieser auf
+// iOS/Safari beim Suspend/Resume (App in den Hintergrund) berüchtigte schrille
+// Artefakte erzeugt. Ein WaveShaper ist zustandslos und damit glitch-frei.
+function softClipCurve() {
+  const n = 2048, curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = Math.tanh(x * 1.7); }
+  return curve;
+}
+
 function ensureContext() {
   if (ctx) return;
   const AC = window.AudioContext || window.webkitAudioContext;
   ctx = new AC();
   master = ctx.createGain(); master.gain.value = curVolume;
-  // Makeup-Verstärkung: hebt den Grundpegel deutlich an (Stimmen-Peaks sind
-  // bewusst klein gehalten). Der Limiter dahinter fängt Spitzen ab, sodass es
-  // trotz höherer Lautstärke nicht zerrt/schrill wird.
-  const makeup = ctx.createGain(); makeup.gain.value = 1.0;
-  const limiter = ctx.createDynamicsCompressor();
-  limiter.threshold.value = -4; limiter.knee.value = 8; limiter.ratio.value = 6;
-  limiter.attack.value = 0.008; limiter.release.value = 0.3;
+  // Leichte Makeup-Verstärkung (Stimmen-Peaks sind bewusst klein); der
+  // WaveShaper dahinter fängt Spitzen weich ab -> lauter Grundpegel ohne harte,
+  // schrille Übersteuerung und ohne Suspend-Artefakte (anders als ein Kompressor).
+  const makeup = ctx.createGain(); makeup.gain.value = 0.65;
+  const shaper = ctx.createWaveShaper();
+  shaper.curve = softClipCurve(); shaper.oversample = '2x';
   analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
-  master.connect(makeup); makeup.connect(limiter); limiter.connect(analyser); analyser.connect(ctx.destination);
+  master.connect(makeup); makeup.connect(shaper); shaper.connect(analyser); analyser.connect(ctx.destination);
 }
 
 export function isPlaying() { return running; }
