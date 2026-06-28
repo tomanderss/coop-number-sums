@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.136';
-export const BUILD_HASH = 'a0a1ec0';
+export const BUILD      = '0.137';
+export const BUILD_HASH = 'fcf41c4';
 
 export const CHANGELOG = [
+  {
+    "version": "0.137",
+    "date": "28.06.2026",
+    "changes": [
+      "Hintergrundmusik deutlich abwechslungsreicher: viele neue Melodie-Phrasen, variables Tempo/Timing (gleiche Klangfarbe und Tonart, Leitmotiv bleibt als seltener Hook)"
+    ]
+  },
   {
     "version": "0.136",
     "date": "28.06.2026",
