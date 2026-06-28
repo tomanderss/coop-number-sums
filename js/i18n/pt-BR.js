@@ -282,6 +282,7 @@ export default {
     reveal: 'Revelar',
     dismiss: 'Fechar dica',
     socratic: {
+      generic: 'Nesta área destacada dá para determinar uma casa com certeza. Observe bem as somas: qual é?',
       sumReached: 'Aqui o objetivo já foi atingido exatamente com os números circulados. Então, o que deve acontecer com todos os números restantes ainda em aberto?',
       allRemainingNeeded: 'Faltam exatamente {rem} para atingir o objetivo. Some os números ainda em aberto: o que isso diz se juntos dão exatamente {rem}?',
       tooLarge: 'Faltam apenas {rem} para atingir o objetivo. Existe algum número ainda em aberto que sozinho já é maior que {rem}?',

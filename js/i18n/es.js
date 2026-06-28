@@ -282,6 +282,7 @@ export default {
     reveal: 'Resolver',
     dismiss: 'Cerrar pista',
     socratic: {
+      generic: 'En esta zona resaltada se puede deducir una casilla con seguridad. Fíjate bien en las sumas: ¿cuál es?',
       sumReached: 'Aquí el objetivo ya se alcanza exactamente con los números rodeados. Entonces, ¿qué debe pasar con todos los números restantes que siguen abiertos?',
       allRemainingNeeded: 'Faltan exactamente {rem} para llegar al objetivo. Suma los números aún abiertos: ¿qué te dice que juntos sumen exactamente {rem}?',
       tooLarge: 'Solo faltan {rem} para alcanzar el objetivo. ¿Hay algún número aún abierto que por sí solo ya sea mayor que {rem}? ¿Puede entonces formar parte de la solución?',
