@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.140';
-export const BUILD_HASH = '021ab88';
+export const BUILD      = '0.141';
+export const BUILD_HASH = '39059ba';
 
 export const CHANGELOG = [
+  {
+    "version": "0.141",
+    "date": "28.06.2026",
+    "changes": [
+      "Neuer Sound beim Umschalten zwischen Einkreis- und Lösch-Modus (einzeln in den Einstellungen schaltbar)"
+    ]
+  },
   {
     "version": "0.140",
     "date": "28.06.2026",
