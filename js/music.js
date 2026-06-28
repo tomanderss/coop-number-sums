@@ -186,7 +186,11 @@ function ensureContext() {
   const shaper = ctx.createWaveShaper();
   shaper.curve = softClipCurve(); shaper.oversample = '2x';
   analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
-  master.connect(makeup); makeup.connect(shaper); shaper.connect(analyser); analyser.connect(ctx.destination);
+  // Basiston der MUSIK halbiert (eigener Trim nur im Musik-Pfad) — die UI-Sounds
+  // laufen über sfxBus direkt in makeup und bleiben dadurch auf ihrem Pegel.
+  const musicTrim = ctx.createGain(); musicTrim.gain.value = 0.5;
+  master.connect(musicTrim); musicTrim.connect(makeup);
+  makeup.connect(shaper); shaper.connect(analyser); analyser.connect(ctx.destination);
   // UI-Sound-Bus: eigener Eingang in dieselbe Ausgangskette (Soft-Clip + Analyser),
   // aber NICHT über die Musik-Lautstärke/Fade -> UI-Töne spielen unabhängig davon,
   // ob/wie laut die Hintergrundmusik läuft. Dezenter eigener Hall für „Raum".
