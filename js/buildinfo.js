@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.132';
-export const BUILD_HASH = '0841f71';
+export const BUILD      = '0.133';
+export const BUILD_HASH = 'bfbdcde';
 
 export const CHANGELOG = [
+  {
+    "version": "0.133",
+    "date": "28.06.2026",
+    "changes": [
+      "Hintergrundbild im Hauptmenü wieder auf den passenden Zoom gesetzt (randlos über alle Kanten)",
+      "Musik startet jetzt sofort beim Spielstart (AudioContext wird nur noch innerhalb einer Nutzergeste erzeugt)"
+    ]
+  },
   {
     "version": "0.132",
     "date": "27.06.2026",

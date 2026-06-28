@@ -1,2 +1,0 @@
-Hintergrundbild im Hauptmenü wieder auf den passenden Zoom gesetzt (randlos über alle Kanten)
-Musik startet jetzt sofort beim Spielstart (AudioContext wird nur noch innerhalb einer Nutzergeste erzeugt)
