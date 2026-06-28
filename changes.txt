@@ -1,2 +1,1 @@
-Grundpegel der Hintergrundmusik wieder halbiert (Aktions-Sounds bleiben unverändert laut)
-Lautstärke-Regler feiner einstellbar (1%-Schritte statt grober Stufen)
+Fehler behoben: Beim Auflösen einer Cage/Reihe/Spalte leuchtet der Rand jetzt auch bei per Hinweis gelöschten Feldern korrekt auf

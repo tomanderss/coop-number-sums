@@ -356,8 +356,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    eingekreiste Zahl bekommt einen grünen statt blauen Ring; gelöschte Zahl
    bekommt einen kleinen grünen Punkt — beides bleibt für den Rest des Rätsels. */
 .cell.kept.hintmark::after { border-color: var(--good); }
-.cell.removed.hintmark::before {
-  content: ''; position: absolute; top: 3px; right: 3px; z-index: 3;
+/* Hinweis-Punkt für eine GELÖSCHTE Hinweis-Zelle als eigenes Kind-Element (nicht
+   ::before): sonst kollidiert er mit dem Fertig-Rand-Puls .cell.pulse-edge::before
+   (eine Zelle hat nur ein ::before) — dann leuchtete der Rand solcher Zellen beim
+   Auflösen der Cage/Reihe/Spalte nicht korrekt auf. */
+.cell .hint-dot {
+  position: absolute; top: 3px; right: 3px; z-index: 3; pointer-events: none;
   width: 7px; height: 7px; border-radius: 50%; background: var(--good);
 }
 /* Fertig-Puls für eine Reihe/Spalte/Cage: nur die ÄUSSEREN Ränder der ganzen
