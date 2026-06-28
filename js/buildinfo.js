@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.144';
-export const BUILD_HASH = 'de60b53';
+export const BUILD      = '0.145';
+export const BUILD_HASH = '286402b';
 
 export const CHANGELOG = [
+  {
+    "version": "0.145",
+    "date": "28.06.2026",
+    "changes": [
+      "Aufgeben-Funktion komplett entfernt (Button, Aufgabe-Bildschirm und Aufgegeben-Statistik) – nicht mehr benötigt"
+    ]
+  },
   {
     "version": "0.144",
     "date": "28.06.2026",
