@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.145';
-export const BUILD_HASH = '286402b';
+export const BUILD      = '0.146';
+export const BUILD_HASH = '7ffa99b';
 
 export const CHANGELOG = [
+  {
+    "version": "0.146",
+    "date": "28.06.2026",
+    "changes": [
+      "Zurück-Navigation als Stack: führt jetzt überall Schritt für Schritt zur vorherigen Ansicht statt direkt zum Hauptmenü (z.B. in der Coop-Lobby Name → Hosten → Warten)"
+    ]
+  },
   {
     "version": "0.145",
     "date": "28.06.2026",
