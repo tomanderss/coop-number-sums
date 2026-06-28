@@ -1,0 +1,1 @@
+Neuer Sound beim Umschalten zwischen Einkreis- und Lösch-Modus (einzeln in den Einstellungen schaltbar)

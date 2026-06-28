@@ -226,6 +226,7 @@ export default {
     sfxRemove: 'Cancella',
     sfxError: 'Errore',
     sfxHint: 'Indizio',
+    sfxToolSwitch: 'Cambio modalità (penna/gomma)',
     a11y: 'Accessibilità',
     colorBlindMode: '🎨 Modalità per daltonici',
     colorBlindModeHint: 'Sostituisce il verde/rosso in tutto il gioco (corretto/errato, suggerimenti, vite, colori co-op, ...) con tonalità più distinguibili per il deficit visivo rosso-verde/blu-giallo.',

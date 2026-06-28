@@ -226,6 +226,7 @@ export default {
     sfxRemove: '消去',
     sfxError: 'ミス',
     sfxHint: 'ヒント',
+    sfxToolSwitch: 'モード切替（ペン／消しゴム）',
     a11y: 'アクセシビリティ',
     colorBlindMode: '🎨 色覚サポートモード',
     colorBlindModeHint: 'ゲーム全体（正解/不正解、ヒント、ライフ、Coopカラーなど）の緑/赤を、赤緑・青黄色覚異常でも区別しやすい色に置き換えます。',

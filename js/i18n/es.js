@@ -226,6 +226,7 @@ export default {
     sfxRemove: 'Borrar',
     sfxError: 'Error',
     sfxHint: 'Pista',
+    sfxToolSwitch: 'Cambio de modo (lápiz/goma)',
     a11y: 'Accesibilidad',
     colorBlindMode: '🎨 Modo para daltónicos',
     colorBlindModeHint: 'Sustituye el verde/rojo en todo el juego (correcto/incorrecto, pistas, vidas, colores cooperativos, ...) por tonos más distinguibles para la discapacidad visual rojo-verde/azul-amarillo.',
