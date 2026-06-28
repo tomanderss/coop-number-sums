@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.143';
-export const BUILD_HASH = '6d1036a';
+export const BUILD      = '0.144';
+export const BUILD_HASH = 'de60b53';
 
 export const CHANGELOG = [
+  {
+    "version": "0.144",
+    "date": "28.06.2026",
+    "changes": [
+      "Neue Sounds beim Gewinnen (befriedigende Fanfare) und Verlieren (sanfter Moll-Fall) – je einzeln in den Einstellungen schaltbar"
+    ]
+  },
   {
     "version": "0.143",
     "date": "28.06.2026",
