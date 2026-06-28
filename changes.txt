@@ -1,0 +1,1 @@
+Einstellungen jetzt von überall per Zahnrad erreichbar (auch im Spiel) – beim Öffnen im Spiel wird automatisch pausiert (Solo und Coop)
