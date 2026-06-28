@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.135';
-export const BUILD_HASH = 'ed6832f';
+export const BUILD      = '0.136';
+export const BUILD_HASH = 'a0a1ec0';
 
 export const CHANGELOG = [
+  {
+    "version": "0.136",
+    "date": "28.06.2026",
+    "changes": [
+      "Hauptmenü-Hintergrund ist jetzt schon ab dem ersten Frame randlos bis unten (vorher unten kurz abgeschnitten, bis man scrollte)"
+    ]
+  },
   {
     "version": "0.135",
     "date": "28.06.2026",
