@@ -1,2 +1,0 @@
-Einstellungen jetzt von überall per Zahnrad erreichbar (auch im Spiel) – beim Öffnen im Spiel wird automatisch pausiert (Solo und Coop)
-Fehler behoben: Beim Auflösen einer Cage/Reihe/Spalte leuchtet der Rand jetzt auch bei per Hinweis gelöschten Feldern korrekt auf
