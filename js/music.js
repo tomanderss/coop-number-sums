@@ -289,6 +289,12 @@ export function sfxHint() {
   sfxVoice(midi(14), 0.14, 0.45, 0.4, { lp: 2400, attack: 0.02, partial2: 0.15 });
   sfxVoice(midi(16), 0.28, 1.0, 0.44, { lp: 2400, attack: 0.02, partial2: 0.15 });
 }
+// Werkzeug-Wechsel (Stift/Radierer) — kurzer, dezenter Zwei-Ton aufwärts (A4 -> D5).
+export function sfxToolSwitch() {
+  if (!sfxReady()) return;
+  sfxVoice(midi(9), 0, 0.08, 0.42, { lp: 1600, attack: 0.003, partial2: 0.1 });
+  sfxVoice(midi(14), 0.06, 0.16, 0.5, { lp: 1800, attack: 0.003, partial2: 0.1 });
+}
 
 export function isPlaying() { return running; }
 

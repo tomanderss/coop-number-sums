@@ -226,6 +226,7 @@ export default {
     sfxRemove: 'Apagar',
     sfxError: 'Erro',
     sfxHint: 'Dica',
+    sfxToolSwitch: 'Troca de modo (lápis/borracha)',
     a11y: 'Acessibilidade',
     colorBlindMode: '🎨 Modo para daltônicos',
     colorBlindModeHint: 'Substitui o verde/vermelho em todo o jogo (certo/errado, dicas, vidas, cores do coop, ...) por tons mais distinguíveis para deficiência visual vermelho-verde/azul-amarelo.',

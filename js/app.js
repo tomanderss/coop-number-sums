@@ -1916,6 +1916,7 @@ function toggleSetting(key) {
     else if (key === 'sfxRemove') Music.sfxRemove();
     else if (key === 'sfxError') Music.sfxError();
     else if (key === 'sfxHint') Music.sfxHint();
+    else if (key === 'sfxToolSwitch') Music.sfxToolSwitch();
   }
 }
 function setSetting(key, val) {
@@ -3044,6 +3045,9 @@ const App = {
         <div class="set-row" @click="toggleSetting('sfxHint')">
           <span>{{ t('settings.sfxHint') }}</span><span class="switch" :class="{on:state.settings.sfxHint}"><i></i></span>
         </div>
+        <div class="set-row" @click="toggleSetting('sfxToolSwitch')">
+          <span>{{ t('settings.sfxToolSwitch') }}</span><span class="switch" :class="{on:state.settings.sfxToolSwitch}"><i></i></span>
+        </div>
 
         <div class="set-group-title">{{ t('settings.a11y') }}</div>
         <div class="set-row" @click="toggleSetting('colorBlindMode')">
@@ -3216,7 +3220,11 @@ const App = {
 };
 
 // Methoden, die das Template über setup() referenziert
-function toggleTool() { state.tool = state.tool === 'pen' ? 'eraser' : 'pen'; state.settings.confirmTool = state.tool; }
+function toggleTool() {
+  state.tool = state.tool === 'pen' ? 'eraser' : 'pen';
+  state.settings.confirmTool = state.tool;
+  if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
+}
 
 // Liefert, welche Seiten dieser Zelle zum ÄUSSEREN Rand einer gerade fertig
 // gewordenen Reihe/Spalte/Cage gehören (für den Fertig-Puls, Punkt 3: nur die
