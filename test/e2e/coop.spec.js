@@ -144,12 +144,46 @@ test.describe('coop', () => {
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 
-  test('the back button on the host/join choice screen returns to home', async ({ page }) => {
+  // Bildschirme verhalten sich wie ein Stack: Zurück führt Schritt für Schritt
+  // zur jeweils vorherigen Ansicht, nicht pauschal nach Home.
+  test('back from the host/join choice returns to the name gate, then home', async ({ page }) => {
     await goToCoop(page);
     await page.locator('.coop-body .text-input').fill('Tom');
     await page.locator('.coop-body .btn-primary').click();
-
+    // Auf der Rollenwahl: Zurück öffnet wieder das Namens-Gate (vorheriger Schritt).
     await page.locator('.screen.coop-screen .topbar .icon-btn').first().click();
+    await expect(page.locator('.coop-body .text-input')).toBeVisible();
+    // Noch einmal Zurück verlässt Coop ganz → Home.
+    await page.locator('.screen.coop-screen .topbar .icon-btn').first().click();
+    await expect(page.locator('.screen.home')).toBeVisible();
+  });
+
+  // Der gesamte Host-Pfad muss sich Schritt für Schritt zurück begehen lassen:
+  // Warten → Host-Einrichtung → Rollenwahl → Namens-Gate → Home.
+  test('back steps through the full host chain one screen at a time', async ({ page }) => {
+    await goToCoop(page);
+    await page.locator('.coop-body .text-input').fill('Tom');
+    await page.locator('.coop-body .btn-primary').click();
+    await page.locator('.coop-body .btn-primary').click(); // "Host"
+    await page.locator('.coop-input').fill('123456');
+    await page.locator('.option-grid .opt-card').first().click();
+    await page.locator('.coop-body .btn-primary').click(); // "start hosting"
+    await expect(page.locator('.coop-waiting')).toBeVisible();
+
+    const back = () => page.locator('.screen.coop-screen .topbar .icon-btn').first().click();
+    // Warten → Host-Einrichtung (Code + Schwierigkeit, Verbindung abgebaut)
+    await back();
+    await expect(page.locator('.coop-waiting')).toBeHidden();
+    await expect(page.locator('.coop-input')).toBeVisible();
+    // Host-Einrichtung → Rollenwahl
+    await back();
+    await expect(page.locator('.coop-input')).toBeHidden();
+    await expect(page.locator('.coop-body .btn-primary')).toBeVisible();
+    // Rollenwahl → Namens-Gate
+    await back();
+    await expect(page.locator('.coop-body .text-input')).toBeVisible();
+    // Namens-Gate → Home
+    await back();
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 });

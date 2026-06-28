@@ -204,7 +204,35 @@ function applyLocale() {
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
+// Bildschirme werden als Stack betrachtet: jede Vorwärtsnavigation legt eine
+// "Zurück-Aktion" auf navStack, jeder Zurück-Schritt (goBack) nimmt die oberste
+// wieder herunter und führt sie aus. So landet man beim Zurücktippen immer auf
+// der unmittelbar zuvor besuchten Stelle statt pauschal auf Home -- auch
+// innerhalb verketteter Unterschritte (z.B. Coop: Name → Hosten → Bestätigen).
+// Eine Zurück-Aktion ist eine Closure, die genau ihren Vorwärtsschritt rückgängig
+// macht (inkl. Seiteneffekten wie Verbindungsabbau) -- dadurch funktioniert der
+// Stack auch für Coop-Unterschritte, die keine eigenen Screens sind.
+let navStack = [];
+function pushNav(backFn) { navStack.push(backFn); }
+// Vorwärts zu einem einfachen Menü-Screen, mit dem aktuellen Screen als
+// Rückkehrpunkt (nur für Screens ohne Unterschritte verwenden).
+function navTo(screen) {
+  const from = state.screen;
+  pushNav(() => navigate(from));
+  navigate(screen);
+}
+// Einen Schritt zurück im Stack. Leerer Stack = wir sind an einer Wurzel:
+// dann (sicherheitshalber) zurück nach Home, im Coop zusätzlich aufräumen.
+function goBack() {
+  const fn = navStack.pop();
+  if (fn) { fn(); return; }
+  if (state.screen === 'coop') coopReset();
+  navigate('home');
+}
 function navigate(screen) {
+  // Wurzeln des Stacks: Home ist der Ausgangspunkt, das Spiel ein eigener Modus
+  // (aus dem Spiel führt der Weg über Pause/Aufgeben, nicht über den Stack).
+  if (screen === 'home' || screen === 'game') navStack = [];
   state.screen = screen;
   if (screen === 'game') startTimer(); else stopTimer();
   updateMusic();
@@ -424,6 +452,8 @@ function newGame(diffId) {
 // so wird eine bewusste Bestätigung erzwungen, bevor das nächste Rätsel startet.
 function goNextPuzzle() {
   state.sel.difficulty = state.puzzle.difficulty;
+  // Aus dem Spiel heraus zur Auswahl: Zurück führt von hier nach Home.
+  navStack = [() => { coopReset(); navigate('home'); }];
   navigate('setup');
 }
 
@@ -1263,7 +1293,34 @@ function confirmCoopIdentity() {
   const name = (state.coop.nameDraft || '').trim();
   if (!name) return;
   state.settings.coopName = name;
+  // Schritt vorwärts (Name → Rollenwahl): Zurück öffnet wieder das Namens-Gate.
+  pushNav(() => { state.coop.identityConfirmed = false; });
   state.coop.identityConfirmed = true;
+}
+// Rollenwahl → Host- bzw. Gast-Einrichtung. Zurück führt zur Rollenwahl.
+function coopChooseHost() {
+  pushNav(() => { state.coop.role = null; state.coop.error = null; });
+  state.coop.role = 'host';
+}
+function coopChooseGuest() {
+  pushNav(() => { state.coop.role = null; state.coop.error = null; });
+  state.coop.role = 'guest';
+}
+// Verbindungsabbau beim Zurückgehen aus der Warte-Ansicht, ohne Rolle/Code zu
+// verlieren -- so landet man wieder bei der Host-Einrichtung bzw. Code-Eingabe
+// statt einen Schritt zu weit (Rollenwahl) zurückzuspringen. teamMode/raceMode
+// bleiben absichtlich erhalten (anders als bei coopReset()), damit der Modus
+// beim Zurückblättern durch die Lobby-Schritte gewahrt bleibt.
+function coopTeardownWaiting() {
+  coopIntentionalLeave = true;
+  Coop.leave();
+  state.coop.waitingForGuest = false;
+  state.coop.connected = false;
+  state.coop.players = [];
+  state.coop.myId = null;
+  state.coop.hostId = null;
+  state.coop.error = null;
+  state.race.rematchPending = false;
 }
 // Beim Einstieg ins Coop-Menü erscheint das Namens-Gate jedes Mal erneut (man
 // kann den Namen also immer ändern), wird aber mit dem zuletzt gespeicherten
@@ -1272,6 +1329,7 @@ function goCoop() {
   coopReset();
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
+  pushNav(() => { coopReset(); navigate('home'); });
   navigate('coop');
 }
 // Einstieg über den Race-/Duell-Home-Button -- identisches Namens-Gate, aber
@@ -1284,6 +1342,7 @@ function goRace(mode) {
   state.coop.raceMode = mode !== '2v2';
   state.coop.teamMode = mode === '2v2';
   state.modal = null;
+  pushNav(() => { coopReset(); navigate('home'); });
   navigate('coop');
 }
 
@@ -1314,6 +1373,9 @@ function startHosting() {
   if (!Coop.isAvailable()) { state.coop.error = t('coop.errorWebrtcUnavailable'); return; }
   if (!CODE_RE.test(state.coop.code)) { state.coop.error = t('coop.errorInvalidCode'); return; }
   coopIntentionalLeave = false;
+  // Schritt vorwärts (Host-Einrichtung → Warten auf Gast): Zurück baut die
+  // Verbindung ab und kehrt zur Host-Einrichtung zurück (Code/Schwierigkeit bleiben).
+  pushNav(coopTeardownWaiting);
   state.coop.role = 'host';
   state.coop.waitingForGuest = true;
   state.coop.error = null;
@@ -1505,6 +1567,9 @@ function rematchRace() {
 function startJoining() {
   if (!CODE_RE.test(state.coop.code)) { state.coop.error = t('coop.errorInvalidCode'); return; }
   coopIntentionalLeave = false;
+  // Schritt vorwärts (Code-Eingabe → Warten auf Hoststart): Zurück baut die
+  // Verbindung ab und kehrt zur Code-Eingabe zurück (Code bleibt erhalten).
+  pushNav(coopTeardownWaiting);
   state.coop.role = 'guest';
   state.coop.waitingForGuest = true;
   state.coop.error = null;
@@ -2247,7 +2312,7 @@ const App = {
     return {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
-      navigate, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
+      navigate, navTo, goBack, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, loadBackups,
@@ -2256,7 +2321,7 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
-      chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
+      chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop, applyUpdate,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       shareCoopInvite, raceResultMsg, teamResultMsg, winTitle,
       startTrainingGame, applyTrainingStep,
@@ -2295,7 +2360,7 @@ const App = {
             </span>
           </button>
         </div>
-        <button class="btn btn-primary" @click="coopReset(); navigate('setup')">
+        <button class="btn btn-primary" @click="coopReset(); navTo('setup')">
           <span class="btn-ic">🧩</span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
         <button class="btn btn-coop" :disabled="!coopAvailable" @click="goCoop">
@@ -2306,8 +2371,8 @@ const App = {
           <span class="btn-ic">🆚</span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
         </button>
         <div class="home-grid">
-          <button class="btn btn-ghost" @click="navigate('stats')"><span class="btn-ic">📊</span> {{ t('home.stats') }}</button>
-          <button class="btn btn-ghost" @click="navigate('history')"><span class="btn-ic">🕘</span> {{ t('home.history') }}</button>
+          <button class="btn btn-ghost" @click="navTo('stats')"><span class="btn-ic">📊</span> {{ t('home.stats') }}</button>
+          <button class="btn btn-ghost" @click="navTo('history')"><span class="btn-ic">🕘</span> {{ t('home.history') }}</button>
         </div>
       </div>
       <div class="home-version">v{{ BUILD }}</div>
@@ -2316,7 +2381,7 @@ const App = {
     <!-- ══ SETUP ══ -->
     <section v-else-if="state.screen==='setup'" class="screen setup">
       <header class="topbar">
-        <button class="icon-btn" @click="coopReset(); navigate('home')">‹</button>
+        <button class="icon-btn" @click="goBack()">‹</button>
         <h2>{{ t('setup.title') }}</h2>
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       </header>
@@ -2665,9 +2730,9 @@ const App = {
 
     <!-- ══ STATS ══ -->
     <section v-else-if="state.screen==='stats'" class="screen stats">
-      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('stats.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
+      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('stats.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
       <div class="stats-body">
-        <button class="btn btn-ghost achievements-top-btn" @click="navigate('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
+        <button class="btn btn-ghost achievements-top-btn" @click="navTo('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
         <div class="stats-section-title">{{ t('stats.levelOverview') }}</div>
         <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
           <div class="diff-row-top">
@@ -2717,7 +2782,7 @@ const App = {
 
     <!-- ══ ACHIEVEMENTS ══ -->
     <section v-else-if="state.screen==='achievements'" class="screen achievements">
-      <header class="topbar"><button class="icon-btn" @click="navigate('stats')">‹</button><h2>{{ t('achievements.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
+      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('achievements.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
       <div class="achievements-body">
         <div class="achievements-progress">
           <span class="achievements-progress-label">{{ t('achievements.progress', { unlocked: achievementsUnlockedCount, total: ACHIEVEMENTS.length }) }}</span>
@@ -2737,7 +2802,7 @@ const App = {
 
     <!-- ══ VERLAUF ══ -->
     <section v-else-if="state.screen==='history'" class="screen history">
-      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('history.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
+      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('history.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
       <div class="history-body">
         <div v-if="!state.puzzleHistory.length" class="empty">{{ t('history.empty') }}</div>
         <div v-for="h in state.puzzleHistory" :key="h.ts" class="history-row">
@@ -2762,7 +2827,7 @@ const App = {
     <!-- ══ COOP ══ -->
     <section v-else-if="state.screen==='coop'" class="screen coop-screen">
       <header class="topbar">
-        <button class="icon-btn" @click="coopReset(); navigate('home')">‹</button>
+        <button class="icon-btn" @click="goBack()">‹</button>
         <h2>{{ t('coop.title') }}</h2>
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       </header>
@@ -2783,11 +2848,11 @@ const App = {
       <!-- Auswahl: Hosten oder Beitreten? -->
       <div v-else-if="state.coop.role === null" class="coop-body">
         <p class="coop-tagline">{{ t('coop.tagline') }}</p>
-        <button class="btn btn-primary" @click="state.coop.role='host'">
+        <button class="btn btn-primary" @click="coopChooseHost()">
           <span class="btn-ic">📡</span>
           <span class="btn-tx"><b>{{ t('coop.host') }}</b><small>{{ t('coop.hostHint') }}</small></span>
         </button>
-        <button class="btn btn-ghost" @click="state.coop.role='guest'">
+        <button class="btn btn-ghost" @click="coopChooseGuest()">
           <span class="btn-ic">🔗</span>
           <span class="btn-tx"><b>{{ t('coop.join') }}</b><small>{{ t('coop.joinHint') }}</small></span>
         </button>
@@ -2884,7 +2949,7 @@ const App = {
           </div>
         </template>
         <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
-        <button class="btn btn-ghost" style="margin-top:8px" @click="coopReset(); state.coop.role=null">{{ t('common.cancel') }}</button>
+        <button class="btn btn-ghost" style="margin-top:8px" @click="goBack()">{{ t('common.back') }}</button>
       </div>
 
       <!-- Gast: Code eingeben → verbinden → Lobby (warten auf Hoststart) -->
@@ -2908,7 +2973,7 @@ const App = {
         </div>
         <p v-if="state.coop.waitingForGuest && state.coop.myId" class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: state.coop.raceMode ? 2 : COOP_MAX_PLAYERS }) }}</p>
         <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
-        <button class="btn btn-ghost" style="margin-top:4px" @click="coopReset(); state.coop.role=null">{{ t('common.back') }}</button>
+        <button class="btn btn-ghost" style="margin-top:4px" @click="goBack()">{{ t('common.back') }}</button>
       </div>
 
     </section>
