@@ -1,2 +1,1 @@
-Grundpegel der Hintergrundmusik wieder halbiert (Aktions-Sounds bleiben unverändert laut)
-Lautstärke-Regler feiner einstellbar (1%-Schritte statt grober Stufen)
+Einstellungen jetzt von überall per Zahnrad erreichbar (auch im Spiel) – beim Öffnen im Spiel wird automatisch pausiert (Solo und Coop)

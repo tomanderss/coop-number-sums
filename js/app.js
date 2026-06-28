@@ -310,6 +310,26 @@ function resumeFromPause(broadcast = true) {
   }
 }
 
+// Einstellungen sind von JEDEM Screen aus über das Zahnrad erreichbar. Wir merken
+// uns den Ausgangs-Screen, um beim Schließen wieder dorthin zurückzukehren (statt
+// immer nach Home). Wird aus dem laufenden Spiel geöffnet, pausiert das Spiel —
+// pauseGame() broadcastet im Coop/Race, sodass ALLE Spieler mitpausieren; es
+// schützt sich selbst gegen Doppelpause/Lobby/Nicht-Spielen.
+let settingsReturn = null;
+function openSettings() {
+  if (state.screen === 'settings') return;
+  settingsReturn = state.screen;
+  if (state.screen === 'game') pauseGame();
+  navigate('settings');
+}
+// Zurück aus den Einstellungen zum Ausgangs-Screen. Ein währenddessen pausiertes
+// Spiel bleibt pausiert (Pause-Overlay mit „Fortsetzen") — bewusst kein Auto-Resume.
+function closeSettings() {
+  const back = settingsReturn || 'home';
+  settingsReturn = null;
+  navigate(back);
+}
+
 // ─── COOP-LOBBY: "Bereit?" vor dem eigentlichen Start ─────────────────────────
 // Ein frisch generiertes Coop-Rätsel zeigt zunächst nur die Lobby ("Mitspieler
 // sind da, Zeit läuft noch nicht") statt sofort loszulaufen — wer auch immer
@@ -2236,7 +2256,7 @@ const App = {
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, loadBackups,
-      quitToHome, setZoom, pauseGame, resumeFromPause, startCoopRound,
+      quitToHome, setZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct, giveUp,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
@@ -2258,7 +2278,7 @@ const App = {
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge">🔥{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
         <button class="icon-btn home-howto-btn" @click="state.modal='howto'" :aria-label="t('home.howto')" :title="t('home.howto')">?</button>
-        <button class="icon-btn home-settings-btn" @click="navigate('settings')" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
+        <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       </div>
       <div class="brand">
         <img class="brand-logo" src="./icons/icon-192.png" alt="" />
@@ -2302,7 +2322,8 @@ const App = {
     <section v-else-if="state.screen==='setup'" class="screen setup">
       <header class="topbar">
         <button class="icon-btn" @click="coopReset(); navigate('home')">‹</button>
-        <h2>{{ t('setup.title') }}</h2><span></span>
+        <h2>{{ t('setup.title') }}</h2>
+        <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       </header>
       <div class="setup-body">
         <div class="setup-label">{{ t('common.difficulty') }}</div>
@@ -2342,6 +2363,7 @@ const App = {
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="5" y="3" width="2.4" height="18" rx="1.2"/><path d="M7.4 4h12.1l-3 3.6 3 3.6H7.4z"/></svg>
           </button>
           <button class="icon-btn" @click="state.modal='howto'">?</button>
+          <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
         </div>
       </header>
 
@@ -2685,7 +2707,7 @@ const App = {
 
     <!-- ══ STATS ══ -->
     <section v-else-if="state.screen==='stats'" class="screen stats">
-      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('stats.title') }}</h2><span></span></header>
+      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('stats.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
       <div class="stats-body">
         <button class="btn btn-ghost achievements-top-btn" @click="navigate('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
         <div class="stats-section-title">{{ t('stats.levelOverview') }}</div>
@@ -2739,7 +2761,7 @@ const App = {
 
     <!-- ══ ACHIEVEMENTS ══ -->
     <section v-else-if="state.screen==='achievements'" class="screen achievements">
-      <header class="topbar"><button class="icon-btn" @click="navigate('stats')">‹</button><h2>{{ t('achievements.title') }}</h2><span></span></header>
+      <header class="topbar"><button class="icon-btn" @click="navigate('stats')">‹</button><h2>{{ t('achievements.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
       <div class="achievements-body">
         <div class="achievements-progress">
           <span class="achievements-progress-label">{{ t('achievements.progress', { unlocked: achievementsUnlockedCount, total: ACHIEVEMENTS.length }) }}</span>
@@ -2759,7 +2781,7 @@ const App = {
 
     <!-- ══ VERLAUF ══ -->
     <section v-else-if="state.screen==='history'" class="screen history">
-      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('history.title') }}</h2><span></span></header>
+      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('history.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
       <div class="history-body">
         <div v-if="!state.puzzleHistory.length" class="empty">{{ t('history.empty') }}</div>
         <div v-for="h in state.puzzleHistory" :key="h.ts" class="history-row">
@@ -2785,7 +2807,8 @@ const App = {
     <section v-else-if="state.screen==='coop'" class="screen coop-screen">
       <header class="topbar">
         <button class="icon-btn" @click="coopReset(); navigate('home')">‹</button>
-        <h2>{{ t('coop.title') }}</h2><span></span>
+        <h2>{{ t('coop.title') }}</h2>
+        <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       </header>
 
       <!-- Namens-Gate: bevor irgendetwas anderes möglich ist, Name + eigene Farbe festlegen
@@ -2936,7 +2959,7 @@ const App = {
 
     <!-- ══ SETTINGS ══ -->
     <section v-else-if="state.screen==='settings'" class="screen settings">
-      <header class="topbar"><button class="icon-btn" @click="navigate('home')">‹</button><h2>{{ t('settings.title') }}</h2><span></span></header>
+      <header class="topbar"><button class="icon-btn" @click="closeSettings">‹</button><h2>{{ t('settings.title') }}</h2><span></span></header>
       <div class="settings-body">
         <div class="set-group-title">{{ t('settings.appearance') }}</div>
         <div class="set-row" @click="toggleSetting('darkMode')">

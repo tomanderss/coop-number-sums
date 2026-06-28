@@ -1,7 +1,19 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp } from './helpers.js';
+import { gotoApp, startNewGame } from './helpers.js';
 
 test.describe('settings', () => {
+  test('Zahnrad ist auch im Spiel da, öffnet Einstellungen und pausiert (bleibt pausiert nach Zurück)', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page, 'sehrleicht');
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(false);
+    await page.locator('.screen.game .top-actions button:has-text("⚙️")').click();
+    await expect(page.locator('.screen.settings')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
+    await page.locator('.screen.settings .topbar .icon-btn').first().click();
+    await expect(page.locator('.screen.game')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
+  });
+
   test('dark mode toggle persists across reload', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
