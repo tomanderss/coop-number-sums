@@ -114,17 +114,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Großes App-Icon (Zahlengitter) als dezenter, scharfer Vollbild-Hintergrund
    der Startseite. An .app (dauerhaft vorhanden, wird beim Navigieren NICHT
    animiert) -> Hintergrund ist sofort/statisch da, ohne "Live-Reinzoomen".
-   WICHTIG gegen den sichtbaren Bildrand ("Rand muss weg") auf dem iPhone:
-   - `cover` (UNIFORM gezoomt, Seitenverhältnis erhalten — NICHT gestreckt).
-   - inset:-9% zieht das fixe Element auf allen Seiten ÜBER die physischen
-     Bildschirmkanten hinaus (inset-% ist viewport-relativ). Sweetspot: genug
-     Überstand, dass die Bildkante auch unten unter dem iPhone-Home-Indicator
-     außerhalb des Schirms liegt (iOS rechnet die Safe-Area knapper als die reine
-     Geometrie, -12% deckt auch unten unter dem Home-Indicator zuverlässig ab).
+   WICHTIG gegen den auf dem iPhone unten sichtbaren Beschnitt:
+   Statt das fixe Element über `inset`/`bottom` aufzuziehen (iOS klemmt fixe
+   Elemente an der Safe-Area/Home-Indicator-Kante ab -> unten blieb ein Rand),
+   wird hier ein QUADRAT zentriert per transform aufgezogen. Transform-zentrierte
+   fixe Elemente positioniert iOS zuverlässig, unabhängig von der Safe-Area.
+   - Seitenlänge = max(124vw,124vh): immer größer als der Bildschirm -> ragt auf
+     ALLEN Seiten (auch unten unter dem Home-Indicator) über die Kante hinaus.
+   - `cover` auf dem quadratischen Element: Bild (quadratisch) füllt es exakt,
+     Seitenverhältnis erhalten (uniform gezoomt, NICHT gestreckt).
    Sehr niedrige Deckkraft -> Buttons in Hell-/Dunkelmodus lesbar. Scharf. */
 .app { isolation: isolate; }
 .app.app-home::before {
-  content: ''; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
+  content: ''; position: fixed; left: 50%; top: 50%;
+  width: max(124vw, 124vh); height: max(124vw, 124vh);
+  transform: translate(-50%, -50%);
+  z-index: -1; pointer-events: none;
   background: url('../icons/icon-1024.png') center / cover no-repeat;
   opacity: .08;
 }
