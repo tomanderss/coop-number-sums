@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.133';
-export const BUILD_HASH = 'bfbdcde';
+export const BUILD      = '0.134';
+export const BUILD_HASH = 'e851a8c';
 
 export const CHANGELOG = [
+  {
+    "version": "0.134",
+    "date": "28.06.2026",
+    "changes": [
+      "Hauptmenü-Hintergrund reicht jetzt randlos bis über alle Kanten, auch unten (kein Beschnitt mehr)",
+      "Hintergrundmusik versucht direkt beim Öffnen der App zu starten (bzw. spätestens beim ersten Antippen)"
+    ]
+  },
   {
     "version": "0.133",
     "date": "28.06.2026",
