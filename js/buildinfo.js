@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.134';
-export const BUILD_HASH = 'e851a8c';
+export const BUILD      = '0.135';
+export const BUILD_HASH = 'ed6832f';
 
 export const CHANGELOG = [
+  {
+    "version": "0.135",
+    "date": "28.06.2026",
+    "changes": [
+      "Musik startet auf iPhone jetzt zuverlässig beim ersten Antippen (hängender Audio-Kontext wird in der Geste neu aufgebaut)",
+      "Kurzer Ton beim Schließen/Wechseln in den Hintergrund weiter reduziert (Ausgang wird sofort hart vom Lautsprecher getrennt)"
+    ]
+  },
   {
     "version": "0.134",
     "date": "28.06.2026",
