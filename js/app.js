@@ -2463,6 +2463,7 @@ const App = {
                    @contextmenu.prevent>
                 <span v-if="state.cellMeta[r-1][c-1].chip!=null && !regionResolved(state.cellMeta[r-1][c-1].region)" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
                 <span class="cnum">{{ state.puzzle.values[r-1][c-1] }}</span>
+                <i v-if="state.marks[r-1][c-1]==='removed' && state.cellMeta[r-1][c-1].hintMark" class="hint-dot"></i>
               </div>
             </template>
           </div>
