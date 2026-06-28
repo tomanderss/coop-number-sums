@@ -1,0 +1,2 @@
+Neue Aktions-Sounds: Vervollständigung (Käfig/Reihe/Spalte) mit Stufung bei mehreren gleichzeitig, Einkreisen, Löschen, Fehler und Hinweis – warm und zen-artig synthetisiert
+Aktions-Sounds einzeln pro Aktion in den Einstellungen schaltbar (Vorhören beim Einschalten)
