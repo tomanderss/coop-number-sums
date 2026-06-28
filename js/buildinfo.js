@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.141';
-export const BUILD_HASH = '39059ba';
+export const BUILD      = '0.142';
+export const BUILD_HASH = '2523c80';
 
 export const CHANGELOG = [
+  {
+    "version": "0.142",
+    "date": "28.06.2026",
+    "changes": [
+      "Coop-Hinweise gefixt: gemeinsames Hinweisfeld für alle Spieler, Stufen 1–3 laufen pro Spieler einzeln, kein sofortiges Auflösen mehr und keine Überhänge aus alten Runden"
+    ]
+  },
   {
     "version": "0.141",
     "date": "28.06.2026",
