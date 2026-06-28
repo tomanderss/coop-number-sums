@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.139';
-export const BUILD_HASH = '7d89b25';
+export const BUILD      = '0.140';
+export const BUILD_HASH = '021ab88';
 
 export const CHANGELOG = [
+  {
+    "version": "0.140",
+    "date": "28.06.2026",
+    "changes": [
+      "Einstellungen jetzt von überall per Zahnrad erreichbar (auch im Spiel) – beim Öffnen im Spiel wird automatisch pausiert (Solo und Coop)",
+      "Fehler behoben: Beim Auflösen einer Cage/Reihe/Spalte leuchtet der Rand jetzt auch bei per Hinweis gelöschten Feldern korrekt auf"
+    ]
+  },
   {
     "version": "0.139",
     "date": "28.06.2026",
