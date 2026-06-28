@@ -644,9 +644,18 @@ function setMark(r, c, next, user, fromId) {
   state.markedBy[r][c] = next === 'none' ? null : (user ? (state.coop.myId || LOCAL_PLAYER_ID) : fromId);
   if (user && state.coop.active) coopSend({ type: Coop.MSG.MOVE, r, c, mark: next, from: state.coop.myId });
 
-  if (!wasRow && rowResolved(r)) pulseResolved('row', r);
-  if (!wasCol && colResolved(c)) pulseResolved('col', c);
-  if (region >= 0 && !wasRegion && regionResolved(region)) pulseResolved('region', region);
+  // Aktions-Sound nur für eigene Züge (sonst klingelt jeder Partner-Tap im Coop).
+  if (user) {
+    if (next === 'kept' && state.settings.sfxKeep) Music.sfxKeep();
+    else if (next === 'removed' && state.settings.sfxRemove) Music.sfxRemove();
+  }
+
+  // Wie viele Strukturen löst dieser eine Zug gleichzeitig auf? -> Stufung.
+  let resolved = 0;
+  if (!wasRow && rowResolved(r)) { pulseResolved('row', r); resolved++; }
+  if (!wasCol && colResolved(c)) { pulseResolved('col', c); resolved++; }
+  if (region >= 0 && !wasRegion && regionResolved(region)) { pulseResolved('region', region); resolved++; }
+  if (resolved > 0 && state.settings.sfxComplete) Music.sfxComplete(resolved);
 
   afterMove();
 }
@@ -667,10 +676,14 @@ function clearStaleHintNudge() {
   if (n && state.marks[n.r][n.c] === n.want) state.hintNudge = null;
 }
 
+let lastErrorSfx = 0;
 function flashError(r, c) {
   const key = `${r}-${c}`;
   state.flash[key] = true;
   setTimeout(() => { delete state.flash[key]; }, 650);
+  // Fehler-Ton — beim Mehrfach-Check (doCheck markiert viele Zellen auf einmal)
+  // nur einmal spielen, nicht pro Zelle.
+  if (state.settings.sfxError && Date.now() - lastErrorSfx > 120) { lastErrorSfx = Date.now(); Music.sfxError(); }
 }
 
 // by: wer den Fehler begangen hat ('me'/Peer-ID im Coop, sonst null). Wird im Coop
@@ -848,9 +861,11 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
   state.cellMeta[r][c].hintMark = true;
   setTimeout(() => { if (state.cellMeta[r]) state.cellMeta[r][c].hint = false; }, 1400);
 
-  if (!wasRow && rowResolved(r)) pulseResolved('row', r);
-  if (!wasCol && colResolved(c)) pulseResolved('col', c);
-  if (region >= 0 && !wasRegion && regionResolved(region)) pulseResolved('region', region);
+  let resolved = 0;
+  if (!wasRow && rowResolved(r)) { pulseResolved('row', r); resolved++; }
+  if (!wasCol && colResolved(c)) { pulseResolved('col', c); resolved++; }
+  if (region >= 0 && !wasRegion && regionResolved(region)) { pulseResolved('region', region); resolved++; }
+  if (resolved > 0 && state.settings.sfxComplete) Music.sfxComplete(resolved);
 
   afterMove();
 }
@@ -873,7 +888,7 @@ function useHint() {
   // Stufe 3: Frage steht schon -> Zelle wirklich auflösen (Strafe lief in Stufe 1).
   if (n && n.stage >= 2) { state.hintNudge = null; doRevealCell(n.r, n.c, n.want); return; }
   // Stufe 2: Bereich ist schon markiert -> jetzt die Leitfrage einblenden.
-  if (n) { n.stage = 2; return; }
+  if (n) { if (state.settings.sfxHint) Music.sfxHint(); n.stage = 2; return; }
   // Stufe 1: erst warnen (kostet die Bestzeit!), dann Bereich markieren.
   confirmThenStartHint();
 }
@@ -903,6 +918,7 @@ function confirmThenStartHint() {
 function startHint() {
   const step = findTrainingStep(state.puzzle, state.marks);
   registerHintPenalty();
+  if (state.settings.sfxHint) Music.sfxHint(); // Stufe 1 — Ton bei jeder Hinweis-Instanz
   if (step) {
     state.hintNudge = { group: step.group, reason: step.reason, rem: step.rem, r: step.r, c: step.c, want: step.action, stage: 1 };
     log('game', `Hinweis Stufe 1 (Bereich markiert)`, { group: step.group.kind });
@@ -921,6 +937,7 @@ function registerHintPenalty() {
 // im Coop. Zählt NICHT erneut — die Strafe lief bereits in Stufe 1.
 function doRevealCell(r, c, want) {
   log('game', `Hinweis aufgelöst`, { r, c });
+  if (state.settings.sfxHint) Music.sfxHint(); // Stufe 3 — Ton bei jeder Hinweis-Instanz
   applyHintEffect(r, c, want);
   if (state.coop.active) coopSend({ type: Coop.MSG.HINT, r, c, mark: want, from: state.coop.myId });
 }
@@ -1872,6 +1889,14 @@ function toggleSetting(key) {
   state.settings[key] = !state.settings[key];
   if (key === 'darkMode' || key === 'colorBlindMode') applyTheme();
   if (key.startsWith('music')) updateMusic();
+  // Aktions-Sound beim Einschalten kurz vorspielen (zum Anhören/Prüfen).
+  if (state.settings[key]) {
+    if (key === 'sfxComplete') Music.sfxComplete(1);
+    else if (key === 'sfxKeep') Music.sfxKeep();
+    else if (key === 'sfxRemove') Music.sfxRemove();
+    else if (key === 'sfxError') Music.sfxError();
+    else if (key === 'sfxHint') Music.sfxHint();
+  }
 }
 function setSetting(key, val) {
   state.settings[key] = val;
@@ -2978,6 +3003,22 @@ const App = {
           <input type="range" class="set-range" min="0" max="1" step="0.05" :value="state.settings.musicVolume"
                  :style="{ '--rangePct': Math.round(state.settings.musicVolume*100) + '%' }"
                  @input="setSetting('musicVolume', parseFloat($event.target.value))" />
+        </div>
+        <small class="set-hint">{{ t('settings.sfxHintText') }}</small>
+        <div class="set-row" @click="toggleSetting('sfxComplete')">
+          <span>{{ t('settings.sfxComplete') }}</span><span class="switch" :class="{on:state.settings.sfxComplete}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('sfxKeep')">
+          <span>{{ t('settings.sfxKeep') }}</span><span class="switch" :class="{on:state.settings.sfxKeep}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('sfxRemove')">
+          <span>{{ t('settings.sfxRemove') }}</span><span class="switch" :class="{on:state.settings.sfxRemove}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('sfxError')">
+          <span>{{ t('settings.sfxError') }}</span><span class="switch" :class="{on:state.settings.sfxError}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('sfxHint')">
+          <span>{{ t('settings.sfxHint') }}</span><span class="switch" :class="{on:state.settings.sfxHint}"><i></i></span>
         </div>
 
         <div class="set-group-title">{{ t('settings.a11y') }}</div>

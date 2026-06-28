@@ -136,6 +136,15 @@ export const DEFAULT_SETTINGS = {
   musicCompetition: true,
   musicTraining: true,
   musicVolume: 0.6,
+  // UI-Aktions-Sounds (js/music.js sfx*), je Aktion einzeln schaltbar. Default an.
+  // sfxComplete = Käfig/Reihe/Spalte fertig (mit Stufung bei mehreren gleichzeitig),
+  // sfxKeep = korrektes Einkreisen, sfxRemove = Löschen, sfxError = Fehler,
+  // sfxHint = Hinweis (bei jeder Hinweis-Instanz).
+  sfxComplete: true,
+  sfxKeep: true,
+  sfxRemove: true,
+  sfxError: true,
+  sfxHint: true,
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)

@@ -19,6 +19,7 @@
 // — play() wird daher aus einem Tap-Pfad (Spielstart) heraus aufgerufen.
 
 let ctx = null, master = null, reverb = null, analyser = null;
+let sfxBus = null, sfxReverb = null; // eigener Bus für UI-Sounds (unabhängig von der Musik)
 let droneVoices = [], padTimer = null, melodyTimer = null;
 let running = false, curVolume = 0.5, chordIdx = 0;
 
@@ -186,6 +187,103 @@ function ensureContext() {
   shaper.curve = softClipCurve(); shaper.oversample = '2x';
   analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
   master.connect(makeup); makeup.connect(shaper); shaper.connect(analyser); analyser.connect(ctx.destination);
+  // UI-Sound-Bus: eigener Eingang in dieselbe Ausgangskette (Soft-Clip + Analyser),
+  // aber NICHT über die Musik-Lautstärke/Fade -> UI-Töne spielen unabhängig davon,
+  // ob/wie laut die Hintergrundmusik läuft. Dezenter eigener Hall für „Raum".
+  sfxBus = ctx.createGain(); sfxBus.gain.value = 1.0;
+  sfxBus.connect(makeup);
+  sfxReverb = buildReverb(2.0, 3.2);
+  const sfxWet = ctx.createGain(); sfxWet.gain.value = 0.16;
+  sfxBus.connect(sfxReverb); sfxReverb.connect(sfxWet); sfxWet.connect(makeup);
+}
+
+// ── UI-Sounds (Aktions-/Vervollständigungs-Töne) ────────────────────────────
+// Warm/rund synthetisiert (reine Sinus + sanfter Tiefpass), passend zur Musik.
+// Werden aus Tap-Pfaden ausgelöst -> ensureContext() legt den Kontext ggf. in der
+// Geste an; sfxReady() resümiert ihn best effort.
+function sfxReady() {
+  ensureContext();
+  try { if (ctx.state === 'suspended') ctx.resume(); } catch {}
+  return !!sfxBus;
+}
+// Eine kurze Stimme auf dem SFX-Bus: Sinus (+ optional Oktav-Oberton), Tiefpass,
+// Hüllkurve, optionales Glissando (für Tropfen/Pop). when relativ zu ctx.currentTime.
+function sfxVoice(freq, dt, dur, peak, { lp = 3000, attack = 0.008, glideTo = 0, glideTime = 0.06, partial2 = 0 } = {}) {
+  const when = ctx.currentTime + dt;
+  const osc = ctx.createOscillator(); osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, when);
+  if (glideTo) { try { osc.frequency.exponentialRampToValueAtTime(glideTo, when + glideTime); } catch {} }
+  const lpf = ctx.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = lp;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(peak, when + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  osc.connect(lpf).connect(g); g.connect(sfxBus);
+  osc.start(when); osc.stop(when + dur + 0.05);
+  osc.onended = () => { try { osc.disconnect(); lpf.disconnect(); g.disconnect(); } catch {} };
+  if (partial2 > 0) {
+    const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.setValueAtTime(freq * 2, when);
+    if (glideTo) { try { o2.frequency.exponentialRampToValueAtTime(glideTo * 2, when + glideTime); } catch {} }
+    const g2 = ctx.createGain();
+    g2.gain.setValueAtTime(0.0001, when);
+    g2.gain.exponentialRampToValueAtTime(peak * partial2, when + attack);
+    g2.gain.exponentialRampToValueAtTime(0.0001, when + dur * 0.85);
+    o2.connect(g2); g2.connect(sfxBus);
+    o2.start(when); o2.stop(when + dur + 0.05);
+    o2.onended = () => { try { o2.disconnect(); g2.disconnect(); } catch {} };
+  }
+}
+// Kurzer gefilterter Rauschimpuls (Anschlag-„plip" beim Wassertropfen).
+function sfxNoise(dt, dur, peak, lp) {
+  const when = ctx.currentTime + dt;
+  const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+  const b = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = b.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+  const src = ctx.createBufferSource(); src.buffer = b;
+  const lpf = ctx.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = lp;
+  const g = ctx.createGain(); g.gain.value = peak;
+  src.connect(lpf).connect(g); g.connect(sfxBus);
+  src.start(when);
+  src.onended = () => { try { src.disconnect(); lpf.disconnect(); g.disconnect(); } catch {} };
+}
+
+// Käfig/Reihe/Spalte fertig — kurzes, prägnantes E5. tier = wie viele Strukturen
+// dieselbe Zahl gleichzeitig auflöst (1/2/3+): höhere Stufe = mächtiger durch
+// Sub-Oktaven/Quinte DARUNTER (nicht mehr/höhere Töne).
+export function sfxComplete(tier = 1) {
+  if (!sfxReady()) return;
+  sfxVoice(midi(16), 0, 0.34, 0.5, { lp: 3000, attack: 0.008, partial2: 0.18 }); // E5
+  if (tier >= 2) sfxVoice(midi(4), 0, 0.6, 0.4, { lp: 900, attack: 0.01 });       // E4 Oktave drunter
+  if (tier >= 3) {
+    sfxVoice(midi(-8), 0, 0.8, 0.45, { lp: 700, attack: 0.012 });                 // E3 tiefe Sub-Oktave
+    sfxVoice(midi(-1), 0, 0.55, 0.26, { lp: 800, attack: 0.012 });                // B3 Quinte (Power)
+  }
+}
+// Korrektes Einkreisen — dunkler/dumpfer Wassertropfen (Pitch steigt G4->D5).
+export function sfxKeep() {
+  if (!sfxReady()) return;
+  sfxNoise(0, 0.006, 0.12, 7000);
+  sfxVoice(midi(7), 0, 0.24, 0.6, { lp: 1500, attack: 0.004, glideTo: midi(14), glideTime: 0.06 });
+}
+// Löschen — weicher „Pop" (Pitch fällt 440->150 Hz).
+export function sfxRemove() {
+  if (!sfxReady()) return;
+  sfxVoice(440, 0, 0.12, 0.6, { lp: 1400, attack: 0.002, glideTo: 150, glideTime: 0.07, partial2: 0.12 });
+}
+// Fehler — sanftes, dunkles Abwärts-Motiv (Eb4 -> C4 -> Ab3), nicht schrill.
+export function sfxError() {
+  if (!sfxReady()) return;
+  sfxVoice(midi(3), 0, 0.3, 0.5, { lp: 1400, attack: 0.01, partial2: 0.1 });
+  sfxVoice(midi(0), 0.16, 0.3, 0.5, { lp: 1400, attack: 0.01, partial2: 0.1 });
+  sfxVoice(midi(-4), 0.32, 1.0, 0.58, { lp: 1300, attack: 0.01, partial2: 0.1 });
+}
+// Hinweis — heller, neugieriger Aufwärts-Schimmer (A4 -> D5 -> E5).
+export function sfxHint() {
+  if (!sfxReady()) return;
+  sfxVoice(midi(9), 0, 0.45, 0.4, { lp: 2400, attack: 0.02, partial2: 0.15 });
+  sfxVoice(midi(14), 0.14, 0.45, 0.4, { lp: 2400, attack: 0.02, partial2: 0.15 });
+  sfxVoice(midi(16), 0.28, 1.0, 0.44, { lp: 2400, attack: 0.02, partial2: 0.15 });
 }
 
 export function isPlaying() { return running; }
@@ -211,7 +309,7 @@ export async function play(volume) {
     if (padTimer) { clearTimeout(padTimer); padTimer = null; }
     if (melodyTimer) { clearTimeout(melodyTimer); melodyTimer = null; }
     const stuck = ctx;
-    ctx = null; master = null; reverb = null; analyser = null; droneVoices = []; running = false;
+    ctx = null; master = null; reverb = null; analyser = null; sfxBus = null; sfxReverb = null; droneVoices = []; running = false;
     try { stuck.close(); } catch {}
   }
   ensureContext();
@@ -262,7 +360,7 @@ export function suspendForBackground() {
   // 3) Noch laufende Oszillatoren (Drone) sofort stoppen -> nichts klingt nach.
   try { droneVoices.forEach(v => { try { v.stop(); } catch {} }); } catch {}
   const dead = ctx;
-  ctx = null; master = null; reverb = null; analyser = null; droneVoices = [];
+  ctx = null; master = null; reverb = null; analyser = null; sfxBus = null; sfxReverb = null; droneVoices = [];
   running = false; // Graph ist weg -> play() baut alles neu auf
   try { dead.close(); } catch {}
 }

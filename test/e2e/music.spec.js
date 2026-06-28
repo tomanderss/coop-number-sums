@@ -55,3 +55,25 @@ test('Einstellungen: Ton-Kategorie mit Menü- + vier Modus-Schaltern und Lautst�
   await expect(page.getByText('Musik im Training')).toBeVisible();
   await expect(page.locator('.screen.settings .set-range')).toHaveCount(1);
 });
+
+test('Einstellungen: Aktions-Sounds pro Aktion schaltbar', async ({ page }) => {
+  await gotoApp(page);
+  await page.locator('.home-settings-btn').click();
+  await page.waitForSelector('.screen.settings');
+  const s = page.locator('.screen.settings');
+  await expect(s.getByText('Aktions-Töne — je Aktion einzeln schaltbar.')).toBeVisible();
+  await expect(s.getByText('Vervollständigung (Käfig/Reihe/Spalte)')).toBeVisible();
+  await expect(s.getByText('Einkreisen', { exact: true })).toBeVisible();
+});
+
+test('Aktions-Sounds: alle Funktionen vorhanden und werfen nicht', async ({ page }) => {
+  await gotoApp(page);
+  const ok = await page.evaluate(() => {
+    const M = window.__cns.Music;
+    for (const fn of ['sfxComplete', 'sfxKeep', 'sfxRemove', 'sfxError', 'sfxHint'])
+      if (typeof M[fn] !== 'function') throw new Error('missing ' + fn);
+    M.sfxComplete(1); M.sfxComplete(3); M.sfxKeep(); M.sfxRemove(); M.sfxError(); M.sfxHint();
+    return true;
+  });
+  expect(ok).toBe(true);
+});
