@@ -1,0 +1,1 @@
+Aufgeben-Funktion komplett entfernt (Button, Aufgabe-Bildschirm und Aufgegeben-Statistik) – nicht mehr benötigt

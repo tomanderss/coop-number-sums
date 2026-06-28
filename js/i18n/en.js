@@ -43,9 +43,6 @@ export default {
     coopTag: 'CO-OP',
     coopOfflineSuffix: ' · offline',
     pauseTitle: 'Pause',
-    giveUpTitle: 'Give up',
-    giveUpConfirmTitle: 'Give up?',
-    giveUpConfirmMsg: 'The puzzle will be recorded as given up.',
     undoTitle: 'Undo',
     eraserTitle: 'Erase',
     penTitle: 'Circle',
@@ -87,9 +84,6 @@ export default {
     title: 'Out of lives',
     msg: 'No worries – try again!',
   },
-  gaveup: {
-    title: 'Given up',
-  },
   stats: {
     title: 'Stats',
     levelOverview: 'Level overview',
@@ -98,7 +92,6 @@ export default {
     wonPlayedLabel: 'Wins',
     bestTimeLabel: 'Best time',
     avgTimeLabel: 'Avg. time',
-    gaveupLabel: 'Gave up',
     lostLabel: 'Lost',
     raceSection: '🆚 Match mode',
     race1v1: '1v1',
@@ -173,9 +166,7 @@ export default {
     weWon: 'Your team won! (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
     weLost: 'The other team finished first. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
     weWonByOpponentLives: 'The other team ran out of lives — you win by default! (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
-    weWonByOpponentGaveup: 'The other team gave up — you win by default! (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
     weLostByLives: 'Your team ran out of lives — the match is over for you. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
-    weLostByGaveup: 'Your team gave up. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
   },
   race: {
     startMatch: 'Start match 🚀',
@@ -191,9 +182,7 @@ export default {
     youLostClean: '{name} was faster and finished mistake-free — the match is over because you were slower. (You: {myPct}% vs. {name}: {oppPct}%)',
     youLostMistakes: '{name} was faster — the match is over because you were slower. (You: {myPct}% vs. {name}: {oppPct}%)',
     youWonByOpponentLives: '{name} ran out of lives — you win by default! (You: {myPct}% vs. {name}: {oppPct}%)',
-    youWonByOpponentGaveup: '{name} gave up — you win by default! (You: {myPct}% vs. {name}: {oppPct}%)',
     youLostByLives: 'You ran out of lives — the match is over for you. (You: {myPct}% vs. {name}: {oppPct}%)',
-    youLostByGaveup: 'You gave up. (You: {myPct}% vs. {name}: {oppPct}%)',
     rematch: 'Play again 🔁',
   },
   settings: {

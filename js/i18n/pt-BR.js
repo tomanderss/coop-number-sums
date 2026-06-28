@@ -43,9 +43,6 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · offline',
     pauseTitle: 'Pausa',
-    giveUpTitle: 'Desistir',
-    giveUpConfirmTitle: 'Desistir?',
-    giveUpConfirmMsg: 'O quebra-cabeça será marcado como desistido.',
     undoTitle: 'Desfazer',
     eraserTitle: 'Apagar',
     penTitle: 'Circular',
@@ -87,9 +84,6 @@ export default {
     title: 'Sem vidas',
     msg: 'Sem problemas – tente novamente!',
   },
-  gaveup: {
-    title: 'Desistiu',
-  },
   stats: {
     title: 'Estatísticas',
     levelOverview: 'Visão geral dos níveis',
@@ -98,7 +92,6 @@ export default {
     wonPlayedLabel: 'Vitórias',
     bestTimeLabel: 'Melhor tempo',
     avgTimeLabel: 'Tempo médio',
-    gaveupLabel: 'Desistências',
     lostLabel: 'Derrotas',
     raceSection: '🆚 Modo duelo',
     race1v1: '1v1',
@@ -173,9 +166,7 @@ export default {
     weWon: 'Seu time venceu! (Time {myTeam}: {myPct}% vs. Time {oppTeam}: {oppPct}%)',
     weLost: 'O outro time terminou primeiro. (Time {myTeam}: {myPct}% vs. Time {oppTeam}: {oppPct}%)',
     weWonByOpponentLives: 'Time {oppTeam} perdeu todas as vidas — vocês vencem automaticamente! (Time {myTeam}: {myPct}% vs. Time {oppTeam}: {oppPct}%)',
-    weWonByOpponentGaveup: 'Time {oppTeam} desistiu — vocês vencem automaticamente! (Time {myTeam}: {myPct}% vs. Time {oppTeam}: {oppPct}%)',
     weLostByLives: 'Seu time (Time {myTeam}) perdeu todas as vidas — a partida acabou para vocês. (Time {myTeam}: {myPct}% vs. Time {oppTeam}: {oppPct}%)',
-    weLostByGaveup: 'Seu time (Time {myTeam}) desistiu. (Time {myTeam}: {myPct}% vs. Time {oppTeam}: {oppPct}%)',
   },
   race: {
     startMatch: 'Iniciar duelo 🚀',
@@ -191,9 +182,7 @@ export default {
     youLostClean: '{name} foi mais rápido e terminou sem erros — o duelo acabou porque você foi mais lento. (Você: {myPct}% vs. {name}: {oppPct}%)',
     youLostMistakes: '{name} foi mais rápido — o duelo acabou porque você foi mais lento. (Você: {myPct}% vs. {name}: {oppPct}%)',
     youWonByOpponentLives: '{name} perdeu todas as vidas — você vence automaticamente! (Você: {myPct}% vs. {name}: {oppPct}%)',
-    youWonByOpponentGaveup: '{name} desistiu — você vence automaticamente! (Você: {myPct}% vs. {name}: {oppPct}%)',
     youLostByLives: 'Você perdeu todas as vidas — o duelo acabou para você. (Você: {myPct}% vs. {name}: {oppPct}%)',
-    youLostByGaveup: 'Você desistiu. (Você: {myPct}% vs. {name}: {oppPct}%)',
     rematch: 'Jogar de novo 🔁',
   },
   settings: {

@@ -116,7 +116,7 @@ test.describe('race mode', () => {
     expect(await page.evaluate(() => window.__cns.state.coop.waitingForGuest)).toBe(true);
   });
 
-  test('the opponent giving up awards the win to me', async ({ page }) => {
+  test('the opponent losing all lives awards the win to me', async ({ page }) => {
     await simulateHostedRaceLobby(page);
 
     await page.locator('.coop-body .btn-primary').click();
@@ -126,7 +126,7 @@ test.describe('race mode', () => {
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 
     await page.evaluate(() => {
-      window.__cns.handleCoopMsg({ type: 'raceDone', outcome: 'gaveup', from: 'fake-guest-1' });
+      window.__cns.handleCoopMsg({ type: 'raceDone', outcome: 'lost', from: 'fake-guest-1' });
     });
 
     await expect(page.locator('.result-card.win')).toBeVisible();

@@ -162,12 +162,6 @@ describe('storage.recordResult', () => {
     assert.equal(stats.bestStreak, 1); // best streak survives the reset
   });
 
-  test('giving up is tallied separately from losing', () => {
-    const { stats } = recordResult({ difficulty: 'mittel', outcome: 'gaveup', timeMs: 1000, hintsUsed: 0, mistakes: 0 });
-    assert.equal(stats.gaveup, 1);
-    assert.equal(stats.lost, 0);
-  });
-
   test('coop results are tallied separately from solo results', () => {
     recordResult({ difficulty: 'mittel', outcome: 'won', timeMs: 1000, hintsUsed: 0, mistakes: 0, coop: true });
     const stats = loadStats();

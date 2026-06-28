@@ -43,9 +43,6 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' ・オフライン',
     pauseTitle: '一時停止',
-    giveUpTitle: 'ギブアップ',
-    giveUpConfirmTitle: 'ギブアップしますか？',
-    giveUpConfirmMsg: 'このパズルはギブアップとして記録されます。',
     undoTitle: '元に戻す',
     eraserTitle: '消す',
     penTitle: '丸で囲む',
@@ -87,9 +84,6 @@ export default {
     title: 'ライフがなくなりました',
     msg: '大丈夫、もう一度挑戦しよう！',
   },
-  gaveup: {
-    title: 'ギブアップしました',
-  },
   stats: {
     title: '統計',
     levelOverview: 'レベル概要',
@@ -98,7 +92,6 @@ export default {
     wonPlayedLabel: '勝利',
     bestTimeLabel: 'ベストタイム',
     avgTimeLabel: '平均タイム',
-    gaveupLabel: 'ギブアップ',
     lostLabel: '敗北',
     raceSection: '🆚 対戦モード',
     race1v1: '1対1',
@@ -173,9 +166,7 @@ export default {
     weWon: 'チームの勝利です！（チーム{myTeam}: {myPct}% vs. チーム{oppTeam}: {oppPct}%）',
     weLost: '相手チームが先に完了しました。（チーム{myTeam}: {myPct}% vs. チーム{oppTeam}: {oppPct}%）',
     weWonByOpponentLives: 'チーム{oppTeam}がライフを失いました — 自動的に勝利です！（チーム{myTeam}: {myPct}% vs. チーム{oppTeam}: {oppPct}%）',
-    weWonByOpponentGaveup: 'チーム{oppTeam}が投了しました — 自動的に勝利です！（チーム{myTeam}: {myPct}% vs. チーム{oppTeam}: {oppPct}%）',
     weLostByLives: 'あなたのチーム（チーム{myTeam}）はライフを失いました — マッチは終了しました。（チーム{myTeam}: {myPct}% vs. チーム{oppTeam}: {oppPct}%）',
-    weLostByGaveup: 'あなたのチーム（チーム{myTeam}）は投了しました。（チーム{myTeam}: {myPct}% vs. チーム{oppTeam}: {oppPct}%）',
   },
   race: {
     startMatch: '対戦開始 🚀',
@@ -191,9 +182,7 @@ export default {
     youLostClean: '{name}の方が速く、ミスなく完成しました — あなたが遅かったため対戦は終了しました。（あなた: {myPct}% vs. {name}: {oppPct}%）',
     youLostMistakes: '{name}の方が速く完成しました — あなたが遅かったため対戦は終了しました。（あなた: {myPct}% vs. {name}: {oppPct}%）',
     youWonByOpponentLives: '{name}がライフを失いました — 自動的に勝利です！（あなた: {myPct}% vs. {name}: {oppPct}%）',
-    youWonByOpponentGaveup: '{name}が投了しました — 自動的に勝利です！（あなた: {myPct}% vs. {name}: {oppPct}%）',
     youLostByLives: 'あなたはライフを失いました — 対戦は終了しました。（あなた: {myPct}% vs. {name}: {oppPct}%）',
-    youLostByGaveup: 'あなたは投了しました。（あなた: {myPct}% vs. {name}: {oppPct}%）',
     rematch: 'もう一度プレイ 🔁',
   },
   settings: {

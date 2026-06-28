@@ -43,9 +43,6 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · 오프라인',
     pauseTitle: '일시정지',
-    giveUpTitle: '포기',
-    giveUpConfirmTitle: '포기하시겠습니까?',
-    giveUpConfirmMsg: '이 퍼즐은 포기로 기록됩니다.',
     undoTitle: '실행 취소',
     eraserTitle: '지우기',
     penTitle: '동그라미',
@@ -87,9 +84,6 @@ export default {
     title: '목숨이 모두 소진되었습니다',
     msg: '괜찮아요 – 다시 시도해보세요!',
   },
-  gaveup: {
-    title: '포기함',
-  },
   stats: {
     title: '통계',
     levelOverview: '레벨 개요',
@@ -98,7 +92,6 @@ export default {
     wonPlayedLabel: '승리',
     bestTimeLabel: '최고 기록',
     avgTimeLabel: '평균 시간',
-    gaveupLabel: '포기',
     lostLabel: '패배',
     raceSection: '🆚 대결 모드',
     race1v1: '1대1',
@@ -173,9 +166,7 @@ export default {
     weWon: '우리 팀이 승리했습니다! ({myTeam}팀: {myPct}% vs. {oppTeam}팀: {oppPct}%)',
     weLost: '상대 팀이 먼저 끝냈습니다. ({myTeam}팀: {myPct}% vs. {oppTeam}팀: {oppPct}%)',
     weWonByOpponentLives: '상대 팀이 모든 생명을 잃었습니다 — 자동으로 승리합니다! ({myTeam}팀: {myPct}% vs. {oppTeam}팀: {oppPct}%)',
-    weWonByOpponentGaveup: '상대 팀이 포기했습니다 — 자동으로 승리합니다! ({myTeam}팀: {myPct}% vs. {oppTeam}팀: {oppPct}%)',
     weLostByLives: '우리 팀이 모든 생명을 잃었습니다 — 매치가 종료되었습니다. ({myTeam}팀: {myPct}% vs. {oppTeam}팀: {oppPct}%)',
-    weLostByGaveup: '우리 팀이 포기했습니다. ({myTeam}팀: {myPct}% vs. {oppTeam}팀: {oppPct}%)',
   },
   race: {
     startMatch: '대결 시작 🚀',
@@ -191,9 +182,7 @@ export default {
     youLostClean: '{name}님이 더 빠르게 실수 없이 완료했습니다 — 당신이 더 느려서 대결이 종료되었습니다. (나: {myPct}% vs. {name}: {oppPct}%)',
     youLostMistakes: '{name}님이 더 빨랐습니다 — 당신이 더 느려서 대결이 종료되었습니다. (나: {myPct}% vs. {name}: {oppPct}%)',
     youWonByOpponentLives: '{name}님이 모든 생명을 잃었습니다 — 자동으로 승리합니다! (나: {myPct}% vs. {name}: {oppPct}%)',
-    youWonByOpponentGaveup: '{name}님이 포기했습니다 — 자동으로 승리합니다! (나: {myPct}% vs. {name}: {oppPct}%)',
     youLostByLives: '당신은 모든 생명을 잃었습니다 — 대결이 종료되었습니다. (나: {myPct}% vs. {name}: {oppPct}%)',
-    youLostByGaveup: '당신은 포기했습니다. (나: {myPct}% vs. {name}: {oppPct}%)',
     rematch: '다시 플레이 🔁',
   },
   settings: {

@@ -71,19 +71,6 @@ test.describe('gameplay', () => {
     await expect(page.locator('.result-card.lose')).toBeVisible();
   });
 
-  test('giving up shows the gave-up screen', async ({ page }) => {
-    await gotoApp(page);
-    await startNewGame(page, 'sehrleicht');
-
-    await page.locator('.game-top .icon-btn').first().click(); // Pause
-    await page.locator('.pause-overlay').getByText('Aufgeben').click(); // im Pausenmenü
-    await expect(page.locator('.modal-sm')).toBeVisible();
-    await page.locator('.confirm-actions .btn-danger').click();
-
-    await expect(page.locator('.result-card.lose .result-emoji')).toHaveText('🏳');
-    expect(await page.evaluate(() => window.__cns.state.status)).toBe('gaveup');
-  });
-
   test('the lives HUD shows one fewer heart after each mistake', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');

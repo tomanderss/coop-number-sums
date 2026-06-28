@@ -43,9 +43,6 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · офлайн',
     pauseTitle: 'Пауза',
-    giveUpTitle: 'Сдаться',
-    giveUpConfirmTitle: 'Сдаться?',
-    giveUpConfirmMsg: 'Головоломка будет засчитана как незавершённая.',
     undoTitle: 'Отменить',
     eraserTitle: 'Стереть',
     penTitle: 'Обвести',
@@ -87,9 +84,6 @@ export default {
     title: 'Жизни закончились',
     msg: 'Не проблема – попробуй снова!',
   },
-  gaveup: {
-    title: 'Сдался',
-  },
   stats: {
     title: 'Статистика',
     levelOverview: 'Обзор уровней',
@@ -98,7 +92,6 @@ export default {
     wonPlayedLabel: 'Победы',
     bestTimeLabel: 'Лучшее время',
     avgTimeLabel: 'Среднее время',
-    gaveupLabel: 'Сдались',
     lostLabel: 'Проигрыши',
     raceSection: '🆚 Режим дуэли',
     race1v1: '1 на 1',
@@ -173,9 +166,7 @@ export default {
     weWon: 'Ваша команда победила! (Команда {myTeam}: {myPct}% vs. Команда {oppTeam}: {oppPct}%)',
     weLost: 'Другая команда финишировала первой. (Команда {myTeam}: {myPct}% vs. Команда {oppTeam}: {oppPct}%)',
     weWonByOpponentLives: 'Команда {oppTeam} потеряла все жизни — вы автоматически выиграли! (Команда {myTeam}: {myPct}% vs. Команда {oppTeam}: {oppPct}%)',
-    weWonByOpponentGaveup: 'Команда {oppTeam} сдалась — вы автоматически выиграли! (Команда {myTeam}: {myPct}% vs. Команда {oppTeam}: {oppPct}%)',
     weLostByLives: 'Ваша команда (Команда {myTeam}) потеряла все жизни — матч завершён для вас. (Команда {myTeam}: {myPct}% vs. Команда {oppTeam}: {oppPct}%)',
-    weLostByGaveup: 'Ваша команда (Команда {myTeam}) сдалась. (Команда {myTeam}: {myPct}% vs. Команда {oppTeam}: {oppPct}%)',
   },
   race: {
     startMatch: 'Начать дуэль 🚀',
@@ -191,9 +182,7 @@ export default {
     youLostClean: '{name} оказался быстрее и закончил без ошибок — дуэль окончена, потому что вы были медленнее. (Ты: {myPct}% vs. {name}: {oppPct}%)',
     youLostMistakes: '{name} оказался быстрее — дуэль окончена, потому что вы были медленнее. (Ты: {myPct}% vs. {name}: {oppPct}%)',
     youWonByOpponentLives: '{name} потерял все жизни — вы автоматически выиграли! (Ты: {myPct}% vs. {name}: {oppPct}%)',
-    youWonByOpponentGaveup: '{name} сдался — вы автоматически выиграли! (Ты: {myPct}% vs. {name}: {oppPct}%)',
     youLostByLives: 'Вы потеряли все жизни — дуэль для вас завершена. (Ты: {myPct}% vs. {name}: {oppPct}%)',
-    youLostByGaveup: 'Вы сдались. (Ты: {myPct}% vs. {name}: {oppPct}%)',
     rematch: 'Сыграть снова 🔁',
   },
   settings: {

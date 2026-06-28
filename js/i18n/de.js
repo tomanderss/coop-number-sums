@@ -43,9 +43,6 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · offline',
     pauseTitle: 'Pause',
-    giveUpTitle: 'Aufgeben',
-    giveUpConfirmTitle: 'Aufgeben?',
-    giveUpConfirmMsg: 'Das Rätsel wird als aufgegeben gewertet.',
     undoTitle: 'Rückgängig',
     eraserTitle: 'Löschen',
     penTitle: 'Einkreisen',
@@ -87,9 +84,6 @@ export default {
     title: 'Keine Leben mehr',
     msg: 'Kein Problem – versuch es erneut!',
   },
-  gaveup: {
-    title: 'Aufgegeben',
-  },
   stats: {
     title: 'Statistik',
     levelOverview: 'Level-Übersicht',
@@ -98,7 +92,6 @@ export default {
     wonPlayedLabel: 'Siege',
     bestTimeLabel: 'Bestzeit',
     avgTimeLabel: 'Ø Zeit',
-    gaveupLabel: 'Aufgegeben',
     lostLabel: 'Verloren',
     raceSection: '🆚 Wettkampf-Modus',
     race1v1: '1v1',
@@ -173,9 +166,7 @@ export default {
     weWon: 'Euer Team hat gewonnen! (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
     weLost: 'Das andere Team war schneller. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
     weWonByOpponentLives: 'Team {oppTeam} hat alle Leben verloren — ihr gewinnt automatisch! (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
-    weWonByOpponentGaveup: 'Team {oppTeam} hat aufgegeben — ihr gewinnt automatisch! (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
     weLostByLives: 'Euer Team (Team {myTeam}) hat alle Leben verloren — das Match ist für euch vorbei. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
-    weLostByGaveup: 'Euer Team (Team {myTeam}) hat aufgegeben. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
   },
   race: {
     startMatch: 'Wettkampf starten 🚀',
@@ -191,9 +182,7 @@ export default {
     youLostClean: '{name} war schneller und fehlerfrei fertig — der Wettkampf ist vorbei, weil du langsamer warst. (Du: {myPct}% vs. {name}: {oppPct}%)',
     youLostMistakes: '{name} war schneller — der Wettkampf ist vorbei, weil du langsamer warst. (Du: {myPct}% vs. {name}: {oppPct}%)',
     youWonByOpponentLives: '{name} hat alle Leben verloren — du gewinnst automatisch! (Du: {myPct}% vs. {name}: {oppPct}%)',
-    youWonByOpponentGaveup: '{name} hat aufgegeben — du gewinnst automatisch! (Du: {myPct}% vs. {name}: {oppPct}%)',
     youLostByLives: 'Du hast alle Leben verloren — der Wettkampf ist für dich vorbei. (Du: {myPct}% vs. {name}: {oppPct}%)',
-    youLostByGaveup: 'Du hast aufgegeben. (Du: {myPct}% vs. {name}: {oppPct}%)',
     rematch: 'Nochmal spielen 🔁',
   },
   settings: {

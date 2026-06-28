@@ -68,19 +68,19 @@ export function clearCoopSession() { remove(KEYS.COOP_SESSION); }
 
 // ─── Statistik ────────────────────────────────────────────────────────────────
 const EMPTY_STATS = {
-  played: 0, won: 0, lost: 0, gaveup: 0, currentStreak: 0, bestStreak: 0,
+  played: 0, won: 0, lost: 0, currentStreak: 0, bestStreak: 0,
   totalTimeMs: 0, hintsUsed: 0,
   // Coop-Pendants der obigen Top-Level-Felder — komplett getrennt von den
   // Solo-Feldern gezählt, damit z.B. eine Coop-Serie nie die Solo-Serie
   // verfälscht (und umgekehrt).
-  coopPlayed: 0, coopWon: 0, coopLost: 0, coopGaveup: 0,
+  coopPlayed: 0, coopWon: 0, coopLost: 0,
   coopCurrentStreak: 0, coopBestStreak: 0, coopTotalTimeMs: 0, coopHintsUsed: 0,
   // Gesamtzähler perfekter Siege (0 Fehler, 0 Hinweise) — getrennt von der
   // Bestzeit-Logik unten, da hier jeder perfekte Sieg zählt, nicht nur der
   // schnellste je Schwierigkeit.
   perfectWins: 0, coopPerfectWins: 0,
-  // id -> { played, won, lost, gaveup, sumTimeMs, bestTimeMs,
-  //         coopPlayed, coopWon, coopLost, coopGaveup, coopSumTimeMs, coopBestTimeMs }
+  // id -> { played, won, lost, sumTimeMs, bestTimeMs,
+  //         coopPlayed, coopWon, coopLost, coopSumTimeMs, coopBestTimeMs }
   // Die coop*-Felder zählen ausschließlich Coop-Partien getrennt von den
   // ursprünglichen (Solo-)Feldern, damit eine schnellere Coop-Zeit nie die
   // Solo-Bestzeit/den Solo-Schnitt verfälscht.
@@ -95,7 +95,7 @@ export function loadStats() {
 }
 function saveStats(s) { save(KEYS.STATS, s); }
 
-// outcome: 'won' | 'lost' (alle Leben verloren) | 'gaveup' (Aufgeben-Button)
+// outcome: 'won' | 'lost' (alle Leben verloren)
 // Highscore (bestTimeMs je Schwierigkeit) gilt NUR für perfekte Spiele: keine
 // Fehler und keine Hinweise — sonst wäre die Bestzeit nicht vergleichbar.
 // coop: true, wenn die Partie in einer aktiven Coop-Session gespielt wurde —
@@ -107,8 +107,8 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
   // Bereits vorhandene Einträge (aus älteren Versionen ohne coop*-Felder) per
   // Merge ergänzen, statt sie zu überschreiben — keine Datenverluste.
   s.byDifficulty[difficulty] = {
-    played: 0, won: 0, lost: 0, gaveup: 0, sumTimeMs: 0, bestTimeMs: null,
-    coopPlayed: 0, coopWon: 0, coopLost: 0, coopGaveup: 0, coopSumTimeMs: 0, coopBestTimeMs: null,
+    played: 0, won: 0, lost: 0, sumTimeMs: 0, bestTimeMs: null,
+    coopPlayed: 0, coopWon: 0, coopLost: 0, coopSumTimeMs: 0, coopBestTimeMs: null,
     ...s.byDifficulty[difficulty],
   };
   const d = s.byDifficulty[difficulty];
@@ -131,8 +131,7 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
     }
   } else {
     if (coop) s.coopCurrentStreak = 0; else s.currentStreak = 0;
-    if (outcome === 'gaveup') { if (coop) { d.coopGaveup++; s.coopGaveup++; } else { d.gaveup++; s.gaveup++; } }
-    else { if (coop) { d.coopLost++; s.coopLost++; } else { d.lost++; s.lost++; } }
+    if (coop) { d.coopLost++; s.coopLost++; } else { d.lost++; s.lost++; }
   }
   saveStats(s);
   return { stats: s, newHighscore };

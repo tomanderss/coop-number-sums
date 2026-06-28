@@ -43,9 +43,6 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · hors ligne',
     pauseTitle: 'Pause',
-    giveUpTitle: 'Abandonner',
-    giveUpConfirmTitle: 'Abandonner ?',
-    giveUpConfirmMsg: 'Le puzzle sera marqué comme abandonné.',
     undoTitle: 'Annuler',
     eraserTitle: 'Effacer',
     penTitle: 'Entourer',
@@ -87,9 +84,6 @@ export default {
     title: 'Plus de vies',
     msg: "Pas de souci – réessaie !",
   },
-  gaveup: {
-    title: 'Abandonné',
-  },
   stats: {
     title: 'Statistiques',
     levelOverview: 'Aperçu des niveaux',
@@ -98,7 +92,6 @@ export default {
     wonPlayedLabel: 'Victoires',
     bestTimeLabel: 'Meilleur temps',
     avgTimeLabel: 'Temps moy.',
-    gaveupLabel: 'Abandons',
     lostLabel: 'Perdues',
     raceSection: '🆚 Mode duel',
     race1v1: '1v1',
@@ -173,9 +166,7 @@ export default {
     weWon: 'Votre équipe a gagné ! (Équipe {myTeam} : {myPct}% vs. Équipe {oppTeam} : {oppPct}%)',
     weLost: "L'autre équipe a terminé en premier. (Équipe {myTeam} : {myPct}% vs. Équipe {oppTeam} : {oppPct}%)",
     weWonByOpponentLives: "L'équipe {oppTeam} a perdu toutes ses vies — vous gagnez automatiquement ! (Équipe {myTeam} : {myPct}% vs. Équipe {oppTeam} : {oppPct}%)",
-    weWonByOpponentGaveup: "L'équipe {oppTeam} a abandonné — vous gagnez automatiquement ! (Équipe {myTeam} : {myPct}% vs. Équipe {oppTeam} : {oppPct}%)",
     weLostByLives: "Votre équipe (équipe {myTeam}) a perdu toutes ses vies — le match est terminé pour vous. (Équipe {myTeam} : {myPct}% vs. Équipe {oppTeam} : {oppPct}%)",
-    weLostByGaveup: "Votre équipe (équipe {myTeam}) a abandonné. (Équipe {myTeam} : {myPct}% vs. Équipe {oppTeam} : {oppPct}%)",
   },
   race: {
     startMatch: 'Démarrer le duel 🚀',
@@ -191,9 +182,7 @@ export default {
     youLostClean: "{name} a été plus rapide et a fini sans erreur — le duel est terminé car tu as été plus lent. (Toi : {myPct}% vs. {name} : {oppPct}%)",
     youLostMistakes: "{name} a été plus rapide — le duel est terminé car tu as été plus lent. (Toi : {myPct}% vs. {name} : {oppPct}%)",
     youWonByOpponentLives: "{name} a perdu toutes ses vies — tu gagnes automatiquement ! (Toi : {myPct}% vs. {name} : {oppPct}%)",
-    youWonByOpponentGaveup: "{name} a abandonné — tu gagnes automatiquement ! (Toi : {myPct}% vs. {name} : {oppPct}%)",
     youLostByLives: "Tu as perdu toutes tes vies — le duel est terminé pour toi. (Toi : {myPct}% vs. {name} : {oppPct}%)",
-    youLostByGaveup: "Tu as abandonné. (Toi : {myPct}% vs. {name} : {oppPct}%)",
     rematch: 'Rejouer 🔁',
   },
   settings: {
