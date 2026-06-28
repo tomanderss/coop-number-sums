@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.142';
-export const BUILD_HASH = '2523c80';
+export const BUILD      = '0.143';
+export const BUILD_HASH = '6d1036a';
 
 export const CHANGELOG = [
+  {
+    "version": "0.143",
+    "date": "28.06.2026",
+    "changes": [
+      "Aufgeräumte Spielleiste: oben nur noch Pause; Aufgeben, Einstellungen und Anleitung sind ins Pausenmenü gewandert",
+      "Einstellungen im Spiel öffnen pausiert jetzt korrekt für alle (gleiche Mechanik wie der Pause-Knopf), auch im Coop"
+    ]
+  },
   {
     "version": "0.142",
     "date": "28.06.2026",
