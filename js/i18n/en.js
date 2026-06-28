@@ -227,6 +227,8 @@ export default {
     sfxError: 'Mistake',
     sfxHint: 'Hint',
     sfxToolSwitch: 'Mode switch (pen/eraser)',
+    sfxWin: 'Win',
+    sfxLose: 'Loss',
     a11y: 'Accessibility',
     colorBlindMode: '🎨 Colorblind-friendly mode',
     colorBlindModeHint: 'Replaces green/red everywhere in the game (correct/wrong, hints, lives, co-op colors, ...) with more distinguishable tones for red-green/blue-yellow color vision deficiency.',

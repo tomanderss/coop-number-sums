@@ -146,6 +146,8 @@ export const DEFAULT_SETTINGS = {
   sfxError: true,
   sfxHint: true,
   sfxToolSwitch: true,
+  sfxWin: true,
+  sfxLose: true,
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)

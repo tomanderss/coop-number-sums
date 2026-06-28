@@ -70,9 +70,9 @@ test('Aktions-Sounds: alle Funktionen vorhanden und werfen nicht', async ({ page
   await gotoApp(page);
   const ok = await page.evaluate(() => {
     const M = window.__cns.Music;
-    for (const fn of ['sfxComplete', 'sfxKeep', 'sfxRemove', 'sfxError', 'sfxHint', 'sfxToolSwitch'])
+    for (const fn of ['sfxComplete', 'sfxKeep', 'sfxRemove', 'sfxError', 'sfxHint', 'sfxToolSwitch', 'sfxWin', 'sfxLose'])
       if (typeof M[fn] !== 'function') throw new Error('missing ' + fn);
-    M.sfxComplete(1); M.sfxComplete(3); M.sfxKeep(); M.sfxRemove(); M.sfxError(); M.sfxHint(); M.sfxToolSwitch();
+    M.sfxComplete(1); M.sfxComplete(3); M.sfxKeep(); M.sfxRemove(); M.sfxError(); M.sfxHint(); M.sfxToolSwitch(); M.sfxWin(); M.sfxLose();
     return true;
   });
   expect(ok).toBe(true);

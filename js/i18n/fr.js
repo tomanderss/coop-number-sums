@@ -227,6 +227,8 @@ export default {
     sfxError: 'Erreur',
     sfxHint: 'Indice',
     sfxToolSwitch: 'Changement de mode (stylo/gomme)',
+    sfxWin: 'Victoire',
+    sfxLose: 'Défaite',
     a11y: 'Accessibilité',
     colorBlindMode: '🎨 Mode daltonien',
     colorBlindModeHint: 'Remplace le vert/rouge partout dans le jeu (correct/incorrect, indices, vies, couleurs coop, ...) par des teintes plus distinguables pour la déficience visuelle rouge-vert/bleu-jaune.',

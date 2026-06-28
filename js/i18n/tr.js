@@ -227,6 +227,8 @@ export default {
     sfxError: 'Hata',
     sfxHint: 'İpucu',
     sfxToolSwitch: 'Mod değişimi (kalem/silgi)',
+    sfxWin: 'Kazanma',
+    sfxLose: 'Kaybetme',
     a11y: 'Erişilebilirlik',
     colorBlindMode: '🎨 Renk körlüğü modu',
     colorBlindModeHint: 'Oyunun her yerindeki (doğru/yanlış, ipuçları, canlar, coop renkleri, ...) yeşil/kırmızıyı, kırmızı-yeşil/mavi-sarı renk görme bozukluğu için daha kolay ayırt edilen tonlarla değiştirir.',
