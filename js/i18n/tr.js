@@ -43,9 +43,6 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · çevrimdışı',
     pauseTitle: 'Duraklat',
-    giveUpTitle: 'Bırak',
-    giveUpConfirmTitle: 'Bırakılsın mı?',
-    giveUpConfirmMsg: 'Bu bulmaca bırakılmış olarak kaydedilecek.',
     undoTitle: 'Geri al',
     eraserTitle: 'Sil',
     penTitle: 'Daire içine al',
@@ -87,9 +84,6 @@ export default {
     title: 'Can kalmadı',
     msg: 'Sorun değil – tekrar dene!',
   },
-  gaveup: {
-    title: 'Bırakıldı',
-  },
   stats: {
     title: 'İstatistik',
     levelOverview: 'Seviye genel bakışı',
@@ -98,7 +92,6 @@ export default {
     wonPlayedLabel: 'Galibiyet',
     bestTimeLabel: 'En iyi süre',
     avgTimeLabel: 'Ort. süre',
-    gaveupLabel: 'Bırakılan',
     lostLabel: 'Kaybedilen',
     raceSection: '🆚 Düello Modu',
     race1v1: "1'e 1",
@@ -173,9 +166,7 @@ export default {
     weWon: 'Takımınız kazandı! (Takım {myTeam}: %{myPct} - Takım {oppTeam}: %{oppPct})',
     weLost: 'Diğer takım önce bitirdi. (Takım {myTeam}: %{myPct} - Takım {oppTeam}: %{oppPct})',
     weWonByOpponentLives: 'Takım {oppTeam} tüm canlarını kaybetti — otomatik olarak kazandınız! (Takım {myTeam}: %{myPct} - Takım {oppTeam}: %{oppPct})',
-    weWonByOpponentGaveup: 'Takım {oppTeam} teslim oldu — otomatik olarak kazandınız! (Takım {myTeam}: %{myPct} - Takım {oppTeam}: %{oppPct})',
     weLostByLives: 'Takımınız (Takım {myTeam}) tüm canlarını kaybetti — maç sizin için bitti. (Takım {myTeam}: %{myPct} - Takım {oppTeam}: %{oppPct})',
-    weLostByGaveup: 'Takımınız (Takım {myTeam}) teslim oldu. (Takım {myTeam}: %{myPct} - Takım {oppTeam}: %{oppPct})',
   },
   race: {
     startMatch: 'Düelloyu başlat 🚀',
@@ -191,9 +182,7 @@ export default {
     youLostClean: '{name} daha hızlıydı ve hatasız bitirdi — düello, sen daha yavaş olduğun için bitti. (Sen: %{myPct} - {name}: %{oppPct})',
     youLostMistakes: '{name} daha hızlıydı — düello, sen daha yavaş olduğun için bitti. (Sen: %{myPct} - {name}: %{oppPct})',
     youWonByOpponentLives: '{name} tüm canlarını kaybetti — otomatik olarak kazandın! (Sen: %{myPct} - {name}: %{oppPct})',
-    youWonByOpponentGaveup: '{name} teslim oldu — otomatik olarak kazandın! (Sen: %{myPct} - {name}: %{oppPct})',
     youLostByLives: 'Tüm canlarını kaybettin — düello senin için bitti. (Sen: %{myPct} - {name}: %{oppPct})',
-    youLostByGaveup: 'Teslim oldun. (Sen: %{myPct} - {name}: %{oppPct})',
     rematch: 'Tekrar oyna 🔁',
   },
   settings: {

@@ -161,7 +161,7 @@ test.describe('team vs team', () => {
     await expect(page.locator('.result-card.lose .btn-primary')).toHaveCount(0);
   });
 
-  test('the opposing team giving up awards the win to my still-playing team by default', async ({ page }) => {
+  test('the opposing team losing all lives awards the win to my still-playing team by default', async ({ page }) => {
     await simulateHostedTeamLobby(page);
 
     const mid = page.locator('.team-picker .team-slot-mid');
@@ -178,7 +178,7 @@ test.describe('team vs team', () => {
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 
     await page.evaluate(() => {
-      window.__cns.handleCoopMsg({ type: 'teamDone', team: 'B', outcome: 'gaveup', author: 'fake-opponent' });
+      window.__cns.handleCoopMsg({ type: 'teamDone', team: 'B', outcome: 'lost', author: 'fake-opponent' });
     });
 
     await expect(page.locator('.result-card.win')).toBeVisible();

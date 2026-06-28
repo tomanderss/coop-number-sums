@@ -52,7 +52,7 @@ const state = reactive({
   hintsLeft: 0,
   hintsUsed: 0,
   mistakes: 0,
-  status: 'idle',            // idle | playing | won | lost | gaveup
+  status: 'idle',            // idle | playing | won | lost
   newHighscore: false,        // true, wenn beim letzten Sieg eine neue Bestzeit erzielt wurde
   wouldHaveBeenBest: false,   // true, wenn die Zeit ohne Fehler/Hinweise eine neue Bestzeit gewesen wäre
   hintWarnShown: false,       // true, sobald die einmalige Hinweis-Warnung dieser Partie bestätigt wurde
@@ -104,7 +104,7 @@ const state = reactive({
     myTeam: null,           // 'A' | 'B'
     matchOver: false,       // true sobald ein Team fertig ist (hartes Match-Ende für beide)
     winningTeam: null,      // 'A' | 'B', sobald matchOver
-    endReason: null,        // 'won' | 'lost' | 'gaveup' -- WARUM das Match endete (das Team, das
+    endReason: null,        // 'won' | 'lost' -- WARUM das Match endete (das Team, das
                             // den Ausschlag gegeben hat, hat selbst fertiggelöst/alle Leben
                             // verloren/aufgegeben), nötig damit der Ergebnis-Screen nicht
                             // pauschal "Gelöst!" zeigt, wenn man nur durchs Leben-/Aufgabe-Ende
@@ -127,7 +127,7 @@ const state = reactive({
     opponentColor: '#888',
     matchOver: false,        // true sobald einer fertig ist (hartes Match-Ende für beide)
     winner: null,            // 'me' | 'opponent', sobald matchOver
-    endReason: null,         // 'won' | 'lost' | 'gaveup' -- WARUM das Match endete (Outcome der
+    endReason: null,         // 'won' | 'lost' -- WARUM das Match endete (Outcome der
                              // Seite, die das Match ausgelöst hat: echtes Fertiglösen, alle
                              // Leben verloren oder aufgegeben). Zusammen mit winner ergibt das
                              // 6 eindeutige, unterscheidbare Szenarien für den Ergebnis-Screen --
@@ -1046,7 +1046,6 @@ function handleCoopMsg(msg) {
     const remote = { timeMs: msg.timeMs, mistakes: msg.mistakes, hintsUsed: msg.hintsUsed };
     if (msg.status === 'won') win(remote);
     else if (msg.status === 'lost') lose(remote);
-    else if (msg.status === 'gaveup') giveUp(remote);
   } else if (msg.type === Coop.MSG.IDENTITY) {
     // Nur der Host wertet Identitäts-Meldungen aus und verteilt die Liste neu —
     // er entscheidet (Konfliktauflösung), welche Farbe ein Mitspieler tatsächlich bekommt.
@@ -1089,11 +1088,11 @@ function handleCoopMsg(msg) {
   } else if (msg.type === Coop.MSG.TEAM_DONE) {
     if (!state.team.active || state.team.matchOver) return;
     state.team.matchOver = true;
-    // "won" entscheidet das eigene Team; "lost"/"gaveup" gibt den Sieg automatisch
+    // "won" entscheidet das eigene Team; "lost" gibt den Sieg automatisch
     // an die Gegenseite (kein Zu-Ende-Spielen für eigene Stats, siehe Plan).
     state.team.winningTeam = msg.outcome === 'won' ? msg.team : (msg.team === 'A' ? 'B' : 'A');
     state.team.endReason = msg.outcome;
-    if (msg.team === state.team.myTeam) return; // eigenes Team meldet sich direkt aus win()/lose()/giveUp()
+    if (msg.team === state.team.myTeam) return; // eigenes Team meldet sich direkt aus win()/lose()
     if (state.status === 'playing') {
       const remote = { timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed };
       if (state.team.winningTeam === state.team.myTeam) win(remote);
@@ -1565,7 +1564,7 @@ function startJoining() {
 // abweichende Zeit/Fehler/Hinweise, damit beide Seiten exakt denselben Endstand zeigen).
 // Die Coop-Lobby/Verbindung bleibt nach Rundenende bestehen — sie schließt erst,
 // wenn ein Spieler aktiv "Zum Menü" klickt (siehe quitToHome).
-// Nach jeder abgeschlossenen Partie aufgerufen (win/lose/giveUp) -- baut einen
+// Nach jeder abgeschlossenen Partie aufgerufen (win/lose) -- baut einen
 // Kontext-Snapshot aus dem aktuellen state und prüft ihn gegen achievements.js.
 function checkAchievements() {
   const ctx = {
@@ -1600,7 +1599,7 @@ function checkAchievements() {
 // Meldet das eigene Team als fertig (Sieg ODER Niederlage/Aufgabe) raumweit --
 // bewusst über Coop.send direkt statt coopSend(), da die Nachricht BEIDE Teams
 // erreichen muss, nicht nur das eigene. "won" entscheidet den Sieg selbst; bei
-// "lost"/"gaveup" gewinnt automatisch das andere Team (kein Zu-Ende-Spielen
+// "lost" gewinnt automatisch das andere Team (kein Zu-Ende-Spielen
 // für eigene Stats, siehe Plan).
 function broadcastTeamDone(outcome) {
   state.team.matchOver = true;
@@ -1618,7 +1617,7 @@ function broadcastTeamDone(outcome) {
 // Meldet das eigene Ergebnis im Race-Match raumweit -- bewusst über Coop.send
 // direkt statt coopSend(), da state.coop.active während des Rennens absichtlich
 // false bleibt (siehe state.race-Kommentar) und die Nachricht trotzdem den
-// Gegner erreichen muss. "won" entscheidet den Sieg selbst; bei "lost"/"gaveup"
+// Gegner erreichen muss. "won" entscheidet den Sieg selbst; bei "lost"
 // gewinnt automatisch der Gegner (kein Zu-Ende-Spielen für eigene Stats, analog
 // Team-vs-Team).
 function broadcastRaceDone(outcome) {
@@ -1724,44 +1723,6 @@ function lose(remote) {
   }
   if (state.team.active && !remote) broadcastTeamDone('lost');
   if (state.race.active && !remote) broadcastRaceDone('lost');
-  if (state.pendingUpdate) { state.pendingUpdate = false; state.updateReady = true; }
-}
-
-function giveUp(remote) {
-  if (!remote && state.status !== 'playing') return;
-  if (remote && state.status === 'gaveup') return;
-  state.status = 'gaveup';
-  log('game', `Aufgegeben`, { remote: !!remote, coop: state.coop.active });
-  updateMusic();
-  stopTimer();
-  if (remote) {
-    state.elapsed = remote.timeMs;
-    state.mistakes = remote.mistakes;
-    state.hintsUsed = remote.hintsUsed;
-  }
-  if (!state.isTrainingGame && !state.isRaceGame) {
-    const { stats } = recordResult({
-      difficulty: state.puzzle.difficulty, outcome: 'gaveup',
-      timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
-      coop: state.coop.active,
-    });
-    state.stats = stats;
-  }
-  if (!state.isTrainingGame) state.streak = recordStreakResult();
-  if (state.isRaceGame) state.raceStats = recordRaceLoss('1v1');
-  if (state.team.active) state.raceStats = recordRaceLoss('2v2');
-  if (!state.isTrainingGame) state.puzzleHistory = recordHistory({
-    difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
-    seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
-    timeMs: state.elapsed, outcome: 'gaveup', coop: state.coop.active,
-  });
-  if (!state.isTrainingGame) checkAchievements();
-  persistGame();
-  if (state.coop.active && !remote) {
-    coopSend({ type: Coop.MSG.STATUS, status: 'gaveup', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
-  }
-  if (state.team.active && !remote) broadcastTeamDone('gaveup');
-  if (state.race.active && !remote) broadcastRaceDone('gaveup');
   if (state.pendingUpdate) { state.pendingUpdate = false; state.updateReady = true; }
 }
 
@@ -2251,12 +2212,10 @@ const App = {
       const name = r.opponentName || t('common.defaultPlayerName');
       if (r.winner === 'me') {
         if (r.endReason === 'lost') return t('race.youWonByOpponentLives', { name, myPct: r.myPct, oppPct: r.opponentPct });
-        if (r.endReason === 'gaveup') return t('race.youWonByOpponentGaveup', { name, myPct: r.myPct, oppPct: r.opponentPct });
         const key = state.mistakes === 0 ? 'race.youWonClean' : 'race.youWonMistakes';
         return t(key, { name, myPct: r.myPct, oppPct: r.opponentPct });
       }
       if (r.endReason === 'lost') return t('race.youLostByLives', { name, myPct: r.myPct, oppPct: r.opponentPct });
-      if (r.endReason === 'gaveup') return t('race.youLostByGaveup', { name, myPct: r.myPct, oppPct: r.opponentPct });
       const key = r.opponentMistakes === 0 ? 'race.youLostClean' : 'race.youLostMistakes';
       return t(key, { name, myPct: r.myPct, oppPct: r.opponentPct });
     });
@@ -2270,11 +2229,9 @@ const App = {
       const params = { myTeam: tm.myTeam, oppTeam, myPct: tm.myPct, oppPct: tm.opponentPct };
       if (won) {
         if (tm.endReason === 'lost') return t('team.weWonByOpponentLives', params);
-        if (tm.endReason === 'gaveup') return t('team.weWonByOpponentGaveup', params);
         return t('team.weWon', params);
       }
       if (tm.endReason === 'lost') return t('team.weLostByLives', params);
-      if (tm.endReason === 'gaveup') return t('team.weLostByGaveup', params);
       return t('team.weLost', params);
     });
     // Das WIN-Overlay zeigte bisher immer t('win.title') ("Gelöst!"), auch wenn
@@ -2296,7 +2253,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, loadBackups,
       quitToHome, setZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
-      startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct, giveUp,
+      startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, playerColor, goCoop, applyUpdate,
@@ -2603,7 +2560,6 @@ const App = {
                Pause-Knopf (für alle Coop-Spieler synchron pausiert). -->
           <button class="btn btn-ghost" @click="openSettings"><span class="btn-ic">⚙️</span> {{ t('home.settings') }}</button>
           <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">📖</span> {{ t('home.howto') }}</button>
-          <button class="btn btn-danger-ghost" @click="ask(t('game.giveUpConfirmTitle'), t('game.giveUpConfirmMsg'), giveUp)">{{ t('game.giveUpTitle') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
@@ -2701,47 +2657,6 @@ const App = {
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
-      <div v-if="state.status==='gaveup'" class="overlay">
-        <div class="result-card lose">
-          <div class="result-emoji">🏳</div>
-          <h2>{{ t('gaveup.title') }}</h2>
-          <template v-if="state.team.active">
-            <p class="result-msg">{{ teamResultMsg }}</p>
-          </template>
-          <template v-else-if="state.race.active">
-            <p class="result-msg">{{ raceResultMsg }}</p>
-          </template>
-          <template v-else>
-            <p class="result-msg">{{ t('loss.msg') }}</p>
-          </template>
-          <div v-if="coopPerformance.length" class="coop-performance">
-            <div class="perf-title">{{ t('win.teamPerformance') }}</div>
-            <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
-              <div class="perf-head">
-                <span class="perf-name" :style="{color: pl.color}">{{ pl.name }}<template v-if="pl.id===mvpId"> {{ t('win.mvp') }}</template></span>
-                <span class="perf-pct">{{ pl.contributionPct }}%</span>
-              </div>
-              <div class="perf-bar"><div class="perf-bar-fill" :style="{width: pl.contributionPct + '%', background: pl.color}"></div></div>
-              <div class="perf-nums">
-                <span>{{ t('win.correctKept', { count: pl.correctKept }) }}</span>
-                <span>{{ t('win.correctRemoved', { count: pl.correctRemoved }) }}</span>
-                <span>{{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
-              </div>
-            </div>
-          </div>
-          <div v-if="opponentTeamPerformance.length" class="opponent-team-performance">
-            <div class="perf-title">{{ t('team.opponentLivesLostPerPlayer') }}</div>
-            <span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ pl.name }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
-          </div>
-          <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('common.newGame') }}</button>
-          <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
-          <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
-          <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
-          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
-        </div>
-      </div>
-
       <!-- Confetti -->
       <div v-if="state.confetti.length" class="confetti" :class="{ perfect: state.perfectWin }">
         <i v-for="p in state.confetti" :key="p.id" :style="{left:p.left+'%', background:p.color, animationDelay:p.delay+'s', animationDuration:p.dur+'s', width:p.size+'px', height:p.size+'px', transform:'rotate('+p.rot+'deg)'}"></i>
@@ -2764,7 +2679,6 @@ const App = {
               <span class="chip">🥇 {{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
               <span class="chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               <span class="chip">⌀ {{ avgTimeFor(d.id)!=null ? fmtTime(avgTimeFor(d.id)) : '-:--' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-              <span class="chip">🏳 {{ (state.stats.byDifficulty[d.id]?.gaveup)||0 }}<span class="chip-label">{{ t('stats.gaveupLabel') }}</span></span>
               <span class="chip">💔 {{ (state.stats.byDifficulty[d.id]?.lost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
             </div>
           </div>
@@ -2774,7 +2688,6 @@ const App = {
               <span class="chip coop-chip">🥇 {{ (state.stats.byDifficulty[d.id]?.coopWon)||0 }} / {{ (state.stats.byDifficulty[d.id]?.coopPlayed)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
               <span class="chip coop-chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               <span class="chip coop-chip">⌀ {{ coopAvgTimeFor(d.id)!=null ? fmtTime(coopAvgTimeFor(d.id)) : '-:--' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-              <span class="chip coop-chip">🏳 {{ (state.stats.byDifficulty[d.id]?.coopGaveup)||0 }}<span class="chip-label">{{ t('stats.gaveupLabel') }}</span></span>
               <span class="chip coop-chip">💔 {{ (state.stats.byDifficulty[d.id]?.coopLost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
             </div>
           </div>

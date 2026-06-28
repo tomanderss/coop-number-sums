@@ -43,9 +43,6 @@ export default {
     coopTag: 'COOP',
     coopOfflineSuffix: ' · sin conexión',
     pauseTitle: 'Pausa',
-    giveUpTitle: 'Rendirse',
-    giveUpConfirmTitle: '¿Rendirse?',
-    giveUpConfirmMsg: 'El puzzle se registrará como abandonado.',
     undoTitle: 'Deshacer',
     eraserTitle: 'Borrar',
     penTitle: 'Marcar',
@@ -87,9 +84,6 @@ export default {
     title: 'Sin vidas',
     msg: 'No pasa nada – ¡inténtalo de nuevo!',
   },
-  gaveup: {
-    title: 'Abandonado',
-  },
   stats: {
     title: 'Estadísticas',
     levelOverview: 'Resumen de niveles',
@@ -98,7 +92,6 @@ export default {
     wonPlayedLabel: 'Victorias',
     bestTimeLabel: 'Mejor tiempo',
     avgTimeLabel: 'Tiempo prom.',
-    gaveupLabel: 'Abandonadas',
     lostLabel: 'Perdidas',
     raceSection: '🆚 Modo duelo',
     race1v1: '1v1',
@@ -173,9 +166,7 @@ export default {
     weWon: '¡Vuestro equipo ganó! (Equipo {myTeam}: {myPct}% vs. Equipo {oppTeam}: {oppPct}%)',
     weLost: 'El otro equipo terminó primero. (Equipo {myTeam}: {myPct}% vs. Equipo {oppTeam}: {oppPct}%)',
     weWonByOpponentLives: 'El equipo {oppTeam} se quedó sin vidas — ¡ganáis automáticamente! (Equipo {myTeam}: {myPct}% vs. Equipo {oppTeam}: {oppPct}%)',
-    weWonByOpponentGaveup: 'El equipo {oppTeam} se rindió — ¡ganáis automáticamente! (Equipo {myTeam}: {myPct}% vs. Equipo {oppTeam}: {oppPct}%)',
     weLostByLives: 'Vuestro equipo (Equipo {myTeam}) se quedó sin vidas — la partida terminó para vosotros. (Equipo {myTeam}: {myPct}% vs. Equipo {oppTeam}: {oppPct}%)',
-    weLostByGaveup: 'Vuestro equipo (Equipo {myTeam}) se rindió. (Equipo {myTeam}: {myPct}% vs. Equipo {oppTeam}: {oppPct}%)',
   },
   race: {
     startMatch: 'Iniciar duelo 🚀',
@@ -191,9 +182,7 @@ export default {
     youLostClean: '{name} fue más rápido y terminó sin errores — el duelo terminó porque fuiste más lento. (Tú: {myPct}% vs. {name}: {oppPct}%)',
     youLostMistakes: '{name} fue más rápido — el duelo terminó porque fuiste más lento. (Tú: {myPct}% vs. {name}: {oppPct}%)',
     youWonByOpponentLives: '{name} se quedó sin vidas — ¡ganas automáticamente! (Tú: {myPct}% vs. {name}: {oppPct}%)',
-    youWonByOpponentGaveup: '{name} se rindió — ¡ganas automáticamente! (Tú: {myPct}% vs. {name}: {oppPct}%)',
     youLostByLives: 'Te quedaste sin vidas — el duelo terminó para ti. (Tú: {myPct}% vs. {name}: {oppPct}%)',
-    youLostByGaveup: 'Te rendiste. (Tú: {myPct}% vs. {name}: {oppPct}%)',
     rematch: 'Jugar de nuevo 🔁',
   },
   settings: {
