@@ -3000,7 +3000,7 @@ const App = {
         </div>
         <div class="set-row col">
           <span class="set-row-label">{{ t('settings.musicVolume') }}</span>
-          <input type="range" class="set-range" min="0" max="1" step="0.05" :value="state.settings.musicVolume"
+          <input type="range" class="set-range" min="0" max="1" step="0.01" :value="state.settings.musicVolume"
                  :style="{ '--rangePct': Math.round(state.settings.musicVolume*100) + '%' }"
                  @input="setSetting('musicVolume', parseFloat($event.target.value))" />
         </div>
