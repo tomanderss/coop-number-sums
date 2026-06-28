@@ -164,6 +164,20 @@ export function setVolume(v) {
 
 export async function play(volume) {
   if (typeof volume === 'number') curVolume = Math.max(0, Math.min(1, volume));
+  // iOS-Knackpunkt: Ein AudioContext, der AUSSERHALB einer Nutzergeste erzeugt
+  // wurde (z.B. der eager-Versuch beim Laden), bleibt auf iOS/Safari dauerhaft
+  // 'suspended' und lässt sich auch im ersten Tap NICHT mehr per resume()
+  // starten. Treffen wir hier — typischerweise aus einem Tap-/Tasten-Pfad — auf
+  // genau so einen hängenden Kontext, verwerfen wir ihn und bauen SYNCHRON (noch
+  // innerhalb der Geste) einen frischen auf; der lässt sich dann zuverlässig
+  // starten. Ein bereits laufender ('running') Kontext bleibt unangetastet.
+  if (ctx && ctx.state === 'suspended') {
+    if (padTimer) { clearTimeout(padTimer); padTimer = null; }
+    if (melodyTimer) { clearTimeout(melodyTimer); melodyTimer = null; }
+    const stuck = ctx;
+    ctx = null; master = null; reverb = null; analyser = null; droneVoices = []; running = false;
+    try { stuck.close(); } catch {}
+  }
   ensureContext();
   try { if (ctx.state === 'suspended') await ctx.resume(); } catch {}
   if (running) { setVolume(curVolume); return; }
@@ -201,7 +215,16 @@ export function suspendForBackground() {
   if (padTimer) { clearTimeout(padTimer); padTimer = null; }
   if (melodyTimer) { clearTimeout(melodyTimer); melodyTimer = null; }
   if (!ctx) return;
+  // 1) Stummschalten ...
   try { if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.value = 0; } } catch {}
+  // 2) ... und den Ausgang SOFORT hart von der Destination trennen. Ab hier kann
+  //    kein Sample mehr zur Audio-Hardware, egal was das OS beim Suspend/Close
+  //    noch tut (der kurze schrille Ton kam von genau so einer System-
+  //    Unterbrechung, die nachgepufferte Samples wiedergab).
+  try { if (analyser) analyser.disconnect(); } catch {}
+  try { if (master) master.disconnect(); } catch {}
+  // 3) Noch laufende Oszillatoren (Drone) sofort stoppen -> nichts klingt nach.
+  try { droneVoices.forEach(v => { try { v.stop(); } catch {} }); } catch {}
   const dead = ctx;
   ctx = null; master = null; reverb = null; analyser = null; droneVoices = [];
   running = false; // Graph ist weg -> play() baut alles neu auf
