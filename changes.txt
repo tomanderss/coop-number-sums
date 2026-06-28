@@ -1,0 +1,1 @@
+Hauptmenü-Hintergrund ist jetzt schon ab dem ersten Frame randlos bis unten (vorher unten kurz abgeschnitten, bis man scrollte)

@@ -119,15 +119,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    Elemente an der Safe-Area/Home-Indicator-Kante ab -> unten blieb ein Rand),
    wird hier ein QUADRAT zentriert per transform aufgezogen. Transform-zentrierte
    fixe Elemente positioniert iOS zuverlässig, unabhängig von der Safe-Area.
-   - Seitenlänge = max(124vw,124vh): immer größer als der Bildschirm -> ragt auf
+   - Seitenlänge = max(128vw,128lvh): immer größer als der Bildschirm -> ragt auf
      ALLEN Seiten (auch unten unter dem Home-Indicator) über die Kante hinaus.
+   - WICHTIG `lvh` (large viewport height), NICHT `vh`/`dvh`: iOS meldet beim
+     ERSTEN Paint (bevor Scroll/Geste die Toolbar + Home-Indicator-Inset
+     setzen) eine kleinere Viewport-Höhe. `vh` folgt dieser kleineren Höhe ->
+     der Hintergrund reichte unten zunächst NICHT bis zur echten Bildschirmkante
+     und wurde erst beim Scrollen „freigeschaltet". `lvh` ist immer die volle
+     Höhe (Toolbar ausgeblendet) -> randlos schon ab dem ersten Frame.
    - `cover` auf dem quadratischen Element: Bild (quadratisch) füllt es exakt,
      Seitenverhältnis erhalten (uniform gezoomt, NICHT gestreckt).
    Sehr niedrige Deckkraft -> Buttons in Hell-/Dunkelmodus lesbar. Scharf. */
 .app { isolation: isolate; }
 .app.app-home::before {
   content: ''; position: fixed; left: 50%; top: 50%;
-  width: max(124vw, 124vh); height: max(124vw, 124vh);
+  width: max(128vw, 128lvh); height: max(128vw, 128lvh);
   transform: translate(-50%, -50%);
   z-index: -1; pointer-events: none;
   background: url('../icons/icon-1024.png') center / cover no-repeat;
