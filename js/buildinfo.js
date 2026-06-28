@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.137';
-export const BUILD_HASH = 'fcf41c4';
+export const BUILD      = '0.138';
+export const BUILD_HASH = 'ea5d818';
 
 export const CHANGELOG = [
+  {
+    "version": "0.138",
+    "date": "28.06.2026",
+    "changes": [
+      "Neue Aktions-Sounds: Vervollständigung (Käfig/Reihe/Spalte) mit Stufung bei mehreren gleichzeitig, Einkreisen, Löschen, Fehler und Hinweis – warm und zen-artig synthetisiert",
+      "Aktions-Sounds einzeln pro Aktion in den Einstellungen schaltbar (Vorhören beim Einschalten)"
+    ]
+  },
   {
     "version": "0.137",
     "date": "28.06.2026",
