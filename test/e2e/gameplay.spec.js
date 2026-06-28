@@ -75,7 +75,8 @@ test.describe('gameplay', () => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
 
-    await page.locator('.top-actions .icon-btn').nth(1).click(); // give-up icon button
+    await page.locator('.game-top .icon-btn').first().click(); // Pause
+    await page.locator('.pause-overlay').getByText('Aufgeben').click(); // im Pausenmenü
     await expect(page.locator('.modal-sm')).toBeVisible();
     await page.locator('.confirm-actions .btn-danger').click();
 

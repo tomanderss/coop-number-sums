@@ -2378,8 +2378,10 @@ const App = {
 
     <!-- ══ GAME ══ -->
     <section v-else-if="state.screen==='game'" class="screen game" :class="{ 'race-mode': state.race.active, 'team-mode': state.team.active, 'training-mode': state.isTrainingGame }">
+      <!-- Aufgeräumte Spiel-Topbar: oben nur HUD (Leben/Zeit) + Pause. Aufgeben,
+           Einstellungen und Anleitung sind ins Pausenmenü gewandert (siehe unten);
+           "Zum Menü" gibt es dort ebenfalls (kein Zurück-Pfeil oben mehr). -->
       <header class="topbar game-top">
-        <button class="icon-btn" @click="quitToHome">‹</button>
         <div class="hud">
           <div class="hud-item lives" v-if="state.settings.livesEnabled">
             <span v-for="(full,i) in livesArr" :key="i" class="heart" :class="{empty:!full}">
@@ -2393,11 +2395,6 @@ const App = {
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing' && !state.coop.awaitingStart" @click="pauseGame" :title="t('game.pauseTitle')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
           </button>
-          <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing'" @click="ask(t('game.giveUpConfirmTitle'), t('game.giveUpConfirmMsg'), giveUp)" :title="t('game.giveUpTitle')">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="5" y="3" width="2.4" height="18" rx="1.2"/><path d="M7.4 4h12.1l-3 3.6 3 3.6H7.4z"/></svg>
-          </button>
-          <button class="icon-btn" @click="state.modal='howto'">?</button>
-          <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
         </div>
       </header>
 
@@ -2596,6 +2593,13 @@ const App = {
           <div class="pause-time">⏱ {{ fmtTime(state.elapsed) }}</div>
           <p class="result-msg">{{ t('pause.msg') }}</p>
           <button class="btn btn-primary" @click="resumeFromPause">{{ t('pause.resume') }}</button>
+          <!-- Aus dem Pausenmenü erreichbar: Einstellungen (öffnet das Menü, Spiel
+               bleibt pausiert), Anleitung und Aufgeben. So läuft beim Öffnen der
+               Einstellungen im Spiel exakt dieselbe Pausenmechanik wie über den
+               Pause-Knopf (für alle Coop-Spieler synchron pausiert). -->
+          <button class="btn btn-ghost" @click="openSettings"><span class="btn-ic">⚙️</span> {{ t('home.settings') }}</button>
+          <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">📖</span> {{ t('home.howto') }}</button>
+          <button class="btn btn-danger-ghost" @click="ask(t('game.giveUpConfirmTitle'), t('game.giveUpConfirmMsg'), giveUp)">{{ t('game.giveUpTitle') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
