@@ -1,0 +1,2 @@
+Musik startet auf iPhone jetzt zuverlässig beim ersten Antippen (hängender Audio-Kontext wird in der Geste neu aufgebaut)
+Kurzer Ton beim Schließen/Wechseln in den Hintergrund weiter reduziert (Ausgang wird sofort hart vom Lautsprecher getrennt)
