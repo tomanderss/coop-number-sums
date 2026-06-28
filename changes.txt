@@ -1,2 +1,0 @@
-Hauptmenü-Hintergrund reicht jetzt randlos bis über alle Kanten, auch unten (kein Beschnitt mehr)
-Hintergrundmusik versucht direkt beim Öffnen der App zu starten (bzw. spätestens beim ersten Antippen)
