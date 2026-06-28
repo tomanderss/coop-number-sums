@@ -295,6 +295,19 @@ export function sfxToolSwitch() {
   sfxVoice(midi(9), 0, 0.08, 0.42, { lp: 1600, attack: 0.003, partial2: 0.1 });
   sfxVoice(midi(14), 0.06, 0.16, 0.5, { lp: 1800, attack: 0.003, partial2: 0.1 });
 }
+// Gewonnen — kleine warme Fanfare G-Dur -> C-Dur+Oktave (befriedigend/belohnend).
+export function sfxWin() {
+  if (!sfxReady()) return;
+  [-5, -1, 2].forEach((s, i) => sfxVoice(midi(s), 0, 0.5, i ? 0.22 : 0.28, { lp: 1700, attack: 0.01, partial2: 0.1 }));
+  [0, 4, 7, 12].forEach((s, i) => sfxVoice(midi(s), 0.34, 1.4, i ? 0.26 : 0.32, { lp: 2600, attack: 0.01, partial2: 0.18 }));
+}
+// Verloren — sanfter, dunkler Moll-Fall G4 -> Eb4 -> C4 (traurig/dramatisch).
+export function sfxLose() {
+  if (!sfxReady()) return;
+  sfxVoice(midi(7), 0, 0.45, 0.42, { lp: 1500, attack: 0.012, partial2: 0.1 });
+  sfxVoice(midi(3), 0.22, 0.45, 0.42, { lp: 1500, attack: 0.012, partial2: 0.1 });
+  sfxVoice(midi(0), 0.44, 1.8, 0.5, { lp: 1400, attack: 0.012, partial2: 0.1 });
+}
 
 export function isPlaying() { return running; }
 

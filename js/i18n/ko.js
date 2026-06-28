@@ -227,6 +227,8 @@ export default {
     sfxError: '실수',
     sfxHint: '힌트',
     sfxToolSwitch: '모드 전환 (펜/지우개)',
+    sfxWin: '승리',
+    sfxLose: '패배',
     a11y: '접근성',
     colorBlindMode: '🎨 색맹 친화 모드',
     colorBlindModeHint: '게임 전체(정답/오답, 힌트, 생명, 협동 색상 등)의 초록/빨강을 적록/청황 색각 이상에서도 구별하기 쉬운 색으로 바꿉니다.',

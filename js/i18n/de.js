@@ -227,6 +227,8 @@ export default {
     sfxError: 'Fehler',
     sfxHint: 'Hinweis',
     sfxToolSwitch: 'Moduswechsel (Stift/Radierer)',
+    sfxWin: 'Gewonnen',
+    sfxLose: 'Verloren',
     a11y: 'Barrierefreiheit',
     colorBlindMode: '🎨 Farbenblind-Modus',
     colorBlindModeHint: 'Ersetzt Grün/Rot im gesamten Spiel (richtig/falsch, Hinweise, Leben, Coop-Farben, ...) durch besser unterscheidbare Töne für Rot-Grün-/Blau-Gelb-Sehschwäche.',

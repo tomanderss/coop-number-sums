@@ -1635,6 +1635,7 @@ function win(remote) {
   log('game', `Gewonnen`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
   updateMusic();
+  if (state.settings.sfxWin) Music.sfxWin();
   if (remote) {
     state.elapsed = remote.timeMs;
     state.mistakes = remote.mistakes;
@@ -1692,6 +1693,7 @@ function lose(remote) {
   log('game', `Verloren`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
   updateMusic();
+  if (state.settings.sfxLose) Music.sfxLose();
   if (remote) {
     state.elapsed = remote.timeMs;
     state.mistakes = remote.mistakes;
@@ -1950,6 +1952,8 @@ function toggleSetting(key) {
     else if (key === 'sfxError') Music.sfxError();
     else if (key === 'sfxHint') Music.sfxHint();
     else if (key === 'sfxToolSwitch') Music.sfxToolSwitch();
+    else if (key === 'sfxWin') Music.sfxWin();
+    else if (key === 'sfxLose') Music.sfxLose();
   }
 }
 function setSetting(key, val) {
@@ -3084,6 +3088,12 @@ const App = {
         </div>
         <div class="set-row" @click="toggleSetting('sfxToolSwitch')">
           <span>{{ t('settings.sfxToolSwitch') }}</span><span class="switch" :class="{on:state.settings.sfxToolSwitch}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('sfxWin')">
+          <span>{{ t('settings.sfxWin') }}</span><span class="switch" :class="{on:state.settings.sfxWin}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('sfxLose')">
+          <span>{{ t('settings.sfxLose') }}</span><span class="switch" :class="{on:state.settings.sfxLose}"><i></i></span>
         </div>
 
         <div class="set-group-title">{{ t('settings.a11y') }}</div>
