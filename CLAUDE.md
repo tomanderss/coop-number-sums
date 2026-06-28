@@ -53,10 +53,30 @@ node build.js --major                           # bump major, reset minor
 
 ## Workflow for every code change
 
-1. **`changes.txt`** — add a short German user-facing bullet (e.g. `Ladeanzeige beim Verbindungsaufbau ergänzt`). Source for in-app release notes.
-2. **PR + Auto-Merge** — create PR targeting `master`, then call `mcp__github__enable_pr_auto_merge` (SQUASH) **in the same turn immediately after** `create_pull_request`, before CI starts. Never push directly to `master`.
-3. **Update this file** — if the change affects architecture, conventions, commands, or workflow: update CLAUDE.md to reflect it and include the update in the same PR. Keep entries concise.
-4. **Cut a release** — **do this automatically after every PR is merged, without waiting to be asked.** Create a new branch from latest `master`, run `node build.js` (bumps version, writes `js/buildinfo.js`, clears `changes.txt`), commit, open a release PR, and merge it immediately (CI is usually already green on a release-only commit). The version only becomes visible in-app once this step is done.
+Every version ships as **two squash-merged PRs**: a **feature/fix PR** (code + one `changes.txt` line), then a **release PR** (`node build.js`). Never push directly to `master`; never merge before the CI `test` job is green.
+
+### A) Feature / fix PR
+1. **Branch** from latest `master` (`git checkout master && git pull && git checkout -b <name>`).
+2. **`changes.txt`** — add **one** short German, user-facing bullet (e.g. `Ladeanzeige beim Verbindungsaufbau ergänzt`). This is the *only* hand-maintained changelog source; `build.js` consumes and empties it. Multiple bullets in one release = multiple lines.
+3. **Update CLAUDE.md** in the same PR if the change affects architecture/conventions/commands/workflow. Keep entries concise.
+4. **Commit + push**, open PR (base `master`), then `mcp__github__enable_pr_auto_merge` (SQUASH) right after `create_pull_request`. If auto-merge reports "already clean"/unavailable, poll `pull_request_read get_check_runs` and `merge_pull_request` (squash) once `test` is `success`.
+
+### B) Release PR — **do this automatically after every feature PR merges, without being asked**
+1. Branch from latest `master` (now contains the feature merge).
+2. `node build.js` (`--major` only on explicit request — bumps Major, resets Minor).
+3. Commit all changed files, open a release PR, merge once green. The version is only live in-app after this step.
+
+### What `node build.js` does (never edit its outputs by hand)
+- `.release-counter` — source of truth for the version (`Major.Minor`, no patch). Default: `minor += 1`.
+- `js/buildinfo.js` — **auto-generated**: `BUILD`, `BUILD_HASH` (`git rev-parse --short HEAD`), `CHANGELOG` (new `{version,date,changes}` entry prepended; `changes` = the non-empty lines of `changes.txt`). Drives the in-app "what's new" modal.
+- `sw.js` — bumps the cache name `coop-number-sums-v<VERSION>` → clients detect the update (update banner).
+- `changes.txt` — **emptied** after being read.
+- `version-<VERSION>.txt` — marker file (old `version-*.txt` deleted).
+
+### Caveats
+- **`changes.txt` merge conflict**: if a release emptied it between branch creation and merge, resolve by keeping your own feature line(s).
+- **Flaky `test/e2e/training.spec.js`** (solve-timing): if green locally, re-trigger with an empty commit (`git commit --allow-empty -m "CI rerun" && git push`) — never weaken the gate.
+- Deploy is automatic: GitHub Pages serves `master`; native iOS/Android are wrapped separately via `npm run cap:sync`.
 
 ## Key conventions
 
