@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.138';
-export const BUILD_HASH = 'ea5d818';
+export const BUILD      = '0.139';
+export const BUILD_HASH = '7d89b25';
 
 export const CHANGELOG = [
+  {
+    "version": "0.139",
+    "date": "28.06.2026",
+    "changes": [
+      "Grundpegel der Hintergrundmusik wieder halbiert (Aktions-Sounds bleiben unverändert laut)",
+      "Lautstärke-Regler feiner einstellbar (1%-Schritte statt grober Stufen)"
+    ]
+  },
   {
     "version": "0.138",
     "date": "28.06.2026",
