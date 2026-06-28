@@ -2039,25 +2039,28 @@ function init() {
   // Listener bleibt BESTEHEN (nicht { once }), damit auch nach dem Zurückkehren
   // aus dem Hintergrund (frischer, zunächst gesperrter AudioContext) der erste
   // Tap die Musik wieder startet. updateMusic() ist idempotent.
-  // WICHTIG: updateMusic() (und damit das Anlegen des AudioContext) NICHT eager
-  // beim Laden aufrufen. iOS/Safari lassen einen außerhalb einer Nutzergeste
-  // erzeugten (suspendierten) Kontext beim ersten Tap oft nicht sauber starten —
-  // Folge: beim Spielstart kam keine Musik, erst nach einer weiteren Navigation.
-  // Der Kontext wird daher ausschließlich INNERHALB einer echten Geste erzeugt
-  // (pointerdown/keydown unten) bzw. aus dem Tap-Pfad von navigate()/startTimer().
+  // Menü-/App-Musik möglichst SOFORT starten (Wunsch: Musik schon beim Öffnen
+  // der App / sobald das Menü sichtbar ist, ohne dass man erst etwas antippen
+  // muss). Daher EAGER beim Laden versuchen — auf Android/Desktop startet das
+  // direkt. iOS/Safari verlangt für den allerersten Audiostart prinzipiell eine
+  // Nutzergeste; dort greift der Listener unten und startet die Musik beim ersten
+  // Tippen/Tasten/Touch. updateMusic() ist idempotent.
+  updateMusic();
   const unlockAudio = () => updateMusic();
   window.addEventListener('pointerdown', unlockAudio);
   window.addEventListener('keydown', unlockAudio);
+  window.addEventListener('touchstart', unlockAudio, { passive: true });
   // App im Hintergrund: AudioContext KOMPLETT schließen (suspendForBackground),
-  // damit das OS nichts mehr glitchen kann. Beim Zurückkehren bewusst NICHT
-  // automatisch neu starten (das liefe außerhalb einer Geste) — der erste Tap
-  // (unlockAudio) baut einen frischen Kontext auf und startet die Musik wieder.
+  // damit das OS nichts mehr glitchen kann. Zurück im Vordergrund sofort wieder
+  // starten (und falls iOS das blockt, beim ersten Tap, s.o.).
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) Music.suspendForBackground();
+    else updateMusic();
   });
-  // pagehide zusätzlich: feuert auf iOS-PWA beim Backgrounding oft
+  // pagehide/pageshow zusätzlich: feuert auf iOS-PWA beim Backgrounding oft
   // zuverlässiger/früher als visibilitychange.
   window.addEventListener('pagehide', () => Music.suspendForBackground());
+  window.addEventListener('pageshow', () => updateMusic());
   window.addEventListener('blur', () => { if (document.hidden) Music.suspendForBackground(); });
 }
 
