@@ -1,0 +1,2 @@
+Aufgeräumte Spielleiste: oben nur noch Pause; Aufgeben, Einstellungen und Anleitung sind ins Pausenmenü gewandert
+Einstellungen im Spiel öffnen pausiert jetzt korrekt für alle (gleiche Mechanik wie der Pause-Knopf), auch im Coop

@@ -65,7 +65,8 @@ test.describe('home screen', () => {
     await expect(page.locator('.resume-row')).toHaveCount(0);
     await startNewGame(page, 'sehrleicht');
     const seedBefore = await page.evaluate(() => window.__cns.state.puzzle.seed);
-    await page.locator('.screen.game .icon-btn').first().click();
+    await page.locator('.game-top .icon-btn').first().click(); // Pause
+    await page.locator('.pause-overlay').getByText('Zum Menü').click();
     await expect(page.locator('.screen.home')).toBeVisible();
     const resumeRow = page.locator('.resume-row');
     await expect(resumeRow).toBeVisible();
@@ -97,7 +98,8 @@ test.describe('home screen', () => {
   test('solo and coop resume buttons render side by side when both saves exist', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
-    await page.locator('.screen.game .icon-btn').first().click();
+    await page.locator('.game-top .icon-btn').first().click(); // Pause
+    await page.locator('.pause-overlay').getByText('Zum Menü').click();
     await expect(page.locator('.screen.home')).toBeVisible();
     // Fake a separately-saved coop game in the dedicated coop slot (real coop
     // saves go through Coop.rejoin()'s Firebase round-trip, which the E2E

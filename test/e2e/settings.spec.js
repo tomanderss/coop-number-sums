@@ -2,16 +2,22 @@ import { test, expect } from '@playwright/test';
 import { gotoApp, startNewGame } from './helpers.js';
 
 test.describe('settings', () => {
-  test('Zahnrad ist auch im Spiel da, öffnet Einstellungen und pausiert (bleibt pausiert nach Zurück)', async ({ page }) => {
+  test('Einstellungen im Spiel über das Pausenmenü: pausiert (gleiche Mechanik wie Pause-Knopf) und bleibt nach Zurück pausiert', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
     expect(await page.evaluate(() => window.__cns.state.paused)).toBe(false);
-    await page.locator('.screen.game .top-actions button:has-text("⚙️")').click();
+    // Pause-Knopf (oben) -> Pausenmenü -> Einstellungen
+    await page.locator('.game-top .icon-btn').first().click();
+    await expect(page.locator('.pause-overlay')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
+    await page.locator('.pause-overlay').getByText('Einstellungen').click();
     await expect(page.locator('.screen.settings')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
+    // Zurück -> Spiel bleibt pausiert (Pause-Overlay wieder sichtbar)
     await page.locator('.screen.settings .topbar .icon-btn').first().click();
     await expect(page.locator('.screen.game')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
+    await expect(page.locator('.pause-overlay')).toBeVisible();
   });
 
   test('dark mode toggle persists across reload', async ({ page }) => {

@@ -104,10 +104,11 @@ test.describe('training mode', () => {
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
     await expect(page.locator('.training-banner')).toBeVisible();
 
-    // Abort the tutorial mid-puzzle via the back button (quitToHome()), then
-    // simulate receiving a coop INIT message for a fresh, unrelated game --
+    // Abort the tutorial mid-puzzle via the pause menu ("Zum Menü" -> quitToHome()),
+    // then simulate receiving a coop INIT message for a fresh, unrelated game --
     // exactly what a guest joining a room (or a team/race match start) does.
-    await page.locator('.game-top .icon-btn').first().click();
+    await page.locator('.game-top .icon-btn').first().click(); // Pause
+    await page.locator('.pause-overlay').getByText('Zum Menü').click();
     await expect(page.locator('.screen.home')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.isTrainingGame)).toBe(true);
 
