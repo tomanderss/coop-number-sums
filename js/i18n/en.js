@@ -282,6 +282,7 @@ export default {
     reveal: 'Reveal',
     dismiss: 'Dismiss hint',
     socratic: {
+      generic: 'In this highlighted area one cell can be determined for sure. Look closely at the sums – which one is it?',
       sumReached: 'The target here is already reached exactly with the circled numbers. So what has to happen to all the remaining, still-open numbers?',
       allRemainingNeeded: 'Exactly {rem} is still missing to reach the target. Add up the still-open numbers – what does it tell you if together they make exactly {rem}?',
       tooLarge: 'Only {rem} is still missing to reach the target. Is there a still-open number that on its own is already larger than {rem}? Can it belong at all then?',

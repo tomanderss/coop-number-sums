@@ -2,7 +2,7 @@
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL } from './config.js';
-import { generatePuzzle, findHintCell } from './generator.js';
+import { generatePuzzle } from './generator.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
@@ -903,14 +903,52 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
 // erklärbaren Schritt (nur Tier-2/2.5-Logik nötig), wird sofort aufgelöst.
 function useHint() {
   if (state.status !== 'playing' || state.hintsLeft <= 0 || state.isRaceGame || state.team.active) return;
-  clearStaleHintNudge(); // veralteten Hinweis (Zielzelle schon gelöst) zuerst verwerfen
+  // Das Zielfeld wird DETERMINISTISCH aus dem (geteilten) Brett abgeleitet -> alle
+  // Coop-Spieler bekommen denselben Hinweis; sobald es gelöst ist, rückt es für alle
+  // gemeinsam weiter. Die Stufen 1/2/3 laufen rein lokal (clientseitig) pro Spieler.
+  const target = nextHintTarget();
+  if (!target) return;
   const n = state.hintNudge;
-  // Stufe 3: Frage steht schon -> Zelle wirklich auflösen (Strafe lief in Stufe 1).
-  if (n && n.stage >= 2) { state.hintNudge = null; doRevealCell(n.r, n.c, n.want); return; }
-  // Stufe 2: Bereich ist schon markiert -> jetzt die Leitfrage einblenden.
-  if (n) { if (state.settings.sfxHint) Music.sfxHint(); n.stage = 2; return; }
-  // Stufe 1: erst warnen (kostet die Bestzeit!), dann Bereich markieren.
-  confirmThenStartHint();
+  // Nur weiterstufen, wenn der gemerkte Hinweis WIRKLICH zum aktuellen Zielfeld
+  // gehört und dieses noch offen ist. Sonst (veralteter/abweichender Hinweis,
+  // Session-Überhang, vom Partner gelöst, oder Tier-2-Fallback) beginnt es frisch
+  // bei Stufe 1 — statt fälschlich sofort aufzulösen (genau der Coop-Bug).
+  const sameTarget = n && n.r === target.r && n.c === target.c && state.marks[target.r][target.c] === 'none';
+  if (sameTarget && n.stage >= 2) { // Stufe 3: auflösen
+    state.hintNudge = null;
+    if (state.settings.sfxHint) Music.sfxHint();
+    doRevealCell(target.r, target.c, target.want);
+    return;
+  }
+  if (sameTarget && n.stage === 1) { // Stufe 2: Leitfrage einblenden
+    if (state.settings.sfxHint) Music.sfxHint();
+    n.stage = 2;
+    return;
+  }
+  // Stufe 1 (frisch fürs aktuelle Zielfeld): erst die einmalige Warnung, dann markieren.
+  confirmThenStartHint(target);
+}
+// Deterministisches nächstes Hinweis-Ziel — rein aus dem geteilten Brett, daher für
+// ALLE Coop-Spieler identisch (kein Math.random wie in findHintCell!). Bevorzugt
+// einen Tier-1-Schritt mit erklärbarer Leitfrage; sonst die erste noch nicht
+// korrekt markierte Zelle in fester Scan-Reihenfolge (KEEP bevorzugt), generisch.
+function nextHintTarget() {
+  const step = findTrainingStep(state.puzzle, state.marks);
+  if (step) return { r: step.r, c: step.c, want: step.action, group: step.group, reason: step.reason, rem: step.rem };
+  const p = state.puzzle;
+  let firstAny = null;
+  for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) {
+    const want = p.solution[r][c] ? 'kept' : 'removed';
+    if (state.marks[r][c] === want) continue;
+    if (want === 'kept') return genericTarget(r, c, want);
+    if (!firstAny) firstAny = [r, c, want];
+  }
+  return firstAny ? genericTarget(firstAny[0], firstAny[1], firstAny[2]) : null;
+}
+// Generischer (Tier-2-)Hinweis: die Cage der Zelle hervorheben, ohne konkrete
+// Summen-Leitfrage. Jede Spielzelle gehört zu einer Cage (region >= 0).
+function genericTarget(r, c, want) {
+  return { r, c, want, group: { kind: 'region', ref: state.cellMeta[r][c].region, target: null }, reason: 'generic', rem: null };
 }
 // Hinweis-Banner wegklicken (X) — verwirft die offene Frage komplett, sodass die
 // Werkzeugleiste wieder frei ist; der nächste Tipp auf den Knopf beginnt neu bei
@@ -926,26 +964,21 @@ function revealHintNudge() {
 }
 // Einmalige Bestzeit-Warnung je Partie, dann den Hinweis starten — bei Abbruch
 // bleibt hintWarnShown false, sodass die Warnung erneut käme.
-function confirmThenStartHint() {
+function confirmThenStartHint(target) {
   if (!state.hintWarnShown) {
-    ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => { state.hintWarnShown = true; startHint(); });
+    ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => { state.hintWarnShown = true; startHint(target); });
     return;
   }
-  startHint();
+  startHint(target);
 }
-// Stufe 1: zieht die Strafe (Bestzeit futsch) und markiert den relevanten
-// Bereich. Ohne einfach erklärbaren Schritt wird direkt eine Zelle aufgelöst.
-function startHint() {
-  const step = findTrainingStep(state.puzzle, state.marks);
+// Stufe 1: zieht die Strafe (Bestzeit futsch) und markiert den relevanten Bereich
+// für das (synchron bestimmte) Zielfeld. Löst NIE direkt auf — die Auflösung
+// passiert ausschließlich über Stufe 3 (doppelter Knopfdruck / "Auflösen").
+function startHint(target) {
   registerHintPenalty();
   if (state.settings.sfxHint) Music.sfxHint(); // Stufe 1 — Ton bei jeder Hinweis-Instanz
-  if (step) {
-    state.hintNudge = { group: step.group, reason: step.reason, rem: step.rem, r: step.r, c: step.c, want: step.action, stage: 1 };
-    log('game', `Hinweis Stufe 1 (Bereich markiert)`, { group: step.group.kind });
-    return;
-  }
-  const hint = findHintCell(state.puzzle, state.marks);
-  if (hint) doRevealCell(hint.r, hint.c, hint.want);
+  state.hintNudge = { group: target.group, reason: target.reason, rem: target.rem, r: target.r, c: target.c, want: target.want, stage: 1 };
+  log('game', `Hinweis Stufe 1 (Bereich markiert)`, { group: target.group.kind });
 }
 // Strafe für die Hinweis-Nutzung: zählt den Hinweis (entwertet die Bestzeit) und
 // meldet das einmal sichtbar. Läuft genau einmal je Hinweis-Sequenz (in Stufe 1).
@@ -2520,7 +2553,7 @@ const App = {
            verdeckt. -->
       <div v-if="state.hintNudge && state.hintNudge.stage>=2 && !state.isTrainingGame && state.status==='playing' && !state.paused" class="hint-banner">
         <div class="hint-text">
-          <b>💡 {{ t('training.group.'+state.hintNudge.group.kind, { n: state.hintNudge.group.ref+1 }) }} ({{ t('training.target', { n: state.hintNudge.group.target }) }})</b>
+          <b>💡 {{ t('training.group.'+state.hintNudge.group.kind, { n: state.hintNudge.group.ref+1 }) }}<template v-if="state.hintNudge.group.target!=null"> ({{ t('training.target', { n: state.hintNudge.group.target }) }})</template></b>
           <span>{{ t('hint.socratic.'+state.hintNudge.reason, { rem: state.hintNudge.rem }) }}</span>
         </div>
         <button class="btn btn-ghost btn-sm" @click="revealHintNudge">{{ t('hint.reveal') }}</button>

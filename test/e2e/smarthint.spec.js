@@ -119,6 +119,37 @@ test('Nach dem Auflösen beginnt der nächste Hinweis wieder bei Stufe 1 (nicht 
   await expect(page.locator('.hint-banner')).toBeHidden();
 });
 
+test('Coop-Sync: Ziel ist deterministisch und ein abweichender/veralteter Hinweis löst NICHT sofort auf, sondern startet neu bei Stufe 1', async ({ page }) => {
+  await gotoApp(page);
+  await startNewGame(page, 'sehrleicht');
+  await solveExceptCorners(page);
+  await startStage1(page);
+  const A = await page.evaluate(() => ({ r: window.__cns.state.hintNudge.r, c: window.__cns.state.hintNudge.c }));
+
+  // Determinismus: Nudge zurücksetzen, erneut tippen -> exakt dieselbe Zielzelle
+  // (kein Zufall mehr) -> alle Coop-Spieler bekommen dasselbe Hinweisfeld.
+  await page.evaluate(() => { window.__cns.state.hintNudge = null; window.__cns.state.hintsLeft = 99; });
+  await hintBtn(page).click();
+  expect(await page.evaluate(() => ({ r: window.__cns.state.hintNudge.r, c: window.__cns.state.hintNudge.c }))).toEqual(A);
+
+  // Abweichender (veralteter) Nudge auf der ANDEREN offenen Eckzelle B (Stufe 1,
+  // damit kein Banner den Knopf überdeckt). Tippen darf B NICHT auflösen, sondern
+  // muss frisch bei Stufe 1 auf dem deterministischen Ziel A neu beginnen.
+  const before = await page.evaluate((A) => {
+    const s = window.__cns.state, p = s.puzzle;
+    const B = (A.r === 0 && A.c === 0) ? { r: p.rows - 1, c: p.cols - 1 } : { r: 0, c: 0 };
+    s.hintNudge = { r: B.r, c: B.c, want: 'kept', stage: 1, group: { kind: 'region', ref: 0, target: null }, reason: 'generic', rem: null };
+    return { B, markB: s.cellMeta[B.r][B.c].hintMark };
+  }, A);
+  await hintBtn(page).click();
+  const after = await page.evaluate((before) => {
+    const s = window.__cns.state;
+    return { nudge: { r: s.hintNudge.r, c: s.hintNudge.c, stage: s.hintNudge.stage }, markB: s.cellMeta[before.B.r][before.B.c].hintMark };
+  }, before);
+  expect(after.nudge).toEqual({ r: A.r, c: A.c, stage: 1 }); // zurück aufs Ziel, Stufe 1
+  expect(after.markB).toBe(before.markB);                    // B NICHT aufgelöst
+});
+
 test('Eigener Zug verwirft den Hinweis (auch in Stufe 1)', async ({ page }) => {
   await gotoApp(page);
   await startNewGame(page, 'sehrleicht');

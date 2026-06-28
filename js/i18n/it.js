@@ -282,6 +282,7 @@ export default {
     reveal: 'Rivela',
     dismiss: 'Chiudi suggerimento',
     socratic: {
+      generic: 'In questa area evidenziata una cella si può determinare con certezza. Guarda bene le somme: quale?',
       sumReached: 'Qui l’obiettivo è già raggiunto esattamente con i numeri cerchiati. Cosa deve succedere allora a tutti i numeri rimanenti ancora aperti?',
       allRemainingNeeded: 'Mancano esattamente {rem} per raggiungere l’obiettivo. Somma i numeri ancora aperti: cosa significa se insieme danno esattamente {rem}?',
       tooLarge: 'Mancano solo {rem} per raggiungere l’obiettivo. C’è un numero ancora aperto che da solo è già più grande di {rem}?',
