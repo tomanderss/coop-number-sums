@@ -41,6 +41,28 @@ const MOTIF = [7, 9, 12, 9, 7]; // G4 A4 C5 A4 G4 (Halbtöne ab C4)
 // Tonika-Pentatonik für die zufällige Füllung (passt immer harmonisch).
 const FILL = [-5, -3, 0, 2, 4, 7, 9, 12];
 
+// Bibliothek fester Melodie-Phrasen — alle in C-Dur-Pentatonik (Halbtöne ab C4),
+// d.h. Klangfarbe UND Tonart bleiben unverändert, es gibt nur deutlich mehr
+// Melodien für mehr Abwechslung. Das Leitmotiv oben bleibt als seltener Hook.
+const PHRASES = [
+  [0, 4, 7, 4],
+  [12, 9, 7, 9],
+  [7, 12, 9, 16],
+  [-5, 0, 4, 7, 4, 0],
+  [9, 7, 4, 7, 12],
+  [4, 7, 9, 7, 4, 2],
+  [16, 12, 9, 12],
+  [0, 7, 4, 12, 7],
+  [2, 4, 7, 9, 7],
+  [12, 16, 19, 16, 12],
+  [-3, 0, 4, 2, 0],
+  [7, 9, 12, 16, 12, 9],
+  [19, 16, 12, 9],
+  [0, 2, 4, 7, 9, 12],
+  [9, 12, 16, 12, 9, 7],
+  [4, 2, 0, -3, 0, 4],
+];
+
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (a) => a[(Math.random() * a.length) | 0];
 
@@ -110,20 +132,34 @@ function padLoop() {
   padTimer = setTimeout(padLoop, CHORD_SECONDS * 1000);
 }
 
-// Melodie: spielt mal das feste Leitmotiv (Wiedererkennung), mal eine zufällige
-// Füllung aus der Pentatonik (Variation).
+// Melodie: spielt mal das feste Leitmotiv (Wiedererkennung), meist eine der vielen
+// festen Phrasen (Abwechslung), mal nur sparsame Einzeltöne ("Zen-Raum"). Tempo,
+// Legato und Timing werden je Durchlauf zufällig variiert -> klingt selten gleich,
+// Klangfarbe (bell) und Tonart (C-Dur-Pentatonik) bleiben identisch.
 function melodyLoop() {
   if (!running || document.hidden) return; // im Hintergrund nichts planen (sonst Noten-Schwall)
   const now = ctx.currentTime;
-  if (Math.random() < 0.4) {
-    // Leitmotiv – immer dieselben Töne, gleichmäßig phrasiert.
+  const r = Math.random();
+  if (r < 0.16) {
+    // Leitmotiv – der wiedererkennbare Hook, jetzt seltener (mehr Varianz).
     MOTIF.forEach((semi, i) => bell(semi, now + 0.1 + i * 0.42, rand(2.2, 3.2), rand(0.14, 0.2)));
-    melodyTimer = setTimeout(melodyLoop, rand(7000, 10000));
+    melodyTimer = setTimeout(melodyLoop, rand(8000, 12000));
+  } else if (r < 0.82) {
+    // Eine der vielen festen Phrasen, mit variabler Phrasierung (Tempo/Legato/Timing).
+    const phrase = pick(PHRASES);
+    const step = rand(0.34, 0.6);                     // Grundtempo variiert
+    const legato = Math.random() < 0.5 ? 1.6 : 0.95;  // mal gebunden, mal perlend
+    let t = now + 0.1;
+    phrase.forEach((semi) => {
+      bell(semi, t, rand(1.8, 3.0) * legato, rand(0.12, 0.18));
+      t += step * rand(0.85, 1.2);
+    });
+    melodyTimer = setTimeout(melodyLoop, (t - now) * 1000 + rand(2500, 6000));
   } else {
-    // Zufällige Füllung: 1–3 Töne, ruhig.
-    const n = 1 + ((Math.random() * 3) | 0);
-    for (let i = 0; i < n; i++) bell(pick(FILL), now + 0.1 + i * rand(0.3, 0.7), rand(2.5, 4), rand(0.12, 0.17));
-    melodyTimer = setTimeout(melodyLoop, rand(3500, 6500));
+    // Sparsame Einzeltöne / kurze Geste – Raum zum Atmen.
+    const n = 1 + ((Math.random() * 2) | 0);
+    for (let i = 0; i < n; i++) bell(pick(FILL), now + 0.1 + i * rand(0.4, 0.9), rand(2.5, 4), rand(0.11, 0.16));
+    melodyTimer = setTimeout(melodyLoop, rand(4000, 8000));
   }
 }
 
