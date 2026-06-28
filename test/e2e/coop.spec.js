@@ -140,7 +140,7 @@ test.describe('coop', () => {
 
   test('back navigation from the coop screen returns to home', async ({ page }) => {
     await goToCoop(page);
-    await page.locator('.screen.coop-screen .icon-btn').click();
+    await page.locator('.screen.coop-screen .topbar .icon-btn').first().click();
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 
@@ -149,7 +149,7 @@ test.describe('coop', () => {
     await page.locator('.coop-body .text-input').fill('Tom');
     await page.locator('.coop-body .btn-primary').click();
 
-    await page.locator('.screen.coop-screen .icon-btn').click();
+    await page.locator('.screen.coop-screen .topbar .icon-btn').first().click();
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 });

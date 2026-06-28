@@ -13,7 +13,7 @@ test.describe('home screen', () => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
     await expect(page.locator('.screen.setup')).toBeVisible();
-    await page.locator('.screen.setup .icon-btn').click();
+    await page.locator('.screen.setup .topbar .icon-btn').first().click();
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 
@@ -21,7 +21,7 @@ test.describe('home screen', () => {
     await gotoApp(page);
     await page.locator('.home-grid .btn-ghost').nth(0).click();
     await expect(page.locator('.screen.stats')).toBeVisible();
-    await page.locator('.screen.stats .icon-btn').click();
+    await page.locator('.screen.stats .topbar .icon-btn').first().click();
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 
