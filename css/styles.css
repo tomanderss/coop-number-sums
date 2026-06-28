@@ -120,11 +120,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
      Bildschirmkanten hinaus (inset-% ist viewport-relativ). Sweetspot: genug
      Überstand, dass die Bildkante auch unten unter dem iPhone-Home-Indicator
      außerhalb des Schirms liegt (iOS rechnet die Safe-Area knapper als die reine
-     Geometrie, -6% reichte unten nicht), aber so wenig Zoom/Beschnitt wie nötig.
+     Geometrie, -12% deckt auch unten unter dem Home-Indicator zuverlässig ab).
    Sehr niedrige Deckkraft -> Buttons in Hell-/Dunkelmodus lesbar. Scharf. */
 .app { isolation: isolate; }
 .app.app-home::before {
-  content: ''; position: fixed; inset: -9%; z-index: -1; pointer-events: none;
+  content: ''; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
   background: url('../icons/icon-1024.png') center / cover no-repeat;
   opacity: .08;
 }
