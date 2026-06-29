@@ -27,7 +27,7 @@ node build.js --major                           # bump major, reset minor
 | `js/config.js` | Static config only: difficulties, colors, `DEFAULT_SETTINGS`. No logic. |
 | `js/solver.js` | Deduction engine: `logicalSolve()` (forced moves only), `countSolutions()`. Exports `UNK/KEEP/REMOVE`. BigInt bitsets for subset-sum. |
 | `js/generator.js` | Puzzle generator: solution mask → Voronoi-BFS regions → values (1–9) → targets → uniqueness/no-guess check via solver. Seeded RNG (`mulberry32`). For `maxTier3Steps:0` difficulties it solves WITHOUT hypothesis (much faster reject of bad candidates — key for large boards like 13×13). |
-| `js/genworker.js` | ES-module Web Worker that runs `generatePuzzle()` off the main thread. Drives the background **prefetch** in `app.js` (`puzzleCache`/`schedulePrefetch`): one puzzle per difficulty generated ahead of time → instant game start, no blocking/flicker. Falls back to synchronous on-demand generation (with the loading overlay) if the worker is unavailable. |
+| `js/genworker.js` | ES-module Web Worker that runs `generatePuzzle()` off the main thread. Drives the background **prefetch** in `app.js` (`puzzleCache`/`schedulePrefetch`) AND one-off **`generateAsync(opts)`** Promise generation (correlated by `reqId`). Used by Coop-host/Race/Team to generate in the ready-lobby off-thread. Falls back to synchronous generation if the worker is unavailable. |
 | `js/training.js` | Tier-1 only solver variant, returns one explained step at a time for tutorial mode. |
 | `js/storage.js` | All `localStorage`. Keys prefixed `cns_`. Solo/coop active games in separate slots. 3-slot rolling backups. |
 | `js/coop.js` | Firebase RTDB transport, lazy-loaded (solo never loads Firebase). Events under `/rooms/{code}/events`, presence via `onDisconnect()`. |
@@ -45,6 +45,8 @@ node build.js --major                           # bump major, reset minor
 - **T3**: Proof by contradiction — generator rejects and retries if needed
 
 **Game modes**: Solo · Coop (2–4 players, shared grid, Firebase) · Race 1v1 (separate grids, % progress only) · Team vs Team (2 shared grids, same Firebase room) · Training (T1 steps with explanations)
+
+**Ready-lobby generation** (`state.coop.awaitingStart`): Coop/Race/Team generate their puzzle off-thread via `generateAsync` AFTER entering the lobby, not synchronously before. While generating, `state.coop.generating` is true → the lobby overlay shows an infinite loading bar instead of the start/ready button. Coop host uses the prefetch cache if available (then sends INIT with the full puzzle); guests don't generate (they receive INIT = instant). Race/Team both regenerate from the shared seed locally. A guest can only mark ready once its own generation is done, so `allGuestsReady()` doubles as the "everyone has a finished puzzle" gate; the host's own `startCoopRound()` additionally checks `!state.coop.generating`.
 
 ## Testing
 
