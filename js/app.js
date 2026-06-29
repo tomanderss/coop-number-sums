@@ -2621,11 +2621,10 @@ const App = {
         <div class="setup-label">{{ t('common.difficulty') }}</div>
         <div class="option-grid">
           <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card" :class="{active: state.sel.difficulty===d.id}" @click="state.sel.difficulty=d.id">
-            <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
-            <span class="opt-meta">
-              <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="opt-best">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+            <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span></span>
+            <span class="opt-chips">
+              <span class="chip">⌀ {{ avgTimeFor(d.id)!=null ? fmtTime(avgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
+              <span class="chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
             </span>
           </button>
         </div>
@@ -3137,10 +3136,10 @@ const App = {
             <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                     :class="{active: state.coop.lobbyDiffId===d.id}"
                     @click="state.coop.lobbyDiffId=d.id">
-              <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
-              <span class="opt-meta">
-                <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-                <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+              <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span></span>
+              <span class="opt-chips">
+                <span class="chip coop-chip">⌀ {{ coopAvgTimeFor(d.id)!=null ? fmtTime(coopAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
+                <span class="chip coop-chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               </span>
             </button>
           </div>
@@ -3201,10 +3200,10 @@ const App = {
               <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                       :class="{active: state.coop.lobbyDiffId===d.id}"
                       @click="state.coop.lobbyDiffId=d.id">
-                <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
-                <span class="opt-meta">
-                  <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-                  <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+                <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span></span>
+                <span class="opt-chips">
+                  <span class="chip coop-chip">⌀ {{ coopAvgTimeFor(d.id)!=null ? fmtTime(coopAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
+                  <span class="chip coop-chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
                 </span>
               </button>
             </div>
