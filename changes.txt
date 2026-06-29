@@ -1,0 +1,2 @@
+Renn-Modus: Prozentleisten setzen beim Rematch wieder korrekt auf 0 zurück (statt den Stand des vorigen Spiels zu zeigen)
+Zoom: neuer Zurücksetzen-Button (↺) oben rechts im Spiel, der den Zoom auf den Standard bringt – erscheint nur, wenn gezoomt wurde

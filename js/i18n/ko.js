@@ -41,6 +41,7 @@ export default {
   game: {
     loading: '퍼즐 생성 중…',
     coopTag: 'COOP',
+    zoomReset: '줌 초기화',
     coopOfflineSuffix: ' · 오프라인',
     pauseTitle: '일시정지',
     undoTitle: '실행 취소',

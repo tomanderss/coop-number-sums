@@ -249,6 +249,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* 40x40 statt vormals 30x30 -- liegt jetzt nah an der 44px-Tippflächen-Richtlinie
    (F6), ohne die schmale HUD-Reihe neben den Chips zu sprengen. */
 .zoom-btn { width: 40px; height: 40px; border-radius: 11px; background: var(--bg2); font-size: 1.2rem; font-weight: 800; color: var(--text2); box-shadow: 0 2px 6px var(--shadow); }
+/* Zoom-Reset (↺): nur sichtbar, wenn gezoomt wurde; dezent in Akzentfarbe vom
+   +/- abgesetzt, gleiche Tippfläche. */
+.zoom-btn.zoom-reset { color: var(--accent2); font-size: 1.3rem; }
 
 /* ─── Fortschrittsanzeige: Prozent + Balken (immer sichtbar im Spiel) ───────── */
 /* Der Balken ist ein leeres, umrandetes Rechteck -- die rechte Kante markiert

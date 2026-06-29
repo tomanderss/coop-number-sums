@@ -41,6 +41,7 @@ export default {
   game: {
     loading: 'Criando o quebra-cabeça…',
     coopTag: 'COOP',
+    zoomReset: 'Redefinir zoom',
     coopOfflineSuffix: ' · offline',
     pauseTitle: 'Pausa',
     undoTitle: 'Desfazer',

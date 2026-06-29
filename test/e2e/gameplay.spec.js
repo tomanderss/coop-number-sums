@@ -82,6 +82,18 @@ test.describe('gameplay', () => {
     await expect.poll(() => page.locator('.heart.empty').count()).toBe(emptyHeartsBefore + 1);
   });
 
+  test('the zoom reset button appears only after zooming and restores the default zoom', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page, 'sehrleicht');
+    // Bei Standardzoom (1) ist der Reset-Knopf ausgeblendet.
+    await expect(page.locator('.zoom-reset')).toHaveCount(0);
+    await page.locator('.zoomctl .zoom-btn', { hasText: '+' }).click();
+    await expect(page.locator('.zoom-reset')).toBeVisible();
+    await page.locator('.zoom-reset').click();
+    await expect(page.locator('.zoom-reset')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__cns.state.zoom)).toBe(1);
+  });
+
   test('undo reverts the last mark', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
