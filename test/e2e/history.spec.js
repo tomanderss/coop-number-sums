@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, startNewGame, solveActivePuzzle } from './helpers.js';
+import { gotoApp, startNewGame, solveActivePuzzle, dismissStreakModal } from './helpers.js';
 
 // home-grid now only holds stats/history (settings is a top-right gear icon,
 // howto is a top-left "?" icon, changelog moved into settings) — see js/app.js.
@@ -19,6 +19,7 @@ test.describe('history', () => {
     await startNewGame(page, 'sehrleicht');
     const seedBefore = await page.evaluate(() => window.__cns.state.puzzle.seed);
     await solveActivePuzzle(page);
+    await dismissStreakModal(page);
     await expect(page.locator('.result-card.win')).toBeVisible();
     await page.locator('.result-card.win .btn-ghost').last().click(); // "Zum Menü"
     await expect(page.locator('.screen.home')).toBeVisible();
@@ -64,6 +65,7 @@ test.describe('history', () => {
       state.tool = p.solution[wrongR][wrongC] ? 'eraser' : 'pen';
       onCellTap(wrongR, wrongC);
     });
+    await dismissStreakModal(page);
     await expect(page.locator('.result-card.lose')).toBeVisible();
     await page.locator('.result-card.lose .btn-ghost', { hasText: 'Menü' }).click();
     await expect(page.locator('.screen.home')).toBeVisible();

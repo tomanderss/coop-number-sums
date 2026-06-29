@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, startNewGame, solveActivePuzzle, commitMistakes } from './helpers.js';
+import { gotoApp, startNewGame, solveActivePuzzle, commitMistakes, dismissStreakModal } from './helpers.js';
 
 test.describe('gameplay', () => {
   // Regression: the player's chosen color (settings.coopMyColor) used to only
@@ -29,6 +29,7 @@ test.describe('gameplay', () => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
     await solveActivePuzzle(page);
+    await dismissStreakModal(page);
 
     await expect(page.locator('.result-card.win')).toBeVisible();
     await expect(page.locator('.highscore-badge')).toBeVisible();
@@ -47,6 +48,7 @@ test.describe('gameplay', () => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
     await solveActivePuzzle(page);
+    await dismissStreakModal(page);
 
     await expect(page.locator('.result-card.win.perfect')).toBeVisible();
     await expect(page.locator('.perfect-badge')).toBeVisible();

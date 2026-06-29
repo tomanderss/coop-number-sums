@@ -45,6 +45,16 @@ export async function solveActivePuzzle(page) {
   });
 }
 
+// Nach dem ERSTEN abgeschlossenen Spiel eines Kalendertags legt sich der
+// "Streak verlängert/gestartet"-Feier-Screen über die Ergebnis-Karte (siehe
+// state.streakExtended in app.js). In Tests startet localStorage pro Test leer,
+// also erscheint er beim ersten Sieg/Verlust und fängt sonst Klicks auf die
+// Ergebnis-Karte/das Menü ab. Diese Helper-Funktion blendet ihn best effort weg;
+// no-op, wenn er (z.B. beim zweiten Spiel desselben Tests) gar nicht erscheint.
+export async function dismissStreakModal(page) {
+  try { await page.locator('.streak-modal.extended .btn-primary').click({ timeout: 3000 }); } catch {}
+}
+
 // Commits `count` deliberate wrong taps (errorReveal defaults to 'instant',
 // where a wrong tap never sets the mark -- it only registers a mistake/loses
 // a life -- so the same cell can be tapped repeatedly without side effects).
