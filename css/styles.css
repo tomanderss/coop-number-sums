@@ -833,6 +833,32 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .empty { color: var(--text3); text-align: center; padding: 14px; }
 .whatsnew-badge { align-self: flex-start; background: var(--accent-soft); color: var(--accent2); font-weight: 800; font-size: .78rem; padding: 5px 12px; border-radius: 999px; }
 
+/* ─── Streak-Hinweise (verlängert/verloren) ───
+   Eigene, feier-/screenartige Variante des Modals (analog zum Gewonnen-Screen):
+   zentriert, großes Emoji, prominente Tageszahl. */
+.streak-modal { text-align: center; align-items: center; gap: 10px; max-width: 360px; }
+.streak-emoji { font-size: 3.4rem; line-height: 1; }
+.streak-modal .streak-title { font-size: 1.4rem; font-weight: 900; }
+.streak-msg { color: var(--text2); margin: 0; line-height: 1.45; }
+.streak-count { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 2px 0 4px; }
+.streak-count b { font-size: 2.8rem; font-weight: 900; line-height: 1; }
+.streak-count small { color: var(--text2); font-size: .8rem; text-transform: uppercase; letter-spacing: .4px; }
+.streak-modal .btn { align-self: stretch; }
+/* "Verlängert": warmer Feuer-Schein in Gold/Orange. */
+.streak-modal.extended {
+  box-shadow: 0 20px 60px var(--shadow), 0 0 0 2px rgba(251,146,60,.55), 0 0 42px rgba(251,146,60,.4);
+  animation: pop .35s cubic-bezier(.2,1.3,.5,1), streakGlow 2.2s ease-in-out .35s infinite;
+}
+.streak-modal.extended .streak-count b { color: #f97316; }
+.streak-modal.extended .streak-emoji { animation: streakFlicker 1.6s ease-in-out infinite; }
+@keyframes streakGlow {
+  0%, 100% { box-shadow: 0 20px 60px var(--shadow), 0 0 0 2px rgba(251,146,60,.55), 0 0 42px rgba(251,146,60,.4); }
+  50% { box-shadow: 0 20px 60px var(--shadow), 0 0 0 2px rgba(251,146,60,.85), 0 0 64px rgba(249,115,22,.6); }
+}
+@keyframes streakFlicker { 0%, 100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.08) rotate(2deg); } }
+/* "Verloren": gedämpft/kühl, kein feierlicher Schein. */
+.streak-modal.lost .streak-emoji { filter: grayscale(.2); opacity: .9; }
+
 /* ─── Coop Lobby ─── */
 .coop-screen .coop-body { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 12px; }
 .coop-tagline { color: var(--text2); font-size: .95rem; text-align: center; padding: 4px 0; }

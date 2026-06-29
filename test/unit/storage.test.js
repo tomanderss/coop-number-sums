@@ -264,6 +264,36 @@ describe('storage.recordStreakResult', () => {
     assert.equal(d.totalCompleted, 1);
   });
 
+  test('flags: a first completion counts, is not a continuation, and is a new record', () => {
+    const d = recordStreakResult('2026-06-18');
+    assert.equal(d.justCounted, true);
+    assert.equal(d.continued, false);
+    assert.equal(d.isNewRecord, true); // 1 > previous best of 0
+  });
+
+  test('flags: continuing the next day counts, is a continuation, and sets a new record', () => {
+    recordStreakResult('2026-06-18');
+    const d = recordStreakResult('2026-06-19');
+    assert.equal(d.justCounted, true);
+    assert.equal(d.continued, true);
+    assert.equal(d.isNewRecord, true); // 2 > previous best of 1
+  });
+
+  test('flags: a same-day replay does not count again', () => {
+    recordStreakResult('2026-06-18');
+    const d = recordStreakResult('2026-06-18');
+    assert.equal(d.justCounted, false);
+  });
+
+  test('flags: restarting after a gap counts but is neither a continuation nor a record', () => {
+    recordStreakResult('2026-06-18');
+    recordStreakResult('2026-06-19'); // best becomes 2
+    const d = recordStreakResult('2026-06-25'); // gap -> restart at 1
+    assert.equal(d.justCounted, true);
+    assert.equal(d.continued, false);
+    assert.equal(d.isNewRecord, false); // 1 is not > best of 2
+  });
+
   test('loadStreak resets a stale streak once a day was skipped, without waiting for the next completion', () => {
     recordStreakResult('2026-06-18'); // long in the past relative to any real "today" this test runs on
     const d = loadStreak();

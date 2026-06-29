@@ -182,16 +182,25 @@ function isNextCalendarDay(prevDateStr, dateStr) {
 // einmal. Nutzt bewusst den rohen, ungekürzten Stand statt loadStreak() — hier
 // ist dateStr die maßgebliche "Quelle der Wahrheit" für den aktuellen Tag, nicht
 // die echte Systemzeit.
+// Rückgabe zusätzlich mit Hinweis-Flags fürs UI:
+//  • justCounted  – dieser Aufruf hat den Streak für einen neuen Tag gezählt
+//    (erstes abgeschlossenes Spiel des Tages) -> Anlass für den "Streak
+//    verlängert"-Screen. Bei Mehrfach-Partien am selben Tag false (idempotent).
+//  • continued    – der Streak lief nahtlos weiter (gestern gespielt) statt neu
+//    bei 1 zu starten -> Unterscheidung "verlängert" vs. "gestartet".
+//  • isNewRecord  – der aktuelle Streak hat die bisherige Bestmarke übertroffen.
 export function recordStreakResult(dateStr = todayDateStr()) {
   const d = loadRawStreak();
-  if (d.lastCompletedDate === dateStr) return d;
-  d.currentStreak = isNextCalendarDay(d.lastCompletedDate, dateStr) ? d.currentStreak + 1 : 1;
+  if (d.lastCompletedDate === dateStr) return { ...d, justCounted: false, continued: false, isNewRecord: false };
+  const prevBest = d.bestStreak;
+  const continued = isNextCalendarDay(d.lastCompletedDate, dateStr);
+  d.currentStreak = continued ? d.currentStreak + 1 : 1;
   d.bestStreak = Math.max(d.bestStreak, d.currentStreak);
   d.lastCompletedDate = dateStr;
   d.totalCompleted++;
   d.lossNoticeShown = false;
   saveStreak(d);
-  return d;
+  return { ...d, justCounted: true, continued, isNewRecord: d.currentStreak > prevBest };
 }
 
 // ─── Race-/Duell-Modus (1v1 und 2v2, einfache Zähler ohne Periodenbindung) ───
