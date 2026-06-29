@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.162';
-export const BUILD_HASH = '4b2ff0f';
+export const BUILD      = '0.163';
+export const BUILD_HASH = 'e928125';
 
 export const CHANGELOG = [
+  {
+    "version": "0.163",
+    "date": "29.06.2026",
+    "changes": [
+      "Coop-/Wettkampf-Schwierigkeitsauswahl passt wieder komplett auf einen Screen – „Hosten“ und „Zurück“ sind immer sichtbar (kompakte Levelkarten in der Host-Auswahl)"
+    ]
+  },
   {
     "version": "0.162",
     "date": "29.06.2026",
