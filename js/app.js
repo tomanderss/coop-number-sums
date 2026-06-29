@@ -459,7 +459,13 @@ function takePrefetched(diffId) {
 // die Aufträge nacheinander im Hintergrund ab.
 function startPrefetchAll() {
   if (!genWorker) return;
-  const ids = DIFFICULTIES.map(d => d.id);
+  // Reihenfolge: große Felder zuerst -- ihre Generierung dauert am längsten, ein
+  // früher Start maximiert die Chance, dass sie beim Spielstart schon bereitliegen
+  // (kleine Felder sind notfalls in Millisekunden on-demand erzeugt). Die aktuell
+  // gewählte Schwierigkeit ganz nach vorne (wird am wahrscheinlichsten gespielt).
+  const ids = DIFFICULTIES.slice()
+    .sort((a, b) => (b.dim.r * b.dim.c) - (a.dim.r * a.dim.c))
+    .map(d => d.id);
   const sel = state.sel && state.sel.difficulty;
   if (sel && ids.includes(sel)) { ids.splice(ids.indexOf(sel), 1); ids.unshift(sel); }
   for (const id of ids) schedulePrefetch(id);

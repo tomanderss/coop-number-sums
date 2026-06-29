@@ -383,6 +383,7 @@ export default {
     extrem: '超難しい',
     mashallah: 'マシャアッラー',
     dikkawas: 'Dikka was',
+    bismillah: 'Bismillah',
   },
   a11y: {
     cellLabel: '{row}行目、{col}列目、値{value}、{status}',

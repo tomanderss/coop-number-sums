@@ -40,6 +40,13 @@ export const DIFFICULTIES = [
   // moderat (~bis 60). 14×14 wäre der nächste Schritt, dort explodiert die
   // Generierungszeit aber wieder (Schwanz bis ~10 s). genBudget mit großem Puffer.
   { id: 'dikkawas',   name: 'Dikka was',   emoji: '🫠', dim: { r: 13, c: 13 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 15000 },
+  // 14×14: das absolute Maximum. Weiterhin ohne Raten generierbar (empirisch
+  // Tier ≤ 2.5), Cages/Werte klein wie gehabt — ABER die Generierung ist spürbar
+  // langsamer (median ~1,3 s, Ausreißer mehrere Sekunden), weil die Akzeptanzrate
+  // mit der Feldgröße sinkt. Tragbar nur dank der Hintergrund-Vorgenerierung
+  // (Prefetch, siehe app.js), die große Felder zuerst erzeugt; der seltene
+  // Kaltstart-Fallback zeigt den Ladebildschirm. genBudget großzügig.
+  { id: 'bismillah',  name: 'Bismillah',   emoji: '☄️', dim: { r: 14, c: 14 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 20000 },
 ];
 
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));

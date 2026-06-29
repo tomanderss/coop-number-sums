@@ -1,0 +1,2 @@
+Neue Schwierigkeit „Bismillah" ☄️ (14×14) – das bislang größte Feld, weiterhin garantiert ohne Raten lösbar (dank Vorgenerierung im Hintergrund startet es trotz aufwändiger Generierung normalerweise sofort)
+Vorgenerierung priorisiert jetzt große Felder, damit sie früher bereitliegen
