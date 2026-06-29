@@ -1,0 +1,1 @@
+Diagnoseprotokoll erweitert: erfasst jetzt unbehandelte Fehler, einen Geräte-/Umgebungs-Schnappschuss beim Start und Hänger (Jank) – hilft, Performance-Probleme auf einzelnen Geräten zu finden

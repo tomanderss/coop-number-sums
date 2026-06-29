@@ -507,9 +507,12 @@ function newGame(diffId) {
   // generateAsync selbst auf synchrone Generierung zurück.
   state.generating = true;
   log('game', `Puzzle-Generierung gestartet`, { difficulty: diffId });
+  const t0 = performance.now();
   generateAsync({ difficulty: diffId })
     .then(puzzle => {
-      log('game', `Puzzle generiert`, { difficulty: diffId, rows: puzzle.rows, cols: puzzle.cols });
+      // tookMs = Wall-Clock bis zum fertigen Rätsel (inkl. Worker) — zeigt auf
+      // langsamen Geräten, ob die Generierung die Wartezeit verursacht.
+      log('game', `Puzzle generiert`, { difficulty: diffId, rows: puzzle.rows, cols: puzzle.cols, tookMs: Math.round(performance.now() - t0) });
       finishNewGame(puzzle);
     })
     .catch(e => {
@@ -2277,7 +2280,71 @@ function applyUpdate() {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+// ─── DIAGNOSE: FEHLER + GERÄT + JANK ──────────────────────────────────────────
+// Schreibt aussagekräftige, aber bewusst SELTENE Diagnose-Einträge (debuglog.js →
+// Einstellungen ▸ Diagnoseprotokoll exportieren), damit sich Probleme auf fremden
+// Geräten nachvollziehen lassen — inkl. Hänger/Jank und "toter" Buttons.
+// WICHTIG: nur niederfrequente Ereignisse protokollieren (Start, Fehler, alle 10s
+// aggregierter Jank) — NIEMALS pro Frame/Tap. log() macht synchrone localStorage-
+// Zugriffe; häufiges Loggen würde die Performance selbst beeinträchtigen.
+function initDiagnostics() {
+  // 1) Unbehandelte Fehler / Promise-Rejections. Häufige Ursache dafür, dass plötzlich
+  //    Buttons "tot" wirken: ein geworfener Handler bricht Folgelogik/Reaktivität ab.
+  window.addEventListener('error', (e) => {
+    log('error', 'Unbehandelter Fehler', {
+      message: e.message, source: e.filename, line: e.lineno, col: e.colno,
+      name: e.error && e.error.name,
+    });
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    const r = e.reason;
+    log('error', 'Unbehandelte Promise-Rejection', r instanceof Error ? r : { message: String(r) });
+  });
+  // 2) Einmaliger Geräte-/Umgebungs-Schnappschuss. Kernfrage bei Perf-Problemen:
+  //    Welches Gerät/Browser, wie viele Kerne/RAM? Genau eine Zeile -> praktisch gratis.
+  try {
+    const nav = navigator, scr = screen;
+    log('env', 'App gestartet', {
+      build: BUILD,
+      ua: nav.userAgent,
+      platform: nav.platform,
+      cores: nav.hardwareConcurrency,
+      mem: nav.deviceMemory,
+      screen: `${scr.width}x${scr.height}`,
+      viewport: `${window.innerWidth}x${window.innerHeight}`,
+      dpr: window.devicePixelRatio,
+      standalone: window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true,
+      lang: nav.language,
+      online: nav.onLine,
+      reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    });
+  } catch {}
+  // 3) Jank-Erkennung: lange Haupt-Thread-Tasks (>50ms = spürbares Ruckeln, evtl.
+  //    "hängende" Buttons) via PerformanceObserver. NICHT jede Task einzeln loggen
+  //    (würde das Protokoll fluten und selbst bremsen) — aggregieren und höchstens
+  //    alle 10s EINE Zusammenfassung schreiben, nur wenn überhaupt Jank auftrat.
+  if (typeof PerformanceObserver === 'function') {
+    let count = 0, totalMs = 0, maxMs = 0;
+    try {
+      const obs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          count++; totalMs += entry.duration; if (entry.duration > maxMs) maxMs = entry.duration;
+        }
+      });
+      obs.observe({ type: 'longtask', buffered: true });
+      setInterval(() => {
+        if (!count) return;
+        log('perf', 'Längere Haupt-Thread-Blockaden (Jank, 10s-Fenster)', {
+          count, maxMs: Math.round(maxMs), totalMs: Math.round(totalMs), screen: state.screen,
+        });
+        count = 0; totalMs = 0; maxMs = 0;
+      }, 10000);
+    } catch {}
+  }
+}
+
 function init() {
+  initDiagnostics();
   applyTheme();
   applyLocale();
   refreshResume();
