@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.163';
-export const BUILD_HASH = 'e928125';
+export const BUILD      = '0.164';
+export const BUILD_HASH = '8660963';
 
 export const CHANGELOG = [
+  {
+    "version": "0.164",
+    "date": "29.06.2026",
+    "changes": [
+      "Coop-Zahlencode kleiner/kompakter dargestellt (Eingabe und angezeigter Code)"
+    ]
+  },
   {
     "version": "0.163",
     "date": "29.06.2026",
