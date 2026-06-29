@@ -1,8 +1,19 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.150';
-export const BUILD_HASH = '829f44a';
+export const BUILD      = '0.151';
+export const BUILD_HASH = 'fd928b0';
 
 export const CHANGELOG = [
+  {
+    "version": "0.151",
+    "date": "29.06.2026",
+    "changes": [
+      "Neue Schwierigkeit „Dikka was\" 🫠 (13×13) – größere Felder, längeres Knobeln, weiterhin garantiert ohne Raten lösbar",
+      "Rätsel werden jetzt im Hintergrund vorgeneriert – der Spielstart ist dadurch sofort, ohne spürbare Wartezeit oder kurzes Aufblitzen",
+      "Generierung großer Felder deutlich beschleunigt",
+      "Mehr Cage-Farben für klarere Unterscheidbarkeit, besonders auf großen Feldern",
+      "Schönerer Ladebildschirm (falls doch mal generiert werden muss) mit animiertem Fortschrittsbalken"
+    ]
+  },
   {
     "version": "0.150",
     "date": "29.06.2026",
