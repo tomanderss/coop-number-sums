@@ -1,5 +1,0 @@
-Neue Schwierigkeit „Dikka was" 🫠 (13×13) – größere Felder, längeres Knobeln, weiterhin garantiert ohne Raten lösbar
-Rätsel werden jetzt im Hintergrund vorgeneriert – der Spielstart ist dadurch sofort, ohne spürbare Wartezeit oder kurzes Aufblitzen
-Generierung großer Felder deutlich beschleunigt
-Mehr Cage-Farben für klarere Unterscheidbarkeit, besonders auf großen Feldern
-Schönerer Ladebildschirm (falls doch mal generiert werden muss) mit animiertem Fortschrittsbalken
