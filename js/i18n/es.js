@@ -382,9 +382,9 @@ export default {
     schwer: 'Difícil',
     extrem: 'Extremo',
     mashallah: 'Mashallah',
-    cues: 'Çüş',
     dikkawas: 'Dikka was',
     bismillah: 'Bismillah',
+    rip: 'R.I.P.',
   },
   a11y: {
     cellLabel: 'Fila {row}, columna {col}, valor {value}, {status}',
