@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.154';
-export const BUILD_HASH = '1bd2ec3';
+export const BUILD      = '0.155';
+export const BUILD_HASH = 'cdbbc5f';
 
 export const CHANGELOG = [
+  {
+    "version": "0.155",
+    "date": "29.06.2026",
+    "changes": [
+      "Statistik überarbeitet: drei Reiter „Allgemein\", „Solo\" und „Coop\". Der neue Allgemein-Reiter zeigt einen Überblick (Spiele, Siege & Quote, Spielzeit, perfekte Siege, Tages-Streak, Lieblingslevel, Erfolge)"
+    ]
+  },
   {
     "version": "0.154",
     "date": "29.06.2026",
