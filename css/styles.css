@@ -258,6 +258,19 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .opt-chips .chip-label { margin-left: 0; font-size: .56rem; text-transform: uppercase; letter-spacing: .3px; }
 .btn-start { margin-top: 2px; font-size: 1.05rem; padding: 12px; }
+/* Coop-/Wettkampf-Host-Auswahl: dort teilen sich Code-Eingabe, Schwierigkeits-
+   raster UND der „Hosten"-Button denselben Screen. Damit alles (inkl. Hosten-
+   Button + Topbar/Zurück) ohne Scrollen auf EINE Seite passt, sind die Karten
+   hier kompakt — eine Zeile (Emoji + Name + Maße), ohne die Zeit-Chips. */
+/* In der Host-Auswahl gestapelte Karten wie im Solo-Setup (Name, darunter die
+   Maße) — beide IMMER vollständig sichtbar — aber OHNE die Zeit-Chips und enger
+   gepackt, damit Code-Eingabe + Schwierigkeitsraster + „Hosten"/„Zurück" zusammen
+   ohne Scrollen auf einen Screen passen. Single-line scheidet aus: „Sehr Leicht“
+   + Maße passen auf schmalen Telefonen nicht in eine halbe Kartenbreite. */
+.coop-screen .coop-body { gap: 10px; }
+.coop-screen .option-grid { gap: 6px; }
+.coop-screen .opt-card { padding: 6px 11px; gap: 1px; }
+.coop-screen .opt-chips { display: none; }
 /* Sehr kurze Screens (alte/kleine Telefone, z.B. 320×568): noch enger packen,
    damit die Levelauswahl auch dort ohne Scrollen passt. */
 @media (max-height: 600px) {
@@ -269,6 +282,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .opt-chips .chip { padding: 3px; font-size: .72rem; }
   .opt-chips .chip-label { font-size: .52rem; }
   .screen.setup .btn-start { padding: 9px; }
+  /* Coop-/Wettkampf-Host-Auswahl auf sehr kurzen Screens enger, damit Hosten- UND
+     Zurück-Button ohne Scrollen sichtbar bleiben. */
+  .coop-screen .coop-body { gap: 6px; }
+  .coop-screen .option-grid { gap: 5px; }
+  .coop-screen .opt-card { padding: 4px 11px; gap: 0; }
+  .coop-screen .opt-name { font-size: .82rem; }
+  .coop-screen .opt-dim { font-size: .6rem; padding-left: 23px; }
+  .coop-screen .coop-input { font-size: 1.5rem; padding: 7px; }
 }
 
 /* ─── Game HUD ─── */
