@@ -225,28 +225,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    schrumpfen (sonst zwingen die nicht umbrechenden Chip-Labels die Karten breiter
    als den Viewport -> rechte Spalte würde abgeschnitten). */
 .option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-/* Kompakte, einheitlich strukturierte Schwierigkeitskarte: Kopfzeile (Emoji +
-   Name + Maße) und darunter zwei feste, exakt nebeneinander ausgerichtete
-   Zeit-Chips (Ø Zeit + Bestzeit) — analog zu den Statistik-Bubbles. Es wird
-   immer nur der Modus des jeweiligen Screens gezeigt (Solo im Setup, Coop in
-   der Coop-Lobby); fehlende Zeiten erscheinen als Platzhalter, damit alle
-   Karten dieselbe Struktur haben (keine mal-da-mal-nicht-Chips). */
+/* Einheitlich gestapelte Schwierigkeitskarte — bei JEDER Karte identisch
+   aufgebaut, damit nichts „nach oben geschoben" wirkt:
+     1. Kopfzeile: Emoji + Name (immer vollständig)
+     2. Maßangabe (z.B. 8×8) in eigener Zeile darunter
+     3. zwei feste, exakt ausgerichtete Zeit-Chips (Ø Zeit + Bestzeit)
+   Nur der Modus des jeweiligen Screens wird gezeigt (Solo im Setup, Coop in der
+   Coop-Lobby); fehlende Zeiten als Platzhalter -> gleiche Struktur überall. */
 .opt-card {
-  display: flex; flex-direction: column; justify-content: center; gap: 5px;
+  display: flex; flex-direction: column; justify-content: center; gap: 4px;
   padding: 8px 12px; border-radius: 14px; background: var(--bg2);
   border: 2px solid transparent; box-shadow: 0 2px 8px var(--shadow); text-align: left;
   transition: transform .12s, border-color .15s;
 }
 .opt-card:active { transform: scale(.97); }
 .opt-card.active { border-color: var(--accent); background: var(--accent-soft); }
-.opt-head { display: flex; align-items: baseline; gap: 4px 8px; min-width: 0; flex-wrap: wrap; }
-.opt-emoji { font-size: 1.05rem; line-height: 1; flex: 0 0 auto; align-self: center; }
-/* Der Schwierigkeitsname wird IMMER vollständig gezeigt (kein Abschneiden); bei
-   Platzmangel darf er umbrechen statt zu kürzen. Die Maßangabe (z.B. 8×8) sitzt
-   rechts daneben und rutscht bei Bedarf in die nächste Zeile (flex-wrap), statt
-   den Namen abzuschneiden — so sind immer Name UND Dimension komplett sichtbar. */
-.opt-name { font-weight: 800; font-size: .88rem; line-height: 1.1; min-width: 0; }
-.opt-dim { margin-left: auto; flex: 0 0 auto; font-size: .66rem; font-weight: 700; color: var(--text3); font-variant-numeric: tabular-nums; }
+.opt-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.opt-emoji { font-size: 1.05rem; line-height: 1; flex: 0 0 auto; }
+/* Name hat die volle Kopfzeilenbreite (keine konkurrierende Maßangabe) und wird
+   immer vollständig gezeigt. */
+.opt-name { font-weight: 800; font-size: .9rem; line-height: 1.1; white-space: nowrap; }
+/* Maßangabe in eigener Zeile, unter dem Namen eingerückt (bündig mit dem Namen,
+   nicht unter dem Emoji). */
+.opt-dim { padding-left: 26px; margin-top: -2px; font-size: .68rem; font-weight: 700; color: var(--text3); font-variant-numeric: tabular-nums; }
 /* Zwei gleich breite Chips nebeneinander -> über alle Karten hinweg an exakt
    derselben x-Position; Platzhalter halten die Struktur auch ohne Zeit stabil. */
 .opt-chips { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
@@ -260,11 +261,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Sehr kurze Screens (alte/kleine Telefone, z.B. 320×568): noch enger packen,
    damit die Levelauswahl auch dort ohne Scrollen passt. */
 @media (max-height: 600px) {
-  .setup-body { gap: 6px; }
+  .setup-body { gap: 5px; }
   .screen.setup .option-grid { gap: 6px; }
-  .screen.setup .opt-card { padding: 6px 10px; gap: 4px; }
-  .opt-chips .chip { padding: 3px; }
-  .screen.setup .btn-start { padding: 10px; }
+  .screen.setup .opt-card { padding: 6px 10px; gap: 2px; }
+  .screen.setup .opt-name { font-size: .84rem; }
+  .screen.setup .opt-dim { font-size: .62rem; padding-left: 24px; }
+  .opt-chips .chip { padding: 3px; font-size: .72rem; }
+  .opt-chips .chip-label { font-size: .52rem; }
+  .screen.setup .btn-start { padding: 9px; }
 }
 
 /* ─── Game HUD ─── */
