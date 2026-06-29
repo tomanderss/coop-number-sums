@@ -1,1 +1,0 @@
-„Was ist neu"-Dialog zeigt jetzt alle seit dem letzten Besuch verpassten Versionen (neueste oben, scrollbar)

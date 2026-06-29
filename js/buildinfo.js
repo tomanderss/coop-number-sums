@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.155';
-export const BUILD_HASH = 'cdbbc5f';
+export const BUILD      = '0.156';
+export const BUILD_HASH = '66a7694';
 
 export const CHANGELOG = [
+  {
+    "version": "0.156",
+    "date": "29.06.2026",
+    "changes": [
+      "„Was ist neu\"-Dialog zeigt jetzt alle seit dem letzten Besuch verpassten Versionen (neueste oben, scrollbar)"
+    ]
+  },
   {
     "version": "0.155",
     "date": "29.06.2026",
