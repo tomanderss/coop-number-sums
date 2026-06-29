@@ -40,6 +40,7 @@ export default {
   },
   game: {
     loading: '퍼즐 생성 중…',
+    loadingHint: '잠시만 기다려 주세요…',
     coopTag: 'COOP',
     zoomReset: '줌 초기화',
     coopOfflineSuffix: ' · 오프라인',
@@ -381,6 +382,7 @@ export default {
     schwer: '어려움',
     extrem: '매우 어려움',
     mashallah: '마샬라',
+    dikkawas: 'Dikka was',
   },
   a11y: {
     cellLabel: '{row}행 {col}열, 값 {value}, {status}',

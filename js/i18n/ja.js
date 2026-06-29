@@ -40,6 +40,7 @@ export default {
   },
   game: {
     loading: 'パズルを作成中…',
+    loadingHint: '少々お待ちください…',
     coopTag: 'COOP',
     zoomReset: 'ズームをリセット',
     coopOfflineSuffix: ' ・オフライン',
@@ -381,6 +382,7 @@ export default {
     schwer: '難しい',
     extrem: '超難しい',
     mashallah: 'マシャアッラー',
+    dikkawas: 'Dikka was',
   },
   a11y: {
     cellLabel: '{row}行目、{col}列目、値{value}、{status}',

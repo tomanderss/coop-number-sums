@@ -40,6 +40,7 @@ export default {
   },
   game: {
     loading: 'Bulmaca oluşturuluyor…',
+    loadingHint: 'Bir saniye…',
     coopTag: 'COOP',
     zoomReset: 'Yakınlaştırmayı sıfırla',
     coopOfflineSuffix: ' · çevrimdışı',
@@ -381,6 +382,7 @@ export default {
     schwer: 'Zor',
     extrem: 'Aşırı',
     mashallah: 'Maşallah',
+    dikkawas: 'Dikka was',
   },
   a11y: {
     cellLabel: '{row}. satır, {col}. sütun, değer {value}, {status}',

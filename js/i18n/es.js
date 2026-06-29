@@ -40,6 +40,7 @@ export default {
   },
   game: {
     loading: 'Creando puzzle…',
+    loadingHint: 'Un momento…',
     coopTag: 'COOP',
     zoomReset: 'Restablecer zoom',
     coopOfflineSuffix: ' · sin conexión',
@@ -381,6 +382,7 @@ export default {
     schwer: 'Difícil',
     extrem: 'Extremo',
     mashallah: 'Mashallah',
+    dikkawas: 'Dikka was',
   },
   a11y: {
     cellLabel: 'Fila {row}, columna {col}, valor {value}, {status}',

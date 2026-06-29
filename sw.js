@@ -8,6 +8,7 @@ const ASSETS = [
   './js/config.js',
   './js/solver.js',
   './js/generator.js',
+  './js/genworker.js',
   './js/storage.js',
   './js/coop.js',
   './js/firebase.js',

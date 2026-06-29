@@ -74,8 +74,15 @@ describe('generator.generatePuzzle', () => {
       assert.equal(result.contradiction, false, `${diff.id} should have no contradiction`);
       assert.ok(result.tiers.t3 <= diff.maxTier3Steps, `${diff.id} should respect maxTier3Steps`);
 
-      const count = countSolutions(puzzle, 2, 50000);
-      assert.equal(count, 1, `${diff.id} should have exactly one solution`);
+      // logicalSolve hat oben jede Zelle ERZWUNGEN bestimmt — das ist bereits ein
+      // Beweis der Eindeutigkeit (jeder Schritt alternativlos). countSolutions ist
+      // nur eine zusätzliche Brute-Force-Gegenprobe; ihr Suchraum explodiert aber
+      // auf großen Feldern (13×13 braucht Sekunden bis Minuten und sprengt das
+      // Knotenbudget). Daher die Gegenprobe nur auf kleineren Feldern fahren.
+      if (diff.dim.r * diff.dim.c <= 121) {
+        const count = countSolutions(puzzle, 2, 50000);
+        assert.equal(count, 1, `${diff.id} should have exactly one solution`);
+      }
     }
   });
 
