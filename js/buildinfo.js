@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.159';
-export const BUILD_HASH = 'ffa720a';
+export const BUILD      = '0.160';
+export const BUILD_HASH = 'adf4ea3';
 
 export const CHANGELOG = [
+  {
+    "version": "0.160",
+    "date": "29.06.2026",
+    "changes": [
+      "Levelauswahl: einheitlich gestapelte Karten (Name, Feldgröße, Zeiten) – alle gleich hoch, nichts mehr versetzt"
+    ]
+  },
   {
     "version": "0.159",
     "date": "29.06.2026",
