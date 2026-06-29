@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.146';
-export const BUILD_HASH = '7ffa99b';
+export const BUILD      = '0.147';
+export const BUILD_HASH = '8ca888c';
 
 export const CHANGELOG = [
+  {
+    "version": "0.147",
+    "date": "29.06.2026",
+    "changes": [
+      "iOS: Ton folgt nicht mehr dem Stummschalter – Musik und Effekte spielen jetzt zuverlässig (steuerbar über die In-App-Schalter und die Lautstärke)"
+    ]
+  },
   {
     "version": "0.146",
     "date": "28.06.2026",
