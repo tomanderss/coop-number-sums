@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.151';
-export const BUILD_HASH = 'fd928b0';
+export const BUILD      = '0.152';
+export const BUILD_HASH = 'e59baa8';
 
 export const CHANGELOG = [
+  {
+    "version": "0.152",
+    "date": "29.06.2026",
+    "changes": [
+      "Neue Schwierigkeit „Bismillah\" ☄️ (14×14) – das bislang größte Feld, weiterhin garantiert ohne Raten lösbar (dank Vorgenerierung im Hintergrund startet es trotz aufwändiger Generierung normalerweise sofort)",
+      "Vorgenerierung priorisiert jetzt große Felder, damit sie früher bereitliegen"
+    ]
+  },
   {
     "version": "0.151",
     "date": "29.06.2026",
