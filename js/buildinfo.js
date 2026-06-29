@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.157';
-export const BUILD_HASH = '5290274';
+export const BUILD      = '0.158';
+export const BUILD_HASH = '1f11d49';
 
 export const CHANGELOG = [
+  {
+    "version": "0.158",
+    "date": "29.06.2026",
+    "changes": [
+      "Einstellungen in Reiter aufgeteilt (Allgemein/Spiel/Ton/Daten)",
+      "Levelauswahl kompakter und strukturiert: alle Schwierigkeitsgrade auf einen Screen, je Level Ø-Zeit und Bestzeit als ausgerichtete Chips (nur der jeweilige Modus)"
+    ]
+  },
   {
     "version": "0.157",
     "date": "29.06.2026",
