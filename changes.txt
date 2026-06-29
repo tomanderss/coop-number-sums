@@ -1,0 +1,1 @@
+Streak-Feier-Screen ergänzt: nach dem ersten Spiel des Tages erscheint ein Feuer-Hinweis mit aktueller Streak, Bestmarke und Lob bei neuer Höchstmarke; der Streak-verloren-Hinweis wurde freundlicher gestaltet

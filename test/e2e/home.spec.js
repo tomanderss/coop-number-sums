@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, startNewGame } from './helpers.js';
+import { gotoApp, startNewGame, dismissStreakModal } from './helpers.js';
 
 test.describe('home screen', () => {
   test('shows the brand, primary actions and a version number', async ({ page }) => {
@@ -90,6 +90,7 @@ test.describe('home screen', () => {
         }
     });
     await page.waitForFunction(() => window.__cns.state.status === 'won');
+    await dismissStreakModal(page);
     await page.locator('.result-card.win .btn-ghost').click();
     await expect(page.locator('.screen.home')).toBeVisible();
     await expect(page.locator('.resume-row')).toHaveCount(0);

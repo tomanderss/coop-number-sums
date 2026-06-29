@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, commitMistakes } from './helpers.js';
+import { gotoApp, commitMistakes, dismissStreakModal } from './helpers.js';
 
 // Race-/Duell-Modus (Feature 11) reuses the existing coop room/lobby, capped
 // to 2 players client-side, but never sets state.coop.active during the live
@@ -110,6 +110,7 @@ test.describe('race mode', () => {
     // race-specific rematch button (host) takes their place.
     await expect(page.locator('.result-card.lose .btn-primary')).toHaveCount(1);
 
+    await dismissStreakModal(page);
     await page.locator('.result-card.lose .btn-primary').click();
     await expect(page.locator('.screen.coop-screen')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.race.active)).toBe(false);
@@ -136,6 +137,7 @@ test.describe('race mode', () => {
     // no separate "next puzzle"/"new game" path in race mode.
     await expect(page.locator('.result-card.win .btn-primary')).toHaveCount(1);
 
+    await dismissStreakModal(page);
     await page.locator('.result-card.win .btn-primary').click();
     await expect(page.locator('.screen.coop-screen')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.race.active)).toBe(false);

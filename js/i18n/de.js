@@ -250,8 +250,16 @@ export default {
   },
   streak: {
     lostBadge: '🔥 Streak verloren',
-    lostTitle: 'Deine Spiel-Streak ist gerissen',
-    lostBody: 'Du hast gestern kein Spiel beendet — die Streak startet wieder bei 0. Bisherige Bestmarke: {best} Tage.',
+    lostTitle: 'Schade – deine Streak ist gerissen',
+    lostBody: 'Du warst gestern nicht aktiv, deshalb wurde deine Spiel-Streak auf 0 zurückgesetzt. Bisherige Bestmarke: {best} Tage. Spiel heute eine Partie und starte eine neue Streak!',
+    startedTitle: 'Streak gestartet!',
+    extendedTitle: 'Streak verlängert!',
+    dayLabel: 'Tag in Folge',
+    daysLabel: 'Tage in Folge',
+    bestLine: 'Bisherige Bestmarke: {best} Tage',
+    recordBadge: '🏆 Neue Höchst-Streak!',
+    recordPraise: 'Stark! Das ist deine längste Streak aller Zeiten. 🎉',
+    continue: 'Weiter',
   },
   training: {
     apply: 'Anwenden',

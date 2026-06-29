@@ -35,6 +35,7 @@ const state = reactive({
   stats: loadStats(),
   streak: loadStreak(),      // { lastCompletedDate, currentStreak, bestStreak, totalCompleted }
   streakLostNotice: false,   // true, wenn beim Start ein Streak-Verlust angezeigt werden soll
+  streakExtended: null,      // { current, best, continued, isNewRecord } für den "Streak verlängert"-Screen, sonst null
   raceStats: loadRace(),     // { racesPlayed, racesWon, racesLost, fastestWinMs } — getrennt von state.race (laufendes Match)
   puzzleHistory: loadHistory(), // Ringpuffer gelöster Rätsel (neueste zuerst), siehe storage.js
   achievements: loadAchievements(), // { id: Freischalt-Zeitstempel }, siehe storage.js
@@ -1693,6 +1694,19 @@ function broadcastRaceDone(outcome) {
   Coop.send({ type: Coop.MSG.RACE_DONE, from: state.coop.myId, outcome, finalPct: state.race.myPct, finalMistakes: state.mistakes });
 }
 
+// Streak nach einer abgeschlossenen Partie fortschreiben und – wenn dies der
+// erste Abschluss des Tages war (justCounted) – den "Streak verlängert/gestartet"-
+// Screen auslösen. Zählt für JEDES abgeschlossene Spiel des Tages (Sieg ODER
+// Niederlage zählt als Aktivität), aber nur einmal täglich; Trainingsrätsel sind
+// an den Aufrufstellen bereits ausgeschlossen.
+function applyStreakAfterGame() {
+  const r = recordStreakResult();
+  state.streak = r;
+  if (r.justCounted) {
+    state.streakExtended = { current: r.currentStreak, best: r.bestStreak, continued: r.continued, isNewRecord: r.isNewRecord };
+  }
+}
+
 function win(remote) {
   if (state.status === 'won') return;
   state.status = 'won';
@@ -1728,7 +1742,7 @@ function win(remote) {
     state.stats = stats;
     state.newHighscore = newHighscore;
   }
-  if (!state.isTrainingGame) state.streak = recordStreakResult();
+  if (!state.isTrainingGame) applyStreakAfterGame();
   if (state.isRaceGame) state.raceStats = recordRaceWin('1v1', state.elapsed);
   if (state.team.active) state.raceStats = recordRaceWin('2v2', state.elapsed);
   // Trainingsrätsel landen bewusst nicht im Verlauf/in den Achievements (siehe
@@ -1771,7 +1785,7 @@ function lose(remote) {
     });
     state.stats = stats;
   }
-  if (!state.isTrainingGame) state.streak = recordStreakResult();
+  if (!state.isTrainingGame) applyStreakAfterGame();
   if (state.isRaceGame) state.raceStats = recordRaceLoss('1v1');
   if (state.team.active) state.raceStats = recordRaceLoss('2v2');
   if (!state.isTrainingGame) {
@@ -2102,6 +2116,7 @@ function maybeShowWhatsNew() {
 }
 function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD); }
 function dismissStreakLostNotice() { state.streakLostNotice = false; }
+function dismissStreakExtended() { state.streakExtended = null; }
 
 // ─── APP-UPDATE (Service Worker) ──────────────────────────────────────────────
 // Hält den im "waiting" wartenden Worker, bis der Nutzer aktiv aktualisiert.
@@ -2315,7 +2330,7 @@ const App = {
       navigate, navTo, goBack, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
-      resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, loadBackups,
+      resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended, loadBackups,
       quitToHome, setZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct,
@@ -3221,11 +3236,29 @@ const App = {
       </div>
     </div>
 
+    <!-- Streak verlängert/gestartet — feuriger Feier-Screen nach dem ersten
+         abgeschlossenen Spiel des Tages (analog zum "Gewonnen"-Screen). -->
+    <div v-if="state.streakExtended" class="modal-bg">
+      <div class="modal streak-modal extended">
+        <div class="streak-emoji">🔥</div>
+        <h3 class="streak-title">{{ t(state.streakExtended.continued ? 'streak.extendedTitle' : 'streak.startedTitle') }}</h3>
+        <div class="streak-count"><b>{{ state.streakExtended.current }}</b><small>{{ t(state.streakExtended.current === 1 ? 'streak.dayLabel' : 'streak.daysLabel') }}</small></div>
+        <div v-if="state.streakExtended.isNewRecord" class="highscore-badge">{{ t('streak.recordBadge') }}</div>
+        <p class="streak-msg">
+          {{ state.streakExtended.isNewRecord
+              ? t('streak.recordPraise')
+              : t('streak.bestLine', { best: state.streakExtended.best }) }}
+        </p>
+        <button class="btn btn-primary" @click="dismissStreakExtended">{{ t('streak.continue') }}</button>
+      </div>
+    </div>
+
+    <!-- Streak verloren — gedämpfter Hinweis beim App-Start, wenn ein Tag fehlte. -->
     <div v-if="state.streakLostNotice" class="modal-bg">
-      <div class="modal">
-        <div class="whatsnew-badge">{{ t('streak.lostBadge') }}</div>
-        <h3>{{ t('streak.lostTitle') }}</h3>
-        <p class="confirm-msg">{{ t('streak.lostBody', { best: state.streak.bestStreak }) }}</p>
+      <div class="modal streak-modal lost">
+        <div class="streak-emoji">💔</div>
+        <h3 class="streak-title">{{ t('streak.lostTitle') }}</h3>
+        <p class="streak-msg">{{ t('streak.lostBody', { best: state.streak.bestStreak }) }}</p>
         <button class="btn btn-primary" @click="dismissStreakLostNotice">{{ t('common.ok') }}</button>
       </div>
     </div>

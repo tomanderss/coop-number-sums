@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, startNewGame, solveActivePuzzle } from './helpers.js';
+import { gotoApp, startNewGame, solveActivePuzzle, dismissStreakModal } from './helpers.js';
 
 const statsBtn = (page) => page.locator('.home-grid .btn-ghost').nth(0);
 
@@ -23,6 +23,7 @@ test.describe('achievements', () => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
     await solveActivePuzzle(page);
+    await dismissStreakModal(page);
     await expect(page.locator('.result-card.win')).toBeVisible();
     await expect(page.locator('.toast')).toContainText('🏅');
     await page.locator('.result-card.win .btn-ghost').last().click(); // "Zum Menü"
