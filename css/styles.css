@@ -967,15 +967,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .coop-screen .coop-body { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 12px; }
 .coop-tagline { color: var(--text2); font-size: .95rem; text-align: center; padding: 4px 0; }
 .coop-code-label { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
-.coop-code { font-size: 3.4rem; font-weight: 900; letter-spacing: .12em; text-align: center; background: var(--accent-soft); color: var(--accent2); border-radius: 16px; padding: 18px 0; font-variant-numeric: tabular-nums; }
+.coop-code { font-size: 2.6rem; font-weight: 900; letter-spacing: .12em; text-align: center; background: var(--accent-soft); color: var(--accent2); border-radius: 16px; padding: 14px 0; font-variant-numeric: tabular-nums; }
 .coop-subtext { color: var(--text3); font-size: .82rem; text-align: center; margin: 0; }
 .coop-waiting { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; }
 .coop-error { background: var(--bad-soft); color: var(--bad); border-radius: 12px; padding: 12px 16px; font-weight: 600; font-size: .9rem; text-align: center; margin: 0; }
 .coop-input {
-  font-family: inherit; font-size: 2.1rem; font-weight: 900; letter-spacing: .15em;
+  font-family: inherit; font-size: 1.6rem; font-weight: 900; letter-spacing: .15em;
   text-align: center; width: 100%; font-variant-numeric: tabular-nums;
   background: var(--bg2); color: var(--text); border: 2px solid var(--grid);
-  border-radius: 14px; padding: 14px; outline: none; transition: border-color .15s;
+  border-radius: 14px; padding: 11px; outline: none; transition: border-color .15s;
 }
 .coop-input:focus { border-color: var(--accent); }
 .coop-input:disabled { opacity: .55; }
