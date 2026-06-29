@@ -292,6 +292,13 @@ export function sfxHint() {
   sfxVoice(midi(14), 0.14, 0.45, 0.4, { lp: 2400, attack: 0.02, partial2: 0.15 });
   sfxVoice(midi(16), 0.28, 1.0, 0.44, { lp: 2400, attack: 0.02, partial2: 0.15 });
 }
+// Rückgängig (Undo) — kurzer Klick + tiefer, leicht abwärts gleitender Sinus-
+// Thump (G3 -> Eb3). Bewusst dunkel/dezent: signalisiert "zurück" ohne zu nerven.
+export function sfxUndo() {
+  if (!sfxReady()) return;
+  sfxNoise(0, 0.012, 0.22, 6500);
+  sfxVoice(midi(-5), 0, 0.24, 0.5, { lp: 650, attack: 0.006, glideTo: midi(-9), glideTime: 0.12 });
+}
 // Werkzeug-Wechsel (Stift/Radierer) — kurzer, dezenter Zwei-Ton aufwärts (A4 -> D5).
 export function sfxToolSwitch() {
   if (!sfxReady()) return;

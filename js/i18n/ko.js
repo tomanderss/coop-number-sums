@@ -217,6 +217,7 @@ export default {
     sfxError: '실수',
     sfxHint: '힌트',
     sfxToolSwitch: '모드 전환 (펜/지우개)',
+    sfxUndo: '실행 취소',
     sfxWin: '승리',
     sfxLose: '패배',
     a11y: '접근성',

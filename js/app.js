@@ -1035,6 +1035,9 @@ function doRevealCell(r, c, want) {
 
 function undo(broadcast = true) {
   if (!state.history.length || state.status !== 'playing') return;
+  // Ton nur bei eigener Aktion (broadcast=true); ein vom Partner empfangenes
+  // UNDO (broadcast=false) soll lokal keinen Sound auslösen.
+  if (broadcast && state.settings.sfxUndo) Music.sfxUndo();
   const last = state.history.pop();
   state.marks[last.r][last.c] = last.prev;
   state.markedBy[last.r][last.c] = null; // prev ist immer 'none' (siehe Markier-Sperre)
@@ -2010,6 +2013,7 @@ function toggleSetting(key) {
     else if (key === 'sfxToolSwitch') Music.sfxToolSwitch();
     else if (key === 'sfxWin') Music.sfxWin();
     else if (key === 'sfxLose') Music.sfxLose();
+    else if (key === 'sfxUndo') Music.sfxUndo();
   }
 }
 function setSetting(key, val) {
@@ -2483,9 +2487,12 @@ const App = {
           </span>
           <span v-if="state.race.active" class="chip coop-chip">🆚 {{ state.race.opponentName }}</span>
           <span class="zoomctl">
+            <!-- Reset-Knopf bewusst LINKS: die Leiste ist rechtsbündig (margin-left:auto),
+                 d.h. ein links eingeschobener Knopf wächst nach links und lässt − / +
+                 an ihrer Position -- schnelles, wiederholtes Tippen auf + verrutscht so nicht. -->
+            <button v-if="state.zoom !== 1" class="zoom-btn zoom-reset" @click="resetZoom" :aria-label="t('game.zoomReset')" :title="t('game.zoomReset')">↺</button>
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
             <button class="zoom-btn" @click="setZoom(0.15)">+</button>
-            <button v-if="state.zoom !== 1" class="zoom-btn zoom-reset" @click="resetZoom" :aria-label="t('game.zoomReset')" :title="t('game.zoomReset')">↺</button>
           </span>
         </div>
 
@@ -3098,6 +3105,9 @@ const App = {
         </div>
         <div class="set-row" @click="toggleSetting('sfxToolSwitch')">
           <span>{{ t('settings.sfxToolSwitch') }}</span><span class="switch" :class="{on:state.settings.sfxToolSwitch}"><i></i></span>
+        </div>
+        <div class="set-row" @click="toggleSetting('sfxUndo')">
+          <span>{{ t('settings.sfxUndo') }}</span><span class="switch" :class="{on:state.settings.sfxUndo}"><i></i></span>
         </div>
         <div class="set-row" @click="toggleSetting('sfxWin')">
           <span>{{ t('settings.sfxWin') }}</span><span class="switch" :class="{on:state.settings.sfxWin}"><i></i></span>

@@ -217,6 +217,7 @@ export default {
     sfxError: 'Ошибка',
     sfxHint: 'Подсказка',
     sfxToolSwitch: 'Смена режима (перо/ластик)',
+    sfxUndo: 'Отменить',
     sfxWin: 'Победа',
     sfxLose: 'Поражение',
     a11y: 'Доступность',
