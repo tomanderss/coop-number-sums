@@ -150,6 +150,8 @@ export default {
     shareInvite: 'Davet et',
     lobbyTitle: 'Takım arkadaşların lobide',
     lobbyMsg: 'Bulmaca hazır — herkes hazır olduğunda başlar.',
+    generating: 'Bulmaca oluşturuluyor …',
+    genFailed: 'Bulmaca oluşturulamadı.',
     lobbyStart: 'Başlat 🚀',
     playerJoinedLobby: '{name} lobiye katıldı 👋',
     playersCount: '{n}/{max} oyuncu',

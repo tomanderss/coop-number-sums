@@ -150,6 +150,8 @@ export default {
     shareInvite: 'Пригласить',
     lobbyTitle: 'Товарищи по команде в лобби',
     lobbyMsg: 'Пазл готов — начнётся, когда все будут готовы.',
+    generating: 'Создание пазла …',
+    genFailed: 'Не удалось создать пазл.',
     lobbyStart: 'Начать 🚀',
     playerJoinedLobby: '{name} присоединился к лобби 👋',
     playersCount: '{n}/{max} игроков',

@@ -150,6 +150,8 @@ export default {
     shareInvite: 'Convidar',
     lobbyTitle: 'Os colegas de equipe estão na sala',
     lobbyMsg: 'O quebra-cabeça está pronto — começa quando todos estiverem prontos.',
+    generating: 'Gerando o quebra-cabeça …',
+    genFailed: 'Não foi possível gerar o quebra-cabeça.',
     lobbyStart: 'Começar 🚀',
     playerJoinedLobby: '{name} entrou na sala 👋',
     playersCount: '{n}/{max} jogadores',

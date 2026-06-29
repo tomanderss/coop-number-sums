@@ -6,17 +6,20 @@
 // den Haupt-Thread/die UI nie blockiert. Importiert nur reine Logikmodule
 // (generator → solver/config); kein DOM/Firebase nötig.
 //
-// Protokoll: Haupt-Thread schickt { diffId, opts }, Worker antwortet mit
-// { diffId, puzzle } bzw. { diffId, error } bei einem Fehler.
+// Protokoll: Haupt-Thread schickt { diffId, opts } (Prefetch) bzw. { reqId, opts }
+// (gezielte Einzel-Generierung, siehe generateAsync() in app.js). Der Worker
+// antwortet mit { diffId|reqId, puzzle } bzw. { diffId|reqId, error } und gibt das
+// jeweils gesetzte Korrelations-Feld unverändert zurück (so lässt sich jede
+// Antwort eindeutig ihrer Anfrage zuordnen, auch wenn mehrere parallel laufen).
 
 import { generatePuzzle } from './generator.js';
 
 self.onmessage = (e) => {
-  const { diffId, opts } = e.data || {};
+  const { diffId, reqId, opts } = e.data || {};
   try {
     const puzzle = generatePuzzle(opts || { difficulty: diffId });
-    self.postMessage({ diffId, puzzle });
+    self.postMessage({ diffId, reqId, puzzle });
   } catch (err) {
-    self.postMessage({ diffId, error: String(err && err.message || err) });
+    self.postMessage({ diffId, reqId, error: String(err && err.message || err) });
   }
 };

@@ -150,6 +150,8 @@ export default {
     shareInvite: 'Inviter',
     lobbyTitle: 'Les coéquipiers sont dans le salon',
     lobbyMsg: 'Le puzzle est prêt — ça démarre dès que tout le monde est prêt.',
+    generating: 'Génération du puzzle …',
+    genFailed: 'Impossible de générer le puzzle.',
     lobbyStart: 'Démarrer 🚀',
     playerJoinedLobby: '{name} a rejoint le salon 👋',
     playersCount: '{n}/{max} joueurs',
