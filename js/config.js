@@ -33,6 +33,10 @@ export const DIFFICULTIES = [
   { id: 'schwer',     name: 'Schwer',      emoji: '🔴', dim: { r: 9,  c: 9  }, keepRatio: 0.46, minSingleDigitSums: 3, maxCageSize: 8,    maxTier3Steps: 0, genBudget: 6000 },
   { id: 'extrem',     name: 'Extrem',      emoji: '🟣', dim: { r: 10, c: 10 }, keepRatio: 0.44, minSingleDigitSums: 4, maxCageSize: 8,    maxTier3Steps: 0, genBudget: 8000 },
   { id: 'mashallah',  name: 'Mashallah',   emoji: '💀', dim: { r: 11, c: 11 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 12000 },
+  // 12×12: Zwischenstufe zwischen Mashallah (11×11) und Dikka was (13×13).
+  // Schnell generierbar (~65 ms im Schnitt), ohne Raten (Tier ≤ 2.5); Werte 1–9,
+  // Cages auf 9 gekappt.
+  { id: 'cues',       name: 'Çüş',         emoji: '😵‍💫', dim: { r: 12, c: 12 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 15000 },
   // 13×13: größtes praktikables Feld. Dank der Hypothese-Sparoptimierung im
   // Generator (siehe generator.js) bleibt die Generierung schnell (~0,27 s im
   // Schnitt, <1 s im Worst Case der Messreihe), ohne Raten (Tier ≤ 2.5).

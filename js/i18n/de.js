@@ -382,6 +382,7 @@ export default {
     schwer: 'Schwer',
     extrem: 'Extrem',
     mashallah: 'Mashallah',
+    cues: 'Çüş',
     dikkawas: 'Dikka was',
     bismillah: 'Bismillah',
   },
