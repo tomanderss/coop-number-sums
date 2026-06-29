@@ -372,10 +372,16 @@ export function generatePuzzle(opts) {
       solution: mask.map(row => row.slice()),
     };
 
-    // Hypothesen-Deduktion (Beweis durch Widerspruch) immer erlauben: bleibt
-    // „ohne Raten", erhöht aber die Lösbarkeitsrate stark — nötig, weil Cages mit
-    // genau N Zellen relativ wenige Constraints liefern.
-    const result = logicalSolve(puzzle, { allowHypo: true });
+    // Hypothesen-Deduktion (Beweis durch Widerspruch) ist der teuerste Solver-
+    // Schritt und läuft auf JEDEM später verworfenen Kandidaten — bei großen
+    // Feldern der dominante Generierungskostenfaktor. Bei maxTier3Steps=0 wäre ein
+    // Kandidat aber NUR akzeptabel, wenn er mit 0 Hypothesenschritten auskommt,
+    // also ohnehin schon ohne Hypothese vollständig lösbar ist. Dann die teure
+    // Suche gar nicht erst starten: Fehlkandidaten scheitern so nach einem
+    // billigen Propagationslauf statt nach einer vollen Widerspruchssuche.
+    // (Für künftige Stufen mit Tier-3-Kontingent bleibt die Hypothese aktiv.)
+    const allowHypo = diff.maxTier3Steps == null || diff.maxTier3Steps > 0;
+    const result = logicalSolve(puzzle, { allowHypo });
     if (!result.solved || result.contradiction) continue;
 
     // Tier-3 (Hypothese) nur begrenzt erlauben — sonst ist das Rätsel zwar

@@ -33,6 +33,13 @@ export const DIFFICULTIES = [
   { id: 'schwer',     name: 'Schwer',      emoji: '🔴', dim: { r: 9,  c: 9  }, keepRatio: 0.46, minSingleDigitSums: 3, maxCageSize: 8,    maxTier3Steps: 0, genBudget: 6000 },
   { id: 'extrem',     name: 'Extrem',      emoji: '🟣', dim: { r: 10, c: 10 }, keepRatio: 0.44, minSingleDigitSums: 4, maxCageSize: 8,    maxTier3Steps: 0, genBudget: 8000 },
   { id: 'mashallah',  name: 'Mashallah',   emoji: '💀', dim: { r: 11, c: 11 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 12000 },
+  // 13×13: größtes praktikables Feld. Dank der Hypothese-Sparoptimierung im
+  // Generator (siehe generator.js) bleibt die Generierung schnell (~0,27 s im
+  // Schnitt, <1 s im Worst Case der Messreihe), ohne Raten (Tier ≤ 2.5).
+  // Zellwerte bleiben 1–9, Cages auf 9 gekappt; nur Reihen-/Spaltensummen wachsen
+  // moderat (~bis 60). 14×14 wäre der nächste Schritt, dort explodiert die
+  // Generierungszeit aber wieder (Schwanz bis ~10 s). genBudget mit großem Puffer.
+  { id: 'dikkawas',   name: 'Dikka was',   emoji: '🫠', dim: { r: 13, c: 13 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 15000 },
 ];
 
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
@@ -49,6 +56,12 @@ export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
 // Paletten-Töne entsprechend kräftiger (höhere Sättigung) für mehr Kontrast
 // insgesamt. Siehe auch HUE_SIM_THRESHOLD (generator.js) für die
 // Mindestabstands-Logik zwischen direkt benachbarten Cages.
+// Größere Felder (z.B. 13×13 "Dikka was") haben mehr Cages als die ursprünglichen
+// 10 Farben — zu wenig, um direkt benachbarte Cages durchgängig deutlich (≥30°
+// Farbton-Abstand) unterscheidbar zu halten. Daher zusätzliche, über den ganzen
+// Farbkreis verteilte Töne mit bewusst variierender Helligkeit/Sättigung (auch
+// nahe Farbtöne bleiben so durch unterschiedliche Helligkeit lesbar). Reihenfolge
+// der ersten 10 unverändert (stabile colorIndex-Indizes für gespeicherte Spiele).
 export const REGION_COLORS = [
   { name: 'coral',  h: 8,   s: 88, l: 58 },
   { name: 'amber',  h: 42,  s: 92, l: 54 },
@@ -60,6 +73,14 @@ export const REGION_COLORS = [
   { name: 'violet', h: 264, s: 75, l: 66 },
   { name: 'fuchsia',h: 300, s: 78, l: 58 },
   { name: 'rose',   h: 336, s: 85, l: 60 },
+  { name: 'orange', h: 22,  s: 95, l: 50 },
+  { name: 'gold',   h: 60,  s: 86, l: 48 },
+  { name: 'green',  h: 110, s: 68, l: 40 },
+  { name: 'spring', h: 158, s: 72, l: 50 },
+  { name: 'sky',    h: 192, s: 90, l: 62 },
+  { name: 'azure',  h: 244, s: 82, l: 64 },
+  { name: 'purple', h: 282, s: 72, l: 58 },
+  { name: 'magenta',h: 318, s: 82, l: 56 },
 ];
 
 // ─── COOP-IDENTITÄTSFARBEN ────────────────────────────────────────────────────

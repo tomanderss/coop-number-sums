@@ -40,6 +40,7 @@ export default {
   },
   game: {
     loading: 'Создание головоломки…',
+    loadingHint: 'Один момент…',
     coopTag: 'COOP',
     zoomReset: 'Сбросить масштаб',
     coopOfflineSuffix: ' · офлайн',
@@ -381,6 +382,7 @@ export default {
     schwer: 'Сложно',
     extrem: 'Экстремально',
     mashallah: 'Машалла',
+    dikkawas: 'Dikka was',
   },
   a11y: {
     cellLabel: 'Строка {row}, столбец {col}, значение {value}, {status}',

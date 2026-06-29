@@ -417,14 +417,89 @@ function buildCellMeta(puzzle) {
   return meta;
 }
 
+// ─── HINTERGRUND-VORGENERIERUNG (Prefetch) ────────────────────────────────────
+// Ein Web Worker generiert pro Schwierigkeit im Voraus ein Rätsel und legt es in
+// puzzleCache ab. Dadurch startet ein Spiel SOFORT (kein blockierendes Generieren
+// und kein kurz aufflackerndes Lade-Overlay). Die schwere Arbeit läuft echt im
+// Hintergrund-Thread, der Haupt-Thread bleibt flüssig. Fällt der Worker aus
+// (nicht unterstützt / Fehler), bleibt alles beim synchronen On-Demand-Pfad mit
+// Lade-Overlay -- reiner Zugewinn, kein Risiko für die Kernfunktion.
+// Coop-Host nutzt den Cache ebenfalls (er sendet ohnehin das volle Rätsel);
+// Race/Team/Training generieren weiterhin eigens (eigene Seeds/Sonderlogik).
+const puzzleCache = {};             // diffId -> vorgeneriertes Puzzle
+const prefetchInFlight = new Set(); // diffIds, deren Hintergrund-Generierung gerade läuft
+let genWorker = null;
+function initGenWorker() {
+  if (typeof Worker === 'undefined') return;
+  try {
+    genWorker = new Worker(new URL('./genworker.js', import.meta.url), { type: 'module' });
+    genWorker.onmessage = (e) => {
+      const { diffId, puzzle, error } = e.data || {};
+      if (diffId) prefetchInFlight.delete(diffId);
+      if (error) { log('game', 'Prefetch fehlgeschlagen', { diffId, error }); return; }
+      if (diffId && puzzle && !puzzleCache[diffId]) puzzleCache[diffId] = puzzle;
+    };
+    genWorker.onerror = () => { genWorker = null; prefetchInFlight.clear(); };
+  } catch { genWorker = null; }
+}
+// Stößt die Vorgenerierung für eine Schwierigkeit an (idempotent: nicht doppelt,
+// nicht wenn schon ein Rätsel bereitliegt).
+function schedulePrefetch(diffId) {
+  if (!genWorker || puzzleCache[diffId] || prefetchInFlight.has(diffId)) return;
+  prefetchInFlight.add(diffId);
+  genWorker.postMessage({ diffId, opts: { difficulty: diffId } });
+}
+function takePrefetched(diffId) {
+  const p = puzzleCache[diffId];
+  if (p) delete puzzleCache[diffId];
+  return p || null;
+}
+// Beim App-Start alle Schwierigkeiten vorgenerieren -- die aktuell gewählte
+// zuerst (wird am wahrscheinlichsten als Nächstes gespielt). Der Worker arbeitet
+// die Aufträge nacheinander im Hintergrund ab.
+function startPrefetchAll() {
+  if (!genWorker) return;
+  const ids = DIFFICULTIES.map(d => d.id);
+  const sel = state.sel && state.sel.difficulty;
+  if (sel && ids.includes(sel)) { ids.splice(ids.indexOf(sel), 1); ids.unshift(sel); }
+  for (const id of ids) schedulePrefetch(id);
+}
+
 // ─── NEUES SPIEL ──────────────────────────────────────────────────────────────
+// Übernimmt ein fertiges Rätsel in den Spielzustand und startet (Solo) bzw.
+// sendet es im Coop als Host an die Mitspieler. Gemeinsamer Abschluss für den
+// Cache- wie den On-Demand-Pfad.
+function finishNewGame(puzzle) {
+  loadPuzzleIntoState(puzzle, null);
+  state.generating = false;
+  if (state.coop.active && state.coop.role === 'host') {
+    state.coop.awaitingStart = true;
+    resetReadyFlags();
+    startTimer();
+    coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+  } else {
+    startTimer();
+  }
+}
 // In einer aktiven Coop-Session (als Host) wird das neue Rätsel an den Partner
 // gesendet, statt dass dieser selbst eines wählen müsste — die Lobby bleibt erhalten.
 function newGame(diffId) {
   state.isTrainingGame = false;
-  state.generating = true;
   state.screen = 'game';
-  // kurze Verzögerung, damit die Lade-Animation sichtbar wird (große Felder)
+  // Schneller Pfad: liegt ein vorgeneriertes Rätsel bereit, sofort starten
+  // (kein Overlay/Flackern). Danach im Hintergrund eines nachschieben.
+  const cached = takePrefetched(diffId);
+  if (cached) {
+    state.generating = false;
+    log('game', `Vorgeneriertes Rätsel genutzt`, { difficulty: diffId, rows: cached.rows, cols: cached.cols });
+    finishNewGame(cached);
+    schedulePrefetch(diffId);
+    return;
+  }
+  // Fallback: synchron generieren. Lade-Overlay erscheint (siehe game.loading);
+  // dank Prefetch ist das der seltene Fall (Kaltstart / sehr schnell zweimal
+  // dieselbe Schwierigkeit hintereinander, bevor der Nachschub fertig ist).
+  state.generating = true;
   setTimeout(() => {
     log('game', `Puzzle-Generierung gestartet`, { difficulty: diffId });
     let puzzle;
@@ -435,16 +510,8 @@ function newGame(diffId) {
       throw e;
     }
     log('game', `Puzzle generiert`, { difficulty: diffId, rows: puzzle.rows, cols: puzzle.cols });
-    loadPuzzleIntoState(puzzle, null);
-    state.generating = false;
-    if (state.coop.active && state.coop.role === 'host') {
-      state.coop.awaitingStart = true;
-      resetReadyFlags();
-      startTimer();
-      coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
-    } else {
-      startTimer();
-    }
+    finishNewGame(puzzle);
+    schedulePrefetch(diffId);
   }, 30);
 }
 
@@ -2206,6 +2273,12 @@ function init() {
   window.addEventListener('pagehide', () => Music.suspendForBackground());
   window.addEventListener('pageshow', () => updateMusic());
   window.addEventListener('blur', () => { if (document.hidden) Music.suspendForBackground(); });
+
+  // Rätsel im Hintergrund vorgenerieren (siehe Prefetch oben). Der Worker läuft
+  // auf einem eigenen Thread; kurze Verzögerung, damit der erste Frame/Interaktion
+  // garantiert Vorrang hat, bevor die Hintergrundarbeit startet.
+  initGenWorker();
+  setTimeout(startPrefetchAll, 600);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2459,9 +2532,13 @@ const App = {
         </div>
       </header>
 
-      <div v-if="state.generating" class="loading">
-        <div class="spinner"></div>
-        <div class="loading-tx">{{ t('game.loading') }}</div>
+      <div v-if="state.generating" class="loading loading-overlay">
+        <div class="loading-card">
+          <div class="spinner"></div>
+          <div class="loading-tx">{{ t('game.loading') }}</div>
+          <div class="loading-bar"><span></span></div>
+          <div class="loading-hint">{{ t('game.loadingHint') }}</div>
+        </div>
       </div>
 
       <template v-else-if="state.puzzle">

@@ -26,7 +26,8 @@ node build.js --major                           # bump major, reset minor
 |---|---|
 | `js/config.js` | Static config only: difficulties, colors, `DEFAULT_SETTINGS`. No logic. |
 | `js/solver.js` | Deduction engine: `logicalSolve()` (forced moves only), `countSolutions()`. Exports `UNK/KEEP/REMOVE`. BigInt bitsets for subset-sum. |
-| `js/generator.js` | Puzzle generator: solution mask → Voronoi-BFS regions → values (1–9) → targets → uniqueness check via solver. Seeded RNG (`mulberry32`). |
+| `js/generator.js` | Puzzle generator: solution mask → Voronoi-BFS regions → values (1–9) → targets → uniqueness/no-guess check via solver. Seeded RNG (`mulberry32`). For `maxTier3Steps:0` difficulties it solves WITHOUT hypothesis (much faster reject of bad candidates — key for large boards like 13×13). |
+| `js/genworker.js` | ES-module Web Worker that runs `generatePuzzle()` off the main thread. Drives the background **prefetch** in `app.js` (`puzzleCache`/`schedulePrefetch`): one puzzle per difficulty generated ahead of time → instant game start, no blocking/flicker. Falls back to synchronous on-demand generation (with the loading overlay) if the worker is unavailable. |
 | `js/training.js` | Tier-1 only solver variant, returns one explained step at a time for tutorial mode. |
 | `js/storage.js` | All `localStorage`. Keys prefixed `cns_`. Solo/coop active games in separate slots. 3-slot rolling backups. |
 | `js/coop.js` | Firebase RTDB transport, lazy-loaded (solo never loads Firebase). Events under `/rooms/{code}/events`, presence via `onDisconnect()`. |
