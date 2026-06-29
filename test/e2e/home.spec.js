@@ -45,6 +45,7 @@ test.describe('home screen', () => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
     await expect(page.locator('.screen.settings')).toBeVisible();
+    await page.locator('.settings-tabs button', { hasText: 'Daten' }).click();
     await page.locator('.screen.settings button:has-text("Changelog")').click();
     await expect(page.locator('.modal-bg .changelog')).toBeVisible();
     await page.locator('.modal-bg .btn-primary').click();
