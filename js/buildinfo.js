@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.161';
-export const BUILD_HASH = '4ca36fb';
+export const BUILD      = '0.162';
+export const BUILD_HASH = '4b2ff0f';
 
 export const CHANGELOG = [
+  {
+    "version": "0.162",
+    "date": "29.06.2026",
+    "changes": [
+      "Diagnoseprotokoll erweitert: erfasst jetzt unbehandelte Fehler, einen Geräte-/Umgebungs-Schnappschuss beim Start und Hänger (Jank) – hilft, Performance-Probleme auf einzelnen Geräten zu finden"
+    ]
+  },
   {
     "version": "0.161",
     "date": "29.06.2026",
