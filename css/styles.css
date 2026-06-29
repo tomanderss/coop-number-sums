@@ -239,11 +239,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .opt-card:active { transform: scale(.97); }
 .opt-card.active { border-color: var(--accent); background: var(--accent-soft); }
-.opt-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.opt-head { display: flex; align-items: baseline; gap: 4px 8px; min-width: 0; flex-wrap: wrap; }
 .opt-emoji { font-size: 1.05rem; line-height: 1; flex: 0 0 auto; align-self: center; }
-/* Der Schwierigkeitsname wird IMMER vollständig gezeigt (kein Abschneiden) und
-   hat die ganze Kopfzeilenbreite (keine konkurrierende Maßangabe mehr). */
-.opt-name { font-weight: 800; font-size: .9rem; line-height: 1.1; white-space: nowrap; }
+/* Der Schwierigkeitsname wird IMMER vollständig gezeigt (kein Abschneiden); bei
+   Platzmangel darf er umbrechen statt zu kürzen. Die Maßangabe (z.B. 8×8) sitzt
+   rechts daneben und rutscht bei Bedarf in die nächste Zeile (flex-wrap), statt
+   den Namen abzuschneiden — so sind immer Name UND Dimension komplett sichtbar. */
+.opt-name { font-weight: 800; font-size: .88rem; line-height: 1.1; min-width: 0; }
+.opt-dim { margin-left: auto; flex: 0 0 auto; font-size: .66rem; font-weight: 700; color: var(--text3); font-variant-numeric: tabular-nums; }
 /* Zwei gleich breite Chips nebeneinander -> über alle Karten hinweg an exakt
    derselben x-Position; Platzhalter halten die Struktur auch ohne Zeit stabil. */
 .opt-chips { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
