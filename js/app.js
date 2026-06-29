@@ -150,6 +150,7 @@ const state = reactive({
   showWhatsNew: false,
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
+  settingsTab: 'allgemein',  // aktiver Reiter im Einstellungen-Screen: allgemein | spiel | ton | daten
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
@@ -2620,11 +2621,12 @@ const App = {
         <div class="setup-label">{{ t('common.difficulty') }}</div>
         <div class="option-grid">
           <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card" :class="{active: state.sel.difficulty===d.id}" @click="state.sel.difficulty=d.id">
-            <span class="opt-emoji">{{ d.emoji }}</span>
-            <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
-            <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="opt-best">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
-            <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+            <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
+            <span class="opt-meta">
+              <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.bestTimeMs!=null" class="opt-best">🏆 {{ fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) }}</span>
+              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+            </span>
           </button>
         </div>
         <button class="btn btn-primary btn-start" @click="newGame(state.sel.difficulty)">
@@ -3135,10 +3137,11 @@ const App = {
             <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                     :class="{active: state.coop.lobbyDiffId===d.id}"
                     @click="state.coop.lobbyDiffId=d.id">
-              <span class="opt-emoji">{{ d.emoji }}</span>
-              <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
-              <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-              <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+              <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
+              <span class="opt-meta">
+                <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
+                <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+              </span>
             </button>
           </div>
           <button class="btn btn-primary" @click="startHosting">{{ t('coop.startHosting') }}</button>
@@ -3198,10 +3201,11 @@ const App = {
               <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                       :class="{active: state.coop.lobbyDiffId===d.id}"
                       @click="state.coop.lobbyDiffId=d.id">
-                <span class="opt-emoji">{{ d.emoji }}</span>
-                <span class="opt-name">{{ t('difficulty.'+d.id) }}</span>
-                <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
-                <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+                <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
+                <span class="opt-meta">
+                  <span class="opt-desc">{{ d.dim.r }}×{{ d.dim.c }}</span>
+                  <span v-if="state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null" class="opt-best">👥🏆 {{ fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) }}</span>
+                </span>
               </button>
             </div>
           </template>
@@ -3248,128 +3252,147 @@ const App = {
     <section v-else-if="state.screen==='settings'" class="screen settings">
       <header class="topbar"><button class="icon-btn" @click="closeSettings">‹</button><h2>{{ t('settings.title') }}</h2><span></span></header>
       <div class="settings-body">
-        <div class="set-group-title">{{ t('settings.appearance') }}</div>
-        <div class="set-row" @click="toggleSetting('darkMode')">
-          <span>{{ t('settings.darkMode') }}</span><span class="switch" :class="{on:state.settings.darkMode}"><i></i></span>
+        <div class="seg settings-tabs">
+          <button :class="{ active: state.settingsTab==='allgemein' }" @click="state.settingsTab='allgemein'">{{ t('settings.tabGeneral') }}</button>
+          <button :class="{ active: state.settingsTab==='spiel' }" @click="state.settingsTab='spiel'">{{ t('settings.tabGame') }}</button>
+          <button :class="{ active: state.settingsTab==='ton' }" @click="state.settingsTab='ton'">{{ t('settings.tabSound') }}</button>
+          <button :class="{ active: state.settingsTab==='daten' }" @click="state.settingsTab='daten'">{{ t('settings.tabData') }}</button>
         </div>
-        <div class="set-row col">
-          <span class="set-row-label">{{ t('settings.language') }}</span>
-          <select class="text-input" :value="state.settings.language" @change="setSetting('language', $event.target.value)">
-            <option v-for="l in SUPPORTED_LOCALES" :key="l.id" :value="l.id">{{ l.label }}</option>
-          </select>
-        </div>
-        <div class="set-row col">
-          <span class="set-row-label">{{ t('settings.myColor') }}</span>
-          <div class="coop-swatches">
-            <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" :title="t('common.pickColorTitle')" />
+
+        <!-- Reiter: Allgemein (Darstellung, Sonstiges, Barrierefreiheit) -->
+        <template v-if="state.settingsTab==='allgemein'">
+          <div class="set-group-title">{{ t('settings.appearance') }}</div>
+          <div class="set-row" @click="toggleSetting('darkMode')">
+            <span>{{ t('settings.darkMode') }}</span><span class="switch" :class="{on:state.settings.darkMode}"><i></i></span>
           </div>
-          <small class="set-hint">{{ t('settings.colorHint') }}</small>
-        </div>
-
-        <div class="set-group-title">{{ t('settings.gameHelp') }}</div>
-        <div class="set-row col">
-          <span class="set-row-label">{{ t('settings.errorReveal') }}</span>
-          <div class="seg">
-            <button :class="{active:state.settings.errorReveal==='instant'}" @click="setSetting('errorReveal','instant')">{{ t('settings.instant') }}</button>
-            <button :class="{active:state.settings.errorReveal==='onCheck'}" @click="setSetting('errorReveal','onCheck')">{{ t('settings.onCheck') }}</button>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.language') }}</span>
+            <select class="text-input" :value="state.settings.language" @change="setSetting('language', $event.target.value)">
+              <option v-for="l in SUPPORTED_LOCALES" :key="l.id" :value="l.id">{{ l.label }}</option>
+            </select>
           </div>
-          <small class="set-hint">{{ state.settings.errorReveal==='instant' ? t('settings.errorRevealHintInstant') : t('settings.errorRevealHintOnCheck') }}</small>
-        </div>
-        <div class="set-row col">
-          <span class="set-row-label">{{ t('settings.eraseStyle') }}</span>
-          <div class="seg">
-            <button :class="{active:state.settings.eraseStyle==='hide'}" @click="setSetting('eraseStyle','hide')">{{ t('settings.hide') }}</button>
-            <button :class="{active:state.settings.eraseStyle==='strike'}" @click="setSetting('eraseStyle','strike')">{{ t('settings.strike') }}</button>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.myColor') }}</span>
+            <div class="coop-swatches">
+              <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" :title="t('common.pickColorTitle')" />
+            </div>
+            <small class="set-hint">{{ t('settings.colorHint') }}</small>
           </div>
-        </div>
-        <div class="set-row" @click="toggleSetting('livesEnabled')">
-          <span>{{ t('settings.livesEnabled') }}</span><span class="switch" :class="{on:state.settings.livesEnabled}"><i></i></span>
-        </div>
 
-        <div class="set-group-title">{{ t('settings.misc') }}</div>
-        <div class="set-row" @click="toggleSetting('showTimer')">
-          <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
-        </div>
+          <div class="set-group-title">{{ t('settings.misc') }}</div>
+          <div class="set-row" @click="toggleSetting('showTimer')">
+            <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
+          </div>
 
-        <div class="set-group-title">{{ t('settings.sound') }}</div>
-        <small class="set-hint">{{ t('settings.soundHint') }}</small>
-        <div class="set-row" @click="toggleSetting('musicMenu')">
-          <span>{{ t('settings.musicMenu') }}</span><span class="switch" :class="{on:state.settings.musicMenu}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('musicSolo')">
-          <span>{{ t('settings.musicSolo') }}</span><span class="switch" :class="{on:state.settings.musicSolo}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('musicCoop')">
-          <span>{{ t('settings.musicCoop') }}</span><span class="switch" :class="{on:state.settings.musicCoop}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('musicCompetition')">
-          <span>{{ t('settings.musicCompetition') }}</span><span class="switch" :class="{on:state.settings.musicCompetition}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('musicTraining')">
-          <span>{{ t('settings.musicTraining') }}</span><span class="switch" :class="{on:state.settings.musicTraining}"><i></i></span>
-        </div>
-        <div class="set-row col">
-          <span class="set-row-label">{{ t('settings.musicVolume') }}</span>
-          <input type="range" class="set-range" min="0" max="1" step="0.01" :value="state.settings.musicVolume"
-                 :style="{ '--rangePct': Math.round(state.settings.musicVolume*100) + '%' }"
-                 @input="setSetting('musicVolume', parseFloat($event.target.value))" />
-        </div>
-        <small class="set-hint">{{ t('settings.sfxHintText') }}</small>
-        <div class="set-row" @click="toggleSetting('sfxComplete')">
-          <span>{{ t('settings.sfxComplete') }}</span><span class="switch" :class="{on:state.settings.sfxComplete}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('sfxKeep')">
-          <span>{{ t('settings.sfxKeep') }}</span><span class="switch" :class="{on:state.settings.sfxKeep}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('sfxRemove')">
-          <span>{{ t('settings.sfxRemove') }}</span><span class="switch" :class="{on:state.settings.sfxRemove}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('sfxError')">
-          <span>{{ t('settings.sfxError') }}</span><span class="switch" :class="{on:state.settings.sfxError}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('sfxHint')">
-          <span>{{ t('settings.sfxHint') }}</span><span class="switch" :class="{on:state.settings.sfxHint}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('sfxToolSwitch')">
-          <span>{{ t('settings.sfxToolSwitch') }}</span><span class="switch" :class="{on:state.settings.sfxToolSwitch}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('sfxUndo')">
-          <span>{{ t('settings.sfxUndo') }}</span><span class="switch" :class="{on:state.settings.sfxUndo}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('sfxWin')">
-          <span>{{ t('settings.sfxWin') }}</span><span class="switch" :class="{on:state.settings.sfxWin}"><i></i></span>
-        </div>
-        <div class="set-row" @click="toggleSetting('sfxLose')">
-          <span>{{ t('settings.sfxLose') }}</span><span class="switch" :class="{on:state.settings.sfxLose}"><i></i></span>
-        </div>
+          <div class="set-group-title">{{ t('settings.a11y') }}</div>
+          <div class="set-row" @click="toggleSetting('colorBlindMode')">
+            <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
+          </div>
+          <small class="set-hint">{{ t('settings.colorBlindModeHint') }}</small>
+        </template>
 
-        <div class="set-group-title">{{ t('settings.a11y') }}</div>
-        <div class="set-row" @click="toggleSetting('colorBlindMode')">
-          <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
-        </div>
-        <small class="set-hint">{{ t('settings.colorBlindModeHint') }}</small>
+        <!-- Reiter: Spiel (Spielhilfe, Coop) -->
+        <template v-else-if="state.settingsTab==='spiel'">
+          <div class="set-group-title">{{ t('settings.gameHelp') }}</div>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.errorReveal') }}</span>
+            <div class="seg">
+              <button :class="{active:state.settings.errorReveal==='instant'}" @click="setSetting('errorReveal','instant')">{{ t('settings.instant') }}</button>
+              <button :class="{active:state.settings.errorReveal==='onCheck'}" @click="setSetting('errorReveal','onCheck')">{{ t('settings.onCheck') }}</button>
+            </div>
+            <small class="set-hint">{{ state.settings.errorReveal==='instant' ? t('settings.errorRevealHintInstant') : t('settings.errorRevealHintOnCheck') }}</small>
+          </div>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.eraseStyle') }}</span>
+            <div class="seg">
+              <button :class="{active:state.settings.eraseStyle==='hide'}" @click="setSetting('eraseStyle','hide')">{{ t('settings.hide') }}</button>
+              <button :class="{active:state.settings.eraseStyle==='strike'}" @click="setSetting('eraseStyle','strike')">{{ t('settings.strike') }}</button>
+            </div>
+          </div>
+          <div class="set-row" @click="toggleSetting('livesEnabled')">
+            <span>{{ t('settings.livesEnabled') }}</span><span class="switch" :class="{on:state.settings.livesEnabled}"><i></i></span>
+          </div>
 
-        <div class="set-group-title">{{ t('settings.coop') }}</div>
-        <div class="set-row col">
-          <span class="set-row-label">{{ t('settings.displayName') }}</span>
-          <input class="text-input" v-model="state.settings.coopName" maxlength="32" :placeholder="t('common.namePlaceholder')" />
-        </div>
-        <div class="set-row" @click="toggleSetting('coopRemovedOutline')">
-          <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
-        </div>
-        <small class="set-hint">{{ t('settings.coopRemovedOutlineHint') }}</small>
+          <div class="set-group-title">{{ t('settings.coop') }}</div>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.displayName') }}</span>
+            <input class="text-input" v-model="state.settings.coopName" maxlength="32" :placeholder="t('common.namePlaceholder')" />
+          </div>
+          <div class="set-row" @click="toggleSetting('coopRemovedOutline')">
+            <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
+          </div>
+          <small class="set-hint">{{ t('settings.coopRemovedOutlineHint') }}</small>
+        </template>
 
-        <div class="set-group-title">{{ t('settings.data') }}</div>
-        <button class="btn btn-ghost" @click="doExport">{{ t('settings.exportBackup') }}</button>
-        <label class="btn btn-ghost file-btn">{{ t('settings.importBackup') }}
-          <input type="file" accept="application/json" @change="doImport" hidden>
-        </label>
-        <button class="btn btn-ghost" @click="openBackups">{{ t('settings.autoBackups') }}</button>
-        <button class="btn btn-ghost" @click="doExportLog">{{ t('settings.exportLog') }}</button>
-        <button class="btn btn-ghost" @click="state.modal='changelog'">{{ t('settings.changelog') }}</button>
-        <a class="btn btn-ghost" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
-        <a class="btn btn-ghost" href="./imprint.html" target="_blank" rel="noopener">{{ t('settings.imprint') }}</a>
-        <button class="btn btn-danger-ghost" @click="doDeleteAllData">{{ t('settings.deleteAllData') }}</button>
+        <!-- Reiter: Ton (Musik + Aktions-Sounds) -->
+        <template v-else-if="state.settingsTab==='ton'">
+          <div class="set-group-title">{{ t('settings.sound') }}</div>
+          <small class="set-hint">{{ t('settings.soundHint') }}</small>
+          <div class="set-row" @click="toggleSetting('musicMenu')">
+            <span>{{ t('settings.musicMenu') }}</span><span class="switch" :class="{on:state.settings.musicMenu}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('musicSolo')">
+            <span>{{ t('settings.musicSolo') }}</span><span class="switch" :class="{on:state.settings.musicSolo}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('musicCoop')">
+            <span>{{ t('settings.musicCoop') }}</span><span class="switch" :class="{on:state.settings.musicCoop}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('musicCompetition')">
+            <span>{{ t('settings.musicCompetition') }}</span><span class="switch" :class="{on:state.settings.musicCompetition}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('musicTraining')">
+            <span>{{ t('settings.musicTraining') }}</span><span class="switch" :class="{on:state.settings.musicTraining}"><i></i></span>
+          </div>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.musicVolume') }}</span>
+            <input type="range" class="set-range" min="0" max="1" step="0.01" :value="state.settings.musicVolume"
+                   :style="{ '--rangePct': Math.round(state.settings.musicVolume*100) + '%' }"
+                   @input="setSetting('musicVolume', parseFloat($event.target.value))" />
+          </div>
+          <small class="set-hint">{{ t('settings.sfxHintText') }}</small>
+          <div class="set-row" @click="toggleSetting('sfxComplete')">
+            <span>{{ t('settings.sfxComplete') }}</span><span class="switch" :class="{on:state.settings.sfxComplete}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('sfxKeep')">
+            <span>{{ t('settings.sfxKeep') }}</span><span class="switch" :class="{on:state.settings.sfxKeep}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('sfxRemove')">
+            <span>{{ t('settings.sfxRemove') }}</span><span class="switch" :class="{on:state.settings.sfxRemove}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('sfxError')">
+            <span>{{ t('settings.sfxError') }}</span><span class="switch" :class="{on:state.settings.sfxError}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('sfxHint')">
+            <span>{{ t('settings.sfxHint') }}</span><span class="switch" :class="{on:state.settings.sfxHint}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('sfxToolSwitch')">
+            <span>{{ t('settings.sfxToolSwitch') }}</span><span class="switch" :class="{on:state.settings.sfxToolSwitch}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('sfxUndo')">
+            <span>{{ t('settings.sfxUndo') }}</span><span class="switch" :class="{on:state.settings.sfxUndo}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('sfxWin')">
+            <span>{{ t('settings.sfxWin') }}</span><span class="switch" :class="{on:state.settings.sfxWin}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('sfxLose')">
+            <span>{{ t('settings.sfxLose') }}</span><span class="switch" :class="{on:state.settings.sfxLose}"><i></i></span>
+          </div>
+        </template>
+
+        <!-- Reiter: Daten (Backup/Export/Recht/Löschen) -->
+        <template v-else>
+          <div class="set-group-title">{{ t('settings.data') }}</div>
+          <button class="btn btn-ghost" @click="doExport">{{ t('settings.exportBackup') }}</button>
+          <label class="btn btn-ghost file-btn">{{ t('settings.importBackup') }}
+            <input type="file" accept="application/json" @change="doImport" hidden>
+          </label>
+          <button class="btn btn-ghost" @click="openBackups">{{ t('settings.autoBackups') }}</button>
+          <button class="btn btn-ghost" @click="doExportLog">{{ t('settings.exportLog') }}</button>
+          <button class="btn btn-ghost" @click="state.modal='changelog'">{{ t('settings.changelog') }}</button>
+          <a class="btn btn-ghost" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
+          <a class="btn btn-ghost" href="./imprint.html" target="_blank" rel="noopener">{{ t('settings.imprint') }}</a>
+          <button class="btn btn-danger-ghost" @click="doDeleteAllData">{{ t('settings.deleteAllData') }}</button>
+        </template>
       </div>
     </section>
 

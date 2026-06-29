@@ -200,6 +200,10 @@ export default {
   },
   settings: {
     title: 'Настройки',
+    tabGeneral: 'Общие',
+    tabGame: 'Игра',
+    tabSound: 'Звук',
+    tabData: 'Данные',
     appearance: 'Внешний вид',
     darkMode: '🌙 Тёмная тема',
     gameHelp: 'Помощь в игре',

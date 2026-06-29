@@ -200,6 +200,10 @@ export default {
   },
   settings: {
     title: '설정',
+    tabGeneral: '일반',
+    tabGame: '게임',
+    tabSound: '사운드',
+    tabData: '데이터',
     appearance: '화면',
     darkMode: '🌙 다크 모드',
     gameHelp: '게임 도움말',

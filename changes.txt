@@ -1,0 +1,2 @@
+Einstellungen in Reiter aufgeteilt (Allgemein/Spiel/Ton/Daten)
+Levelauswahl kompakter: alle Schwierigkeitsgrade passen ohne Scrollen auf einen Screen
