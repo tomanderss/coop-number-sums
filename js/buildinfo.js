@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.147';
-export const BUILD_HASH = '8ca888c';
+export const BUILD      = '0.148';
+export const BUILD_HASH = 'dd3ff48';
 
 export const CHANGELOG = [
+  {
+    "version": "0.148",
+    "date": "29.06.2026",
+    "changes": [
+      "Streak-Feier-Screen ergänzt: nach dem ersten Spiel des Tages erscheint ein Feuer-Hinweis mit aktueller Streak, Bestmarke und Lob bei neuer Höchstmarke; der Streak-verloren-Hinweis wurde freundlicher gestaltet"
+    ]
+  },
   {
     "version": "0.147",
     "date": "29.06.2026",
