@@ -214,12 +214,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    statt sie oben in die Ecke zu drücken (großer Leerraum darunter). Die
    Schwierigkeitsgrade sind kompakt genug, dass alles ohne Scrollen mittig
    ausbalanciert sitzt; im Querformat (Media-Query) wird wieder oben begonnen. */
-.setup-body { display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; justify-content: center; }
+/* Setup-Body füllt die ganze Screenhöhe und zentriert die Auswahl vertikal,
+   statt sie oben in die Ecke zu drücken. Die Schwierigkeitsgrade sind bewusst so
+   kompakt gehalten, dass ALLE (auch auf kleinen Telefonen ≥320×568) ohne Scrollen
+   auf einen Screen passen — die Levelauswahl darf nie scrollbar werden. Auf großen
+   Screens wird der Überschuss zu mittigem Leerraum (justify-content:center). */
+.setup-body { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; justify-content: center; }
 .setup-label { font-size: .8rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
 /* minmax(0,1fr) statt 1fr: erlaubt den Spalten, unter ihre min-content-Breite zu
    schrumpfen (sonst zwingen die nicht umbrechenden Chip-Labels die Karten breiter
    als den Viewport -> rechte Spalte würde abgeschnitten). */
-.option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 /* Kompakte, einheitlich strukturierte Schwierigkeitskarte: Kopfzeile (Emoji +
    Name + Maße) und darunter zwei feste, exakt nebeneinander ausgerichtete
    Zeit-Chips (Ø Zeit + Bestzeit) — analog zu den Statistik-Bubbles. Es wird
@@ -227,27 +232,37 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    der Coop-Lobby); fehlende Zeiten erscheinen als Platzhalter, damit alle
    Karten dieselbe Struktur haben (keine mal-da-mal-nicht-Chips). */
 .opt-card {
-  display: flex; flex-direction: column; justify-content: center; gap: 8px;
-  min-height: 64px; padding: 12px 12px; border-radius: 14px; background: var(--bg2);
+  display: flex; flex-direction: column; justify-content: center; gap: 5px;
+  padding: 8px 12px; border-radius: 14px; background: var(--bg2);
   border: 2px solid transparent; box-shadow: 0 2px 8px var(--shadow); text-align: left;
   transition: transform .12s, border-color .15s;
 }
 .opt-card:active { transform: scale(.97); }
 .opt-card.active { border-color: var(--accent); background: var(--accent-soft); }
 .opt-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-.opt-emoji { font-size: 1.1rem; line-height: 1; flex: 0 0 auto; align-self: center; }
-.opt-name { font-weight: 800; font-size: .88rem; line-height: 1.15; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.opt-dim { margin-left: auto; flex: 0 0 auto; font-size: .66rem; font-weight: 700; color: var(--text3); font-variant-numeric: tabular-nums; }
+.opt-emoji { font-size: 1.05rem; line-height: 1; flex: 0 0 auto; align-self: center; }
+/* Der Schwierigkeitsname wird IMMER vollständig gezeigt (kein Abschneiden) und
+   hat die ganze Kopfzeilenbreite (keine konkurrierende Maßangabe mehr). */
+.opt-name { font-weight: 800; font-size: .9rem; line-height: 1.1; white-space: nowrap; }
 /* Zwei gleich breite Chips nebeneinander -> über alle Karten hinweg an exakt
    derselben x-Position; Platzhalter halten die Struktur auch ohne Zeit stabil. */
 .opt-chips { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
 .opt-chips .chip {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  padding: 5px 4px; border-radius: 10px; font-size: .8rem; font-variant-numeric: tabular-nums; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  padding: 4px; border-radius: 9px; font-size: .76rem; font-variant-numeric: tabular-nums; min-width: 0;
   background: var(--bg3);
 }
-.opt-chips .chip-label { margin-left: 0; font-size: .6rem; text-transform: uppercase; letter-spacing: .3px; }
-.btn-start { margin-top: 4px; font-size: 1.1rem; padding: 16px; }
+.opt-chips .chip-label { margin-left: 0; font-size: .56rem; text-transform: uppercase; letter-spacing: .3px; }
+.btn-start { margin-top: 2px; font-size: 1.05rem; padding: 12px; }
+/* Sehr kurze Screens (alte/kleine Telefone, z.B. 320×568): noch enger packen,
+   damit die Levelauswahl auch dort ohne Scrollen passt. */
+@media (max-height: 600px) {
+  .setup-body { gap: 6px; }
+  .screen.setup .option-grid { gap: 6px; }
+  .screen.setup .opt-card { padding: 6px 10px; gap: 4px; }
+  .opt-chips .chip { padding: 3px; }
+  .screen.setup .btn-start { padding: 10px; }
+}
 
 /* ─── Game HUD ─── */
 .game-top { padding-bottom: 8px; }
@@ -731,7 +746,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   font-size: .98rem; font-weight: 900; color: var(--accent); letter-spacing: .3px;
   margin: 24px 0 2px; padding-top: 16px; border-top: 1.5px solid var(--grid);
 }
-.settings-body > .set-group-title:first-of-type { border-top: none; padding-top: 2px; margin-top: 2px; }
+/* Erste Bereichs-Überschrift je Reiter (direkt unter den Tabs) ohne Trennlinie/
+   großen Abstand darüber — die Linie säße sonst unschön direkt unter der
+   Reiter-Leiste. Greift in jedem Reiter, da dessen erstes Element stets eine
+   .set-group-title direkt nach .settings-tabs ist. */
+.settings-body > .settings-tabs + .set-group-title { border-top: none; padding-top: 2px; margin-top: 2px; }
 .diff-row { display: flex; flex-direction: column; gap: 10px; background: var(--bg2); padding: 12px 16px; border-radius: 12px; }
 .diff-row-top { display: flex; justify-content: space-between; align-items: center; }
 .diff-name { font-weight: 700; }
