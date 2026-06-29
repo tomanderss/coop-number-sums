@@ -150,6 +150,8 @@ export default {
     shareInvite: '招待する',
     lobbyTitle: '仲間がロビーにいます',
     lobbyMsg: 'パズルの準備ができました。全員の準備が整ったら開始します。',
+    generating: 'パズルを生成中 …',
+    genFailed: 'パズルを生成できませんでした。',
     lobbyStart: '開始 🚀',
     playerJoinedLobby: '{name}さんがロビーに参加しました 👋',
     playersCount: '{n}/{max}人のプレイヤー',

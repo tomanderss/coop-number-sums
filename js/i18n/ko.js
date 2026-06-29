@@ -150,6 +150,8 @@ export default {
     shareInvite: '초대하기',
     lobbyTitle: '동료가 로비에 있습니다',
     lobbyMsg: '퍼즐이 준비되었습니다. 모두 준비되면 시작합니다.',
+    generating: '퍼즐 생성 중 …',
+    genFailed: '퍼즐을 생성하지 못했습니다.',
     lobbyStart: '시작 🚀',
     playerJoinedLobby: '{name}님이 로비에 참가했습니다 👋',
     playersCount: '{n}/{max}명의 플레이어',

@@ -150,6 +150,8 @@ export default {
     shareInvite: 'Invitar',
     lobbyTitle: 'Los compañeros están en la sala',
     lobbyMsg: 'El rompecabezas está listo — empezará cuando todos estén preparados.',
+    generating: 'Generando el rompecabezas …',
+    genFailed: 'No se pudo generar el rompecabezas.',
     lobbyStart: 'Empezar 🚀',
     playerJoinedLobby: '{name} se unió a la sala 👋',
     playersCount: '{n}/{max} jugadores',

@@ -150,6 +150,8 @@ export default {
     shareInvite: 'Einladen',
     lobbyTitle: 'Mitspieler sind in der Lobby',
     lobbyMsg: 'Das Rätsel ist bereit — es geht los, sobald alle bereit sind.',
+    generating: 'Rätsel wird erstellt …',
+    genFailed: 'Rätsel konnte nicht erstellt werden.',
     lobbyStart: 'Starten 🚀',
     playerJoinedLobby: '{name} ist der Lobby beigetreten 👋',
     playersCount: '{n}/{max} Spieler',

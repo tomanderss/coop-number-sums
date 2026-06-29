@@ -91,6 +91,7 @@ const state = reactive({
     lifeLossBy: [],              // chronologisch: wer hat welches (gemeinsame) Leben verbraucht
     mistakesByPlayer: {},        // id -> Anzahl Fehler dieses Spielers im laufenden Rätsel
     awaitingStart: false,        // Rätsel ist generiert, aber die Zeit läuft noch nicht — wartet auf Start-Klick
+    generating: false,           // Rätsel wird gerade (im Worker) für diese Lobby generiert — Start/Bereit ist bis zur Fertigstellung gesperrt
 
     teamMode: false,               // Host-Lobby-Toggle: Team-vs-Team statt normalem Coop
     raceMode: false,               // Host-Lobby-Toggle: Race-/Duell-Modus (1v1, getrennte Fortschritte) statt normalem Coop
@@ -381,9 +382,13 @@ function startCoopGame(startTime) {
 }
 function startCoopRound() {
   if (!state.coop.awaitingStart) return;
+  // Der Host darf erst final starten, wenn sein EIGENES Rätsel fertig generiert
+  // ist (sonst liefe die Zeit ohne Spielfeld los).
+  if (state.coop.generating) return;
   // Nur der Host darf final starten, und erst sobald alle Mitspieler bereit
-  // sind (siehe Bereit-System oben) -- verhindert, dass jemand noch nicht
-  // hingeschaut hat, wenn die gemeinsame Zeit zu laufen beginnt.
+  // sind (siehe Bereit-System oben) -- da ein Gast sich erst nach Abschluss
+  // seiner eigenen Generierung bereit melden kann, ist "alle bereit" zugleich
+  // die Garantie, dass bei jedem Client ein fertiges Rätsel vorliegt.
   if (state.coop.role !== 'host' || !allGuestsReady()) return;
   const startTime = Date.now();
   startCoopGame(startTime);
@@ -438,18 +443,52 @@ function buildCellMeta(puzzle) {
 const puzzleCache = {};             // diffId -> vorgeneriertes Puzzle
 const prefetchInFlight = new Set(); // diffIds, deren Hintergrund-Generierung gerade läuft
 let genWorker = null;
+// Gezielte Einzel-Generierungen (generateAsync) laufen über denselben Worker wie
+// der Prefetch, werden aber per fortlaufender reqId korreliert -- so kann eine
+// Lobby-Generierung (Race/Team/Coop-Host) parallel zum Hintergrund-Prefetch
+// laufen, ohne dass sich die Antworten vermischen.
+let genReqSeq = 0;
+const genReqPending = new Map();    // reqId -> { resolve, reject }
 function initGenWorker() {
   if (typeof Worker === 'undefined') return;
   try {
     genWorker = new Worker(new URL('./genworker.js', import.meta.url), { type: 'module' });
     genWorker.onmessage = (e) => {
-      const { diffId, puzzle, error } = e.data || {};
+      const { diffId, reqId, puzzle, error } = e.data || {};
+      // Gezielte Einzel-Anfrage (generateAsync): direkt an den Aufrufer zurück.
+      if (reqId != null) {
+        const pend = genReqPending.get(reqId);
+        if (pend) { genReqPending.delete(reqId); error ? pend.reject(new Error(error)) : pend.resolve(puzzle); }
+        return;
+      }
+      // Sonst: Prefetch-Antwort in den Cache legen.
       if (diffId) prefetchInFlight.delete(diffId);
       if (error) { log('game', 'Prefetch fehlgeschlagen', { diffId, error }); return; }
       if (diffId && puzzle && !puzzleCache[diffId]) puzzleCache[diffId] = puzzle;
     };
-    genWorker.onerror = () => { genWorker = null; prefetchInFlight.clear(); };
+    genWorker.onerror = () => {
+      genWorker = null; prefetchInFlight.clear();
+      // Anhängige Einzel-Anfragen scheitern lassen, damit ihr .catch() den
+      // synchronen Fallback bzw. eine Fehlermeldung auslösen kann.
+      genReqPending.forEach(p => p.reject(new Error('worker error')));
+      genReqPending.clear();
+    };
   } catch { genWorker = null; }
+}
+// Generiert ein Rätsel möglichst im Hintergrund-Thread und liefert ein Promise.
+// Ohne Worker (oder bei dessen Ausfall) fällt es auf den synchronen Generator
+// zurück -- minimal verzögert (setTimeout), damit ein zuvor gesetztes Lade-/
+// Lobby-Overlay noch einen Frame rendern kann, bevor der Haupt-Thread blockiert.
+function generateAsync(opts) {
+  return new Promise((resolve, reject) => {
+    if (genWorker) {
+      const reqId = ++genReqSeq;
+      genReqPending.set(reqId, { resolve, reject });
+      genWorker.postMessage({ reqId, opts });
+    } else {
+      setTimeout(() => { try { resolve(generatePuzzle(opts)); } catch (err) { reject(err); } }, 30);
+    }
+  });
 }
 // Stößt die Vorgenerierung für eine Schwierigkeit an (idempotent: nicht doppelt,
 // nicht wenn schon ein Rätsel bereitliegt).
@@ -1157,11 +1196,14 @@ function handleCoopMsg(msg) {
   } else if (msg.type === Coop.MSG.HINT) {
     applyHintEffect(msg.r, msg.c, msg.mark, false, msg.from);
   } else if (msg.type === Coop.MSG.INIT) {
+    // Gäste generieren nichts selbst -- sie bekommen das fertige Rätsel des Hosts
+    // und sind damit sofort "fertig" (kein Ladebalken in der Lobby nötig).
     loadPuzzleIntoState(msg.puzzle, { marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime });
     state.coop.active = true;
     state.coop.connected = true;
     state.coop.waitingForGuest = false;
     state.coop.awaitingStart = true;
+    state.coop.generating = false;
     navigate('game');
   } else if (msg.type === Coop.MSG.START) {
     if (state.coop.awaitingStart) startCoopGame(msg.startTime);
@@ -1256,6 +1298,7 @@ function coopReset() {
   state.coop.connected = false; state.coop.waitingForGuest = false;
   state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
+  state.coop.generating = false;
   state.coop.teamMode = false;
   state.coop.raceMode = false;
   state.team.active = false; state.team.myTeam = null; state.team.matchOver = false;
@@ -1515,22 +1558,38 @@ function canStartCoopMatch() {
 function startCoopMatch() {
   if (!canStartCoopMatch()) return;
   const difficulty = state.coop.lobbyDiffId;
-  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty, players: state.coop.players.length });
-  let puzzle;
-  try {
-    puzzle = generatePuzzle({ difficulty });
-  } catch (e) {
-    log('game', `Puzzle-Generierung fehlgeschlagen (Coop)`, e);
-    throw e;
-  }
-  log('game', `Puzzle generiert (Coop)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
-  loadPuzzleIntoState(puzzle, null);
+  // Sofort in die "Bereit?"-Lobby wechseln und die Generierung im Hintergrund-
+  // Thread starten (kein eingefrorener Haupt-Thread bei großen Feldern). Bis das
+  // Rätsel fertig ist, zeigt die Lobby einen laufenden Ladebalken; erst danach
+  // verschickt der Host das fertige Rätsel per INIT an die Gäste.
   state.coop.active = true;
   state.coop.waitingForGuest = false;
   state.coop.awaitingStart = true;
+  state.coop.generating = true;
   resetReadyFlags();
   navigate('game');
-  Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+  // Liegt dank Prefetch schon ein Rätsel bereit, sofort nutzen (kein Warten).
+  const cached = takePrefetched(difficulty);
+  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty, players: state.coop.players.length, cached: !!cached });
+  const gen = cached ? Promise.resolve(cached) : generateAsync({ difficulty });
+  gen.then(puzzle => {
+    if (!state.coop.awaitingStart) return; // Lobby zwischenzeitlich verlassen
+    log('game', `Puzzle generiert (Coop)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
+    loadPuzzleIntoState(puzzle, null);
+    state.coop.generating = false;
+    if (cached) schedulePrefetch(difficulty);
+    Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+  }).catch(e => onLobbyGenFailed(e, 'Coop'));
+}
+// Gemeinsamer Fehlerpfad, falls die Lobby-Generierung (Coop-Host/Race/Team)
+// fehlschlägt -- selten (Worker-Ausfall o.Ä.). Statt in einer leeren Lobby
+// hängenzubleiben, wird die Session sauber beendet und zur Startseite zurück-
+// gekehrt, mit kurzer Fehlermeldung.
+function onLobbyGenFailed(e, mode) {
+  log('game', `Puzzle-Generierung fehlgeschlagen (${mode})`, e);
+  state.coop.generating = false;
+  showToast(t('coop.genFailed'));
+  quitToHome();
 }
 
 // ─── TEAM-VS-TEAM (Feature 12b) ───────────────────────────────────────────────
@@ -1568,22 +1627,25 @@ function applyTeamStart(seed, difficulty) {
   state.team.opponentMistakes = 0;
   state.team.opponentMistakesByPlayer = {};
   state.team.myPct = 0;
-  log('game', `Puzzle-Generierung gestartet (Team-Match)`, { difficulty, seed, team: state.team.myTeam });
-  let puzzle;
-  try {
-    puzzle = generatePuzzle({ difficulty, seed });
-  } catch (e) {
-    log('game', `Puzzle-Generierung fehlgeschlagen (Team-Match)`, e);
-    throw e;
-  }
-  log('game', `Puzzle generiert (Team-Match)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
-  loadPuzzleIntoState(puzzle, null);
+  // Beide Teams generieren ihr (per Seed identisches) Rätsel lokal im Hintergrund-
+  // Thread. Bis es fertig ist, läuft in der Lobby der Ladebalken; ein Gast kann
+  // sich erst danach "bereit" melden, der Host erst danach final starten -- so ist
+  // garantiert, dass bei allen Clients ein fertiges Rätsel vorliegt (siehe
+  // startCoopRound()/Lobby-Overlay).
   state.coop.active = true;
   state.coop.waitingForGuest = false;
   state.coop.awaitingStart = true;
+  state.coop.generating = true;
   Coop.listenTeamEvents(state.team.myTeam, handleCoopMsg);
   Coop.listenTeamProgress(onTeamProgressUpdate);
   navigate('game');
+  log('game', `Puzzle-Generierung gestartet (Team-Match)`, { difficulty, seed, team: state.team.myTeam });
+  generateAsync({ difficulty, seed }).then(puzzle => {
+    if (!state.coop.awaitingStart) return;
+    log('game', `Puzzle generiert (Team-Match)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
+    loadPuzzleIntoState(puzzle, null);
+    state.coop.generating = false;
+  }).catch(e => onLobbyGenFailed(e, 'Team-Match'));
 }
 
 // ─── RACE-/DUELL-MODUS (Feature 11) ───────────────────────────────────────────
@@ -1622,18 +1684,9 @@ function applyRaceStart(seed, difficulty) {
   state.race.opponentPct = 0;
   state.race.opponentMistakes = 0;
   state.isRaceGame = true;
-  log('game', `Puzzle-Generierung gestartet (Race-Match)`, { difficulty, seed });
-  let puzzle;
-  try {
-    puzzle = generatePuzzle({ difficulty, seed });
-  } catch (e) {
-    log('game', `Puzzle-Generierung fehlgeschlagen (Race-Match)`, e);
-    throw e;
-  }
-  log('game', `Puzzle generiert (Race-Match)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
-  loadPuzzleIntoState(puzzle, null);
   state.coop.waitingForGuest = false;
   state.coop.awaitingStart = true;
+  state.coop.generating = true;
   // Der geteilte Renn-Fortschritt (raceProgress/{uid} in der RTDB) überlebt das
   // vorige Match -- ohne Reset läse der Listener beim Rematch den alten Stand
   // wieder ein und beide Balken hingen auf dem Endstand des letzten Spiels fest.
@@ -1645,6 +1698,16 @@ function applyRaceStart(seed, difficulty) {
   Coop.setRaceProgress(state.coop.myId, { pct: 0, mistakes: 0 });
   Coop.listenRaceProgress(onRaceProgressUpdate);
   navigate('game');
+  // Beide Clients generieren ihr (per Seed identisches) Rätsel lokal im
+  // Hintergrund-Thread; Start/Bereit ist bis zur Fertigstellung gesperrt (siehe
+  // Team-Match oben).
+  log('game', `Puzzle-Generierung gestartet (Race-Match)`, { difficulty, seed });
+  generateAsync({ difficulty, seed }).then(puzzle => {
+    if (!state.coop.awaitingStart) return;
+    log('game', `Puzzle generiert (Race-Match)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
+    loadPuzzleIntoState(puzzle, null);
+    state.coop.generating = false;
+  }).catch(e => onLobbyGenFailed(e, 'Race-Match'));
 }
 // "Nochmal spielen" nach einem beendeten Race-Match: nur der Host darf das
 // auslösen (er wählt die Schwierigkeit und startet per RACE_START). Raum/
@@ -2764,7 +2827,7 @@ const App = {
         <div class="result-card">
           <div class="result-emoji">👥</div>
           <h2>{{ t('coop.lobbyTitle') }}</h2>
-          <p class="result-msg">{{ t('coop.lobbyMsg') }}</p>
+          <p class="result-msg">{{ state.coop.generating ? t('coop.generating') : t('coop.lobbyMsg') }}</p>
           <div class="coop-roster" v-if="nonHostPlayers().length">
             <span v-for="p in nonHostPlayers()" :key="p.id" class="player-chip" :class="{ 'ready-chip': p.ready }"
                   :style="{ background: p.color, color: chipTextColor(p.color) }">
@@ -2772,7 +2835,13 @@ const App = {
               {{ p.ready ? '✅' : '⏳' }}
             </span>
           </div>
-          <template v-if="state.coop.role === 'host'">
+          <!-- Solange das eigene Rätsel noch generiert wird: laufender Ladebalken
+               statt Start/Bereit-Knopf -- so kann niemand starten/sich bereit
+               melden, bevor bei ihm wirklich ein Rätsel bereitliegt. -->
+          <template v-if="state.coop.generating">
+            <div class="loading-bar"><span></span></div>
+          </template>
+          <template v-else-if="state.coop.role === 'host'">
             <p class="coop-subtext">{{ t('coop.readyCount', { n: readyCount(), total: nonHostPlayers().length }) }}</p>
             <button class="btn btn-primary" :disabled="!allGuestsReady()" @click="startCoopRound">{{ t('coop.lobbyStart') }}</button>
           </template>

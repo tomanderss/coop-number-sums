@@ -150,6 +150,8 @@ export default {
     shareInvite: 'Invita',
     lobbyTitle: 'I compagni sono nella lobby',
     lobbyMsg: 'Il puzzle è pronto — si parte quando tutti sono pronti.',
+    generating: 'Generazione del puzzle …',
+    genFailed: 'Impossibile generare il puzzle.',
     lobbyStart: 'Inizia 🚀',
     playerJoinedLobby: '{name} si è unito alla lobby 👋',
     playersCount: '{n}/{max} giocatori',
