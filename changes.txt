@@ -1,1 +1,0 @@
-Schnellerer App-Start: Rätsel werden erst beim Spielstart erzeugt (kein Vorab-Generieren aller Schwierigkeiten mehr) – das bremste manche Geräte beim Start aus

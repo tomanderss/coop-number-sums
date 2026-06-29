@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.160';
-export const BUILD_HASH = 'adf4ea3';
+export const BUILD      = '0.161';
+export const BUILD_HASH = '4ca36fb';
 
 export const CHANGELOG = [
+  {
+    "version": "0.161",
+    "date": "29.06.2026",
+    "changes": [
+      "Schnellerer App-Start: Rätsel werden erst beim Spielstart erzeugt (kein Vorab-Generieren aller Schwierigkeiten mehr) – das bremste manche Geräte beim Start aus"
+    ]
+  },
   {
     "version": "0.160",
     "date": "29.06.2026",
