@@ -200,6 +200,10 @@ export default {
   },
   settings: {
     title: 'Ayarlar',
+    tabGeneral: 'Genel',
+    tabGame: 'Oyun',
+    tabSound: 'Ses',
+    tabData: 'Veriler',
     appearance: 'Görünüm',
     darkMode: '🌙 Karanlık mod',
     gameHelp: 'Oyun yardımı',

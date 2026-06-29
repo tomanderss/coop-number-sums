@@ -210,22 +210,44 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 /* ─── Setup ─── */
-.setup-body { display: flex; flex-direction: column; gap: 12px; }
-.setup-label { font-size: .8rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; margin-top: 6px; }
-.option-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+/* Setup-Body füllt die ganze Screenhöhe und zentriert die Auswahl vertikal,
+   statt sie oben in die Ecke zu drücken (großer Leerraum darunter). Die
+   Schwierigkeitsgrade sind kompakt genug, dass alles ohne Scrollen mittig
+   ausbalanciert sitzt; im Querformat (Media-Query) wird wieder oben begonnen. */
+.setup-body { display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; justify-content: center; }
+.setup-label { font-size: .8rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
+/* minmax(0,1fr) statt 1fr: erlaubt den Spalten, unter ihre min-content-Breite zu
+   schrumpfen (sonst zwingen die nicht umbrechenden Chip-Labels die Karten breiter
+   als den Viewport -> rechte Spalte würde abgeschnitten). */
+.option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* Kompakte, einheitlich strukturierte Schwierigkeitskarte: Kopfzeile (Emoji +
+   Name + Maße) und darunter zwei feste, exakt nebeneinander ausgerichtete
+   Zeit-Chips (Ø Zeit + Bestzeit) — analog zu den Statistik-Bubbles. Es wird
+   immer nur der Modus des jeweiligen Screens gezeigt (Solo im Setup, Coop in
+   der Coop-Lobby); fehlende Zeiten erscheinen als Platzhalter, damit alle
+   Karten dieselbe Struktur haben (keine mal-da-mal-nicht-Chips). */
 .opt-card {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 12px 14px; border-radius: 14px; background: var(--bg2);
-  border: 2px solid transparent; box-shadow: 0 2px 8px var(--shadow); text-align: center;
+  display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  min-height: 64px; padding: 12px 12px; border-radius: 14px; background: var(--bg2);
+  border: 2px solid transparent; box-shadow: 0 2px 8px var(--shadow); text-align: left;
   transition: transform .12s, border-color .15s;
 }
 .opt-card:active { transform: scale(.97); }
 .opt-card.active { border-color: var(--accent); background: var(--accent-soft); }
-.opt-emoji { font-size: 1.3rem; }
-.opt-name { font-weight: 800; font-size: 1rem; }
-.opt-desc { font-size: .74rem; color: var(--text2); }
-.opt-best { font-size: .74rem; color: var(--accent2); font-weight: 700; font-variant-numeric: tabular-nums; }
-.btn-start { margin-top: 18px; font-size: 1.1rem; padding: 16px; }
+.opt-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.opt-emoji { font-size: 1.1rem; line-height: 1; flex: 0 0 auto; align-self: center; }
+.opt-name { font-weight: 800; font-size: .88rem; line-height: 1.15; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opt-dim { margin-left: auto; flex: 0 0 auto; font-size: .66rem; font-weight: 700; color: var(--text3); font-variant-numeric: tabular-nums; }
+/* Zwei gleich breite Chips nebeneinander -> über alle Karten hinweg an exakt
+   derselben x-Position; Platzhalter halten die Struktur auch ohne Zeit stabil. */
+.opt-chips { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.opt-chips .chip {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  padding: 5px 4px; border-radius: 10px; font-size: .8rem; font-variant-numeric: tabular-nums; min-width: 0;
+  background: var(--bg3);
+}
+.opt-chips .chip-label { margin-left: 0; font-size: .6rem; text-transform: uppercase; letter-spacing: .3px; }
+.btn-start { margin-top: 4px; font-size: 1.1rem; padding: 16px; }
 
 /* ─── Game HUD ─── */
 .game-top { padding-bottom: 8px; }
@@ -442,8 +464,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .home-grid .btn { padding: 9px 8px; }
   .home-version { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); margin-top: 0; }
 
-  .screen.setup .setup-body, .screen.coop-screen .coop-body { gap: 8px; }
-  .screen.setup .option-grid, .screen.coop-screen .option-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  /* Querformat: knapp in der Höhe -> wieder oben beginnen (justify-content:center
+     würde bei hohem Inhalt den oberen Rand abschneiden) und 3 Spalten nutzen. */
+  .screen.setup .setup-body { justify-content: flex-start; gap: 8px; }
+  .screen.coop-screen .coop-body { gap: 8px; }
+  .screen.setup .option-grid, .screen.coop-screen .option-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .screen.setup .opt-card, .screen.coop-screen .opt-card { padding: 8px 10px; }
   .screen.setup .btn-start { margin-top: 10px; }
   /* Code-Eingabe/-Anzeige ist für Hochformat groß ausgelegt (2.1rem/3.4rem) --
@@ -725,7 +750,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    Block (.diff-sub .diff-row-sub) bleibt davon unberührt (kein direktes Kind). */
 .diff-row > .diff-row-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; justify-items: start; align-items: start; }
 /* ─── Statistik-Reiter + Allgemein-Überblick ─── */
-.stats-tabs { margin-bottom: 4px; }
+.stats-tabs, .settings-tabs { margin-bottom: 4px; }
 .stats-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .stat-tile { background: var(--bg2); border-radius: 12px; padding: 14px 12px; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
 .stat-tile .stat-emoji { font-size: 1.5rem; line-height: 1; }

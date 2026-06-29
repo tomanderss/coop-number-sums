@@ -200,6 +200,10 @@ export default {
   },
   settings: {
     title: 'Einstellungen',
+    tabGeneral: 'Allgemein',
+    tabGame: 'Spiel',
+    tabSound: 'Ton',
+    tabData: 'Daten',
     appearance: 'Darstellung',
     darkMode: '🌙 Dunkelmodus',
     gameHelp: 'Spielhilfe',

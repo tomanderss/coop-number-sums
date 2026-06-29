@@ -1,0 +1,2 @@
+Einstellungen in Reiter aufgeteilt (Allgemein/Spiel/Ton/Daten)
+Levelauswahl kompakter und strukturiert: alle Schwierigkeitsgrade auf einen Screen, je Level Ø-Zeit und Bestzeit als ausgerichtete Chips (nur der jeweilige Modus)
