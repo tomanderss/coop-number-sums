@@ -217,6 +217,7 @@ export default {
     sfxError: 'Mistake',
     sfxHint: 'Hint',
     sfxToolSwitch: 'Mode switch (pen/eraser)',
+    sfxUndo: 'Undo',
     sfxWin: 'Win',
     sfxLose: 'Loss',
     a11y: 'Accessibility',

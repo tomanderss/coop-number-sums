@@ -217,6 +217,7 @@ export default {
     sfxError: 'Errore',
     sfxHint: 'Indizio',
     sfxToolSwitch: 'Cambio modalità (penna/gomma)',
+    sfxUndo: 'Annulla',
     sfxWin: 'Vittoria',
     sfxLose: 'Sconfitta',
     a11y: 'Accessibilità',

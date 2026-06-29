@@ -217,6 +217,7 @@ export default {
     sfxError: 'Erro',
     sfxHint: 'Dica',
     sfxToolSwitch: 'Troca de modo (lápis/borracha)',
+    sfxUndo: 'Desfazer',
     sfxWin: 'Vitória',
     sfxLose: 'Derrota',
     a11y: 'Acessibilidade',

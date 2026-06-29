@@ -217,6 +217,7 @@ export default {
     sfxError: 'Hata',
     sfxHint: 'İpucu',
     sfxToolSwitch: 'Mod değişimi (kalem/silgi)',
+    sfxUndo: 'Geri al',
     sfxWin: 'Kazanma',
     sfxLose: 'Kaybetme',
     a11y: 'Erişilebilirlik',

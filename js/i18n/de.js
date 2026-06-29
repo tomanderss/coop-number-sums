@@ -217,6 +217,7 @@ export default {
     sfxError: 'Fehler',
     sfxHint: 'Hinweis',
     sfxToolSwitch: 'Moduswechsel (Stift/Radierer)',
+    sfxUndo: 'Rückgängig',
     sfxWin: 'Gewonnen',
     sfxLose: 'Verloren',
     a11y: 'Barrierefreiheit',
