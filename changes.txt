@@ -1,2 +1,0 @@
-Undo-Button hat jetzt einen eigenen Sound (dezenter Klick mit tiefem Thump), abschaltbar in den Einstellungen
-Zoom-Zurücksetzen-Button erscheint nun links neben +/-, damit sich die Zoom-Buttons beim Einblenden nicht mehr verschieben

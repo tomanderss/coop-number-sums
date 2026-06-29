@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.149';
-export const BUILD_HASH = 'ea85134';
+export const BUILD      = '0.150';
+export const BUILD_HASH = '829f44a';
 
 export const CHANGELOG = [
+  {
+    "version": "0.150",
+    "date": "29.06.2026",
+    "changes": [
+      "Undo-Button hat jetzt einen eigenen Sound (dezenter Klick mit tiefem Thump), abschaltbar in den Einstellungen",
+      "Zoom-Zurücksetzen-Button erscheint nun links neben +/-, damit sich die Zoom-Buttons beim Einblenden nicht mehr verschieben"
+    ]
+  },
   {
     "version": "0.149",
     "date": "29.06.2026",
