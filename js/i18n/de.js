@@ -41,6 +41,7 @@ export default {
   game: {
     loading: 'Rätsel wird erstellt…',
     coopTag: 'COOP',
+    zoomReset: 'Zoom zurücksetzen',
     coopOfflineSuffix: ' · offline',
     pauseTitle: 'Pause',
     undoTitle: 'Rückgängig',

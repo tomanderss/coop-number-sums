@@ -41,6 +41,7 @@ export default {
   game: {
     loading: 'パズルを作成中…',
     coopTag: 'COOP',
+    zoomReset: 'ズームをリセット',
     coopOfflineSuffix: ' ・オフライン',
     pauseTitle: '一時停止',
     undoTitle: '元に戻す',

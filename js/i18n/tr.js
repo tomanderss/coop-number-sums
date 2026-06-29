@@ -41,6 +41,7 @@ export default {
   game: {
     loading: 'Bulmaca oluşturuluyor…',
     coopTag: 'COOP',
+    zoomReset: 'Yakınlaştırmayı sıfırla',
     coopOfflineSuffix: ' · çevrimdışı',
     pauseTitle: 'Duraklat',
     undoTitle: 'Geri al',

@@ -578,6 +578,13 @@ function setZoom(delta) {
   state.zoom = Math.max(0.7, Math.min(2.2, +(state.zoom + delta).toFixed(2)));
   computeCellSize();
 }
+// Zoom auf den Standard (automatische Einpassung, zoom = 1) zurücksetzen. Der
+// Button dafür wird nur eingeblendet, wenn überhaupt gezoomt wurde (zoom !== 1).
+function resetZoom() {
+  if (state.zoom === 1) return;
+  state.zoom = 1;
+  computeCellSize();
+}
 
 // ─── SUMMEN & FERTIG-STATUS ───────────────────────────────────────────────────
 function rowSum(r) {
@@ -1542,6 +1549,15 @@ function applyRaceStart(seed, difficulty) {
   loadPuzzleIntoState(puzzle, null);
   state.coop.waitingForGuest = false;
   state.coop.awaitingStart = true;
+  // Der geteilte Renn-Fortschritt (raceProgress/{uid} in der RTDB) überlebt das
+  // vorige Match -- ohne Reset läse der Listener beim Rematch den alten Stand
+  // wieder ein und beide Balken hingen auf dem Endstand des letzten Spiels fest.
+  // Jede Seite setzt darum ihren EIGENEN Eintrag frisch auf 0 (Gegner-Eintrag
+  // bleibt der jeweils anderen Seite überlassen) und nullt das Sende-Throttle,
+  // damit der erste Zug den neuen Stand sofort publiziert.
+  raceProgressThrottle = 0;
+  if (raceProgressTimer) { clearTimeout(raceProgressTimer); raceProgressTimer = null; }
+  Coop.setRaceProgress(state.coop.myId, { pct: 0, mistakes: 0 });
   Coop.listenRaceProgress(onRaceProgressUpdate);
   navigate('game');
 }
@@ -2331,7 +2347,7 @@ const App = {
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended, loadBackups,
-      quitToHome, setZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
+      quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
@@ -2469,6 +2485,7 @@ const App = {
           <span class="zoomctl">
             <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
             <button class="zoom-btn" @click="setZoom(0.15)">+</button>
+            <button v-if="state.zoom !== 1" class="zoom-btn zoom-reset" @click="resetZoom" :aria-label="t('game.zoomReset')" :title="t('game.zoomReset')">↺</button>
           </span>
         </div>
 

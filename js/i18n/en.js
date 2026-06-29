@@ -41,6 +41,7 @@ export default {
   game: {
     loading: 'Creating puzzle…',
     coopTag: 'CO-OP',
+    zoomReset: 'Reset zoom',
     coopOfflineSuffix: ' · offline',
     pauseTitle: 'Pause',
     undoTitle: 'Undo',

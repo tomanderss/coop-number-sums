@@ -41,6 +41,7 @@ export default {
   game: {
     loading: 'Создание головоломки…',
     coopTag: 'COOP',
+    zoomReset: 'Сбросить масштаб',
     coopOfflineSuffix: ' · офлайн',
     pauseTitle: 'Пауза',
     undoTitle: 'Отменить',
