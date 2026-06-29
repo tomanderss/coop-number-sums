@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.152';
-export const BUILD_HASH = 'e59baa8';
+export const BUILD      = '0.153';
+export const BUILD_HASH = 'fb1b47a';
 
 export const CHANGELOG = [
+  {
+    "version": "0.153",
+    "date": "29.06.2026",
+    "changes": [
+      "Neue Schwierigkeit „Çüş\" 😵‍💫 (12×12) – schließt die Lücke zwischen Mashallah (11×11) und Dikka was (13×13), schnell generierbar und weiterhin ohne Raten lösbar"
+    ]
+  },
   {
     "version": "0.152",
     "date": "29.06.2026",
