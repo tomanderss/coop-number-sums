@@ -15,8 +15,11 @@
 //   • Dazwischen sanfte, zufällige Akkordtöne als Füllung -> nie exakt gleich.
 //
 // API: play(volume) / stop() / setVolume(v) / isPlaying() / level().
-// Web Audio läuft auch auf iOS-PWA (nach einer Nutzergeste, Stumm-Schalter aus)
-// — play() wird daher aus einem Tap-Pfad (Spielstart) heraus aufgerufen.
+// Web Audio läuft auch auf iOS (nach einer Nutzergeste) — play() wird daher aus
+// einem Tap-Pfad (Spielstart) heraus aufgerufen. In der iOS-PWA (Safari) greift
+// der Hardware-Stummschalter (Kategorie "ambient", nicht per JS änderbar); die
+// native App setzt die Audio-Session dagegen auf ".playback" und ignoriert den
+// Schalter (siehe ios/App/App/AppDelegate.swift).
 
 let ctx = null, master = null, reverb = null, analyser = null;
 let sfxBus = null, sfxReverb = null; // eigener Bus für UI-Sounds (unabhängig von der Musik)

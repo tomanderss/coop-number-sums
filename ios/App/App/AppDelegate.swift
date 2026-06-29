@@ -1,13 +1,31 @@
 import UIKit
 import Capacitor
+import AVFoundation
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
+    // Der Ton (prozedurale Web-Audio-Musik + UI-Sounds) soll wie bei den meisten
+    // Spielen laufen, unabhaengig vom Hardware-Stummschalter. Standardmaessig laeuft
+    // Web-Audio in der Kategorie "ambient", die der Stummschalter stummschaltet —
+    // und iOS sendet kein Event beim Umlegen des Schalters, sodass die Web-App
+    // darauf nicht live reagieren kann. Mit der Kategorie ".playback" ignoriert die
+    // App-Audio-Session den Schalter komplett. ".mixWithOthers", damit das Aktivieren
+    // der Session nicht die laufende Musik/Podcasts anderer Apps unterbricht.
+    private func configureAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("AudioSession konnte nicht auf .playback gesetzt werden: \(error)")
+        }
+    }
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        configureAudioSession()
         return true
     }
 
@@ -27,6 +45,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        // Eine Unterbrechung (Anruf, andere App) kann die Audio-Session-Kategorie
+        // zuruecksetzen — daher beim Reaktivieren erneut auf .playback setzen, damit
+        // der Stummschalter weiterhin ignoriert wird.
+        configureAudioSession()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
