@@ -446,7 +446,12 @@ let genWorker = null;
 let genReqSeq = 0;
 const genReqPending = new Map();    // reqId -> { resolve, reject }
 function initGenWorker() {
-  if (typeof Worker === 'undefined') return;
+  // Ob ein Worker zur Verfügung steht, ist DER entscheidende Performance-Faktor:
+  // ohne ihn wird jedes Rätsel synchron auf dem Haupt-Thread erzeugt und friert die
+  // UI bei großen Feldern kurz ein (Buttons reagieren dann verzögert). Daher den
+  // Worker-Status protokollieren, damit er im Diagnoseprotokoll betroffener Geräte
+  // sichtbar wird.
+  if (typeof Worker === 'undefined') { log('perf', 'Kein Web-Worker verfügbar – Rätsel werden SYNCHRON erzeugt (kann UI kurz blockieren)'); return; }
   try {
     genWorker = new Worker(new URL('./genworker.js', import.meta.url), { type: 'module' });
     genWorker.onmessage = (e) => {
@@ -455,14 +460,16 @@ function initGenWorker() {
       const pend = genReqPending.get(reqId);
       if (pend) { genReqPending.delete(reqId); error ? pend.reject(new Error(error)) : pend.resolve(puzzle); }
     };
-    genWorker.onerror = () => {
+    genWorker.onerror = (e) => {
+      log('error', 'Generator-Worker abgestürzt – ab jetzt synchrone Generierung', { message: e && e.message });
       genWorker = null;
       // Anhängige Anfragen scheitern lassen, damit ihr .catch() den synchronen
       // Fallback bzw. eine Fehlermeldung auslösen kann.
       genReqPending.forEach(p => p.reject(new Error('worker error')));
       genReqPending.clear();
     };
-  } catch { genWorker = null; }
+    log('game', 'Generator-Worker bereit (Off-Thread-Generierung aktiv)');
+  } catch (e) { log('error', 'Generator-Worker-Init fehlgeschlagen – synchrone Generierung', e); genWorker = null; }
 }
 // Generiert ein Rätsel möglichst im Hintergrund-Thread und liefert ein Promise.
 // Ohne Worker (oder bei dessen Ausfall) fällt es auf den synchronen Generator
@@ -475,6 +482,9 @@ function generateAsync(opts) {
       genReqPending.set(reqId, { resolve, reject });
       genWorker.postMessage({ reqId, opts });
     } else {
+      // Kein Worker -> synchrone Generierung blockiert kurz den Haupt-Thread.
+      // Protokollieren, um genau solche Geräte im Diagnoseprotokoll zu erkennen.
+      log('perf', 'Synchrone Rätselgenerierung (kein Worker) – UI kann kurz blockieren', { difficulty: opts && opts.difficulty });
       setTimeout(() => { try { resolve(generatePuzzle(opts)); } catch (err) { reject(err); } }, 30);
     }
   });
