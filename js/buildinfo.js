@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.164';
-export const BUILD_HASH = '8660963';
+export const BUILD      = '0.165';
+export const BUILD_HASH = '93f2079';
 
 export const CHANGELOG = [
+  {
+    "version": "0.165",
+    "date": "29.06.2026",
+    "changes": [
+      "Diagnoseprotokoll: Worker-Status + synchrone Generierung erfasst (zeigt Geräte, auf denen Rätsel den Haupt-Thread blockieren)"
+    ]
+  },
   {
     "version": "0.164",
     "date": "29.06.2026",

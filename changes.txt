@@ -1,1 +1,0 @@
-Diagnoseprotokoll: Worker-Status + synchrone Generierung erfasst (zeigt Geräte, auf denen Rätsel den Haupt-Thread blockieren)
