@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.153';
-export const BUILD_HASH = 'fb1b47a';
+export const BUILD      = '0.154';
+export const BUILD_HASH = '1bd2ec3';
 
 export const CHANGELOG = [
+  {
+    "version": "0.154",
+    "date": "29.06.2026",
+    "changes": [
+      "Schwierigkeiten angepasst: 12×12 = „Dikka was\", 13×13 = „Bismillah\", neu 14×14 = „R.I.P.\" 🪦 (die Stufe „Çüş\" entfällt)"
+    ]
+  },
   {
     "version": "0.153",
     "date": "29.06.2026",
