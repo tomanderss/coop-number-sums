@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.158';
-export const BUILD_HASH = '1f11d49';
+export const BUILD      = '0.159';
+export const BUILD_HASH = 'ffa720a';
 
 export const CHANGELOG = [
+  {
+    "version": "0.159",
+    "date": "29.06.2026",
+    "changes": [
+      "Levelauswahl scrollt nie mehr + Namen immer komplett sichtbar",
+      "Einstellungen: Trennlinie direkt unter den Reitern entfernt"
+    ]
+  },
   {
     "version": "0.158",
     "date": "29.06.2026",

@@ -1,2 +1,0 @@
-Levelauswahl scrollt nie mehr + Namen immer komplett sichtbar
-Einstellungen: Trennlinie direkt unter den Reitern entfernt
