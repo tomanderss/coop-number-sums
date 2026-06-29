@@ -147,6 +147,7 @@ const state = reactive({
   modal: null,               // null | 'howto' | 'changelog' | 'backups' | 'confirm'
   confirm: null,             // { title, msg, onYes }
   showWhatsNew: false,
+  whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
@@ -2211,9 +2212,21 @@ function confirmYes() { const f = state.confirm?.onYes; state.modal = null; stat
 function confirmNo() { state.modal = null; state.confirm = null; }
 
 // ─── WAS IST NEU ──────────────────────────────────────────────────────────────
+// Semver-artiger Vergleich ("0.155" > "0.154"): teilstückweise numerisch.
+function cmpVersion(a, b) {
+  const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
 function maybeShowWhatsNew() {
   const seen = loadSeenVersion();
-  if (seen !== BUILD && CHANGELOG.length) { state.showWhatsNew = true; }
+  if (seen !== BUILD && CHANGELOG.length) {
+    state.whatsNewSince = seen; // zuletzt gesehene Version festhalten (siehe whatsNewEntries)
+    state.showWhatsNew = true;
+  }
 }
 function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD); }
 function dismissStreakLostNotice() { state.streakLostNotice = false; }
@@ -2431,6 +2444,16 @@ const App = {
     });
     const achievementsUnlockedCount = computed(() => Object.keys(state.achievements).length);
 
+    // "Was ist neu": alle Changelog-Einträge NEUER als die zuletzt gesehene Version
+    // (neueste oben — CHANGELOG ist bereits absteigend sortiert). Bei Erstinstallation
+    // (keine gesehene Version) nur den neuesten Eintrag, sonst würde die komplette
+    // Historie aufploppen.
+    const whatsNewEntries = computed(() => {
+      const since = state.whatsNewSince;
+      if (!since) return CHANGELOG.slice(0, 1);
+      return CHANGELOG.filter(e => cmpVersion(e.version, since) > 0);
+    });
+
     // Modusübergreifender Überblick für den "Allgemein"-Reiter der Statistik.
     const generalStats = computed(() => {
       const s = state.stats;
@@ -2454,7 +2477,7 @@ const App = {
     });
 
     return {
-      generalStats, fmtDuration,
+      generalStats, fmtDuration, whatsNewEntries,
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, navTo, goBack, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
@@ -3393,7 +3416,15 @@ const App = {
       <div class="modal">
         <div class="whatsnew-badge">{{ t('whatsnew.badge') }}</div>
         <h3>{{ t('whatsnew.title', { version: CHANGELOG[0]?.version }) }}</h3>
-        <ul class="whatsnew"><li v-for="(it,i) in CHANGELOG[0]?.changes" :key="i">✦ {{ it }}</li></ul>
+        <!-- Alle Versionen seit der zuletzt gesehenen (neueste oben, scrollbar). Bei
+             nur einer neuen Version entfällt die Versions-Kopfzeile (eine einfache Liste). -->
+        <ul v-if="whatsNewEntries.length <= 1" class="whatsnew"><li v-for="(it,i) in (whatsNewEntries[0]?.changes || [])" :key="i">✦ {{ it }}</li></ul>
+        <div v-else class="changelog whatsnew-multi">
+          <div v-for="e in whatsNewEntries" :key="e.version" class="cl-entry">
+            <div class="cl-head"><b>v{{ e.version }}</b><span>{{ e.date }}</span></div>
+            <ul><li v-for="(it,i) in e.changes" :key="i">✦ {{ it }}</li></ul>
+          </div>
+        </div>
         <button class="btn btn-primary" @click="dismissWhatsNew">{{ t('whatsnew.start') }}</button>
       </div>
     </div>
