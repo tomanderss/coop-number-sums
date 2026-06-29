@@ -468,7 +468,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     align-items: start; align-content: start;
   }
-  .stats-section-title, .stats-body > .btn { grid-column: 1 / -1; }
+  .stats-section-title, .stats-body > .btn, .stats-tabs, .stats-overview { grid-column: 1 / -1; }
   .achievements-progress { grid-column: 1 / -1; }
   .history-body > .empty { grid-column: 1 / -1; }
 
@@ -715,6 +715,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .diff-sub-label { font-size: .68rem; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: .4px; }
 .diff-sub-label.coop { color: #8b5cf6; }
 .diff-row-sub { display: flex; gap: 8px; flex-wrap: wrap; font-size: .78rem; color: var(--text2); font-variant-numeric: tabular-nums; }
+/* ─── Statistik-Reiter + Allgemein-Überblick ─── */
+.stats-tabs { margin-bottom: 4px; }
+.stats-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.stat-tile { background: var(--bg2); border-radius: 12px; padding: 14px 12px; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
+.stat-tile .stat-emoji { font-size: 1.5rem; line-height: 1; }
+.stat-tile b { font-size: 1.15rem; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; }
+.stat-tile small { font-size: .74rem; color: var(--text2); }
+.stat-tile.clickable { cursor: pointer; }
+.stat-tile.clickable:active { transform: scale(.97); }
 /* Jeder Stat-Chip bekommt jetzt zusätzlich zum Icon/Wert ein ausgeschriebenes
    Wort-Label (.chip-label), damit die Zahl auch ohne Emoji-Vorwissen
    eindeutig zuordenbar ist. */
