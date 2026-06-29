@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.148';
-export const BUILD_HASH = 'dd3ff48';
+export const BUILD      = '0.149';
+export const BUILD_HASH = 'ea85134';
 
 export const CHANGELOG = [
+  {
+    "version": "0.149",
+    "date": "29.06.2026",
+    "changes": [
+      "Renn-Modus: Prozentleisten setzen beim Rematch wieder korrekt auf 0 zurück (statt den Stand des vorigen Spiels zu zeigen)",
+      "Zoom: neuer Zurücksetzen-Button (↺) oben rechts im Spiel, der den Zoom auf den Standard bringt – erscheint nur, wenn gezoomt wurde"
+    ]
+  },
   {
     "version": "0.148",
     "date": "29.06.2026",
