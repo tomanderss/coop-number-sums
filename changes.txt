@@ -1,1 +1,0 @@
-Coop-/Wettkampf-Schwierigkeitsauswahl passt wieder komplett auf einen Screen – „Hosten“ und „Zurück“ sind immer sichtbar (kompakte Levelkarten in der Host-Auswahl)
