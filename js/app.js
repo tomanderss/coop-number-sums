@@ -147,6 +147,7 @@ const state = reactive({
   modal: null,               // null | 'howto' | 'changelog' | 'backups' | 'confirm'
   confirm: null,             // { title, msg, onYes }
   showWhatsNew: false,
+  statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
@@ -178,6 +179,13 @@ function fmtTime(ms) {
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);
   return `${m}:${String(s % 60).padStart(2, '0')}`;
+}
+// Längere Gesamtdauer (Stundenbereich) für den Statistik-Überblick: "3 h 42 min"
+// bzw. "42 min" — fmtTime (m:ss) reicht dafür nicht.
+function fmtDuration(ms) {
+  const totalMin = Math.floor((ms || 0) / 60000);
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  return h > 0 ? `${h} ${t('stats.durH')} ${m} ${t('stats.durMin')}` : `${m} ${t('stats.durMin')}`;
 }
 function avgTimeFor(diffId) {
   const d = state.stats.byDifficulty[diffId];
@@ -2423,7 +2431,30 @@ const App = {
     });
     const achievementsUnlockedCount = computed(() => Object.keys(state.achievements).length);
 
+    // Modusübergreifender Überblick für den "Allgemein"-Reiter der Statistik.
+    const generalStats = computed(() => {
+      const s = state.stats;
+      const r1 = state.raceStats['1v1'], r2 = state.raceStats['2v2'];
+      const played = (s.played || 0) + (s.coopPlayed || 0) + (r1.racesPlayed || 0) + (r2.racesPlayed || 0);
+      const won = (s.won || 0) + (s.coopWon || 0) + (r1.racesWon || 0) + (r2.racesWon || 0);
+      // Lieblingslevel = meistgespielte Schwierigkeit (Solo + Coop zusammen).
+      let favId = null, favN = 0;
+      for (const d of DIFFICULTIES) {
+        const bd = s.byDifficulty[d.id]; if (!bd) continue;
+        const n = (bd.played || 0) + (bd.coopPlayed || 0);
+        if (n > favN) { favN = n; favId = d.id; }
+      }
+      return {
+        played, won,
+        winPct: played ? Math.round(won / played * 100) : 0,
+        timeMs: (s.totalTimeMs || 0) + (s.coopTotalTimeMs || 0),
+        perfect: (s.perfectWins || 0) + (s.coopPerfectWins || 0),
+        favId,
+      };
+    });
+
     return {
+      generalStats, fmtDuration,
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, navTo, goBack, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
@@ -2854,14 +2885,30 @@ const App = {
     <section v-else-if="state.screen==='stats'" class="screen stats">
       <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('stats.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
       <div class="stats-body">
-        <button class="btn btn-ghost achievements-top-btn" @click="navTo('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
-        <div class="stats-section-title">{{ t('stats.levelOverview') }}</div>
-        <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
-          <div class="diff-row-top">
-            <span class="diff-name">{{ d.emoji }} {{ t('difficulty.'+d.id) }}</span>
+        <div class="seg stats-tabs">
+          <button :class="{ active: state.statsTab==='allgemein' }" @click="state.statsTab='allgemein'">{{ t('stats.tabGeneral') }}</button>
+          <button :class="{ active: state.statsTab==='solo' }" @click="state.statsTab='solo'">{{ t('stats.solo') }}</button>
+          <button :class="{ active: state.statsTab==='coop' }" @click="state.statsTab='coop'">{{ t('stats.coop') }}</button>
+        </div>
+
+        <!-- Reiter: Allgemein -->
+        <template v-if="state.statsTab==='allgemein'">
+          <div class="stats-overview">
+            <div class="stat-tile"><span class="stat-emoji">🎮</span><b>{{ generalStats.played }}</b><small>{{ t('stats.ovPlayed') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji">🥇</span><b>{{ generalStats.won }} · {{ generalStats.winPct }}%</b><small>{{ t('stats.wonPlayedLabel') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji">⏱️</span><b>{{ fmtDuration(generalStats.timeMs) }}</b><small>{{ t('stats.ovTime') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji">✨</span><b>{{ generalStats.perfect }}</b><small>{{ t('stats.ovPerfect') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji">🔥</span><b>{{ state.streak.currentStreak }} / {{ state.streak.bestStreak }}</b><small>{{ t('stats.ovStreak') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji">⭐</span><b><template v-if="generalStats.favId">{{ DIFF_BY_ID[generalStats.favId].emoji }} {{ t('difficulty.'+generalStats.favId) }}</template><template v-else>–</template></b><small>{{ t('stats.ovFav') }}</small></div>
+            <div class="stat-tile clickable" @click="navTo('achievements')"><span class="stat-emoji">🏅</span><b>{{ achievementsUnlockedCount }} / {{ ACHIEVEMENTS.length }}</b><small>{{ t('stats.ovAchievements') }}</small></div>
           </div>
-          <div class="diff-sub">
-            <div class="diff-sub-label">{{ t('stats.solo') }}</div>
+          <button class="btn btn-ghost achievements-top-btn" @click="navTo('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
+        </template>
+
+        <!-- Reiter: Solo -->
+        <template v-else-if="state.statsTab==='solo'">
+          <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
+            <div class="diff-row-top"><span class="diff-name">{{ d.emoji }} {{ t('difficulty.'+d.id) }}</span></div>
             <div class="diff-row-sub">
               <span class="chip">🥇 {{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
               <span class="chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
@@ -2869,8 +2916,12 @@ const App = {
               <span class="chip">💔 {{ (state.stats.byDifficulty[d.id]?.lost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
             </div>
           </div>
-          <div class="diff-sub">
-            <div class="diff-sub-label coop">{{ t('stats.coop') }}</div>
+        </template>
+
+        <!-- Reiter: Coop (inkl. Wettkampf/Duell) -->
+        <template v-else>
+          <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
+            <div class="diff-row-top"><span class="diff-name">{{ d.emoji }} {{ t('difficulty.'+d.id) }}</span></div>
             <div class="diff-row-sub">
               <span class="chip coop-chip">🥇 {{ (state.stats.byDifficulty[d.id]?.coopWon)||0 }} / {{ (state.stats.byDifficulty[d.id]?.coopPlayed)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
               <span class="chip coop-chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
@@ -2878,26 +2929,27 @@ const App = {
               <span class="chip coop-chip">💔 {{ (state.stats.byDifficulty[d.id]?.coopLost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
             </div>
           </div>
-        </div>
-        <div class="stats-section-title">{{ t('stats.raceSection') }}</div>
-        <div class="diff-row">
-          <div class="diff-sub">
-            <div class="diff-sub-label">{{ t('stats.race1v1') }}</div>
-            <div class="diff-row-sub">
-              <span class="chip">🥇 {{ state.raceStats['1v1'].racesWon }} / {{ state.raceStats['1v1'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
-              <span class="chip">📈 {{ racePct(state.raceStats['1v1']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
-              <span class="chip best-time-chip">🏆 {{ state.raceStats['1v1'].fastestWinMs!=null ? fmtTime(state.raceStats['1v1'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+          <div class="stats-section-title">{{ t('stats.raceSection') }}</div>
+          <div class="diff-row">
+            <div class="diff-sub">
+              <div class="diff-sub-label">{{ t('stats.race1v1') }}</div>
+              <div class="diff-row-sub">
+                <span class="chip">🥇 {{ state.raceStats['1v1'].racesWon }} / {{ state.raceStats['1v1'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+                <span class="chip">📈 {{ racePct(state.raceStats['1v1']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
+                <span class="chip best-time-chip">🏆 {{ state.raceStats['1v1'].fastestWinMs!=null ? fmtTime(state.raceStats['1v1'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              </div>
+            </div>
+            <div class="diff-sub">
+              <div class="diff-sub-label coop">{{ t('stats.race2v2') }}</div>
+              <div class="diff-row-sub">
+                <span class="chip coop-chip">🥇 {{ state.raceStats['2v2'].racesWon }} / {{ state.raceStats['2v2'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+                <span class="chip coop-chip">📈 {{ racePct(state.raceStats['2v2']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
+                <span class="chip coop-chip best-time-chip">🏆 {{ state.raceStats['2v2'].fastestWinMs!=null ? fmtTime(state.raceStats['2v2'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              </div>
             </div>
           </div>
-          <div class="diff-sub">
-            <div class="diff-sub-label coop">{{ t('stats.race2v2') }}</div>
-            <div class="diff-row-sub">
-              <span class="chip coop-chip">🥇 {{ state.raceStats['2v2'].racesWon }} / {{ state.raceStats['2v2'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
-              <span class="chip coop-chip">📈 {{ racePct(state.raceStats['2v2']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
-              <span class="chip coop-chip best-time-chip">🏆 {{ state.raceStats['2v2'].fastestWinMs!=null ? fmtTime(state.raceStats['2v2'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
-            </div>
-          </div>
-        </div>
+        </template>
+
         <button class="btn btn-danger-ghost" @click="resetStats">{{ t('stats.reset') }}</button>
       </div>
     </section>

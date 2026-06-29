@@ -38,6 +38,8 @@ test.describe('gameplay', () => {
     await expect(page.locator('.screen.home')).toBeVisible();
 
     await page.locator('.home-grid .btn-ghost').nth(0).click();
+    // Die per-Level-Tabelle steckt jetzt im "Solo"-Reiter (Stats öffnen auf "Allgemein").
+    await page.locator('.stats-tabs button').nth(1).click();
     await expect(page.locator('.diff-row').first().locator('.chip').first()).toContainText('1 / 1');
   });
 
