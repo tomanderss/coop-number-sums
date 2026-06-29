@@ -1,1 +1,0 @@
-Coop & Wettkampf: Rätsel werden jetzt im Hintergrund erstellt (kein Einfrieren bei großen Feldern); die „Bereit?"-Lobby zeigt währenddessen einen Ladebalken und startet erst, wenn bei allen das Rätsel fertig ist

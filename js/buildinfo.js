@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.156';
-export const BUILD_HASH = '66a7694';
+export const BUILD      = '0.157';
+export const BUILD_HASH = '5290274';
 
 export const CHANGELOG = [
+  {
+    "version": "0.157",
+    "date": "29.06.2026",
+    "changes": [
+      "Coop & Wettkampf: Rätsel werden jetzt im Hintergrund erstellt (kein Einfrieren bei großen Feldern); die „Bereit?\"-Lobby zeigt währenddessen einen Ladebalken und startet erst, wenn bei allen das Rätsel fertig ist"
+    ]
+  },
   {
     "version": "0.156",
     "date": "29.06.2026",
