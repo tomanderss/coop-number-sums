@@ -1,0 +1,1 @@
+Statistik überarbeitet: drei Reiter „Allgemein", „Solo" und „Coop". Der neue Allgemein-Reiter zeigt einen Überblick (Spiele, Siege & Quote, Spielzeit, perfekte Siege, Tages-Streak, Lieblingslevel, Erfolge)
