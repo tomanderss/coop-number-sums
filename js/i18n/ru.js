@@ -383,6 +383,7 @@ export default {
     extrem: 'Экстремально',
     mashallah: 'Машалла',
     dikkawas: 'Dikka was',
+    bismillah: 'Bismillah',
   },
   a11y: {
     cellLabel: 'Строка {row}, столбец {col}, значение {value}, {status}',

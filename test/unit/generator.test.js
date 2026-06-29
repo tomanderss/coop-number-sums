@@ -122,7 +122,11 @@ describe('generator cage colors', () => {
     // regression in colorRegions() is caught even if a single seed wouldn't
     // happen to trigger the relax branch.
     for (const diff of DIFFICULTIES) {
-      for (let seed = 0; seed < 25; seed++) {
+      // Große Felder generieren langsam (14×14 ~Sekunden) -- dort weniger Seeds,
+      // sonst sprengt die Schleife die CI-Laufzeit. colorRegions() ist von der
+      // Feldgröße unabhängig; wenige Seeds je Größe genügen als Regressionsschutz.
+      const seedCount = diff.dim.r >= 14 ? 4 : (diff.dim.r >= 12 ? 8 : 25);
+      for (let seed = 0; seed < seedCount; seed++) {
         const puzzle = generatePuzzle({ difficulty: diff.id, seed });
         const idGrid = Array.from({ length: puzzle.rows }, () => new Array(puzzle.cols).fill(-1));
         for (const reg of puzzle.regions) for (const [r, c] of reg.cells) idGrid[r][c] = reg.id;
@@ -153,7 +157,11 @@ describe('generator cage colors', () => {
     // same colorIndex -- exactly the "too similar" report this guards against.
     function hueDist(a, b) { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
     for (const diff of DIFFICULTIES) {
-      for (let seed = 0; seed < 25; seed++) {
+      // Große Felder generieren langsam (14×14 ~Sekunden) -- dort weniger Seeds,
+      // sonst sprengt die Schleife die CI-Laufzeit. colorRegions() ist von der
+      // Feldgröße unabhängig; wenige Seeds je Größe genügen als Regressionsschutz.
+      const seedCount = diff.dim.r >= 14 ? 4 : (diff.dim.r >= 12 ? 8 : 25);
+      for (let seed = 0; seed < seedCount; seed++) {
         const puzzle = generatePuzzle({ difficulty: diff.id, seed });
         const idGrid = Array.from({ length: puzzle.rows }, () => new Array(puzzle.cols).fill(-1));
         for (const reg of puzzle.regions) for (const [r, c] of reg.cells) idGrid[r][c] = reg.id;

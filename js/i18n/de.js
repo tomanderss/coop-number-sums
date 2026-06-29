@@ -383,6 +383,7 @@ export default {
     extrem: 'Extrem',
     mashallah: 'Mashallah',
     dikkawas: 'Dikka was',
+    bismillah: 'Bismillah',
   },
   a11y: {
     cellLabel: 'Zeile {row}, Spalte {col}, Wert {value}, {status}',
