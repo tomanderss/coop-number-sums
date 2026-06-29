@@ -432,22 +432,17 @@ function buildCellMeta(puzzle) {
   return meta;
 }
 
-// ─── HINTERGRUND-VORGENERIERUNG (Prefetch) ────────────────────────────────────
-// Ein Web Worker generiert pro Schwierigkeit im Voraus ein Rätsel und legt es in
-// puzzleCache ab. Dadurch startet ein Spiel SOFORT (kein blockierendes Generieren
-// und kein kurz aufflackerndes Lade-Overlay). Die schwere Arbeit läuft echt im
-// Hintergrund-Thread, der Haupt-Thread bleibt flüssig. Fällt der Worker aus
-// (nicht unterstützt / Fehler), bleibt alles beim synchronen On-Demand-Pfad mit
-// Lade-Overlay -- reiner Zugewinn, kein Risiko für die Kernfunktion.
-// Coop-Host nutzt den Cache ebenfalls (er sendet ohnehin das volle Rätsel);
-// Race/Team/Training generieren weiterhin eigens (eigene Seeds/Sonderlogik).
-const puzzleCache = {};             // diffId -> vorgeneriertes Puzzle
-const prefetchInFlight = new Set(); // diffIds, deren Hintergrund-Generierung gerade läuft
+// ─── OFF-THREAD-GENERIERUNG (on-demand) ───────────────────────────────────────
+// Ein Web Worker generiert Rätsel auf Anfrage auf einem eigenen Thread, sodass die
+// (bei großen Feldern spürbare) Generierung den Haupt-Thread/die UI nie blockiert.
+// Rätsel werden ERST beim Spielstart erzeugt (kein Vorab-Prefetch mehr): Solo zeigt
+// dabei das Lade-Overlay, Coop/Race/Team den Ladebalken in der Bereit-Lobby. Die
+// frühere Hintergrund-Vorgenerierung ALLER Schwierigkeiten beim App-Start wurde
+// entfernt -- sie hat manche Geräte beim Start spürbar ausgebremst.
+// Fällt der Worker aus (nicht unterstützt / Fehler), wird synchron generiert.
 let genWorker = null;
-// Gezielte Einzel-Generierungen (generateAsync) laufen über denselben Worker wie
-// der Prefetch, werden aber per fortlaufender reqId korreliert -- so kann eine
-// Lobby-Generierung (Race/Team/Coop-Host) parallel zum Hintergrund-Prefetch
-// laufen, ohne dass sich die Antworten vermischen.
+// Einzel-Generierungen (generateAsync) werden per fortlaufender reqId korreliert,
+// damit parallele Anfragen (z.B. mehrere Lobby-Generierungen) sich nicht vermischen.
 let genReqSeq = 0;
 const genReqPending = new Map();    // reqId -> { resolve, reject }
 function initGenWorker() {
@@ -455,22 +450,15 @@ function initGenWorker() {
   try {
     genWorker = new Worker(new URL('./genworker.js', import.meta.url), { type: 'module' });
     genWorker.onmessage = (e) => {
-      const { diffId, reqId, puzzle, error } = e.data || {};
-      // Gezielte Einzel-Anfrage (generateAsync): direkt an den Aufrufer zurück.
-      if (reqId != null) {
-        const pend = genReqPending.get(reqId);
-        if (pend) { genReqPending.delete(reqId); error ? pend.reject(new Error(error)) : pend.resolve(puzzle); }
-        return;
-      }
-      // Sonst: Prefetch-Antwort in den Cache legen.
-      if (diffId) prefetchInFlight.delete(diffId);
-      if (error) { log('game', 'Prefetch fehlgeschlagen', { diffId, error }); return; }
-      if (diffId && puzzle && !puzzleCache[diffId]) puzzleCache[diffId] = puzzle;
+      const { reqId, puzzle, error } = e.data || {};
+      if (reqId == null) return;
+      const pend = genReqPending.get(reqId);
+      if (pend) { genReqPending.delete(reqId); error ? pend.reject(new Error(error)) : pend.resolve(puzzle); }
     };
     genWorker.onerror = () => {
-      genWorker = null; prefetchInFlight.clear();
-      // Anhängige Einzel-Anfragen scheitern lassen, damit ihr .catch() den
-      // synchronen Fallback bzw. eine Fehlermeldung auslösen kann.
+      genWorker = null;
+      // Anhängige Anfragen scheitern lassen, damit ihr .catch() den synchronen
+      // Fallback bzw. eine Fehlermeldung auslösen kann.
       genReqPending.forEach(p => p.reject(new Error('worker error')));
       genReqPending.clear();
     };
@@ -490,34 +478,6 @@ function generateAsync(opts) {
       setTimeout(() => { try { resolve(generatePuzzle(opts)); } catch (err) { reject(err); } }, 30);
     }
   });
-}
-// Stößt die Vorgenerierung für eine Schwierigkeit an (idempotent: nicht doppelt,
-// nicht wenn schon ein Rätsel bereitliegt).
-function schedulePrefetch(diffId) {
-  if (!genWorker || puzzleCache[diffId] || prefetchInFlight.has(diffId)) return;
-  prefetchInFlight.add(diffId);
-  genWorker.postMessage({ diffId, opts: { difficulty: diffId } });
-}
-function takePrefetched(diffId) {
-  const p = puzzleCache[diffId];
-  if (p) delete puzzleCache[diffId];
-  return p || null;
-}
-// Beim App-Start alle Schwierigkeiten vorgenerieren -- die aktuell gewählte
-// zuerst (wird am wahrscheinlichsten als Nächstes gespielt). Der Worker arbeitet
-// die Aufträge nacheinander im Hintergrund ab.
-function startPrefetchAll() {
-  if (!genWorker) return;
-  // Reihenfolge: große Felder zuerst -- ihre Generierung dauert am längsten, ein
-  // früher Start maximiert die Chance, dass sie beim Spielstart schon bereitliegen
-  // (kleine Felder sind notfalls in Millisekunden on-demand erzeugt). Die aktuell
-  // gewählte Schwierigkeit ganz nach vorne (wird am wahrscheinlichsten gespielt).
-  const ids = DIFFICULTIES.slice()
-    .sort((a, b) => (b.dim.r * b.dim.c) - (a.dim.r * a.dim.c))
-    .map(d => d.id);
-  const sel = state.sel && state.sel.difficulty;
-  if (sel && ids.includes(sel)) { ids.splice(ids.indexOf(sel), 1); ids.unshift(sel); }
-  for (const id of ids) schedulePrefetch(id);
 }
 
 // ─── NEUES SPIEL ──────────────────────────────────────────────────────────────
@@ -541,33 +501,29 @@ function finishNewGame(puzzle) {
 function newGame(diffId) {
   state.isTrainingGame = false;
   state.screen = 'game';
-  // Schneller Pfad: liegt ein vorgeneriertes Rätsel bereit, sofort starten
-  // (kein Overlay/Flackern). Danach im Hintergrund eines nachschieben.
-  const cached = takePrefetched(diffId);
-  if (cached) {
-    state.generating = false;
-    log('game', `Vorgeneriertes Rätsel genutzt`, { difficulty: diffId, rows: cached.rows, cols: cached.cols });
-    finishNewGame(cached);
-    schedulePrefetch(diffId);
-    return;
-  }
-  // Fallback: synchron generieren. Lade-Overlay erscheint (siehe game.loading);
-  // dank Prefetch ist das der seltene Fall (Kaltstart / sehr schnell zweimal
-  // dieselbe Schwierigkeit hintereinander, bevor der Nachschub fertig ist).
+  // Rätsel erst JETZT erzeugen (kein Vorab-Prefetch mehr). Lade-Overlay zeigen
+  // und off-thread generieren (generateAsync), damit der Haupt-Thread auch bei
+  // großen Feldern flüssig bleibt und der Ladebalken animiert. Ohne Worker fällt
+  // generateAsync selbst auf synchrone Generierung zurück.
   state.generating = true;
-  setTimeout(() => {
-    log('game', `Puzzle-Generierung gestartet`, { difficulty: diffId });
-    let puzzle;
-    try {
-      puzzle = generatePuzzle({ difficulty: diffId });
-    } catch (e) {
-      log('game', `Puzzle-Generierung fehlgeschlagen`, e);
-      throw e;
-    }
-    log('game', `Puzzle generiert`, { difficulty: diffId, rows: puzzle.rows, cols: puzzle.cols });
-    finishNewGame(puzzle);
-    schedulePrefetch(diffId);
-  }, 30);
+  log('game', `Puzzle-Generierung gestartet`, { difficulty: diffId });
+  generateAsync({ difficulty: diffId })
+    .then(puzzle => {
+      log('game', `Puzzle generiert`, { difficulty: diffId, rows: puzzle.rows, cols: puzzle.cols });
+      finishNewGame(puzzle);
+    })
+    .catch(e => {
+      // Nur ein echter Worker-/Generatorfehler landet hier (fehlender Worker wird
+      // in generateAsync bereits synchron abgefangen) -- letzter synchroner Versuch.
+      log('game', `Puzzle-Generierung fehlgeschlagen, synchroner Versuch`, e);
+      try {
+        finishNewGame(generatePuzzle({ difficulty: diffId }));
+      } catch (err) {
+        log('game', `Synchroner Fallback fehlgeschlagen`, err);
+        state.generating = false;
+        throw err;
+      }
+    });
 }
 
 // Nach jedem Solo-/Coop-Spiel geht's NIE direkt erneut in dieselbe Schwierigkeit,
@@ -1569,16 +1525,13 @@ function startCoopMatch() {
   state.coop.generating = true;
   resetReadyFlags();
   navigate('game');
-  // Liegt dank Prefetch schon ein Rätsel bereit, sofort nutzen (kein Warten).
-  const cached = takePrefetched(difficulty);
-  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty, players: state.coop.players.length, cached: !!cached });
-  const gen = cached ? Promise.resolve(cached) : generateAsync({ difficulty });
-  gen.then(puzzle => {
+  // Off-thread generieren; bis dahin zeigt die Lobby den laufenden Ladebalken.
+  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty, players: state.coop.players.length });
+  generateAsync({ difficulty }).then(puzzle => {
     if (!state.coop.awaitingStart) return; // Lobby zwischenzeitlich verlassen
     log('game', `Puzzle generiert (Coop)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
     loadPuzzleIntoState(puzzle, null);
     state.coop.generating = false;
-    if (cached) schedulePrefetch(difficulty);
     Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
   }).catch(e => onLobbyGenFailed(e, 'Coop'));
 }
@@ -2365,11 +2318,9 @@ function init() {
   window.addEventListener('pageshow', () => updateMusic());
   window.addEventListener('blur', () => { if (document.hidden) Music.suspendForBackground(); });
 
-  // Rätsel im Hintergrund vorgenerieren (siehe Prefetch oben). Der Worker läuft
-  // auf einem eigenen Thread; kurze Verzögerung, damit der erste Frame/Interaktion
-  // garantiert Vorrang hat, bevor die Hintergrundarbeit startet.
+  // Worker für die Off-Thread-Generierung bereitstellen (siehe oben). Es wird NICHT
+  // mehr vorab generiert -- Rätsel entstehen erst beim Spielstart on-demand.
   initGenWorker();
-  setTimeout(startPrefetchAll, 600);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
