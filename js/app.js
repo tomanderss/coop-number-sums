@@ -160,6 +160,8 @@ const state = reactive({
     mode: 'in',              // Formular-Umschalter: 'in' (Anmelden) | 'up' (Registrieren)
     email_in: '', pw_in: '', email_up: '', username_up: '', pw_up: '',
     busy: false, error: null, notice: null,
+    // Admin (nur sichtbar/aktiv bei role==='admin'; Rules erzwingen es serverseitig)
+    adminQuery: '', adminResult: null, adminBusy: false, adminError: null,
   },
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
@@ -2330,6 +2332,33 @@ function doDeleteAccount() {
     } finally { state.account.busy = false; }
   });
 }
+// ─── Admin (Geschenke/Rollen) ─────────────────────────────────────────────────
+async function adminSearch() {
+  const a = state.account;
+  a.adminError = null; a.adminResult = null; a.adminBusy = true;
+  try {
+    const r = await Account.adminFindUser(a.adminQuery.trim());
+    if (!r.ok) { a.adminError = accErr(r.err); return; }
+    a.adminResult = r;
+  } finally { a.adminBusy = false; }
+}
+async function adminAction(fn, ...args) {
+  const a = state.account; a.adminError = null; a.adminBusy = true;
+  try {
+    const r = await fn(...args);
+    if (!r.ok) { a.adminError = accErr(r.err); return false; }
+    await adminSearch();  // Ansicht aktualisieren
+    showToast(t('admin.done'), 'success', 1800);
+    return true;
+  } finally { a.adminBusy = false; }
+}
+function adminGrantSkin() { if (state.account.adminResult) adminAction(Account.adminGrantItem, state.account.adminResult.uid, 'dynamicColor'); }
+function adminRevokeSkin() { if (state.account.adminResult) adminAction(Account.adminRevokeItem, state.account.adminResult.uid, 'dynamicColor'); }
+function adminToggleRole() {
+  const r = state.account.adminResult; if (!r) return;
+  const next = (r.profile?.role === 'admin') ? 'user' : 'admin';
+  adminAction(Account.adminSetRole, r.uid, next);
+}
 
 // ─── WAS IST NEU ──────────────────────────────────────────────────────────────
 // Semver-artiger Vergleich ("0.155" > "0.154"): teilstückweise numerisch.
@@ -2672,6 +2701,7 @@ const App = {
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount,
+      adminSearch, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop, applyUpdate,
@@ -3515,6 +3545,28 @@ const App = {
             </div>
             <button class="btn btn-ghost" :disabled="state.account.busy" @click="doSignOut">{{ t('account.signOut') }}</button>
             <button class="btn btn-danger-ghost" :disabled="state.account.busy" @click="doDeleteAccount">{{ t('account.deleteAccount') }}</button>
+
+            <!-- Admin-Bereich (nur bei Rolle 'admin'; Rules erzwingen die Rechte serverseitig) -->
+            <template v-if="state.account.role==='admin'">
+              <div class="set-group-title">{{ t('admin.title') }}</div>
+              <small class="set-hint">{{ t('admin.intro') }}</small>
+              <div class="account-search">
+                <input class="text-input" v-model="state.account.adminQuery" maxlength="20" :placeholder="t('admin.searchPlaceholder')" @keydown.enter="adminSearch" />
+                <button class="btn btn-primary" :disabled="state.account.adminBusy" @click="adminSearch">{{ t('admin.search') }}</button>
+              </div>
+              <div v-if="state.account.adminResult" class="account-card">
+                <div class="account-row"><span class="account-label">{{ t('account.username') }}</span><b>{{ state.account.adminResult.profile.username || state.account.adminResult.uid }}</b></div>
+                <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.adminResult.profile.role==='admin' }">{{ state.account.adminResult.profile.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
+                <div class="account-row"><span class="account-label">{{ t('admin.dynamicSkin') }}</span><b>{{ state.account.adminResult.inventory && state.account.adminResult.inventory.dynamicColor ? '✅' : '—' }}</b></div>
+                <div class="account-row"><span class="account-label">{{ t('admin.balance') }}</span><span>{{ (state.account.adminResult.wallet && state.account.adminResult.wallet.balance) || 0 }}</span></div>
+                <div class="admin-actions">
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminGrantSkin">🎁 {{ t('admin.grantSkin') }}</button>
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminRevokeSkin">{{ t('admin.revokeSkin') }}</button>
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminToggleRole">{{ state.account.adminResult.profile.role==='admin' ? t('admin.makeUser') : t('admin.makeAdmin') }}</button>
+                </div>
+              </div>
+              <p v-if="state.account.adminError" class="coop-error">{{ state.account.adminError }}</p>
+            </template>
           </template>
 
           <!-- Nicht eingeloggt: Anmelden/Registrieren -->
