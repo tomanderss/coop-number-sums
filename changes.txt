@@ -1,1 +1,2 @@
 Daten-Fundament für kommende Accounts & Skins: Inventar, Guthaben und Profil werden nun in Backups und im Export/Import mitgesichert
+Optionale Konten: Mit E-Mail + Benutzername + Passwort anmelden und Einstellungen, Statistik und Freischaltungen geräteübergreifend in der Cloud sichern (Einstellungen ▸ Konto). Ohne Konto bleibt wie bisher alles lokal.
