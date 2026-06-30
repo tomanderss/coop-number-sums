@@ -157,24 +157,47 @@ export async function deleteAccount() {
 }
 
 // ─── Cloud-Sync ───────────────────────────────────────────────────────────────
-// Lokale Daten -> Cloud (vollständiger Snapshot unter /users/{uid}/data).
+// Das Inventar liegt BEWUSST in einem eigenen Knoten /users/{uid}/inventory und
+// wird nur VEREINIGT (nie durch einen Client-Upload überschrieben) — so gehen
+// Admin-Geschenke nicht verloren, selbst wenn ein anderes Gerät kurz darauf
+// seinen Stand hochlädt. Der restliche Snapshot (Settings/Stats/…) liegt unter
+// /users/{uid}/data.
+async function mergeCloudInventory(fb, uid) {
+  try { const cloud = (await fb.get(userRef(fb, uid, 'inventory'))).val(); if (cloud) mergeInventory(cloud); } catch (_) {}
+}
 async function uploadLocal(fb, uid) {
+  await mergeCloudInventory(fb, uid);                 // erst fremde/Geschenk-Items aufnehmen …
   await fb.set(userRef(fb, uid, 'data'), collectExportData('sync'));
+  await fb.set(userRef(fb, uid, 'inventory'), loadInventory());  // … dann die Union schreiben
 }
 // Cloud -> lokal. Erste Anmeldung (keine Cloud-Daten): lokal hochladen. Sonst
 // Cloud übernehmen, aber Inventar vereinigen + höheres Wallet behalten.
 async function syncDown(fb, uid) {
   const snap = (await fb.get(userRef(fb, uid, 'data'))).val();
-  if (!snap) { await uploadLocal(fb, uid); return; }
   const localInv = loadInventory();
   const localBal = loadWallet().balance;
-  importFromFile(JSON.stringify(snap));      // Settings/Stats/History/etc. aus der Cloud
-  mergeInventory(localInv);                  // lokale Unlocks NICHT verlieren
-  const merged = loadWallet();
-  if (localBal > merged.balance) { /* höheres Guthaben behalten */
-    const { grantCurrency } = await import('./storage.js');
-    grantCurrency(localBal - merged.balance, 'syncKeepHigher');
+  if (snap) {
+    importFromFile(JSON.stringify(snap));      // Settings/Stats/History/etc. aus der Cloud
+    mergeInventory(localInv);                  // lokale Unlocks NICHT verlieren
+    const merged = loadWallet();
+    if (localBal > merged.balance) {
+      const { grantCurrency } = await import('./storage.js');
+      grantCurrency(localBal - merged.balance, 'syncKeepHigher');
+    }
   }
+  await mergeCloudInventory(fb, uid);          // Geschenke/Cosmetics aus dem eigenen Knoten
+  await uploadLocal(fb, uid);                  // konsolidierten Stand zurückschreiben
+}
+
+// Beim App-Start (eingeloggt) Geschenke/Cosmetics nachziehen. Liefert das
+// (ggf. erweiterte) lokale Inventar oder null, wenn nicht eingeloggt.
+export async function pullInventory() {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (u && !u.isAnonymous) { await mergeCloudInventory(fb, u.uid); return loadInventory(); }
+  } catch (e) { log('account', 'pullInventory fehlgeschlagen', e); }
+  return null;
 }
 
 // Best-effort Upload des aktuellen Stands (debounced vom Aufrufer). No-op ohne Login.
@@ -189,4 +212,54 @@ export function scheduleSyncUp() {
       if (u && !u.isAnonymous) { await uploadLocal(fb, u.uid); log('account', 'Cloud-Sync hochgeladen', { uid: u.uid }); }
     } catch (e) { log('account', 'Cloud-Sync fehlgeschlagen', e); }
   }, 4000);
+}
+
+// ─── Admin (nur wirksam, wenn die eigene Rolle 'admin' ist — RTDB-Rules erzwingen
+// das serverseitig; die UI blendet die Funktionen nur entsprechend ein). ───────
+export async function adminFindUser(username) {
+  if (!isValidUsername(username)) return { ok: false, err: 'invalidUsername' };
+  try {
+    const fb = await ensureFirebase();
+    const uid = (await fb.get(usernameIndexRef(fb, username))).val();
+    if (!uid) return { ok: false, err: 'userNotFound' };
+    const profile = (await fb.get(userRef(fb, uid, 'profile'))).val() || {};
+    const inventory = (await fb.get(userRef(fb, uid, 'inventory'))).val() || {};
+    const data = (await fb.get(userRef(fb, uid, 'data'))).val() || {};
+    return { ok: true, uid, profile, inventory, wallet: data.wallet || { balance: 0 } };
+  } catch (e) { log('account', 'adminFindUser fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+export async function adminGrantItem(uid, itemId) {
+  try {
+    const fb = await ensureFirebase();
+    await fb.set(fb.ref(fb.db, `users/${uid}/inventory/${itemId}`), { acquiredAt: fb.serverTimestamp(), source: 'gift' });
+    log('account', 'Admin: Item vergeben', { uid, itemId });
+    return { ok: true };
+  } catch (e) { return { ok: false, err: errKey(e) }; }
+}
+export async function adminRevokeItem(uid, itemId) {
+  try {
+    const fb = await ensureFirebase();
+    await fb.remove(fb.ref(fb.db, `users/${uid}/inventory/${itemId}`));
+    return { ok: true };
+  } catch (e) { return { ok: false, err: errKey(e) }; }
+}
+export async function adminSetRole(uid, role) {
+  if (role !== 'user' && role !== 'admin') return { ok: false, err: 'generic' };
+  try {
+    const fb = await ensureFirebase();
+    await fb.set(fb.ref(fb.db, `users/${uid}/profile/role`), role);
+    log('account', 'Admin: Rolle gesetzt', { uid, role });
+    return { ok: true };
+  } catch (e) { return { ok: false, err: errKey(e) }; }
+}
+export async function adminGrantCurrency(uid, amount) {
+  const n = Math.max(0, Math.floor(amount || 0));
+  try {
+    const fb = await ensureFirebase();
+    const data = (await fb.get(userRef(fb, uid, 'data'))).val() || {};
+    const wallet = data.wallet || { balance: 0 };
+    wallet.balance = (wallet.balance || 0) + n; wallet.updatedAt = Date.now();
+    await fb.set(userRef(fb, uid, 'data/wallet'), wallet);
+    return { ok: true, balance: wallet.balance };
+  } catch (e) { return { ok: false, err: errKey(e) }; }
 }

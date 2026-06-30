@@ -1081,3 +1081,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .account-sync { margin-top: 4px; font-size: .82rem; color: var(--good); font-weight: 700; }
 .account-notice { background: var(--accent-soft); color: var(--accent2); border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: .88rem; text-align: center; margin: 0; }
 .btn-link { background: none; box-shadow: none; color: var(--accent2); font-weight: 700; font-size: .9rem; padding: 6px; text-decoration: underline; align-self: center; }
+.account-search { display: flex; gap: 8px; align-items: stretch; }
+.account-search .text-input { flex: 1; }
+.account-search .btn { flex: 0 0 auto; padding: 10px 16px; }
+.admin-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.admin-actions .btn { flex: 1 1 auto; }
