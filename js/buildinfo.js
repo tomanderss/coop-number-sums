@@ -1,8 +1,18 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.166';
-export const BUILD_HASH = 'b242cd3';
+export const BUILD      = '1.0';
+export const BUILD_HASH = '0e9aba1';
 
 export const CHANGELOG = [
+  {
+    "version": "1.0",
+    "date": "30.06.2026",
+    "changes": [
+      "Daten-Fundament für kommende Accounts & Skins: Inventar, Guthaben und Profil werden nun in Backups und im Export/Import mitgesichert",
+      "Optionale Konten: Mit E-Mail + Benutzername + Passwort anmelden und Einstellungen, Statistik und Freischaltungen geräteübergreifend in der Cloud sichern (Einstellungen ▸ Konto). Ohne Konto bleibt wie bisher alles lokal.",
+      "Admin-Bereich (nur für Administratoren): Spieler per Benutzername finden, Geschenke (z. B. Skins) und Rollen vergeben.",
+      "✨ Zur Feier von 1.0: freischaltbarer „Dynamischer Skin\" — deine persönliche Farbe wird zu einer sich drehenden, leuchtenden Einkreisung/Umrandung. Automatisch beim Sprung auf 1.0 oder per Code freigeschaltet, voll anpassbar (Stil, Farben, Tempo, Leuchten, Dicke) in den Einstellungen."
+    ]
+  },
   {
     "version": "0.166",
     "date": "30.06.2026",
