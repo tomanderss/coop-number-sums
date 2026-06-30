@@ -17,9 +17,10 @@ import {
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
   saveCoopSession, loadCoopSession, clearCoopSession,
-  loadProfile,
+  loadProfile, loadInventory, grantInventory,
 } from './storage.js';
 import * as Account from './account.js';
+import { SKIN_ID, qualifiesForV1Skin, skinCodeMatches, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
 const APP_START = Date.now();
@@ -41,6 +42,9 @@ const state = reactive({
   raceStats: loadRace(),     // { racesPlayed, racesWon, racesLost, fastestWinMs } — getrennt von state.race (laufendes Match)
   puzzleHistory: loadHistory(), // Ringpuffer gelöster Rätsel (neueste zuerst), siehe storage.js
   achievements: loadAchievements(), // { id: Freischalt-Zeitstempel }, siehe storage.js
+  inventory: loadInventory(),    // { itemId: { acquiredAt, source } } — Besitz von Cosmetics (z.B. Skin 'dynamicColor')
+  skinJustUnlocked: false,       // einmalige Feier-Anzeige in dieser Session
+  skinCodeInput: '',             // Eingabefeld zum Einlösen des Geheimcodes
   historyDetail: null,       // { entry, puzzle, cellMeta } während der Endboard-Ansicht eines Verlauf-Eintrags, sonst null
 
   // Spiel
@@ -2360,6 +2364,38 @@ function adminToggleRole() {
   adminAction(Account.adminSetRole, r.uid, next);
 }
 
+// ─── Dynamischer Skin: Freischaltung ──────────────────────────────────────────
+// Schaltet das Cosmetic 'dynamicColor' frei (idempotent, lokales Inventar) und
+// zeigt EINMAL die Feier-Anzeige. Bei eingeloggtem Konto wird der Unlock
+// hochgeladen (roamt über /users/{uid}/inventory).
+function grantSkin(source) {
+  if (state.inventory[SKIN_ID]) return false;
+  state.inventory = grantInventory(SKIN_ID, source);
+  state.skinJustUnlocked = true;
+  if (state.account.status === 'in') Account.scheduleSyncUp();
+  log('app', 'Skin freigeschaltet', { source });
+  return true;
+}
+// Auto-Unlock beim Sprung <1.0 -> >=1.0 (nur Bestandsspieler; reine Erstinstallation
+// bekommt ihn nur per Code). Liest die zuletzt gesehene Version VOR dismissWhatsNew.
+function maybeUnlockV1Skin() {
+  if (state.inventory[SKIN_ID]) return;
+  if (qualifiesForV1Skin(loadSeenVersion(), BUILD)) grantSkin('version');
+}
+function redeemSkinCode() {
+  const a = state.account;
+  if (state.inventory[SKIN_ID]) { showToast(t('skin.alreadyOwned'), 'info', 2200); return; }
+  if (skinCodeMatches(state.skinCodeInput)) {
+    grantSkin('code');
+    state.skinCodeInput = '';
+    showToast(t('skin.codeOk'), 'success', 2600);
+  } else {
+    showToast(t('skin.codeBad'), 'error', 2600);
+  }
+}
+function dismissSkinUnlock() { state.skinJustUnlocked = false; }
+function openSkinEditor() { state.skinJustUnlocked = false; navigate('settings'); state.settingsTab = 'allgemein'; nextTick(() => { document.querySelector('.skin-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }); }
+
 // ─── WAS IST NEU ──────────────────────────────────────────────────────────────
 // Semver-artiger Vergleich ("0.155" > "0.154"): teilstückweise numerisch.
 function cmpVersion(a, b) {
@@ -2478,8 +2514,13 @@ function init() {
   applyLocale();
   refreshResume();
   refreshAccountFromLocal();
-  if (loadProfile().accountId) refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)
+  if (loadProfile().accountId) {
+    refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)
+    // Geschenke/Cosmetics aus der Cloud nachziehen (z.B. Admin-Skin-Geschenk).
+    Account.pullInventory().then(inv => { if (inv) { state.inventory = inv; maybeUnlockV1Skin(); } });
+  }
   maybeShowWhatsNew();
+  maybeUnlockV1Skin();  // 1.0-Feier-Skin beim Versionssprung (vor dismissWhatsNew, das die Version speichert)
   if (state.streak.justLost) state.streakLostNotice = true;
   window.addEventListener('resize', computeCellSize);
   window.addEventListener('resize', scheduleScrollLockUpdate);
@@ -2657,6 +2698,16 @@ const App = {
     });
     const achievementsUnlockedCount = computed(() => Object.keys(state.achievements).length);
 
+    // ── Dynamischer Skin (Cosmetic 'dynamicColor') ──
+    const skinUnlocked = computed(() => !!state.inventory[SKIN_ID]);
+    const skinActive = computed(() => skinUnlocked.value && state.settings.skinEnabled);
+    const skinVars = computed(() => skinActive.value ? buildSkinVars(state.settings) : {});
+    const skinBoardClasses = computed(() => buildSkinClasses(state.settings, skinActive.value));
+    // Editor-Vorschau: IMMER aktiv (unabhängig vom Master-Schalter), damit man die
+    // gerade eingestellte Optik sieht.
+    const skinPreviewVars = computed(() => buildSkinVars(state.settings));
+    const skinPreviewClasses = computed(() => buildSkinClasses(state.settings, true));
+
     // "Was ist neu": alle Changelog-Einträge NEUER als die zuletzt gesehene Version
     // (neueste oben — CHANGELOG ist bereits absteigend sortiert). Bei Erstinstallation
     // (keine gesehene Version) nur den neuesten Eintrag, sonst würde die komplette
@@ -2702,6 +2753,7 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount,
       adminSearch, adminGrantSkin, adminRevokeSkin, adminToggleRole,
+      skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop, applyUpdate,
@@ -2882,7 +2934,7 @@ const App = {
         </div>
 
         <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
-          <div class="board" :style="gridStyle">
+          <div class="board" :class="skinBoardClasses" :style="[gridStyle, skinVars]">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolved(c-1), pulse: state.justResolved['col-'+(c-1)]}">
               <template v-if="!colResolved(c-1)">
@@ -3435,6 +3487,76 @@ const App = {
             <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
           </div>
 
+          <!-- Dynamischer Skin (1.0): Code-Einlösung immer sichtbar; Editor nur, wenn freigeschaltet -->
+          <div class="set-group-title skin-editor">{{ t('skin.title') }}</div>
+          <template v-if="skinUnlocked">
+            <div class="skin-preview-wrap">
+              <div class="board skin-preview" :class="skinPreviewClasses" :style="skinPreviewVars">
+                <div class="cell kept coop-mark" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">5</span></div>
+                <div class="cell removed coop-mark-removed" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">3</span></div>
+              </div>
+            </div>
+            <div class="set-row" @click="toggleSetting('skinEnabled')">
+              <span>{{ t('skin.enabled') }}</span><span class="switch" :class="{on:state.settings.skinEnabled}"><i></i></span>
+            </div>
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.style') }}</span>
+              <div class="seg">
+                <button :class="{active:state.settings.skinStyle==='solid'}" @click="setSetting('skinStyle','solid')">{{ t('skin.styleSolid') }}</button>
+                <button :class="{active:state.settings.skinStyle==='gradient'}" @click="setSetting('skinStyle','gradient')">{{ t('skin.styleGradient') }}</button>
+                <button :class="{active:state.settings.skinStyle==='rainbow'}" @click="setSetting('skinStyle','rainbow')">{{ t('skin.styleRainbow') }}</button>
+              </div>
+            </div>
+            <div class="set-row col" v-if="state.settings.skinStyle==='gradient'">
+              <span class="set-row-label">{{ t('skin.colors') }}</span>
+              <div class="coop-swatches">
+                <input type="color" class="swatch-custom" :value="state.settings.skinColor1 || state.settings.coopMyColor" @input="setSetting('skinColor1', $event.target.value)" />
+                <input type="color" class="swatch-custom" :value="state.settings.skinColor2 || '#ffffff'" @input="setSetting('skinColor2', $event.target.value)" />
+                <input type="color" class="swatch-custom" :value="state.settings.skinColor3 || '#000000'" @input="setSetting('skinColor3', $event.target.value)" />
+                <button class="btn-link" @click="setSetting('skinColor1',''); setSetting('skinColor2',''); setSetting('skinColor3','')">{{ t('skin.resetColors') }}</button>
+              </div>
+              <small class="set-hint">{{ t('skin.colorsHint') }}</small>
+            </div>
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.speed') }}</span>
+              <input type="range" class="set-range" min="0" max="6" step="0.5" :value="state.settings.skinSpeed"
+                     :style="{ '--rangePct': Math.round(state.settings.skinSpeed/6*100) + '%' }"
+                     @input="setSetting('skinSpeed', parseFloat($event.target.value))" />
+              <small class="set-hint">{{ state.settings.skinSpeed>0 ? t('skin.speedOn', { s: state.settings.skinSpeed }) : t('skin.speedOff') }}</small>
+            </div>
+            <div class="set-row" v-if="state.settings.skinSpeed>0" @click="setSetting('skinDirection', state.settings.skinDirection==='cw' ? 'ccw' : 'cw')">
+              <span>{{ t('skin.direction') }}</span><span class="account-role">{{ state.settings.skinDirection==='ccw' ? t('skin.ccw') : t('skin.cw') }}</span>
+            </div>
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.glow') }}</span>
+              <input type="range" class="set-range" min="0" max="16" step="1" :value="state.settings.skinGlow"
+                     :style="{ '--rangePct': Math.round(state.settings.skinGlow/16*100) + '%' }"
+                     @input="setSetting('skinGlow', parseFloat($event.target.value))" />
+            </div>
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.thickness') }}</span>
+              <input type="range" class="set-range" min="1" max="5" step="0.5" :value="state.settings.skinThickness"
+                     :style="{ '--rangePct': Math.round((state.settings.skinThickness-1)/4*100) + '%' }"
+                     @input="setSetting('skinThickness', parseFloat($event.target.value))" />
+            </div>
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.applyTo') }}</span>
+              <div class="seg">
+                <button :class="{active:state.settings.skinApplyTo==='kept'}" @click="setSetting('skinApplyTo','kept')">{{ t('skin.applyKept') }}</button>
+                <button :class="{active:state.settings.skinApplyTo==='removed'}" @click="setSetting('skinApplyTo','removed')">{{ t('skin.applyRemoved') }}</button>
+                <button :class="{active:state.settings.skinApplyTo==='both'}" @click="setSetting('skinApplyTo','both')">{{ t('skin.applyBoth') }}</button>
+              </div>
+              <small class="set-hint">{{ t('skin.applyHint') }}</small>
+            </div>
+          </template>
+          <template v-else>
+            <small class="set-hint">{{ t('skin.lockedHint') }}</small>
+            <div class="account-search">
+              <input class="text-input" v-model="state.skinCodeInput" :placeholder="t('skin.codePlaceholder')" @keydown.enter="redeemSkinCode" />
+              <button class="btn btn-primary" @click="redeemSkinCode">{{ t('skin.redeem') }}</button>
+            </div>
+          </template>
+
           <div class="set-group-title">{{ t('settings.a11y') }}</div>
           <div class="set-row" @click="toggleSetting('colorBlindMode')">
             <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
@@ -3738,6 +3860,20 @@ const App = {
           </div>
         </div>
         <button class="btn btn-primary" @click="dismissWhatsNew">{{ t('whatsnew.start') }}</button>
+      </div>
+    </div>
+
+    <!-- Feier-Modal: dynamischer Skin zur 1.0 freigeschaltet -->
+    <div v-if="state.skinJustUnlocked" class="modal-bg">
+      <div class="modal skin-unlock-modal">
+        <div class="whatsnew-badge">{{ t('skin.unlockBadge') }}</div>
+        <div class="skin-unlock-preview board" :class="skinPreviewClasses" :style="skinPreviewVars">
+          <div class="cell kept coop-mark" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">1</span></div>
+        </div>
+        <h3>{{ t('skin.unlockTitle') }}</h3>
+        <p class="result-msg">{{ t('skin.unlockBody') }}</p>
+        <button class="btn btn-primary" @click="openSkinEditor">{{ t('skin.unlockCustomize') }}</button>
+        <button class="btn btn-ghost" @click="dismissSkinUnlock">{{ t('skin.unlockLater') }}</button>
       </div>
     </div>
 

@@ -1057,6 +1057,69 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .cell.kept.hintmark.coop-mark::after { border-color: var(--good); }
 .cell.hintmark.coop-mark { box-shadow: inset 0 0 0 2px var(--markcol); }
 
+/* ─── Dynamischer Skin (1.0, freischaltbar) ───────────────────────────────────
+   Rotierende, leuchtende Markierungen. Statt das Element zu drehen (würde an einer
+   quadratischen Umrandung die Ecken herumschleudern), animieren wir den Winkel des
+   conic-gradient über die registrierte Custom-Property --skin-angle — die Farben
+   „laufen" wie ein Ladebalken, das Element bleibt ruhig. --skin-grad/--skin-speed/
+   --skin-glow/--skin-thickness kommen inline vom Brett-Container (skins.js).
+   Hints bleiben bewusst unangetastet (grüner Ring). Fällt @property nicht an
+   (sehr alte WebViews), bleibt ein statischer Gradient-Ring mit Glow — kein Bruch. */
+@property --skin-angle { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+@keyframes skinAngleCW { to { --skin-angle: 360deg; } }
+@keyframes skinAngleCCW { to { --skin-angle: -360deg; } }
+.board.skin-dynamic.skin-spin { animation: skinAngleCW var(--skin-speed) linear infinite; }
+.board.skin-dynamic.skin-spin.skin-ccw { animation-name: skinAngleCCW; }
+
+/* Einkreis-Ring: Gradient-Fläche, per radialer Maske zum Ring beschnitten. */
+.skin-dynamic.skin-kept .cell.kept.coop-mark:not(.hintmark)::after {
+  border: none;
+  -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
+          mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
+  filter: drop-shadow(0 0 var(--skin-glow) var(--markcol));
+}
+/* Coop-Gelöscht-Umrandung: rotierender Gradient-Rahmen (statt statischer box-shadow). */
+.skin-dynamic.skin-removed .cell.removed.coop-mark-removed { box-shadow: none; }
+.skin-dynamic.skin-removed .cell.removed.coop-mark-removed::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 1; pointer-events: none;
+  padding: var(--skin-thickness);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  filter: drop-shadow(0 0 var(--skin-glow) var(--markcol));
+}
+/* Der Gradient selbst MUSS hier (auf ::after) stehen, NICHT als Custom-Property am
+   Brett — sonst würde var(--markcol) schon am Brett (ohne --markcol) ungültig.
+   Hier löst es pro Zelle in der jeweiligen Spielerfarbe auf. Leere Editor-Farben
+   fallen via var(--skin-cN, …) auf eine aus --markcol abgeleitete Farbe zurück. */
+.skin-style-solid.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
+.skin-style-solid.skin-removed .cell.removed.coop-mark-removed::after {
+  background: conic-gradient(from var(--skin-angle), var(--markcol) 0deg, color-mix(in srgb, var(--markcol) 25%, transparent) 150deg, transparent 250deg, var(--markcol) 360deg);
+}
+.skin-style-gradient.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
+.skin-style-gradient.skin-removed .cell.removed.coop-mark-removed::after {
+  background: conic-gradient(from var(--skin-angle),
+    var(--skin-c1, var(--markcol)),
+    var(--skin-c2, color-mix(in srgb, var(--markcol) 38%, #fff)),
+    var(--skin-c3, color-mix(in srgb, var(--markcol) 60%, #000)),
+    var(--skin-c1, var(--markcol)));
+}
+.skin-style-rainbow.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
+.skin-style-rainbow.skin-removed .cell.removed.coop-mark-removed::after {
+  background: conic-gradient(from var(--skin-angle), #ff004c, #ff9a00, #ffe600, #43e043, #00c8ff, #6a5cff, #ff00c8, #ff004c);
+}
+@media (prefers-reduced-motion: reduce) {
+  .board.skin-dynamic.skin-spin { animation: none; }
+}
+
+/* Editor-Vorschau + Feier-Modal-Vorschau: kleines Mini-Brett mit Demo-Zellen. */
+.skin-preview-wrap { display: flex; justify-content: center; padding: 6px 0; }
+.skin-preview { display: grid; grid-template-columns: repeat(2, 52px); gap: 12px; background: transparent; box-shadow: none; padding: 6px; }
+.skin-preview .cell, .skin-unlock-preview .cell { position: relative; width: 52px; height: 52px; border-radius: 10px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.3rem; }
+.skin-unlock-modal { text-align: center; }
+.skin-unlock-preview { display: inline-grid; grid-template-columns: 64px; background: transparent; box-shadow: none; padding: 4px; margin: 4px auto 8px; }
+.skin-unlock-preview .cell { width: 64px; height: 64px; }
+
 /* ─── Settings: Farb-Swatches & Text-Eingabe ─── */
 .coop-swatches { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .swatch-custom {
