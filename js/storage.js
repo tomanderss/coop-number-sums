@@ -17,6 +17,13 @@ const KEYS = {
   HISTORY: 'cns_history',
   ACHIEVEMENTS: 'cns_achievements',
   RACE: 'cns_race',
+  // ── Account-/Ökonomie-Fundament (vorwärtskompatibel) ──
+  // Lokal-zuerst: für anonyme Nutzer ist localStorage die Quelle der Wahrheit;
+  // bei Login werden diese Strukturen 1:1 nach /users/{uid} gespiegelt (siehe
+  // js/account.js). Bewusst dieselbe Form wie der spätere RTDB-Knoten.
+  INVENTORY: 'cns_inventory',   // { itemId: { acquiredAt, source } } — Besitz von Cosmetics (z.B. Skin 'dynamicColor')
+  WALLET: 'cns_wallet',         // { balance, updatedAt } — In-Game-Währung (nicht auszahlbar)
+  PROFILE: 'cns_profile',       // { displayName, role, accountId, createdAt } — lokales Profil (role für Admin)
 };
 const COOP_SESSION_TTL_MS = 5 * 60 * 1000;
 const HISTORY_MAX = 20;
@@ -262,6 +269,69 @@ export function unlockAchievements(ids) {
   return a;
 }
 
+// ─── Inventar (Besitz von Cosmetics/Items, id -> { acquiredAt, source }) ──────
+// Idempotent wie unlockAchievements: ein bereits besessenes Item behält seinen
+// ursprünglichen acquiredAt-Zeitstempel + source. 'source' dokumentiert die
+// Herkunft (z.B. 'version' = 1.0-Sprung, 'code' = Redeem-Code, 'gift' = Admin).
+export function loadInventory() { return load(KEYS.INVENTORY, {}); }
+export function inventoryHas(id) { return !!loadInventory()[id]; }
+export function grantInventory(id, source = 'unknown') {
+  const inv = loadInventory();
+  if (!inv[id]) { inv[id] = { acquiredAt: Date.now(), source }; save(KEYS.INVENTORY, inv); }
+  return inv;
+}
+export function revokeInventory(id) {
+  const inv = loadInventory();
+  if (inv[id]) { delete inv[id]; save(KEYS.INVENTORY, inv); }
+  return inv;
+}
+// Merge eines fremden Inventars (z.B. Cloud bei Login) in das lokale — behält je
+// Item den FRÜHEREN acquiredAt (Erstbesitz gewinnt), nimmt fehlende Items auf.
+export function mergeInventory(other) {
+  if (!other || typeof other !== 'object') return loadInventory();
+  const inv = loadInventory();
+  for (const [id, meta] of Object.entries(other)) {
+    if (!meta) continue;
+    if (!inv[id]) inv[id] = { acquiredAt: meta.acquiredAt || Date.now(), source: meta.source || 'sync' };
+    else if (meta.acquiredAt && meta.acquiredAt < inv[id].acquiredAt) inv[id].acquiredAt = meta.acquiredAt;
+  }
+  save(KEYS.INVENTORY, inv);
+  return inv;
+}
+
+// ─── Wallet (In-Game-Währung) ─────────────────────────────────────────────────
+// Modular gehalten: ALLE Guthaben-Änderungen laufen über grant-/spendCurrency,
+// damit später eine serverautoritative Quelle (Cloud Function für Käufe) ergänzt
+// werden kann, ohne die Aufrufer zu ändern. Vorerst nur in-game verdienbar.
+const EMPTY_WALLET = { balance: 0, updatedAt: 0 };
+export function loadWallet() { return { ...EMPTY_WALLET, ...load(KEYS.WALLET, {}) }; }
+function saveWallet(w) { save(KEYS.WALLET, w); }
+export function grantCurrency(amount, reason = 'earn') {
+  const n = Math.max(0, Math.floor(amount || 0));
+  const w = loadWallet();
+  w.balance += n; w.updatedAt = Date.now();
+  saveWallet(w);
+  log('storage', 'Währung gutgeschrieben', { amount: n, reason, balance: w.balance });
+  return w;
+}
+// Gibt { ok, balance } zurück; lehnt ab (ok:false), wenn das Guthaben nicht reicht.
+export function spendCurrency(amount, reason = 'spend') {
+  const n = Math.max(0, Math.floor(amount || 0));
+  const w = loadWallet();
+  if (w.balance < n) return { ok: false, balance: w.balance };
+  w.balance -= n; w.updatedAt = Date.now();
+  saveWallet(w);
+  log('storage', 'Währung ausgegeben', { amount: n, reason, balance: w.balance });
+  return { ok: true, balance: w.balance };
+}
+
+// ─── Lokales Profil (displayName, role, accountId) ────────────────────────────
+// role: 'user' (Default) | 'admin'. accountId = Firebase-uid sobald eingeloggt,
+// sonst null (anonym/lokal). Wird bei Login mit dem Cloud-Profil abgeglichen.
+const EMPTY_PROFILE = { displayName: '', role: 'user', accountId: null, createdAt: 0 };
+export function loadProfile() { return { ...EMPTY_PROFILE, ...load(KEYS.PROFILE, {}) }; }
+export function saveProfile(p) { save(KEYS.PROFILE, { ...loadProfile(), ...p }); return loadProfile(); }
+
 // ─── Rollende Backups (3 Slots) ───────────────────────────────────────────────
 let _lastBackupTs = 0;
 export function createBackup(label = 'auto') {
@@ -280,6 +350,9 @@ export function createBackup(label = 'auto') {
       history: load(KEYS.HISTORY, []),
       achievements: load(KEYS.ACHIEVEMENTS, {}),
       race: load(KEYS.RACE, {}),
+      inventory: load(KEYS.INVENTORY, {}),
+      wallet: load(KEYS.WALLET, {}),
+      profile: load(KEYS.PROFILE, {}),
     };
     localStorage.setItem(bk(slot), JSON.stringify(snapshot));
     localStorage.setItem(KEYS.BACKUP_SLOT, String((slot + 1) % BACKUP_COUNT));
@@ -308,6 +381,9 @@ export function restoreBackup(slotIdx) {
     if (data.history) save(KEYS.HISTORY, data.history);
     if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
     if (data.race) save(KEYS.RACE, data.race);
+    if (data.inventory) save(KEYS.INVENTORY, data.inventory);
+    if (data.wallet) save(KEYS.WALLET, data.wallet);
+    if (data.profile) save(KEYS.PROFILE, data.profile);
     if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
     if (data.activeGameCoop !== undefined) saveActiveGameCoop(data.activeGameCoop);
     return true;
@@ -319,9 +395,10 @@ function buildTimestamp() {
   const d = new Date(); const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
 }
-export async function exportToFile(type = 'manual') {
-  const filename = `${type}-coop-number-sums-${buildTimestamp()}.json`;
-  const payload = JSON.stringify({
+// Reines Sammeln aller persistenten Nutzerdaten (testbar, ohne DOM). Wird vom
+// Datei-Export UND (gleiche Felder) vom Cloud-Sync genutzt.
+export function collectExportData(type = 'manual') {
+  return {
     ts: Date.now(), v: 1, label: type,
     settings: load(KEYS.SETTINGS, {}),
     activeGame: load(KEYS.ACTIVE_GAME, null),
@@ -331,7 +408,14 @@ export async function exportToFile(type = 'manual') {
     history: load(KEYS.HISTORY, []),
     achievements: load(KEYS.ACHIEVEMENTS, {}),
     race: load(KEYS.RACE, {}),
-  }, null, 2);
+    inventory: load(KEYS.INVENTORY, {}),
+    wallet: load(KEYS.WALLET, {}),
+    profile: load(KEYS.PROFILE, {}),
+  };
+}
+export async function exportToFile(type = 'manual') {
+  const filename = `${type}-coop-number-sums-${buildTimestamp()}.json`;
+  const payload = JSON.stringify(collectExportData(type), null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   if (navigator.canShare) {
     try {
@@ -355,6 +439,9 @@ export function importFromFile(jsonText) {
   if (data.history) save(KEYS.HISTORY, data.history);
   if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
   if (data.race) save(KEYS.RACE, data.race);
+  if (data.inventory) save(KEYS.INVENTORY, data.inventory);
+  if (data.wallet) save(KEYS.WALLET, data.wallet);
+  if (data.profile) save(KEYS.PROFILE, data.profile);
   if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
   if (data.activeGameCoop !== undefined) saveActiveGameCoop(data.activeGameCoop);
   return data;
@@ -373,6 +460,9 @@ export function deleteAllData() {
   remove(KEYS.HISTORY);
   remove(KEYS.ACHIEVEMENTS);
   remove(KEYS.RACE);
+  remove(KEYS.INVENTORY);
+  remove(KEYS.WALLET);
+  remove(KEYS.PROFILE);
   for (let i = 0; i < BACKUP_COUNT; i++) remove(bk(i));
   clearLog();
 }
