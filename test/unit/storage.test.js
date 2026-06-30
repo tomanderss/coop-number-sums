@@ -19,6 +19,9 @@ const {
   createBackup, loadBackups, restoreBackup, importFromFile, generateId,
   loadStreak, recordStreakResult, loadAchievements, unlockAchievements,
   loadRace, recordRaceWin, recordRaceLoss,
+  loadInventory, inventoryHas, grantInventory, revokeInventory, mergeInventory,
+  loadWallet, grantCurrency, spendCurrency, loadProfile, saveProfile,
+  collectExportData,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
 const { todayDateStr } = await import('../../js/streak.js');
@@ -412,5 +415,127 @@ describe('storage.race', () => {
     assert.equal(r['1v1'].racesLost, 0);
     assert.equal(r['2v2'].racesWon, 0);
     assert.equal(r['2v2'].racesLost, 1);
+  });
+});
+
+describe('storage.inventory', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('loadInventory is empty and inventoryHas is false when nothing owned', () => {
+    assert.deepEqual(loadInventory(), {});
+    assert.equal(inventoryHas('dynamicColor'), false);
+  });
+
+  test('grantInventory records acquiredAt + source and persists', () => {
+    const inv = grantInventory('dynamicColor', 'code');
+    assert.ok(inv.dynamicColor.acquiredAt > 0);
+    assert.equal(inv.dynamicColor.source, 'code');
+    assert.equal(inventoryHas('dynamicColor'), true);
+    assert.deepEqual(loadInventory(), inv);
+  });
+
+  test('grantInventory is idempotent (keeps original acquiredAt + source)', () => {
+    const first = grantInventory('dynamicColor', 'version');
+    const ts = first.dynamicColor.acquiredAt;
+    const second = grantInventory('dynamicColor', 'code');
+    assert.equal(second.dynamicColor.acquiredAt, ts);
+    assert.equal(second.dynamicColor.source, 'version'); // first source wins
+  });
+
+  test('revokeInventory removes an item', () => {
+    grantInventory('dynamicColor', 'gift');
+    revokeInventory('dynamicColor');
+    assert.equal(inventoryHas('dynamicColor'), false);
+  });
+
+  test('mergeInventory adds missing items and keeps the earlier acquiredAt', () => {
+    grantInventory('dynamicColor', 'code'); // local, "now"
+    const localTs = loadInventory().dynamicColor.acquiredAt;
+    mergeInventory({
+      dynamicColor: { acquiredAt: 1, source: 'version' }, // earlier than local
+      otherSkin: { acquiredAt: 50, source: 'gift' },      // not present locally
+    });
+    const inv = loadInventory();
+    assert.equal(inv.dynamicColor.acquiredAt, 1); // earlier wins
+    assert.ok(localTs > 1);
+    assert.equal(inv.otherSkin.acquiredAt, 50);
+    assert.equal(inv.otherSkin.source, 'gift');
+  });
+});
+
+describe('storage.wallet', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('loadWallet starts at zero balance', () => {
+    assert.equal(loadWallet().balance, 0);
+  });
+
+  test('grantCurrency adds (floored, non-negative) and persists', () => {
+    grantCurrency(10.9, 'win');
+    assert.equal(loadWallet().balance, 10);
+    grantCurrency(-5, 'bug'); // negatives never subtract via grant
+    assert.equal(loadWallet().balance, 10);
+  });
+
+  test('spendCurrency deducts when affordable and reports ok', () => {
+    grantCurrency(30);
+    const r = spendCurrency(12, 'buy');
+    assert.equal(r.ok, true);
+    assert.equal(r.balance, 18);
+    assert.equal(loadWallet().balance, 18);
+  });
+
+  test('spendCurrency refuses when balance is insufficient and leaves it unchanged', () => {
+    grantCurrency(5);
+    const r = spendCurrency(99, 'buy');
+    assert.equal(r.ok, false);
+    assert.equal(r.balance, 5);
+    assert.equal(loadWallet().balance, 5);
+  });
+});
+
+describe('storage.profile', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('loadProfile returns role=user default when nothing stored', () => {
+    const p = loadProfile();
+    assert.equal(p.role, 'user');
+    assert.equal(p.accountId, null);
+    assert.equal(p.displayName, '');
+  });
+
+  test('saveProfile merges partial updates over existing fields', () => {
+    saveProfile({ displayName: 'Tom' });
+    saveProfile({ role: 'admin' });
+    const p = loadProfile();
+    assert.equal(p.displayName, 'Tom'); // preserved across the second partial save
+    assert.equal(p.role, 'admin');
+  });
+});
+
+describe('storage.collectExportData', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('export payload includes inventory, wallet and profile', () => {
+    grantInventory('dynamicColor', 'version');
+    grantCurrency(7);
+    saveProfile({ displayName: 'Tom', role: 'admin' });
+
+    const json = collectExportData('manual');
+    assert.ok(json.inventory.dynamicColor);
+    assert.equal(json.wallet.balance, 7);
+    assert.equal(json.profile.displayName, 'Tom');
+    assert.equal(json.profile.role, 'admin');
+  });
+
+  test('importFromFile restores inventory, wallet and profile', () => {
+    importFromFile(JSON.stringify({
+      inventory: { dynamicColor: { acquiredAt: 5, source: 'gift' } },
+      wallet: { balance: 42, updatedAt: 1 },
+      profile: { displayName: 'Mara', role: 'user', accountId: null, createdAt: 1 },
+    }));
+    assert.equal(inventoryHas('dynamicColor'), true);
+    assert.equal(loadWallet().balance, 42);
+    assert.equal(loadProfile().displayName, 'Mara');
   });
 });
