@@ -177,6 +177,19 @@ export const DEFAULT_SETTINGS = {
   sfxWin: true,
   sfxLose: true,
   sfxUndo: true,
+  // Dynamischer Skin (1.0, freischaltbar via Versionssprung/Code; Item 'dynamicColor'
+  // im Inventar). Voll konfigurierbar; gilt nur, wenn freigeschaltet UND skinEnabled.
+  // Greift auf die persönliche Farbe (--markcol pro Zelle) zurück ⇒ Coop-Identität bleibt.
+  skinEnabled: true,         // Master-Schalter (nur wirksam, wenn freigeschaltet)
+  skinStyle: 'gradient',     // 'solid' (rotierender Bogen) | 'gradient' (mehrfarbig) | 'rainbow'
+  skinColor1: '',            // '' = aus persönlicher Farbe ableiten; sonst Hex
+  skinColor2: '',
+  skinColor3: '',
+  skinSpeed: 2,              // Sekunden/Umdrehung; 0 = keine Rotation
+  skinDirection: 'cw',       // 'cw' | 'ccw'
+  skinGlow: 6,               // Leuchtradius px; 0 = kein Glow
+  skinThickness: 2.5,        // Ring-/Rahmendicke px
+  skinApplyTo: 'both',       // 'kept' (Einkreisen) | 'removed' (Coop-Umrandung) | 'both'
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)
