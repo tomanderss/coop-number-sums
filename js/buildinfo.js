@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '0.165';
-export const BUILD_HASH = '93f2079';
+export const BUILD      = '0.166';
+export const BUILD_HASH = 'b242cd3';
 
 export const CHANGELOG = [
+  {
+    "version": "0.166",
+    "date": "30.06.2026",
+    "changes": [
+      "Bestzeiten jetzt auch in der Coop-Auswahl sichtbar (Coop-Zeiten); im Wettkampf werden die Solo-Bestzeiten angezeigt – Karten wie im Solo-Setup, alles passt ohne Scrollen auf einen Bildschirm"
+    ]
+  },
   {
     "version": "0.165",
     "date": "29.06.2026",
