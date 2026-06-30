@@ -1071,3 +1071,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-radius: 12px; padding: 12px 14px; outline: none; transition: border-color .15s;
 }
 .text-input:focus { border-color: var(--accent); }
+
+/* ─── Konto / Account ─── */
+.account-card { background: var(--bg2); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 8px var(--shadow); }
+.account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.account-label { color: var(--text2); font-size: .85rem; }
+.account-role { font-weight: 800; }
+.account-role.admin { color: var(--accent2); }
+.account-sync { margin-top: 4px; font-size: .82rem; color: var(--good); font-weight: 700; }
+.account-notice { background: var(--accent-soft); color: var(--accent2); border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: .88rem; text-align: center; margin: 0; }
+.btn-link { background: none; box-shadow: none; color: var(--accent2); font-weight: 700; font-size: .9rem; padding: 6px; text-decoration: underline; align-self: center; }

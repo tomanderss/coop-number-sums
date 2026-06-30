@@ -17,7 +17,9 @@ import {
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
   saveCoopSession, loadCoopSession, clearCoopSession,
+  loadProfile,
 } from './storage.js';
+import * as Account from './account.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
 const APP_START = Date.now();
@@ -150,7 +152,15 @@ const state = reactive({
   showWhatsNew: false,
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
-  settingsTab: 'allgemein',  // aktiver Reiter im Einstellungen-Screen: allgemein | spiel | ton | daten
+  settingsTab: 'allgemein',  // aktiver Reiter im Einstellungen-Screen: allgemein | spiel | ton | konto | daten
+  // Optionaler Account (E-Mail+Username+PW, Cloud-Sync). Anonymous-first: ohne
+  // Login bleibt alles lokal. status: 'anon' | 'in'; busy während Auth-Aktionen.
+  account: {
+    status: 'anon', uid: null, email: '', username: '', role: 'user',
+    mode: 'in',              // Formular-Umschalter: 'in' (Anmelden) | 'up' (Registrieren)
+    email_in: '', pw_in: '', email_up: '', username_up: '', pw_up: '',
+    busy: false, error: null, notice: null,
+  },
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
@@ -2146,7 +2156,7 @@ function setSetting(key, val) {
   if (key === 'language') applyLocale();
   if (key === 'musicVolume') { Music.setVolume(val); updateMusic(); }
 }
-watch(() => state.settings, (s) => saveSettings(s), { deep: true });
+watch(() => state.settings, (s) => { saveSettings(s); if (state.account.status === 'in') Account.scheduleSyncUp(); }, { deep: true });
 
 // ─── DATEN: EXPORT / IMPORT / BACKUPS ─────────────────────────────────────────
 function doExport() { exportToFile('manual').then(() => showToast(t('toast.backupExported'), 'success')).catch(() => {}); }
@@ -2253,6 +2263,73 @@ function shareCoopInvite() {
 function ask(title, msg, onYes) { state.confirm = { title, msg, onYes }; state.modal = 'confirm'; }
 function confirmYes() { const f = state.confirm?.onYes; state.modal = null; state.confirm = null; if (f) f(); }
 function confirmNo() { state.modal = null; state.confirm = null; }
+
+// ─── Optionaler Account (E-Mail+Username+PW, Cloud-Sync) ──────────────────────
+// Spiegelt das lokale Profil ins UI; lädt Firebase NUR, wenn schon eine
+// Account-Session existiert (sonst bleibt die App rein lokal/anonym).
+function refreshAccountFromLocal() {
+  const p = loadProfile();
+  if (p.accountId) { state.account.status = 'in'; state.account.uid = p.accountId; state.account.username = p.displayName || ''; state.account.role = p.role || 'user'; }
+  else { state.account.status = 'anon'; state.account.uid = null; }
+}
+async function refreshAccount() {
+  refreshAccountFromLocal();
+  // Genaueren Zustand (E-Mail/Rolle) nur holen, wenn lokal schon ein Account
+  // hinterlegt ist — sonst würde Firebase unnötig geladen.
+  if (loadProfile().accountId) {
+    try {
+      const s = await Account.authState();
+      if (s.signedIn) { state.account.status = 'in'; state.account.uid = s.uid; state.account.email = s.email || ''; state.account.username = s.username || state.account.username; state.account.role = s.role || 'user'; }
+      else state.account.status = 'anon';
+    } catch (e) { log('account', 'refreshAccount fehlgeschlagen', e); }
+  }
+}
+function accErr(suffix) { return t('account.err.' + suffix); }
+async function doSignUp() {
+  const a = state.account;
+  a.error = null; a.notice = null; a.busy = true;
+  try {
+    const r = await Account.signUp({ email: a.email_up.trim(), username: a.username_up.trim(), password: a.pw_up });
+    if (!r.ok) { a.error = accErr(r.err); return; }
+    showToast(t('account.welcome', { name: a.username_up.trim() }), 'success', 2500);
+    if (r.reload) setTimeout(() => location.reload(), 600);
+  } finally { a.busy = false; }
+}
+async function doSignIn() {
+  const a = state.account;
+  a.error = null; a.notice = null; a.busy = true;
+  try {
+    const r = await Account.signIn({ email: a.email_in.trim(), password: a.pw_in });
+    if (!r.ok) { a.error = accErr(r.err); return; }
+    showToast(t('account.signedIn'), 'success', 2500);
+    if (r.reload) setTimeout(() => location.reload(), 600);
+  } finally { a.busy = false; }
+}
+function doSignOut() {
+  ask(t('account.signOutTitle'), t('account.signOutMsg'), async () => {
+    state.account.busy = true;
+    try { const r = await Account.signOutAccount(); if (r.reload) location.reload(); }
+    finally { state.account.busy = false; }
+  });
+}
+async function doResetPassword() {
+  const a = state.account;
+  a.error = null; a.notice = null;
+  const email = (a.mode === 'in' ? a.email_in : a.email_up).trim();
+  const r = await Account.resetPassword(email);
+  if (r.ok) a.notice = t('account.resetSent'); else a.error = accErr(r.err);
+}
+function doDeleteAccount() {
+  ask(t('account.deleteTitle'), t('account.deleteMsg'), async () => {
+    state.account.busy = true;
+    try {
+      const r = await Account.deleteAccount();
+      if (!r.ok) { state.account.error = accErr(r.err); return; }
+      showToast(t('account.deleted'), 'success', 2500);
+      if (r.reload) setTimeout(() => location.reload(), 600);
+    } finally { state.account.busy = false; }
+  });
+}
 
 // ─── WAS IST NEU ──────────────────────────────────────────────────────────────
 // Semver-artiger Vergleich ("0.155" > "0.154"): teilstückweise numerisch.
@@ -2371,6 +2448,8 @@ function init() {
   applyTheme();
   applyLocale();
   refreshResume();
+  refreshAccountFromLocal();
+  if (loadProfile().accountId) refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)
   maybeShowWhatsNew();
   if (state.streak.justLost) state.streakLostNotice = true;
   window.addEventListener('resize', computeCellSize);
@@ -2592,6 +2671,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
+      doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop, applyUpdate,
@@ -3296,6 +3376,7 @@ const App = {
           <button :class="{ active: state.settingsTab==='allgemein' }" @click="state.settingsTab='allgemein'">{{ t('settings.tabGeneral') }}</button>
           <button :class="{ active: state.settingsTab==='spiel' }" @click="state.settingsTab='spiel'">{{ t('settings.tabGame') }}</button>
           <button :class="{ active: state.settingsTab==='ton' }" @click="state.settingsTab='ton'">{{ t('settings.tabSound') }}</button>
+          <button :class="{ active: state.settingsTab==='konto' }" @click="state.settingsTab='konto'; refreshAccount()">{{ t('settings.tabAccount') }}</button>
           <button :class="{ active: state.settingsTab==='daten' }" @click="state.settingsTab='daten'">{{ t('settings.tabData') }}</button>
         </div>
 
@@ -3417,6 +3498,53 @@ const App = {
           <div class="set-row" @click="toggleSetting('sfxLose')">
             <span>{{ t('settings.sfxLose') }}</span><span class="switch" :class="{on:state.settings.sfxLose}"><i></i></span>
           </div>
+        </template>
+
+        <!-- Reiter: Konto (optionaler Account + Cloud-Sync) -->
+        <template v-else-if="state.settingsTab==='konto'">
+          <div class="set-group-title">{{ t('account.title') }}</div>
+          <small class="set-hint">{{ t('account.intro') }}</small>
+
+          <!-- Eingeloggt -->
+          <template v-if="state.account.status==='in'">
+            <div class="account-card">
+              <div class="account-row"><span class="account-label">{{ t('account.username') }}</span><b>{{ state.account.username }}</b></div>
+              <div class="account-row" v-if="state.account.email"><span class="account-label">{{ t('account.email') }}</span><span>{{ state.account.email }}</span></div>
+              <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }">{{ state.account.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
+              <div class="account-sync">☁️ {{ t('account.syncOn') }}</div>
+            </div>
+            <button class="btn btn-ghost" :disabled="state.account.busy" @click="doSignOut">{{ t('account.signOut') }}</button>
+            <button class="btn btn-danger-ghost" :disabled="state.account.busy" @click="doDeleteAccount">{{ t('account.deleteAccount') }}</button>
+          </template>
+
+          <!-- Nicht eingeloggt: Anmelden/Registrieren -->
+          <template v-else>
+            <div class="seg">
+              <button :class="{active:state.account.mode==='in'}" @click="state.account.mode='in'; state.account.error=null; state.account.notice=null">{{ t('account.signIn') }}</button>
+              <button :class="{active:state.account.mode==='up'}" @click="state.account.mode='up'; state.account.error=null; state.account.notice=null">{{ t('account.signUp') }}</button>
+            </div>
+
+            <template v-if="state.account.mode==='in'">
+              <input class="text-input" type="email" inputmode="email" autocomplete="username" v-model="state.account.email_in" :placeholder="t('account.email')" />
+              <input class="text-input" type="password" autocomplete="current-password" v-model="state.account.pw_in" :placeholder="t('account.password')" @keydown.enter="doSignIn" />
+              <button class="btn btn-primary" :disabled="state.account.busy" @click="doSignIn">
+                <span v-if="state.account.busy"><span class="spinner-inline"></span> {{ t('account.working') }}</span><span v-else>{{ t('account.signIn') }}</span>
+              </button>
+              <button class="btn-link" @click="doResetPassword">{{ t('account.forgot') }}</button>
+            </template>
+            <template v-else>
+              <input class="text-input" type="email" inputmode="email" autocomplete="email" v-model="state.account.email_up" :placeholder="t('account.email')" />
+              <input class="text-input" v-model="state.account.username_up" maxlength="20" autocomplete="username" :placeholder="t('account.usernamePlaceholder')" />
+              <input class="text-input" type="password" autocomplete="new-password" v-model="state.account.pw_up" :placeholder="t('account.passwordNew')" @keydown.enter="doSignUp" />
+              <button class="btn btn-primary" :disabled="state.account.busy" @click="doSignUp">
+                <span v-if="state.account.busy"><span class="spinner-inline"></span> {{ t('account.working') }}</span><span v-else>{{ t('account.createAccount') }}</span>
+              </button>
+              <small class="set-hint">{{ t('account.usernameHint') }}</small>
+            </template>
+          </template>
+
+          <p v-if="state.account.error" class="coop-error">{{ state.account.error }}</p>
+          <p v-if="state.account.notice" class="account-notice">{{ state.account.notice }}</p>
         </template>
 
         <!-- Reiter: Daten (Backup/Export/Recht/Löschen) -->
