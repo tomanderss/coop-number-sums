@@ -258,19 +258,41 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .opt-chips .chip-label { margin-left: 0; font-size: .56rem; text-transform: uppercase; letter-spacing: .3px; }
 .btn-start { margin-top: 2px; font-size: 1.05rem; padding: 12px; }
-/* Coop-/Wettkampf-Host-Auswahl: dort teilen sich Code-Eingabe, Schwierigkeits-
-   raster UND der „Hosten"-Button denselben Screen. Damit alles (inkl. Hosten-
-   Button + Topbar/Zurück) ohne Scrollen auf EINE Seite passt, sind die Karten
-   hier kompakt — eine Zeile (Emoji + Name + Maße), ohne die Zeit-Chips. */
-/* In der Host-Auswahl gestapelte Karten wie im Solo-Setup (Name, darunter die
-   Maße) — beide IMMER vollständig sichtbar — aber OHNE die Zeit-Chips und enger
-   gepackt, damit Code-Eingabe + Schwierigkeitsraster + „Hosten"/„Zurück" zusammen
-   ohne Scrollen auf einen Screen passen. Single-line scheidet aus: „Sehr Leicht“
-   + Maße passen auf schmalen Telefonen nicht in eine halbe Kartenbreite. */
-.coop-screen .coop-body { gap: 10px; }
+/* Coop-/Wettkampf-Host-Auswahl: Code-Eingabe, Schwierigkeitsraster und der
+   „Hosten"-Button teilen sich einen Screen. Die Karten sehen identisch zum
+   Solo-Setup aus (gestapelt: Emoji + Name, Maße, zwei Zeit-Chips ⌀ + Bestzeit) —
+   im Coop die Coop-Zeiten, im Wettkampf (Race/Team) die Solo-Zeiten (dort gibt es
+   keine eigenen Bestzeiten). Etwas engerer Karten-/Body-Abstand als Solo, damit
+   Code-Eingabe + Raster + „Hosten"/„Zurück" zusammen ohne Scrollen auf eine Seite
+   passen. */
+.coop-screen .coop-body { gap: 8px; }
 .coop-screen .option-grid { gap: 6px; }
-.coop-screen .opt-card { padding: 6px 11px; gap: 1px; }
-.coop-screen .opt-chips { display: none; }
+.coop-screen .opt-card { padding: 6px 11px; }
+/* Mittelgroße/kürzere Telefone: die Coop-Auswahl hat gegenüber dem Solo-Setup
+   zusätzlich Code-Eingabe + „Zurück". Damit Raster MIT Zeit-Chips trotzdem ohne
+   Scrollen passt (bis hinab zu ~iPhone-SE-Höhe), Karten/Code/Buttons enger packen.
+   Erst auf sehr kurzen Screens (≤600px, weiter unten) entfallen die Chips ganz. */
+@media (max-height: 843px) {
+  .screen.coop-screen .coop-body { gap: 6px; padding-bottom: 6px; }
+  .screen.coop-screen .option-grid { gap: 5px; }
+  .screen.coop-screen .opt-card { padding: 5px 10px; gap: 2px; }
+  .screen.coop-screen .opt-emoji { font-size: .95rem; }
+  .screen.coop-screen .opt-name { font-size: .84rem; }
+  .screen.coop-screen .opt-dim { font-size: .62rem; padding-left: 24px; margin-top: -1px; }
+  .screen.coop-screen .opt-chips { gap: 5px; }
+  .screen.coop-screen .opt-chips .chip { padding: 3px; font-size: .72rem; }
+  .screen.coop-screen .opt-chips .chip-label { font-size: .52rem; }
+  .screen.coop-screen .coop-code-label { font-size: .72rem; }
+  .screen.coop-screen .coop-input { font-size: 1.3rem; padding: 7px; }
+  .screen.coop-screen .coop-body > .btn { padding: 9px 16px; }
+}
+/* Kleine Telefone (≤640px Höhe, sehr alte/kompakte Geräte): hier reicht der Platz
+   nicht mehr für Code + Raster MIT Chips + beide Buttons. Wie bisher die Zeit-Chips
+   ausblenden (kompakte Karten: Emoji + Name + Maße) — so bleibt die Auswahl
+   garantiert ohne Scrollen, Bestzeiten erscheinen auf allen normalen Telefonen. */
+@media (max-height: 640px) {
+  .screen.coop-screen .opt-chips { display: none; }
+}
 /* Sehr kurze Screens (alte/kleine Telefone, z.B. 320×568): noch enger packen,
    damit die Levelauswahl auch dort ohne Scrollen passt. */
 @media (max-height: 600px) {
@@ -284,12 +306,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .screen.setup .btn-start { padding: 9px; }
   /* Coop-/Wettkampf-Host-Auswahl auf sehr kurzen Screens enger, damit Hosten- UND
      Zurück-Button ohne Scrollen sichtbar bleiben. */
-  .coop-screen .coop-body { gap: 6px; }
+  .coop-screen .coop-body { gap: 5px; }
   .coop-screen .option-grid { gap: 5px; }
-  .coop-screen .opt-card { padding: 4px 11px; gap: 0; }
+  .coop-screen .opt-card { padding: 5px 10px; gap: 2px; }
   .coop-screen .opt-name { font-size: .82rem; }
   .coop-screen .opt-dim { font-size: .6rem; padding-left: 23px; }
-  .coop-screen .coop-input { font-size: 1.5rem; padding: 7px; }
+  .coop-screen .coop-input { font-size: 1.4rem; padding: 6px; }
 }
 
 /* ─── Game HUD ─── */

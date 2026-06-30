@@ -200,6 +200,19 @@ function coopAvgTimeFor(diffId) {
   if (!d || !d.coopWon) return null;
   return d.coopSumTimeMs / d.coopWon;
 }
+// Host-Lobby-Schwierigkeitskarten zeigen Zeiten passend zum Modus:
+// Coop -> Coop-Zeiten, Wettkampf (Race/Team) -> es gibt dort keine eigenen
+// Bestzeiten, daher die Solo-Zeiten einblenden.
+function lobbyIsCompetition() { return state.coop.raceMode || state.coop.teamMode; }
+function lobbyAvgTimeFor(diffId) {
+  return lobbyIsCompetition() ? avgTimeFor(diffId) : coopAvgTimeFor(diffId);
+}
+function lobbyBestTimeMs(diffId) {
+  const d = state.stats.byDifficulty[diffId];
+  if (!d) return null;
+  const v = lobbyIsCompetition() ? d.bestTimeMs : d.coopBestTimeMs;
+  return v != null ? v : null;
+}
 function racePct(modeStats) {
   if (!modeStats.racesPlayed) return 0;
   return Math.round((modeStats.racesWon / modeStats.racesPlayed) * 100);
@@ -2578,7 +2591,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended, loadBackups,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
-      startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, racePct,
+      startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop, applyUpdate,
@@ -3166,8 +3179,8 @@ const App = {
                     @click="state.coop.lobbyDiffId=d.id">
               <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
               <span class="opt-chips">
-                <span class="chip coop-chip">⌀ {{ coopAvgTimeFor(d.id)!=null ? fmtTime(coopAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-                <span class="chip coop-chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+                <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
+                <span class="chip best-time-chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">🏆 {{ lobbyBestTimeMs(d.id)!=null ? fmtTime(lobbyBestTimeMs(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               </span>
             </button>
           </div>
@@ -3230,8 +3243,8 @@ const App = {
                       @click="state.coop.lobbyDiffId=d.id">
                 <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
                 <span class="opt-chips">
-                  <span class="chip coop-chip">⌀ {{ coopAvgTimeFor(d.id)!=null ? fmtTime(coopAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-                  <span class="chip coop-chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+                  <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
+                  <span class="chip best-time-chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">🏆 {{ lobbyBestTimeMs(d.id)!=null ? fmtTime(lobbyBestTimeMs(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
                 </span>
               </button>
             </div>
