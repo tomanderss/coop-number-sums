@@ -1,0 +1,1 @@
+Bestzeiten jetzt auch in der Coop-Auswahl sichtbar (Coop-Zeiten); im Wettkampf werden die Solo-Bestzeiten angezeigt – Karten wie im Solo-Setup, alles passt ohne Scrollen auf einen Bildschirm
