@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.9';
-export const BUILD_HASH = 'd537b1f';
+export const BUILD      = '1.10';
+export const BUILD_HASH = '24d1d5d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.10",
+    "date": "01.07.2026",
+    "changes": [
+      "Nie mehr mitten im Spiel herausgeworfen: App-Updates und Cloud-Übernahmen laden die Seite nicht mehr während einer laufenden Runde neu, sondern erst zurück im Menü (stiller Hintergrund-Sync bleibt)"
+    ]
+  },
   {
     "version": "1.9",
     "date": "01.07.2026",
