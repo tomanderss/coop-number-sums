@@ -1,1 +1,0 @@
-Einstellungen neu strukturiert: ausklappbare Seitenleiste (von links, Hamburger oben links) statt Tabs, thematisch sortierte Bereiche (Spiel · Darstellung · Farbe & Anpassung · Ton · Konto · Daten & Sicherung)
