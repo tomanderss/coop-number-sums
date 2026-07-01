@@ -126,6 +126,7 @@ export default {
     setCode: 'コードを設定（6桁）',
     startHosting: 'ホストする 🚀',
     yourCode: 'あなたのコード',
+    inviteFriends: "友達を招待", invite: "招待", invited: "招待済み", inviteSent: "{name} を招待しました", inviteDeclined: "{name} が辞退しました", inviteTitle: "ロビー招待", inviteBody: "{name} が {mode} ロビーに招待しています。", inviteAccept: "参加", inviteDecline: "辞退", modeCoop: "協力", modeRace: "対戦 (1v1)", modeTeam: "チーム (2v2)",
     shareCode: 'このコードを仲間に伝えてください',
     waitingForGuest: '仲間を待っています…',
     enterHostCode: 'ホストのコードを入力',
@@ -377,6 +378,7 @@ export default {
   },
   friends: {
     title: 'フレンド', tabFriends: 'フレンド', tabLeaderboard: 'ランキング',
+    needLogin: "友達を招待するにはサインインしてください。",
     addPlaceholder: 'ユーザー名…', add: '追加', requestSent: '{name} にリクエストを送信しました',
     requestsTitle: 'リクエスト', accept: '承認', decline: '拒否',
     listTitle: 'フレンド一覧', empty: 'まだフレンドがいません。上のユーザー名から追加できます。', remove: '削除',

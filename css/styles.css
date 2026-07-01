@@ -1052,6 +1052,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .coop-code-label { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
 .coop-code { font-size: 2.6rem; font-weight: 900; letter-spacing: .12em; text-align: center; background: var(--accent-soft); color: var(--accent2); border-radius: 16px; padding: 14px 0; font-variant-numeric: tabular-nums; }
 .coop-subtext { color: var(--text3); font-size: .82rem; text-align: center; margin: 0; }
+/* Freunde-in-Lobby-Einladen: Auswahlliste unter dem „Freunde einladen"-Button. */
+.invite-picker { display: flex; flex-direction: column; gap: 6px; background: var(--bg2); border-radius: 12px; padding: 10px; max-height: 42vh; overflow-y: auto; }
+.invite-picker-head { display: flex; align-items: center; justify-content: space-between; font-weight: 800; }
+.invite-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; background: var(--bg1); border-radius: 10px; }
+.invite-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
 .coop-waiting { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; }
 .coop-error { background: var(--bad-soft); color: var(--bad); border-radius: 12px; padding: 12px 16px; font-weight: 600; font-size: .9rem; text-align: center; margin: 0; }
 .coop-input {

@@ -126,6 +126,7 @@ export default {
     setCode: '코드 설정 (6자리)',
     startHosting: '호스트하기 🚀',
     yourCode: '내 코드',
+    inviteFriends: "친구 초대", invite: "초대", invited: "초대됨", inviteSent: "{name}님을 초대했어요", inviteDeclined: "{name}님이 거절했어요", inviteTitle: "로비 초대", inviteBody: "{name}님이 {mode} 로비에 초대했어요.", inviteAccept: "참가", inviteDecline: "거절", modeCoop: "협동", modeRace: "대결 (1v1)", modeTeam: "팀 (2v2)",
     shareCode: '이 코드를 동료에게 공유하세요',
     waitingForGuest: '동료를 기다리는 중…',
     enterHostCode: '호스트 코드 입력',
@@ -377,6 +378,7 @@ export default {
   },
   friends: {
     title: '친구', tabFriends: '친구', tabLeaderboard: '순위표',
+    needLogin: "친구를 초대하려면 로그인하세요.",
     addPlaceholder: '사용자 이름…', add: '추가', requestSent: '{name}님에게 요청을 보냈습니다',
     requestsTitle: '요청', accept: '수락', decline: '거절',
     listTitle: '내 친구', empty: '아직 친구가 없습니다 – 위에서 사용자 이름으로 추가하세요.', remove: '삭제',

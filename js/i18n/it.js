@@ -126,6 +126,7 @@ export default {
     setCode: 'Imposta codice (6 cifre)',
     startHosting: 'Ospita 🚀',
     yourCode: 'Il tuo codice',
+    inviteFriends: "Invita amici", invite: "Invita", invited: "Invitato", inviteSent: "Hai invitato {name}", inviteDeclined: "{name} ha rifiutato", inviteTitle: "Invito alla lobby", inviteBody: "{name} ti invita in una lobby {mode}.", inviteAccept: "Unisciti", inviteDecline: "Rifiuta", modeCoop: "Coop", modeRace: "Duello (1v1)", modeTeam: "Squadra (2v2)",
     shareCode: 'Condividi questo codice con il tuo compagno',
     waitingForGuest: 'In attesa di un compagno…',
     enterHostCode: "Inserisci il codice dell'host",
@@ -377,6 +378,7 @@ export default {
   },
   friends: {
     title: 'Amici', tabFriends: 'Amici', tabLeaderboard: 'Classifiche',
+    needLogin: "Accedi per invitare amici.",
     addPlaceholder: 'Nome utente…', add: 'Aggiungi', requestSent: 'Richiesta inviata a {name}',
     requestsTitle: 'Richieste', accept: 'Accetta', decline: 'Rifiuta',
     listTitle: 'I tuoi amici', empty: 'Ancora nessun amico – aggiungi qualcuno tramite il nome utente qui sopra.', remove: 'Rimuovi',

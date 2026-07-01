@@ -126,6 +126,7 @@ export default {
     setCode: 'Definir código (6 dígitos)',
     startHosting: 'Hospedar 🚀',
     yourCode: 'Seu código',
+    inviteFriends: "Convidar amigos", invite: "Convidar", invited: "Convidado", inviteSent: "{name} convidado", inviteDeclined: "{name} recusou", inviteTitle: "Convite para a sala", inviteBody: "{name} convida você para uma sala {mode}.", inviteAccept: "Entrar", inviteDecline: "Recusar", modeCoop: "Cooperativo", modeRace: "Duelo (1v1)", modeTeam: "Equipe (2v2)",
     shareCode: 'Compartilhe este código com seu parceiro',
     waitingForGuest: 'Esperando parceiro…',
     enterHostCode: 'Digite o código do anfitrião',
@@ -377,6 +378,7 @@ export default {
   },
   friends: {
     title: 'Amigos', tabFriends: 'Amigos', tabLeaderboard: 'Classificações',
+    needLogin: "Entre para convidar amigos.",
     addPlaceholder: 'Nome de usuário…', add: 'Adicionar', requestSent: 'Pedido enviado para {name}',
     requestsTitle: 'Pedidos', accept: 'Aceitar', decline: 'Recusar',
     listTitle: 'Seus amigos', empty: 'Ainda sem amigos – adicione alguém pelo nome de usuário acima.', remove: 'Remover',

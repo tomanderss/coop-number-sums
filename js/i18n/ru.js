@@ -126,6 +126,7 @@ export default {
     setCode: 'Задать код (6 цифр)',
     startHosting: 'Создать сессию 🚀',
     yourCode: 'Твой код',
+    inviteFriends: "Пригласить друзей", invite: "Пригласить", invited: "Приглашён", inviteSent: "{name} приглашён", inviteDeclined: "{name} отклонил", inviteTitle: "Приглашение в лобби", inviteBody: "{name} приглашает вас в лобби {mode}.", inviteAccept: "Присоединиться", inviteDecline: "Отклонить", modeCoop: "Кооп", modeRace: "Дуэль (1v1)", modeTeam: "Команда (2v2)",
     shareCode: 'Передай этот код товарищу по команде',
     waitingForGuest: 'Ожидание товарища по команде…',
     enterHostCode: 'Введите код хоста',
@@ -377,6 +378,7 @@ export default {
   },
   friends: {
     title: 'Друзья', tabFriends: 'Друзья', tabLeaderboard: 'Таблицы лидеров',
+    needLogin: "Войдите, чтобы приглашать друзей.",
     addPlaceholder: 'Имя пользователя…', add: 'Добавить', requestSent: 'Запрос отправлен {name}',
     requestsTitle: 'Запросы', accept: 'Принять', decline: 'Отклонить',
     listTitle: 'Ваши друзья', empty: 'Пока нет друзей — добавьте кого-нибудь по имени пользователя выше.', remove: 'Удалить',
