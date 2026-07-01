@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.0';
-export const BUILD_HASH = '0e9aba1';
+export const BUILD      = '1.1';
+export const BUILD_HASH = '4a73c4f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.1",
+    "date": "01.07.2026",
+    "changes": [
+      "Skin ist ab 1.0 ein Geschenk für alle (zur Feier des Tages) — standardmäßig aus, in den Einstellungen aktivierbar; wer den Sprung auf 1.0 miterlebt hat, bekommt zusätzlich einen bleibenden „Founder\"-Marker",
+      "Münzen pro gewonnenem Spiel (abhängig von der Schwierigkeit, perfekt = doppelt) — sichtbar auf dem Sieg-Screen und in der Statistik"
+    ]
+  },
   {
     "version": "1.0",
     "date": "30.06.2026",
