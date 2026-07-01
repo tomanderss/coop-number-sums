@@ -303,6 +303,7 @@ export default {
       tooMany: 'Zu viele Versuche. Bitte später erneut versuchen.',
       network: 'Netzwerkfehler. Bitte Verbindung prüfen.',
       notEnabled: 'Konten sind noch nicht aktiviert. Bitte später erneut versuchen.',
+      permissionDenied: 'Keine Berechtigung – sind die Datenbank-Regeln veröffentlicht?',
       reauth: 'Aus Sicherheitsgründen bitte neu anmelden und erneut versuchen.',
       notSignedIn: 'Nicht angemeldet.',
       generic: 'Etwas ist schiefgelaufen. Bitte erneut versuchen.',

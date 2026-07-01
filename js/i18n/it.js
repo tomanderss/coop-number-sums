@@ -303,6 +303,7 @@ export default {
       tooMany: 'Troppi tentativi. Riprova più tardi.',
       network: 'Errore di rete. Controlla la connessione.',
       notEnabled: 'Gli account non sono ancora attivi. Riprova più tardi.',
+      permissionDenied: 'Permesso negato – le regole del database sono state pubblicate?',
       reauth: 'Per sicurezza, accedi di nuovo e riprova.',
       notSignedIn: 'Non hai effettuato l’accesso.',
       generic: 'Qualcosa è andato storto. Riprova.',

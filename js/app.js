@@ -168,6 +168,7 @@ const state = reactive({
     email_in: '', pw_in: '', email_up: '', username_up: '', pw_up: '',
     busy: false, error: null, notice: null,
     syncState: 'idle',       // 'idle' | 'syncing' | 'ok' | 'error' — sichtbarer Cloud-Sync-Status
+    syncErrorMsg: '',        // konkrete Fehlermeldung des letzten fehlgeschlagenen Syncs
     lastSyncAt: 0,           // Zeitstempel der letzten erfolgreichen Cloud-Sicherung
     // Admin (nur sichtbar/aktiv bei role==='admin'; Rules erzwingen es serverseitig)
     adminQuery: '', adminResult: null, adminBusy: false, adminError: null,
@@ -2304,9 +2305,9 @@ async function doSyncNow() {
   if (state.account.status !== 'in') return;
   state.account.syncState = 'syncing';
   const r = await Account.syncNow();
-  if (r.ok) { state.account.syncState = 'ok'; state.account.lastSyncAt = r.ts; }
+  if (r.ok) { state.account.syncState = 'ok'; state.account.lastSyncAt = r.ts; state.account.syncErrorMsg = ''; }
   else if (r.skipped) { state.account.syncState = 'idle'; }
-  else { state.account.syncState = 'error'; }
+  else { state.account.syncState = 'error'; state.account.syncErrorMsg = r.err ? accErr(r.err) : ''; }
 }
 // Zeitpunkt der letzten Cloud-Sicherung als Uhrzeit (locale) — '–' wenn noch nie.
 function fmtSyncTime(ts) {
@@ -3719,7 +3720,7 @@ const App = {
               <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }">{{ state.account.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
               <div class="account-sync" :class="'sync-'+state.account.syncState">
                 <template v-if="state.account.syncState==='syncing'"><span class="spinner-inline"></span> {{ t('account.syncing') }}</template>
-                <template v-else-if="state.account.syncState==='error'">⚠️ {{ t('account.syncError') }}</template>
+                <template v-else-if="state.account.syncState==='error'">⚠️ {{ state.account.syncErrorMsg || t('account.syncError') }}</template>
                 <template v-else-if="state.account.lastSyncAt">{{ t('account.syncedAt', { time: fmtSyncTime(state.account.lastSyncAt) }) }}</template>
                 <template v-else>☁️ {{ t('account.syncOn') }}</template>
               </div>

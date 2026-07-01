@@ -56,7 +56,10 @@ export async function authState() {
 
 // Firebase-Fehlercodes auf knappe i18n-Suffixe abbilden (UI zeigt t('account.err.'+suffix)).
 export function errKey(e) {
-  const c = (e && e.code) || '';
+  const c = ((e && e.code) || '') + ' ' + ((e && e.message) || '');
+  // RTDB lehnt Schreibvorgänge ohne passende/veröffentlichte Rules mit
+  // PERMISSION_DENIED ab — das ist der häufigste „Sync klappt nicht"-Fall.
+  if (/permission[_-]?denied|permission/i.test(c)) return 'permissionDenied';
   if (c.includes('email-already-in-use')) return 'emailInUse';
   if (c.includes('invalid-email')) return 'invalidEmail';
   if (c.includes('weak-password')) return 'weakPassword';

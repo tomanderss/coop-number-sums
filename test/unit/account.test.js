@@ -77,6 +77,8 @@ describe('account.errKey', () => {
     assert.equal(errKey({ code: 'auth/email-already-in-use' }), 'emailInUse');
     assert.equal(errKey({ code: 'auth/wrong-password' }), 'wrongPassword');
     assert.equal(errKey({ code: 'auth/operation-not-allowed' }), 'notEnabled');
+    assert.equal(errKey({ code: 'PERMISSION_DENIED', message: 'permission_denied at /users' }), 'permissionDenied');
+    assert.equal(errKey({ message: 'PERMISSION_DENIED: Permission denied' }), 'permissionDenied');
     assert.equal(errKey({ code: 'auth/too-many-requests' }), 'tooMany');
     assert.equal(errKey({ code: 'auth/requires-recent-login' }), 'reauth');
     assert.equal(errKey({}), 'generic');

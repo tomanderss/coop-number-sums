@@ -303,6 +303,7 @@ export default {
       tooMany: 'Çok fazla deneme. Lütfen daha sonra tekrar dene.',
       network: 'Ağ hatası. Bağlantını kontrol et.',
       notEnabled: 'Hesaplar henüz etkin değil. Lütfen daha sonra tekrar dene.',
+      permissionDenied: 'İzin yok – veritabanı kuralları yayınlandı mı?',
       reauth: 'Güvenlik için lütfen tekrar giriş yapıp dene.',
       notSignedIn: 'Giriş yapılmadı.',
       generic: 'Bir şeyler ters gitti. Lütfen tekrar dene.',

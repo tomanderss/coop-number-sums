@@ -303,6 +303,7 @@ export default {
       tooMany: 'Demasiados intentos. Inténtalo más tarde.',
       network: 'Error de red. Comprueba tu conexión.',
       notEnabled: 'Las cuentas aún no están activadas. Inténtalo más tarde.',
+      permissionDenied: 'Sin permiso: ¿se han publicado las reglas de la base de datos?',
       reauth: 'Por seguridad, vuelve a iniciar sesión e inténtalo de nuevo.',
       notSignedIn: 'No has iniciado sesión.',
       generic: 'Algo salió mal. Inténtalo de nuevo.',
