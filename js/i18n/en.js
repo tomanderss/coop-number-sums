@@ -554,12 +554,6 @@ export default {
   },
   update: {
     reloadLoop: 'Repeated reloading detected and stopped. If it persists, restart the app or sign out and back in.',
-    badge: '⬆️ Update',
-    title: 'Update available',
-    body: 'A new version is ready. You can download a backup of your data first; the app will then update and restart.',
-    backup: '⬇️ Download backup',
-    apply: 'Update & restart',
-    later: 'Later',
   },
   difficulty: {
     sehrleicht: 'Very easy',

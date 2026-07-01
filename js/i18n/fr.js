@@ -554,12 +554,6 @@ export default {
   },
   update: {
     reloadLoop: 'Rechargements répétés détectés et arrêtés. Si cela persiste, redémarre l’app ou déconnecte-toi puis reconnecte-toi.',
-    badge: '⬆️ Mise à jour',
-    title: 'Mise à jour disponible',
-    body: "Une nouvelle version est prête. Tu peux d'abord télécharger une sauvegarde de tes données ; l'application sera ensuite mise à jour et redémarrée.",
-    backup: '⬇️ Télécharger la sauvegarde',
-    apply: 'Mettre à jour et redémarrer',
-    later: 'Plus tard',
   },
   difficulty: {
     sehrleicht: 'Très facile',

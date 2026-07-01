@@ -554,12 +554,6 @@ export default {
   },
   update: {
     reloadLoop: 'Se detectó y detuvo una recarga repetida. Si continúa, reinicia la app o cierra y vuelve a iniciar sesión.',
-    badge: '⬆️ Actualización',
-    title: 'Actualización disponible',
-    body: 'Hay una nueva versión lista. Puedes descargar primero una copia de seguridad de tus datos; luego la app se actualizará y se reiniciará.',
-    backup: '⬇️ Descargar copia',
-    apply: 'Actualizar y reiniciar',
-    later: 'Más tarde',
   },
   difficulty: {
     sehrleicht: 'Muy fácil',
