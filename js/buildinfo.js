@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.6';
-export const BUILD_HASH = '6c94941';
+export const BUILD      = '1.7';
+export const BUILD_HASH = 'a5c4f04';
 
 export const CHANGELOG = [
+  {
+    "version": "1.7",
+    "date": "01.07.2026",
+    "changes": [
+      "Cage-Farben komplett überarbeitet: alle 18 Cage-Farben klar unterscheidbar (auch die zuvor zu ähnlichen Grüntöne), optimiert für Hell- und Dunkelmodus"
+    ]
+  },
   {
     "version": "1.6",
     "date": "01.07.2026",
