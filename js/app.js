@@ -12,7 +12,7 @@ import * as Music from './music.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop,
   loadStats, recordResult,
-  loadSeenVersion, saveSeenVersion, createBackup, loadBackups, restoreBackup,
+  loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
@@ -154,7 +154,7 @@ const state = reactive({
 
   // UI
   toast: null,
-  modal: null,               // null | 'howto' | 'changelog' | 'backups' | 'confirm'
+  modal: null,               // null | 'howto' | 'changelog' | 'confirm'
   confirm: null,             // { title, msg, onYes }
   showWhatsNew: false,
   syncConflict: null,        // { localTs, cloudTs } — Start-Warnung „Versions-Mismatch", sonst null
@@ -1934,7 +1934,6 @@ function win(remote) {
     checkAchievements();
   }
   persistGame();
-  createBackup('game-end');
   // Cloud-Sync nach jedem Sieg (der Münz-/Stats-Block oben stößt ihn bereits an;
   // hier zur Sicherheit auch für Coop/Team, die den Block überspringen).
   if (state.account.status === 'in') Account.scheduleSyncUp();
@@ -1978,7 +1977,6 @@ function lose(remote) {
     checkAchievements();
   }
   persistGame();
-  createBackup('game-end');
   if (state.account.status === 'in') Account.scheduleSyncUp();  // nach jedem Spiel (auch Niederlage) sichern
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
@@ -2203,13 +2201,6 @@ function doImport(ev) {
   };
   reader.readAsText(file);
   ev.target.value = '';
-}
-function openBackups() { state.modal = 'backups'; }
-function doRestore(slot) {
-  if (restoreBackup(slot)) {
-    state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applyLocale(); refreshResume();
-    state.modal = null; showToast(t('toast.backupRestored'), 'success');
-  }
 }
 function resetStats() {
   ask(t('stats.resetConfirmTitle'), t('stats.resetConfirmMsg'), () => {
@@ -2824,8 +2815,8 @@ const App = {
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, navTo, goBack, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
       rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
-      fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport, openBackups, doRestore,
-      resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended, loadBackups,
+      fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
+      resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -3814,7 +3805,6 @@ const App = {
           <label class="btn btn-ghost file-btn">{{ t('settings.importBackup') }}
             <input type="file" accept="application/json" @change="doImport" hidden>
           </label>
-          <button class="btn btn-ghost" @click="openBackups">{{ t('settings.autoBackups') }}</button>
           <button class="btn btn-ghost" @click="doExportLog">{{ t('settings.exportLog') }}</button>
           <button class="btn btn-ghost" @click="state.modal='changelog'">{{ t('settings.changelog') }}</button>
           <a class="btn btn-ghost" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
@@ -3881,18 +3871,6 @@ const App = {
           </div>
         </div>
         <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>
-      </div>
-    </div>
-
-    <div v-if="state.modal==='backups'" class="modal-bg" @click.self="state.modal=null">
-      <div class="modal">
-        <h3>{{ t('backups.title') }}</h3>
-        <div v-if="!loadBackups().length" class="empty">{{ t('backups.empty') }}</div>
-        <div v-for="b in loadBackups()" :key="b.slot" class="backup-row">
-          <span>{{ new Date(b.ts).toLocaleString('de-DE') }}<small> · {{ b.label }}</small></span>
-          <button class="btn btn-sm btn-primary" @click="doRestore(b.slot)">{{ t('backups.load') }}</button>
-        </div>
-        <button class="btn btn-ghost" @click="state.modal=null">{{ t('common.close') }}</button>
       </div>
     </div>
 
@@ -4126,11 +4104,11 @@ nextTick(() => {
 // JS-Kontext lief im Hintergrund weiter). Der kalte Fall (JS-Kontext verloren,
 // z.B. App aus dem Speicher entfernt) läuft stattdessen über den "Coop
 // fortsetzen"-Button (resumeCoopGame()/Coop.rejoin()) beim nächsten App-Start.
-window.addEventListener('pagehide', () => { persistGame(); createBackup('close'); if (state.account.status === 'in') Account.syncNow(); });
+window.addEventListener('pagehide', () => { persistGame(); if (state.account.status === 'in') Account.syncNow(); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     pauseGame();
-    persistGame(); createBackup('close');
+    persistGame();
     if (state.account.status === 'in') Account.syncNow();  // beim Schließen/Wegwischen sofort in die Cloud sichern
   } else if (document.visibilityState === 'visible') {
     if (state.coop.active) Coop.ensurePresence({ name: state.settings.coopName, color: state.settings.coopMyColor, role: state.coop.role });

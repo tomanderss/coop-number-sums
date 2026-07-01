@@ -1,0 +1,1 @@
+Lokales Auto-Backup entfernt (die Cloud-Sicherung ersetzt es für Konten); Backup exportieren/importieren bleibt als manuelle Sicherung erhalten.
