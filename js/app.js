@@ -2765,6 +2765,10 @@ function removeFriendAsk(fr) {
 // Sortierte Freundesliste (im Spiel > online > offline, dann alphabetisch).
 function friendsSorted() { return Account.sortFriends(state.friends.list, state.friends.presence); }
 function friendPresence(uid) { return state.friends.presence[uid] || null; }
+// „Im Spiel" nur, wenn ONLINE und eine Partie läuft — eine veraltete game-Info
+// eines offline gegangenen Freundes darf nie als „im Spiel" gezeigt werden.
+function friendOnline(uid) { const p = state.friends.presence[uid]; return !!(p && p.online); }
+function friendInGame(uid) { const p = state.friends.presence[uid]; return !!(p && p.online && p.game); }
 // Menschlicher Aktivitätstext für einen Freund.
 function friendActivityText(uid) {
   const p = state.friends.presence[uid];
@@ -3255,7 +3259,7 @@ const App = {
       adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, acceptFriend, declineFriend, removeFriendAsk,
-      friendsSorted, friendPresence, friendActivityText,
+      friendsSorted, friendPresence, friendOnline, friendInGame, friendActivityText,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
@@ -3870,7 +3874,7 @@ const App = {
             </div>
             <p v-if="!state.friends.list.length" class="set-hint">{{ t('friends.empty') }}</p>
             <div v-for="fr in friendsSorted()" :key="fr.uid" class="invite-row">
-              <span class="friends-dot" :class="{ online: friendPresence(fr.uid) && friendPresence(fr.uid).online, ingame: friendPresence(fr.uid) && friendPresence(fr.uid).game }"></span>
+              <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
               <span class="invite-name">{{ fr.username || fr.uid }}</span>
               <button class="btn btn-primary btn-sm" :disabled="state.coop.invitedUids.includes(fr.uid)" @click="inviteFriendToLobby(fr)">{{ state.coop.invitedUids.includes(fr.uid) ? t('coop.invited') : t('coop.invite') }}</button>
             </div>
@@ -4411,11 +4415,11 @@ const App = {
           <div class="friends-section-title">{{ t('friends.listTitle') }} ({{ state.friends.list.length }})</div>
           <p v-if="!state.friends.list.length" class="set-hint">{{ t('friends.empty') }}</p>
           <div v-for="fr in friendsSorted()" :key="fr.uid" class="friends-row">
-            <span class="friends-dot" :class="{ online: friendPresence(fr.uid) && friendPresence(fr.uid).online, ingame: friendPresence(fr.uid) && friendPresence(fr.uid).game }"></span>
+            <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
             <span class="friends-info">
               <span class="friends-name">{{ fr.username || fr.uid }}</span>
               <small class="friends-activity">{{ friendActivityText(fr.uid) }}</small>
-              <span v-if="friendPresence(fr.uid) && friendPresence(fr.uid).game" class="friends-progress"><span class="friends-progress-fill" :style="{ width: (friendPresence(fr.uid).game.pct||0) + '%' }"></span></span>
+              <span v-if="friendInGame(fr.uid)" class="friends-progress"><span class="friends-progress-fill" :style="{ width: (friendPresence(fr.uid).game.pct||0) + '%' }"></span></span>
             </span>
             <button class="icon-btn friends-remove" @click="removeFriendAsk(fr)" :aria-label="t('friends.remove')" :title="t('friends.remove')">🗑</button>
           </div>

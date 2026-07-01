@@ -63,10 +63,9 @@ export function decideSync({ cloudExists, localRev, cloudRev, syncedRev, hasLoca
 // ─── Freunde: reine Sortier-/Statuslogik (ohne Firebase — unit-testbar) ────────
 // Präsenz eines Freundes → grober Aktivitätsrang für die Sortierung (im Spiel > online > offline).
 export function friendActivityRank(presence) {
-  if (!presence) return 0;
-  if (presence.game) return 2;   // gerade in einer Partie
-  if (presence.online) return 1; // online, aber nicht im Spiel
-  return 0;                      // offline
+  if (!presence || !presence.online) return 0;  // offline (auch mit veralteter game-Info)
+  if (presence.game) return 2;                  // online und gerade in einer Partie
+  return 1;                                     // online, aber nicht im Spiel
 }
 // Freundesliste nach Aktivität (absteigend) und dann alphabetisch nach Username sortieren.
 // friends: [{ uid, username }], presenceByUid: { uid: {online,game,...} }

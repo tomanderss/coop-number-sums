@@ -40,6 +40,8 @@ describe('account.friendActivityRank', () => {
     assert.equal(friendActivityRank({ online: true, game: null }), 1);
     assert.equal(friendActivityRank({ online: false }), 0);
     assert.equal(friendActivityRank(null), 0);
+    // Offline mit veralteter game-Info zählt NICHT als „im Spiel".
+    assert.equal(friendActivityRank({ online: false, game: { pct: 40 } }), 0);
   });
 });
 
