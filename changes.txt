@@ -1,1 +1,0 @@
-Endlos-Neulade-Schleife behoben: fehlerhafter Cloud-Abgleich lud die App nicht mehr wiederholt neu (Splash→Menü); zusätzlich harte Schleifen-Bremse, die wiederholtes Neuladen stoppt
