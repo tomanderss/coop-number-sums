@@ -493,7 +493,7 @@ describe('storage.profile', () => {
 describe('storage.collectExportData', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });
 
-  test('export payload includes inventory, wallet and profile', () => {
+  test('export payload includes inventory/wallet/profile but NEVER the role', () => {
     grantInventory('dynamicColor', 'version');
     grantCurrency(7);
     saveProfile({ displayName: 'Tom', role: 'admin' });
@@ -502,10 +502,12 @@ describe('storage.collectExportData', () => {
     assert.ok(json.inventory.dynamicColor);
     assert.equal(json.wallet.balance, 7);
     assert.equal(json.profile.displayName, 'Tom');
-    assert.equal(json.profile.role, 'admin');
+    // Rolle ist serverseitig autoritativ und darf NIE in den Sync-Snapshot wandern.
+    assert.equal(json.profile.role, undefined);
   });
 
-  test('importFromFile restores inventory, wallet and profile', () => {
+  test('importFromFile restores inventory/wallet/profile but PRESERVES the local role', () => {
+    saveProfile({ role: 'admin' });   // serverseitig gesetzte Admin-Rolle lokal
     importFromFile(JSON.stringify({
       inventory: { dynamicColor: { acquiredAt: 5, source: 'gift' } },
       wallet: { balance: 42, updatedAt: 1 },
@@ -514,5 +516,7 @@ describe('storage.collectExportData', () => {
     assert.equal(inventoryHas('dynamicColor'), true);
     assert.equal(loadWallet().balance, 42);
     assert.equal(loadProfile().displayName, 'Mara');
+    // Ein veraltetes 'user' aus dem Snapshot darf die Admin-Rolle NICHT überschreiben.
+    assert.equal(loadProfile().role, 'admin');
   });
 });

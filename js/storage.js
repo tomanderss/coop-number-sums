@@ -381,7 +381,9 @@ export function collectExportData(type = 'manual') {
     race: load(KEYS.RACE, {}),
     inventory: load(KEYS.INVENTORY, {}),
     wallet: load(KEYS.WALLET, {}),
-    profile: load(KEYS.PROFILE, {}),
+    // Rolle NICHT mitsynchronisieren — sie ist serverseitig autoritativ
+    // (/users/{uid}/profile/role) und darf nie über den Datensnapshot reisen.
+    profile: (() => { const { role, ...rest } = load(KEYS.PROFILE, {}); return rest; })(),
   };
 }
 export async function exportToFile(type = 'manual') {
@@ -412,7 +414,14 @@ export function importFromFile(jsonText) {
   if (data.race) save(KEYS.RACE, data.race);
   if (data.inventory) save(KEYS.INVENTORY, data.inventory);
   if (data.wallet) save(KEYS.WALLET, data.wallet);
-  if (data.profile) save(KEYS.PROFILE, data.profile);
+  if (data.profile) {
+    // Die Rolle (Admin) ist SERVERSEITIG autoritativ (/users/{uid}/profile/role)
+    // und darf NIE aus einem synchronisierten Datensnapshot überschrieben werden
+    // — sonst überschreibt eine veraltete „user"-Rolle den in der DB gesetzten
+    // Admin-Status. accountId ist zudem geräte-lokal. Beide lokal bewahren.
+    const cur = loadProfile();
+    save(KEYS.PROFILE, { ...data.profile, role: cur.role, accountId: cur.accountId });
+  }
   if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
   if (data.activeGameCoop !== undefined) saveActiveGameCoop(data.activeGameCoop);
   return data;
