@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.28';
-export const BUILD_HASH = '894552b';
+export const BUILD      = '1.29';
+export const BUILD_HASH = '4a816b8';
 
 export const CHANGELOG = [
+  {
+    "version": "1.29",
+    "date": "01.07.2026",
+    "changes": [
+      "Coop/Wettkampf: Statt „Teilen\" kannst du jetzt Freunde direkt in die Lobby einladen. Eingeladene bekommen eine Einladung zum Annehmen (treten automatisch bei) oder Ablehnen – eine Ablehnung wird dir angezeigt."
+    ]
+  },
   {
     "version": "1.28",
     "date": "01.07.2026",

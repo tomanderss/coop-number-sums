@@ -1,1 +1,0 @@
-Coop/Wettkampf: Statt „Teilen" kannst du jetzt Freunde direkt in die Lobby einladen. Eingeladene bekommen eine Einladung zum Annehmen (treten automatisch bei) oder Ablehnen – eine Ablehnung wird dir angezeigt.
