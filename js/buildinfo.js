@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.11';
-export const BUILD_HASH = '75cf617';
+export const BUILD      = '1.12';
+export const BUILD_HASH = '214c491';
 
 export const CHANGELOG = [
+  {
+    "version": "1.12",
+    "date": "01.07.2026",
+    "changes": [
+      "Endlos-Neulade-Schleife behoben: fehlerhafter Cloud-Abgleich lud die App nicht mehr wiederholt neu (Splash→Menü); zusätzlich harte Schleifen-Bremse, die wiederholtes Neuladen stoppt"
+    ]
+  },
   {
     "version": "1.11",
     "date": "01.07.2026",
