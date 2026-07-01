@@ -43,13 +43,22 @@ export function skinCodeMatches(s) { return normalizeSkinCode(s) === SKIN_CODE_N
 // löst es dagegen pro Zelle korrekt auf (Coop-Identität bleibt).
 export const SKIN_STYLES = ['solid', 'gradient', 'rainbow'];
 
+// Der Regler ist eine GESCHWINDIGKEIT (höher = schneller). Die CSS-Animationsdauer
+// ist ihr Kehrwert: mehr Speed ⇒ kürzere Dauer pro Umdrehung. Ohne diese Umrechnung
+// würde ein größerer Reglerwert (= größere Dauer) die Drehung optisch VERLANGSAMEN.
+// 0 = aus. Basis 12 ⇒ Speed 6 = 2 s/Umdrehung (bisheriger Default), Speed 12 = 1 s.
+export const SKIN_SPIN_BASE = 12;
+export function skinSpeedToDuration(speed) {
+  const v = Math.max(0, Number(speed) || 0);
+  return v > 0 ? SKIN_SPIN_BASE / v : 0;
+}
+
 // Inline-CSS-Variablen für den Brett-Container. speed=0 ⇒ keine Rotation.
 // Eigene Editor-Farben NUR setzen, wenn gewählt; sonst greift in der CSS-Regel
 // der Fallback var(--skin-cN, <aus --markcol abgeleitet>).
 export function skinVars(s) {
-  const speed = Math.max(0, Number(s.skinSpeed) || 0);
   const v = {
-    '--skin-speed': speed + 's',
+    '--skin-speed': skinSpeedToDuration(s.skinSpeed) + 's',
     '--skin-glow': (Math.max(0, Number(s.skinGlow) || 0)) + 'px',
     '--skin-thickness': (Math.max(1, Number(s.skinThickness) || 2.5)) + 'px',
   };

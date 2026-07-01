@@ -21,7 +21,7 @@ import {
   loadWallet, grantCurrency,
 } from './storage.js';
 import * as Account from './account.js';
-import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, eligibleForCelebrationSkin, skinCodeMatches, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
+import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, eligibleForCelebrationSkin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
 const APP_START = Date.now();
@@ -2776,7 +2776,7 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount,
       adminSearch, adminGrantSkin, adminRevokeSkin, adminToggleRole,
-      skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor,
+      skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop, applyUpdate,
@@ -3544,10 +3544,10 @@ const App = {
             </div>
             <div class="set-row col">
               <span class="set-row-label">{{ t('skin.speed') }}</span>
-              <input type="range" class="set-range" min="0" max="6" step="0.5" :value="state.settings.skinSpeed"
-                     :style="{ '--rangePct': Math.round(state.settings.skinSpeed/6*100) + '%' }"
+              <input type="range" class="set-range" min="0" max="12" step="1" :value="state.settings.skinSpeed"
+                     :style="{ '--rangePct': Math.round(state.settings.skinSpeed/12*100) + '%' }"
                      @input="setSetting('skinSpeed', parseFloat($event.target.value))" />
-              <small class="set-hint">{{ state.settings.skinSpeed>0 ? t('skin.speedOn', { s: state.settings.skinSpeed }) : t('skin.speedOff') }}</small>
+              <small class="set-hint">{{ state.settings.skinSpeed>0 ? t('skin.speedOn', { s: skinSpeedToDuration(state.settings.skinSpeed).toFixed(1) }) : t('skin.speedOff') }}</small>
             </div>
             <div class="set-row" v-if="state.settings.skinSpeed>0" @click="setSetting('skinDirection', state.settings.skinDirection==='cw' ? 'ccw' : 'cw')">
               <span>{{ t('skin.direction') }}</span><span class="account-role">{{ state.settings.skinDirection==='ccw' ? t('skin.ccw') : t('skin.cw') }}</span>

@@ -185,7 +185,7 @@ export const DEFAULT_SETTINGS = {
   skinColor1: '',            // '' = aus persönlicher Farbe ableiten; sonst Hex
   skinColor2: '',
   skinColor3: '',
-  skinSpeed: 2,              // Sekunden/Umdrehung; 0 = keine Rotation
+  skinSpeed: 6,              // Drehgeschwindigkeit (höher = schneller); 0 = keine Rotation. Dauer = 12/Speed s (6 ⇒ 2 s/Umdrehung)
   skinDirection: 'cw',       // 'cw' | 'ccw'
   skinGlow: 6,               // Leuchtradius px; 0 = kein Glow
   skinThickness: 2.5,        // Ring-/Rahmendicke px
