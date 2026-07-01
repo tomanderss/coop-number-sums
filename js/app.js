@@ -287,6 +287,9 @@ function navigate(screen) {
   state.screen = screen;
   if (screen === 'game') startTimer(); else stopTimer();
   updateMusic();
+  // Ein während des Spiels aufgeschobenes Neuladen (Update/Cloud-Übernahme) jetzt
+  // nachholen, sobald wir sicher zurück im Menü sind — nie mitten im Spiel.
+  if (screen === 'home') nextTick(flushPendingReload);
   // overflow-anchor:none allein verhinderte nicht jeden Fall eines mittig
   // startenden Screens (z.B. wenn ein Banner erst nach dem ersten Layout
   // einklappt) -- expliziter Scroll-Reset nach dem Render macht "oben
@@ -2353,7 +2356,7 @@ async function resolveSyncConflict(keep) {
   try {
     const r = await Account.resolveConflict(keep);
     if (!r.ok) { showToast(accErr(r.err || 'generic'), 'error', 2600); return; }
-    if (keep === 'cloud') { location.reload(); return; }  // Cloud übernommen → sauber neu laden
+    if (keep === 'cloud') { safeReload('conflict-takeCloud'); return; }  // Cloud übernommen → sauber neu laden
     state.syncConflict = null;
     refreshAccountFromLocal();
     showToast(t('sync.kept'), 'success', 2000);
@@ -2391,7 +2394,7 @@ async function doSignUp() {
     const r = await Account.signUp({ email: a.email_up.trim(), username: a.username_up.trim(), password: a.pw_up });
     if (!r.ok) { a.error = accErr(r.err); return; }
     showToast(t('account.welcome', { name: a.username_up.trim() }), 'success', 2500);
-    if (r.reload) setTimeout(() => location.reload(), 600);
+    if (r.reload) setTimeout(() => safeReload('account-auth'), 600);
   } finally { a.busy = false; }
 }
 async function doSignIn() {
@@ -2401,13 +2404,13 @@ async function doSignIn() {
     const r = await Account.signIn({ email: a.email_in.trim(), password: a.pw_in });
     if (!r.ok) { a.error = accErr(r.err); return; }
     showToast(t('account.signedIn'), 'success', 2500);
-    if (r.reload) setTimeout(() => location.reload(), 600);
+    if (r.reload) setTimeout(() => safeReload('account-auth'), 600);
   } finally { a.busy = false; }
 }
 function doSignOut() {
   ask(t('account.signOutTitle'), t('account.signOutMsg'), async () => {
     state.account.busy = true;
-    try { const r = await Account.signOutAccount(); if (r.reload) location.reload(); }
+    try { const r = await Account.signOutAccount(); if (r.reload) safeReload('account-signout'); }
     finally { state.account.busy = false; }
   });
 }
@@ -2425,7 +2428,7 @@ function doDeleteAccount() {
       const r = await Account.deleteAccount();
       if (!r.ok) { state.account.error = accErr(r.err); return; }
       showToast(t('account.deleted'), 'success', 2500);
-      if (r.reload) setTimeout(() => location.reload(), 600);
+      if (r.reload) setTimeout(() => safeReload('account-auth'), 600);
     } finally { state.account.busy = false; }
   });
 }
@@ -2525,10 +2528,34 @@ function dismissStreakExtended() { state.streakExtended = null; }
 // Hält den im "waiting" wartenden Worker, bis der Nutzer aktiv aktualisiert.
 let waitingWorker = null;
 
-// Zeigt den Update-Dialog — aber nicht mitten im Spiel. Wenn gerade gespielt
-// wird, merkt pendingUpdate das und der Dialog erscheint nach Spielende.
+// Läuft gerade ein Spiel oder eine Coop-/Wettkampf-Session? Dann darf NICHTS die
+// Seite neu laden oder einen Update-Dialog aufpoppen — sonst wird der Nutzer
+// mitten im Spiel herausgeworfen (genau die gemeldete Beschwerde). Reloads werden
+// stattdessen aufgeschoben, bis der Nutzer wieder auf einem sicheren Screen ist.
+function gameSessionActive() {
+  return state.screen === 'game' || state.coop.active || state.team.active || state.race.active;
+}
+let pendingReloadReason = null;
+// Zentrale, SICHERE Neuladen-Funktion: protokolliert immer (Grund + Kontext) und
+// lädt nie mitten in einem Spiel/Coop neu — sie schiebt das Neuladen auf, bis der
+// Nutzer das Spiel verlässt (flushPendingReload() läuft beim navigate('home')).
+function safeReload(reason) {
+  const deferred = gameSessionActive();
+  log('sw', 'Neuladen angefordert', { reason, screen: state.screen, status: state.status, coop: state.coop.active, deferred });
+  if (deferred) { pendingReloadReason = reason; return; }
+  location.reload();
+}
+function flushPendingReload() {
+  if (pendingReloadReason && !gameSessionActive()) {
+    const reason = pendingReloadReason; pendingReloadReason = null;
+    log('sw', 'Aufgeschobenes Neuladen wird jetzt ausgeführt', { reason });
+    location.reload();
+  }
+}
+// Zeigt den Update-Dialog — aber NIE während einer Spiel-/Coop-Session. Läuft
+// gerade ein Spiel, merkt pendingUpdate das und der Dialog erscheint erst danach.
 function offerUpdate() {
-  if (state.screen === 'game' && state.status === 'playing') {
+  if (gameSessionActive()) {
     state.pendingUpdate = true;
   } else {
     state.updateReady = true;
@@ -2536,14 +2563,14 @@ function offerUpdate() {
 }
 let reloadingForUpdate = false;
 function applyUpdate() {
-  if (!waitingWorker) { location.reload(); return; }
+  if (!waitingWorker) { safeReload('sw-update-no-worker'); return; }
   log('sw', `Update wird angewendet`);
-  // Sobald der neue Worker die Kontrolle übernimmt, einmalig neu laden.
+  // Sobald der neue Worker die Kontrolle übernimmt, einmalig (sicher) neu laden.
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (reloadingForUpdate) return;
     reloadingForUpdate = true;
     log('sw', `Neuer Worker aktiv – lade neu`);
-    location.reload();
+    safeReload('sw-controllerchange');
   });
   waitingWorker.postMessage({ type: 'skipWaiting' });
 }
@@ -2623,7 +2650,7 @@ function init() {
     // Abgleich lokal↔Cloud beim Start (nie stilles Überschreiben; bei echter
     // Diskrepanz Warnung auf dem Startbildschirm mit Auswahl).
     Account.reconcile().then(r => {
-      if (r.decision === 'takeCloud') { location.reload(); return; }  // Cloud übernommen → sauber neu laden
+      if (r.decision === 'takeCloud') { safeReload('reconcile-takeCloud'); return; }  // Cloud übernommen → sauber neu laden
       if (r.decision === 'conflict') { state.syncConflict = { localTs: r.localTs, cloudTs: r.cloudTs }; }
       state.inventory = loadInventory();
       state.wallet = loadWallet();
