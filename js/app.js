@@ -159,8 +159,6 @@ const state = reactive({
   modal: null,               // null | 'howto' | 'changelog' | 'confirm'
   confirm: null,             // { title, msg, onYes }
   showWhatsNew: false,
-  syncConflict: null,        // { localTs, cloudTs } — Start-Warnung „Versions-Mismatch", sonst null
-  syncConflictBusy: false,
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
   settingsTab: 'spiel',      // aktive Sektion im Einstellungen-Screen (Drawer): spiel | darstellung | farbe | ton | konto | daten
@@ -2422,24 +2420,6 @@ async function doSyncNow() {
   else if (r.skipped) { state.account.syncState = 'idle'; }
   else { state.account.syncState = 'error'; state.account.syncErrorMsg = r.err ? accErr(r.err) : ''; }
 }
-// Versions-Mismatch beim Start auflösen: keep = 'local' | 'cloud'.
-async function resolveSyncConflict(keep) {
-  state.syncConflictBusy = true;
-  try {
-    const r = await Account.resolveConflict(keep);
-    if (!r.ok) { showToast(accErr(r.err || 'generic'), 'error', 2600); return; }
-    if (keep === 'cloud') { safeReload('conflict-takeCloud'); return; }  // Cloud übernommen → sauber neu laden
-    state.syncConflict = null;
-    refreshAccountFromLocal();
-    showToast(t('sync.kept'), 'success', 2000);
-  } finally { state.syncConflictBusy = false; }
-}
-// Datum+Uhrzeit für den Konflikt-Dialog (voller Zeitstempel).
-function fmtSyncDateTime(ts) {
-  if (!ts) return '–';
-  try { return new Date(ts).toLocaleString(i18nState.locale || undefined, { dateStyle: 'medium', timeStyle: 'short' }); }
-  catch (_) { return '–'; }
-}
 // Zeitpunkt der letzten Cloud-Sicherung als Uhrzeit (locale) — '–' wenn noch nie.
 function fmtSyncTime(ts) {
   if (!ts) return '–';
@@ -2916,11 +2896,10 @@ function init() {
   refreshAccountFromLocal();
   if (loadProfile().accountId) {
     refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)
-    // Abgleich lokal↔Cloud beim Start (nie stilles Überschreiben; bei echter
-    // Diskrepanz Warnung auf dem Startbildschirm mit Auswahl).
+    // Abgleich lokal↔Cloud beim Start. Bei echter Divergenz gewinnt IMMER die
+    // Cloud (kein Auswahldialog mehr) → sauberes Neuladen nach der Übernahme.
     Account.reconcile().then(r => {
       if (r.decision === 'takeCloud') { safeReload('reconcile-takeCloud'); return; }  // Cloud übernommen → sauber neu laden
-      if (r.decision === 'conflict') { state.syncConflict = { localTs: r.localTs, cloudTs: r.cloudTs }; }
       state.inventory = loadInventory();
       state.wallet = loadWallet();
       maybeUnlockV1Skin();
@@ -3165,7 +3144,7 @@ const App = {
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsDrawer,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
-      doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime, resolveSyncConflict, fmtSyncDateTime,
+      doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
@@ -4431,21 +4410,6 @@ const App = {
           </div>
         </div>
         <button class="btn btn-primary" @click="dismissWhatsNew">{{ t('whatsnew.start') }}</button>
-      </div>
-    </div>
-
-    <!-- Versions-Mismatch beim Start: lokale vs. Cloud-Daten unterscheiden sich → Auswahl -->
-    <div v-if="state.syncConflict" class="modal-bg">
-      <div class="modal">
-        <div class="whatsnew-badge sync-warn-badge">⚠️ {{ t('sync.mismatchBadge') }}</div>
-        <h3>{{ t('sync.mismatchTitle') }}</h3>
-        <p class="result-msg">{{ t('sync.mismatchBody') }}</p>
-        <button class="btn btn-primary" :disabled="state.syncConflictBusy" @click="resolveSyncConflict('local')">
-          <span class="sync-btn-tx"><b>{{ t('sync.keepLocal') }}</b><small>{{ t('sync.changedAt', { time: fmtSyncDateTime(state.syncConflict.localTs) }) }}</small></span>
-        </button>
-        <button class="btn btn-ghost" :disabled="state.syncConflictBusy" @click="resolveSyncConflict('cloud')">
-          <span class="sync-btn-tx"><b>{{ t('sync.keepCloud') }}</b><small>{{ t('sync.changedAt', { time: fmtSyncDateTime(state.syncConflict.cloudTs) }) }}</small></span>
-        </button>
       </div>
     </div>
 

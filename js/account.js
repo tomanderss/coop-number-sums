@@ -39,20 +39,24 @@ export function usernameKey(name) { return normalizeUsername(name).replace(/[.$#
 // cloudRev  : rev des Cloud-Snapshots (Änderungszeit auf irgendeinem Gerät)
 // syncedRev : localRev beim letzten erfolgreichen Sync dieses Geräts (Basislinie); null = noch nie
 // hasLocalData: ob lokal überhaupt nennenswerte Daten liegen
-// Ergebnis: 'uploadLocal' | 'takeCloud' | 'conflict' | 'inSync'
-// GARANTIE: lokale Daten werden NIE ohne 'takeCloud' (nur wenn lokal unverändert)
-// bzw. ohne ausdrückliche Nutzerwahl bei 'conflict' überschrieben.
+// Ergebnis: 'uploadLocal' | 'takeCloud' | 'inSync' (kein 'conflict' mehr).
+// Regel: Cloud gewinnt bei jeder Divergenz; nur ein reiner lokaler Vorlauf
+// (Cloud unverändert) wird hochgeladen, leere Cloud bekommt den Erst-Upload.
+// Bei ECHTER Divergenz gewinnt IMMER die Cloud (Nutzerwunsch: nie einen
+// Auswahldialog zeigen). Nur wenn die Cloud leer ist oder ausschließlich lokal
+// etwas geändert wurde, werden lokale Daten hochgeladen — die Cloud wird also
+// nie grundlos überschrieben, aber eine lokale Abweichung gegen einen geänderten
+// Cloud-Stand wird zugunsten der Cloud verworfen (kein 'conflict' mehr).
 export function decideSync({ cloudExists, localRev, cloudRev, syncedRev, hasLocalData }) {
   if (!cloudExists) return 'uploadLocal';            // Cloud leer → lokale Daten hoch (Erst-Upload)
   if (syncedRev == null) {                           // Erstkontakt dieses Geräts mit diesem Account
     if (localRev === cloudRev) return 'inSync';      // identische Revision → nichts zu tun
-    return hasLocalData ? 'conflict' : 'takeCloud';  // lokale Daten vorhanden → fragen; sonst Cloud nehmen
+    return 'takeCloud';                              // sonst IMMER Cloud übernehmen
   }
   const localChanged = localRev !== syncedRev;
   const cloudChanged = cloudRev !== syncedRev;
-  if (localChanged && cloudChanged) return 'conflict';
-  if (localChanged) return 'uploadLocal';
-  if (cloudChanged) return 'takeCloud';
+  if (cloudChanged) return 'takeCloud';              // Cloud geändert (evtl. auch lokal) → Cloud gewinnt
+  if (localChanged) return 'uploadLocal';            // nur lokal geändert → hochladen
   return 'inSync';
 }
 
@@ -417,9 +421,9 @@ export function isSignedIn() { return !!loadProfile().accountId; }
 export function lastSyncAt() { return loadLastSync(); }
 function stampSynced() { const ts = Date.now(); saveLastSync(ts); return ts; }
 
-// ── Abgleich beim Start: entscheidet git-artig lokal vs. Cloud (nie stilles
-// Überschreiben lokaler Daten; bei echter Diskrepanz → 'conflict' zurück ans UI).
-let _pendingConflictSnap = null;
+// ── Abgleich beim Start: entscheidet git-artig lokal vs. Cloud. Bei echter
+// Divergenz gewinnt IMMER die Cloud (decideSync liefert nie mehr 'conflict'),
+// es gibt also keinen Auswahldialog mehr.
 export async function reconcile() {
   if (!isSignedIn()) return { decision: 'skip' };
   try {
@@ -437,25 +441,9 @@ export async function reconcile() {
     if (decision === 'uploadLocal') { await uploadLocal(fb, u.uid); stampSynced(); }
     else if (decision === 'takeCloud') { await applyCloud(fb, u.uid, snap); stampSynced(); }
     else if (decision === 'inSync') { await mergeCloudInventory(fb, u.uid); }
-    else if (decision === 'conflict') {
-      _pendingConflictSnap = snap;
-      return { decision, localTs: dataRev(), cloudTs: (snap && (snap.rev || snap.ts)) || 0 };
-    }
     log('account', 'reconcile', { decision });
     return { decision };
   } catch (e) { log('account', 'reconcile fehlgeschlagen', e); return { decision: 'error', err: errKey(e) }; }
-}
-// Nutzerwahl im Konflikt-Dialog auflösen: keep = 'local' | 'cloud'.
-export async function resolveConflict(keep) {
-  try {
-    const fb = await ensureFirebase();
-    const u = currentUser(fb);
-    if (!u || u.isAnonymous) return { ok: false, err: 'notSignedIn' };
-    if (keep === 'cloud' && _pendingConflictSnap) await applyCloud(fb, u.uid, _pendingConflictSnap);
-    else await uploadLocal(fb, u.uid);   // 'local' behalten → lokale Daten hoch
-    _pendingConflictSnap = null; stampSynced();
-    return { ok: true };
-  } catch (e) { log('account', 'resolveConflict fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
 
 // SOFORTIGER Upload ALLER Daten in die Cloud. Liefert { ok, ts } bzw.
