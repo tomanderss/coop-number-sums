@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.1';
-export const BUILD_HASH = '4a73c4f';
+export const BUILD      = '1.2';
+export const BUILD_HASH = '0cc13fa';
 
 export const CHANGELOG = [
+  {
+    "version": "1.2",
+    "date": "01.07.2026",
+    "changes": [
+      "Skin-Drehgeschwindigkeit korrigiert: der Regler wirkt jetzt richtig herum (weiter rechts = schneller statt langsamer)"
+    ]
+  },
   {
     "version": "1.1",
     "date": "01.07.2026",
