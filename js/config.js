@@ -51,6 +51,30 @@ export const DIFFICULTIES = [
 
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
 
+// ─── MÜNZ-BELOHNUNG PRO SIEG ──────────────────────────────────────────────────
+// In-Game-Währung (nicht auszahlbar) fürs Shop-/Marktplatz-System. Basiswert je
+// Schwierigkeit (Reihenfolge = DIFFICULTIES). Die Schwierigkeit (und damit die
+// Ø-Lösezeit) steigt exponentiell, daher wächst die Belohnung mindestens
+// verdoppelnd: bis „Extrem" glatt ×2, ab „Mashallah" bewusst MEHR als das
+// Doppelte (≈×2,2–2,25), weil die Zeit-/Komplexitätssprünge dort am größten sind.
+// Auch nicht-perfekte Siege geben die vollen Basis-Münzen; Coop/Wettkampf
+// verdoppeln (Anreiz zum gemeinsamen Spielen), ein makelloser Sieg verdoppelt
+// ebenfalls (stapelt mit Coop → ×4).
+export const COIN_BASE = [5, 10, 20, 40, 80, 180, 400, 900, 2000];
+export const COIN_COOP_MULT = 2, COIN_PERFECT_MULT = 2;
+// Basis-Münzen für eine Schwierigkeit (per Index in DIFFICULTIES); dIdx<0 → 0.
+export function coinBaseForIndex(dIdx) {
+  if (dIdx < 0) return 0;
+  return COIN_BASE[Math.min(dIdx, COIN_BASE.length - 1)];
+}
+// Endgültige Münzen für einen Sieg inkl. Coop-/Perfekt-Multiplikatoren.
+export function coinReward(dIdx, { coop = false, perfect = false } = {}) {
+  let c = coinBaseForIndex(dIdx);
+  if (coop) c *= COIN_COOP_MULT;
+  if (perfect) c *= COIN_PERFECT_MULT;
+  return Math.round(c); // Perfekt-×1,5 kann krumme Werte erzeugen → ganzzahlig runden
+}
+
 // ─── REGIONEN-FARBPALETTE ─────────────────────────────────────────────────────
 // Kräftige, klar unterscheidbare Töne (funktionieren in Hell & Dunkel).
 // Nutzer-Feedback: mehrere (v.a. grüne) Cages sahen fast identisch aus. Ursache
