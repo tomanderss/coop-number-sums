@@ -361,6 +361,15 @@ export default {
     coins: '코인',
     total: '합계: {n}',
   },
+  sync: {
+    mismatchBadge: '버전 불일치',
+    mismatchTitle: '어떤 데이터를 유지할까요?',
+    mismatchBody: '로컬 데이터와 클라우드 데이터가 다릅니다. 유지할 쪽을 선택하세요. 다른 쪽은 덮어써집니다.',
+    keepLocal: '로컬 데이터 유지',
+    keepCloud: '클라우드 데이터 유지',
+    changedAt: '기준: {time}',
+    kept: '로컬 데이터를 유지하고 백업했습니다.',
+  },
   toast: {
     backupExported: '백업이 내보내졌습니다',
     importSuccess: '가져오기 성공',

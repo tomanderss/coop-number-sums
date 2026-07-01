@@ -361,6 +361,15 @@ export default {
     coins: 'Monedas',
     total: 'total: {n}',
   },
+  sync: {
+    mismatchBadge: 'Discrepancia de versión',
+    mismatchTitle: '¿Qué datos conservar?',
+    mismatchBody: 'Tus datos locales y los de la nube difieren. Elige cuál conservar; el otro se sobrescribirá.',
+    keepLocal: 'Conservar datos locales',
+    keepCloud: 'Conservar datos de la nube',
+    changedAt: 'Estado: {time}',
+    kept: 'Datos locales conservados y guardados.',
+  },
   toast: {
     backupExported: 'Copia de seguridad exportada',
     importSuccess: 'Importación correcta',

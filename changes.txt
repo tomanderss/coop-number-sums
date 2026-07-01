@@ -1,0 +1,1 @@
+Cloud-Sync sicher gegen Datenverlust: lokale Daten werden NIE stillschweigend überschrieben. Bei Erstanmeldung ohne Cloud-Daten werden die lokalen Daten hochgeladen; unterscheiden sich lokale und Cloud-Daten, fragt beim Start eine „Versions-Mismatch"-Warnung mit Zeitstempeln, welcher Stand behalten werden soll.

@@ -23,8 +23,17 @@ const KEYS = {
   // js/account.js). Bewusst dieselbe Form wie der spätere RTDB-Knoten.
   INVENTORY: 'cns_inventory',   // { itemId: { acquiredAt, source } } — Besitz von Cosmetics (z.B. Skin 'dynamicColor')
   WALLET: 'cns_wallet',         // { balance, updatedAt } — In-Game-Währung (nicht auszahlbar)
-  PROFILE: 'cns_profile',       // { displayName, role, accountId, createdAt } — lokales Profil (role für Admin)
+  PROFILE: 'cns_profile',       // { displayName, username, role, accountId, createdAt } — lokales Profil (role für Admin)
+  DATA_REV: 'cns_data_rev',     // Zeitstempel der letzten lokalen Nutzdaten-Änderung (für Cloud-Konfliktcheck)
+  SYNCED_REV: 'cns_synced_rev', // DATA_REV beim letzten erfolgreichen Sync (Basislinie für decideSync)
+  LAST_SYNC: 'cns_last_sync',   // Zeitpunkt der letzten erfolgreichen Cloud-Sicherung (nur UI; NICHT nutzdaten-getrackt)
 };
+// Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
+// Bewusst OHNE SEEN_VERSION/COOP_SESSION/Backups/DATA_REV/SYNCED_REV.
+const USER_DATA_KEYS = new Set([
+  'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_stats', 'cns_daily',
+  'cns_history', 'cns_achievements', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
+]);
 const COOP_SESSION_TTL_MS = 5 * 60 * 1000;
 const HISTORY_MAX = 20;
 const BACKUP_COUNT = 3;
@@ -35,8 +44,30 @@ function load(key, fallback) {
   catch (e) { log('storage', `Laden von "${key}" fehlgeschlagen`, e); return fallback; }
 }
 function save(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); }
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    // Jede Nutzdaten-Änderung stempelt die lokale Daten-Revision (für den
+    // Cloud-Konfliktcheck). DATA_REV selbst ist kein Nutzdaten-Key → keine Rekursion.
+    if (USER_DATA_KEYS.has(key)) localStorage.setItem(KEYS.DATA_REV, JSON.stringify(Date.now()));
+  }
   catch (e) { log('storage', `Speichern von "${key}" fehlgeschlagen`, e); }
+}
+// ─── Daten-Revision (für Cloud-Sync-Konfliktauflösung) ────────────────────────
+export function dataRev() { return load(KEYS.DATA_REV, 0); }
+export function setDataRev(v) { localStorage.setItem(KEYS.DATA_REV, JSON.stringify(v || 0)); }
+export function syncedRev() { return load(KEYS.SYNCED_REV, null); }
+export function setSyncedRev(v) { save(KEYS.SYNCED_REV, v); }
+export function loadLastSync() { return load(KEYS.LAST_SYNC, 0); }
+export function saveLastSync(ts) { save(KEYS.LAST_SYNC, ts); }
+// Gibt es lokal überhaupt nennenswerte Nutzerdaten? (Steuert, ob bei Erst-Login
+// mit vorhandenen Cloud-Daten gefragt werden muss statt still die Cloud zu nehmen.)
+export function hasLocalData() {
+  const s = load(KEYS.STATS, {});
+  if ((s.played || 0) + (s.coopPlayed || 0) > 0) return true;
+  if (Object.keys(load(KEYS.INVENTORY, {})).length) return true;
+  if ((load(KEYS.WALLET, {}).balance || 0) > 0) return true;
+  if ((load(KEYS.HISTORY, [])).length) return true;
+  return false;
 }
 function remove(key) {
   try { localStorage.removeItem(key); }
@@ -400,6 +431,7 @@ function buildTimestamp() {
 export function collectExportData(type = 'manual') {
   return {
     ts: Date.now(), v: 1, label: type,
+    rev: load(KEYS.DATA_REV, 0),   // Änderungszeit der Daten (für Cloud-Konfliktcheck)
     settings: load(KEYS.SETTINGS, {}),
     activeGame: load(KEYS.ACTIVE_GAME, null),
     activeGameCoop: load(KEYS.ACTIVE_GAME_COOP, null),
@@ -463,6 +495,9 @@ export function deleteAllData() {
   remove(KEYS.INVENTORY);
   remove(KEYS.WALLET);
   remove(KEYS.PROFILE);
+  remove(KEYS.DATA_REV);
+  remove(KEYS.SYNCED_REV);
+  remove(KEYS.LAST_SYNC);
   for (let i = 0; i < BACKUP_COUNT; i++) remove(bk(i));
   clearLog();
 }

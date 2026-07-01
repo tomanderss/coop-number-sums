@@ -361,6 +361,15 @@ export default {
     coins: 'Pièces',
     total: 'total : {n}',
   },
+  sync: {
+    mismatchBadge: 'Conflit de version',
+    mismatchTitle: 'Quelles données garder ?',
+    mismatchBody: 'Tes données locales et celles du cloud diffèrent. Choisis celles à garder — les autres seront écrasées.',
+    keepLocal: 'Garder les données locales',
+    keepCloud: 'Garder les données du cloud',
+    changedAt: 'État : {time}',
+    kept: 'Données locales conservées et sauvegardées.',
+  },
   toast: {
     backupExported: 'Sauvegarde exportée',
     importSuccess: 'Importation réussie',

@@ -19,6 +19,7 @@ import { log } from './debuglog.js';
 import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile,
+  dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -32,6 +33,28 @@ export function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(S
 export function passwordIssue(pw) { if (!pw || String(pw).length < 6) return 'tooShort'; return null; }
 // RTDB-Keys dürfen . $ # [ ] / nicht enthalten — Username für den Index sicher machen.
 export function usernameKey(name) { return normalizeUsername(name).replace(/[.$#\[\]/]/g, '_'); }
+
+// ─── Reine Sync-Entscheidung (git-artig, ohne Firebase — voll unit-testbar) ────
+// localRev  : Zeitstempel der letzten LOKALEN Datenänderung
+// cloudRev  : rev des Cloud-Snapshots (Änderungszeit auf irgendeinem Gerät)
+// syncedRev : localRev beim letzten erfolgreichen Sync dieses Geräts (Basislinie); null = noch nie
+// hasLocalData: ob lokal überhaupt nennenswerte Daten liegen
+// Ergebnis: 'uploadLocal' | 'takeCloud' | 'conflict' | 'inSync'
+// GARANTIE: lokale Daten werden NIE ohne 'takeCloud' (nur wenn lokal unverändert)
+// bzw. ohne ausdrückliche Nutzerwahl bei 'conflict' überschrieben.
+export function decideSync({ cloudExists, localRev, cloudRev, syncedRev, hasLocalData }) {
+  if (!cloudExists) return 'uploadLocal';            // Cloud leer → lokale Daten hoch (Erst-Upload)
+  if (syncedRev == null) {                           // Erstkontakt dieses Geräts mit diesem Account
+    if (localRev === cloudRev) return 'inSync';      // identische Revision → nichts zu tun
+    return hasLocalData ? 'conflict' : 'takeCloud';  // lokale Daten vorhanden → fragen; sonst Cloud nehmen
+  }
+  const localChanged = localRev !== syncedRev;
+  const cloudChanged = cloudRev !== syncedRev;
+  if (localChanged && cloudChanged) return 'conflict';
+  if (localChanged) return 'uploadLocal';
+  if (cloudChanged) return 'takeCloud';
+  return 'inSync';
+}
 
 // ─── Hilfen ───────────────────────────────────────────────────────────────────
 function currentUser(fb) { return fb.auth && fb.auth.currentUser; }
@@ -117,7 +140,8 @@ export async function signIn({ email, password }) {
     const fb = await ensureFirebase();
     const cred = await fb.authMod.signInWithEmailAndPassword(fb.auth, email, password);
     const uid = cred.user.uid;
-    await syncDown(fb, uid);  // Cloud -> lokal (mit Inventar-Union)
+    // KEIN automatisches Überschreiben hier! Die Zusammenführung lokal↔Cloud
+    // (inkl. Konflikt-Rückfrage) passiert beim nächsten Start über reconcile().
     // WICHTIG: accountId lokal festhalten, sonst zeigt die App nach dem Reload wieder
     // den Login (refreshAccountFromLocal liest loadProfile().accountId).
     saveProfile({ accountId: uid });
@@ -134,6 +158,7 @@ export async function signOutAccount() {
     const fb = await ensureFirebase();
     await fb.authMod.signOut(fb.auth);
     saveProfile({ accountId: null });
+    setSyncedRev(null);  // Basislinie fällt weg → nächster Login ist wieder „Erstkontakt"
     return { ok: true, reload: true };
   } catch (e) { log('account', 'Abmelden fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
@@ -171,46 +196,72 @@ export async function deleteAccount() {
 async function mergeCloudInventory(fb, uid) {
   try { const cloud = (await fb.get(userRef(fb, uid, 'inventory'))).val(); if (cloud) mergeInventory(cloud); } catch (_) {}
 }
+// Lokal → Cloud. Danach ist die Basislinie (syncedRev) = aktuelle lokale Revision,
+// d.h. lokal == Cloud == syncedRev (kein Konflikt beim nächsten Start).
 async function uploadLocal(fb, uid) {
   await mergeCloudInventory(fb, uid);                 // erst fremde/Geschenk-Items aufnehmen …
   await fb.set(userRef(fb, uid, 'data'), collectExportData('sync'));
   await fb.set(userRef(fb, uid, 'inventory'), loadInventory());  // … dann die Union schreiben
+  setSyncedRev(dataRev());
 }
-// Cloud -> lokal. Erste Anmeldung (keine Cloud-Daten): lokal hochladen. Sonst
-// Cloud übernehmen, aber Inventar vereinigen + höheres Wallet behalten.
-async function syncDown(fb, uid) {
-  const snap = (await fb.get(userRef(fb, uid, 'data'))).val();
-  const localInv = loadInventory();
-  const localBal = loadWallet().balance;
+// Cloud → lokal (nur bei 'takeCloud' oder Nutzerwahl „Cloud behalten"). Überschreibt
+// die lokalen Nutzdaten bewusst mit dem Cloud-Snapshot; Inventar bleibt vereinigt.
+async function applyCloud(fb, uid, snap) {
   if (snap) {
-    importFromFile(JSON.stringify(snap));      // Settings/Stats/History/etc. aus der Cloud
-    mergeInventory(localInv);                  // lokale Unlocks NICHT verlieren
-    const merged = loadWallet();
-    if (localBal > merged.balance) {
-      const { grantCurrency } = await import('./storage.js');
-      grantCurrency(localBal - merged.balance, 'syncKeepHigher');
-    }
+    const localInv = loadInventory();
+    importFromFile(JSON.stringify(snap));
+    mergeInventory(localInv);                 // eigene Unlocks nicht verlieren
   }
-  await mergeCloudInventory(fb, uid);          // Geschenke/Cosmetics aus dem eigenen Knoten
-  await uploadLocal(fb, uid);                  // konsolidierten Stand zurückschreiben
-}
-
-// Beim App-Start (eingeloggt) Geschenke/Cosmetics nachziehen. Liefert das
-// (ggf. erweiterte) lokale Inventar oder null, wenn nicht eingeloggt.
-export async function pullInventory() {
-  try {
-    const fb = await ensureFirebase();
-    const u = currentUser(fb);
-    if (u && !u.isAnonymous) { await mergeCloudInventory(fb, u.uid); return loadInventory(); }
-  } catch (e) { log('account', 'pullInventory fehlgeschlagen', e); }
-  return null;
+  await mergeCloudInventory(fb, uid);
+  const rev = (snap && snap.rev) || dataRev();
+  setDataRev(rev); setSyncedRev(rev);         // lokal == Cloud
 }
 
 // Sync-Status (schnell, ohne Firebase zu laden) fürs UI/Trigger-Gating.
 export function isSignedIn() { return !!loadProfile().accountId; }
-export function lastSyncAt() { return loadProfile().lastSyncAt || 0; }
-// Zeitstempel der letzten erfolgreichen Cloud-Sicherung im Profil ablegen (überlebt Reload).
-function stampSynced() { const ts = Date.now(); saveProfile({ lastSyncAt: ts }); return ts; }
+export function lastSyncAt() { return loadLastSync(); }
+function stampSynced() { const ts = Date.now(); saveLastSync(ts); return ts; }
+
+// ── Abgleich beim Start: entscheidet git-artig lokal vs. Cloud (nie stilles
+// Überschreiben lokaler Daten; bei echter Diskrepanz → 'conflict' zurück ans UI).
+let _pendingConflictSnap = null;
+export async function reconcile() {
+  if (!isSignedIn()) return { decision: 'skip' };
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { decision: 'skip' };
+    const snap = (await fb.get(userRef(fb, u.uid, 'data'))).val();
+    const decision = decideSync({
+      cloudExists: !!snap,
+      localRev: dataRev(),
+      cloudRev: snap ? (snap.rev || 0) : 0,
+      syncedRev: syncedRev(),
+      hasLocalData: hasLocalData(),
+    });
+    if (decision === 'uploadLocal') { await uploadLocal(fb, u.uid); stampSynced(); }
+    else if (decision === 'takeCloud') { await applyCloud(fb, u.uid, snap); stampSynced(); }
+    else if (decision === 'inSync') { await mergeCloudInventory(fb, u.uid); }
+    else if (decision === 'conflict') {
+      _pendingConflictSnap = snap;
+      return { decision, localTs: dataRev(), cloudTs: (snap && (snap.rev || snap.ts)) || 0 };
+    }
+    log('account', 'reconcile', { decision });
+    return { decision };
+  } catch (e) { log('account', 'reconcile fehlgeschlagen', e); return { decision: 'error', err: errKey(e) }; }
+}
+// Nutzerwahl im Konflikt-Dialog auflösen: keep = 'local' | 'cloud'.
+export async function resolveConflict(keep) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, err: 'notSignedIn' };
+    if (keep === 'cloud' && _pendingConflictSnap) await applyCloud(fb, u.uid, _pendingConflictSnap);
+    else await uploadLocal(fb, u.uid);   // 'local' behalten → lokale Daten hoch
+    _pendingConflictSnap = null; stampSynced();
+    return { ok: true };
+  } catch (e) { log('account', 'resolveConflict fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
 
 // SOFORTIGER Upload ALLER Daten in die Cloud. Liefert { ok, ts } bzw.
 // { ok:false, skipped:true } wenn nicht eingeloggt (dann rein lokal, kein Fehler).

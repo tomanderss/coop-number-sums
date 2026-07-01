@@ -157,6 +157,8 @@ const state = reactive({
   modal: null,               // null | 'howto' | 'changelog' | 'backups' | 'confirm'
   confirm: null,             // { title, msg, onYes }
   showWhatsNew: false,
+  syncConflict: null,        // { localTs, cloudTs } — Start-Warnung „Versions-Mismatch", sonst null
+  syncConflictBusy: false,
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
   settingsTab: 'allgemein',  // aktiver Reiter im Einstellungen-Screen: allgemein | spiel | ton | konto | daten
@@ -2296,7 +2298,7 @@ function confirmNo() { state.modal = null; state.confirm = null; }
 // Account-Session existiert (sonst bleibt die App rein lokal/anonym).
 function refreshAccountFromLocal() {
   const p = loadProfile();
-  state.account.lastSyncAt = p.lastSyncAt || 0;
+  state.account.lastSyncAt = Account.lastSyncAt();
   if (p.accountId) { state.account.status = 'in'; state.account.uid = p.accountId; state.account.username = p.displayName || ''; state.account.role = p.role || 'user'; }
   else { state.account.status = 'anon'; state.account.uid = null; }
 }
@@ -2308,6 +2310,24 @@ async function doSyncNow() {
   if (r.ok) { state.account.syncState = 'ok'; state.account.lastSyncAt = r.ts; state.account.syncErrorMsg = ''; }
   else if (r.skipped) { state.account.syncState = 'idle'; }
   else { state.account.syncState = 'error'; state.account.syncErrorMsg = r.err ? accErr(r.err) : ''; }
+}
+// Versions-Mismatch beim Start auflösen: keep = 'local' | 'cloud'.
+async function resolveSyncConflict(keep) {
+  state.syncConflictBusy = true;
+  try {
+    const r = await Account.resolveConflict(keep);
+    if (!r.ok) { showToast(accErr(r.err || 'generic'), 'error', 2600); return; }
+    if (keep === 'cloud') { location.reload(); return; }  // Cloud übernommen → sauber neu laden
+    state.syncConflict = null;
+    refreshAccountFromLocal();
+    showToast(t('sync.kept'), 'success', 2000);
+  } finally { state.syncConflictBusy = false; }
+}
+// Datum+Uhrzeit für den Konflikt-Dialog (voller Zeitstempel).
+function fmtSyncDateTime(ts) {
+  if (!ts) return '–';
+  try { return new Date(ts).toLocaleString(i18nState.locale || undefined, { dateStyle: 'medium', timeStyle: 'short' }); }
+  catch (_) { return '–'; }
 }
 // Zeitpunkt der letzten Cloud-Sicherung als Uhrzeit (locale) — '–' wenn noch nie.
 function fmtSyncTime(ts) {
@@ -2564,11 +2584,16 @@ function init() {
   refreshAccountFromLocal();
   if (loadProfile().accountId) {
     refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)
-    // Geschenke/Cosmetics aus der Cloud nachziehen (z.B. Admin-Skin-Geschenk),
-    // danach SOFORT den aktuellen Stand hochsichern.
-    Account.pullInventory()
-      .then(inv => { if (inv) { state.inventory = inv; maybeUnlockV1Skin(); } })
-      .finally(() => doSyncNow());
+    // Abgleich lokal↔Cloud beim Start (nie stilles Überschreiben; bei echter
+    // Diskrepanz Warnung auf dem Startbildschirm mit Auswahl).
+    Account.reconcile().then(r => {
+      if (r.decision === 'takeCloud') { location.reload(); return; }  // Cloud übernommen → sauber neu laden
+      if (r.decision === 'conflict') { state.syncConflict = { localTs: r.localTs, cloudTs: r.cloudTs }; }
+      state.inventory = loadInventory();
+      state.wallet = loadWallet();
+      maybeUnlockV1Skin();
+      refreshAccountFromLocal();  // lastSync/Status auffrischen
+    });
     // …und automatisch alle 60 s weiter sichern, solange die App offen ist.
     setInterval(() => { if (state.account.status === 'in') doSyncNow(); }, 60000);
   }
@@ -2804,7 +2829,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
-      doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
+      doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime, resolveSyncConflict, fmtSyncDateTime,
       adminSearch, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
@@ -3921,6 +3946,21 @@ const App = {
           </div>
         </div>
         <button class="btn btn-primary" @click="dismissWhatsNew">{{ t('whatsnew.start') }}</button>
+      </div>
+    </div>
+
+    <!-- Versions-Mismatch beim Start: lokale vs. Cloud-Daten unterscheiden sich → Auswahl -->
+    <div v-if="state.syncConflict" class="modal-bg">
+      <div class="modal">
+        <div class="whatsnew-badge sync-warn-badge">⚠️ {{ t('sync.mismatchBadge') }}</div>
+        <h3>{{ t('sync.mismatchTitle') }}</h3>
+        <p class="result-msg">{{ t('sync.mismatchBody') }}</p>
+        <button class="btn btn-primary" :disabled="state.syncConflictBusy" @click="resolveSyncConflict('local')">
+          <span class="sync-btn-tx"><b>{{ t('sync.keepLocal') }}</b><small>{{ t('sync.changedAt', { time: fmtSyncDateTime(state.syncConflict.localTs) }) }}</small></span>
+        </button>
+        <button class="btn btn-ghost" :disabled="state.syncConflictBusy" @click="resolveSyncConflict('cloud')">
+          <span class="sync-btn-tx"><b>{{ t('sync.keepCloud') }}</b><small>{{ t('sync.changedAt', { time: fmtSyncDateTime(state.syncConflict.cloudTs) }) }}</small></span>
+        </button>
       </div>
     </div>
 

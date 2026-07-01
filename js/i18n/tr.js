@@ -361,6 +361,15 @@ export default {
     coins: 'Jeton',
     total: 'toplam: {n}',
   },
+  sync: {
+    mismatchBadge: 'Sürüm uyuşmazlığı',
+    mismatchTitle: 'Hangi veriler kalsın?',
+    mismatchBody: 'Yerel verilerin ile buluttaki veriler farklı. Hangisinin kalacağını seç — diğeri üzerine yazılır.',
+    keepLocal: 'Yerel verileri koru',
+    keepCloud: 'Bulut verilerini koru',
+    changedAt: 'Durum: {time}',
+    kept: 'Yerel veriler korundu ve yedeklendi.',
+  },
   toast: {
     backupExported: 'Yedek dışa aktarıldı',
     importSuccess: 'İçe aktarma başarılı',
