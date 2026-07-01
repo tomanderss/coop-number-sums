@@ -1,0 +1,1 @@
+Reload-Schleifen-Bremse fängt jetzt auch langsame Loops (z. B. alle ~36 s) — App kann nicht mehr endlos neu starten.
