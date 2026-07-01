@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   LIVES, HINTS, MAX_VAL, DIFFICULTIES, DIFF_BY_ID,
   REGION_COLORS, COOP_COLORS, DEFAULT_SETTINGS, DEFAULT_GAME_OPTIONS,
-  regionColorDist,
+  regionColorDist, regionChipInk,
 } from '../../js/config.js';
 
 describe('config constants', () => {
@@ -66,6 +66,25 @@ describe('config.REGION_COLORS', () => {
       }
     }
     assert.ok(worst >= 70, `closest cage-colour pair ${pair} only ${worst.toFixed(0)} apart (want >=70)`);
+  });
+
+  test('regionChipInk yields a readable sum-chip colour for every cage colour', () => {
+    // The sum chip is opaque cage colour (lightness clamped 26..60); the ink must
+    // contrast it. Assert a WCAG contrast ratio >= 4.5 (AA) between chosen ink and
+    // the actual chip background for all 18 colours — guards against white-on-light.
+    const hsl2rgb = (h, s, l) => { h/=360; s/=100; l/=100; const k=n=>(n+h*12)%12, a=s*Math.min(l,1-l),
+      f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))); return [255*f(0),255*f(8),255*f(4)]; };
+    const lum = ([r,g,b]) => { const f=c=>{c/=255; return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+      return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b); };
+    const ratio = (a,b)=>{ const L1=lum(a),L2=lum(b),hi=Math.max(L1,L2),lo=Math.min(L1,L2); return (hi+0.05)/(lo+0.05); };
+    for (const c of REGION_COLORS) {
+      const lc = Math.max(24, Math.min(54, c.l - 14));
+      const bg = hsl2rgb(c.h, c.s, lc);
+      const inkHex = regionChipInk(c);
+      const ink = [parseInt(inkHex.slice(1,3),16), parseInt(inkHex.slice(3,5),16), parseInt(inkHex.slice(5,7),16)];
+      const r = ratio(ink, bg);
+      assert.ok(r >= 4.5, `chip ink on ${c.name} only ${r.toFixed(1)}:1 (want >=4.5)`);
+    }
   });
 });
 

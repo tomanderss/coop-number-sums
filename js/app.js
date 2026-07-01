@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk } from './config.js';
 import { generatePuzzle } from './generator.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
@@ -2293,7 +2293,7 @@ function historyCellClasses(r, c) {
 function historyCellStyle(r, c) {
   const m = state.historyDetail.cellMeta[r][c];
   const st = { fontSize: 'var(--fs)' };
-  if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; }
+  if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; st['--rc-ink'] = regionChipInk(m.color); }
   return st;
 }
 // Erzeugt per Seed exakt dasselbe Rätsel neu und startet eine frische,
@@ -4150,7 +4150,7 @@ function inHintGroup(r, c) {
 function cellStyle(r, c) {
   const m = state.cellMeta[r][c];
   const st = { fontSize: 'var(--fs)' };
-  if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; }
+  if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; st['--rc-ink'] = regionChipInk(m.color); }
   const who = state.markedBy[r][c];
   if (who) { const col = who === LOCAL_PLAYER_ID ? state.settings.coopMyColor : playerColor(who); if (col) st['--markcol'] = col; }
   const pe = pulseEdges(r, c);
