@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.7';
-export const BUILD_HASH = 'a5c4f04';
+export const BUILD      = '1.8';
+export const BUILD_HASH = 'fba05fb';
 
 export const CHANGELOG = [
+  {
+    "version": "1.8",
+    "date": "01.07.2026",
+    "changes": [
+      "Coop: verlorene eigene Verbindung wird jetzt auch beim Client erkannt und als „offline\" angezeigt (vorher sah das nur der Host); automatische Wiederverbindung bei Rückkehr"
+    ]
+  },
   {
     "version": "1.7",
     "date": "01.07.2026",
