@@ -180,6 +180,12 @@ const state = reactive({
     adminUsers: [], adminFilter: '', adminEditUser: null, adminBusy: false, adminError: null,
     adminBalance: '', adminUsername: '', adminItem: '', adminFieldKey: '', adminFieldVal: '', adminEmail: '',
   },
+  // Freunde & Präsenz (nur mit Account nutzbar)
+  friends: {
+    open: false, tab: 'friends',   // 'friends' | 'leaderboard'
+    addName: '', addBusy: false, addError: null, addNotice: null,
+    list: [], requests: [], presence: {},   // presence: { uid: {online, game, lastActive} }
+  },
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
@@ -310,6 +316,8 @@ function navigate(screen) {
   state.screen = screen;
   if (screen === 'game') { startTimer(); requestWakeLock(); } else { stopTimer(); releaseWakeLock(); }
   updateMusic();
+  // Präsenz für Freunde aktualisieren (im Spiel vs. Menü) — nur wenn eingeloggt.
+  if (state.account.status === 'in') pushPresence();
   // Ein während des Spiels aufgeschobenes Neuladen (Update/Cloud-Übernahme) jetzt
   // nachholen, sobald wir sicher zurück im Menü sind — nie mitten im Spiel.
   if (screen === 'home') nextTick(flushPendingReload);
@@ -2444,7 +2452,11 @@ async function refreshAccount() {
   if (loadProfile().accountId) {
     try {
       const s = await Account.authState();
-      if (s.signedIn) { state.account.status = 'in'; state.account.uid = s.uid; state.account.email = s.email || ''; state.account.username = s.username || state.account.username; state.account.role = s.role || 'user'; }
+      if (s.signedIn) {
+        state.account.status = 'in'; state.account.uid = s.uid; state.account.email = s.email || ''; state.account.username = s.username || state.account.username; state.account.role = s.role || 'user';
+        pushPresence();          // Präsenz melden, sobald der Account bestätigt ist
+        startFriendsWatch();     // Freundes-/Anfragen-Listener (Badge) starten
+      }
       else state.account.status = 'anon';
     } catch (e) { log('account', 'refreshAccount fehlgeschlagen', e); }
   }
@@ -2596,6 +2608,87 @@ async function adminResetPw() {
     if (!res.ok) { a.adminError = accErr(res.err); return; }
     showToast(t('admin.resetSent'), 'success', 2600);
   } finally { a.adminBusy = false; }
+}
+
+// ─── Freunde & Präsenz ────────────────────────────────────────────────────────
+let friendsUnwatch = null, presenceUnwatch = null, presenceGameTimer = 0;
+function openFriends() {
+  if (state.account.status !== 'in') { openSettings(); state.settingsTab = 'konto'; return; }
+  state.friends.open = true; state.friends.tab = 'friends';
+  state.friends.addName = ''; state.friends.addError = null; state.friends.addNotice = null;
+  startFriendsWatch();
+}
+function closeFriends() { state.friends.open = false; }
+function setFriendsTab(tab) { state.friends.tab = tab; }
+// Live-Listener auf Freunde/Anfragen aufsetzen und Präsenz aller Freunde nachziehen.
+async function startFriendsWatch() {
+  if (friendsUnwatch) return;   // schon aktiv
+  friendsUnwatch = await Account.watchFriends((upd) => {
+    if (upd.friends) state.friends.list = upd.friends;
+    if (upd.requests) state.friends.requests = upd.requests;
+    rearmPresenceWatch();
+  });
+}
+function stopFriendsWatch() {
+  try { friendsUnwatch && friendsUnwatch(); } catch (_) {}
+  try { presenceUnwatch && presenceUnwatch(); } catch (_) {}
+  friendsUnwatch = presenceUnwatch = null;
+}
+// Präsenz-Listener auf die aktuelle Freundes-uid-Menge neu aufsetzen.
+async function rearmPresenceWatch() {
+  try { presenceUnwatch && presenceUnwatch(); } catch (_) {}
+  const uids = state.friends.list.map((f) => f.uid);
+  presenceUnwatch = await Account.watchPresence(uids, (uid, status) => { state.friends.presence[uid] = status; });
+}
+async function addFriend() {
+  const f = state.friends;
+  const name = (f.addName || '').trim();
+  if (!name) return;
+  f.addBusy = true; f.addError = null; f.addNotice = null;
+  try {
+    const r = await Account.sendFriendRequest(name);
+    if (!r.ok) { const k = 'friends.err.' + r.err, s = t(k); f.addError = s === k ? accErr(r.err) : s; return; }
+    f.addNotice = t('friends.requestSent', { name }); f.addName = '';
+  } finally { f.addBusy = false; }
+}
+async function acceptFriend(req) {
+  const r = await Account.acceptFriendRequest(req.uid, req.username);
+  if (r.ok) showToast(t('friends.nowFriends', { name: req.username || req.uid }), 'success', 2500);
+}
+async function declineFriend(req) { await Account.declineFriendRequest(req.uid); }
+function removeFriendAsk(fr) {
+  ask(t('friends.removeTitle'), t('friends.removeMsg', { name: fr.username || fr.uid }), async () => {
+    await Account.removeFriend(fr.uid);
+  });
+}
+// Sortierte Freundesliste (im Spiel > online > offline, dann alphabetisch).
+function friendsSorted() { return Account.sortFriends(state.friends.list, state.friends.presence); }
+function friendPresence(uid) { return state.friends.presence[uid] || null; }
+// Menschlicher Aktivitätstext für einen Freund.
+function friendActivityText(uid) {
+  const p = state.friends.presence[uid];
+  if (!p || !p.online) return t('friends.offline');
+  if (!p.game) return t('friends.online');
+  const g = p.game;
+  const mode = t('friends.mode.' + (g.mode || 'solo'));
+  const diff = g.difficulty ? t('difficulty.' + g.difficulty) : '';
+  const parts = [mode, diff, g.size].filter(Boolean).join(' · ');
+  return t('friends.inGame', { info: parts });
+}
+// ── Eigene Präsenz veröffentlichen ──
+// gameInfo aus dem aktuellen State ableiten (oder null im Menü).
+function currentGameInfo() {
+  if (!gameSessionActive() || !state.puzzle) return null;
+  return {
+    mode: state.coop.active ? (state.race.active ? 'race' : state.team.active ? 'team' : 'coop') : 'solo',
+    difficulty: state.puzzle.difficulty || null,
+    size: `${state.puzzle.rows}×${state.puzzle.cols}`,
+    pct: progressPct(),
+  };
+}
+function pushPresence() {
+  if (state.account.status !== 'in') return;
+  Account.publishPresence(currentGameInfo());
 }
 
 // ─── Dynamischer Skin: Freischaltung ──────────────────────────────────────────
@@ -2848,6 +2941,8 @@ function init() {
     // …und automatisch alle 60 s weiter sichern, solange die App offen ist.
     setInterval(() => { if (state.account.status === 'in') doSyncNow(); }, 60000);
   }
+  // Präsenz für Freunde alle 20 s auffrischen, solange ein Spiel läuft (Fortschritt/%).
+  setInterval(() => { if (state.account.status === 'in' && gameSessionActive()) pushPresence(); }, 20000);
   maybeShowWhatsNew();
   maybeUnlockV1Skin();  // 1.0-Feier-Skin beim Versionssprung (vor dismissWhatsNew, das die Version speichert)
   if (state.streak.justLost) state.streakLostNotice = true;
@@ -3086,6 +3181,8 @@ const App = {
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
+      openFriends, closeFriends, setFriendsTab, addFriend, acceptFriend, declineFriend, removeFriendAsk,
+      friendsSorted, friendPresence, friendActivityText,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
@@ -3105,6 +3202,7 @@ const App = {
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')">☕<span class="home-donate-heart" aria-hidden="true">❤</span></a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge">🔥{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
+        <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')">👫<span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span></button>
         <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')">🛒</button>
         <button class="icon-btn home-howto-btn" @click="state.modal='howto'" :aria-label="t('home.howto')" :title="t('home.howto')">?</button>
         <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
@@ -4206,6 +4304,63 @@ const App = {
         </div>
         <p v-if="state.account.adminError" class="coop-error">{{ state.account.adminError }}</p>
         <button class="btn btn-primary" @click="closeAdminEdit">{{ t('admin.done') }}</button>
+      </div>
+    </div>
+
+    <!-- ══ FREUNDE ══ -->
+    <div v-if="state.friends.open" class="modal-bg" @click.self="closeFriends">
+      <div class="modal friends-modal">
+        <header class="friends-head">
+          <h3>👫 {{ t('friends.title') }}</h3>
+          <button class="icon-btn" @click="closeFriends" :aria-label="t('common.close')">✕</button>
+        </header>
+        <div class="friends-tabs">
+          <button class="friends-tab" :class="{ active: state.friends.tab==='friends' }" @click="setFriendsTab('friends')">{{ t('friends.tabFriends') }}<span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span></button>
+          <button class="friends-tab" :class="{ active: state.friends.tab==='leaderboard' }" @click="setFriendsTab('leaderboard')">{{ t('friends.tabLeaderboard') }}</button>
+        </div>
+
+        <!-- Tab: Freunde -->
+        <div v-if="state.friends.tab==='friends'" class="friends-body">
+          <!-- Freund hinzufügen -->
+          <div class="friends-add">
+            <input class="text-input" v-model="state.friends.addName" maxlength="20" autocapitalize="none" autocomplete="off" :placeholder="t('friends.addPlaceholder')" @keydown.enter="addFriend" />
+            <button class="btn btn-primary btn-sm" :disabled="state.friends.addBusy || !state.friends.addName.trim()" @click="addFriend">{{ t('friends.add') }}</button>
+          </div>
+          <p v-if="state.friends.addError" class="coop-error">{{ state.friends.addError }}</p>
+          <p v-else-if="state.friends.addNotice" class="friends-notice">{{ state.friends.addNotice }}</p>
+
+          <!-- Eingehende Anfragen -->
+          <template v-if="state.friends.requests.length">
+            <div class="friends-section-title">{{ t('friends.requestsTitle') }}</div>
+            <div v-for="req in state.friends.requests" :key="req.uid" class="friends-req-row">
+              <span class="friends-name">{{ req.username || req.uid }}</span>
+              <span class="friends-req-actions">
+                <button class="btn btn-primary btn-sm" @click="acceptFriend(req)">{{ t('friends.accept') }}</button>
+                <button class="btn-link" @click="declineFriend(req)">{{ t('friends.decline') }}</button>
+              </span>
+            </div>
+          </template>
+
+          <!-- Freundesliste -->
+          <div class="friends-section-title">{{ t('friends.listTitle') }} ({{ state.friends.list.length }})</div>
+          <p v-if="!state.friends.list.length" class="set-hint">{{ t('friends.empty') }}</p>
+          <div v-for="fr in friendsSorted()" :key="fr.uid" class="friends-row">
+            <span class="friends-dot" :class="{ online: friendPresence(fr.uid) && friendPresence(fr.uid).online, ingame: friendPresence(fr.uid) && friendPresence(fr.uid).game }"></span>
+            <span class="friends-info">
+              <span class="friends-name">{{ fr.username || fr.uid }}</span>
+              <small class="friends-activity">{{ friendActivityText(fr.uid) }}</small>
+              <span v-if="friendPresence(fr.uid) && friendPresence(fr.uid).game" class="friends-progress"><span class="friends-progress-fill" :style="{ width: (friendPresence(fr.uid).game.pct||0) + '%' }"></span></span>
+            </span>
+            <button class="icon-btn friends-remove" @click="removeFriendAsk(fr)" :aria-label="t('friends.remove')" :title="t('friends.remove')">🗑</button>
+          </div>
+        </div>
+
+        <!-- Tab: Bestenlisten (Platzhalter — server-autoritative Umsetzung in Phase 5) -->
+        <div v-else class="friends-body friends-leaderboard-placeholder">
+          <div class="friends-lb-icon">🏆</div>
+          <p class="friends-lb-title">{{ t('friends.lbSoonTitle') }}</p>
+          <p class="set-hint">{{ t('friends.lbSoonHint') }}</p>
+        </div>
       </div>
     </div>
 

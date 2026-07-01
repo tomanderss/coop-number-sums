@@ -385,6 +385,17 @@ export default {
     unlockCustomize: 'Настроить скин',
     unlockLater: 'Позже',
   },
+  friends: {
+    title: 'Друзья', tabFriends: 'Друзья', tabLeaderboard: 'Таблицы лидеров',
+    addPlaceholder: 'Имя пользователя…', add: 'Добавить', requestSent: 'Запрос отправлен {name}',
+    requestsTitle: 'Запросы', accept: 'Принять', decline: 'Отклонить',
+    listTitle: 'Ваши друзья', empty: 'Пока нет друзей — добавьте кого-нибудь по имени пользователя выше.', remove: 'Удалить',
+    removeTitle: 'Удалить друга', removeMsg: 'Удалить {name} из списка друзей?', nowFriends: '{name} теперь ваш друг 🎉',
+    online: 'В сети', offline: 'Не в сети', inGame: 'В игре · {info}',
+    mode: { solo: 'Соло', coop: 'Кооп', race: '1 на 1', team: 'Команда' },
+    lbSoonTitle: 'Таблицы лидеров скоро', lbSoonHint: 'Защищённые от читеров рейтинги появятся с серверным подсчётом.',
+    err: { invalidUsername: 'Недопустимое имя пользователя.', userNotFound: 'Пользователь с таким именем не найден.', alreadyFriends: 'Вы уже друзья.', selfFriend: 'Нельзя добавить самого себя.', notSignedIn: 'Сначала войдите в аккаунт.' },
+  },
   shop: {
     title: 'Магазин',
     intro: 'Зарабатывай монеты победами и трать их здесь на косметику.',

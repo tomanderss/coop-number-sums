@@ -385,6 +385,17 @@ export default {
     unlockCustomize: 'スキンをカスタマイズ',
     unlockLater: 'あとで',
   },
+  friends: {
+    title: 'フレンド', tabFriends: 'フレンド', tabLeaderboard: 'ランキング',
+    addPlaceholder: 'ユーザー名…', add: '追加', requestSent: '{name} にリクエストを送信しました',
+    requestsTitle: 'リクエスト', accept: '承認', decline: '拒否',
+    listTitle: 'フレンド一覧', empty: 'まだフレンドがいません。上のユーザー名から追加できます。', remove: '削除',
+    removeTitle: 'フレンドを削除', removeMsg: '{name} をフレンドから削除しますか？', nowFriends: '{name} がフレンドになりました 🎉',
+    online: 'オンライン', offline: 'オフライン', inGame: 'プレイ中 · {info}',
+    mode: { solo: 'ソロ', coop: '協力', race: '1対1', team: 'チーム' },
+    lbSoonTitle: 'ランキングは近日公開', lbSoonHint: '不正対策済みのランキングはサーバー集計とともに登場します。',
+    err: { invalidUsername: 'ユーザー名が無効です。', userNotFound: 'そのユーザー名のユーザーが見つかりません。', alreadyFriends: 'すでにフレンドです。', selfFriend: '自分自身は追加できません。', notSignedIn: '先にサインインしてください。' },
+  },
   shop: {
     title: 'ショップ',
     intro: '勝ってコインを稼ぎ、ここで装飾アイテムに使えます。',

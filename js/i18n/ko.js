@@ -385,6 +385,17 @@ export default {
     unlockCustomize: '스킨 꾸미기',
     unlockLater: '나중에',
   },
+  friends: {
+    title: '친구', tabFriends: '친구', tabLeaderboard: '순위표',
+    addPlaceholder: '사용자 이름…', add: '추가', requestSent: '{name}님에게 요청을 보냈습니다',
+    requestsTitle: '요청', accept: '수락', decline: '거절',
+    listTitle: '내 친구', empty: '아직 친구가 없습니다 – 위에서 사용자 이름으로 추가하세요.', remove: '삭제',
+    removeTitle: '친구 삭제', removeMsg: '{name}님을 친구 목록에서 삭제할까요?', nowFriends: '{name}님과 친구가 되었습니다 🎉',
+    online: '온라인', offline: '오프라인', inGame: '게임 중 · {info}',
+    mode: { solo: '솔로', coop: '협동', race: '1대1', team: '팀' },
+    lbSoonTitle: '순위표 곧 제공', lbSoonHint: '부정행위 방지 순위는 서버 집계와 함께 제공됩니다.',
+    err: { invalidUsername: '유효하지 않은 사용자 이름입니다.', userNotFound: '해당 사용자 이름을 찾을 수 없습니다.', alreadyFriends: '이미 친구입니다.', selfFriend: '자신을 추가할 수 없습니다.', notSignedIn: '먼저 로그인하세요.' },
+  },
   shop: {
     title: '상점',
     intro: '승리로 코인을 모아 여기서 꾸미기 아이템에 사용하세요.',
