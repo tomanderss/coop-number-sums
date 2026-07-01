@@ -1299,9 +1299,9 @@ function handleCoopMsg(msg) {
     // Nur der Host wertet Identitäts-Meldungen aus und verteilt die Liste neu —
     // er entscheidet (Konfliktauflösung), welche Farbe ein Mitspieler tatsächlich bekommt.
     if (state.coop.role === 'host') {
-      upsertPlayer(msg.author, msg.name, msg.color);
+      upsertPlayer(msg.author, msg.name, msg.color, msg.username);
       broadcastRoster();
-      showToast(t('coop.playerJoinedLobby', { name: (msg.name || '').trim() || t('common.defaultPlayerName') }));
+      showToast(t('coop.playerJoinedLobby', { name: playerLabel({ name: msg.name, username: msg.username }) }));
     }
   } else if (msg.type === Coop.MSG.ROSTER) {
     const prevHostId = state.coop.hostId;
@@ -1314,7 +1314,7 @@ function handleCoopMsg(msg) {
         state.coop.role = 'guest';
       }
       if (prevHostId && msg.hostId !== prevHostId && msg.hostId !== state.coop.myId) {
-        const newHostName = msg.players.find(p => p.id === msg.hostId)?.name || t('common.defaultPlayerName');
+        const newHostName = playerLabel(msg.players.find(p => p.id === msg.hostId)) || t('common.defaultPlayerName');
         showToast(t('coop.newHostIs', { name: newHostName }), 'info', 3000);
       }
     }
@@ -1411,12 +1411,21 @@ function pickAvailableColor(requested, others) {
   const hue = Math.round((others.length * 137.508) % 360);
   return `hsl(${hue} 75% 55%)`;
 }
-function upsertPlayer(id, name, requestedColor) {
+function upsertPlayer(id, name, requestedColor, username) {
   const others = state.coop.players.filter(p => p.id !== id);
   const color = pickAvailableColor(requestedColor, others);
   const existing = state.coop.players.find(p => p.id === id);
-  state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color, team: existing?.team ?? null, ready: existing?.ready ?? false }];
+  state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color, username: (username || existing?.username || '').trim(), team: existing?.team ?? null, ready: existing?.ready ?? false }];
   updateConnectedFlag();
+}
+// Eigener eindeutiger Account-Username (nur eingeloggt) — wird im Coop mitgesendet.
+function myUsername() { return state.account.status === 'in' && state.account.username ? state.account.username : ''; }
+// Anzeige „Anzeigename (username)" – nur wenn ein (abweichender) Account-Username bekannt ist.
+function playerLabel(p) {
+  if (!p) return '';
+  const u = (p.username || '').trim();
+  const n = (p.name || '').trim() || t('common.defaultPlayerName');
+  return u && u.toLowerCase() !== n.toLowerCase() ? `${n} (${u})` : n;
 }
 // Nur der Host weist Teams zu (Formations-Lobby), per direkter Zielangabe
 // statt zyklischem Tippen auf den Spieler -- die Lobby zeigt dafür eine
@@ -1627,7 +1636,7 @@ function startHosting() {
     onOpen(id) {
       state.coop.myId = id;
       state.coop.hostId = id;
-      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor);
+      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor, myUsername());
     },
     onError(e) {
       state.coop.waitingForGuest = false;
@@ -1641,7 +1650,7 @@ function startHosting() {
       log('game', `Mitspieler in Lobby beigetreten (Coop)`, { id });
     },
     onLeave(id) {
-      const leavingName = state.coop.players.find(p => p.id === id)?.name || t('common.defaultPlayerName');
+      const leavingName = playerLabel(state.coop.players.find(p => p.id === id)) || t('common.defaultPlayerName');
       removePlayer(id);
       broadcastRoster();
       if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
@@ -1774,7 +1783,7 @@ function startRaceMatch() {
 function applyRaceStart(seed, difficulty) {
   const opponent = state.coop.players.find(p => p.id !== state.coop.myId);
   state.race.opponentId = opponent?.id || null;
-  state.race.opponentName = opponent?.name || '';
+  state.race.opponentName = playerLabel(opponent) || '';
   state.race.opponentColor = opponent?.color || '#888';
   state.race.active = true;
   state.race.matchOver = false;
@@ -1850,8 +1859,8 @@ function startJoining() {
       // melden — coopSend() blockt hier noch (state.coop.connected wird erst nach
       // der ersten ROSTER-Antwort true), daher direkt über die Transportschicht senden.
       state.coop.myId = id;
-      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor);
-      Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor });
+      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor, myUsername());
+      Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor, username: myUsername() });
     },
     onError(e) {
       state.coop.waitingForGuest = false;
@@ -1870,7 +1879,7 @@ function startJoining() {
       // bis zu COOP_MAX_PLAYERS Spielern auch ein Host-Wechsel mitten in der
       // Warte-Lobby den Raum nicht verwaisen lässt.
       const wasHost = !state.coop.hostId || id === state.coop.hostId;
-      const leavingName = state.coop.players.find(p => p.id === id)?.name || t('common.defaultPlayerName');
+      const leavingName = playerLabel(state.coop.players.find(p => p.id === id)) || t('common.defaultPlayerName');
       removePlayer(id);
       if (!wasHost) {
         showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
@@ -2207,11 +2216,11 @@ function attemptCoopRejoin(sess) {
       if (actualRole && actualRole !== state.coop.role) {
         state.coop.role = actualRole;
       }
-      upsertPlayer(id, sess.name, sess.color);
+      upsertPlayer(id, sess.name, sess.color, myUsername());
       // Informiert einen ggf. noch aktiven Host über die eigene Rückkehr --
       // identisch zum normalen Beitritts-Pfad (confirmCoopIdentity()), löst
       // beim Host upsertPlayer()+broadcastRoster() aus (handleCoopMsg/IDENTITY).
-      Coop.send({ type: Coop.MSG.IDENTITY, name: sess.name, color: sess.color });
+      Coop.send({ type: Coop.MSG.IDENTITY, name: sess.name, color: sess.color, username: myUsername() });
       showToast(t('coop.reconnected'), 'success', 2000);
     },
     onError() {
@@ -2227,7 +2236,7 @@ function attemptCoopRejoin(sess) {
       if (state.coop.role === 'host') broadcastRoster();
     },
     onLeave(id) {
-      const leavingName = state.coop.players.find(p => p.id === id)?.name || t('common.defaultPlayerName');
+      const leavingName = playerLabel(state.coop.players.find(p => p.id === id)) || t('common.defaultPlayerName');
       removePlayer(id);
       if (state.coop.role === 'host') broadcastRoster();
       if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
@@ -2923,7 +2932,7 @@ const App = {
             else if (state.marks[r][c] === 'removed' && !p.solution[r][c]) correctRemoved++;
           }
         const mistakes = state.coop.mistakesByPlayer[pl.id] || 0;
-        return { id: pl.id, name: pl.name, color: pl.color, correctKept, correctRemoved, mistakes, correct: correctKept + correctRemoved };
+        return { id: pl.id, name: pl.name, username: pl.username, color: pl.color, correctKept, correctRemoved, mistakes, correct: correctKept + correctRemoved };
       });
       const totalCorrect = raw.reduce((s, pl) => s + pl.correct, 0);
       return raw.map(pl => ({
@@ -2950,7 +2959,7 @@ const App = {
       const opponentTeam = state.team.myTeam === 'A' ? 'B' : 'A';
       return state.coop.players
         .filter(pl => pl.team === opponentTeam)
-        .map(pl => ({ id: pl.id, name: pl.name, color: pl.color, mistakes: state.team.opponentMistakesByPlayer[pl.id] || 0 }));
+        .map(pl => ({ id: pl.id, name: pl.name, username: pl.username, color: pl.color, mistakes: state.team.opponentMistakesByPlayer[pl.id] || 0 }));
     });
     const progress = computed(() => {
       if (!state.puzzle) return { kept: 0, total: 0 };
@@ -3074,7 +3083,7 @@ const App = {
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime, resolveSyncConflict, fmtSyncDateTime,
-      startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername,
+      startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
@@ -3254,7 +3263,7 @@ const App = {
         <div v-if="state.coop.active && state.coop.players.length" class="coop-roster">
           <span v-for="p in (state.team.active ? state.coop.players.filter(pl=>pl.team===state.team.myTeam) : state.coop.players)" :key="p.id" class="player-chip"
                 :style="{ background: p.color, color: chipTextColor(p.color) }">
-            {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+            {{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
           </span>
         </div>
         </div>
@@ -3361,7 +3370,7 @@ const App = {
           <div class="coop-roster" v-if="nonHostPlayers().length">
             <span v-for="p in nonHostPlayers()" :key="p.id" class="player-chip" :class="{ 'ready-chip': p.ready }"
                   :style="{ background: p.color, color: chipTextColor(p.color) }">
-              {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+              {{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
               {{ p.ready ? '✅' : '⏳' }}
             </span>
           </div>
@@ -3433,7 +3442,7 @@ const App = {
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>
             <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
               <div class="perf-head">
-                <span class="perf-name" :style="{color: pl.color}">{{ pl.name }}<template v-if="pl.id===mvpId"> {{ t('win.mvp') }}</template></span>
+                <span class="perf-name" :style="{color: pl.color}">{{ playerLabel(pl) }}<template v-if="pl.id===mvpId"> {{ t('win.mvp') }}</template></span>
                 <span class="perf-pct">{{ pl.contributionPct }}%</span>
               </div>
               <div class="perf-bar"><div class="perf-bar-fill" :style="{width: pl.contributionPct + '%', background: pl.color}"></div></div>
@@ -3446,7 +3455,7 @@ const App = {
           </div>
           <div v-if="opponentTeamPerformance.length" class="opponent-team-performance">
             <div class="perf-title">{{ t('team.opponentLivesLostPerPlayer') }}</div>
-            <span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ pl.name }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
+            <span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ playerLabel(pl) }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
           </div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
           <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
@@ -3475,7 +3484,7 @@ const App = {
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>
             <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
               <div class="perf-head">
-                <span class="perf-name" :style="{color: pl.color}">{{ pl.name }}<template v-if="pl.id===mvpId"> {{ t('win.mvp') }}</template></span>
+                <span class="perf-name" :style="{color: pl.color}">{{ playerLabel(pl) }}<template v-if="pl.id===mvpId"> {{ t('win.mvp') }}</template></span>
                 <span class="perf-pct">{{ pl.contributionPct }}%</span>
               </div>
               <div class="perf-bar"><div class="perf-bar-fill" :style="{width: pl.contributionPct + '%', background: pl.color}"></div></div>
@@ -3488,7 +3497,7 @@ const App = {
           </div>
           <div v-if="opponentTeamPerformance.length" class="opponent-team-performance">
             <div class="perf-title">{{ t('team.opponentLivesLostPerPlayer') }}</div>
-            <span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ pl.name }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
+            <span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ playerLabel(pl) }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
           </div>
           <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
           <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('common.newGame') }}</button>
@@ -3695,12 +3704,12 @@ const App = {
             <template v-for="p in state.coop.players" :key="p.id">
               <div class="team-slot team-slot-a">
                 <span v-if="p.team==='A'" class="player-chip" :style="{ background: p.color, color: chipTextColor(p.color) }">
-                  {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+                  {{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
                 </span>
               </div>
               <div class="team-slot team-slot-mid">
                 <template v-if="!p.team">
-                  <span class="team-mid-name">{{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template></span>
+                  <span class="team-mid-name">{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template></span>
                   <button type="button" class="team-arrow-btn" :disabled="state.coop.role!=='host'" @click="assignTeam(p.id,'A')" :aria-label="t('team.moveTo',{team:t('team.labelA')})">◀</button>
                   <button type="button" class="team-arrow-btn" :disabled="state.coop.role!=='host'" @click="assignTeam(p.id,'B')" :aria-label="t('team.moveTo',{team:t('team.labelB')})">▶</button>
                 </template>
@@ -3713,7 +3722,7 @@ const App = {
               </div>
               <div class="team-slot team-slot-b">
                 <span v-if="p.team==='B'" class="player-chip" :style="{ background: p.color, color: chipTextColor(p.color) }">
-                  {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+                  {{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
                 </span>
               </div>
             </template>
@@ -3721,7 +3730,7 @@ const App = {
           <div class="coop-roster" v-if="!state.coop.teamMode && state.coop.players.length">
             <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
                   :style="{ background: p.color, color: chipTextColor(p.color) }">
-              {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+              {{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
             </span>
           </div>
           <!-- Race-Lobby zeigt die Schwierigkeitsauswahl ein zweites Mal NUR
@@ -3773,7 +3782,7 @@ const App = {
         <div class="coop-roster" v-if="state.coop.waitingForGuest && state.coop.myId && state.coop.players.length">
           <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
                 :style="{ background: p.color, color: chipTextColor(p.color) }">
-            {{ p.name }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+            {{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
             <b v-if="state.coop.teamMode">{{ p.team ? t('team.label'+p.team) : t('team.unassigned') }}</b>
           </span>
         </div>
