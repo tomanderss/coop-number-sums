@@ -2874,7 +2874,12 @@ let pendingReloadReason = null;
 // in kurzer Zeit, wird NICHT mehr neu geladen — so kann die App nie in einer
 // Endlos-Reload-Schleife (Splash→Menü→Splash…) hängen, egal welcher Auslöser.
 const RELOAD_LOG_KEY = 'cns_reload_log';
-const RELOAD_WINDOW_MS = 60000, RELOAD_MAX = 3;
+// Fenster BEWUSST großzügig (3 min): ein Reload-Loop muss auch dann erkannt werden,
+// wenn die Zyklen LANGSAM sind (z.B. exakt alle ~36 s durch einen periodischen
+// Auslöser). Bei 60 s Fenster passten bei 36-s-Abstand nie 3 Reloads hinein → die
+// Bremse hätte nie ausgelöst und der Loop wäre endlos gelaufen. Nur unsere EIGENEN
+// (safeReload-)Neuladungen zählen hier — ein normales Kalt-Öffnen der PWA nicht.
+const RELOAD_WINDOW_MS = 180000, RELOAD_MAX = 3;
 function reloadLoopTripped(reason) {
   try {
     const now = Date.now();
@@ -2996,10 +3001,21 @@ function initDiagnostics() {
 
 function init() {
   initDiagnostics();
-  // Läuft die App 20 s stabil ohne Neuladen, gilt eine evtl. Reload-Serie als
-  // beendet → Zähler zurücksetzen, damit ein späteres legitimes Update wieder
-  // neu laden darf (die harte Bremse greift nur bei echten Schnell-Schleifen).
-  setTimeout(() => { try { localStorage.removeItem(RELOAD_LOG_KEY); } catch (_) {} }, 20000);
+  // Läuft die App STABIL (länger als das Loop-Fenster) ohne Neuladen, gilt eine
+  // evtl. Reload-Serie als beendet → Zähler zurücksetzen, damit ein späteres
+  // legitimes Update wieder neu laden darf. WICHTIG: Der Reset MUSS länger sein als
+  // das Loop-Fenster (RELOAD_WINDOW_MS) — sonst würde er den Zähler bei langsamen
+  // Loops (z.B. ~36 s) immer VOR dem nächsten Reload leeren und die Bremse aushebeln.
+  setTimeout(() => { try { localStorage.removeItem(RELOAD_LOG_KEY); } catch (_) {} }, RELOAD_WINDOW_MS + 30000);
+  // Diagnose: Abstand zum vorherigen (Neu-)Start protokollieren. Ein regelmäßiger,
+  // kurzer Abstand (z.B. exakt ~36 s) ist der Fingerabdruck einer Reload-Schleife
+  // (im Gegensatz zu unregelmäßigen iOS-Speicher-Kills). Genau ein Eintrag pro Start.
+  try {
+    const prevStart = parseInt(localStorage.getItem('cns_last_start') || '0', 10);
+    const now = Date.now();
+    if (prevStart) log('app', 'Zeit seit letztem Start', { seconds: Math.round((now - prevStart) / 1000) });
+    localStorage.setItem('cns_last_start', String(now));
+  } catch (_) {}
   applyTheme();
   applyLocale();
   refreshResume();
