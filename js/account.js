@@ -113,6 +113,20 @@ export async function authState() {
   }
 }
 
+// Live-Listener auf die EIGENE Rolle (/users/{uid}/profile/role). Feuert sofort,
+// wenn der Admin-Status (z.B. per Console/anderem Admin) gesetzt/entfernt wird —
+// so ist der angezeigte Admin-Status immer aktuell, ohne App-Neustart/Navigation.
+// cb(role). Rückgabe: Abmelde-Funktion.
+export async function watchRole(cb) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return () => {};
+    const off = fb.onValue(userRef(fb, u.uid, 'profile/role'), (snap) => cb(snap.val() || 'user'));
+    return () => { try { off(); } catch (_) {} };
+  } catch (e) { log('account', 'watchRole fehlgeschlagen', e); return () => {}; }
+}
+
 // Firebase-Fehlercodes auf knappe i18n-Suffixe abbilden (UI zeigt t('account.err.'+suffix)).
 export function errKey(e) {
   const c = ((e && e.code) || '') + ' ' + ((e && e.message) || '');

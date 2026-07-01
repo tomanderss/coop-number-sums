@@ -2503,6 +2503,19 @@ function maybeRefreshRole() {
   lastRoleRefresh = now;
   refreshAccount();
 }
+// Live-Listener auf die eigene Rolle: der Admin-Status (Home-Badge, Admin-Bereich)
+// aktualisiert sich SOFORT, wenn er per Console/anderem Admin gesetzt/entfernt wird
+// — ohne App-Neustart oder Menü-Wechsel. Rolle wird zusätzlich lokal persistiert.
+let roleUnwatch = null;
+async function startRoleWatch() {
+  if (roleUnwatch) return;   // schon aktiv
+  roleUnwatch = await Account.watchRole((role) => {
+    if (state.account.status !== 'in') return;
+    if (state.account.role !== role) log('account', 'Rolle live aktualisiert', { role });
+    state.account.role = role;
+    saveProfile({ role });
+  });
+}
 async function refreshAccount() {
   refreshAccountFromLocal();
   // Genaueren Zustand (E-Mail/Rolle) nur holen, wenn lokal schon ein Account
@@ -2519,6 +2532,7 @@ async function refreshAccount() {
         pushPresence();          // Präsenz melden, sobald der Account bestätigt ist
         startFriendsWatch();     // Freundes-/Anfragen-Listener (Badge) starten
         startLobbyInviteWatch(); // eingehende Lobby-Einladungen + Ablehnungen beobachten
+        startRoleWatch();        // Admin-Status live halten (ohne Neustart/Navigation)
       }
       else state.account.status = 'anon';
     } catch (e) { log('account', 'refreshAccount fehlgeschlagen', e); }
