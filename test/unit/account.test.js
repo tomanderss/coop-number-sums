@@ -12,8 +12,43 @@ globalThis.localStorage = new MemoryStorage();
 
 const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
-  isSignedIn, lastSyncAt, decideSync,
+  isSignedIn, lastSyncAt, decideSync, friendActivityRank, sortFriends,
 } = await import('../../js/account.js');
+
+describe('account.friendActivityRank', () => {
+  test('in-game > online > offline/none', () => {
+    assert.equal(friendActivityRank({ online: true, game: { pct: 40 } }), 2);
+    assert.equal(friendActivityRank({ online: true, game: null }), 1);
+    assert.equal(friendActivityRank({ online: false }), 0);
+    assert.equal(friendActivityRank(null), 0);
+  });
+});
+
+describe('account.sortFriends', () => {
+  test('sorts by activity desc, then username asc', () => {
+    const friends = [
+      { uid: 'a', username: 'zoe' },
+      { uid: 'b', username: 'bob' },
+      { uid: 'c', username: 'ann' },
+    ];
+    const presence = {
+      a: { online: false },                    // offline
+      b: { online: true, game: { pct: 10 } },  // in-game
+      c: { online: true, game: null },         // online
+    };
+    assert.deepEqual(sortFriends(friends, presence).map(f => f.uid), ['b', 'c', 'a']);
+  });
+  test('stable alphabetical among equal activity', () => {
+    const friends = [{ uid: 'x', username: 'carla' }, { uid: 'y', username: 'anna' }];
+    assert.deepEqual(sortFriends(friends, {}).map(f => f.username), ['anna', 'carla']);
+  });
+  test('does not mutate input', () => {
+    const friends = [{ uid: 'x', username: 'b' }, { uid: 'y', username: 'a' }];
+    const copy = [...friends];
+    sortFriends(friends, {});
+    assert.deepEqual(friends, copy);
+  });
+});
 
 describe('account.decideSync (never silently overwrites local)', () => {
   test('empty cloud → upload local (first ever backup)', () => {

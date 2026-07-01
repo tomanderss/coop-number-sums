@@ -385,6 +385,17 @@ export default {
     unlockCustomize: 'Personalizar skin',
     unlockLater: 'Más tarde',
   },
+  friends: {
+    title: 'Amigos', tabFriends: 'Amigos', tabLeaderboard: 'Clasificaciones',
+    addPlaceholder: 'Nombre de usuario…', add: 'Añadir', requestSent: 'Solicitud enviada a {name}',
+    requestsTitle: 'Solicitudes', accept: 'Aceptar', decline: 'Rechazar',
+    listTitle: 'Tus amigos', empty: 'Aún no tienes amigos: añade a alguien por su nombre de usuario arriba.', remove: 'Quitar',
+    removeTitle: 'Quitar amigo', removeMsg: '¿Quitar a {name} de tu lista de amigos?', nowFriends: '{name} ya es tu amigo 🎉',
+    online: 'En línea', offline: 'Desconectado', inGame: 'En partida · {info}',
+    mode: { solo: 'Solo', coop: 'Coop', race: '1c1', team: 'Equipo' },
+    lbSoonTitle: 'Clasificaciones muy pronto', lbSoonHint: 'Los rankings a prueba de trampas llegarán con la puntuación en el servidor.',
+    err: { invalidUsername: 'Nombre de usuario no válido.', userNotFound: 'No se encontró ningún usuario con ese nombre.', alreadyFriends: 'Ya sois amigos.', selfFriend: 'No puedes añadirte a ti mismo.', notSignedIn: 'Inicia sesión primero.' },
+  },
   shop: {
     title: 'Tienda',
     intro: 'Gana monedas ganando y gástalas aquí en extras cosméticos.',

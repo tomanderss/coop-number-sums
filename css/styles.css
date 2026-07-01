@@ -1236,6 +1236,45 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .admin-user-meta { flex: 0 0 auto; color: var(--text3); font-size: .8rem; font-variant-numeric: tabular-nums; }
 .admin-edit-modal { max-width: 400px; width: 100%; max-height: 88vh; overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 10px; }
 .admin-edit-modal h3 { word-break: break-all; }
+
+/* ── Freunde ─────────────────────────────────────────────────────────────────── */
+.home-friends-btn { position: relative; font-size: 1.05rem; }
+.friends-req-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 17px; height: 17px; padding: 0 4px; margin-left: 5px;
+  font-size: .68rem; font-weight: 900; color: #fff; background: var(--bad);
+  border-radius: 999px; line-height: 1;
+}
+.home-friends-btn .friends-req-badge { position: absolute; top: -3px; right: -3px; margin: 0; }
+.friends-modal { max-width: 420px; width: 100%; max-height: 88vh; text-align: left; display: flex; flex-direction: column; gap: 12px; }
+.friends-head { display: flex; align-items: center; justify-content: space-between; }
+.friends-head h3 { margin: 0; }
+.friends-tabs { display: flex; gap: 6px; }
+.friends-tab {
+  flex: 1; padding: 9px 6px; border: none; border-radius: 10px; cursor: pointer;
+  font-weight: 800; font-size: .92rem; color: var(--text2); background: var(--bg2);
+}
+.friends-tab.active { color: #fff; background: var(--accent); }
+.friends-body { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 64vh; }
+.friends-add { display: flex; gap: 8px; }
+.friends-add .text-input { flex: 1; }
+.friends-notice { color: var(--good); font-size: .85rem; font-weight: 600; }
+.friends-section-title { font-weight: 800; font-size: .82rem; color: var(--text3); margin-top: 6px; text-transform: uppercase; letter-spacing: .04em; }
+.friends-req-row, .friends-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--bg2); border-radius: 10px; }
+.friends-req-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.friends-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--text3); opacity: .5; }
+.friends-dot.online { background: var(--good); opacity: 1; }
+.friends-dot.ingame { background: var(--accent); opacity: 1; box-shadow: 0 0 0 3px var(--accent-soft); }
+.friends-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.friends-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friends-activity { color: var(--text3); font-size: .78rem; }
+.friends-progress { height: 5px; border-radius: 999px; background: var(--bg3, rgba(128,128,128,.25)); overflow: hidden; margin-top: 2px; }
+.friends-progress-fill { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width .4s; }
+.friends-remove { flex: none; opacity: .6; }
+.friends-remove:hover { opacity: 1; }
+.friends-leaderboard-placeholder { align-items: center; text-align: center; padding: 24px 12px; gap: 6px; }
+.friends-lb-icon { font-size: 2.6rem; }
+.friends-lb-title { font-weight: 800; font-size: 1.02rem; }
 /* Münz-Belohnung auf dem Sieg-Screen */
 .coin-reward { font-weight: 900; font-size: 1.15rem; color: #f5b301; text-align: center; margin: 2px 0 4px; }
 .coin-reward .coin-total { font-size: .8rem; font-weight: 700; color: var(--text3); }

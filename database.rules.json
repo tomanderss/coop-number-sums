@@ -57,7 +57,25 @@
           "role": {
             ".validate": "!data.exists() ? newData.val() === 'user' : (newData.val() === data.val() || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')"
           }
+        },
+        "friends": {
+          "$friendUid": {
+            ".write": "auth != null && (auth.uid === $uid || auth.uid === $friendUid)"
+          }
+        },
+        "friendRequests": {
+          "$fromUid": {
+            ".write": "auth != null && (auth.uid === $uid || auth.uid === $fromUid)"
+          }
         }
+      }
+    },
+
+    "status": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['online','lastActive'])"
       }
     },
 

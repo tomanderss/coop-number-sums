@@ -385,6 +385,17 @@ export default {
     unlockCustomize: 'Görünümü özelleştir',
     unlockLater: 'Sonra',
   },
+  friends: {
+    title: 'Arkadaşlar', tabFriends: 'Arkadaşlar', tabLeaderboard: 'Sıralamalar',
+    addPlaceholder: 'Kullanıcı adı…', add: 'Ekle', requestSent: '{name} kişisine istek gönderildi',
+    requestsTitle: 'İstekler', accept: 'Kabul et', decline: 'Reddet',
+    listTitle: 'Arkadaşların', empty: 'Henüz arkadaş yok – yukarıdan kullanıcı adıyla birini ekle.', remove: 'Kaldır',
+    removeTitle: 'Arkadaşı kaldır', removeMsg: '{name} arkadaş listenden kaldırılsın mı?', nowFriends: '{name} artık arkadaşın 🎉',
+    online: 'Çevrimiçi', offline: 'Çevrimdışı', inGame: 'Oyunda · {info}',
+    mode: { solo: 'Tek', coop: 'Coop', race: '1v1', team: 'Takım' },
+    lbSoonTitle: 'Sıralamalar çok yakında', lbSoonHint: 'Hile korumalı sıralamalar sunucu tarafı puanlamayla gelecek.',
+    err: { invalidUsername: 'Geçersiz kullanıcı adı.', userNotFound: 'Bu kullanıcı adına sahip kullanıcı bulunamadı.', alreadyFriends: 'Zaten arkadaşsınız.', selfFriend: 'Kendini ekleyemezsin.', notSignedIn: 'Lütfen önce giriş yap.' },
+  },
   shop: {
     title: 'Mağaza',
     intro: 'Kazanarak jeton topla ve burada kozmetik ekstralara harca.',

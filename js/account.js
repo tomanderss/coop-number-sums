@@ -56,6 +56,25 @@ export function decideSync({ cloudExists, localRev, cloudRev, syncedRev, hasLoca
   return 'inSync';
 }
 
+// ─── Freunde: reine Sortier-/Statuslogik (ohne Firebase — unit-testbar) ────────
+// Präsenz eines Freundes → grober Aktivitätsrang für die Sortierung (im Spiel > online > offline).
+export function friendActivityRank(presence) {
+  if (!presence) return 0;
+  if (presence.game) return 2;   // gerade in einer Partie
+  if (presence.online) return 1; // online, aber nicht im Spiel
+  return 0;                      // offline
+}
+// Freundesliste nach Aktivität (absteigend) und dann alphabetisch nach Username sortieren.
+// friends: [{ uid, username }], presenceByUid: { uid: {online,game,...} }
+export function sortFriends(friends, presenceByUid = {}) {
+  return [...(friends || [])].sort((a, b) => {
+    const ra = friendActivityRank(presenceByUid[a.uid]);
+    const rb = friendActivityRank(presenceByUid[b.uid]);
+    if (ra !== rb) return rb - ra;
+    return String(a.username || '').localeCompare(String(b.username || ''));
+  });
+}
+
 // ─── Hilfen ───────────────────────────────────────────────────────────────────
 function currentUser(fb) { return fb.auth && fb.auth.currentUser; }
 function userRef(fb, uid, sub) { return fb.ref(fb.db, `users/${uid}${sub ? '/' + sub : ''}`); }
@@ -225,6 +244,121 @@ export async function checkUsernameAvailable(newName, currentName = '') {
     if (taken && taken !== u.uid) return { ok: false, state: 'taken', name: norm };
     return { ok: true, state: 'available', name: norm };
   } catch (e) { log('account', 'Username-Verfügbarkeit prüfen fehlgeschlagen', e); return { ok: false, state: 'error', name: norm }; }
+}
+
+// ─── Freunde & Präsenz ─────────────────────────────────────────────────────────
+// Datenmodell:
+//   /users/{uid}/friends/{friendUid}         = { username, since }   (beidseitig)
+//   /users/{uid}/friendRequests/{fromUid}    = { username, ts }      (eingehende Anfragen)
+//   /status/{uid}                            = { online, lastActive, game:{mode,difficulty,size,startedAt,pct}|null }
+// Die Rules (database.rules.json) erlauben gezielt: eine Anfrage IN den Posteingang eines
+// anderen schreiben (auth.uid === $fromUid) und sich selbst in dessen friends-Liste eintragen
+// (auth.uid === $friendUid) — so funktioniert der beidseitige Freundschafts-Handschlag ohne
+// Cloud Functions. /status ist für alle Angemeldeten lesbar, nur der Eigentümer schreibt.
+
+let presenceRef = null;  // eigener /status-Knoten (für Updates während des Spiels)
+
+// Freundschaftsanfrage an einen Username schicken.
+export async function sendFriendRequest(targetUsername) {
+  const norm = normalizeUsername(targetUsername);
+  if (!isValidUsername(norm)) return { ok: false, err: 'invalidUsername' };
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, err: 'notSignedIn' };
+    const myProf = (await fb.get(userRef(fb, u.uid, 'profile'))).val() || {};
+    if (normalizeUsername(myProf.username || '') === norm) return { ok: false, err: 'selfFriend' };
+    const targetUid = (await fb.get(usernameIndexRef(fb, norm))).val();
+    if (!targetUid) return { ok: false, err: 'userNotFound' };
+    if ((await fb.get(userRef(fb, u.uid, `friends/${targetUid}`))).exists()) return { ok: false, err: 'alreadyFriends' };
+    await fb.set(fb.ref(fb.db, `users/${targetUid}/friendRequests/${u.uid}`), { username: myProf.username || '', ts: fb.serverTimestamp() });
+    log('account', 'Freundschaftsanfrage gesendet', { to: targetUid });
+    return { ok: true, targetUid };
+  } catch (e) { log('account', 'Freundschaftsanfrage fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+
+// Eingehende Anfrage annehmen: beide Seiten in die jeweilige friends-Liste eintragen.
+export async function acceptFriendRequest(fromUid, fromUsername) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, err: 'notSignedIn' };
+    const myProf = (await fb.get(userRef(fb, u.uid, 'profile'))).val() || {};
+    const since = fb.serverTimestamp();
+    await fb.set(userRef(fb, u.uid, `friends/${fromUid}`), { username: fromUsername || '', since });
+    await fb.set(fb.ref(fb.db, `users/${fromUid}/friends/${u.uid}`), { username: myProf.username || '', since });
+    await fb.remove(userRef(fb, u.uid, `friendRequests/${fromUid}`));
+    log('account', 'Freundschaftsanfrage angenommen', { from: fromUid });
+    return { ok: true };
+  } catch (e) { log('account', 'Anfrage annehmen fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+
+// Anfrage ablehnen (nur aus dem eigenen Posteingang entfernen).
+export async function declineFriendRequest(fromUid) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, err: 'notSignedIn' };
+    await fb.remove(userRef(fb, u.uid, `friendRequests/${fromUid}`));
+    return { ok: true };
+  } catch (e) { log('account', 'Anfrage ablehnen fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+
+// Freund entfernen (beidseitig).
+export async function removeFriend(friendUid) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, err: 'notSignedIn' };
+    await fb.remove(userRef(fb, u.uid, `friends/${friendUid}`));
+    await fb.remove(fb.ref(fb.db, `users/${friendUid}/friends/${u.uid}`));
+    return { ok: true };
+  } catch (e) { log('account', 'Freund entfernen fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+
+// Live-Listener auf eigene Freundesliste + eingehende Anfragen. cb bekommt {friends,requests}.
+// Rückgabe: Abmeldefunktion. Fehler → cb wird nie gerufen (App bleibt nutzbar).
+export async function watchFriends(cb) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return () => {};
+    const toArr = (val) => Object.entries(val || {}).map(([uid, v]) => ({ uid, username: (v && v.username) || '', ...v }));
+    const off1 = fb.onValue(userRef(fb, u.uid, 'friends'), (snap) => cb({ friends: toArr(snap.val()) }));
+    const off2 = fb.onValue(userRef(fb, u.uid, 'friendRequests'), (snap) => cb({ requests: toArr(snap.val()) }));
+    return () => { try { off1(); off2(); } catch (_) {} };
+  } catch (e) { log('account', 'watchFriends fehlgeschlagen', e); return () => {}; }
+}
+
+// Präsenz-Listener auf die /status-Knoten mehrerer Freunde. cb(uid, status|null).
+export async function watchPresence(uids, cb) {
+  try {
+    const fb = await ensureFirebase();
+    const offs = (uids || []).map((uid) => fb.onValue(fb.ref(fb.db, `status/${uid}`), (snap) => cb(uid, snap.val())));
+    return () => { offs.forEach((o) => { try { o(); } catch (_) {} }); };
+  } catch (e) { log('account', 'watchPresence fehlgeschlagen', e); return () => {}; }
+}
+
+// Eigene Präsenz veröffentlichen. game=null ⇒ online im Menü; game={...} ⇒ in einer Partie.
+// onDisconnect setzt den Knoten beim Verbindungsabbruch auf offline.
+export async function publishPresence(game = null) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return;
+    presenceRef = fb.ref(fb.db, `status/${u.uid}`);
+    fb.onDisconnect(presenceRef).set({ online: false, lastActive: fb.serverTimestamp(), game: null });
+    await fb.set(presenceRef, { online: true, lastActive: fb.serverTimestamp(), game: game || null });
+  } catch (e) { log('account', 'publishPresence fehlgeschlagen', e); }
+}
+
+// Beim Verlassen (Logout/Home) offline melden.
+export async function clearPresence() {
+  try {
+    if (!presenceRef) return;
+    const fb = await ensureFirebase();
+    await fb.set(presenceRef, { online: false, lastActive: fb.serverTimestamp(), game: null });
+  } catch (_) {}
 }
 
 // Account + Cloud-Daten löschen (DSGVO: Recht auf Vergessenwerden, clientseitig).
