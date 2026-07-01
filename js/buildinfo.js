@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.10';
-export const BUILD_HASH = '24d1d5d';
+export const BUILD      = '1.11';
+export const BUILD_HASH = '75cf617';
 
 export const CHANGELOG = [
+  {
+    "version": "1.11",
+    "date": "01.07.2026",
+    "changes": [
+      "Cage-Summen wieder überall gut lesbar: Schriftfarbe der Summe passt sich der Cage-Farbe an (dunkel auf hellen, weiß auf dunklen Cages) und das Summenfeld hebt sich klar vom Cage-Hintergrund ab",
+      "Coop-Verbindung stabiler: Während eines Spiels bleibt der Bildschirm aktiv (Wake Lock), damit das Gerät nicht in den Standby geht und die Verbindung gar nicht erst abreißt"
+    ]
+  },
   {
     "version": "1.10",
     "date": "01.07.2026",
