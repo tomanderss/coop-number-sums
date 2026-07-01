@@ -1,2 +1,0 @@
-Schwierigkeitsauswahl: die Münz-Belohnung überdeckt nicht mehr den Namen der Schwierigkeit
-Admin-Kennzeichen aus dem Hauptmenü entfernt (überdeckte Icons); der Admin-Status steht jetzt nur in den Einstellungen unter Konto (👑)
