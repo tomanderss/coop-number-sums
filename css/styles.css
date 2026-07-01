@@ -408,7 +408,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    die Cage aufgelöst ist (dann fehlt die .region-Klasse → normaler Hintergrund). */
 .cell.region {
   background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .64);
-  --rcol: hsl(var(--rc-h) calc(var(--rc-s)) calc(var(--rc-l) - 8%));
+  /* Summen-Chip-Hintergrund: opake Cage-Farbe, Helligkeit in ein lesbares Band
+     geklemmt (24–54 %, l−14; identisch zu CHIP_L_MIN/MAX/OFFSET + regionChipInk()
+     in config.js, das darauf die Schriftfarbe --rc-ink wählt). So erreicht jede
+     Farbe mit Schwarz oder Weiß mind. WCAG-AA (4.5:1); ohne Klemmung war der Chip
+     bei hellen Cages fast weiß → weiße Ziffer unlesbar. */
+  --rcol: hsl(var(--rc-h) var(--rc-s) clamp(24%, calc(var(--rc-l) - 14%), 54%));
   transition: background .25s;
 }
 :root[data-theme="light"] .cell.region { background: hsl(var(--rc-h) var(--rc-s) var(--rc-l) / .52); }
@@ -416,8 +421,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .rchip {
   position: absolute; top: 2px; left: 2px; z-index: 3;
   font-size: calc(var(--fs) * .48); font-weight: 800; line-height: 1.4;
-  color: var(--ink); background: var(--rcol);
+  /* --rc-ink (aus cellStyle) = schwarz/weiß je nach Chip-Helligkeit → lesbar auf
+     ALLEN Cage-Farben. Drop-Shadow + feiner Rand heben den Chip zuverlässig von
+     der Cage-Füllung ab, auch wenn Chip- und Füllfarbe nahe beieinanderliegen. */
+  color: var(--rc-ink, var(--ink)); background: var(--rcol);
   padding: 0 4px; border-radius: 4px; min-width: 1.6em; text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.45), inset 0 0 0 1px rgba(0,0,0,.14);
 }
 
 /* eingekreist */

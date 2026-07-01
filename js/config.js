@@ -118,6 +118,35 @@ export function regionColorDist(a, b) {
   return Math.min(dDark, dLight);
 }
 
+// ─── CAGE-SUMMEN-CHIP: Kontrast ───────────────────────────────────────────────
+// Der Summen-Chip (.rchip) hat einen OPAKEN Hintergrund in der Cage-Farbe
+// (Helligkeit l−CHIP_L_OFFSET, in beiden Themes identisch). Bei sehr hellen
+// Cage-Farben war die weiße Ziffer kaum lesbar. CHIP_L_MIN/MAX/OFFSET klemmen die
+// Chip-Helligkeit in ein lesbares Band (identisch zur clamp()-Regel in
+// styles.css) — so, dass für JEDE Palettenfarbe entweder Schwarz oder Weiß
+// mindestens WCAG-AA-Kontrast (4.5:1) erreicht — und regionChipInk()
+// wählt anhand der WAHRGENOMMENEN Helligkeit dieses (opaken) Chips schwarze oder
+// weiße Schrift — theme-unabhängig, weil der Chip in beiden Themes gleich aussieht.
+export const CHIP_L_MIN = 24, CHIP_L_MAX = 54, CHIP_L_OFFSET = 14;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+// WCAG-Relativluminanz (0..1) einer RGB-Farbe (0..255).
+function relLuminance([r, g, b]) {
+  const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+const DARK_INK = '#12182a', LIGHT_INK = '#ffffff';
+const DARK_INK_L = relLuminance([0x12, 0x18, 0x2a]), LIGHT_INK_L = relLuminance([255, 255, 255]);
+const contrast = (l1, l2) => (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+// Ideale Schriftfarbe für den Summen-Chip einer Cage-Farbe: wähle dunkel ODER
+// weiß — je nachdem, was den HÖHEREN WCAG-Kontrast zum (opaken, geklemmten)
+// Chip-Hintergrund liefert. Maximiert die Lesbarkeit über die ganze Palette
+// (statt einer festen Helligkeitsschwelle, die bei mittleren Tönen daneben liegt).
+export function regionChipInk(color) {
+  const lc = clamp(color.l - CHIP_L_OFFSET, CHIP_L_MIN, CHIP_L_MAX);
+  const bgL = relLuminance(hslToRgb(color.h, color.s, lc));
+  return contrast(DARK_INK_L, bgL) >= contrast(LIGHT_INK_L, bgL) ? DARK_INK : LIGHT_INK;
+}
+
 // ─── COOP-IDENTITÄTSFARBEN ────────────────────────────────────────────────────
 // Bewusst ohne Grün/Smaragd-Töne (= Hinweis-Farbe --good, ~152°) und ohne Rot
 // (= Fehler-Farbe --bad), damit Markierungs-Farbe nie mit Hinweis/Fehler verwechselbar ist.
