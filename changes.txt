@@ -1,0 +1,1 @@
+Update-Ablauf vereinfacht: Der „Update – Backup/Neustart"-Dialog und die ständige Update-Prüfung im Hintergrund entfallen. Neue Versionen werden nur noch beim nächsten Start der App geladen; was neu ist, zeigt weiterhin der „Was ist neu"-Dialog.
