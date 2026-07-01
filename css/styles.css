@@ -1213,6 +1213,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .account-search .btn { flex: 0 0 auto; padding: 10px 16px; }
 .admin-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .admin-actions .btn { flex: 1 1 auto; }
+.admin-uid { font-size: .72rem; color: var(--text3); font-family: monospace; word-break: break-all; }
+.admin-field { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--bg3); }
+.admin-field-row { display: flex; gap: 6px; align-items: center; }
+.admin-field-row .text-input { flex: 1 1 auto; min-width: 0; }
+.admin-field-row .btn { flex: 0 0 auto; }
+/* In-Game-Admin-Abzeichen (oben mittig-rechts auf dem Home-Screen) */
+.home-admin-badge {
+  position: absolute; top: 0; left: 50%; transform: translateX(calc(-50% + 64px));
+  height: 30px; padding: 0 10px; border-radius: 999px;
+  background: linear-gradient(135deg, #b8860b, #f5c542); color: #1a1200;
+  font-weight: 900; font-size: .74rem; box-shadow: 0 2px 8px var(--shadow); z-index: 2;
+}
 /* Münz-Belohnung auf dem Sieg-Screen */
 .coin-reward { font-weight: 900; font-size: 1.15rem; color: #f5b301; text-align: center; margin: 2px 0 4px; }
 .coin-reward .coin-total { font-size: .8rem; font-weight: 700; color: var(--text3); }
