@@ -240,24 +240,25 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transition: transform .12s, border-color .15s;
 }
 /* Münz-Belohnung der Schwierigkeit als eigene, rechtsbündige Zeile oben auf der
-   Karte (im normalen Fluss, NICHT absolut) — so kann sie den Namen niemals
-   überlappen, egal wie lang der Name oder wie groß der Betrag ist. */
+   Karte. Sitzt in DERSELBEN Zeile wie die Maßangabe (r×c links, Münze rechts)
+   → kostet keine zusätzliche Kartenhöhe (Auswahl passt ohne Scrollen) und kann
+   den darüberstehenden Namen nie überlappen (Name wird voll angezeigt). */
 .opt-coins {
-  align-self: flex-end; z-index: 1;
+  z-index: 1; flex: 0 0 auto;
   font-size: .72rem; font-weight: 800; color: #b8860b;
   background: hsl(45 90% 88% / .9); border-radius: 999px; padding: 1px 7px;
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
+/* Zeile mit Maßangabe (links) und Münz-Belohnung (rechts). */
+.opt-dimrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 :root[data-theme="dark"] .opt-coins { color: #ffd970; background: hsl(45 60% 22% / .8); }
 .opt-card:active { transform: scale(.97); }
 .opt-card.active { border-color: var(--accent); background: var(--accent-soft); }
-/* Voller Platz für den Namen — die Münze liegt jetzt in einer eigenen Zeile
-   darüber (kein reservierter Rand mehr nötig). */
+/* Der Name hat die volle Kopfzeilenbreite (die Münze liegt in der Maß-Zeile
+   darunter) und wird immer vollständig gezeigt. */
 .opt-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .opt-emoji { font-size: 1.05rem; line-height: 1; flex: 0 0 auto; }
-/* Name hat die volle Kopfzeilenbreite (keine konkurrierende Maßangabe) und wird
-   immer vollständig gezeigt. */
-.opt-name { font-weight: 800; font-size: .9rem; line-height: 1.1; white-space: nowrap; }
+.opt-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 800; font-size: .9rem; line-height: 1.1; white-space: nowrap; }
 /* Maßangabe in eigener Zeile, unter dem Namen eingerückt (bündig mit dem Namen,
    nicht unter dem Emoji). */
 .opt-dim { padding-left: 26px; margin-top: -2px; font-size: .68rem; font-weight: 700; color: var(--text3); font-variant-numeric: tabular-nums; }
