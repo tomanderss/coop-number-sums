@@ -167,6 +167,9 @@ const state = reactive({
     mode: 'in',              // Formular-Umschalter: 'in' (Anmelden) | 'up' (Registrieren)
     email_in: '', pw_in: '', email_up: '', username_up: '', pw_up: '',
     busy: false, error: null, notice: null,
+    syncState: 'idle',       // 'idle' | 'syncing' | 'ok' | 'error' — sichtbarer Cloud-Sync-Status
+    syncErrorMsg: '',        // konkrete Fehlermeldung des letzten fehlgeschlagenen Syncs
+    lastSyncAt: 0,           // Zeitstempel der letzten erfolgreichen Cloud-Sicherung
     // Admin (nur sichtbar/aktiv bei role==='admin'; Rules erzwingen es serverseitig)
     adminQuery: '', adminResult: null, adminBusy: false, adminError: null,
   },
@@ -1929,6 +1932,10 @@ function win(remote) {
     checkAchievements();
   }
   persistGame();
+  createBackup('game-end');
+  // Cloud-Sync nach jedem Sieg (der Münz-/Stats-Block oben stößt ihn bereits an;
+  // hier zur Sicherheit auch für Coop/Team, die den Block überspringen).
+  if (state.account.status === 'in') Account.scheduleSyncUp();
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
@@ -1969,6 +1976,8 @@ function lose(remote) {
     checkAchievements();
   }
   persistGame();
+  createBackup('game-end');
+  if (state.account.status === 'in') Account.scheduleSyncUp();  // nach jedem Spiel (auch Niederlage) sichern
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
@@ -2287,8 +2296,24 @@ function confirmNo() { state.modal = null; state.confirm = null; }
 // Account-Session existiert (sonst bleibt die App rein lokal/anonym).
 function refreshAccountFromLocal() {
   const p = loadProfile();
+  state.account.lastSyncAt = p.lastSyncAt || 0;
   if (p.accountId) { state.account.status = 'in'; state.account.uid = p.accountId; state.account.username = p.displayName || ''; state.account.role = p.role || 'user'; }
   else { state.account.status = 'anon'; state.account.uid = null; }
+}
+// Sofort ALLE Daten in die Cloud sichern (mit sichtbarem Status). No-op ohne Login.
+async function doSyncNow() {
+  if (state.account.status !== 'in') return;
+  state.account.syncState = 'syncing';
+  const r = await Account.syncNow();
+  if (r.ok) { state.account.syncState = 'ok'; state.account.lastSyncAt = r.ts; state.account.syncErrorMsg = ''; }
+  else if (r.skipped) { state.account.syncState = 'idle'; }
+  else { state.account.syncState = 'error'; state.account.syncErrorMsg = r.err ? accErr(r.err) : ''; }
+}
+// Zeitpunkt der letzten Cloud-Sicherung als Uhrzeit (locale) — '–' wenn noch nie.
+function fmtSyncTime(ts) {
+  if (!ts) return '–';
+  try { return new Date(ts).toLocaleTimeString(i18nState.locale || undefined, { hour: '2-digit', minute: '2-digit' }); }
+  catch (_) { return '–'; }
 }
 async function refreshAccount() {
   refreshAccountFromLocal();
@@ -2539,8 +2564,13 @@ function init() {
   refreshAccountFromLocal();
   if (loadProfile().accountId) {
     refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)
-    // Geschenke/Cosmetics aus der Cloud nachziehen (z.B. Admin-Skin-Geschenk).
-    Account.pullInventory().then(inv => { if (inv) { state.inventory = inv; maybeUnlockV1Skin(); } });
+    // Geschenke/Cosmetics aus der Cloud nachziehen (z.B. Admin-Skin-Geschenk),
+    // danach SOFORT den aktuellen Stand hochsichern.
+    Account.pullInventory()
+      .then(inv => { if (inv) { state.inventory = inv; maybeUnlockV1Skin(); } })
+      .finally(() => doSyncNow());
+    // …und automatisch alle 60 s weiter sichern, solange die App offen ist.
+    setInterval(() => { if (state.account.status === 'in') doSyncNow(); }, 60000);
   }
   maybeShowWhatsNew();
   maybeUnlockV1Skin();  // 1.0-Feier-Skin beim Versionssprung (vor dismissWhatsNew, das die Version speichert)
@@ -2774,7 +2804,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
-      doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount,
+      doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       adminSearch, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
@@ -3688,7 +3718,13 @@ const App = {
               <div class="account-row"><span class="account-label">{{ t('account.username') }}</span><b>{{ state.account.username }}</b></div>
               <div class="account-row" v-if="state.account.email"><span class="account-label">{{ t('account.email') }}</span><span>{{ state.account.email }}</span></div>
               <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }">{{ state.account.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
-              <div class="account-sync">☁️ {{ t('account.syncOn') }}</div>
+              <div class="account-sync" :class="'sync-'+state.account.syncState">
+                <template v-if="state.account.syncState==='syncing'"><span class="spinner-inline"></span> {{ t('account.syncing') }}</template>
+                <template v-else-if="state.account.syncState==='error'">⚠️ {{ state.account.syncErrorMsg || t('account.syncError') }}</template>
+                <template v-else-if="state.account.lastSyncAt">{{ t('account.syncedAt', { time: fmtSyncTime(state.account.lastSyncAt) }) }}</template>
+                <template v-else>☁️ {{ t('account.syncOn') }}</template>
+              </div>
+              <button class="btn btn-ghost btn-sm" :disabled="state.account.syncState==='syncing'" @click="doSyncNow">🔄 {{ t('account.syncNow') }}</button>
             </div>
             <button class="btn btn-ghost" :disabled="state.account.busy" @click="doSignOut">{{ t('account.signOut') }}</button>
             <button class="btn btn-danger-ghost" :disabled="state.account.busy" @click="doDeleteAccount">{{ t('account.deleteAccount') }}</button>
@@ -4050,13 +4086,15 @@ nextTick(() => {
 // JS-Kontext lief im Hintergrund weiter). Der kalte Fall (JS-Kontext verloren,
 // z.B. App aus dem Speicher entfernt) läuft stattdessen über den "Coop
 // fortsetzen"-Button (resumeCoopGame()/Coop.rejoin()) beim nächsten App-Start.
-window.addEventListener('pagehide', () => { persistGame(); createBackup('close'); });
+window.addEventListener('pagehide', () => { persistGame(); createBackup('close'); if (state.account.status === 'in') Account.syncNow(); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     pauseGame();
     persistGame(); createBackup('close');
-  } else if (document.visibilityState === 'visible' && state.coop.active) {
-    Coop.ensurePresence({ name: state.settings.coopName, color: state.settings.coopMyColor, role: state.coop.role });
+    if (state.account.status === 'in') Account.syncNow();  // beim Schließen/Wegwischen sofort in die Cloud sichern
+  } else if (document.visibilityState === 'visible') {
+    if (state.coop.active) Coop.ensurePresence({ name: state.settings.coopName, color: state.settings.coopMyColor, role: state.coop.role });
+    if (state.account.status === 'in') doSyncNow();  // beim Zurückkehren frisch sichern (Status sichtbar)
   }
 });
 

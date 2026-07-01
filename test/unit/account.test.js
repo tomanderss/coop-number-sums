@@ -12,7 +12,22 @@ globalThis.localStorage = new MemoryStorage();
 
 const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
+  isSignedIn, lastSyncAt,
 } = await import('../../js/account.js');
+const { saveProfile } = await import('../../js/storage.js');
+
+describe('account.session flags', () => {
+  test('isSignedIn/lastSyncAt reflect the persisted local profile', () => {
+    globalThis.localStorage.clear();
+    assert.equal(isSignedIn(), false);
+    assert.equal(lastSyncAt(), 0);
+    saveProfile({ accountId: 'uid123', lastSyncAt: 42 });
+    assert.equal(isSignedIn(), true);
+    assert.equal(lastSyncAt(), 42);
+    saveProfile({ accountId: null });
+    assert.equal(isSignedIn(), false);
+  });
+});
 
 describe('account.username', () => {
   test('normalizeUsername trims and lowercases', () => {
@@ -62,6 +77,8 @@ describe('account.errKey', () => {
     assert.equal(errKey({ code: 'auth/email-already-in-use' }), 'emailInUse');
     assert.equal(errKey({ code: 'auth/wrong-password' }), 'wrongPassword');
     assert.equal(errKey({ code: 'auth/operation-not-allowed' }), 'notEnabled');
+    assert.equal(errKey({ code: 'PERMISSION_DENIED', message: 'permission_denied at /users' }), 'permissionDenied');
+    assert.equal(errKey({ message: 'PERMISSION_DENIED: Permission denied' }), 'permissionDenied');
     assert.equal(errKey({ code: 'auth/too-many-requests' }), 'tooMany');
     assert.equal(errKey({ code: 'auth/requires-recent-login' }), 'reauth');
     assert.equal(errKey({}), 'generic');

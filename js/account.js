@@ -56,7 +56,10 @@ export async function authState() {
 
 // Firebase-Fehlercodes auf knappe i18n-Suffixe abbilden (UI zeigt t('account.err.'+suffix)).
 export function errKey(e) {
-  const c = (e && e.code) || '';
+  const c = ((e && e.code) || '') + ' ' + ((e && e.message) || '');
+  // RTDB lehnt Schreibvorgänge ohne passende/veröffentlichte Rules mit
+  // PERMISSION_DENIED ab — das ist der häufigste „Sync klappt nicht"-Fall.
+  if (/permission[_-]?denied|permission/i.test(c)) return 'permissionDenied';
   if (c.includes('email-already-in-use')) return 'emailInUse';
   if (c.includes('invalid-email')) return 'invalidEmail';
   if (c.includes('weak-password')) return 'weakPassword';
@@ -115,6 +118,9 @@ export async function signIn({ email, password }) {
     const cred = await fb.authMod.signInWithEmailAndPassword(fb.auth, email, password);
     const uid = cred.user.uid;
     await syncDown(fb, uid);  // Cloud -> lokal (mit Inventar-Union)
+    // WICHTIG: accountId lokal festhalten, sonst zeigt die App nach dem Reload wieder
+    // den Login (refreshAccountFromLocal liest loadProfile().accountId).
+    saveProfile({ accountId: uid });
     log('account', 'Anmeldung erfolgreich', { uid });
     return { ok: true, reload: true };
   } catch (e) {
@@ -200,18 +206,32 @@ export async function pullInventory() {
   return null;
 }
 
-// Best-effort Upload des aktuellen Stands (debounced vom Aufrufer). No-op ohne Login.
+// Sync-Status (schnell, ohne Firebase zu laden) fürs UI/Trigger-Gating.
+export function isSignedIn() { return !!loadProfile().accountId; }
+export function lastSyncAt() { return loadProfile().lastSyncAt || 0; }
+// Zeitstempel der letzten erfolgreichen Cloud-Sicherung im Profil ablegen (überlebt Reload).
+function stampSynced() { const ts = Date.now(); saveProfile({ lastSyncAt: ts }); return ts; }
+
+// SOFORTIGER Upload ALLER Daten in die Cloud. Liefert { ok, ts } bzw.
+// { ok:false, skipped:true } wenn nicht eingeloggt (dann rein lokal, kein Fehler).
+export async function syncNow() {
+  if (!isSignedIn()) return { ok: false, skipped: true };
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, skipped: true };
+    await uploadLocal(fb, u.uid);
+    const ts = stampSynced();
+    log('account', 'Cloud-Sync hochgeladen', { uid: u.uid });
+    return { ok: true, ts };
+  } catch (e) { log('account', 'Cloud-Sync fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+
+// Best-effort, entprellter Upload (mehrere schnelle Aufrufe → ein Upload). No-op ohne Login.
 let _syncTimer = null;
 export function scheduleSyncUp() {
-  if (_syncTimer) return;
-  _syncTimer = setTimeout(async () => {
-    _syncTimer = null;
-    try {
-      const fb = await ensureFirebase();
-      const u = currentUser(fb);
-      if (u && !u.isAnonymous) { await uploadLocal(fb, u.uid); log('account', 'Cloud-Sync hochgeladen', { uid: u.uid }); }
-    } catch (e) { log('account', 'Cloud-Sync fehlgeschlagen', e); }
-  }, 4000);
+  if (_syncTimer || !isSignedIn()) return;
+  _syncTimer = setTimeout(() => { _syncTimer = null; syncNow(); }, 4000);
 }
 
 // ─── Admin (nur wirksam, wenn die eigene Rolle 'admin' ist — RTDB-Rules erzwingen
