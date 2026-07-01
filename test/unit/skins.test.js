@@ -4,8 +4,27 @@ import assert from 'node:assert/strict';
 const {
   SKIN_ID, SKIN_UNLOCK_VERSION, SKIN_CODE_NORM, SKIN_STYLES, FOUNDER_ID,
   cmpVersion, qualifiesForV1Skin, eligibleForCelebrationSkin, normalizeSkinCode, skinCodeMatches,
-  skinVars, skinClasses,
+  skinVars, skinClasses, skinSpeedToDuration,
 } = await import('../../js/skins.js');
+
+describe('skins.skinSpeedToDuration (higher speed = shorter duration)', () => {
+  test('a higher speed value yields a SHORTER animation duration (faster)', () => {
+    const slow = skinSpeedToDuration(2);
+    const fast = skinSpeedToDuration(12);
+    assert.ok(fast < slow, 'more speed must mean a shorter period');
+  });
+  test('speed 6 keeps the historical 2s/turn default', () => {
+    assert.equal(skinSpeedToDuration(6), 2);
+  });
+  test('speed 0 means no rotation (0s)', () => {
+    assert.equal(skinSpeedToDuration(0), 0);
+  });
+  test('skinVars uses the inverted duration, not the raw slider value', () => {
+    assert.equal(skinVars({ skinSpeed: 12 })['--skin-speed'], '1s');   // fastest
+    assert.equal(skinVars({ skinSpeed: 6 })['--skin-speed'], '2s');    // default
+    assert.equal(skinVars({ skinSpeed: 0 })['--skin-speed'], '0s');    // off
+  });
+});
 
 describe('skins.eligibleForCelebrationSkin', () => {
   test('everyone on >=1.0 gets the skin — including fresh installs (no seen version)', () => {
