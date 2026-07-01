@@ -3032,7 +3032,11 @@ function init() {
       refreshAccountFromLocal();  // lastSync/Status auffrischen
     });
     // …und automatisch alle 60 s weiter sichern, solange die App offen ist.
-    setInterval(() => { if (state.account.status === 'in') doSyncNow(); }, 60000);
+    // Periodischer Cloud-Sync NICHT während einer laufenden Partie (schont die
+    // Verbindung/den Speicher im konzentrationskritischen Moment; der lokale
+    // Autosave sichert den Fortschritt ohnehin). Gesichert wird stattdessen bei
+    // Spielende, beim Wechsel ins Menü und beim Verstecken/Schließen der App.
+    setInterval(() => { if (state.account.status === 'in' && !gameSessionActive()) doSyncNow(); }, 60000);
   }
   // Präsenz für Freunde alle 20 s auffrischen, solange ein Spiel läuft (Fortschritt/%).
   setInterval(() => { if (state.account.status === 'in' && gameSessionActive()) pushPresence(); }, 20000);
