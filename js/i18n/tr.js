@@ -322,6 +322,9 @@ export default {
     },
   },
   admin: {
+    loadUsers: 'Tüm kullanıcıları yükle',
+    filterPlaceholder: 'Kullanıcıları filtrele…',
+    noMatch: 'Eşleşme yok.',
     setBalance: 'Ayarla',
     item: 'Öğe (envanter)',
     itemPlaceholder: 'öğe kimliği, örn. dynamicColor',

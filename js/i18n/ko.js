@@ -322,6 +322,9 @@ export default {
     },
   },
   admin: {
+    loadUsers: '모든 사용자 불러오기',
+    filterPlaceholder: '사용자 필터…',
+    noMatch: '결과 없음.',
     setBalance: '설정',
     item: '아이템(인벤토리)',
     itemPlaceholder: '아이템 ID, 예: dynamicColor',
