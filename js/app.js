@@ -162,7 +162,8 @@ const state = reactive({
   syncConflictBusy: false,
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
-  settingsTab: 'allgemein',  // aktiver Reiter im Einstellungen-Screen: allgemein | spiel | ton | konto | daten
+  settingsTab: 'spiel',      // aktive Sektion im Einstellungen-Screen (Drawer): spiel | darstellung | farbe | ton | konto | daten
+  settingsDrawerOpen: false, // Einstellungs-Seitenleiste (von links) offen?
   // Optionaler Account (E-Mail+Username+PW, Cloud-Sync). Anonymous-first: ohne
   // Login bleibt alles lokal. status: 'anon' | 'in'; busy während Auth-Aktionen.
   account: {
@@ -394,12 +395,32 @@ function resumeFromPause(broadcast = true) {
 // pauseGame() broadcastet im Coop/Race, sodass ALLE Spieler mitpausieren; es
 // schützt sich selbst gegen Doppelpause/Lobby/Nicht-Spielen.
 let settingsReturn = null;
+// Sektionen der Einstellungs-Seitenleiste (Drawer), bewusst nach Relevanz
+// sortiert: spielrelevantes zuerst, Farbe/Anpassung als eigener Reiter, Konto,
+// Daten/Sicherung ganz zuletzt.
+const SETTINGS_SECTIONS = [
+  { id: 'spiel',       ic: '🎮', key: 'settings.tabGame' },
+  { id: 'darstellung', ic: '🌓', key: 'settings.secAppearance' },
+  { id: 'farbe',       ic: '🎨', key: 'settings.secColors' },
+  { id: 'ton',         ic: '🔊', key: 'settings.tabSound' },
+  { id: 'konto',       ic: '👤', key: 'settings.tabAccount' },
+  { id: 'daten',       ic: '💾', key: 'settings.tabData' },
+];
 function openSettings() {
   if (state.screen === 'settings') return;
   settingsReturn = state.screen;
   if (state.screen === 'game') pauseGame();
+  state.settingsDrawerOpen = false;
   navigate('settings');
 }
+// Sektion in der Seitenleiste wählen: umschalten + Drawer schließen; beim Konto
+// zusätzlich den Account-Status auffrischen (wie zuvor beim Tab-Klick).
+function selectSettingsSection(id) {
+  state.settingsTab = id;
+  state.settingsDrawerOpen = false;
+  if (id === 'konto') refreshAccount();
+}
+function toggleSettingsDrawer() { state.settingsDrawerOpen = !state.settingsDrawerOpen; }
 // Zurück aus den Einstellungen zum Ausgangs-Screen. Ein währenddessen pausiertes
 // Spiel bleibt pausiert (Pause-Overlay mit „Fortsetzen") — bewusst kein Auto-Resume.
 function closeSettings() {
@@ -2475,7 +2496,7 @@ function openSkinEditor() {
   // Wer den Skin anpassen möchte, will ihn auch sehen → aktivieren (Default ist aus).
   state.settings.skinEnabled = true;
   state.skinJustUnlocked = false;
-  navigate('settings'); state.settingsTab = 'allgemein';
+  navigate('settings'); state.settingsTab = 'farbe';
   nextTick(() => { document.querySelector('.skin-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
 }
 
@@ -2842,6 +2863,7 @@ const App = {
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
+      SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsDrawer,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime, resolveSyncConflict, fmtSyncDateTime,
@@ -3547,18 +3569,58 @@ const App = {
 
     <!-- ══ SETTINGS ══ -->
     <section v-else-if="state.screen==='settings'" class="screen settings">
-      <header class="topbar"><button class="icon-btn" @click="closeSettings">‹</button><h2>{{ t('settings.title') }}</h2><span></span></header>
-      <div class="settings-body">
-        <div class="seg settings-tabs">
-          <button :class="{ active: state.settingsTab==='allgemein' }" @click="state.settingsTab='allgemein'">{{ t('settings.tabGeneral') }}</button>
-          <button :class="{ active: state.settingsTab==='spiel' }" @click="state.settingsTab='spiel'">{{ t('settings.tabGame') }}</button>
-          <button :class="{ active: state.settingsTab==='ton' }" @click="state.settingsTab='ton'">{{ t('settings.tabSound') }}</button>
-          <button :class="{ active: state.settingsTab==='konto' }" @click="state.settingsTab='konto'; refreshAccount()">{{ t('settings.tabAccount') }}</button>
-          <button :class="{ active: state.settingsTab==='daten' }" @click="state.settingsTab='daten'">{{ t('settings.tabData') }}</button>
-        </div>
+      <header class="topbar">
+        <button class="icon-btn settings-menu-btn" @click="toggleSettingsDrawer" :aria-label="t('settings.menu')" :title="t('settings.menu')">☰</button>
+        <h2>{{ t(SETTINGS_SECTIONS.find(s => s.id===state.settingsTab)?.key || 'settings.title') }}</h2>
+        <button class="icon-btn" @click="closeSettings" :aria-label="t('common.back')">‹</button>
+      </header>
 
-        <!-- Reiter: Allgemein (Darstellung, Sonstiges, Barrierefreiheit) -->
-        <template v-if="state.settingsTab==='allgemein'">
+      <!-- Seitenleiste (Drawer) von links: ersetzt die früheren Top-Tabs -->
+      <div v-if="state.settingsDrawerOpen" class="settings-drawer-backdrop" @click="state.settingsDrawerOpen=false"></div>
+      <nav class="settings-drawer" :class="{ open: state.settingsDrawerOpen }" :aria-hidden="!state.settingsDrawerOpen">
+        <div class="settings-drawer-title">{{ t('settings.title') }}</div>
+        <button v-for="s in SETTINGS_SECTIONS" :key="s.id" class="settings-nav-item"
+                :class="{ active: state.settingsTab===s.id }" @click="selectSettingsSection(s.id)">
+          <span class="nav-ic">{{ s.ic }}</span><span>{{ t(s.key) }}</span>
+        </button>
+      </nav>
+
+      <div class="settings-body">
+
+        <!-- Sektion: Spiel (Spielhilfe, Anzeige im Spiel) -->
+        <template v-if="state.settingsTab==='spiel'">
+          <div class="set-group-title">{{ t('settings.gameHelp') }}</div>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.errorReveal') }}</span>
+            <div class="seg">
+              <button :class="{active:state.settings.errorReveal==='instant'}" @click="setSetting('errorReveal','instant')">{{ t('settings.instant') }}</button>
+              <button :class="{active:state.settings.errorReveal==='onCheck'}" @click="setSetting('errorReveal','onCheck')">{{ t('settings.onCheck') }}</button>
+            </div>
+            <small class="set-hint">{{ state.settings.errorReveal==='instant' ? t('settings.errorRevealHintInstant') : t('settings.errorRevealHintOnCheck') }}</small>
+          </div>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.eraseStyle') }}</span>
+            <div class="seg">
+              <button :class="{active:state.settings.eraseStyle==='hide'}" @click="setSetting('eraseStyle','hide')">{{ t('settings.hide') }}</button>
+              <button :class="{active:state.settings.eraseStyle==='strike'}" @click="setSetting('eraseStyle','strike')">{{ t('settings.strike') }}</button>
+            </div>
+          </div>
+          <div class="set-row" @click="toggleSetting('livesEnabled')">
+            <span>{{ t('settings.livesEnabled') }}</span><span class="switch" :class="{on:state.settings.livesEnabled}"><i></i></span>
+          </div>
+
+          <div class="set-group-title">{{ t('settings.gameDisplay') }}</div>
+          <div class="set-row" @click="toggleSetting('showTimer')">
+            <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('coopRemovedOutline')">
+            <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
+          </div>
+          <small class="set-hint">{{ t('settings.coopRemovedOutlineHint') }}</small>
+        </template>
+
+        <!-- Sektion: Darstellung (Theme, Sprache, Barrierefreiheit) -->
+        <template v-else-if="state.settingsTab==='darstellung'">
           <div class="set-group-title">{{ t('settings.appearance') }}</div>
           <div class="set-row" @click="toggleSetting('darkMode')">
             <span>{{ t('settings.darkMode') }}</span><span class="switch" :class="{on:state.settings.darkMode}"><i></i></span>
@@ -3569,17 +3631,22 @@ const App = {
               <option v-for="l in SUPPORTED_LOCALES" :key="l.id" :value="l.id">{{ l.label }}</option>
             </select>
           </div>
+
+          <div class="set-group-title">{{ t('settings.a11y') }}</div>
+          <div class="set-row" @click="toggleSetting('colorBlindMode')">
+            <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
+          </div>
+          <small class="set-hint">{{ t('settings.colorBlindModeHint') }}</small>
+        </template>
+
+        <!-- Sektion: Farbe & Anpassung (eigene Farbe + dynamischer Skin) -->
+        <template v-else-if="state.settingsTab==='farbe'">
+          <div class="set-group-title">{{ t('settings.myColor') }}</div>
           <div class="set-row col">
-            <span class="set-row-label">{{ t('settings.myColor') }}</span>
             <div class="coop-swatches">
               <input type="color" class="swatch-custom" v-model="state.settings.coopMyColor" :title="t('common.pickColorTitle')" />
             </div>
             <small class="set-hint">{{ t('settings.colorHint') }}</small>
-          </div>
-
-          <div class="set-group-title">{{ t('settings.misc') }}</div>
-          <div class="set-row" @click="toggleSetting('showTimer')">
-            <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
           </div>
 
           <!-- Dynamischer Skin (1.0): Code-Einlösung immer sichtbar; Editor nur, wenn freigeschaltet -->
@@ -3651,48 +3718,9 @@ const App = {
               <button class="btn btn-primary" @click="redeemSkinCode">{{ t('skin.redeem') }}</button>
             </div>
           </template>
-
-          <div class="set-group-title">{{ t('settings.a11y') }}</div>
-          <div class="set-row" @click="toggleSetting('colorBlindMode')">
-            <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
-          </div>
-          <small class="set-hint">{{ t('settings.colorBlindModeHint') }}</small>
         </template>
 
-        <!-- Reiter: Spiel (Spielhilfe, Coop) -->
-        <template v-else-if="state.settingsTab==='spiel'">
-          <div class="set-group-title">{{ t('settings.gameHelp') }}</div>
-          <div class="set-row col">
-            <span class="set-row-label">{{ t('settings.errorReveal') }}</span>
-            <div class="seg">
-              <button :class="{active:state.settings.errorReveal==='instant'}" @click="setSetting('errorReveal','instant')">{{ t('settings.instant') }}</button>
-              <button :class="{active:state.settings.errorReveal==='onCheck'}" @click="setSetting('errorReveal','onCheck')">{{ t('settings.onCheck') }}</button>
-            </div>
-            <small class="set-hint">{{ state.settings.errorReveal==='instant' ? t('settings.errorRevealHintInstant') : t('settings.errorRevealHintOnCheck') }}</small>
-          </div>
-          <div class="set-row col">
-            <span class="set-row-label">{{ t('settings.eraseStyle') }}</span>
-            <div class="seg">
-              <button :class="{active:state.settings.eraseStyle==='hide'}" @click="setSetting('eraseStyle','hide')">{{ t('settings.hide') }}</button>
-              <button :class="{active:state.settings.eraseStyle==='strike'}" @click="setSetting('eraseStyle','strike')">{{ t('settings.strike') }}</button>
-            </div>
-          </div>
-          <div class="set-row" @click="toggleSetting('livesEnabled')">
-            <span>{{ t('settings.livesEnabled') }}</span><span class="switch" :class="{on:state.settings.livesEnabled}"><i></i></span>
-          </div>
-
-          <div class="set-group-title">{{ t('settings.coop') }}</div>
-          <div class="set-row col">
-            <span class="set-row-label">{{ t('settings.displayName') }}</span>
-            <input class="text-input" v-model="state.settings.coopName" maxlength="32" :placeholder="t('common.namePlaceholder')" />
-          </div>
-          <div class="set-row" @click="toggleSetting('coopRemovedOutline')">
-            <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
-          </div>
-          <small class="set-hint">{{ t('settings.coopRemovedOutlineHint') }}</small>
-        </template>
-
-        <!-- Reiter: Ton (Musik + Aktions-Sounds) -->
+        <!-- Sektion: Ton (Musik + Aktions-Sounds) -->
         <template v-else-if="state.settingsTab==='ton'">
           <div class="set-group-title">{{ t('settings.sound') }}</div>
           <small class="set-hint">{{ t('settings.soundHint') }}</small>
@@ -3747,8 +3775,16 @@ const App = {
           </div>
         </template>
 
-        <!-- Reiter: Konto (optionaler Account + Cloud-Sync) -->
+        <!-- Sektion: Konto (Profil/Anzeigename + optionaler Account + Cloud-Sync) -->
         <template v-else-if="state.settingsTab==='konto'">
+          <!-- Profil: Anzeigename (auch ohne Konto nutzbar, z.B. für Coop) -->
+          <div class="set-group-title">{{ t('settings.profile') }}</div>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.displayName') }}</span>
+            <input class="text-input" v-model="state.settings.coopName" maxlength="32" :placeholder="t('common.namePlaceholder')" />
+            <small class="set-hint">{{ t('settings.displayNameHint') }}</small>
+          </div>
+
           <div class="set-group-title">{{ t('account.title') }}</div>
           <small class="set-hint">{{ t('account.intro') }}</small>
 
@@ -3822,8 +3858,8 @@ const App = {
           <p v-if="state.account.notice" class="account-notice">{{ state.account.notice }}</p>
         </template>
 
-        <!-- Reiter: Daten (Backup/Export/Recht/Löschen) -->
-        <template v-else>
+        <!-- Sektion: Daten & Sicherung (Export/Import, Recht, Löschen) — bewusst zuletzt -->
+        <template v-else-if="state.settingsTab==='daten'">
           <div class="set-group-title">{{ t('settings.data') }}</div>
           <button class="btn btn-ghost" @click="doExport">{{ t('settings.exportBackup') }}</button>
           <label class="btn btn-ghost file-btn">{{ t('settings.importBackup') }}
