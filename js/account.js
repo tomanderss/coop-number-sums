@@ -213,8 +213,14 @@ async function applyCloud(fb, uid, snap) {
     mergeInventory(localInv);                 // eigene Unlocks nicht verlieren
   }
   await mergeCloudInventory(fb, uid);
-  const rev = (snap && snap.rev) || dataRev();
-  setDataRev(rev); setSyncedRev(rev);         // lokal == Cloud
+  // WICHTIG: syncedRev muss GENAU dem entsprechen, was decideSync beim nächsten
+  // Start als cloudRev berechnet (= snap.rev || 0). Früher wurde bei fehlendem
+  // snap.rev auf dataRev() (durch den Import frisch hochgezählt, also != 0)
+  // zurückgefallen → nächster reconcile sah cloudChanged (0 !== dataRev) → erneut
+  // 'takeCloud' → safeReload → Endlos-Reload-Schleife (Splash→Menü). Jetzt bündig
+  // mit dem, was der Vergleich sieht: fehlt der Cloud-rev, ist die Basislinie 0.
+  const rev = (snap && snap.rev) || 0;
+  setDataRev(rev); setSyncedRev(rev);         // lokal == Cloud (konsistent mit decideSync)
 }
 
 // Sync-Status (schnell, ohne Firebase zu laden) fürs UI/Trigger-Gating.

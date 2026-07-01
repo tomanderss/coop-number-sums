@@ -521,6 +521,7 @@ export default {
     start: "Los geht's",
   },
   update: {
+    reloadLoop: 'Wiederholtes Neuladen erkannt und gestoppt. Falls das Problem bleibt: App neu starten oder ab-/anmelden.',
     badge: '⬆️ Update',
     title: 'Neue Version verfügbar',
     body: 'Eine neue Version ist bereit. Du kannst vorher ein Backup deiner Daten herunterladen, danach wird die App aktualisiert und neu gestartet.',

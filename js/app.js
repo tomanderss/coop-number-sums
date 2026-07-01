@@ -2587,18 +2587,42 @@ function gameSessionActive() {
   return state.screen === 'game' || state.coop.active || state.team.active || state.race.active;
 }
 let pendingReloadReason = null;
-// Zentrale, SICHERE Neuladen-Funktion: protokolliert immer (Grund + Kontext) und
-// lädt nie mitten in einem Spiel/Coop neu — sie schiebt das Neuladen auf, bis der
-// Nutzer das Spiel verlässt (flushPendingReload() läuft beim navigate('home')).
+// Harte Reload-Schleifen-Bremse: hält die Zeitstempel der letzten (durchgeführten)
+// Neuladungen in localStorage (überlebt Reloads/PWA-Neustarts). Passieren zu viele
+// in kurzer Zeit, wird NICHT mehr neu geladen — so kann die App nie in einer
+// Endlos-Reload-Schleife (Splash→Menü→Splash…) hängen, egal welcher Auslöser.
+const RELOAD_LOG_KEY = 'cns_reload_log';
+const RELOAD_WINDOW_MS = 60000, RELOAD_MAX = 3;
+function reloadLoopTripped(reason) {
+  try {
+    const now = Date.now();
+    let arr = [];
+    try { arr = JSON.parse(localStorage.getItem(RELOAD_LOG_KEY) || '[]'); } catch (_) { arr = []; }
+    arr = (Array.isArray(arr) ? arr : []).filter(t => now - t < RELOAD_WINDOW_MS);
+    if (arr.length >= RELOAD_MAX) {
+      log('sw', 'Reload-Schleife erkannt — Neuladen unterdrückt', { reason, count: arr.length });
+      try { showToast(t('update.reloadLoop'), 'error', 7000); } catch (_) {}
+      return true;
+    }
+    arr.push(now);
+    localStorage.setItem(RELOAD_LOG_KEY, JSON.stringify(arr));
+    return false;
+  } catch (_) { return false; }
+}
+// Zentrale, SICHERE Neuladen-Funktion: protokolliert immer (Grund + Kontext),
+// lädt nie mitten in einem Spiel/Coop neu (schiebt auf bis navigate('home')) und
+// bricht Reload-Schleifen ab.
 function safeReload(reason) {
   const deferred = gameSessionActive();
   log('sw', 'Neuladen angefordert', { reason, screen: state.screen, status: state.status, coop: state.coop.active, deferred });
   if (deferred) { pendingReloadReason = reason; return; }
+  if (reloadLoopTripped(reason)) return;
   location.reload();
 }
 function flushPendingReload() {
   if (pendingReloadReason && !gameSessionActive()) {
     const reason = pendingReloadReason; pendingReloadReason = null;
+    if (reloadLoopTripped(reason)) return;
     log('sw', 'Aufgeschobenes Neuladen wird jetzt ausgeführt', { reason });
     location.reload();
   }
@@ -2692,6 +2716,10 @@ function initDiagnostics() {
 
 function init() {
   initDiagnostics();
+  // Läuft die App 20 s stabil ohne Neuladen, gilt eine evtl. Reload-Serie als
+  // beendet → Zähler zurücksetzen, damit ein späteres legitimes Update wieder
+  // neu laden darf (die harte Bremse greift nur bei echten Schnell-Schleifen).
+  setTimeout(() => { try { localStorage.removeItem(RELOAD_LOG_KEY); } catch (_) {} }, 20000);
   applyTheme();
   applyLocale();
   refreshResume();

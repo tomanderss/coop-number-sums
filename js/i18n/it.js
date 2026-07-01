@@ -521,6 +521,7 @@ export default {
     start: 'Si parte',
   },
   update: {
+    reloadLoop: 'Ricaricamenti ripetuti rilevati e interrotti. Se continua, riavvia l’app o esci e rientra.',
     badge: '⬆️ Aggiornamento',
     title: 'Aggiornamento disponibile',
     body: "È pronta una nuova versione. Puoi prima scaricare un backup dei tuoi dati; poi l'app verrà aggiornata e riavviata.",
