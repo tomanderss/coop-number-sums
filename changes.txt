@@ -1,0 +1,1 @@
+Ton-Einstellungen: Der Lautstärkeregler steht jetzt ganz oben im „Ton"-Tab (über den einzelnen Musik-/Sound-Schaltern).

@@ -4119,6 +4119,12 @@ const App = {
         <!-- Sektion: Ton (Musik + Aktions-Sounds) -->
         <template v-else-if="state.settingsTab==='ton'">
           <div class="set-group-title">{{ t('settings.sound') }}</div>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.musicVolume') }}</span>
+            <input type="range" class="set-range" min="0" max="1" step="0.01" :value="state.settings.musicVolume"
+                   :style="{ '--rangePct': Math.round(state.settings.musicVolume*100) + '%' }"
+                   @input="setSetting('musicVolume', parseFloat($event.target.value))" />
+          </div>
           <small class="set-hint">{{ t('settings.soundHint') }}</small>
           <div class="set-row" @click="toggleSetting('musicMenu')">
             <span>{{ t('settings.musicMenu') }}</span><span class="switch" :class="{on:state.settings.musicMenu}"><i></i></span>
@@ -4134,12 +4140,6 @@ const App = {
           </div>
           <div class="set-row" @click="toggleSetting('musicTraining')">
             <span>{{ t('settings.musicTraining') }}</span><span class="switch" :class="{on:state.settings.musicTraining}"><i></i></span>
-          </div>
-          <div class="set-row col">
-            <span class="set-row-label">{{ t('settings.musicVolume') }}</span>
-            <input type="range" class="set-range" min="0" max="1" step="0.01" :value="state.settings.musicVolume"
-                   :style="{ '--rangePct': Math.round(state.settings.musicVolume*100) + '%' }"
-                   @input="setSetting('musicVolume', parseFloat($event.target.value))" />
           </div>
           <small class="set-hint">{{ t('settings.sfxHintText') }}</small>
           <div class="set-row" @click="toggleSetting('sfxComplete')">
