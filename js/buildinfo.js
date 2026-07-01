@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.15';
-export const BUILD_HASH = 'd5bbc1f';
+export const BUILD      = '1.16';
+export const BUILD_HASH = '513b534';
 
 export const CHANGELOG = [
+  {
+    "version": "1.16",
+    "date": "01.07.2026",
+    "changes": [
+      "Admin: neuer User-Browser im Konto-Tab — alle Nutzer auflisten, per Suche filtern und je Nutzer ein Bearbeiten-Fenster für Rolle, Anzeigename/Username, Guthaben, Skin u. a."
+    ]
+  },
   {
     "version": "1.15",
     "date": "01.07.2026",

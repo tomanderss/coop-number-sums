@@ -1,1 +1,0 @@
-Admin: neuer User-Browser im Konto-Tab — alle Nutzer auflisten, per Suche filtern und je Nutzer ein Bearbeiten-Fenster für Rolle, Anzeigename/Username, Guthaben, Skin u. a.
