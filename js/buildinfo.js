@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.27';
-export const BUILD_HASH = '699dce5';
+export const BUILD      = '1.28';
+export const BUILD_HASH = '894552b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.28",
+    "date": "01.07.2026",
+    "changes": [
+      "Neue Bestenliste: Der Tab „Bestenlisten\" im Freunde-Menü zeigt jetzt je Schwierigkeit die schnellsten (perfekten) Solo-Zeiten aller angemeldeten Spieler in Echtzeit – mit Hervorhebung des eigenen Eintrags."
+    ]
+  },
   {
     "version": "1.27",
     "date": "01.07.2026",
