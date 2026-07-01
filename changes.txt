@@ -1,0 +1,1 @@
+Einstellungen-Seitenleiste: oberer Rand berücksichtigt jetzt die Dynamic Island/Notch — der Titel wird nicht mehr verdeckt
