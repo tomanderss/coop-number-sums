@@ -280,12 +280,32 @@ function goBack() {
   if (state.screen === 'coop') coopReset();
   navigate('home');
 }
+// Screen Wake Lock: hält den Bildschirm während eines laufenden Spiels wach.
+// Ohne das ging das Gerät nach 1-3 Min ohne Eingabe in den Standby → die PWA
+// fiel in den Hintergrund und die Coop-RTDB-Verbindung brach ab (der eigentliche
+// Grund der gemeldeten Disconnects — nicht bloß deren Anzeige). Best effort: nicht
+// jeder Browser kann die API, Fehler werden geschluckt; die Sperre wird vom Browser
+// beim Verstecken der Seite automatisch gelöst und bei Rückkehr neu angefordert.
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if (!('wakeLock' in navigator) || wakeLock) return;
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+    log('game', 'Wake Lock aktiv (Bildschirm bleibt an)');
+  } catch (e) { wakeLock = null; log('game', 'Wake Lock nicht verfügbar', e); }
+}
+async function releaseWakeLock() {
+  const wl = wakeLock; wakeLock = null;
+  try { if (wl) { await wl.release(); log('game', 'Wake Lock freigegeben'); } } catch (_) {}
+}
+
 function navigate(screen) {
   // Wurzeln des Stacks: Home ist der Ausgangspunkt, das Spiel ein eigener Modus
   // (aus dem Spiel führt der Weg über Pause/Aufgeben, nicht über den Stack).
   if (screen === 'home' || screen === 'game') navStack = [];
   state.screen = screen;
-  if (screen === 'game') startTimer(); else stopTimer();
+  if (screen === 'game') { startTimer(); requestWakeLock(); } else { stopTimer(); releaseWakeLock(); }
   updateMusic();
   // Ein während des Spiels aufgeschobenes Neuladen (Update/Cloud-Übernahme) jetzt
   // nachholen, sobald wir sicher zurück im Menü sind — nie mitten im Spiel.
@@ -4198,6 +4218,9 @@ document.addEventListener('visibilitychange', () => {
     persistGame();
     if (state.account.status === 'in') Account.syncNow();  // beim Schließen/Wegwischen sofort in die Cloud sichern
   } else if (document.visibilityState === 'visible') {
+    // Der Browser löst den Wake Lock beim Verstecken → im Spiel neu anfordern,
+    // damit der Bildschirm weiter wach bleibt und die Coop-Verbindung hält.
+    if (state.screen === 'game') requestWakeLock();
     if (state.coop.active) Coop.ensurePresence({ name: state.settings.coopName, color: state.settings.coopMyColor, role: state.coop.role });
     if (state.account.status === 'in') doSyncNow();  // beim Zurückkehren frisch sichern (Status sichtbar)
   }

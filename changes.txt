@@ -1,1 +1,2 @@
 Cage-Summen wieder überall gut lesbar: Schriftfarbe der Summe passt sich der Cage-Farbe an (dunkel auf hellen, weiß auf dunklen Cages) und das Summenfeld hebt sich klar vom Cage-Hintergrund ab
+Coop-Verbindung stabiler: Während eines Spiels bleibt der Bildschirm aktiv (Wake Lock), damit das Gerät nicht in den Standby geht und die Verbindung gar nicht erst abreißt
