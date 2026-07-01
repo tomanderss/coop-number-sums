@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.13';
-export const BUILD_HASH = '542bf91';
+export const BUILD      = '1.14';
+export const BUILD_HASH = '4e03824';
 
 export const CHANGELOG = [
+  {
+    "version": "1.14",
+    "date": "01.07.2026",
+    "changes": [
+      "Diagnose verbessert: die App protokolliert jetzt dauerhaft Lebenszyklus-Ereignisse (Hintergrund/Einfrieren/Neustart, letzter Zustand vor einem Absturz), damit seltene Spielabbrüche über das Diagnoseprotokoll nachvollziehbar sind",
+      "App-Update-Prüfung läuft nicht mehr während eines laufenden Spiels (verhindert, dass iOS die PWA beim Service-Worker-Wechsel mitten im Spiel neu lädt) und seltener (alle 2 Min statt 30 Sek)"
+    ]
+  },
   {
     "version": "1.13",
     "date": "01.07.2026",

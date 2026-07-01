@@ -1,2 +1,0 @@
-Diagnose verbessert: die App protokolliert jetzt dauerhaft Lebenszyklus-Ereignisse (Hintergrund/Einfrieren/Neustart, letzter Zustand vor einem Absturz), damit seltene Spielabbrüche über das Diagnoseprotokoll nachvollziehbar sind
-App-Update-Prüfung läuft nicht mehr während eines laufenden Spiels (verhindert, dass iOS die PWA beim Service-Worker-Wechsel mitten im Spiel neu lädt) und seltener (alle 2 Min statt 30 Sek)
