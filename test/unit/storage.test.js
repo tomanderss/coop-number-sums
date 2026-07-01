@@ -16,7 +16,7 @@ const {
   loadActiveGameCoop, saveActiveGameCoop,
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadStats, recordResult, loadSeenVersion, saveSeenVersion,
-  createBackup, loadBackups, restoreBackup, importFromFile, generateId,
+  importFromFile, generateId,
   loadStreak, recordStreakResult, loadAchievements, unlockAchievements,
   loadRace, recordRaceWin, recordRaceLoss,
   loadInventory, inventoryHas, grantInventory, revokeInventory, mergeInventory,
@@ -185,29 +185,6 @@ describe('storage.seenVersion', () => {
   });
 });
 
-describe('storage.backups', () => {
-  beforeEach(() => { globalThis.localStorage.clear(); });
-
-  // createBackup throttles repeat calls to once per 3s via a module-level
-  // timestamp shared across this whole test file, so all backup-creation
-  // assertions live in one test to avoid later calls being silently skipped.
-  test('createBackup stores a restorable snapshot, restoreBackup applies it', () => {
-    saveSettings({ darkMode: false });
-    createBackup('manual');
-    const backups = loadBackups();
-    assert.equal(backups.length, 1);
-    assert.equal(backups[0].label, 'manual');
-
-    saveSettings({ darkMode: true }); // mutate after backup
-    const ok = restoreBackup(backups[0].slot);
-    assert.equal(ok, true);
-    assert.equal(loadSettings().darkMode, false); // restored from backup
-  });
-
-  test('restoreBackup returns false for an empty slot', () => {
-    assert.equal(restoreBackup(2), false);
-  });
-});
 
 describe('storage.importFromFile', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });

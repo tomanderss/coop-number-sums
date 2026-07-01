@@ -11,7 +11,6 @@ const KEYS = {
   ACTIVE_GAME_COOP: 'cns_active_game_coop',
   COOP_SESSION: 'cns_coop_session',
   STATS: 'cns_stats',
-  BACKUP_SLOT: 'cns_bk_slot',
   SEEN_VERSION: 'cns_seen_version',
   DAILY: 'cns_daily',
   HISTORY: 'cns_history',
@@ -36,8 +35,6 @@ const USER_DATA_KEYS = new Set([
 ]);
 const COOP_SESSION_TTL_MS = 5 * 60 * 1000;
 const HISTORY_MAX = 20;
-const BACKUP_COUNT = 3;
-const bk = (i) => `cns_bk_${i}`;
 
 function load(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -363,64 +360,6 @@ const EMPTY_PROFILE = { displayName: '', role: 'user', accountId: null, createdA
 export function loadProfile() { return { ...EMPTY_PROFILE, ...load(KEYS.PROFILE, {}) }; }
 export function saveProfile(p) { save(KEYS.PROFILE, { ...loadProfile(), ...p }); return loadProfile(); }
 
-// ─── Rollende Backups (3 Slots) ───────────────────────────────────────────────
-let _lastBackupTs = 0;
-export function createBackup(label = 'auto') {
-  const now = Date.now();
-  if (now - _lastBackupTs < 3000) return;
-  _lastBackupTs = now;
-  try {
-    const slot = (parseInt(localStorage.getItem(KEYS.BACKUP_SLOT) || '0')) % BACKUP_COUNT;
-    const snapshot = {
-      ts: now, label, v: 1,
-      settings: load(KEYS.SETTINGS, {}),
-      activeGame: load(KEYS.ACTIVE_GAME, null),
-      activeGameCoop: load(KEYS.ACTIVE_GAME_COOP, null),
-      stats: load(KEYS.STATS, {}),
-      daily: load(KEYS.DAILY, {}),
-      history: load(KEYS.HISTORY, []),
-      achievements: load(KEYS.ACHIEVEMENTS, {}),
-      race: load(KEYS.RACE, {}),
-      inventory: load(KEYS.INVENTORY, {}),
-      wallet: load(KEYS.WALLET, {}),
-      profile: load(KEYS.PROFILE, {}),
-    };
-    localStorage.setItem(bk(slot), JSON.stringify(snapshot));
-    localStorage.setItem(KEYS.BACKUP_SLOT, String((slot + 1) % BACKUP_COUNT));
-  } catch (e) { log('storage', 'Backup erstellen fehlgeschlagen', e); }
-}
-export function loadBackups() {
-  const nextSlot = parseInt(localStorage.getItem(KEYS.BACKUP_SLOT) || '0');
-  const result = [];
-  for (let i = 0; i < BACKUP_COUNT; i++) {
-    const idx = (nextSlot - 1 - i + BACKUP_COUNT) % BACKUP_COUNT;
-    const raw = localStorage.getItem(bk(idx));
-    if (!raw) continue;
-    try { result.push({ slot: idx, ...JSON.parse(raw) }); }
-    catch (e) { log('storage', `Backup-Slot ${idx} laden fehlgeschlagen`, e); }
-  }
-  return result;
-}
-export function restoreBackup(slotIdx) {
-  const raw = localStorage.getItem(bk(slotIdx));
-  if (!raw) return false;
-  try {
-    const data = JSON.parse(raw);
-    if (data.settings) save(KEYS.SETTINGS, data.settings);
-    if (data.stats) save(KEYS.STATS, data.stats);
-    if (data.daily) save(KEYS.DAILY, data.daily);
-    if (data.history) save(KEYS.HISTORY, data.history);
-    if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
-    if (data.race) save(KEYS.RACE, data.race);
-    if (data.inventory) save(KEYS.INVENTORY, data.inventory);
-    if (data.wallet) save(KEYS.WALLET, data.wallet);
-    if (data.profile) save(KEYS.PROFILE, data.profile);
-    if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
-    if (data.activeGameCoop !== undefined) saveActiveGameCoop(data.activeGameCoop);
-    return true;
-  } catch (e) { log('storage', `Backup-Slot ${slotIdx} wiederherstellen fehlgeschlagen`, e); return false; }
-}
-
 // ─── Datei-Export / Import ────────────────────────────────────────────────────
 function buildTimestamp() {
   const d = new Date(); const pad = n => String(n).padStart(2, '0');
@@ -487,7 +426,6 @@ export function deleteAllData() {
   remove(KEYS.COOP_SESSION);
   remove(KEYS.STATS);
   remove(KEYS.SEEN_VERSION);
-  remove(KEYS.BACKUP_SLOT);
   remove(KEYS.DAILY);
   remove(KEYS.HISTORY);
   remove(KEYS.ACHIEVEMENTS);
@@ -498,7 +436,6 @@ export function deleteAllData() {
   remove(KEYS.DATA_REV);
   remove(KEYS.SYNCED_REV);
   remove(KEYS.LAST_SYNC);
-  for (let i = 0; i < BACKUP_COUNT; i++) remove(bk(i));
   clearLog();
 }
 
