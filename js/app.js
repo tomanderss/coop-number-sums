@@ -2206,6 +2206,25 @@ function resumeGame() {
   loadPuzzleIntoState(g.puzzle, g);
   startTimer();
 }
+// Beim Start prüfen, ob die App zuletzt MITTEN in einem laufenden Solo-Spiel
+// beendet wurde (iOS killt PWAs im Hintergrund/bei Speicherdruck ohne Vorwarnung).
+// Der 15-Sekunden-Herzschlag `cns_last_alive` (siehe initDiagnostics) hält den
+// letzten Laufzeit-Zustand fest. War das ein laufendes Solo-Spiel und liegt ein
+// passender Spielstand vor, direkt wieder hineinspringen — der Nutzer verliert so
+// nach einem Absturz seinen Fortschritt nicht mehr, statt auf Home zu landen.
+// Coop/Race bleiben beim manuellen „Fortsetzen"-Button (brauchen den offenen Raum
+// bzw. sind Wettkampf).
+function maybeAutoResumeAfterCrash() {
+  try {
+    const last = JSON.parse(localStorage.getItem('cns_last_alive') || 'null');
+    if (last && last.inGame && last.status === 'playing' && !last.coop && state.resumeAvailable) {
+      log('game', 'Auto-Fortsetzung nach unerwartetem Neustart', {
+        difficulty: state.resumeAvailable.difficulty, elapsed: state.resumeAvailable.elapsed || 0,
+      });
+      resumeGame();
+    }
+  } catch (_) {}
+}
 // Fortsetzen eines unterbrochenen Coop-Spiels (kalter Wiederverbindungsfall,
 // siehe Coop.rejoin()) -- state.coop.active/code/role/hostId müssen schon VOR
 // loadPuzzleIntoState() gesetzt sein, da dessen abschließender persistGame()-
@@ -3003,6 +3022,7 @@ function init() {
   applyTheme();
   applyLocale();
   refreshResume();
+  maybeAutoResumeAfterCrash();  // nach OS-Kill mitten im Solo-Spiel direkt zurück ins Spiel
   refreshAccountFromLocal();
   if (loadProfile().accountId) {
     refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)
