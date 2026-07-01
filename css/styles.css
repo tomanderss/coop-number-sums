@@ -1199,6 +1199,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .account-username .btn-link { padding: 2px 4px; font-size: .82rem; }
 .account-username-form { display: flex; flex-direction: column; gap: 8px; }
 .account-username-actions { display: flex; align-items: center; gap: 8px; }
+.text-input.input-invalid { border-color: var(--bad); box-shadow: 0 0 0 2px var(--bad-soft); }
+.text-input.input-valid { border-color: var(--good); box-shadow: 0 0 0 2px var(--good-soft); }
+.username-status { font-size: .82rem; font-weight: 600; }
+.username-status.checking { color: var(--text2); }
+.username-status.ok { color: var(--good); }
+.username-status.err { color: var(--bad); }
 .account-label { color: var(--text2); font-size: .85rem; }
 .account-role { font-weight: 800; }
 .account-role.admin { color: var(--accent2); }

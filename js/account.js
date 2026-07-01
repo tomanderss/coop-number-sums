@@ -202,6 +202,31 @@ export async function changeUsername(newName) {
   } catch (e) { log('account', 'Username ändern fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
 
+// Live-Verfügbarkeitsprüfung eines Usernames (für Eingabefeld während der Änderung).
+// Liefert einen Status ohne etwas zu ändern:
+//   'invalid'   – Formatregeln verletzt
+//   'unchanged' – identisch zum aktuellen eigenen Namen
+//   'available' – Key frei (oder gehört bereits mir)
+//   'taken'     – Key gehört einem anderen Nutzer
+//   'error'     – Netz-/Firebase-Fehler (Speichern nicht sperren, changeUsername prüft final)
+export async function checkUsernameAvailable(newName, currentName = '') {
+  const norm = normalizeUsername(newName);
+  if (!isValidUsername(norm)) return { ok: false, state: 'invalid', name: norm };
+  if (currentName && normalizeUsername(currentName) === norm) return { ok: true, state: 'unchanged', name: norm };
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, state: 'error', name: norm };
+    if (!currentName) {
+      const prof = (await fb.get(userRef(fb, u.uid, 'profile'))).val() || {};
+      if (prof.username && normalizeUsername(prof.username) === norm) return { ok: true, state: 'unchanged', name: norm };
+    }
+    const taken = (await fb.get(usernameIndexRef(fb, norm))).val();
+    if (taken && taken !== u.uid) return { ok: false, state: 'taken', name: norm };
+    return { ok: true, state: 'available', name: norm };
+  } catch (e) { log('account', 'Username-Verfügbarkeit prüfen fehlgeschlagen', e); return { ok: false, state: 'error', name: norm }; }
+}
+
 // Account + Cloud-Daten löschen (DSGVO: Recht auf Vergessenwerden, clientseitig).
 export async function deleteAccount() {
   try {

@@ -171,6 +171,7 @@ const state = reactive({
     mode: 'in',              // Formular-Umschalter: 'in' (Anmelden) | 'up' (Registrieren)
     email_in: '', pw_in: '', email_up: '', username_up: '', pw_up: '',
     usernameEditing: false, usernameDraft: '',   // Username im Profil ändern
+    usernameCheck: 'idle',   // Live-Eindeutigkeit: 'idle'|'checking'|'available'|'taken'|'invalid'|'unchanged'|'error'
     busy: false, error: null, notice: null,
     syncState: 'idle',       // 'idle' | 'syncing' | 'ok' | 'error' — sichtbarer Cloud-Sync-Status
     syncErrorMsg: '',        // konkrete Fehlermeldung des letzten fehlgeschlagenen Syncs
@@ -2474,18 +2475,40 @@ async function doResetPassword() {
   const r = await Account.resetPassword(email);
   if (r.ok) a.notice = t('account.resetSent'); else a.error = accErr(r.err);
 }
+let usernameCheckTimer = 0, usernameCheckSeq = 0;
 function startUsernameEdit() {
   const a = state.account;
   a.usernameDraft = a.username || '';
-  a.usernameEditing = true; a.error = null; a.notice = null;
+  a.usernameEditing = true; a.usernameCheck = 'unchanged'; a.error = null; a.notice = null;
+}
+// Live-Eindeutigkeitsprüfung mit Debounce, während getippt wird.
+function onUsernameInput() {
+  const a = state.account;
+  clearTimeout(usernameCheckTimer);
+  const draft = (a.usernameDraft || '').trim();
+  if (!draft || Account.normalizeUsername(draft) === Account.normalizeUsername(a.username || '')) {
+    a.usernameCheck = 'unchanged'; return;
+  }
+  a.usernameCheck = 'checking';
+  const seq = ++usernameCheckSeq;
+  usernameCheckTimer = setTimeout(async () => {
+    const r = await Account.checkUsernameAvailable(draft, a.username || '');
+    if (seq !== usernameCheckSeq) return;   // veraltete Antwort verwerfen
+    a.usernameCheck = r.state;
+  }, 400);
+}
+// Speichern nur erlauben, wenn frei/unverändert (oder Prüfung fehlgeschlagen → Server prüft final).
+function canSaveUsername() {
+  return ['available', 'unchanged', 'error'].includes(state.account.usernameCheck);
 }
 async function doChangeUsername() {
   const a = state.account;
+  if (!canSaveUsername()) return;
   a.busy = true; a.error = null; a.notice = null;
   try {
     const r = await Account.changeUsername(a.usernameDraft.trim());
-    if (!r.ok) { a.error = accErr(r.err); return; }
-    a.username = r.username; a.usernameEditing = false;
+    if (!r.ok) { a.error = accErr(r.err); if (r.err === 'usernameTaken') a.usernameCheck = 'taken'; return; }
+    a.username = r.username; a.usernameEditing = false; a.usernameCheck = 'idle';
     showToast(t('account.usernameChanged'), 'success', 2500);
     if (a.status === 'in') Account.scheduleSyncUp();
   } finally { a.busy = false; }
@@ -3051,7 +3074,7 @@ const App = {
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime, resolveSyncConflict, fmtSyncDateTime,
-      startUsernameEdit, doChangeUsername,
+      startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername,
       adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
@@ -4012,12 +4035,16 @@ const App = {
                 </span>
               </div>
               <div v-if="state.account.usernameEditing" class="account-username-form">
-                <input class="text-input" v-model="state.account.usernameDraft" maxlength="20" autocapitalize="none" autocomplete="off" :placeholder="t('account.newUsername')" @keydown.enter="doChangeUsername" />
+                <input class="text-input" :class="{ 'input-invalid': ['taken','invalid'].includes(state.account.usernameCheck), 'input-valid': ['available'].includes(state.account.usernameCheck) }" v-model="state.account.usernameDraft" maxlength="20" autocapitalize="none" autocomplete="off" :placeholder="t('account.newUsername')" @input="onUsernameInput" @keydown.enter="doChangeUsername" />
+                <small v-if="state.account.usernameCheck==='checking'" class="username-status checking">{{ t('account.usernameChecking') }}</small>
+                <small v-else-if="state.account.usernameCheck==='available'" class="username-status ok">✓ {{ t('account.usernameAvailable') }}</small>
+                <small v-else-if="state.account.usernameCheck==='taken'" class="username-status err">✕ {{ t('account.usernameTaken') }}</small>
+                <small v-else-if="state.account.usernameCheck==='invalid'" class="username-status err">✕ {{ t('account.usernameInvalid') }}</small>
                 <div class="account-username-actions">
-                  <button class="btn btn-primary btn-sm" :disabled="state.account.busy" @click="doChangeUsername">
+                  <button class="btn btn-primary btn-sm" :disabled="state.account.busy || !canSaveUsername()" @click="doChangeUsername">
                     <span v-if="state.account.busy"><span class="spinner-inline"></span></span><span v-else>{{ t('account.save') }}</span>
                   </button>
-                  <button class="btn-link" @click="state.account.usernameEditing=false">{{ t('common.cancel') }}</button>
+                  <button class="btn-link" @click="state.account.usernameEditing=false; state.account.usernameCheck='idle'">{{ t('common.cancel') }}</button>
                 </div>
                 <small class="set-hint">{{ t('account.usernameHint') }}</small>
               </div>

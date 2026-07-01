@@ -1,0 +1,1 @@
+Benutzername ändern: die Verfügbarkeit wird jetzt live beim Tippen geprüft (frei/vergeben farbig markiert) und Speichern ist gesperrt, solange der Name bereits vergeben oder ungültig ist
