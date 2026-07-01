@@ -50,14 +50,14 @@ describe('account.sortFriends', () => {
   });
 });
 
-describe('account.decideSync (never silently overwrites local)', () => {
+describe('account.decideSync (online always wins on divergence)', () => {
   test('empty cloud → upload local (first ever backup)', () => {
     assert.equal(decideSync({ cloudExists: false, localRev: 5, cloudRev: 0, syncedRev: null, hasLocalData: true }), 'uploadLocal');
     // even with no local data, an empty cloud just gets whatever local is
     assert.equal(decideSync({ cloudExists: false, localRev: 0, cloudRev: 0, syncedRev: null, hasLocalData: false }), 'uploadLocal');
   });
-  test('first contact + local has data + differing revs → conflict (ask, never overwrite)', () => {
-    assert.equal(decideSync({ cloudExists: true, localRev: 9, cloudRev: 4, syncedRev: null, hasLocalData: true }), 'conflict');
+  test('first contact + local has data + differing revs → take cloud (online always wins)', () => {
+    assert.equal(decideSync({ cloudExists: true, localRev: 9, cloudRev: 4, syncedRev: null, hasLocalData: true }), 'takeCloud');
   });
   test('first contact + no local data → take cloud silently', () => {
     assert.equal(decideSync({ cloudExists: true, localRev: 0, cloudRev: 4, syncedRev: null, hasLocalData: false }), 'takeCloud');
@@ -69,8 +69,8 @@ describe('account.decideSync (never silently overwrites local)', () => {
     assert.equal(decideSync({ cloudExists: true, localRev: 9, cloudRev: 4, syncedRev: 4, hasLocalData: true }), 'uploadLocal');
     assert.equal(decideSync({ cloudExists: true, localRev: 4, cloudRev: 9, syncedRev: 4, hasLocalData: true }), 'takeCloud');
   });
-  test('with a baseline: both changed → conflict', () => {
-    assert.equal(decideSync({ cloudExists: true, localRev: 9, cloudRev: 8, syncedRev: 4, hasLocalData: true }), 'conflict');
+  test('with a baseline: both changed → take cloud (online always wins, no prompt)', () => {
+    assert.equal(decideSync({ cloudExists: true, localRev: 9, cloudRev: 8, syncedRev: 4, hasLocalData: true }), 'takeCloud');
   });
   test('with a baseline: nothing changed → in sync', () => {
     assert.equal(decideSync({ cloudExists: true, localRev: 4, cloudRev: 4, syncedRev: 4, hasLocalData: true }), 'inSync');
