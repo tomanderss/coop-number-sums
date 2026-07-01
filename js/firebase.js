@@ -33,9 +33,19 @@ export function ensureFirebase() {
         // Account eingeloggt — Auth-Token wird vom SDK in IndexedDB/localStorage
         // gehalten —, übernimmt dessen uid; sonst anonym anmelden. So nutzen coop.js
         // (Räume) und account.js (Cloud-Sync) dieselbe, korrekte uid.
+        //
+        // WICHTIG: Die Persistenz-Wiederherstellung ist ASYNCHRON — direkt nach dem
+        // Reload ist auth.currentUser noch null, obwohl eine Account-Session gleich
+        // wiederhergestellt wird. Früher wurde deshalb voreilig signInAnonymously()
+        // gerufen und überschrieb die gerade wiederkehrende Account-Session (Symptom:
+        // nach Login → Reload → wieder ausgeloggt). Daher die Anonym-Anmeldung ERST
+        // AUSLÖSEN, nachdem der Listener „kein Nutzer" gemeldet hat.
         const uid = await new Promise((resolve, reject) => {
-          authMod.onAuthStateChanged(auth, (user) => { if (user) resolve(user.uid); }, reject);
-          if (!auth.currentUser) authMod.signInAnonymously(auth).catch(reject);
+          let anonTried = false;
+          authMod.onAuthStateChanged(auth, (user) => {
+            if (user) { resolve(user.uid); return; }
+            if (!anonTried) { anonTried = true; authMod.signInAnonymously(auth).catch(reject); }
+          }, reject);
         });
         log('firebase', auth.currentUser && !auth.currentUser.isAnonymous ? 'Account-Session aktiv' : 'Anonyme Anmeldung erfolgreich', { uid });
         // auth + authMod zusätzlich exportieren (für account.js); dbModule-Spread

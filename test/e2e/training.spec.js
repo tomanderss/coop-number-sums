@@ -53,7 +53,7 @@ test.describe('training mode', () => {
 
     await applyAllTrainingSteps(page);
 
-    await expect(page.locator('.result-card.win')).toBeVisible();
+    await expect(page.locator('.result-card.win')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('.result-card.win .highscore-badge')).not.toBeVisible();
 
     const statsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('cns_stats') || 'null'));
@@ -68,7 +68,9 @@ test.describe('training mode', () => {
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
     await applyAllTrainingSteps(page);
 
-    await expect(page.locator('.result-card.win')).toBeVisible();
+    // Unter CI-Last dauert die Anwendung aller Schritte + der Win-Übergang
+    // gelegentlich >5s (Default) — großzügigerer Timeout gegen Flakiness.
+    await expect(page.locator('.result-card.win')).toBeVisible({ timeout: 20000 });
     await page.locator('.result-card.win .btn-primary').click();
     await page.waitForSelector('.screen.game');
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);

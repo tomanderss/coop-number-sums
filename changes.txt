@@ -1,0 +1,1 @@
+Anmeldung bleibt jetzt nach dem Neustart erhalten: Nach dem Login wurde die Account-Sitzung beim App-Neustart versehentlich durch eine anonyme Sitzung überschrieben – dadurch musste man sich erneut anmelden. Behoben.
