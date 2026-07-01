@@ -2668,6 +2668,7 @@ function flushPendingReload() {
 // Zeigt den Update-Dialog — aber NIE während einer Spiel-/Coop-Session. Läuft
 // gerade ein Spiel, merkt pendingUpdate das und der Dialog erscheint erst danach.
 function offerUpdate() {
+  log('sw', 'Update erkannt (neuer Service Worker wartet)', { inGame: gameSessionActive(), screen: state.screen });
   if (gameSessionActive()) {
     state.pendingUpdate = true;
   } else {
@@ -2709,6 +2710,27 @@ function initDiagnostics() {
     const r = e.reason;
     log('error', 'Unbehandelte Promise-Rejection', r instanceof Error ? r : { message: String(r) });
   });
+  // 1b) Lebenszyklus-Diagnose: warum verschwindet die App mitten im Spiel? pagehide/
+  //     freeze feuern, wenn iOS/der Browser die PWA in den Hintergrund oder aus dem
+  //     Speicher schiebt; ein direkt danach folgender „App gestartet"-Eintrag im
+  //     Protokoll bedeutet: das OS hat die App neu geladen (nicht unser Code). Ein
+  //     'error'-Eintrag davor bedeutet stattdessen einen Absturz im JS. Alle Events
+  //     sind selten (nutzergetrieben) → unbedenklich fürs Protokoll.
+  const lifeInfo = () => ({ screen: state.screen, status: state.status, coop: !!state.coop.active, inGame: gameSessionActive() });
+  window.addEventListener('pagehide', (e) => log('app', 'pagehide (Seite versteckt/entladen)', { persisted: !!e.persisted, ...lifeInfo() }));
+  window.addEventListener('beforeunload', () => log('app', 'beforeunload (Seite wird entladen)', lifeInfo()));
+  document.addEventListener('freeze', () => log('app', 'freeze (Browser friert Seite ein)', lifeInfo()));
+  document.addEventListener('resume', () => log('app', 'resume (aus dem Freeze zurück)', lifeInfo()));
+  document.addEventListener('visibilitychange', () => log('app', 'visibility → ' + document.visibilityState, lifeInfo()));
+  // „Letzter Lebenszustand": alle 15 s in einen EIGENEN localStorage-Key schreiben
+  // (kein Protokoll-Spam). Beim nächsten Start wird er als eine Zeile protokolliert
+  // → so ist der letzte bekannte Zustand VOR einem harten OS-Kill/Absturz sichtbar,
+  // auch wenn kein pagehide mehr durchkam.
+  try {
+    const prev = localStorage.getItem('cns_last_alive');
+    if (prev) log('app', 'Letzter Zustand vor (Neu-)Start', JSON.parse(prev));
+  } catch (_) {}
+  setInterval(() => { try { localStorage.setItem('cns_last_alive', JSON.stringify({ atISO: new Date().toISOString(), ...lifeInfo() })); } catch (_) {} }, 15000);
   // 2) Einmaliger Geräte-/Umgebungs-Schnappschuss. Kernfrage bei Perf-Problemen:
   //    Welches Gerät/Browser, wie viele Kerne/RAM? Genau eine Zeile -> praktisch gratis.
   try {
