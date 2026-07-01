@@ -249,7 +249,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 :root[data-theme="dark"] .opt-coins { color: #ffd970; background: hsl(45 60% 22% / .8); }
 .opt-card:active { transform: scale(.97); }
 .opt-card.active { border-color: var(--accent); background: var(--accent-soft); }
-.opt-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+/* padding-right reserviert Platz für die absolut positionierte Münz-Belohnung
+   oben rechts, damit lange Schwierigkeitsnamen NICHT darunter verschwinden. */
+.opt-head { display: flex; align-items: center; gap: 6px; min-width: 0; padding-right: 58px; }
 .opt-emoji { font-size: 1.05rem; line-height: 1; flex: 0 0 auto; }
 /* Name hat die volle Kopfzeilenbreite (keine konkurrierende Maßangabe) und wird
    immer vollständig gezeigt. */
@@ -1218,13 +1220,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .admin-field-row { display: flex; gap: 6px; align-items: center; }
 .admin-field-row .text-input { flex: 1 1 auto; min-width: 0; }
 .admin-field-row .btn { flex: 0 0 auto; }
-/* In-Game-Admin-Abzeichen (oben mittig-rechts auf dem Home-Screen) */
-.home-admin-badge {
-  position: absolute; top: 0; left: 50%; transform: translateX(calc(-50% + 64px));
-  height: 30px; padding: 0 10px; border-radius: 999px;
-  background: linear-gradient(135deg, #b8860b, #f5c542); color: #1a1200;
-  font-weight: 900; font-size: .74rem; box-shadow: 0 2px 8px var(--shadow); z-index: 2;
-}
 /* Münz-Belohnung auf dem Sieg-Screen */
 .coin-reward { font-weight: 900; font-size: 1.15rem; color: #f5b301; text-align: center; margin: 2px 0 4px; }
 .coin-reward .coin-total { font-size: .8rem; font-weight: 700; color: var(--text3); }
