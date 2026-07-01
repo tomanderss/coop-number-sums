@@ -1,1 +1,0 @@
-Wichtiger Fix: Die Admin-Rolle wird nicht mehr versehentlich mit „Benutzer" überschrieben. Die Rolle ist ausschließlich serverseitig (in der Datenbank) festgelegt und wird beim Cloud-Sync weder mitgeschrieben noch beim Laden überschrieben.

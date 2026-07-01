@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.32';
-export const BUILD_HASH = '7b525f7';
+export const BUILD      = '1.33';
+export const BUILD_HASH = '7ad57cd';
 
 export const CHANGELOG = [
+  {
+    "version": "1.33",
+    "date": "01.07.2026",
+    "changes": [
+      "Wichtiger Fix: Die Admin-Rolle wird nicht mehr versehentlich mit „Benutzer\" überschrieben. Die Rolle ist ausschließlich serverseitig (in der Datenbank) festgelegt und wird beim Cloud-Sync weder mitgeschrieben noch beim Laden überschrieben."
+    ]
+  },
   {
     "version": "1.32",
     "date": "01.07.2026",
