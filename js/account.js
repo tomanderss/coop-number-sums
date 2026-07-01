@@ -595,6 +595,7 @@ export async function reconcile() {
 
 // SOFORTIGER Upload ALLER Daten in die Cloud. Liefert { ok, ts } bzw.
 // { ok:false, skipped:true } wenn nicht eingeloggt (dann rein lokal, kein Fehler).
+let _lastSyncUpAt = 0;
 export async function syncNow() {
   if (!isSignedIn()) return { ok: false, skipped: true };
   try {
@@ -602,6 +603,7 @@ export async function syncNow() {
     const u = currentUser(fb);
     if (!u || u.isAnonymous) return { ok: false, skipped: true };
     await uploadLocal(fb, u.uid);
+    _lastSyncUpAt = Date.now();
     const ts = stampSynced();
     log('account', 'Cloud-Sync hochgeladen', { uid: u.uid });
     return { ok: true, ts };
@@ -609,10 +611,18 @@ export async function syncNow() {
 }
 
 // Best-effort, entprellter Upload (mehrere schnelle Aufrufe → ein Upload). No-op ohne Login.
+// MINDESTABSTAND (SYNC_MIN_GAP_MS): Selbst wenn während des Spiels häufig ausgelöst,
+// wird höchstens alle 30 s hochgeladen. Vorher konnte der 4s-Entpreller effektiv alle
+// paar Sekunden einen vollständigen Snapshot (inkl. Spielbrett) + 3 Firebase-Ops
+// serialisieren → Dauer-Speicher-/Socket-Churn, der auf iOS harte Prozess-Kills mitten
+// im Spiel begünstigt. Der lokale Autosave (alle 400 ms) schützt den Fortschritt weiter,
+// unabhängig vom Cloud-Upload.
 let _syncTimer = null;
+const SYNC_MIN_GAP_MS = 30000;
 export function scheduleSyncUp() {
   if (_syncTimer || !isSignedIn()) return;
-  _syncTimer = setTimeout(() => { _syncTimer = null; syncNow(); }, 4000);
+  const wait = Math.max(4000, SYNC_MIN_GAP_MS - (Date.now() - _lastSyncUpAt));
+  _syncTimer = setTimeout(() => { _syncTimer = null; syncNow(); }, wait);
 }
 
 // ─── Admin (nur wirksam, wenn die eigene Rolle 'admin' ist — RTDB-Rules erzwingen

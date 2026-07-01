@@ -1,1 +1,1 @@
-Reload-Schleifen-Bremse fängt jetzt auch langsame Loops (z. B. alle ~36 s) — App kann nicht mehr endlos neu starten.
+Cloud-Sync im laufenden Spiel entschlackt (max. alle 30 s statt alle paar Sekunden, kein 60-s-Sync während der Partie) — weniger Speicherlast, seltenere Abstürze auf iOS.
