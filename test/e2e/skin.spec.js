@@ -13,7 +13,7 @@ test.describe('dynamic skin', () => {
 
     // Clear it to exercise the redeem-code path from a locked state; the code
     // field stays visible even when unlocked, so redeeming still works.
-    await page.evaluate(() => { const s = window.__cns.state; s.inventory = {}; s.screen = 'settings'; s.settingsTab = 'allgemein'; });
+    await page.evaluate(() => { const s = window.__cns.state; s.inventory = {}; s.screen = 'settings'; s.settingsTab = 'farbe'; });
     const codeInput = page.getByPlaceholder('Freischaltcode');
     await expect(codeInput).toBeVisible();
 

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, startNewGame, dismissStreakModal } from './helpers.js';
+import { gotoApp, startNewGame, dismissStreakModal, gotoSettingsSection } from './helpers.js';
 
 test.describe('home screen', () => {
   test('shows the brand, primary actions and a version number', async ({ page }) => {
@@ -29,7 +29,9 @@ test.describe('home screen', () => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
     await expect(page.locator('.screen.settings')).toBeVisible();
-    await page.locator('.screen.settings .icon-btn').click();
+    // Zurück-Knopf ist der letzte Icon-Button im Topbar (der erste ist das
+    // Hamburger-Menü der Seitenleiste).
+    await page.locator('.screen.settings .topbar .icon-btn').last().click();
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 
@@ -45,7 +47,7 @@ test.describe('home screen', () => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
     await expect(page.locator('.screen.settings')).toBeVisible();
-    await page.locator('.settings-tabs button', { hasText: 'Daten' }).click();
+    await gotoSettingsSection(page, 'Daten');
     await page.locator('.screen.settings button:has-text("Changelog")').click();
     await expect(page.locator('.modal-bg .changelog')).toBeVisible();
     await page.locator('.modal-bg .btn-primary').click();

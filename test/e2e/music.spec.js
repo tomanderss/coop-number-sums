@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, startNewGame } from './helpers.js';
+import { gotoApp, startNewGame, gotoSettingsSection } from './helpers.js';
 
 // Hintergrundmusik: prozedural, pro Bereich schaltbar (Menü + je Spielmodus),
 // Default an. Diese Tests prüfen die Steuerlogik (isPlaying-Flag) und die
@@ -48,7 +48,7 @@ test('Einstellungen: Ton-Kategorie mit Menü- + vier Modus-Schaltern und Lautst�
   await gotoApp(page);
   await page.locator('.home-settings-btn').click();
   await page.waitForSelector('.screen.settings');
-  await page.locator('.settings-tabs button', { hasText: 'Ton' }).click();
+  await gotoSettingsSection(page, 'Ton');
   await expect(page.getByText('Musik in Menüs')).toBeVisible();
   await expect(page.getByText('Musik im Solo-Modus')).toBeVisible();
   await expect(page.getByText('Musik im Coop-Modus')).toBeVisible();
@@ -61,7 +61,7 @@ test('Einstellungen: Aktions-Sounds pro Aktion schaltbar', async ({ page }) => {
   await gotoApp(page);
   await page.locator('.home-settings-btn').click();
   await page.waitForSelector('.screen.settings');
-  await page.locator('.settings-tabs button', { hasText: 'Ton' }).click();
+  await gotoSettingsSection(page, 'Ton');
   const s = page.locator('.screen.settings');
   await expect(s.getByText('Aktions-Töne — je Aktion einzeln schaltbar.')).toBeVisible();
   await expect(s.getByText('Vervollständigung (Käfig/Reihe/Spalte)')).toBeVisible();

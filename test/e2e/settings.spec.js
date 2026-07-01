@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, startNewGame } from './helpers.js';
+import { gotoApp, startNewGame, gotoSettingsSection } from './helpers.js';
 
 test.describe('settings', () => {
   test('Einstellungen im Spiel über das Pausenmenü: pausiert (gleiche Mechanik wie Pause-Knopf) und bleibt nach Zurück pausiert', async ({ page }) => {
@@ -13,8 +13,10 @@ test.describe('settings', () => {
     await page.locator('.pause-overlay').getByText('Einstellungen').click();
     await expect(page.locator('.screen.settings')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
-    // Zurück -> Spiel bleibt pausiert (Pause-Overlay wieder sichtbar)
-    await page.locator('.screen.settings .topbar .icon-btn').first().click();
+    // Zurück -> Spiel bleibt pausiert (Pause-Overlay wieder sichtbar). Der
+    // Zurück-Knopf ist der LETZTE Topbar-Icon-Button (der erste öffnet das
+    // Seitenleisten-Menü).
+    await page.locator('.screen.settings .topbar .icon-btn').last().click();
     await expect(page.locator('.screen.game')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
     await expect(page.locator('.pause-overlay')).toBeVisible();
@@ -38,6 +40,7 @@ test.describe('settings', () => {
   test('colorblind mode toggle applies a global CSS class and persists across reload', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
+    await gotoSettingsSection(page, 'Darstellung'); // Farbenblind-Modus lebt jetzt unter „Darstellung"
     const row = page.locator('.set-row', { hasText: '🎨' });
     await expect(row).toBeVisible();
     const isColorblind = () => page.evaluate(() => document.documentElement.classList.contains('colorblind'));
@@ -54,10 +57,12 @@ test.describe('settings', () => {
   test('switching language updates UI text immediately and persists', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
-    await expect(page.locator('h2')).toHaveText('Einstellungen');
+    // Sprachwahl liegt jetzt unter „Darstellung"; der Titel zeigt die aktive Sektion.
+    await gotoSettingsSection(page, 'Darstellung');
+    await expect(page.locator('.screen.settings h2')).toHaveText('Darstellung');
 
     await page.locator('select.text-input').selectOption('en');
-    await expect(page.locator('h2')).toHaveText('Settings');
+    await expect(page.locator('.screen.settings h2')).toHaveText('Appearance');
 
     await page.reload();
     await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
@@ -76,8 +81,9 @@ test.describe('settings', () => {
 
       await gotoApp(page);
       await page.locator('.home-settings-btn').click();
+      await gotoSettingsSection(page, 'Darstellung'); // Sprachwahl-Select liegt hier
       await page.locator('select.text-input').selectOption(locale);
-      await page.locator('.screen.settings .icon-btn').click();
+      await page.locator('.screen.settings .topbar .icon-btn').last().click(); // Zurück (letzter Icon-Button)
       await expect(page.locator('.screen.home')).toBeVisible();
 
       const bodyText = await page.locator('.screen.home').innerText();

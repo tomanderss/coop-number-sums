@@ -20,6 +20,14 @@ export async function gotoApp(page) {
   await page.waitForSelector('.screen.home');
 }
 
+// Öffnet die Einstellungs-Seitenleiste (Drawer) und wählt eine Sektion per
+// sichtbarem Label (z.B. 'Ton', 'Daten', 'Darstellung', 'Farbe'). Setzt voraus,
+// dass der Einstellungen-Screen bereits offen ist. Ersetzt die früheren Top-Tabs.
+export async function gotoSettingsSection(page, label) {
+  await page.locator('.settings-menu-btn').click();
+  await page.locator('.settings-nav-item', { hasText: label }).click();
+}
+
 // DIFFICULTIES (config.js) is ordered sehrleicht..mashallah, so its option
 // cards render in that same order -- pick by position rather than by label
 // text, since the visible label is translated.
