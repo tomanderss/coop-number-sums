@@ -29,9 +29,8 @@ test.describe('home screen', () => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
     await expect(page.locator('.screen.settings')).toBeVisible();
-    // Zurück-Knopf ist der letzte Icon-Button im Topbar (der erste ist das
-    // Hamburger-Menü der Seitenleiste).
-    await page.locator('.screen.settings .topbar .icon-btn').last().click();
+    // Zurück-Knopf ist der erste Icon-Button (links); der Drawer-Hamburger rechts.
+    await page.locator('.screen.settings .topbar .icon-btn').first().click();
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 
