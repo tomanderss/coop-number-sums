@@ -1,0 +1,1 @@
+Schwierigkeitsauswahl kompakter: Die Münz-Belohnung steht jetzt neben der Feldgröße (statt in einer eigenen Zeile) — die ganze Auswahl passt wieder ohne Scrollen auf den Bildschirm und die Namen werden vollständig angezeigt.
