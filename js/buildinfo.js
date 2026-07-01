@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.31';
-export const BUILD_HASH = 'f744626';
+export const BUILD      = '1.32';
+export const BUILD_HASH = '7b525f7';
 
 export const CHANGELOG = [
+  {
+    "version": "1.32",
+    "date": "01.07.2026",
+    "changes": [
+      "Freundesliste: Der Aktivitätsstatus (online / im Spiel mit Modus, Level und Fortschritt) wird jetzt nur noch bei tatsächlich online-Freunden angezeigt. Offline-Freunde erscheinen zuverlässig als „offline\" – kein veralteter Spielstatus mehr."
+    ]
+  },
   {
     "version": "1.31",
     "date": "01.07.2026",
