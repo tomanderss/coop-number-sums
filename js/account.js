@@ -408,6 +408,83 @@ export async function watchLeaderboard(difficulty, cb) {
   } catch (e) { log('account', 'watchLeaderboard fehlgeschlagen', e); return () => {}; }
 }
 
+// ─── Lobby-Einladungen an Freunde (Coop/Wettkampf) ─────────────────────────────
+// Modell: /users/{targetUid}/lobbyInvites/{myUid} = { code, mode, username, ts }.
+// Ablehnung meldet der Eingeladene an /users/{inviterUid}/lobbyInviteResponses/{myUid}.
+// Einen Freund in die eigene Lobby einladen (Raumcode + Modus).
+export async function sendLobbyInvite(targetUid, { code, mode, username } = {}) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !targetUid || !code) return { ok: false, err: 'notSignedIn' };
+    await fb.set(fb.ref(fb.db, `users/${targetUid}/lobbyInvites/${u.uid}`), {
+      code, mode: mode || 'coop', username: username || '', ts: fb.serverTimestamp(),
+    });
+    log('account', 'Lobby-Einladung gesendet', { targetUid, mode });
+    return { ok: true };
+  } catch (e) { log('account', 'sendLobbyInvite fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+
+// Eingehende Lobby-Einladungen live beobachten. cb(arr).
+export async function watchLobbyInvites(cb) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return () => {};
+    const off = fb.onValue(userRef(fb, u.uid, 'lobbyInvites'), (snap) => {
+      cb(Object.entries(snap.val() || {}).map(([fromUid, v]) => ({ fromUid, ...(v || {}) })));
+    });
+    return () => { try { off(); } catch (_) {} };
+  } catch (e) { log('account', 'watchLobbyInvites fehlgeschlagen', e); return () => {}; }
+}
+
+// Eigene (angenommene/abgelehnte) Einladung entfernen.
+export async function removeLobbyInvite(fromUid) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !fromUid) return;
+    await fb.set(userRef(fb, u.uid, `lobbyInvites/${fromUid}`), null);
+  } catch (e) { log('account', 'removeLobbyInvite fehlgeschlagen', e); }
+}
+
+// Einladung ablehnen: dem Einladenden melden + eigene Einladung entfernen.
+export async function declineLobbyInvite(fromUid, username) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !fromUid) return;
+    await fb.set(fb.ref(fb.db, `users/${fromUid}/lobbyInviteResponses/${u.uid}`), {
+      status: 'declined', username: username || '', ts: fb.serverTimestamp(),
+    });
+    await removeLobbyInvite(fromUid);
+    log('account', 'Lobby-Einladung abgelehnt', { fromUid });
+  } catch (e) { log('account', 'declineLobbyInvite fehlgeschlagen', e); }
+}
+
+// Antworten (Ablehnungen) auf eigene Einladungen beobachten. cb(arr).
+export async function watchLobbyInviteResponses(cb) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return () => {};
+    const off = fb.onValue(userRef(fb, u.uid, 'lobbyInviteResponses'), (snap) => {
+      cb(Object.entries(snap.val() || {}).map(([targetUid, v]) => ({ targetUid, ...(v || {}) })));
+    });
+    return () => { try { off(); } catch (_) {} };
+  } catch (e) { log('account', 'watchLobbyInviteResponses fehlgeschlagen', e); return () => {}; }
+}
+
+// Eine verarbeitete Antwort entfernen (nach Anzeige des Toasts).
+export async function clearLobbyInviteResponse(targetUid) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !targetUid) return;
+    await fb.set(userRef(fb, u.uid, `lobbyInviteResponses/${targetUid}`), null);
+  } catch (e) { log('account', 'clearLobbyInviteResponse fehlgeschlagen', e); }
+}
+
 // Account + Cloud-Daten löschen (DSGVO: Recht auf Vergessenwerden, clientseitig).
 export async function deleteAccount() {
   try {

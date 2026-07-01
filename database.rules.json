@@ -67,6 +67,16 @@
           "$fromUid": {
             ".write": "auth != null && (auth.uid === $uid || auth.uid === $fromUid)"
           }
+        },
+        "lobbyInvites": {
+          "$fromUid": {
+            ".write": "auth != null && (auth.uid === $uid || auth.uid === $fromUid)"
+          }
+        },
+        "lobbyInviteResponses": {
+          "$fromUid": {
+            ".write": "auth != null && (auth.uid === $uid || auth.uid === $fromUid)"
+          }
         }
       }
     },

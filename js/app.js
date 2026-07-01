@@ -106,6 +106,9 @@ const state = reactive({
 
     teamMode: false,               // Host-Lobby-Toggle: Team-vs-Team statt normalem Coop
     raceMode: false,               // Host-Lobby-Toggle: Race-/Duell-Modus (1v1, getrennte Fortschritte) statt normalem Coop
+
+    invitePickerOpen: false,       // Freunde-Auswahl zum Einladen in die Lobby offen?
+    invitedUids: [],               // in dieser Lobby bereits eingeladene Freunde (uid)
   },
 
   // Team-vs-Team (Feature 12b) — getrennt von state.coop, da es einen zweiten,
@@ -189,6 +192,8 @@ const state = reactive({
     diff: 'sehrleicht',        // aktuell angezeigte Schwierigkeit
     entries: [], loading: false,
   },
+  lobbyInvites: [],            // eingehende Lobby-Einladungen von Freunden
+  pendingLobbyInvite: null,    // aktuell als Banner angezeigte Einladung (Annehmen/Ablehnen)
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
@@ -1395,6 +1400,7 @@ function coopReset() {
   state.coop.generating = false;
   state.coop.teamMode = false;
   state.coop.raceMode = false;
+  state.coop.invitePickerOpen = false; state.coop.invitedUids = [];
   state.team.active = false; state.team.myTeam = null; state.team.matchOver = false;
   state.team.winningTeam = null; state.team.endReason = null; state.team.opponentPct = 0; state.team.opponentMistakes = 0; state.team.myPct = 0;
   state.team.opponentMistakesByPlayer = {};
@@ -2391,20 +2397,72 @@ function replayHistoryEntry(entry) {
 }
 
 // ─── TEILEN (viraler Loop) ─────────────────────────────────────────────────────
-// Web Share API mit Clipboard-Fallback — analog zum bereits etablierten Muster
-// in exportToFile() (storage.js), nur für Text statt einer Datei.
-async function shareText(text) {
-  if (navigator.share) {
-    try { await navigator.share({ text }); return; }
-    catch (e) { if (e.name === 'AbortError') return; log('app', 'Teilen fehlgeschlagen', e); }
-  }
-  if (navigator.clipboard?.writeText) {
-    try { await navigator.clipboard.writeText(text); showToast(t('toast.linkCopied'), 'success'); return; }
-    catch (e) { log('app', 'Kopieren fehlgeschlagen', e); }
-  }
+// ─── Lobby-Einladungen an Freunde ──────────────────────────────────────────────
+// Aktueller Lobby-Modus als kompakter String für die Einladung.
+function lobbyMode() { return state.coop.teamMode ? '2v2' : state.coop.raceMode ? '1v1' : 'coop'; }
+function lobbyModeLabel(mode) {
+  return mode === '2v2' ? t('coop.modeTeam') : mode === '1v1' ? t('coop.modeRace') : t('coop.modeCoop');
 }
-function shareCoopInvite() {
-  shareText(t('share.coopInvite', { code: state.coop.code, url: location.origin + location.pathname }));
+// „Freunde einladen" in der Lobby: öffnet die Auswahl (nur wenn eingeloggt).
+function openInvitePicker() {
+  if (state.account.status !== 'in') { showToast(t('friends.needLogin'), 'info', 2600); return; }
+  state.coop.invitePickerOpen = true;
+  startFriendsWatch();   // Freundesliste/Präsenz laden (falls noch nicht aktiv)
+}
+function closeInvitePicker() { state.coop.invitePickerOpen = false; }
+async function inviteFriendToLobby(fr) {
+  if (!fr || !state.coop.code) return;
+  if (!state.coop.invitedUids.includes(fr.uid)) state.coop.invitedUids.push(fr.uid);
+  const r = await Account.sendLobbyInvite(fr.uid, { code: state.coop.code, mode: lobbyMode(), username: myUsername() });
+  if (r && r.ok) showToast(t('coop.inviteSent', { name: fr.username || fr.uid }), 'success', 2400);
+  else { showToast(accErr((r && r.err) || 'generic'), 'error', 2600); state.coop.invitedUids = state.coop.invitedUids.filter(u => u !== fr.uid); }
+}
+
+// ─── Eingehende Einladungen (global, solange eingeloggt) ────────────────────────
+let lobbyInvitesUnwatch = null, lobbyResponsesUnwatch = null;
+async function startLobbyInviteWatch() {
+  if (lobbyInvitesUnwatch) return;
+  lobbyInvitesUnwatch = await Account.watchLobbyInvites((arr) => {
+    state.lobbyInvites = arr;
+    // Neueste offene Einladung als Banner zeigen — aber nie mitten im Spiel.
+    if (arr.length && !gameSessionActive()) {
+      state.pendingLobbyInvite = arr[arr.length - 1];
+    } else if (!arr.length) {
+      state.pendingLobbyInvite = null;
+    }
+  });
+  lobbyResponsesUnwatch = await Account.watchLobbyInviteResponses((arr) => {
+    for (const resp of arr) {
+      if (resp.status === 'declined') showToast(t('coop.inviteDeclined', { name: resp.username || resp.targetUid }), 'info', 3200);
+      Account.clearLobbyInviteResponse(resp.targetUid);
+    }
+  });
+}
+function stopLobbyInviteWatch() {
+  try { lobbyInvitesUnwatch && lobbyInvitesUnwatch(); } catch (_) {}
+  try { lobbyResponsesUnwatch && lobbyResponsesUnwatch(); } catch (_) {}
+  lobbyInvitesUnwatch = lobbyResponsesUnwatch = null;
+}
+// Einladung annehmen: eigene Einladung entfernen und der Lobby (Code+Modus) als Gast beitreten.
+function acceptLobbyInvite(inv) {
+  if (!inv) return;
+  Account.removeLobbyInvite(inv.fromUid);
+  state.pendingLobbyInvite = null;
+  state.lobbyInvites = state.lobbyInvites.filter(i => i.fromUid !== inv.fromUid);
+  coopReset();
+  state.coop.raceMode = inv.mode === '1v1';
+  state.coop.teamMode = inv.mode === '2v2';
+  state.coop.identityConfirmed = true;              // gespeicherten Namen verwenden
+  state.coop.nameDraft = state.settings.coopName;
+  state.coop.code = String(inv.code || '');
+  navigate('coop');
+  startJoining();
+}
+function declineLobbyInviteUI(inv) {
+  if (!inv) return;
+  Account.declineLobbyInvite(inv.fromUid, myUsername());
+  state.pendingLobbyInvite = null;
+  state.lobbyInvites = state.lobbyInvites.filter(i => i.fromUid !== inv.fromUid);
 }
 
 function ask(title, msg, onYes) { state.confirm = { title, msg, onYes }; state.modal = 'confirm'; }
@@ -2460,6 +2518,7 @@ async function refreshAccount() {
         saveProfile({ role: state.account.role });
         pushPresence();          // Präsenz melden, sobald der Account bestätigt ist
         startFriendsWatch();     // Freundes-/Anfragen-Listener (Badge) starten
+        startLobbyInviteWatch(); // eingehende Lobby-Einladungen + Ablehnungen beobachten
       }
       else state.account.status = 'anon';
     } catch (e) { log('account', 'refreshAccount fehlgeschlagen', e); }
@@ -3188,7 +3247,7 @@ const App = {
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
-      shareCoopInvite, raceResultMsg, teamResultMsg, winTitle,
+      openInvitePicker, closeInvitePicker, inviteFriendToLobby, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       t, i18nState, SUPPORTED_LOCALES,
@@ -3788,7 +3847,20 @@ const App = {
           <div class="coop-code-label">{{ t('coop.yourCode') }}</div>
           <div class="coop-code">{{ state.coop.code }}</div>
           <p class="coop-subtext">{{ t('coop.shareCode') }}</p>
-          <button class="btn btn-ghost btn-sm" @click="shareCoopInvite">📤 {{ t('coop.shareInvite') }}</button>
+          <button class="btn btn-ghost btn-sm" @click="openInvitePicker">👥 {{ t('coop.inviteFriends') }}</button>
+          <!-- Freunde-Auswahl zum Einladen in diese Lobby -->
+          <div v-if="state.coop.invitePickerOpen" class="invite-picker">
+            <div class="invite-picker-head">
+              <span>{{ t('coop.inviteFriends') }}</span>
+              <button class="icon-btn" @click="closeInvitePicker" :aria-label="t('common.close')">✕</button>
+            </div>
+            <p v-if="!state.friends.list.length" class="set-hint">{{ t('friends.empty') }}</p>
+            <div v-for="fr in friendsSorted()" :key="fr.uid" class="invite-row">
+              <span class="friends-dot" :class="{ online: friendPresence(fr.uid) && friendPresence(fr.uid).online, ingame: friendPresence(fr.uid) && friendPresence(fr.uid).game }"></span>
+              <span class="invite-name">{{ fr.username || fr.uid }}</span>
+              <button class="btn btn-primary btn-sm" :disabled="state.coop.invitedUids.includes(fr.uid)" @click="inviteFriendToLobby(fr)">{{ state.coop.invitedUids.includes(fr.uid) ? t('coop.invited') : t('coop.invite') }}</button>
+            </div>
+          </div>
           <p v-if="state.coop.teamMode" class="coop-subtext">{{ t('team.assignHint') }}</p>
           <button v-if="state.coop.teamMode && state.coop.role==='host'" class="btn btn-ghost btn-sm randomize-teams-btn" :disabled="state.coop.players.length<2" @click="randomizeTeams">🔀 {{ t('team.randomize') }}</button>
           <div class="team-picker" v-if="state.coop.teamMode && state.coop.players.length">
@@ -4350,6 +4422,16 @@ const App = {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Eingehende Lobby-Einladung eines Freundes: annehmen (beitreten) oder ablehnen -->
+    <div v-if="state.pendingLobbyInvite" class="modal-bg">
+      <div class="modal">
+        <div class="whatsnew-badge">👥 {{ t('coop.inviteTitle') }}</div>
+        <p class="result-msg">{{ t('coop.inviteBody', { name: state.pendingLobbyInvite.username || state.pendingLobbyInvite.fromUid, mode: lobbyModeLabel(state.pendingLobbyInvite.mode) }) }}</p>
+        <button class="btn btn-primary" @click="acceptLobbyInvite(state.pendingLobbyInvite)">{{ t('coop.inviteAccept') }}</button>
+        <button class="btn btn-ghost btn-sm" @click="declineLobbyInviteUI(state.pendingLobbyInvite)">{{ t('coop.inviteDecline') }}</button>
       </div>
     </div>
 
