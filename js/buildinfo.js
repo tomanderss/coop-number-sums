@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.20';
-export const BUILD_HASH = '20d82f7';
+export const BUILD      = '1.21';
+export const BUILD_HASH = '7160c90';
 
 export const CHANGELOG = [
+  {
+    "version": "1.21",
+    "date": "01.07.2026",
+    "changes": [
+      "Aufräumung: ungenutzte Texte des früheren Update-Dialogs aus allen Sprachdateien entfernt (keine sichtbare Änderung)."
+    ]
+  },
   {
     "version": "1.20",
     "date": "01.07.2026",
