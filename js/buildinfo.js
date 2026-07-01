@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.33';
-export const BUILD_HASH = '7ad57cd';
+export const BUILD      = '1.34';
+export const BUILD_HASH = '9604449';
 
 export const CHANGELOG = [
+  {
+    "version": "1.34",
+    "date": "01.07.2026",
+    "changes": [
+      "Fehlgeschlagene Präsenz-/Cloud-Schreibzugriffe (PERMISSION_DENIED) werden nicht mehr endlos wiederholt — schont Verbindung und Akku."
+    ]
+  },
   {
     "version": "1.33",
     "date": "01.07.2026",

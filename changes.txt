@@ -1,1 +1,0 @@
-Fehlgeschlagene Präsenz-/Cloud-Schreibzugriffe (PERMISSION_DENIED) werden nicht mehr endlos wiederholt — schont Verbindung und Akku.
