@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.18';
-export const BUILD_HASH = '29cbd95';
+export const BUILD      = '1.19';
+export const BUILD_HASH = '815a55b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.19",
+    "date": "01.07.2026",
+    "changes": [
+      "Neue Freunde-Funktion: 👫-Icon im Hauptmenü öffnet eine Freundesliste mit Live-Status (online/offline/im Spiel inkl. Modus, Schwierigkeit, Größe und Fortschrittsbalken); Freunde per Benutzername hinzufügen, Anfragen annehmen/ablehnen. Zweiter Tab „Bestenlisten\" folgt."
+    ]
+  },
   {
     "version": "1.18",
     "date": "01.07.2026",
