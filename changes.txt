@@ -1,1 +1,0 @@
-Coop/Race/Team: neben dem Anzeigenamen wird jetzt auch der eindeutige Account-Username angezeigt („Anzeigename (username)") – in Lobby, Roster, Auswertung und Meldungen

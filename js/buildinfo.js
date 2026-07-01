@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.17';
-export const BUILD_HASH = '367fe0d';
+export const BUILD      = '1.18';
+export const BUILD_HASH = '29cbd95';
 
 export const CHANGELOG = [
+  {
+    "version": "1.18",
+    "date": "01.07.2026",
+    "changes": [
+      "Coop/Race/Team: neben dem Anzeigenamen wird jetzt auch der eindeutige Account-Username angezeigt („Anzeigename (username)\") – in Lobby, Roster, Auswertung und Meldungen"
+    ]
+  },
   {
     "version": "1.17",
     "date": "01.07.2026",
