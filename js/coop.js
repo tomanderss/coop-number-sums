@@ -32,6 +32,10 @@ let unsubEvents = null;
 let unsubTeamEvents = null;
 let unsubTeamProgress = null;
 let unsubRaceProgress = null;
+let unsubConn = null;
+let selfInfo = null;        // {name, color, role} — für Presence-Wiederherstellung nach Reconnect
+let everOnline = false;     // true sobald die Verbindung mind. einmal stand (unterdrückt Offline-Flash beim Erst-Connect)
+let sawDisconnect = false;  // true sobald sie danach abriss (steuert Reconnect-Toast + Presence-Neuaufbau)
 
 export function isAvailable() { return typeof window !== 'undefined' && typeof fetch !== 'undefined'; }
 
@@ -84,11 +88,46 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }) {
   });
 }
 
+// watchConnection(): überwacht die EIGENE RTDB-Socket-Verbindung über das
+// spezielle `.info/connected`-Feld. Dieses Feld pflegt das SDK rein lokal und
+// feuert auch ohne Server-Roundtrip, sobald die Verbindung ab- oder wieder
+// aufgebaut wird — genau der Fall eines stillen Idle-Disconnects, bei dem bisher
+// NUR der Host das Verschwinden des Gasts sah (per onChildRemoved), der
+// abgehängte Client selbst aber weiter "online" anzeigte (seine players-Liste
+// blieb eingefroren). Jetzt merkt der Client den Abriss selbst. Bei Reconnect
+// wird die eigene Anwesenheit + der onDisconnect-Trigger neu gesetzt, sodass der
+// Platz automatisch zurückkommt. cb(online, isReconnect) meldet den Zustand an app.js.
+function watchConnection(f, cb) {
+  unsubConn && unsubConn();
+  everOnline = false; sawDisconnect = false;
+  const connRef = f.ref(f.db, '.info/connected');
+  unsubConn = f.onValue(connRef, async (snap) => {
+    const online = snap.val() === true;
+    if (online) {
+      const isReconnect = sawDisconnect;
+      everOnline = true;
+      if (isReconnect && myPlayerRef && selfInfo) {
+        try {
+          await f.set(myPlayerRef, { ...selfInfo, joinedAt: f.serverTimestamp() });
+          f.onDisconnect(myPlayerRef).remove();
+          log('coop', 'Verbindung wieder online – Anwesenheit neu gesetzt');
+        } catch (e) { log('coop', 'Presence nach Reconnect fehlgeschlagen', e); }
+      }
+      cb && cb(true, isReconnect);
+    } else {
+      if (!everOnline) return; // initiales "noch nicht verbunden" ignorieren (kein Offline-Flash beim Join)
+      sawDisconnect = true;
+      log('coop', 'RTDB-Verbindung verloren (Idle/Netz)');
+      cb && cb(false, false);
+    }
+  });
+}
+
 // ─── HOST ─────────────────────────────────────────────────────────────────────
 // Der players/$uid-Eintrag muss name+color+role+joinedAt enthalten — die
 // RTDB-Security-Rules validieren genau diese vier Felder; ein Schreibzugriff
 // mit weniger Feldern wird von Firebase mit PERMISSION_DENIED abgelehnt.
-export async function hostGame({ code, name, color, onOpen, onError, onJoin, onLeave, onMessage }) {
+export async function hostGame({ code, name, color, onOpen, onError, onJoin, onLeave, onMessage, onConnection }) {
   try {
     const f = await ensureDb();
     log('coop', `Hoste Raum ${code} – prüfe Verfügbarkeit…`);
@@ -106,7 +145,9 @@ export async function hostGame({ code, name, color, onOpen, onError, onJoin, onL
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
     await f.set(myPlayerRef, { name, color, role: 'host', joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
+    selfInfo = { name, color, role: 'host' };
     attachListeners(f, code, { onJoin, onLeave, onMessage });
+    watchConnection(f, onConnection);
     log('coop', `Raum ${code} gehostet`, { uid: f.uid });
     onOpen && onOpen(f.uid);
   } catch (e) {
@@ -116,7 +157,7 @@ export async function hostGame({ code, name, color, onOpen, onError, onJoin, onL
 }
 
 // ─── GAST ─────────────────────────────────────────────────────────────────────
-export async function joinGame({ code, name, color, onOpen, onError, onMessage, onClose, maxPlayers = COOP_MAX_PLAYERS }) {
+export async function joinGame({ code, name, color, onOpen, onError, onMessage, onClose, onConnection, maxPlayers = COOP_MAX_PLAYERS }) {
   try {
     const f = await ensureDb();
     log('coop', `Trete Raum ${code} bei – prüfe Existenz…`);
@@ -135,7 +176,9 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
     await f.set(myPlayerRef, { name, color, role: 'guest', joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
+    selfInfo = { name, color, role: 'guest' };
     attachListeners(f, code, { onJoin: null, onLeave: (id) => onClose && onClose(id), onMessage });
+    watchConnection(f, onConnection);
     log('coop', `Raum ${code} beigetreten`, { uid: f.uid });
     onOpen && onOpen(f.uid);
   } catch (e) {
@@ -150,7 +193,7 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
 // anders als hostGame()/joinGame() NICHT Kapazität/Belegung erneut, sondern
 // nur, ob der Raum überhaupt noch existiert — wer schon drin war, darf wieder
 // hinein, auch wenn der Raum inzwischen "voll" wäre.
-export async function rejoin({ code, name, color, role, onOpen, onError, onJoin, onLeave, onMessage }) {
+export async function rejoin({ code, name, color, role, onOpen, onError, onJoin, onLeave, onMessage, onConnection }) {
   try {
     const f = await ensureDb();
     log('coop', `Verbinde erneut mit Raum ${code}…`);
@@ -169,7 +212,9 @@ export async function rejoin({ code, name, color, role, onOpen, onError, onJoin,
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
     await f.set(myPlayerRef, { name, color, role: actualRole, joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
+    selfInfo = { name, color, role: actualRole };
     attachListeners(f, code, { onJoin, onLeave, onMessage });
+    watchConnection(f, onConnection);
     log('coop', `Raum ${code} wieder verbunden als ${actualRole}`, { uid: f.uid });
     onOpen && onOpen(f.uid, actualRole);
   } catch (e) {
@@ -194,6 +239,7 @@ export async function updateHostId(uid) {
 export async function ensurePresence({ name, color, role }) {
   if (!fb || !roomCode || !myPlayerRef) return;
   try {
+    selfInfo = { name, color, role }; // aktuell halten, damit watchConnection nach Reconnect korrekt neu setzt
     const snap = await fb.get(myPlayerRef);
     if (snap.exists()) return;
     await fb.set(myPlayerRef, { name, color, role, joinedAt: fb.serverTimestamp() });
@@ -284,8 +330,9 @@ export async function leave() {
   const f = fb, code = roomCode, playerRef = myPlayerRef;
   unsubJoin && unsubJoin(); unsubLeave && unsubLeave(); unsubEvents && unsubEvents();
   unsubTeamEvents && unsubTeamEvents(); unsubTeamProgress && unsubTeamProgress();
-  unsubRaceProgress && unsubRaceProgress();
-  unsubJoin = unsubLeave = unsubEvents = unsubTeamEvents = unsubTeamProgress = unsubRaceProgress = null;
+  unsubRaceProgress && unsubRaceProgress(); unsubConn && unsubConn();
+  unsubJoin = unsubLeave = unsubEvents = unsubTeamEvents = unsubTeamProgress = unsubRaceProgress = unsubConn = null;
+  selfInfo = null; everOnline = false; sawDisconnect = false;
   roomCode = null; myPlayerRef = null;
   if (!f || !playerRef) return;
   try {

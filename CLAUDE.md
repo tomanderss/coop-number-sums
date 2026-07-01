@@ -31,7 +31,7 @@ node build.js --major                           # bump major, reset minor
 | `js/training.js` | Tier-1 only solver variant, returns one explained step at a time for tutorial mode. |
 | `js/storage.js` | All `localStorage`. Keys prefixed `cns_`. Solo/coop active games in separate slots. 3-slot rolling backups. |
 | `js/debuglog.js` | Persistent on-device diagnostic log (`localStorage` `cns_debuglog`, 400-entry FIFO). `log(category, message, extra)` — used everywhere for diagnosis. User exports it via Settings ▸ Diagnoseprotokoll (`exportLogToFile()` prepends BUILD + `userAgent`). `app.js initDiagnostics()` captures unhandled errors/rejections (`error` cat), a one-time device/env snapshot (`env`), and aggregated long-task **jank** every 10s (`perf`). **Log only low-frequency events** (start, errors, lifecycle, generation timing, aggregated perf) — `log()` does synchronous `localStorage` I/O, so never call it per-frame/per-tap or it degrades the very performance you're trying to measure. |
-| `js/coop.js` | Firebase RTDB transport, lazy-loaded (solo never loads Firebase). Events under `/rooms/{code}/events`, presence via `onDisconnect()`. |
+| `js/coop.js` | Firebase RTDB transport, lazy-loaded (solo never loads Firebase). Events under `/rooms/{code}/events`, presence via `onDisconnect()`. **`watchConnection(f, cb)`** überwacht die EIGENE Verbindung über `.info/connected` (feuert rein lokal) → `cb(online, isReconnect)` an `handleCoopConnection()` in app.js setzt `state.coop.online`; so sieht auch der Client selbst einen stillen Idle-Disconnect (Chip „offline"), und bei Reconnect wird die eigene Anwesenheit (`selfInfo`) + `onDisconnect` neu gesetzt. |
 | `js/firebase.js` | Firebase init (anon auth + RTDB). Lazy-loaded by `coop.js`/`account.js`. `ensureFirebase()` returns `{ db, uid, auth, authMod, ...dbModule }` — `auth`/`authMod` (vendored `firebase-auth.js`, incl. email/PW + linking) added for accounts; `{db,uid,...dbModule}` shape unchanged for coop. |
 | `js/account.js` | **Optional** accounts (email+username+password) + cloud-sync, lazy like coop (anonymous-first: no login ⇒ never loaded, app stays local). Pure validators (`normalizeUsername`/`isValidUsername`/`isValidEmail`/`passwordIssue`/`usernameKey`/`errKey`) are unit-tested; auth/sync wrap Firebase. `/users/{uid}` tree (profile/role + `data` snapshot); username uniqueness via `/usernames/{key}`. Sign-in/up/out/delete **reload the page** so the shared Firebase/auth singleton re-inits with the correct uid (both sign-in AND sign-up persist `profile.accountId` so the logged-in UI survives the reload). **Auto-sync** (`syncNow`/`scheduleSyncUp`, `lastSyncAt` in own key `cns_last_sync`, shown in the account card): on every game end (win+loss), on hide/close, every 60s while open. **Conflict-safe reconcile at startup** (`reconcile`/pure `decideSync`): compares local vs cloud via a data-revision (`cns_data_rev`, bumped on every user-data `save()`) against a baseline (`cns_synced_rev`) — decisions `uploadLocal`/`takeCloud`/`inSync`/`conflict`. **Local is never silently overwritten**: empty cloud ⇒ upload local; genuine divergence ⇒ a startup **Versions-Mismatch** dialog asks which to keep (by timestamp), resolved via `resolveConflict`. Sign-in defers all merging to this startup reconcile (no overwrite in `signIn`). Inventory/wallet/profile model lives in `storage.js` (`grant/spend/mergeInventory`, etc.). Inventory syncs via a dedicated **union-only** node `/users/{uid}/inventory` (gifts never clobbered by a client upload); rest of the snapshot under `/users/{uid}/data`. **Admin** (`role==='admin'`): `adminFindUser`/`adminGrantItem`/`adminRevokeItem`/`adminSetRole`/`adminGrantCurrency` — gated in UI, enforced by rules. |
 | `js/achievements.js` | Definitions + pure `evaluate()`. No persistence (→ `storage.js`). |
@@ -64,6 +64,34 @@ node build.js --major                           # bump major, reset minor
 3. **Diagnostics/logging** — every new feature or non-trivial flow must add `log()` calls (`js/debuglog.js`) at its key points: start/finish of async or expensive work (with `tookMs` timing where relevant), error paths (`catch` blocks), state transitions, and external I/O (Firebase/storage). Pick a sensible category (`game`/`coop`/`firebase`/`storage`/`sw`/`error`/`env`/`perf`/`app`). This keeps the exported Diagnoseprotokoll useful for debugging issues on users' devices. **Keep it low-frequency** — never log per-frame, per-tap, or inside hot loops/render paths (`log()` writes `localStorage` synchronously and would hurt performance). When touching an existing flow, add the logging it's missing.
 4. **Update this file** — if the change affects architecture, conventions, commands, or workflow: update CLAUDE.md to reflect it and include the update in the same PR. Keep entries concise.
 5. **Cut a release** — **ALWAYS do this automatically after every PR is merged. NEVER ask first — just do it.** Create a new branch from latest `master` (this dedicated release branch is expected and allowed even when your assigned working branch is a different one — cutting the release needs no separate permission and is never a reason to pause and ask), run `node build.js` (bumps version, writes `js/buildinfo.js`, clears `changes.txt`), commit, open a release PR, and merge it immediately (CI is usually already green on a release-only commit). The version only becomes visible in-app once this step is done.
+
+## Autonomer Arbeitsmodus (Feature-Backlog)
+
+Der Nutzer wirft Features/Bugs **jederzeit und gebündelt** in den Chat — auch während bereits
+an etwas gearbeitet wird — und erwartet, dass **komplett autonom, sequenziell und in idealer
+Reihenfolge** abgearbeitet wird. Verbindliche Regeln für diesen Modus:
+
+1. **Nichts vergessen — Backlog führen.** Jeden neuen Wunsch **sofort als Task anlegen**
+   (`TaskCreate`), auch wenn er erst später drankommt. Der Task-Backlog ist die dauerhafte
+   Merkliste; nie einen Wunsch nur „im Kopf" behalten.
+2. **Immer den Stand melden.** Bei jeder Nutzer-Nachricht und an Meilensteinen kurz zeigen:
+   **✅ durch · 🔄 in Arbeit · ⏭️ als Nächstes** (inkl. Reihenfolge). Der Nutzer soll nie raten
+   müssen, was passiert.
+3. **Ideale Reihenfolge selbst wählen & umsortieren.** Reihenfolge nach Abhängigkeit/Aufbau
+   bestimmen (baut B auf A auf, kommt A zuerst) — Tasks dürfen umgeschoben werden. Kurz begründen.
+4. **Parallel zur Pipeline arbeiten.** Während eine CI-Pipeline läuft, **nicht idlen**: schon die
+   nächste Aufgabe entwickeln. Dafür einen **git-Worktree** (isolierte Kopie) nutzen, damit der
+   offene PR-Branch sauber bleibt; nach dem Merge des laufenden PRs den Zweig zurücksetzen und die
+   vorbereitete Arbeit übernehmen (cherry-pick).
+5. **Ein PR pro Feature**, jeweils voller Workflow (changes.txt → PR + Auto-Merge → grünes CI →
+   Merge → **Release cutten**). Nie mehrere unfertige Features in einem PR mischen.
+6. **Nur bei echtem Blocker fragen.** Sonst „nach bestem Wissen & Gewissen" entscheiden, die
+   Annahme im PR/Chat protokollieren und weitermachen. Fragen sammeln statt einzeln unterbrechen.
+7. **Limit/Reset überbrücken.** Wird ein Nutzungs-/Zeitlimit erreicht, per `ScheduleWakeup`
+   (o.ä.) einen Wecker auf den Reset-Zeitpunkt stellen und **automatisch weitermachen** — der
+   Nutzer soll nur bei Bedarf reinsprechen müssen.
+8. **Abschluss-Zusammenfassung.** Wenn der Backlog leer ist (oder auf Nachfrage): kompakte
+   Übersicht aller erledigten Punkte + **offene Fragen/Klärungsbedarf/Wünsche** an den Nutzer.
 
 ## Key conventions
 

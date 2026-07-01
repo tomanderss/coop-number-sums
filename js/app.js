@@ -89,6 +89,7 @@ const state = reactive({
     role: null,                // 'host' | 'guest'
     code: '',                  // Host: gewählter Code; Gast: eingegebener Zielcode
     connected: false,          // Partner verbunden
+    online: true,              // eigene RTDB-Socket-Verbindung steht (fällt bei stillem Idle-Disconnect auf false, siehe Coop.watchConnection) — Chip zeigt "offline" auch wenn nur die eigene Verbindung abriss
     waitingForGuest: false,    // Host: Raum offen, wartet auf Join / Gast: verbindet
     lobbyDiffId: 'mittel',
     error: null,               // Inline-Fehlermeldung im Lobby-Screen
@@ -1512,6 +1513,23 @@ function promoteToHost() {
   showToast(t('coop.becameHost'), 'info', 4000);
 }
 
+// Gemeinsamer Handler für den EIGENEN RTDB-Verbindungsstatus (Coop.watchConnection).
+// Fällt die eigene Socket-Verbindung (z.B. nach 1–3 Min. Inaktivität) aus, sieht
+// das bisher nur der Host (der Gast verschwindet aus seiner players-Liste); der
+// abgehängte Client selbst zeigte weiter "online". Jetzt spiegelt state.coop.online
+// den echten eigenen Verbindungszustand → der Coop-Chip zeigt auch beim Client
+// "offline", und bei Wiederverbindung kommt eine Bestätigung.
+function handleCoopConnection(online, isReconnect) {
+  state.coop.online = online;
+  if (!online) {
+    log('coop', 'Eigene Verbindung verloren – zeige Offline-Status');
+    showToast(t('coop.connectionLost'), 'info', 4000);
+  } else if (isReconnect) {
+    log('coop', 'Eigene Verbindung wiederhergestellt');
+    showToast(t('coop.reconnected'), 'success', 2000);
+  }
+}
+
 function startHosting() {
   if (!Coop.isAvailable()) { state.coop.error = t('coop.errorWebrtcUnavailable'); return; }
   if (!CODE_RE.test(state.coop.code)) { state.coop.error = t('coop.errorInvalidCode'); return; }
@@ -1524,6 +1542,7 @@ function startHosting() {
   state.coop.error = null;
   state.coop.myId = null;
   state.coop.players = [];
+  state.coop.online = true;
   state.race.rematchPending = false;
   Coop.hostGame({
     code: state.coop.code,
@@ -1552,6 +1571,7 @@ function startHosting() {
       if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
     },
     onMessage: handleCoopMsg,
+    onConnection: handleCoopConnection,
   });
 }
 
@@ -1743,6 +1763,7 @@ function startJoining() {
   state.coop.waitingForGuest = true;
   state.coop.error = null;
   state.coop.players = [];
+  state.coop.online = true;
   Coop.joinGame({
     code: state.coop.code,
     name: state.settings.coopName,
@@ -1791,6 +1812,7 @@ function startJoining() {
         showToast(t('coop.hostDisconnected', { name: leavingName }), 'info', 3000);
       }
     },
+    onConnection: handleCoopConnection,
   });
 }
 
@@ -2096,6 +2118,7 @@ function resumeCoopGame() {
 function attemptCoopRejoin(sess) {
   coopIntentionalLeave = false;
   state.coop.waitingForGuest = true;
+  state.coop.online = true;
   Coop.rejoin({
     code: sess.code, name: sess.name, color: sess.color, role: sess.role,
     onOpen(id, actualRole) {
@@ -2132,6 +2155,7 @@ function attemptCoopRejoin(sess) {
       if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
     },
     onMessage: handleCoopMsg,
+    onConnection: handleCoopConnection,
   });
 }
 
@@ -2947,8 +2971,8 @@ const App = {
         <div class="game-meta">
           <span class="chip">{{ DIFF_BY_ID[state.puzzle.difficulty].emoji }} {{ t('difficulty.'+state.puzzle.difficulty) }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
-          <span v-if="state.coop.active" class="chip coop-chip" :class="state.coop.connected ? 'coop-on' : 'coop-off'">
-            👥 {{ t('game.coopTag') }}{{ state.coop.connected ? '' : t('game.coopOfflineSuffix') }}
+          <span v-if="state.coop.active" class="chip coop-chip" :class="(state.coop.connected && state.coop.online) ? 'coop-on' : 'coop-off'">
+            👥 {{ t('game.coopTag') }}{{ (state.coop.connected && state.coop.online) ? '' : t('game.coopOfflineSuffix') }}
           </span>
           <span v-if="state.team.active" class="chip coop-chip">🆚 {{ t('team.label'+state.team.myTeam) }}</span>
           <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>

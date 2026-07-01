@@ -143,6 +143,7 @@ export default {
     partnerConnected: '동료가 연결되었습니다 👥',
     partnerDisconnected: '{name}님이 로비를 나갔습니다',
     reconnected: '다시 연결됨 ✅',
+    connectionLost: "연결이 끊겼습니다 – 오프라인. 다시 연결하는 중…",
     errorRoomGone: '방이 더 이상 존재하지 않습니다 — 코업 게임을 이어할 수 없습니다.',
     hostDisconnectedPromoting: '호스트 {name}님의 연결이 끊겼습니다 — 새 호스트가 되는 중…',
     hostDisconnected: '호스트 {name}님과의 연결이 끊겼습니다',

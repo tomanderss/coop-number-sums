@@ -143,6 +143,7 @@ export default {
     partnerConnected: 'Teammate connected 👥',
     partnerDisconnected: '{name} left the lobby',
     reconnected: 'Reconnected ✅',
+    connectionLost: "Connection lost – offline. Trying to reconnect…",
     errorRoomGone: "Room no longer exists — the coop game can't be resumed.",
     hostDisconnectedPromoting: '{name} (host) disconnected — becoming new host …',
     hostDisconnected: 'Connection to {name} (host) lost',

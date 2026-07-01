@@ -143,6 +143,7 @@ export default {
     partnerConnected: 'Takım arkadaşı bağlandı 👥',
     partnerDisconnected: '{name} lobiden ayrıldı',
     reconnected: 'Yeniden bağlanıldı ✅',
+    connectionLost: "Bağlantı kesildi – çevrimdışı. Yeniden bağlanılıyor…",
     errorRoomGone: 'Oda artık mevcut değil — coop oyunu sürdürülemiyor.',
     hostDisconnectedPromoting: '{name} (ev sahibi) bağlantısı kesildi — yeni ev sahibi oluyorsun…',
     hostDisconnected: '{name} (ev sahibi) ile bağlantı kesildi',
