@@ -12,7 +12,22 @@ globalThis.localStorage = new MemoryStorage();
 
 const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
+  isSignedIn, lastSyncAt,
 } = await import('../../js/account.js');
+const { saveProfile } = await import('../../js/storage.js');
+
+describe('account.session flags', () => {
+  test('isSignedIn/lastSyncAt reflect the persisted local profile', () => {
+    globalThis.localStorage.clear();
+    assert.equal(isSignedIn(), false);
+    assert.equal(lastSyncAt(), 0);
+    saveProfile({ accountId: 'uid123', lastSyncAt: 42 });
+    assert.equal(isSignedIn(), true);
+    assert.equal(lastSyncAt(), 42);
+    saveProfile({ accountId: null });
+    assert.equal(isSignedIn(), false);
+  });
+});
 
 describe('account.username', () => {
   test('normalizeUsername trims and lowercases', () => {

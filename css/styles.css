@@ -1142,6 +1142,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .account-role { font-weight: 800; }
 .account-role.admin { color: var(--accent2); }
 .account-sync { margin-top: 4px; font-size: .82rem; color: var(--good); font-weight: 700; }
+.account-sync.sync-error { color: var(--bad); }
+.account-sync.sync-syncing { color: var(--text2); }
 .account-notice { background: var(--accent-soft); color: var(--accent2); border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: .88rem; text-align: center; margin: 0; }
 .btn-link { background: none; box-shadow: none; color: var(--accent2); font-weight: 700; font-size: .9rem; padding: 6px; text-decoration: underline; align-self: center; }
 .account-search { display: flex; gap: 8px; align-items: stretch; }
