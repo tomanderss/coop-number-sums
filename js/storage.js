@@ -394,7 +394,9 @@ export async function exportToFile(type = 'manual') {
     try {
       const file = new File([blob], filename, { type: 'application/json' });
       if (navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Coop Number Sums Backup' });
+        // NUR die Datei teilen — kein title/text: iOS würde sonst einen leeren
+        // Text-Anhang als zweite .txt-Datei mit exportieren (siehe debuglog.js).
+        await navigator.share({ files: [file] });
         return;
       }
     } catch (e) { if (e.name === 'AbortError') return; log('storage', 'Exportieren fehlgeschlagen', e); }

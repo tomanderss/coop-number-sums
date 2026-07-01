@@ -48,7 +48,10 @@ export async function exportLogToFile() {
     try {
       const file = new File([blob], filename, { type: 'text/plain' });
       if (navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Coop Number Sums Diagnose' });
+        // NUR die Datei teilen — kein title/text: iOS würde einen zusätzlichen
+        // (leeren) Text-Anhang erzeugen, der beim „In Dateien sichern" als
+        // zweite, leere .txt-Datei landet.
+        await navigator.share({ files: [file] });
         return;
       }
     } catch (e) { if (e.name === 'AbortError') return; }
