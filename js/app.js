@@ -192,8 +192,6 @@ const state = reactive({
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   confetti: [],
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
-  updateReady: false,        // neue App-Version liegt im Service-Worker bereit
-  pendingUpdate: false,      // Update erkannt, aber Spiel läuft noch — Dialog nach Spielende zeigen
 });
 
 let timerHandle = null;
@@ -2059,7 +2057,6 @@ function win(remote) {
   }
   if (state.team.active && !remote) broadcastTeamDone('won');
   if (state.race.active && !remote) broadcastRaceDone('won');
-  if (state.pendingUpdate) { state.pendingUpdate = false; state.updateReady = true; }
 }
 
 function lose(remote) {
@@ -2100,7 +2097,6 @@ function lose(remote) {
   }
   if (state.team.active && !remote) broadcastTeamDone('lost');
   if (state.race.active && !remote) broadcastRaceDone('lost');
-  if (state.pendingUpdate) { state.pendingUpdate = false; state.updateReady = true; }
 }
 
 // Verlässt man die Coop-Lobby selbst (auch mitten in der laufenden Runde), bekommt
@@ -2756,9 +2752,6 @@ function dismissStreakLostNotice() { state.streakLostNotice = false; }
 function dismissStreakExtended() { state.streakExtended = null; }
 
 // ─── APP-UPDATE (Service Worker) ──────────────────────────────────────────────
-// Hält den im "waiting" wartenden Worker, bis der Nutzer aktiv aktualisiert.
-let waitingWorker = null;
-
 // Läuft gerade ein Spiel oder eine Coop-/Wettkampf-Session? Dann darf NICHTS die
 // Seite neu laden oder einen Update-Dialog aufpoppen — sonst wird der Nutzer
 // mitten im Spiel herausgeworfen (genau die gemeldete Beschwerde). Reloads werden
@@ -2807,30 +2800,6 @@ function flushPendingReload() {
     location.reload();
   }
 }
-// Zeigt den Update-Dialog — aber NIE während einer Spiel-/Coop-Session. Läuft
-// gerade ein Spiel, merkt pendingUpdate das und der Dialog erscheint erst danach.
-function offerUpdate() {
-  log('sw', 'Update erkannt (neuer Service Worker wartet)', { inGame: gameSessionActive(), screen: state.screen });
-  if (gameSessionActive()) {
-    state.pendingUpdate = true;
-  } else {
-    state.updateReady = true;
-  }
-}
-let reloadingForUpdate = false;
-function applyUpdate() {
-  if (!waitingWorker) { safeReload('sw-update-no-worker'); return; }
-  log('sw', `Update wird angewendet`);
-  // Sobald der neue Worker die Kontrolle übernimmt, einmalig (sicher) neu laden.
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloadingForUpdate) return;
-    reloadingForUpdate = true;
-    log('sw', `Neuer Worker aktiv – lade neu`);
-    safeReload('sw-controllerchange');
-  });
-  waitingWorker.postMessage({ type: 'skipWaiting' });
-}
-
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 // ─── DIAGNOSE: FEHLER + GERÄT + JANK ──────────────────────────────────────────
 // Schreibt aussagekräftige, aber bewusst SELTENE Diagnose-Einträge (debuglog.js →
@@ -3186,7 +3155,7 @@ const App = {
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
-      chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop, applyUpdate,
+      chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       shareCoopInvite, raceResultMsg, teamResultMsg, winTitle,
       startTrainingGame, applyTrainingStep,
@@ -4523,17 +4492,6 @@ const App = {
         <button class="btn btn-primary" @click="dismissStreakLostNotice">{{ t('common.ok') }}</button>
       </div>
     </div>
-
-    <div v-if="state.updateReady" class="modal-bg">
-      <div class="modal">
-        <div class="whatsnew-badge">{{ t('update.badge') }}</div>
-        <h3>{{ t('update.title') }}</h3>
-        <p class="confirm-msg">{{ t('update.body') }}</p>
-        <button class="btn btn-ghost" @click="doExport">{{ t('update.backup') }}</button>
-        <button class="btn btn-primary" @click="applyUpdate">{{ t('update.apply') }}</button>
-        <button class="btn btn-ghost btn-sm" @click="state.updateReady=false">{{ t('update.later') }}</button>
-      </div>
-    </div>
   </div>
   `,
 };
@@ -4659,41 +4617,21 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// Der Service Worker dient ausschließlich dem GitHub-Pages-Update-Banner-Flow
-// (neues Deployment erkennen) — innerhalb einer nativen Capacitor-App gibt es
-// dieses Konzept nicht (Updates laufen über Store-Binaries), daher dort gar
-// nicht erst registrieren.
+// Der Service Worker dient ausschließlich dem Offline-Caching — innerhalb einer
+// nativen Capacitor-App gibt es dieses Konzept nicht (Updates laufen über
+// Store-Binaries), daher dort gar nicht erst registrieren.
+//
+// BEWUSST KEIN Laufzeit-Update-Flow: kein zyklisches reg.update(), keine
+// „Update verfügbar"-Erkennung, kein Neustart-/Backup-Dialog. Ein neu
+// deploytes Deployment installiert der Browser im Hintergrund; da sw.js beim
+// install NICHT skipWaiting() ruft, übernimmt der neue Worker erst beim
+// nächsten Kaltstart der App. So wird „nur beim Start wird geladen, was da
+// ist" garantiert — der Nutzer wird nie mitten im Spiel neu geladen, und neue
+// Inhalte zeigen sich beim nächsten Start allein über den „Was ist neu"-Dialog.
 if ('serviceWorker' in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').then(reg => {
-      log('sw', `Service Worker registriert`);
-      // Ein bereits wartender Worker (Update kam, während die App geschlossen war).
-      const promote = (w) => {
-        if (!w) return;
-        // Nur als Update werten, wenn diese Seite schon von einem Worker kontrolliert
-        // wird — sonst ist es die Erst-Installation (kein "alte Version läuft weiter").
-        if (w.state === 'installed' && navigator.serviceWorker.controller) {
-          waitingWorker = w;
-          offerUpdate();
-          log('sw', `Update verfügbar (wartend)`);
-        }
-      };
-      promote(reg.waiting);
-      // Ein Update, das erst zur Laufzeit eintrifft.
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener('statechange', () => promote(nw));
-      });
-      // Auf neue Deployment-Version prüfen — aber NIE während eines laufenden
-      // Spiels/Coop. Grund: iOS lädt eine installierte PWA beim SW-Wechsel gerne
-      // selbst neu; wird während des Spielens ein neuer Service Worker entdeckt/
-      // installiert, kann das die App mitten im Spiel neu laden ("rausgeworfen").
-      // Außerhalb des Spiels ist ein Update unkritisch. Intervall zudem auf 2 min
-      // erhöht (30 s war unnötig aggressiv). Ein erkanntes Update während des
-      // Spiels wird ohnehin über offerUpdate()/pendingUpdate bis nach dem Spiel
-      // aufgeschoben.
-      setInterval(() => { if (!gameSessionActive()) { try { reg.update(); } catch (_) {} } }, 120000);
-    }).catch(e => log('sw', `Service-Worker-Registrierung fehlgeschlagen`, e));
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => log('sw', `Service Worker registriert`))
+      .catch(e => log('sw', `Service-Worker-Registrierung fehlgeschlagen`, e));
   });
 }
