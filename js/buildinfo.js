@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.4';
-export const BUILD_HASH = '232d76e';
+export const BUILD      = '1.5';
+export const BUILD_HASH = '962e72e';
 
 export const CHANGELOG = [
+  {
+    "version": "1.5",
+    "date": "01.07.2026",
+    "changes": [
+      "Cloud-Sync sicher gegen Datenverlust: lokale Daten werden NIE stillschweigend überschrieben. Bei Erstanmeldung ohne Cloud-Daten werden die lokalen Daten hochgeladen; unterscheiden sich lokale und Cloud-Daten, fragt beim Start eine „Versions-Mismatch\"-Warnung mit Zeitstempeln, welcher Stand behalten werden soll."
+    ]
+  },
   {
     "version": "1.4",
     "date": "01.07.2026",
