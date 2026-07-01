@@ -369,9 +369,20 @@ export async function watchPresence(uids, cb) {
   } catch (e) { log('account', 'watchPresence fehlgeschlagen', e); return () => {}; }
 }
 
+// Circuit-Breaker: Schlägt ein Präsenz-/Sozial-Schreibzugriff mit PERMISSION_DENIED
+// fehl (typisch: RTDB-Rules aus database.rules.json wurden in der Firebase-Console
+// noch nicht veröffentlicht), wird der Knoten dauerhaft (für diese Session) blockiert.
+// Sonst würde jeder Navigations-/Intervall-Aufruf denselben abgelehnten Schreibzugriff
+// erneut versuchen (im Diagnoseprotokoll als PERMISSION_DENIED-Sturm sichtbar) und die
+// RTDB-Verbindung unnötig auf Trab halten — auf iOS ein Mitverursacher, dass das OS die
+// (durch die Dauerverbindung ohnehin schwerere) PWA aggressiver aus dem Speicher wirft.
+let presenceBlocked = false;
+function isPermissionDenied(e) { return !!e && (e.code === 'PERMISSION_DENIED' || /permission_denied/i.test(e.message || '')); }
+
 // Eigene Präsenz veröffentlichen. game=null ⇒ online im Menü; game={...} ⇒ in einer Partie.
 // onDisconnect setzt den Knoten beim Verbindungsabbruch auf offline.
 export async function publishPresence(game = null) {
+  if (presenceBlocked) return;
   try {
     const fb = await ensureFirebase();
     const u = currentUser(fb);
@@ -379,7 +390,10 @@ export async function publishPresence(game = null) {
     presenceRef = fb.ref(fb.db, `status/${u.uid}`);
     fb.onDisconnect(presenceRef).set({ online: false, lastActive: fb.serverTimestamp(), game: null });
     await fb.set(presenceRef, { online: true, lastActive: fb.serverTimestamp(), game: game || null });
-  } catch (e) { log('account', 'publishPresence fehlgeschlagen', e); }
+  } catch (e) {
+    if (isPermissionDenied(e)) { presenceBlocked = true; log('account', 'Präsenz deaktiviert (PERMISSION_DENIED — RTDB-Rules nicht veröffentlicht?)'); }
+    else log('account', 'publishPresence fehlgeschlagen', e);
+  }
 }
 
 // Beim Verlassen (Logout/Home) offline melden.
