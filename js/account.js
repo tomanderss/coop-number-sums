@@ -653,6 +653,8 @@ export async function adminListUsers() {
       email: (u.profile && u.profile.email) || '',
       balance: (u.data && u.data.wallet && u.data.wallet.balance) || 0,
       hasSkin: !!(u.inventory && u.inventory.dynamicColor),
+      createdAt: (u.profile && u.profile.createdAt) || 0,
+      itemCount: u.inventory ? Object.keys(u.inventory).length : 0,
       profile: u.profile || {},
       inventory: u.inventory || {},
     });
