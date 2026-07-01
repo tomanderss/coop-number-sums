@@ -1,1 +1,0 @@
-Admin-Status wird jetzt live aktualisiert: Wird deine Rolle (z. B. Administrator) gesetzt oder entfernt, ändert sich die Anzeige sofort – ohne App-Neustart oder Menü-Wechsel.

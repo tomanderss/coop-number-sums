@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.30';
-export const BUILD_HASH = '0a29063';
+export const BUILD      = '1.31';
+export const BUILD_HASH = 'f744626';
 
 export const CHANGELOG = [
+  {
+    "version": "1.31",
+    "date": "01.07.2026",
+    "changes": [
+      "Admin-Status wird jetzt live aktualisiert: Wird deine Rolle (z. B. Administrator) gesetzt oder entfernt, ändert sich die Anzeige sofort – ohne App-Neustart oder Menü-Wechsel."
+    ]
+  },
   {
     "version": "1.30",
     "date": "01.07.2026",
