@@ -17,7 +17,7 @@ import {
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
   saveCoopSession, loadCoopSession, clearCoopSession,
-  loadProfile, loadInventory, grantInventory,
+  loadProfile, saveProfile, loadInventory, grantInventory,
   loadWallet, grantCurrency,
 } from './storage.js';
 import * as Account from './account.js';
@@ -317,6 +317,11 @@ function navigate(screen) {
   updateMusic();
   // Präsenz für Freunde aktualisieren (im Spiel vs. Menü) — nur wenn eingeloggt.
   if (state.account.status === 'in') pushPresence();
+  // Beim Zurückkehren ins Hauptmenü die Rolle (u.a. Admin) frisch aus der Cloud
+  // holen — gedrosselt (max. alle 30 s), damit ein neu gesetzter Admin-Status
+  // ohne App-Neustart sichtbar wird. Der refreshAccount-Aufruf persistiert die
+  // Rolle zudem lokal (siehe dort), sodass sie danach sofort verfügbar ist.
+  if (screen === 'home' && state.account.status === 'in') maybeRefreshRole();
   // Ein während des Spiels aufgeschobenes Neuladen (Update/Cloud-Übernahme) jetzt
   // nachholen, sobald wir sicher zurück im Menü sind — nie mitten im Spiel.
   if (screen === 'home') nextTick(flushPendingReload);
@@ -2441,6 +2446,16 @@ function fmtSyncTime(ts) {
   try { return new Date(ts).toLocaleTimeString(i18nState.locale || undefined, { hour: '2-digit', minute: '2-digit' }); }
   catch (_) { return '–'; }
 }
+// Gedrosseltes Nachladen der Rolle (Admin) beim Navigieren ins Hauptmenü — nicht
+// häufiger als alle 30 s, damit häufiges Hin- und Herwechseln keine Firebase-
+// Last erzeugt. refreshAccount() holt Rolle/E-Mail frisch und persistiert sie.
+let lastRoleRefresh = 0;
+function maybeRefreshRole() {
+  const now = Date.now();
+  if (now - lastRoleRefresh < 30000) return;
+  lastRoleRefresh = now;
+  refreshAccount();
+}
 async function refreshAccount() {
   refreshAccountFromLocal();
   // Genaueren Zustand (E-Mail/Rolle) nur holen, wenn lokal schon ein Account
@@ -2450,6 +2465,10 @@ async function refreshAccount() {
       const s = await Account.authState();
       if (s.signedIn) {
         state.account.status = 'in'; state.account.uid = s.uid; state.account.email = s.email || ''; state.account.username = s.username || state.account.username; state.account.role = s.role || 'user';
+        // Rolle lokal persistieren, damit ein frisch (z.B. per Admin) gesetzter
+        // Status beim nächsten Start SOFORT sichtbar ist statt erst nach dem
+        // asynchronen Cloud-Abgleich (Ursache der gemeldeten Verzögerung).
+        saveProfile({ role: state.account.role });
         pushPresence();          // Präsenz melden, sobald der Account bestätigt ist
         startFriendsWatch();     // Freundes-/Anfragen-Listener (Badge) starten
       }
