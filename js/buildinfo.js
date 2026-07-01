@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.22';
-export const BUILD_HASH = '19f0443';
+export const BUILD      = '1.23';
+export const BUILD_HASH = '61c64d6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.23",
+    "date": "01.07.2026",
+    "changes": [
+      "Schwierigkeitsauswahl: die Münz-Belohnung sitzt jetzt in einer eigenen Zeile über dem Namen und überdeckt den Schwierigkeitsnamen nicht mehr (auch bei langen Namen/großen Beträgen)."
+    ]
+  },
   {
     "version": "1.22",
     "date": "01.07.2026",

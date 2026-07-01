@@ -1,1 +1,0 @@
-Schwierigkeitsauswahl: die Münz-Belohnung sitzt jetzt in einer eigenen Zeile über dem Namen und überdeckt den Schwierigkeitsnamen nicht mehr (auch bei langen Namen/großen Beträgen).
