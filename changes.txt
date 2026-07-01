@@ -1,1 +1,0 @@
-Skin-Drehgeschwindigkeit korrigiert: der Regler wirkt jetzt richtig herum (weiter rechts = schneller statt langsamer)
