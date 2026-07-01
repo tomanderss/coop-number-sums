@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.34';
-export const BUILD_HASH = '9604449';
+export const BUILD      = '1.35';
+export const BUILD_HASH = '46a2693';
 
 export const CHANGELOG = [
+  {
+    "version": "1.35",
+    "date": "01.07.2026",
+    "changes": [
+      "Absturz-Schleife im Menü (alle ~36 s) behoben — die Reload-Bremse greift jetzt auch bei langsamen Loops.",
+      "Cloud-Sync im laufenden Spiel entschlackt (max. alle 30 s, kein 60-s-Sync während der Partie) — weniger Speicherlast, seltenere iOS-Abstürze."
+    ]
+  },
   {
     "version": "1.34",
     "date": "01.07.2026",
