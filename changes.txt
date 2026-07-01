@@ -1,1 +1,0 @@
-Cloud-Sync: Weichen lokale und online gespeicherte Daten voneinander ab, werden jetzt immer automatisch die Online-Daten übernommen. Der frühere Auswahldialog beim Start entfällt.

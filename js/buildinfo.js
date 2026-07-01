@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.26';
-export const BUILD_HASH = '5c06638';
+export const BUILD      = '1.27';
+export const BUILD_HASH = '699dce5';
 
 export const CHANGELOG = [
+  {
+    "version": "1.27",
+    "date": "01.07.2026",
+    "changes": [
+      "Cloud-Sync: Weichen lokale und online gespeicherte Daten voneinander ab, werden jetzt immer automatisch die Online-Daten übernommen. Der frühere Auswahldialog beim Start entfällt."
+    ]
+  },
   {
     "version": "1.26",
     "date": "01.07.2026",
