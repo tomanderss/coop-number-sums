@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.24';
-export const BUILD_HASH = 'f56dd34';
+export const BUILD      = '1.25';
+export const BUILD_HASH = '48a0014';
 
 export const CHANGELOG = [
+  {
+    "version": "1.25",
+    "date": "01.07.2026",
+    "changes": [
+      "Admin-Status wird jetzt zuverlässiger erkannt: Die Rolle wird beim Zurückkehren ins Hauptmenü frisch aus der Cloud geladen und lokal gespeichert, sodass ein neu vergebener Admin-Status sofort (statt verzögert) angezeigt wird."
+    ]
+  },
   {
     "version": "1.24",
     "date": "01.07.2026",
