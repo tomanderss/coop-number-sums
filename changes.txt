@@ -1,0 +1,1 @@
+Eine neue Bestzeit gibt jetzt doppelte Münzen. Dieser Bonus stapelt mit dem Coop-/Wettkampf-Bonus und dem Bonus für einen makellosen Sieg (bis zu ×8); der aktive Gesamt-Multiplikator wird auf dem Sieg-Screen angezeigt.

@@ -57,22 +57,29 @@ export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
 // Ø-Lösezeit) steigt exponentiell, daher wächst die Belohnung mindestens
 // verdoppelnd: bis „Extrem" glatt ×2, ab „Mashallah" bewusst MEHR als das
 // Doppelte (≈×2,2–2,25), weil die Zeit-/Komplexitätssprünge dort am größten sind.
-// Auch nicht-perfekte Siege geben die vollen Basis-Münzen; Coop/Wettkampf
-// verdoppeln (Anreiz zum gemeinsamen Spielen), ein makelloser Sieg verdoppelt
-// ebenfalls (stapelt mit Coop → ×4).
+// Auch nicht-perfekte Siege geben die vollen Basis-Münzen. Drei Multiplikatoren
+// stapeln MULTIPLIKATIV (kein Cap): Coop/Wettkampf ×2 (Anreiz zum gemeinsamen
+// Spielen), makelloser (hinweis-/fehlerfreier) Sieg ×2, und eine neue Bestzeit
+// nochmal ×2. Eine Bestzeit gibt es ohnehin nur bei perfektem Spiel, daher real:
+// perfekt+Bestzeit → ×4, Coop+perfekt+Bestzeit → ×8.
 export const COIN_BASE = [5, 10, 20, 40, 80, 180, 400, 900, 2000];
-export const COIN_COOP_MULT = 2, COIN_PERFECT_MULT = 2;
+export const COIN_COOP_MULT = 2, COIN_PERFECT_MULT = 2, COIN_BESTTIME_MULT = 2;
 // Basis-Münzen für eine Schwierigkeit (per Index in DIFFICULTIES); dIdx<0 → 0.
 export function coinBaseForIndex(dIdx) {
   if (dIdx < 0) return 0;
   return COIN_BASE[Math.min(dIdx, COIN_BASE.length - 1)];
 }
-// Endgültige Münzen für einen Sieg inkl. Coop-/Perfekt-Multiplikatoren.
-export function coinReward(dIdx, { coop = false, perfect = false } = {}) {
-  let c = coinBaseForIndex(dIdx);
-  if (coop) c *= COIN_COOP_MULT;
-  if (perfect) c *= COIN_PERFECT_MULT;
-  return Math.round(c); // Perfekt-×1,5 kann krumme Werte erzeugen → ganzzahlig runden
+// Gesamt-Multiplikator eines Siegs aus den aktiven Boni (für Anzeige + Reward).
+export function coinMultiplier({ coop = false, perfect = false, bestTime = false } = {}) {
+  let m = 1;
+  if (coop) m *= COIN_COOP_MULT;
+  if (perfect) m *= COIN_PERFECT_MULT;
+  if (bestTime) m *= COIN_BESTTIME_MULT;
+  return m;
+}
+// Endgültige Münzen für einen Sieg inkl. Coop-/Perfekt-/Bestzeit-Multiplikatoren.
+export function coinReward(dIdx, { coop = false, perfect = false, bestTime = false } = {}) {
+  return Math.round(coinBaseForIndex(dIdx) * coinMultiplier({ coop, perfect, bestTime }));
 }
 
 // ─── REGIONEN-FARBPALETTE ─────────────────────────────────────────────────────

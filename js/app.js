@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinBaseForIndex } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex } from './config.js';
 import { generatePuzzle } from './generator.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
@@ -46,6 +46,7 @@ const state = reactive({
   inventory: loadInventory(),    // { itemId: { acquiredAt, source } } — Besitz von Cosmetics (z.B. Skin 'dynamicColor')
   wallet: loadWallet(),          // { balance, updatedAt } — In-Game-Währung (Münzen pro Sieg)
   lastCoinReward: 0,             // zuletzt auf dem Sieg-Screen gutgeschriebene Münzen (0 = ausblenden)
+  lastCoinMult: 1,               // Gesamt-Multiplikator des letzten Siegs (Coop·perfekt·Bestzeit); >1 → Bonus anzeigen
   skinJustUnlocked: false,       // einmalige Feier-Anzeige in dieser Session
   skinCodeInput: '',             // Eingabefeld zum Einlösen des Geheimcodes
   historyDetail: null,       // { entry, puzzle, cellMeta } während der Endboard-Ansicht eines Verlauf-Eintrags, sonst null
@@ -2020,14 +2021,17 @@ function win(remote) {
     state.stats = stats;
     state.newHighscore = newHighscore;
     // Münzen pro Sieg, abhängig von der Schwierigkeit — In-Game-Währung fürs
-    // Shop-/Marktplatz-System; erscheint als „+X 💰" auf dem Sieg-Screen. Coop/
-    // Wettkampf verdoppeln (Anreiz), makelloser Sieg verdoppelt (stapelt → ×4).
+    // Shop-/Marktplatz-System; erscheint als „+X 💰" auf dem Sieg-Screen. Drei
+    // Boni stapeln multiplikativ (kein Cap): Coop/Wettkampf ×2, makelloser Sieg
+    // ×2, neue Bestzeit ×2 → bis ×8.
     const dIdx = DIFFICULTIES.findIndex(d => d.id === state.puzzle.difficulty);
     const perfect = state.mistakes === 0 && state.hintsUsed === 0;
     const isCoopish = state.coop.active || state.isRaceGame || state.team.active;
-    const coins = coinReward(dIdx, { coop: isCoopish, perfect });
+    const bonus = { coop: isCoopish, perfect, bestTime: newHighscore };
+    const coins = coinReward(dIdx, bonus);
     state.wallet = grantCurrency(coins, 'win');
     state.lastCoinReward = coins;
+    state.lastCoinMult = coinMultiplier(bonus);
     if (state.account.status === 'in') Account.scheduleSyncUp();
   }
   if (!state.isTrainingGame) applyStreakAfterGame();
@@ -3491,7 +3495,7 @@ const App = {
             <template v-else-if="state.mistakes>0"> {{ t('win.missedMistakes') }}</template>
             <template v-else> {{ t('win.missedHints') }}</template>.
           </div>
-          <div v-if="state.lastCoinReward > 0" class="coin-reward">💰 +{{ state.lastCoinReward }} <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
+          <div v-if="state.lastCoinReward > 0" class="coin-reward">💰 +{{ state.lastCoinReward }} <span v-if="state.lastCoinMult > 1" class="coin-mult">×{{ state.lastCoinMult }}</span> <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
           <div class="result-stats">
             <div><b>{{ fmtTime(state.elapsed) }}</b><small>{{ t('win.timeLabel') }}</small></div>
             <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
