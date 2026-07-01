@@ -1,0 +1,1 @@
+Aufräumung: ungenutzte Texte des früheren Update-Dialogs aus allen Sprachdateien entfernt (keine sichtbare Änderung).
