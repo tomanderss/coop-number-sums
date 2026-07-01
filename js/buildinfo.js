@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.21';
-export const BUILD_HASH = '7160c90';
+export const BUILD      = '1.22';
+export const BUILD_HASH = '19f0443';
 
 export const CHANGELOG = [
+  {
+    "version": "1.22",
+    "date": "01.07.2026",
+    "changes": [
+      "Spielanleitung wandert vom Hauptmenü in die Einstellungen unter „Spiel\" (das Fragezeichen-Icon oben rechts entfällt, die Streak-Flamme wird nicht mehr verdeckt).",
+      "Der Einstellungen-Tab „Spiel\" wurde verschlankt: Fehler werden jetzt immer sofort angezeigt, Leben und Timer sind immer aktiv – die Schalter „Fehleraufdeckung\", „Leben\" und „Timer anzeigen\" entfallen."
+    ]
+  },
   {
     "version": "1.21",
     "date": "01.07.2026",

@@ -1,2 +1,0 @@
-Spielanleitung wandert vom Hauptmenü in die Einstellungen unter „Spiel" (das Fragezeichen-Icon oben rechts entfällt, die Streak-Flamme wird nicht mehr verdeckt).
-Der Einstellungen-Tab „Spiel" wurde verschlankt: Fehler werden jetzt immer sofort angezeigt, Leben und Timer sind immer aktiv – die Schalter „Fehleraufdeckung", „Leben" und „Timer anzeigen" entfallen.
