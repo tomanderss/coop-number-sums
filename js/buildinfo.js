@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.2';
-export const BUILD_HASH = '0cc13fa';
+export const BUILD      = '1.3';
+export const BUILD_HASH = 'd544b9c';
 
 export const CHANGELOG = [
+  {
+    "version": "1.3",
+    "date": "01.07.2026",
+    "changes": [
+      "Konto-Anzeige korrigiert: Nach dem Anmelden ist jetzt sichtbar, dass du eingeloggt bist (Benutzername/E-Mail/Rolle) statt weiter das Login-Formular",
+      "Cloud-Sicherung sichtbar gemacht: Konto-Karte zeigt „Gesichert um …\" bzw. „Synchronisiere …\" + „Jetzt sichern\"-Knopf",
+      "Automatische Cloud-Sicherung ALLER Daten: beim Start, nach jedem Spiel, beim Schließen/Wegwischen und alle 60 Sekunden während die App offen ist"
+    ]
+  },
   {
     "version": "1.2",
     "date": "01.07.2026",

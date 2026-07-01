@@ -1,3 +1,0 @@
-Konto-Anzeige korrigiert: Nach dem Anmelden ist jetzt sichtbar, dass du eingeloggt bist (Benutzername/E-Mail/Rolle) statt weiter das Login-Formular
-Cloud-Sicherung sichtbar gemacht: Konto-Karte zeigt „Gesichert um …" bzw. „Synchronisiere …" + „Jetzt sichern"-Knopf
-Automatische Cloud-Sicherung ALLER Daten: beim Start, nach jedem Spiel, beim Schließen/Wegwischen und alle 60 Sekunden während die App offen ist
