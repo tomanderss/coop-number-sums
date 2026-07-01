@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   LIVES, HINTS, MAX_VAL, DIFFICULTIES, DIFF_BY_ID,
   REGION_COLORS, COOP_COLORS, DEFAULT_SETTINGS, DEFAULT_GAME_OPTIONS,
-  regionColorDist, regionChipInk,
+  regionColorDist, regionChipInk, coinReward, coinBaseForIndex, COIN_BASE,
 } from '../../js/config.js';
 
 describe('config constants', () => {
@@ -117,5 +117,41 @@ describe('config.DEFAULT_SETTINGS / DEFAULT_GAME_OPTIONS', () => {
 
   test('default difficulty is a valid difficulty id', () => {
     assert.ok(DIFF_BY_ID[DEFAULT_GAME_OPTIONS.difficulty]);
+  });
+});
+
+describe('config.coinReward', () => {
+  test('one base value per difficulty, always whole positive coins', () => {
+    assert.equal(COIN_BASE.length, DIFFICULTIES.length);
+    for (let i = 0; i < DIFFICULTIES.length; i++) {
+      const c = coinReward(i);
+      assert.ok(Number.isInteger(c) && c > 0, `base ${i} not a positive integer: ${c}`);
+    }
+  });
+
+  test('reward at least doubles each tier (steeper from Mashallah on)', () => {
+    for (let i = 1; i < COIN_BASE.length; i++) {
+      assert.ok(COIN_BASE[i] >= COIN_BASE[i - 1] * 2, `tier ${i} not >= 2x previous`);
+    }
+    // Mashallah (idx 5) onward grows MORE than 2x.
+    for (let i = 5; i < COIN_BASE.length; i++) {
+      assert.ok(COIN_BASE[i] > COIN_BASE[i - 1] * 2, `tier ${i} should be > 2x previous`);
+    }
+  });
+
+  test('coop and perfect each double; they stack (×4) and stay integer', () => {
+    for (let i = 0; i < DIFFICULTIES.length; i++) {
+      const base = coinReward(i);
+      assert.equal(coinReward(i, { coop: true }), base * 2);
+      assert.equal(coinReward(i, { perfect: true }), base * 2);
+      const both = coinReward(i, { coop: true, perfect: true });
+      assert.equal(both, base * 4);
+      assert.ok(Number.isInteger(both));
+    }
+  });
+
+  test('out-of-range difficulty index yields 0', () => {
+    assert.equal(coinReward(-1), 0);
+    assert.equal(coinBaseForIndex(-5), 0);
   });
 });

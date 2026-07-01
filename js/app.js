@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinBaseForIndex } from './config.js';
 import { generatePuzzle } from './generator.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
@@ -429,6 +429,35 @@ const SETTINGS_SECTIONS = [
   { id: 'konto',       ic: '👤', key: 'settings.tabAccount' },
   { id: 'daten',       ic: '💾', key: 'settings.tabData' },
 ];
+// Münz-Belohnung einer Schwierigkeit für die Anzeige auf der Auswahlkarte
+// (Basiswert; im Coop/Wettkampf verdoppelt). Perfekt-Bonus bleibt bewusst außen
+// vor, da er erst beim Sieg feststeht.
+function coinFor(d, coopish) {
+  return coinReward(DIFFICULTIES.indexOf(d), { coop: !!coopish });
+}
+// Shop-Sortiment (vorerst reine Vorschau/WIP — nichts kaufbar). Rein kosmetische
+// Ideen, kein Pay-to-win. Namen via i18n (shop.item.<id>).
+const SHOP_ITEMS = [
+  { id: 'skinPresets', icon: '🎨' },
+  { id: 'boardPalettes', icon: '🌈' },
+  { id: 'appThemes', icon: '🖌️' },
+  { id: 'coopColors', icon: '✨' },
+  { id: 'numberFonts', icon: '🔢' },
+  { id: 'soundPacks', icon: '🎵' },
+  { id: 'winEffects', icon: '🎉' },
+  { id: 'profileBadges', icon: '🏅' },
+  { id: 'boardFrames', icon: '🖼️' },
+  { id: 'moreSoon', icon: '➕' },
+];
+// Shop öffnen/schließen (eigener Screen; Coins oben, WIP-Kaufkarten).
+let shopReturn = null;
+function openShop() {
+  if (state.screen === 'shop') return;
+  shopReturn = state.screen;
+  navigate('shop');
+}
+function closeShop() { const b = shopReturn || 'home'; shopReturn = null; navigate(b); }
+
 function openSettings() {
   if (state.screen === 'settings') return;
   settingsReturn = state.screen;
@@ -1976,11 +2005,13 @@ function win(remote) {
     });
     state.stats = stats;
     state.newHighscore = newHighscore;
-    // Münzen pro Sieg, abhängig von der Schwierigkeit (perfekt = doppelt) — In-Game-
-    // Währung fürs spätere Marktplatz-System; erscheint als „+X 🪙" auf dem Sieg-Screen.
+    // Münzen pro Sieg, abhängig von der Schwierigkeit — In-Game-Währung fürs
+    // Shop-/Marktplatz-System; erscheint als „+X 🪙" auf dem Sieg-Screen. Coop/
+    // Wettkampf verdoppeln (Anreiz), makelloser Sieg verdoppelt (stapelt → ×4).
     const dIdx = DIFFICULTIES.findIndex(d => d.id === state.puzzle.difficulty);
-    const coinBase = 5 * (Math.max(0, dIdx) + 1);
-    const coins = (state.mistakes === 0 && state.hintsUsed === 0) ? coinBase * 2 : coinBase;
+    const perfect = state.mistakes === 0 && state.hintsUsed === 0;
+    const isCoopish = state.coop.active || state.isRaceGame || state.team.active;
+    const coins = coinReward(dIdx, { coop: isCoopish, perfect });
     state.wallet = grantCurrency(coins, 'win');
     state.lastCoinReward = coins;
     if (state.account.status === 'in') Account.scheduleSyncUp();
@@ -2910,6 +2941,7 @@ const App = {
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
+      openShop, closeShop, coinFor, SHOP_ITEMS,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsDrawer,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -2934,6 +2966,8 @@ const App = {
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')">☕<span class="home-donate-heart" aria-hidden="true">❤</span></a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge">🔥{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
+        <button class="coin-chip" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')">🪙 {{ state.wallet.balance || 0 }}</button>
+        <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')">🛒</button>
         <button class="icon-btn home-howto-btn" @click="state.modal='howto'" :aria-label="t('home.howto')" :title="t('home.howto')">?</button>
         <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       </div>
@@ -2986,6 +3020,7 @@ const App = {
         <div class="setup-label">{{ t('common.difficulty') }}</div>
         <div class="option-grid">
           <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card" :class="{active: state.sel.difficulty===d.id}" @click="state.sel.difficulty=d.id">
+            <span class="opt-coins" :title="t('wallet.rewardHint')">🪙 {{ coinFor(d, false) }}</span>
             <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
             <span class="opt-chips">
               <span class="chip">⌀ {{ avgTimeFor(d.id)!=null ? fmtTime(avgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
@@ -3344,6 +3379,11 @@ const App = {
     <section v-else-if="state.screen==='stats'" class="screen stats">
       <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('stats.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
       <div class="stats-body">
+        <button class="btn btn-ghost shop-entry-btn" @click="openShop">
+          <span class="btn-ic">🛒</span>
+          <span class="btn-tx"><b>{{ t('shop.title') }}</b><small>{{ t('shop.entryHint') }}</small></span>
+          <span class="coin-chip coin-chip-static">🪙 {{ state.wallet.balance || 0 }}</span>
+        </button>
         <div class="seg stats-tabs">
           <button :class="{ active: state.statsTab==='allgemein' }" @click="state.statsTab='allgemein'">{{ t('stats.tabGeneral') }}</button>
           <button :class="{ active: state.statsTab==='solo' }" @click="state.statsTab='solo'">{{ t('stats.solo') }}</button>
@@ -3503,6 +3543,7 @@ const App = {
             <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                     :class="{active: state.coop.lobbyDiffId===d.id}"
                     @click="state.coop.lobbyDiffId=d.id">
+              <span class="opt-coins" :title="t('wallet.rewardHint')">🪙 {{ coinFor(d, true) }}</span>
               <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
               <span class="opt-chips">
                 <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
@@ -3567,6 +3608,7 @@ const App = {
               <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                       :class="{active: state.coop.lobbyDiffId===d.id}"
                       @click="state.coop.lobbyDiffId=d.id">
+                <span class="opt-coins" :title="t('wallet.rewardHint')">🪙 {{ coinFor(d, true) }}</span>
                 <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
                 <span class="opt-chips">
                   <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
@@ -3612,6 +3654,26 @@ const App = {
         <button class="btn btn-ghost" style="margin-top:4px" @click="goBack()">{{ t('common.back') }}</button>
       </div>
 
+    </section>
+
+    <!-- ══ SHOP (Work in Progress) ══ -->
+    <section v-else-if="state.screen==='shop'" class="screen shop">
+      <header class="topbar">
+        <button class="icon-btn" @click="closeShop">‹</button>
+        <h2>{{ t('shop.title') }}</h2>
+        <span class="coin-chip coin-chip-static">🪙 {{ state.wallet.balance || 0 }}</span>
+      </header>
+      <div class="shop-body">
+        <p class="shop-intro">{{ t('shop.intro') }}</p>
+        <div class="shop-wip-banner">🚧 {{ t('shop.wip') }}</div>
+        <div class="shop-grid">
+          <div v-for="it in SHOP_ITEMS" :key="it.id" class="shop-card disabled">
+            <span class="shop-card-ic">{{ it.icon }}</span>
+            <span class="shop-card-name">{{ t('shop.item.'+it.id) }}</span>
+            <span class="shop-card-soon">{{ t('shop.soon') }}</span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ══ SETTINGS ══ -->
