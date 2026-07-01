@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.19';
-export const BUILD_HASH = '815a55b';
+export const BUILD      = '1.20';
+export const BUILD_HASH = '20d82f7';
 
 export const CHANGELOG = [
+  {
+    "version": "1.20",
+    "date": "01.07.2026",
+    "changes": [
+      "Update-Ablauf vereinfacht: Der „Update – Backup/Neustart\"-Dialog und die ständige Update-Prüfung im Hintergrund entfallen. Neue Versionen werden nur noch beim nächsten Start der App geladen; was neu ist, zeigt weiterhin der „Was ist neu\"-Dialog."
+    ]
+  },
   {
     "version": "1.19",
     "date": "01.07.2026",
