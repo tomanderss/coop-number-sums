@@ -3055,7 +3055,6 @@ const App = {
     <section v-if="state.screen==='home'" class="screen home">
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')">☕<span class="home-donate-heart" aria-hidden="true">❤</span></a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge">🔥{{ state.streak.currentStreak }}</span>
-      <button v-if="state.account.role==='admin'" class="home-admin-badge" @click="openSettings" :title="t('admin.title')">👑 {{ t('account.roleAdmin') }}</button>
       <div class="home-topbar-right">
         <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')">🛒</button>
         <button class="icon-btn home-howto-btn" @click="state.modal='howto'" :aria-label="t('home.howto')" :title="t('home.howto')">?</button>
@@ -4006,7 +4005,7 @@ const App = {
                 <small class="set-hint">{{ t('account.usernameHint') }}</small>
               </div>
               <div class="account-row" v-if="state.account.email"><span class="account-label">{{ t('account.email') }}</span><span>{{ state.account.email }}</span></div>
-              <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }">{{ state.account.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
+              <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }">{{ state.account.role==='admin' ? '👑 ' + t('account.roleAdmin') : t('account.roleUser') }}</span></div>
               <div class="account-sync" :class="'sync-'+state.account.syncState">
                 <template v-if="state.account.syncState==='syncing'"><span class="spinner-inline"></span> {{ t('account.syncing') }}</template>
                 <template v-else-if="state.account.syncState==='error'">⚠️ {{ state.account.syncErrorMsg || t('account.syncError') }}</template>
