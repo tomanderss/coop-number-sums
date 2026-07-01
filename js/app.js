@@ -2006,7 +2006,7 @@ function win(remote) {
     state.stats = stats;
     state.newHighscore = newHighscore;
     // Münzen pro Sieg, abhängig von der Schwierigkeit — In-Game-Währung fürs
-    // Shop-/Marktplatz-System; erscheint als „+X 🪙" auf dem Sieg-Screen. Coop/
+    // Shop-/Marktplatz-System; erscheint als „+X 💰" auf dem Sieg-Screen. Coop/
     // Wettkampf verdoppeln (Anreiz), makelloser Sieg verdoppelt (stapelt → ×4).
     const dIdx = DIFFICULTIES.findIndex(d => d.id === state.puzzle.difficulty);
     const perfect = state.mistakes === 0 && state.hintsUsed === 0;
@@ -2994,7 +2994,6 @@ const App = {
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')">☕<span class="home-donate-heart" aria-hidden="true">❤</span></a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge">🔥{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
-        <button class="coin-chip" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')">🪙 {{ state.wallet.balance || 0 }}</button>
         <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')">🛒</button>
         <button class="icon-btn home-howto-btn" @click="state.modal='howto'" :aria-label="t('home.howto')" :title="t('home.howto')">?</button>
         <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
@@ -3048,7 +3047,7 @@ const App = {
         <div class="setup-label">{{ t('common.difficulty') }}</div>
         <div class="option-grid">
           <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card" :class="{active: state.sel.difficulty===d.id}" @click="state.sel.difficulty=d.id">
-            <span class="opt-coins" :title="t('wallet.rewardHint')">🪙 {{ coinFor(d, false) }}</span>
+            <span class="opt-coins" :title="t('wallet.rewardHint')">💰 {{ coinFor(d, false) }}</span>
             <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
             <span class="opt-chips">
               <span class="chip">⌀ {{ avgTimeFor(d.id)!=null ? fmtTime(avgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
@@ -3322,7 +3321,7 @@ const App = {
             <template v-else-if="state.mistakes>0"> {{ t('win.missedMistakes') }}</template>
             <template v-else> {{ t('win.missedHints') }}</template>.
           </div>
-          <div v-if="state.lastCoinReward > 0" class="coin-reward">🪙 +{{ state.lastCoinReward }} <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
+          <div v-if="state.lastCoinReward > 0" class="coin-reward">💰 +{{ state.lastCoinReward }} <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
           <div class="result-stats">
             <div><b>{{ fmtTime(state.elapsed) }}</b><small>{{ t('win.timeLabel') }}</small></div>
             <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
@@ -3410,7 +3409,6 @@ const App = {
         <button class="btn btn-ghost shop-entry-btn" @click="openShop">
           <span class="btn-ic">🛒</span>
           <span class="btn-tx"><b>{{ t('shop.title') }}</b><small>{{ t('shop.entryHint') }}</small></span>
-          <span class="coin-chip coin-chip-static">🪙 {{ state.wallet.balance || 0 }}</span>
         </button>
         <div class="seg stats-tabs">
           <button :class="{ active: state.statsTab==='allgemein' }" @click="state.statsTab='allgemein'">{{ t('stats.tabGeneral') }}</button>
@@ -3428,7 +3426,7 @@ const App = {
             <div class="stat-tile"><span class="stat-emoji">🔥</span><b>{{ state.streak.currentStreak }} / {{ state.streak.bestStreak }}</b><small>{{ t('stats.ovStreak') }}</small></div>
             <div class="stat-tile"><span class="stat-emoji">⭐</span><b><template v-if="generalStats.favId">{{ DIFF_BY_ID[generalStats.favId].emoji }} {{ t('difficulty.'+generalStats.favId) }}</template><template v-else>–</template></b><small>{{ t('stats.ovFav') }}</small></div>
             <div class="stat-tile clickable" @click="navTo('achievements')"><span class="stat-emoji">🏅</span><b>{{ achievementsUnlockedCount }} / {{ ACHIEVEMENTS.length }}</b><small>{{ t('stats.ovAchievements') }}</small></div>
-            <div class="stat-tile"><span class="stat-emoji">🪙</span><b>{{ state.wallet.balance }}</b><small>{{ t('wallet.coins') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji">💰</span><b>{{ state.wallet.balance }}</b><small>{{ t('wallet.coins') }}</small></div>
           </div>
           <button class="btn btn-ghost achievements-top-btn" @click="navTo('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
         </template>
@@ -3571,7 +3569,7 @@ const App = {
             <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                     :class="{active: state.coop.lobbyDiffId===d.id}"
                     @click="state.coop.lobbyDiffId=d.id">
-              <span class="opt-coins" :title="t('wallet.rewardHint')">🪙 {{ coinFor(d, true) }}</span>
+              <span class="opt-coins" :title="t('wallet.rewardHint')">💰 {{ coinFor(d, true) }}</span>
               <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
               <span class="opt-chips">
                 <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
@@ -3636,7 +3634,7 @@ const App = {
               <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                       :class="{active: state.coop.lobbyDiffId===d.id}"
                       @click="state.coop.lobbyDiffId=d.id">
-                <span class="opt-coins" :title="t('wallet.rewardHint')">🪙 {{ coinFor(d, true) }}</span>
+                <span class="opt-coins" :title="t('wallet.rewardHint')">💰 {{ coinFor(d, true) }}</span>
                 <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
                 <span class="opt-chips">
                   <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
@@ -3689,7 +3687,7 @@ const App = {
       <header class="topbar">
         <button class="icon-btn" @click="closeShop">‹</button>
         <h2>{{ t('shop.title') }}</h2>
-        <span class="coin-chip coin-chip-static">🪙 {{ state.wallet.balance || 0 }}</span>
+        <span class="coin-chip coin-chip-static">💰 {{ state.wallet.balance || 0 }}</span>
       </header>
       <div class="shop-body">
         <p class="shop-intro">{{ t('shop.intro') }}</p>
@@ -3707,9 +3705,9 @@ const App = {
     <!-- ══ SETTINGS ══ -->
     <section v-else-if="state.screen==='settings'" class="screen settings">
       <header class="topbar">
-        <button class="icon-btn settings-menu-btn" @click="toggleSettingsDrawer" :aria-label="t('settings.menu')" :title="t('settings.menu')">☰</button>
-        <h2>{{ t(SETTINGS_SECTIONS.find(s => s.id===state.settingsTab)?.key || 'settings.title') }}</h2>
         <button class="icon-btn" @click="closeSettings" :aria-label="t('common.back')">‹</button>
+        <h2>{{ t(SETTINGS_SECTIONS.find(s => s.id===state.settingsTab)?.key || 'settings.title') }}</h2>
+        <button class="icon-btn settings-menu-btn" @click="toggleSettingsDrawer" :aria-label="t('settings.menu')" :title="t('settings.menu')">☰</button>
       </header>
 
       <!-- Seitenleiste (Drawer) von links: ersetzt die früheren Top-Tabs -->

@@ -14,9 +14,9 @@ test.describe('settings', () => {
     await expect(page.locator('.screen.settings')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
     // Zurück -> Spiel bleibt pausiert (Pause-Overlay wieder sichtbar). Der
-    // Zurück-Knopf ist der LETZTE Topbar-Icon-Button (der erste öffnet das
-    // Seitenleisten-Menü).
-    await page.locator('.screen.settings .topbar .icon-btn').last().click();
+    // Zurück-Knopf ist der ERSTE Topbar-Icon-Button (links); der Drawer-Hamburger
+    // sitzt rechts.
+    await page.locator('.screen.settings .topbar .icon-btn').first().click();
     await expect(page.locator('.screen.game')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
     await expect(page.locator('.pause-overlay')).toBeVisible();
@@ -83,7 +83,7 @@ test.describe('settings', () => {
       await page.locator('.home-settings-btn').click();
       await gotoSettingsSection(page, 'Darstellung'); // Sprachwahl-Select liegt hier
       await page.locator('select.text-input').selectOption(locale);
-      await page.locator('.screen.settings .topbar .icon-btn').last().click(); // Zurück (letzter Icon-Button)
+      await page.locator('.screen.settings .topbar .icon-btn').first().click(); // Zurück (erster Icon-Button, links)
       await expect(page.locator('.screen.home')).toBeVisible();
 
       const bodyText = await page.locator('.screen.home').innerText();

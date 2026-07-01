@@ -809,7 +809,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .stats-body, .settings-body { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; overflow-y: auto; padding: 0 4px 12px; }
 
 /* ── Einstellungen: Seitenleiste (Drawer) statt Top-Tabs ──────────────────────
-   Hamburger oben links öffnet ein von links einschiebendes Panel (bewusst
+   Hamburger oben RECHTS öffnet ein von RECHTS einschiebendes Panel (bewusst
    schmaler als der Viewport — deckt den Screen nicht komplett), mit vertikaler
    Sektionsliste. Backdrop dimmt den Rest und schließt bei Tap. */
 .settings-menu-btn { font-size: 1.3rem; line-height: 1; }
@@ -818,11 +818,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   backdrop-filter: blur(2px); animation: fadein .2s ease;
 }
 .settings-drawer {
-  position: fixed; top: 0; left: 0; bottom: 0; z-index: 81;
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 81;
   width: min(76vw, 280px); background: var(--bg2);
-  box-shadow: 4px 0 24px var(--shadow);
-  display: flex; flex-direction: column; gap: 2px; padding: 14px 10px;
-  transform: translateX(-100%); transition: transform .25s cubic-bezier(.2,.9,.3,1);
+  box-shadow: -4px 0 24px var(--shadow);
+  display: flex; flex-direction: column; gap: 2px;
+  /* Safe-Area oben/rechts/unten berücksichtigen, sonst verschwindet der Titel
+     hinter der Dynamic Island/Notch. Oben mind. so tief wie der Topbar beginnt,
+     damit die Nav-Liste auf gleicher Höhe startet wie der Öffnen-Knopf. */
+  padding: calc(env(safe-area-inset-top) + 14px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 14px) 10px;
+  transform: translateX(100%); transition: transform .25s cubic-bezier(.2,.9,.3,1);
   overflow-y: auto; overscroll-behavior: contain;
 }
 .settings-drawer.open { transform: translateX(0); }

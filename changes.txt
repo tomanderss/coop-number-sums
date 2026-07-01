@@ -1,0 +1,3 @@
+Einstellungen-Seitenleiste: oberer Rand berücksichtigt jetzt die Dynamic Island/Notch — der Titel wird nicht mehr verdeckt
+Einstellungen: Zurück-Button ist jetzt oben links, das Menü oben rechts (Seitenleiste schiebt von rechts rein)
+Coins nur noch in der Shop-Übersicht sichtbar (nicht mehr im Hauptmenü); Coin-Symbol gewechselt (war einem Mond zu ähnlich)
