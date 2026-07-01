@@ -172,6 +172,35 @@ export async function resetPassword(email) {
   } catch (e) { return { ok: false, err: errKey(e) }; }
 }
 
+// Eigenen (eindeutigen) Username ändern: neuen /usernames-Index belegen, alten
+// freigeben, /users/{uid}/profile/username(+Key) aktualisieren. Kollision wird
+// abgefangen. Der freie Anzeigename (settings.coopName) bleibt davon unberührt.
+export async function changeUsername(newName) {
+  const norm = normalizeUsername(newName);
+  if (!isValidUsername(norm)) return { ok: false, err: 'invalidUsername' };
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, err: 'notSignedIn' };
+    const prof = (await fb.get(userRef(fb, u.uid, 'profile'))).val() || {};
+    const oldName = prof.username || '';
+    if (normalizeUsername(oldName) === norm) return { ok: true, unchanged: true, username: oldName };
+    // Eindeutigkeit: neuer Key darf frei oder bereits mir gehören.
+    const taken = (await fb.get(usernameIndexRef(fb, norm))).val();
+    if (taken && taken !== u.uid) return { ok: false, err: 'usernameTaken' };
+    await fb.set(usernameIndexRef(fb, norm), u.uid);          // neuen Index belegen
+    if (oldName && usernameKey(oldName) !== usernameKey(norm)) {
+      try { await fb.remove(usernameIndexRef(fb, oldName)); } catch (_) {}   // alten freigeben
+    }
+    await fb.set(userRef(fb, u.uid, 'profile/username'), norm);
+    await fb.set(userRef(fb, u.uid, 'profile/usernameKey'), usernameKey(norm));
+    try { await fb.authMod.updateProfile(u, { displayName: norm }); } catch (_) {}
+    saveProfile({ displayName: norm });                        // lokal spiegeln (state.account.username)
+    log('account', 'Username geändert', { uid: u.uid });
+    return { ok: true, username: norm };
+  } catch (e) { log('account', 'Username ändern fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+
 // Account + Cloud-Daten löschen (DSGVO: Recht auf Vergessenwerden, clientseitig).
 export async function deleteAccount() {
   try {

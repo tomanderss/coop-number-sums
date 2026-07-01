@@ -170,6 +170,7 @@ const state = reactive({
     status: 'anon', uid: null, email: '', username: '', role: 'user',
     mode: 'in',              // Formular-Umschalter: 'in' (Anmelden) | 'up' (Registrieren)
     email_in: '', pw_in: '', email_up: '', username_up: '', pw_up: '',
+    usernameEditing: false, usernameDraft: '',   // Username im Profil ändern
     busy: false, error: null, notice: null,
     syncState: 'idle',       // 'idle' | 'syncing' | 'ok' | 'error' — sichtbarer Cloud-Sync-Status
     syncErrorMsg: '',        // konkrete Fehlermeldung des letzten fehlgeschlagenen Syncs
@@ -2472,6 +2473,22 @@ async function doResetPassword() {
   const r = await Account.resetPassword(email);
   if (r.ok) a.notice = t('account.resetSent'); else a.error = accErr(r.err);
 }
+function startUsernameEdit() {
+  const a = state.account;
+  a.usernameDraft = a.username || '';
+  a.usernameEditing = true; a.error = null; a.notice = null;
+}
+async function doChangeUsername() {
+  const a = state.account;
+  a.busy = true; a.error = null; a.notice = null;
+  try {
+    const r = await Account.changeUsername(a.usernameDraft.trim());
+    if (!r.ok) { a.error = accErr(r.err); return; }
+    a.username = r.username; a.usernameEditing = false;
+    showToast(t('account.usernameChanged'), 'success', 2500);
+    if (a.status === 'in') Account.scheduleSyncUp();
+  } finally { a.busy = false; }
+}
 function doDeleteAccount() {
   ask(t('account.deleteTitle'), t('account.deleteMsg'), async () => {
     state.account.busy = true;
@@ -2974,6 +2991,7 @@ const App = {
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime, resolveSyncConflict, fmtSyncDateTime,
+      startUsernameEdit, doChangeUsername,
       adminSearch, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
@@ -3926,7 +3944,22 @@ const App = {
           <!-- Eingeloggt -->
           <template v-if="state.account.status==='in'">
             <div class="account-card">
-              <div class="account-row"><span class="account-label">{{ t('account.username') }}</span><b>{{ state.account.username }}</b></div>
+              <div class="account-row"><span class="account-label">{{ t('account.username') }}</span>
+                <span class="account-username">
+                  <b>{{ state.account.username }}</b>
+                  <button v-if="!state.account.usernameEditing" class="btn-link" @click="startUsernameEdit">{{ t('account.changeUsername') }}</button>
+                </span>
+              </div>
+              <div v-if="state.account.usernameEditing" class="account-username-form">
+                <input class="text-input" v-model="state.account.usernameDraft" maxlength="20" autocapitalize="none" autocomplete="off" :placeholder="t('account.newUsername')" @keydown.enter="doChangeUsername" />
+                <div class="account-username-actions">
+                  <button class="btn btn-primary btn-sm" :disabled="state.account.busy" @click="doChangeUsername">
+                    <span v-if="state.account.busy"><span class="spinner-inline"></span></span><span v-else>{{ t('account.save') }}</span>
+                  </button>
+                  <button class="btn-link" @click="state.account.usernameEditing=false">{{ t('common.cancel') }}</button>
+                </div>
+                <small class="set-hint">{{ t('account.usernameHint') }}</small>
+              </div>
               <div class="account-row" v-if="state.account.email"><span class="account-label">{{ t('account.email') }}</span><span>{{ state.account.email }}</span></div>
               <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }">{{ state.account.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
               <div class="account-sync" :class="'sync-'+state.account.syncState">
