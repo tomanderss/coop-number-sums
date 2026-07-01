@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.8';
-export const BUILD_HASH = 'fba05fb';
+export const BUILD      = '1.9';
+export const BUILD_HASH = 'd537b1f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.9",
+    "date": "01.07.2026",
+    "changes": [
+      "Einstellungen neu strukturiert: ausklappbare Seitenleiste (von links, Hamburger oben links) statt Tabs, thematisch sortierte Bereiche (Spiel · Darstellung · Farbe & Anpassung · Ton · Konto · Daten & Sicherung)"
+    ]
+  },
   {
     "version": "1.8",
     "date": "01.07.2026",
