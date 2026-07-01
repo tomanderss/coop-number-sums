@@ -1,0 +1,1 @@
+Cage-Farben komplett überarbeitet: alle 18 Cage-Farben klar unterscheidbar (auch die zuvor zu ähnlichen Grüntöne), optimiert für Hell- und Dunkelmodus

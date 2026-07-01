@@ -11,7 +11,7 @@
 //     lösbar?  → dann ist die Lösung BEWEISBAR eindeutig und ohne Raten lösbar.
 
 import { logicalSolve, KEEP, REMOVE, UNK } from './solver.js';
-import { DIFF_BY_ID, REGION_COLORS, MAX_VAL } from './config.js';
+import { DIFF_BY_ID, REGION_COLORS, MAX_VAL, regionColorDist } from './config.js';
 
 // ─── Seedbarer Zufall (mulberry32) ────────────────────────────────────────────
 export function makeRng(seed) {
@@ -243,14 +243,21 @@ function buildRegions(id, K, rows, cols) {
 
 // Minimaler Winkelabstand auf dem Farbkreis (0–180°) — Farben mit kleinerem
 // Abstand gelten als "zu ähnlich" und werden ebenfalls gebannt.
-const HUE_SIM_THRESHOLD = 65;
-function hueDist(a, b) { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+// Mindest-Wahrnehmungsabstand (regionColorDist, Redmean der komponierten
+// Cage-Farbe) zwischen direkt benachbarten Cages. Die Palette ist so gebaut,
+// dass JEDES Paar ≳80 auseinanderliegt; wir bevorzugen für Nachbarn einen noch
+// größeren Abstand und lockern den Schwellwert nur, falls die Nachbarschaft so
+// dicht ist, dass sonst keine Farbe bliebe.
+const SIM_THRESHOLD = 150;
+// Vorab: paarweise Wahrnehmungsdistanz aller Palettenfarben (einmalig).
+const COLOR_DIST = REGION_COLORS.map(a => REGION_COLORS.map(b => regionColorDist(a, b)));
 
-// Färbung: benachbarte Cages verschieden UND nicht zu ähnlich im Farbton,
-// dabei möglichst viele Farben nutzen (seltenste erlaubte Farbe bevorzugt).
-// "Benachbart" zählt auch diagonal/über Eck (nicht nur orthogonal) — sonst
-// können sich zwei nur an einer Ecke berührende Cages eine zu ähnliche Farbe
-// teilen, was im Raster trotzdem leicht übersehen wird.
+// Färbung: benachbarte Cages möglichst weit auseinander in der WAHRGENOMMENEN
+// Farbe (nicht nur im Farbton — 18 Farben passen nicht mit je ≥30° Hue-Abstand
+// auf den Kreis; Helligkeit trennt nahe Töne), dabei möglichst viele Farben
+// nutzen (seltenste erlaubte Farbe bevorzugt). "Benachbart" zählt auch
+// diagonal/über Eck (nicht nur orthogonal) — sonst können sich zwei nur an einer
+// Ecke berührende Cages eine zu ähnliche Farbe teilen.
 function colorRegions(regions, idGrid, rows, cols) {
   const k = regions.length;
   const adj = Array.from({ length: k }, () => new Set());
@@ -264,29 +271,22 @@ function colorRegions(regions, idGrid, rows, cols) {
   }
   const usage = new Array(REGION_COLORS.length).fill(0);
   for (let i = 0; i < k; i++) {
-    const nbHues = [];
-    const nbColors = new Set();
-    for (const nb of adj[i]) {
-      if (nb >= i) continue;
-      nbColors.add(regions[nb].colorIndex);
-      nbHues.push(REGION_COLORS[regions[nb].colorIndex].h);
-    }
+    const nbColors = [];
+    for (const nb of adj[i]) { if (nb < i) nbColors.push(regions[nb].colorIndex); }
     let best = -1, bestU = Infinity;
-    // Bei dicht benachbarten Cages (viele Nachbarn mit breit gestreuten Farben)
-    // kann der volle HUE_SIM_THRESHOLD jede der 10 Farben gleichzeitig bannen.
-    // Statt dann komplett aufzugeben und nur noch exakte Duplikate zu meiden
-    // (das führte genau zu den gemeldeten "fast identischen" Nachbarfarben),
-    // wird der Schwellenwert schrittweise gelockert — die am Ende gewählte
-    // Farbe bleibt so immer so unterscheidbar wie unter den Umständen möglich.
-    for (let threshold = HUE_SIM_THRESHOLD; best === -1 && threshold > 0; threshold -= 10) {
+    // Bei dicht benachbarten Cages kann der volle SIM_THRESHOLD jede Farbe
+    // gleichzeitig bannen. Statt dann aufzugeben und "fast identische"
+    // Nachbarfarben zu erlauben, lockern wir den Schwellwert schrittweise —
+    // die gewählte Farbe bleibt so immer so unterscheidbar wie möglich.
+    for (let threshold = SIM_THRESHOLD; best === -1 && threshold > 0; threshold -= 20) {
       for (let col = 0; col < REGION_COLORS.length; col++) {
-        if (nbHues.some(h => hueDist(REGION_COLORS[col].h, h) < threshold)) continue;
+        if (nbColors.some(nc => COLOR_DIST[col][nc] < threshold)) continue;
         if (usage[col] < bestU) { bestU = usage[col]; best = col; }
       }
     }
-    if (best === -1) { // nur falls wirklich alle 10 Farben exakt von Nachbarn belegt sind
+    if (best === -1) { // nur falls wirklich alle Farben exakt von Nachbarn belegt sind
       for (let col = 0; col < REGION_COLORS.length; col++) {
-        if (nbColors.has(col)) continue;
+        if (nbColors.includes(col)) continue;
         if (usage[col] < bestU) { bestU = usage[col]; best = col; }
       }
     }

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   LIVES, HINTS, MAX_VAL, DIFFICULTIES, DIFF_BY_ID,
   REGION_COLORS, COOP_COLORS, DEFAULT_SETTINGS, DEFAULT_GAME_OPTIONS,
+  regionColorDist,
 } from '../../js/config.js';
 
 describe('config constants', () => {
@@ -50,6 +51,21 @@ describe('config.REGION_COLORS', () => {
       assert.ok(c.s >= 0 && c.s <= 100);
       assert.ok(c.l >= 0 && c.l <= 100);
     }
+  });
+
+  test('every pair of cage colours is perceptually distinct (no confusable greens etc.)', () => {
+    // The whole point of the palette: even non-adjacent cages must never look
+    // like "the same colour, slightly off". regionColorDist measures the
+    // composited cage colour in the worse of both themes; require a clear gap
+    // for ALL pairs so no two entries are confusable regardless of placement.
+    let worst = Infinity, pair = '';
+    for (let i = 0; i < REGION_COLORS.length; i++) {
+      for (let j = i + 1; j < REGION_COLORS.length; j++) {
+        const d = regionColorDist(REGION_COLORS[i], REGION_COLORS[j]);
+        if (d < worst) { worst = d; pair = `${REGION_COLORS[i].name}/${REGION_COLORS[j].name}`; }
+      }
+    }
+    assert.ok(worst >= 70, `closest cage-colour pair ${pair} only ${worst.toFixed(0)} apart (want >=70)`);
   });
 });
 
