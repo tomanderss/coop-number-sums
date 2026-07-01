@@ -1144,6 +1144,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .account-sync { margin-top: 4px; font-size: .82rem; color: var(--good); font-weight: 700; }
 .account-sync.sync-error { color: var(--bad); }
 .account-sync.sync-syncing { color: var(--text2); }
+.sync-warn-badge { background: var(--bad-soft); color: var(--bad); }
+.sync-btn-tx { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.2; }
+.sync-btn-tx small { font-weight: 600; opacity: .85; font-size: .74rem; }
 .account-notice { background: var(--accent-soft); color: var(--accent2); border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: .88rem; text-align: center; margin: 0; }
 .btn-link { background: none; box-shadow: none; color: var(--accent2); font-weight: 700; font-size: .9rem; padding: 6px; text-decoration: underline; align-self: center; }
 .account-search { display: flex; gap: 8px; align-items: stretch; }

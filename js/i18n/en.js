@@ -361,6 +361,15 @@ export default {
     coins: 'Coins',
     total: 'total: {n}',
   },
+  sync: {
+    mismatchBadge: 'Version mismatch',
+    mismatchTitle: 'Which data to keep?',
+    mismatchBody: 'Your local data and the cloud data differ. Choose which one to keep — the other will be overwritten.',
+    keepLocal: 'Keep local data',
+    keepCloud: 'Keep cloud data',
+    changedAt: 'As of: {time}',
+    kept: 'Local data kept and backed up.',
+  },
   toast: {
     backupExported: 'Backup exported',
     importSuccess: 'Import successful',

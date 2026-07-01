@@ -361,6 +361,15 @@ export default {
     coins: 'Münzen',
     total: 'gesamt: {n}',
   },
+  sync: {
+    mismatchBadge: 'Versions-Mismatch',
+    mismatchTitle: 'Welche Daten behalten?',
+    mismatchBody: 'Deine lokalen Daten und die Cloud-Daten unterscheiden sich. Wähle, welcher Stand behalten werden soll — der andere wird überschrieben.',
+    keepLocal: 'Lokale Daten behalten',
+    keepCloud: 'Cloud-Daten behalten',
+    changedAt: 'Stand: {time}',
+    kept: 'Lokale Daten behalten und gesichert.',
+  },
   toast: {
     backupExported: 'Backup exportiert',
     importSuccess: 'Import erfolgreich',

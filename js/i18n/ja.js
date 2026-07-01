@@ -361,6 +361,15 @@ export default {
     coins: 'コイン',
     total: '合計: {n}',
   },
+  sync: {
+    mismatchBadge: 'バージョンの不一致',
+    mismatchTitle: 'どちらのデータを残しますか？',
+    mismatchBody: 'ローカルのデータとクラウドのデータが異なります。残す方を選んでください。もう一方は上書きされます。',
+    keepLocal: 'ローカルデータを残す',
+    keepCloud: 'クラウドデータを残す',
+    changedAt: '状態: {time}',
+    kept: 'ローカルデータを残して保存しました。',
+  },
   toast: {
     backupExported: 'バックアップを書き出しました',
     importSuccess: 'インポートに成功しました',
