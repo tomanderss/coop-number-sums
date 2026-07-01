@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.29';
-export const BUILD_HASH = '4a816b8';
+export const BUILD      = '1.30';
+export const BUILD_HASH = '0a29063';
 
 export const CHANGELOG = [
+  {
+    "version": "1.30",
+    "date": "01.07.2026",
+    "changes": [
+      "Ton-Einstellungen: Der Lautstärkeregler steht jetzt ganz oben im „Ton\"-Tab (über den einzelnen Musik-/Sound-Schaltern)."
+    ]
+  },
   {
     "version": "1.29",
     "date": "01.07.2026",
