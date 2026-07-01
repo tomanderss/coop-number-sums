@@ -352,6 +352,10 @@ export default {
     unlockCustomize: 'Görünümü özelleştir',
     unlockLater: 'Sonra',
   },
+  wallet: {
+    coins: 'Jeton',
+    total: 'toplam: {n}',
+  },
   toast: {
     backupExported: 'Yedek dışa aktarıldı',
     importSuccess: 'İçe aktarma başarılı',

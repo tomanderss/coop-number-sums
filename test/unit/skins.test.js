@@ -2,10 +2,31 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 const {
-  SKIN_ID, SKIN_UNLOCK_VERSION, SKIN_CODE_NORM, SKIN_STYLES,
-  cmpVersion, qualifiesForV1Skin, normalizeSkinCode, skinCodeMatches,
+  SKIN_ID, SKIN_UNLOCK_VERSION, SKIN_CODE_NORM, SKIN_STYLES, FOUNDER_ID,
+  cmpVersion, qualifiesForV1Skin, eligibleForCelebrationSkin, normalizeSkinCode, skinCodeMatches,
   skinVars, skinClasses,
 } = await import('../../js/skins.js');
+
+describe('skins.eligibleForCelebrationSkin', () => {
+  test('everyone on >=1.0 gets the skin — including fresh installs (no seen version)', () => {
+    assert.equal(eligibleForCelebrationSkin('1.0'), true);
+    assert.equal(eligibleForCelebrationSkin('1.4'), true);
+  });
+  test('pre-1.0 builds are not eligible', () => {
+    assert.equal(eligibleForCelebrationSkin('0.166'), false);
+  });
+});
+
+describe('skins.founder marker', () => {
+  test('FOUNDER_ID is a distinct inventory id from the skin', () => {
+    assert.equal(FOUNDER_ID, 'founder1_0');
+    assert.notEqual(FOUNDER_ID, SKIN_ID);
+  });
+  test('only players who lived the <1.0 -> 1.0 jump qualify for the founder marker', () => {
+    assert.equal(qualifiesForV1Skin('0.166', '1.0'), true);  // upgrader ⇒ founder
+    assert.equal(qualifiesForV1Skin(null, '1.0'), false);    // fresh install ⇒ not a founder
+  });
+});
 
 describe('skins.cmpVersion', () => {
   test('compares numerically segment by segment', () => {

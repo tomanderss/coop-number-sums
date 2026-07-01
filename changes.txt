@@ -1,0 +1,2 @@
+Skin ist ab 1.0 ein Geschenk für alle (zur Feier des Tages) — standardmäßig aus, in den Einstellungen aktivierbar; wer den Sprung auf 1.0 miterlebt hat, bekommt zusätzlich einen bleibenden „Founder"-Marker
+Münzen pro gewonnenem Spiel (abhängig von der Schwierigkeit, perfekt = doppelt) — sichtbar auf dem Sieg-Screen und in der Statistik

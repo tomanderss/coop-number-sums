@@ -8,10 +8,12 @@ import { gotoApp, startNewGame } from './helpers.js';
 test.describe('dynamic skin', () => {
   test('the secret code unlocks the skin and the editor appears', async ({ page }) => {
     await gotoApp(page);
-    await page.evaluate(() => { const s = window.__cns.state; s.screen = 'settings'; s.settingsTab = 'allgemein'; });
+    // On 1.0 the skin is auto-gifted to everyone at startup ("Feier des Tages").
+    expect(await page.evaluate(() => !!window.__cns.state.inventory.dynamicColor)).toBe(true);
 
-    // Locked: no inventory item yet, code field visible.
-    expect(await page.evaluate(() => !!window.__cns.state.inventory.dynamicColor)).toBe(false);
+    // Clear it to exercise the redeem-code path from a locked state; the code
+    // field stays visible even when unlocked, so redeeming still works.
+    await page.evaluate(() => { const s = window.__cns.state; s.inventory = {}; s.screen = 'settings'; s.settingsTab = 'allgemein'; });
     const codeInput = page.getByPlaceholder('Freischaltcode');
     await expect(codeInput).toBeVisible();
 

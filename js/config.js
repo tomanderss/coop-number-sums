@@ -180,7 +180,7 @@ export const DEFAULT_SETTINGS = {
   // Dynamischer Skin (1.0, freischaltbar via Versionssprung/Code; Item 'dynamicColor'
   // im Inventar). Voll konfigurierbar; gilt nur, wenn freigeschaltet UND skinEnabled.
   // Greift auf die persönliche Farbe (--markcol pro Zelle) zurück ⇒ Coop-Identität bleibt.
-  skinEnabled: true,         // Master-Schalter (nur wirksam, wenn freigeschaltet)
+  skinEnabled: false,        // Master-Schalter (aus per Default: „Feier des Tages"-Skin ist erst manuell/über die Feier-Anzeige aktivierbar)
   skinStyle: 'gradient',     // 'solid' (rotierender Bogen) | 'gradient' (mehrfarbig) | 'rainbow'
   skinColor1: '',            // '' = aus persönlicher Farbe ableiten; sonst Hex
   skinColor2: '',

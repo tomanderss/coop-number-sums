@@ -1149,3 +1149,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .account-search .btn { flex: 0 0 auto; padding: 10px 16px; }
 .admin-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .admin-actions .btn { flex: 1 1 auto; }
+/* Münz-Belohnung auf dem Sieg-Screen */
+.coin-reward { font-weight: 900; font-size: 1.15rem; color: #f5b301; text-align: center; margin: 2px 0 4px; }
+.coin-reward .coin-total { font-size: .8rem; font-weight: 700; color: var(--text3); }
