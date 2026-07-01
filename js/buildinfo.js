@@ -1,8 +1,19 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.12';
-export const BUILD_HASH = '214c491';
+export const BUILD      = '1.13';
+export const BUILD_HASH = '542bf91';
 
 export const CHANGELOG = [
+  {
+    "version": "1.13",
+    "date": "01.07.2026",
+    "changes": [
+      "Einstellungen-Seitenleiste: oberer Rand berücksichtigt jetzt die Dynamic Island/Notch — der Titel wird nicht mehr verdeckt",
+      "Einstellungen: Zurück-Button ist jetzt oben links, das Menü oben rechts (Seitenleiste schiebt von rechts rein)",
+      "Coins nur noch in der Shop-Übersicht sichtbar (nicht mehr im Hauptmenü); Coin-Symbol gewechselt (war einem Mond zu ähnlich)",
+      "Benutzername ist jetzt in den Einstellungen unter „Konto\" änderbar (mit Eindeutigkeitsprüfung); der freie Anzeigename bleibt davon getrennt",
+      "Admin erweitert: In-Game-Abzeichen „👑 Administrator\", jeden Nutzer umfassend bearbeiten (Username, Rolle, Guthaben, Inventar, beliebige Profilfelder) und Passwort-Reset-Mail auslösen"
+    ]
+  },
   {
     "version": "1.12",
     "date": "01.07.2026",
