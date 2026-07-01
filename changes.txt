@@ -1,0 +1,1 @@
+Admin-Status wird jetzt zuverlässiger erkannt: Die Rolle wird beim Zurückkehren ins Hauptmenü frisch aus der Cloud geladen und lokal gespeichert, sodass ein neu vergebener Admin-Status sofort (statt verzögert) angezeigt wird.
