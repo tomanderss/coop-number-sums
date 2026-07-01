@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeRng, generatePuzzle, findHintCell } from '../../js/generator.js';
 import { logicalSolve, countSolutions } from '../../js/solver.js';
-import { DIFFICULTIES, REGION_COLORS } from '../../js/config.js';
+import { DIFFICULTIES, REGION_COLORS, regionColorDist } from '../../js/config.js';
 
 describe('generator.makeRng', () => {
   test('is deterministic for a given seed', () => {
@@ -149,13 +149,16 @@ describe('generator cage colors', () => {
     }
   });
 
-  test('adjacent cages stay far apart in hue, not just non-identical, across many seeds', () => {
+  test('adjacent cages stay perceptually far apart (not just non-identical), across many seeds', () => {
     // Regression: colorRegions()' "all colors banned" relax path used to drop
     // the similarity threshold to 0 entirely (only avoiding an exact repeat),
     // which let directly-touching cages end up with barely-distinguishable
-    // hues (e.g. two different greens) even though they were never the exact
+    // colours (e.g. two different greens) even though they were never the exact
     // same colorIndex -- exactly the "too similar" report this guards against.
-    function hueDist(a, b) { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+    // Metric is now the same perceptual distance the generator uses
+    // (regionColorDist: redmean of the composited cage colour, worst theme) --
+    // hue alone can't measure distinctness once lightness carries part of the
+    // separation (18 colours don't fit >=30deg apart on the wheel).
     for (const diff of DIFFICULTIES) {
       // Große Felder generieren langsam (14×14 ~Sekunden) -- dort weniger Seeds,
       // sonst sprengt die Schleife die CI-Laufzeit. colorRegions() ist von der
@@ -173,11 +176,12 @@ describe('generator cage colors', () => {
               if (nr < 0 || nr >= puzzle.rows || nc < 0 || nc >= puzzle.cols) continue;
               const b = idGrid[nr][nc];
               if (b === a) continue;
-              const ha = REGION_COLORS[puzzle.regions[a].colorIndex].h;
-              const hb = REGION_COLORS[puzzle.regions[b].colorIndex].h;
+              const ca = REGION_COLORS[puzzle.regions[a].colorIndex];
+              const cb = REGION_COLORS[puzzle.regions[b].colorIndex];
+              const d = regionColorDist(ca, cb);
               assert.ok(
-                hueDist(ha, hb) >= 30,
-                `${diff.id} seed ${seed}: adjacent cages ${a} and ${b} only ${hueDist(ha, hb)}deg apart in hue`,
+                d >= 55,
+                `${diff.id} seed ${seed}: adjacent cages ${a} and ${b} only ${d.toFixed(0)} apart (perceptual)`,
               );
             }
           }

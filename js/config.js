@@ -52,43 +52,71 @@ export const DIFFICULTIES = [
 export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
 
 // ─── REGIONEN-FARBPALETTE ─────────────────────────────────────────────────────
-// Kräftige, klar unterscheidbare Töne (funktionieren in Hell & Dunkel). Der
-// Grünbereich (lime/emerald/teal) bekam Nutzer-Feedback ("zu ähnlich, zu
-// soft"): drei Grüntöne liegen nah beieinander auf dem Farbkreis und wurden
-// vorher zusätzlich mit fast identischer Sättigung/Helligkeit kombiniert, was
-// sie nebeneinander praktisch ununterscheidbar machte. Jetzt: größere
-// Hue-Abstände UND bewusst stark unterschiedliche Helligkeit/Sättigung pro
-// Grünton (hell-satt / sehr dunkel / mittel-blaustichig), damit die drei
-// auch ohne exaktes Farbsehen klar als eigene Farben lesbar sind. Restliche
-// Paletten-Töne entsprechend kräftiger (höhere Sättigung) für mehr Kontrast
-// insgesamt. Siehe auch HUE_SIM_THRESHOLD (generator.js) für die
-// Mindestabstands-Logik zwischen direkt benachbarten Cages.
-// Größere Felder (z.B. 13×13 "Dikka was") haben mehr Cages als die ursprünglichen
-// 10 Farben — zu wenig, um direkt benachbarte Cages durchgängig deutlich (≥30°
-// Farbton-Abstand) unterscheidbar zu halten. Daher zusätzliche, über den ganzen
-// Farbkreis verteilte Töne mit bewusst variierender Helligkeit/Sättigung (auch
-// nahe Farbtöne bleiben so durch unterschiedliche Helligkeit lesbar). Reihenfolge
-// der ersten 10 unverändert (stabile colorIndex-Indizes für gespeicherte Spiele).
+// Kräftige, klar unterscheidbare Töne (funktionieren in Hell & Dunkel).
+// Nutzer-Feedback: mehrere (v.a. grüne) Cages sahen fast identisch aus. Ursache
+// war ein rein HUE-basiertes Design: 18 Farben passen NICHT mit je ≥30°
+// Farbton-Abstand auf einen 360°-Kreis (Schnitt 20°), also lagen zwangsläufig
+// mehrere Töne dicht beieinander — und weil sie zusätzlich ähnliche Helligkeit
+// hatten, waren sie ununterscheidbar. Lösung: Helligkeit wird zur GLEICHWERTIGEN
+// zweiten Achse. Diese Palette wurde per Farthest-Point-Sampling gegen die
+// wahrgenommene Distanz (Redmean) der TATSÄCHLICH gerenderten Cage-Farbe
+// (Farbe über Zellhintergrund gemischt, siehe .cell.region-Alpha in styles.css)
+// im schlechteren der beiden Themes optimiert → jedes Paar ist auch komponiert
+// klar getrennt (min. Redmean ≈ 81 statt vorher ≈ 29; keine "confusable" Paare).
+// Nahe Farbtöne (z.B. mehrere Grüns) sind bewusst über die Helligkeit getrennt
+// (dunkel/mittel/hell). Die Zuordnung zu Cages (generator.js colorRegions) nutzt
+// dieselbe wahrgenommene Distanz (regionColorDist), damit direkt benachbarte
+// Cages maximal auseinanderliegen. `name` nur für Tests/Debug (muss eindeutig
+// sein). 18 Töne, da große Felder (13×13) entsprechend viele Cages haben.
 export const REGION_COLORS = [
-  { name: 'coral',  h: 8,   s: 88, l: 58 },
-  { name: 'amber',  h: 42,  s: 92, l: 54 },
-  { name: 'lime',   h: 78,  s: 80, l: 54 },
-  { name: 'emerald',h: 136, s: 75, l: 30 },
-  { name: 'teal',   h: 180, s: 80, l: 44 },
-  { name: 'cyan',   h: 202, s: 88, l: 56 },
-  { name: 'blue',   h: 228, s: 82, l: 62 },
-  { name: 'violet', h: 264, s: 75, l: 66 },
-  { name: 'fuchsia',h: 300, s: 78, l: 58 },
-  { name: 'rose',   h: 336, s: 85, l: 60 },
-  { name: 'orange', h: 22,  s: 95, l: 50 },
-  { name: 'gold',   h: 60,  s: 86, l: 48 },
-  { name: 'green',  h: 110, s: 68, l: 40 },
-  { name: 'spring', h: 158, s: 72, l: 50 },
-  { name: 'sky',    h: 192, s: 90, l: 62 },
-  { name: 'azure',  h: 244, s: 82, l: 64 },
-  { name: 'purple', h: 282, s: 72, l: 58 },
-  { name: 'magenta',h: 318, s: 82, l: 56 },
+  { name: 'coral',    h: 8,   s: 88, l: 58 },
+  { name: 'maroon',   h: 12,  s: 90, l: 30 },
+  { name: 'peach',    h: 20,  s: 65, l: 70 },
+  { name: 'amber',    h: 48,  s: 90, l: 54 },
+  { name: 'olive',    h: 60,  s: 90, l: 30 },
+  { name: 'lime',     h: 84,  s: 90, l: 62 },
+  { name: 'grass',    h: 96,  s: 90, l: 46 },
+  { name: 'forest',   h: 120, s: 90, l: 30 },
+  { name: 'emerald',  h: 136, s: 90, l: 54 },
+  { name: 'mint',     h: 152, s: 65, l: 70 },
+  { name: 'teal',     h: 180, s: 90, l: 54 },
+  { name: 'ocean',    h: 196, s: 78, l: 38 },
+  { name: 'navy',     h: 224, s: 65, l: 30 },
+  { name: 'blue',     h: 240, s: 90, l: 46 },
+  { name: 'indigo',   h: 264, s: 90, l: 54 },
+  { name: 'lavender', h: 264, s: 90, l: 70 },
+  { name: 'plum',     h: 304, s: 90, l: 30 },
+  { name: 'magenta',  h: 308, s: 90, l: 54 },
 ];
+
+// Wahrgenommene Distanz zwischen zwei Cage-Farben, GENAU wie sie im Brett
+// erscheinen: die Farbe wird (wie in CSS) mit Alpha über den Zellhintergrund
+// gemischt und im Redmean-Farbraum verglichen; zurückgegeben wird der schlechtere
+// (kleinere) Wert aus Hell- und Dunkelmodus, damit "unterscheidbar" in BEIDEN
+// Themes gilt. Reine Datei-lokale Helfer — genutzt von generator.js (Cage-Färbung)
+// und den Farb-Regressionstests, damit beide dieselbe Metrik verwenden.
+function hslToRgb(h, s, l) {
+  h /= 360; s /= 100; l /= 100;
+  const k = n => (n + h * 12) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [255 * f(0), 255 * f(8), 255 * f(4)];
+}
+// Zellhintergründe (styles.css: --cell-bg) + Cage-Alpha je Theme.
+const CELL_BG_DARK = [26, 33, 56];      // #1a2138
+const CELL_BG_LIGHT = [255, 255, 255];  // #ffffff
+const CAGE_ALPHA_DARK = 0.64, CAGE_ALPHA_LIGHT = 0.52;
+function composite(rgb, bg, a) { return rgb.map((v, i) => a * v + (1 - a) * bg[i]); }
+function redmean(A, B) {
+  const rm = (A[0] + B[0]) / 2, dr = A[0] - B[0], dg = A[1] - B[1], db = A[2] - B[2];
+  return Math.sqrt((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db);
+}
+export function regionColorDist(a, b) {
+  const ra = hslToRgb(a.h, a.s, a.l), rb = hslToRgb(b.h, b.s, b.l);
+  const dDark = redmean(composite(ra, CELL_BG_DARK, CAGE_ALPHA_DARK), composite(rb, CELL_BG_DARK, CAGE_ALPHA_DARK));
+  const dLight = redmean(composite(ra, CELL_BG_LIGHT, CAGE_ALPHA_LIGHT), composite(rb, CELL_BG_LIGHT, CAGE_ALPHA_LIGHT));
+  return Math.min(dDark, dLight);
+}
 
 // ─── COOP-IDENTITÄTSFARBEN ────────────────────────────────────────────────────
 // Bewusst ohne Grün/Smaragd-Töne (= Hinweis-Farbe --good, ~152°) und ohne Rot
