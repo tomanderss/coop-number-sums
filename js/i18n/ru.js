@@ -143,6 +143,7 @@ export default {
     partnerConnected: 'Товарищ по команде подключился 👥',
     partnerDisconnected: '{name} покинул лобби',
     reconnected: 'Снова подключено ✅',
+    connectionLost: "Соединение потеряно — не в сети. Попытка переподключиться…",
     errorRoomGone: 'Комната больше не существует — кооп-игру нельзя продолжить.',
     hostDisconnectedPromoting: '{name} (хост) отключился — становишься новым хостом…',
     hostDisconnected: 'Соединение с {name} (хост) потеряно',

@@ -1,0 +1,1 @@
+Coop: verlorene eigene Verbindung wird jetzt auch beim Client erkannt und als „offline" angezeigt (vorher sah das nur der Host); automatische Wiederverbindung bei Rückkehr
