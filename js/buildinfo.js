@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.3';
-export const BUILD_HASH = 'd544b9c';
+export const BUILD      = '1.4';
+export const BUILD_HASH = '232d76e';
 
 export const CHANGELOG = [
+  {
+    "version": "1.4",
+    "date": "01.07.2026",
+    "changes": [
+      "Anmeldung bleibt jetzt nach dem Neustart erhalten: Nach dem Login wurde die Account-Sitzung beim App-Neustart versehentlich durch eine anonyme Sitzung überschrieben – dadurch musste man sich erneut anmelden. Behoben."
+    ]
+  },
   {
     "version": "1.3",
     "date": "01.07.2026",
