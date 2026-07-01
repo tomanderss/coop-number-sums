@@ -1,0 +1,1 @@
+Freundesliste: Der Aktivitätsstatus (online / im Spiel mit Modus, Level und Fortschritt) wird jetzt nur noch bei tatsächlich online-Freunden angezeigt. Offline-Freunde erscheinen zuverlässig als „offline" – kein veralteter Spielstatus mehr.
