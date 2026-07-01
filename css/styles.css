@@ -1220,6 +1220,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .admin-field-row { display: flex; gap: 6px; align-items: center; }
 .admin-field-row .text-input { flex: 1 1 auto; min-width: 0; }
 .admin-field-row .btn { flex: 0 0 auto; }
+/* Admin-User-Browser: scrollbare Liste + Bearbeiten-Modal */
+.admin-user-list { display: flex; flex-direction: column; gap: 4px; max-height: 340px; overflow-y: auto; overscroll-behavior: contain; }
+.admin-user-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  padding: 10px 12px; border-radius: 10px; background: var(--bg2); box-shadow: 0 1px 4px var(--shadow); text-align: left; }
+.admin-user-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.admin-user-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-role-tag { padding: 0 6px; font-size: .7rem; }
+.admin-user-meta { flex: 0 0 auto; color: var(--text3); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.admin-edit-modal { max-width: 400px; width: 100%; max-height: 88vh; overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.admin-edit-modal h3 { word-break: break-all; }
 /* Münz-Belohnung auf dem Sieg-Screen */
 .coin-reward { font-weight: 900; font-size: 1.15rem; color: #f5b301; text-align: center; margin: 2px 0 4px; }
 .coin-reward .coin-total { font-size: .8rem; font-weight: 700; color: var(--text3); }

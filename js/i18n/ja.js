@@ -322,6 +322,9 @@ export default {
     },
   },
   admin: {
+    loadUsers: '全ユーザーを読み込む',
+    filterPlaceholder: 'ユーザーを絞り込み…',
+    noMatch: '該当なし。',
     setBalance: '設定',
     item: 'アイテム（インベントリ）',
     itemPlaceholder: 'アイテムID（例: dynamicColor）',

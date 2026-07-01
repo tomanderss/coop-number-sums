@@ -322,6 +322,9 @@ export default {
     },
   },
   admin: {
+    loadUsers: 'Загрузить всех пользователей',
+    filterPlaceholder: 'Фильтр пользователей…',
+    noMatch: 'Нет совпадений.',
     setBalance: 'Задать',
     item: 'Предмет (инвентарь)',
     itemPlaceholder: 'id предмета, напр. dynamicColor',

@@ -322,6 +322,9 @@ export default {
     },
   },
   admin: {
+    loadUsers: 'Carica tutti gli utenti',
+    filterPlaceholder: 'Filtra utenti…',
+    noMatch: 'Nessun risultato.',
     setBalance: 'Imposta',
     item: 'Oggetto (inventario)',
     itemPlaceholder: 'id oggetto, es. dynamicColor',

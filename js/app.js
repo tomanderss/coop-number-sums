@@ -176,7 +176,7 @@ const state = reactive({
     syncErrorMsg: '',        // konkrete Fehlermeldung des letzten fehlgeschlagenen Syncs
     lastSyncAt: 0,           // Zeitstempel der letzten erfolgreichen Cloud-Sicherung
     // Admin (nur sichtbar/aktiv bei role==='admin'; Rules erzwingen es serverseitig)
-    adminQuery: '', adminResult: null, adminBusy: false, adminError: null,
+    adminUsers: [], adminFilter: '', adminEditUser: null, adminBusy: false, adminError: null,
     adminBalance: '', adminUsername: '', adminItem: '', adminFieldKey: '', adminFieldVal: '', adminEmail: '',
   },
   generating: false,
@@ -2502,44 +2502,61 @@ function doDeleteAccount() {
   });
 }
 // ─── Admin (Geschenke/Rollen) ─────────────────────────────────────────────────
-async function adminSearch() {
-  const a = state.account;
-  a.adminError = null; a.adminResult = null; a.adminBusy = true;
+// Alle User laden (für den durchsuchbaren Browser).
+async function adminLoadUsers() {
+  const a = state.account; a.adminError = null; a.adminBusy = true;
   try {
-    const r = await Account.adminFindUser(a.adminQuery.trim());
+    const r = await Account.adminListUsers();
     if (!r.ok) { a.adminError = accErr(r.err); return; }
-    a.adminResult = r;
-    // Editierfelder mit dem gefundenen Stand vorbelegen.
-    a.adminUsername = r.profile?.username || '';
-    a.adminEmail = r.profile?.email || '';
-    a.adminBalance = String(r.wallet?.balance ?? 0);
-    a.adminItem = ''; a.adminFieldKey = ''; a.adminFieldVal = '';
+    a.adminUsers = r.users;
   } finally { a.adminBusy = false; }
 }
+// Client-Filter über die geladene Liste (Username/E-Mail/uid).
+function filteredAdminUsers() {
+  const q = (state.account.adminFilter || '').trim().toLowerCase();
+  const list = state.account.adminUsers || [];
+  if (!q) return list;
+  return list.filter(u => (u.username || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q));
+}
+// Bearbeiten-Modal für einen User öffnen und Felder vorbelegen.
+function openAdminEdit(u) {
+  const a = state.account;
+  a.adminEditUser = u; a.adminError = null;
+  a.adminUsername = u.username || '';
+  a.adminEmail = u.email || '';
+  a.adminBalance = String(u.balance ?? 0);
+  a.adminItem = ''; a.adminFieldKey = ''; a.adminFieldVal = '';
+}
+function closeAdminEdit() { state.account.adminEditUser = null; }
 async function adminAction(fn, ...args) {
   const a = state.account; a.adminError = null; a.adminBusy = true;
   try {
     const r = await fn(...args);
     if (!r.ok) { a.adminError = accErr(r.err); return false; }
-    await adminSearch();  // Ansicht aktualisieren
+    await adminLoadUsers();  // Liste auffrischen…
+    // …und das offene Modal auf den frischen Stand des Users heben.
+    if (a.adminEditUser) {
+      const fresh = a.adminUsers.find(u => u.uid === a.adminEditUser.uid);
+      if (fresh) { a.adminEditUser = fresh; a.adminBalance = String(fresh.balance ?? 0); a.adminEmail = fresh.email || ''; a.adminUsername = fresh.username || ''; }
+    }
     showToast(t('admin.done'), 'success', 1800);
     return true;
   } finally { a.adminBusy = false; }
 }
-function adminGrantSkin() { if (state.account.adminResult) adminAction(Account.adminGrantItem, state.account.adminResult.uid, 'dynamicColor'); }
-function adminRevokeSkin() { if (state.account.adminResult) adminAction(Account.adminRevokeItem, state.account.adminResult.uid, 'dynamicColor'); }
+function adminEditUid() { return state.account.adminEditUser && state.account.adminEditUser.uid; }
+function adminGrantSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminGrantItem, uid, 'dynamicColor'); }
+function adminRevokeSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminRevokeItem, uid, 'dynamicColor'); }
 function adminToggleRole() {
-  const r = state.account.adminResult; if (!r) return;
-  const next = (r.profile?.role === 'admin') ? 'user' : 'admin';
-  adminAction(Account.adminSetRole, r.uid, next);
+  const u = state.account.adminEditUser; if (!u) return;
+  adminAction(Account.adminSetRole, u.uid, u.role === 'admin' ? 'user' : 'admin');
 }
-function adminSetBalance() { const r = state.account.adminResult; if (!r) return; adminAction(Account.adminSetCurrency, r.uid, parseInt(state.account.adminBalance || '0', 10)); }
-function adminChangeUsername() { const r = state.account.adminResult; const n = state.account.adminUsername.trim(); if (!r || !n) return; adminAction(Account.adminSetUsername, r.uid, n); }
-function adminGrantAnyItem() { const r = state.account.adminResult; const id = state.account.adminItem.trim(); if (!r || !id) return; adminAction(Account.adminGrantItem, r.uid, id); }
-function adminRevokeAnyItem() { const r = state.account.adminResult; const id = state.account.adminItem.trim(); if (!r || !id) return; adminAction(Account.adminRevokeItem, r.uid, id); }
-function adminSetField() { const r = state.account.adminResult; const k = state.account.adminFieldKey.trim(); if (!r || !k) return; adminAction(Account.adminSetProfileField, r.uid, k, state.account.adminFieldVal); }
+function adminSetBalance() { const uid = adminEditUid(); if (uid) adminAction(Account.adminSetCurrency, uid, parseInt(state.account.adminBalance || '0', 10)); }
+function adminChangeUsername() { const uid = adminEditUid(); const n = state.account.adminUsername.trim(); if (uid && n) adminAction(Account.adminSetUsername, uid, n); }
+function adminGrantAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminGrantItem, uid, id); }
+function adminRevokeAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id); }
+function adminSetField() { const uid = adminEditUid(); const k = state.account.adminFieldKey.trim(); if (uid && k) adminAction(Account.adminSetProfileField, uid, k, state.account.adminFieldVal); }
 async function adminResetPw() {
-  const a = state.account; const email = (a.adminEmail || a.adminResult?.profile?.email || '').trim();
+  const a = state.account; const email = (a.adminEmail || (a.adminEditUser && a.adminEditUser.email) || '').trim();
   if (!email) { a.adminError = accErr('invalidEmail'); return; }
   a.adminBusy = true; a.adminError = null;
   try {
@@ -3035,7 +3052,7 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime, resolveSyncConflict, fmtSyncDateTime,
       startUsernameEdit, doChangeUsername,
-      adminSearch, adminGrantSkin, adminRevokeSkin, adminToggleRole,
+      adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
@@ -4021,68 +4038,22 @@ const App = {
             <template v-if="state.account.role==='admin'">
               <div class="set-group-title">{{ t('admin.title') }}</div>
               <small class="set-hint">{{ t('admin.intro') }}</small>
-              <div class="account-search">
-                <input class="text-input" v-model="state.account.adminQuery" maxlength="20" :placeholder="t('admin.searchPlaceholder')" @keydown.enter="adminSearch" />
-                <button class="btn btn-primary" :disabled="state.account.adminBusy" @click="adminSearch">{{ t('admin.search') }}</button>
+              <button class="btn btn-primary" :disabled="state.account.adminBusy" @click="adminLoadUsers">
+                <span v-if="state.account.adminBusy"><span class="spinner-inline"></span> {{ t('account.working') }}</span>
+                <span v-else>👥 {{ t('admin.loadUsers') }}<template v-if="state.account.adminUsers.length"> ({{ state.account.adminUsers.length }})</template></span>
+              </button>
+              <input v-if="state.account.adminUsers.length" class="text-input" v-model="state.account.adminFilter" :placeholder="t('admin.filterPlaceholder')" autocapitalize="none" />
+              <div v-if="state.account.adminUsers.length" class="admin-user-list">
+                <button v-for="u in filteredAdminUsers()" :key="u.uid" class="admin-user-row" @click="openAdminEdit(u)">
+                  <span class="admin-user-main">
+                    <b>{{ u.username || '—' }}</b>
+                    <span v-if="u.role==='admin'" class="account-role admin admin-role-tag">👑</span>
+                  </span>
+                  <span class="admin-user-meta">💰 {{ u.balance }} · ✏️</span>
+                </button>
+                <p v-if="!filteredAdminUsers().length" class="set-hint">{{ t('admin.noMatch') }}</p>
               </div>
-              <div v-if="state.account.adminResult" class="account-card">
-                <div class="account-row"><span class="account-label">{{ t('account.username') }}</span><b>{{ state.account.adminResult.profile.username || state.account.adminResult.uid }}</b></div>
-                <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.adminResult.profile.role==='admin' }">{{ state.account.adminResult.profile.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
-                <div class="account-row"><span class="account-label">{{ t('admin.dynamicSkin') }}</span><b>{{ state.account.adminResult.inventory && state.account.adminResult.inventory.dynamicColor ? '✅' : '—' }}</b></div>
-                <div class="account-row"><span class="account-label">{{ t('admin.balance') }}</span><span>{{ (state.account.adminResult.wallet && state.account.adminResult.wallet.balance) || 0 }}</span></div>
-                <div class="account-row"><span class="account-label">uid</span><span class="admin-uid">{{ state.account.adminResult.uid }}</span></div>
-                <div class="admin-actions">
-                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminGrantSkin">🎁 {{ t('admin.grantSkin') }}</button>
-                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminRevokeSkin">{{ t('admin.revokeSkin') }}</button>
-                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminToggleRole">{{ state.account.adminResult.profile.role==='admin' ? t('admin.makeUser') : t('admin.makeAdmin') }}</button>
-                </div>
-
-                <!-- Username ändern -->
-                <div class="admin-field">
-                  <span class="set-row-label">{{ t('account.username') }}</span>
-                  <div class="admin-field-row">
-                    <input class="text-input" v-model="state.account.adminUsername" maxlength="20" autocapitalize="none" :placeholder="t('account.newUsername')" />
-                    <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminChangeUsername">{{ t('account.save') }}</button>
-                  </div>
-                </div>
-                <!-- Guthaben exakt setzen -->
-                <div class="admin-field">
-                  <span class="set-row-label">{{ t('admin.balance') }}</span>
-                  <div class="admin-field-row">
-                    <input class="text-input" type="number" inputmode="numeric" v-model="state.account.adminBalance" />
-                    <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminSetBalance">{{ t('admin.setBalance') }}</button>
-                  </div>
-                </div>
-                <!-- Beliebiges Inventar-Item -->
-                <div class="admin-field">
-                  <span class="set-row-label">{{ t('admin.item') }}</span>
-                  <div class="admin-field-row">
-                    <input class="text-input" v-model="state.account.adminItem" :placeholder="t('admin.itemPlaceholder')" />
-                    <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminGrantAnyItem">🎁</button>
-                    <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminRevokeAnyItem">🗑️</button>
-                  </div>
-                </div>
-                <!-- Beliebiges Profilfeld -->
-                <div class="admin-field">
-                  <span class="set-row-label">{{ t('admin.profileField') }}</span>
-                  <div class="admin-field-row">
-                    <input class="text-input" v-model="state.account.adminFieldKey" :placeholder="t('admin.fieldKey')" />
-                    <input class="text-input" v-model="state.account.adminFieldVal" :placeholder="t('admin.fieldValue')" />
-                    <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminSetField">{{ t('account.save') }}</button>
-                  </div>
-                  <small class="set-hint">{{ t('admin.fieldHint') }}</small>
-                </div>
-                <!-- Passwort-Reset-Mail -->
-                <div class="admin-field">
-                  <span class="set-row-label">{{ t('admin.resetPw') }}</span>
-                  <div class="admin-field-row">
-                    <input class="text-input" type="email" inputmode="email" v-model="state.account.adminEmail" :placeholder="t('account.email')" />
-                    <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminResetPw">📧</button>
-                  </div>
-                  <small class="set-hint">{{ t('admin.resetPwHint') }}</small>
-                </div>
-              </div>
-              <p v-if="state.account.adminError" class="coop-error">{{ state.account.adminError }}</p>
+              <p v-if="state.account.adminError && !state.account.adminEditUser" class="coop-error">{{ state.account.adminError }}</p>
             </template>
           </template>
 
@@ -4142,6 +4113,66 @@ const App = {
     </transition>
 
     <!-- ══ MODALS ══ -->
+    <!-- Admin: User bearbeiten -->
+    <div v-if="state.account.adminEditUser" class="modal-bg" @click.self="closeAdminEdit">
+      <div class="modal admin-edit-modal">
+        <h3>✏️ {{ state.account.adminEditUser.username || state.account.adminEditUser.uid }}</h3>
+        <div class="account-card">
+          <div class="account-row"><span class="account-label">{{ t('account.role') }}</span>
+            <span class="account-role" :class="{ admin: state.account.adminEditUser.role==='admin' }">{{ state.account.adminEditUser.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span>
+          </div>
+          <div class="account-row"><span class="account-label">{{ t('admin.dynamicSkin') }}</span><b>{{ state.account.adminEditUser.hasSkin ? '✅' : '—' }}</b></div>
+          <div class="account-row"><span class="account-label">uid</span><span class="admin-uid">{{ state.account.adminEditUser.uid }}</span></div>
+        </div>
+        <div class="admin-actions">
+          <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminGrantSkin">🎁 {{ t('admin.grantSkin') }}</button>
+          <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminRevokeSkin">{{ t('admin.revokeSkin') }}</button>
+          <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminToggleRole">{{ state.account.adminEditUser.role==='admin' ? t('admin.makeUser') : t('admin.makeAdmin') }}</button>
+        </div>
+        <div class="admin-field">
+          <span class="set-row-label">{{ t('account.username') }}</span>
+          <div class="admin-field-row">
+            <input class="text-input" v-model="state.account.adminUsername" maxlength="20" autocapitalize="none" :placeholder="t('account.newUsername')" />
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminChangeUsername">{{ t('account.save') }}</button>
+          </div>
+        </div>
+        <div class="admin-field">
+          <span class="set-row-label">{{ t('admin.balance') }}</span>
+          <div class="admin-field-row">
+            <input class="text-input" type="number" inputmode="numeric" v-model="state.account.adminBalance" />
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminSetBalance">{{ t('admin.setBalance') }}</button>
+          </div>
+        </div>
+        <div class="admin-field">
+          <span class="set-row-label">{{ t('admin.item') }}</span>
+          <div class="admin-field-row">
+            <input class="text-input" v-model="state.account.adminItem" :placeholder="t('admin.itemPlaceholder')" />
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminGrantAnyItem">🎁</button>
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminRevokeAnyItem">🗑️</button>
+          </div>
+        </div>
+        <div class="admin-field">
+          <span class="set-row-label">{{ t('admin.profileField') }}</span>
+          <div class="admin-field-row">
+            <input class="text-input" v-model="state.account.adminFieldKey" :placeholder="t('admin.fieldKey')" />
+            <input class="text-input" v-model="state.account.adminFieldVal" :placeholder="t('admin.fieldValue')" />
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminSetField">{{ t('account.save') }}</button>
+          </div>
+          <small class="set-hint">{{ t('admin.fieldHint') }}</small>
+        </div>
+        <div class="admin-field">
+          <span class="set-row-label">{{ t('admin.resetPw') }}</span>
+          <div class="admin-field-row">
+            <input class="text-input" type="email" inputmode="email" v-model="state.account.adminEmail" :placeholder="t('account.email')" />
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminResetPw">📧</button>
+          </div>
+          <small class="set-hint">{{ t('admin.resetPwHint') }}</small>
+        </div>
+        <p v-if="state.account.adminError" class="coop-error">{{ state.account.adminError }}</p>
+        <button class="btn btn-primary" @click="closeAdminEdit">{{ t('admin.done') }}</button>
+      </div>
+    </div>
+
     <div v-if="state.modal==='howto'" class="modal-bg" @click.self="state.modal=null">
       <div class="modal">
         <h3>{{ t('howto.title') }}</h3>

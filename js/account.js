@@ -335,6 +335,43 @@ export async function adminFindUser(username) {
     return { ok: true, uid, profile, inventory, wallet: data.wallet || { balance: 0 } };
   } catch (e) { log('account', 'adminFindUser fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
+// ALLE User für den Admin-Browser laden. Primär via /users (ein Read — braucht
+// eine Admin-.read-Regel auf /users). Fällt das mit PERMISSION_DENIED aus (Regel
+// noch nicht veröffentlicht), Fallback über den /usernames-Index (für jeden
+// auth-Nutzer lesbar) + Profil je uid — funktioniert mit den bestehenden Rules.
+export async function adminListUsers() {
+  try {
+    const fb = await ensureFirebase();
+    const shape = (uid, u) => ({
+      uid,
+      username: (u.profile && u.profile.username) || '',
+      role: (u.profile && u.profile.role) || 'user',
+      email: (u.profile && u.profile.email) || '',
+      balance: (u.data && u.data.wallet && u.data.wallet.balance) || 0,
+      hasSkin: !!(u.inventory && u.inventory.dynamicColor),
+      profile: u.profile || {},
+      inventory: u.inventory || {},
+    });
+    let list;
+    try {
+      const all = (await fb.get(fb.ref(fb.db, 'users'))).val() || {};
+      list = Object.entries(all).map(([uid, u]) => shape(uid, u));
+    } catch (e) {
+      // Fallback: Index + Einzelabrufe.
+      const idx = (await fb.get(fb.ref(fb.db, 'usernames'))).val() || {};
+      const uids = [...new Set(Object.values(idx))];
+      list = await Promise.all(uids.map(async (uid) => {
+        const profile = (await fb.get(userRef(fb, uid, 'profile'))).val() || {};
+        const data = (await fb.get(userRef(fb, uid, 'data'))).val() || {};
+        const inventory = (await fb.get(userRef(fb, uid, 'inventory'))).val() || {};
+        return shape(uid, { profile, data, inventory });
+      }));
+    }
+    list.sort((a, b) => (a.username || a.uid).localeCompare(b.username || b.uid));
+    log('account', 'Admin: User-Liste geladen', { count: list.length });
+    return { ok: true, users: list };
+  } catch (e) { log('account', 'adminListUsers fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
 export async function adminGrantItem(uid, itemId) {
   try {
     const fb = await ensureFirebase();
