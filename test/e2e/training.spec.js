@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp } from './helpers.js';
 
-// Training mode now starts from inside the how-to modal (top-left "?" icon).
+// Training mode starts from inside the how-to modal, now reached via
+// Settings ▸ tab "Spiel" ▸ "Spielanleitung" (the old home "?" icon was removed).
 // .training-btn is a stable hook independent of any other class toggling.
 async function openHowtoModal(page) {
-  await page.locator('.home-howto-btn').click();
+  await page.locator('.home-settings-btn').click();
+  await expect(page.locator('.screen.settings')).toBeVisible();
+  await page.locator('.set-howto-btn').click();
   await expect(page.locator('.modal .rules')).toBeVisible();
 }
 const trainingBtn = (page) => page.locator('.modal .training-btn');

@@ -220,9 +220,6 @@ export const DONATE_URL = 'https://ko-fi.com/tomanders';
 // ─── STANDARD-EINSTELLUNGEN ───────────────────────────────────────────────────
 export const DEFAULT_SETTINGS = {
   darkMode: true,            // Dunkelmodus ist Standard
-  errorReveal: 'instant',    // 'instant' = sofort aufdecken | 'onCheck' = erst beim Prüfen
-  livesEnabled: true,        // Leben/Herzen aktiv? (false = Zen, unbegrenzt)
-  showTimer: true,           // Timer anzeigen
   confirmTool: 'pen',        // Standard-Werkzeug: 'pen' (einkreisen) | 'eraser'
   eraseStyle: 'hide',        // gelöschte Zahl: 'hide' (verschwindet) | 'strike' (durchgestrichen)
   coopName: '',              // eigener Anzeigename im Coop-Modus

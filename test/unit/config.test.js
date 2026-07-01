@@ -110,9 +110,12 @@ describe('config.COOP_COLORS', () => {
 describe('config.DEFAULT_SETTINGS / DEFAULT_GAME_OPTIONS', () => {
   test('has the expected shape and defaults', () => {
     assert.equal(DEFAULT_SETTINGS.darkMode, true);
-    assert.equal(DEFAULT_SETTINGS.errorReveal, 'instant');
-    assert.equal(DEFAULT_SETTINGS.livesEnabled, true);
+    assert.equal(DEFAULT_SETTINGS.confirmTool, 'pen');
     assert.equal(DEFAULT_SETTINGS.language, null);
+    // Entfernte Optionen: Fehler immer sofort, Leben immer an, Timer immer sichtbar.
+    assert.equal(DEFAULT_SETTINGS.errorReveal, undefined);
+    assert.equal(DEFAULT_SETTINGS.livesEnabled, undefined);
+    assert.equal(DEFAULT_SETTINGS.showTimer, undefined);
   });
 
   test('default difficulty is a valid difficulty id', () => {
