@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.14';
-export const BUILD_HASH = '4e03824';
+export const BUILD      = '1.15';
+export const BUILD_HASH = 'd5bbc1f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.15",
+    "date": "01.07.2026",
+    "changes": [
+      "Schwierigkeitsauswahl: die Münz-Belohnung überdeckt nicht mehr den Namen der Schwierigkeit",
+      "Admin-Kennzeichen aus dem Hauptmenü entfernt (überdeckte Icons); der Admin-Status steht jetzt nur in den Einstellungen unter Konto (👑)"
+    ]
+  },
   {
     "version": "1.14",
     "date": "01.07.2026",
