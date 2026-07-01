@@ -841,12 +841,9 @@ let pressState = null;       // { r, c, x, y, timer } während eines Pointer-Hol
 let suppressClickUntil = 0;  // Date.now()-Zeitstempel; bis dahin wird der nächste Klick auf der Zelle ignoriert
 
 function canLongPressRestore(r, c) {
-  if (state.status !== 'playing' || state.generating || state.paused) return false;
-  if (state.coop.active || state.isTrainingGame || state.isRaceGame) return false;
-  if (state.settings.errorReveal !== 'onCheck') return false;
-  const mk = state.marks[r][c];
-  if (state.tool === 'eraser' && mk === 'removed') return true;
-  if (state.tool === 'pen' && mk === 'kept') return true;
+  // Long-Press-Zurücknahme gab es nur im entfernten „Beim Prüfen"-Modus. Fehler
+  // werden jetzt immer sofort aufgedeckt (falsche Markierung greift gar nicht
+  // erst), daher gibt es nichts zurückzunehmen → Feature deaktiviert.
   return false;
 }
 
@@ -894,7 +891,9 @@ function setMark(r, c, next, user, fromId) {
   const cur = state.marks[r][c];
   if (cur === next) return;
 
-  if (user && (state.settings.errorReveal === 'instant' || state.isRaceGame)) {
+  // Fehler werden IMMER sofort aufgedeckt: eine falsche Markierung wird gar nicht
+  // erst gesetzt, sondern rot geblitzt und als Fehler gezählt.
+  if (user) {
     const sol = state.puzzle.solution[r][c];
     const wrong = (next === 'kept' && !sol) || (next === 'removed' && sol);
     if (wrong) { flashError(r, c); registerMistake(); return; }
@@ -963,12 +962,11 @@ function registerMistake() {
   state.mistakes++;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + 1;
   if (state.coop.active) coopSend({ type: Coop.MSG.MISTAKE, by, n: 1 });
-  if (state.settings.livesEnabled) {
-    state.lives--;
-    if (state.coop.active) state.coop.lifeLossBy.push(by);
-    showBestTimeNotice(t('game.lifeLostNotice'));
-    if (state.lives <= 0) { state.lives = 0; lose(); }
-  }
+  // Leben sind immer aktiv: jeder Fehler zieht ein Leben ab.
+  state.lives--;
+  if (state.coop.active) state.coop.lifeLossBy.push(by);
+  showBestTimeNotice(t('game.lifeLostNotice'));
+  if (state.lives <= 0) { state.lives = 0; lose(); }
   persistGame();
   // Ohne diese beiden Pushs sah die Gegenseite einen Fehler erst beim nächsten
   // KORREKTEN Zug (der über afterMove() läuft) -- ein Fehler-Zug selbst kehrt
@@ -992,13 +990,12 @@ function registerMistake() {
 function applyRemoteMistake(by, n) {
   state.mistakes += n;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + n;
-  if (state.settings.livesEnabled) {
-    for (let i = 0; i < n; i++) {
-      state.lives--;
-      state.coop.lifeLossBy.push(by);
-      showBestTimeNotice(t('game.lifeLostNotice'));
-      if (state.lives <= 0) { state.lives = 0; lose(); return; }
-    }
+  // Leben sind immer aktiv (siehe registerMistake).
+  for (let i = 0; i < n; i++) {
+    state.lives--;
+    state.coop.lifeLossBy.push(by);
+    showBestTimeNotice(t('game.lifeLostNotice'));
+    if (state.lives <= 0) { state.lives = 0; lose(); return; }
   }
 }
 
@@ -1105,12 +1102,11 @@ function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = tr
   wrong.forEach(([r, c]) => flashError(r, c));
   state.mistakes += wrong.length;
   if (by) state.coop.mistakesByPlayer[by] = (state.coop.mistakesByPlayer[by] || 0) + wrong.length;
-  if (state.settings.livesEnabled) {
-    state.lives--;
-    if (state.coop.active) state.coop.lifeLossBy.push(by);
-    showBestTimeNotice(t('game.lifeLostNotice'));
-    if (state.lives <= 0) { state.lives = 0; lose(); return; }
-  }
+  // Leben sind immer aktiv.
+  state.lives--;
+  if (state.coop.active) state.coop.lifeLossBy.push(by);
+  showBestTimeNotice(t('game.lifeLostNotice'));
+  if (state.lives <= 0) { state.lives = 0; lose(); return; }
   showToast(t('game.errorsFound', { count: wrong.length }), 'error');
   persistGame();
 }
@@ -3173,7 +3169,6 @@ const App = {
       <div class="home-topbar-right">
         <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')">👫<span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span></button>
         <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')">🛒</button>
-        <button class="icon-btn home-howto-btn" @click="state.modal='howto'" :aria-label="t('home.howto')" :title="t('home.howto')">?</button>
         <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       </div>
       <div class="brand">
@@ -3246,13 +3241,13 @@ const App = {
            "Zum Menü" gibt es dort ebenfalls (kein Zurück-Pfeil oben mehr). -->
       <header class="topbar game-top">
         <div class="hud">
-          <div class="hud-item lives" v-if="state.settings.livesEnabled">
+          <div class="hud-item lives">
             <span v-for="(full,i) in livesArr" :key="i" class="heart" :class="{empty:!full}">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
               <i v-if="!full && state.coop.active && lifeLossColor(i)" class="heart-strike" :style="{background: lifeLossColor(i)}"></i>
             </span>
           </div>
-          <div class="hud-item timer" v-if="state.settings.showTimer"><span class="timer-icon">⏱</span><span>{{ fmtTime(state.elapsed) }}</span></div>
+          <div class="hud-item timer"><span class="timer-icon">⏱</span><span>{{ fmtTime(state.elapsed) }}</span></div>
         </div>
         <div class="top-actions">
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing' && !state.coop.awaitingStart" @click="pauseGame" :title="t('game.pauseTitle')">
@@ -3285,7 +3280,7 @@ const App = {
           </span>
           <span v-if="state.team.active" class="chip coop-chip">🆚 {{ t('team.label'+state.team.myTeam) }}</span>
           <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>
-          <span v-if="state.team.active && state.settings.livesEnabled" class="chip coop-chip hearts-chip" :aria-label="t('win.mistakesCount', { count: state.team.opponentMistakes })">
+          <span v-if="state.team.active" class="chip coop-chip hearts-chip" :aria-label="t('win.mistakesCount', { count: state.team.opponentMistakes })">
             <span v-for="(full,i) in opponentTeamLivesArr" :key="i" class="heart" :class="{empty:!full}">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
               <i v-if="!full" class="heart-strike opp-heart-strike"></i>
@@ -3316,7 +3311,7 @@ const App = {
             <span class="progress-pct">{{ state.race.opponentPct }}%</span>
             <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.race.opponentPct + '%', background: state.race.opponentColor }"></span></span>
           </div>
-          <div class="progress-line opponent-lives-line" v-if="state.race.active && state.settings.livesEnabled" :aria-label="t('win.mistakesCount', { count: state.race.opponentMistakes })">
+          <div class="progress-line opponent-lives-line" v-if="state.race.active" :aria-label="t('win.mistakesCount', { count: state.race.opponentMistakes })">
             <span class="progress-label"></span>
             <span class="opponent-lives">
               <span v-for="(full,i) in opponentLivesArr" :key="i" class="heart" :class="{empty:!full}">
@@ -3388,9 +3383,6 @@ const App = {
           <button v-if="!state.isRaceGame && !state.team.active" class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" :title="t('game.hintTitle')" :aria-label="t('game.hintTitle')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5"/><path d="M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-4 11.6c.8.7 1.2 1.3 1.3 2.4h5.4c.1-1.1.5-1.7 1.3-2.4A6.5 6.5 0 0 0 12 2.5z"/></svg>
           </button>
-        </div>
-        <div v-if="state.settings.errorReveal==='onCheck' && !state.isRaceGame && (!state.isTrainingGame || state.trainingDone)" class="check-row">
-          <button class="btn btn-primary btn-check" @click="doCheck()">{{ t('game.check') }}</button>
         </div>
         </div>
       </template>
@@ -3900,31 +3892,15 @@ const App = {
 
       <div class="settings-body">
 
-        <!-- Sektion: Spiel (Spielhilfe, Anzeige im Spiel) -->
+        <!-- Sektion: Spiel — eine einzige Sektion: Spielanleitung + verbliebene Optionen -->
         <template v-if="state.settingsTab==='spiel'">
-          <div class="set-group-title">{{ t('settings.gameHelp') }}</div>
-          <div class="set-row col">
-            <span class="set-row-label">{{ t('settings.errorReveal') }}</span>
-            <div class="seg">
-              <button :class="{active:state.settings.errorReveal==='instant'}" @click="setSetting('errorReveal','instant')">{{ t('settings.instant') }}</button>
-              <button :class="{active:state.settings.errorReveal==='onCheck'}" @click="setSetting('errorReveal','onCheck')">{{ t('settings.onCheck') }}</button>
-            </div>
-            <small class="set-hint">{{ state.settings.errorReveal==='instant' ? t('settings.errorRevealHintInstant') : t('settings.errorRevealHintOnCheck') }}</small>
-          </div>
+          <button class="btn btn-ghost set-howto-btn" @click="state.modal='howto'"><span class="btn-ic">📖</span> {{ t('home.howto') }}</button>
           <div class="set-row col">
             <span class="set-row-label">{{ t('settings.eraseStyle') }}</span>
             <div class="seg">
               <button :class="{active:state.settings.eraseStyle==='hide'}" @click="setSetting('eraseStyle','hide')">{{ t('settings.hide') }}</button>
               <button :class="{active:state.settings.eraseStyle==='strike'}" @click="setSetting('eraseStyle','strike')">{{ t('settings.strike') }}</button>
             </div>
-          </div>
-          <div class="set-row" @click="toggleSetting('livesEnabled')">
-            <span>{{ t('settings.livesEnabled') }}</span><span class="switch" :class="{on:state.settings.livesEnabled}"><i></i></span>
-          </div>
-
-          <div class="set-group-title">{{ t('settings.gameDisplay') }}</div>
-          <div class="set-row" @click="toggleSetting('showTimer')">
-            <span>{{ t('settings.showTimer') }}</span><span class="switch" :class="{on:state.settings.showTimer}"><i></i></span>
           </div>
           <div class="set-row" @click="toggleSetting('coopRemovedOutline')">
             <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
@@ -4344,7 +4320,6 @@ const App = {
           <li v-html="t('howto.rule5')"></li>
           <li v-html="t('howto.rule6')"></li>
           <li v-if="state.coop.active" v-html="t('howto.rule7Coop')"></li>
-          <li v-if="!state.coop.active && state.settings.errorReveal==='onCheck'" v-html="t('howto.rule8OnCheck')"></li>
           <li v-html="t('howto.rule9')"></li>
         </ol>
         <button class="btn btn-ghost training-btn" @click="state.modal=null; startTrainingGame()">

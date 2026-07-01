@@ -34,9 +34,11 @@ test.describe('home screen', () => {
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 
-  test('opens and closes the how-to modal', async ({ page }) => {
+  test('opens and closes the how-to modal (from settings ▸ Spiel)', async ({ page }) => {
     await gotoApp(page);
-    await page.locator('.home-howto-btn').click();
+    await page.locator('.home-settings-btn').click();
+    await expect(page.locator('.screen.settings')).toBeVisible();
+    await page.locator('.set-howto-btn').click();
     await expect(page.locator('.modal .rules')).toBeVisible();
     await page.locator('.modal .btn-primary').click();
     await expect(page.locator('.modal-bg')).toHaveCount(0);
