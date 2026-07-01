@@ -1,0 +1,1 @@
+Nie mehr mitten im Spiel herausgeworfen: App-Updates und Cloud-Übernahmen laden die Seite nicht mehr während einer laufenden Runde neu, sondern erst zurück im Menü (stiller Hintergrund-Sync bleibt)
