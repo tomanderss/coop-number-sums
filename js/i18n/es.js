@@ -352,6 +352,10 @@ export default {
     unlockCustomize: 'Personalizar skin',
     unlockLater: 'Más tarde',
   },
+  wallet: {
+    coins: 'Monedas',
+    total: 'total: {n}',
+  },
   toast: {
     backupExported: 'Copia de seguridad exportada',
     importSuccess: 'Importación correcta',

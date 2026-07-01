@@ -352,6 +352,10 @@ export default {
     unlockCustomize: '스킨 꾸미기',
     unlockLater: '나중에',
   },
+  wallet: {
+    coins: '코인',
+    total: '합계: {n}',
+  },
   toast: {
     backupExported: '백업이 내보내졌습니다',
     importSuccess: '가져오기 성공',

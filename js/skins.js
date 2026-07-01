@@ -5,6 +5,10 @@ export const SKIN_ID = 'dynamicColor';
 export const SKIN_UNLOCK_VERSION = '1.0';
 // Geheimcode (case-insensitiv, Leerzeichen ignoriert): „SupporterSeitTag1".
 export const SKIN_CODE_NORM = 'supporterseittag1';
+// Bleibender Marker für alle, die den Sprung auf 1.0 aktiv miterlebt haben
+// (Bestandsspieler-Update <1.0 → ≥1.0). Kein Skin, nur ein „Founder"-Abzeichen
+// fürs Inventar — für spätere Nutzung (Badge/Marktplatz).
+export const FOUNDER_ID = 'founder1_0';
 
 // Semver-artiger Vergleich teilstückweise numerisch ("1.0" > "0.166").
 export function cmpVersion(a, b) {
@@ -16,9 +20,15 @@ export function cmpVersion(a, b) {
   return 0;
 }
 
-// „Erlebt den Sprung auf 1.0": nur Bestandsspieler, die von <1.0 auf ≥1.0
-// aktualisieren. Reine Erstinstallationen (kein seen) bekommen ihn NICHT
-// automatisch (nur per Code) — bewusste Produktentscheidung.
+// „Feier des Tages": JEDER ab Version ≥1.0 bekommt den Skin geschenkt (nicht nur
+// Bestandsspieler). Erstinstallationen inklusive.
+export function eligibleForCelebrationSkin(build) {
+  return cmpVersion(build, SKIN_UNLOCK_VERSION) >= 0;
+}
+
+// „Hat den Sprung auf 1.0 aktiv miterlebt": nur Bestandsspieler, die von <1.0 auf
+// ≥1.0 aktualisieren (seen war vor dem Update <1.0). Wird für den bleibenden
+// Founder-Marker genutzt (NICHT mehr für den Skin — den bekommt ohnehin jeder).
 export function qualifiesForV1Skin(seen, build) {
   return !!seen && cmpVersion(seen, SKIN_UNLOCK_VERSION) < 0 && cmpVersion(build, SKIN_UNLOCK_VERSION) >= 0;
 }

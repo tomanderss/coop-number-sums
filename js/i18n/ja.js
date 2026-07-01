@@ -352,6 +352,10 @@ export default {
     unlockCustomize: 'スキンをカスタマイズ',
     unlockLater: 'あとで',
   },
+  wallet: {
+    coins: 'コイン',
+    total: '合計: {n}',
+  },
   toast: {
     backupExported: 'バックアップを書き出しました',
     importSuccess: 'インポートに成功しました',

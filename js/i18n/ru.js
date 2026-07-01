@@ -352,6 +352,10 @@ export default {
     unlockCustomize: 'Настроить скин',
     unlockLater: 'Позже',
   },
+  wallet: {
+    coins: 'Монеты',
+    total: 'всего: {n}',
+  },
   toast: {
     backupExported: 'Резервная копия экспортирована',
     importSuccess: 'Импорт успешен',

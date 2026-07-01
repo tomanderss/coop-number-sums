@@ -12,6 +12,11 @@ export async function gotoApp(page) {
   if (await whatsNew.isVisible().catch(() => false)) {
     await page.locator('.modal-bg .btn-primary').click();
   }
+  // Ab 1.0 bekommt JEDER (auch frische Kontexte) den „Feier des Tages"-Skin, dessen
+  // einmaliges Feier-Modal sich NACH „Was ist neu" über den Home-Screen legt. Best
+  // effort per „Später"-Knopf wegklicken, damit Klicks aufs Menü nicht abgefangen
+  // werden; no-op, falls es (künftig) nicht erscheint.
+  await page.locator('.skin-unlock-modal .btn-ghost').click({ timeout: 2000 }).catch(() => {});
   await page.waitForSelector('.screen.home');
 }
 

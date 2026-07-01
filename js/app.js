@@ -18,9 +18,10 @@ import {
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, loadInventory, grantInventory,
+  loadWallet, grantCurrency,
 } from './storage.js';
 import * as Account from './account.js';
-import { SKIN_ID, qualifiesForV1Skin, skinCodeMatches, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
+import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, eligibleForCelebrationSkin, skinCodeMatches, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
 const APP_START = Date.now();
@@ -43,6 +44,8 @@ const state = reactive({
   puzzleHistory: loadHistory(), // Ringpuffer gelöster Rätsel (neueste zuerst), siehe storage.js
   achievements: loadAchievements(), // { id: Freischalt-Zeitstempel }, siehe storage.js
   inventory: loadInventory(),    // { itemId: { acquiredAt, source } } — Besitz von Cosmetics (z.B. Skin 'dynamicColor')
+  wallet: loadWallet(),          // { balance, updatedAt } — In-Game-Währung (Münzen pro Sieg)
+  lastCoinReward: 0,             // zuletzt auf dem Sieg-Screen gutgeschriebene Münzen (0 = ausblenden)
   skinJustUnlocked: false,       // einmalige Feier-Anzeige in dieser Session
   skinCodeInput: '',             // Eingabefeld zum Einlösen des Geheimcodes
   historyDetail: null,       // { entry, puzzle, cellMeta } während der Endboard-Ansicht eines Verlauf-Eintrags, sonst null
@@ -1886,6 +1889,7 @@ function win(remote) {
   if (state.isTrainingGame || state.isRaceGame) {
     state.wouldHaveBeenBest = false;
     state.newHighscore = false;
+    state.lastCoinReward = 0;  // Training/Race geben keine Münzen (keine gebucketete Leistung)
   } else {
     // Vergleich VOR recordResult() einfangen, da der Aufruf bestTimeMs/coopBestTimeMs
     // bei einem tatsächlichen Highscore sofort überschreibt.
@@ -1901,6 +1905,14 @@ function win(remote) {
     });
     state.stats = stats;
     state.newHighscore = newHighscore;
+    // Münzen pro Sieg, abhängig von der Schwierigkeit (perfekt = doppelt) — In-Game-
+    // Währung fürs spätere Marktplatz-System; erscheint als „+X 🪙" auf dem Sieg-Screen.
+    const dIdx = DIFFICULTIES.findIndex(d => d.id === state.puzzle.difficulty);
+    const coinBase = 5 * (Math.max(0, dIdx) + 1);
+    const coins = (state.mistakes === 0 && state.hintsUsed === 0) ? coinBase * 2 : coinBase;
+    state.wallet = grantCurrency(coins, 'win');
+    state.lastCoinReward = coins;
+    if (state.account.status === 'in') Account.scheduleSyncUp();
   }
   if (!state.isTrainingGame) applyStreakAfterGame();
   if (state.isRaceGame) state.raceStats = recordRaceWin('1v1', state.elapsed);
@@ -2376,11 +2388,16 @@ function grantSkin(source) {
   log('app', 'Skin freigeschaltet', { source });
   return true;
 }
-// Auto-Unlock beim Sprung <1.0 -> >=1.0 (nur Bestandsspieler; reine Erstinstallation
-// bekommt ihn nur per Code). Liest die zuletzt gesehene Version VOR dismissWhatsNew.
+// „Feier des Tages": JEDER ab 1.0 bekommt den Skin geschenkt. Zusätzlich bekommt,
+// wer den Sprung von <1.0 aktiv miterlebt hat, einen bleibenden Founder-Marker
+// (für später). Liest die zuletzt gesehene Version VOR dismissWhatsNew.
 function maybeUnlockV1Skin() {
-  if (state.inventory[SKIN_ID]) return;
-  if (qualifiesForV1Skin(loadSeenVersion(), BUILD)) grantSkin('version');
+  if (!state.inventory[SKIN_ID] && eligibleForCelebrationSkin(BUILD)) grantSkin('v1celebration');
+  if (!state.inventory[FOUNDER_ID] && qualifiesForV1Skin(loadSeenVersion(), BUILD)) {
+    state.inventory = grantInventory(FOUNDER_ID, 'version-jump');
+    if (state.account.status === 'in') Account.scheduleSyncUp();
+    log('app', 'Founder-Marker vergeben (1.0-Sprung miterlebt)');
+  }
 }
 function redeemSkinCode() {
   const a = state.account;
@@ -2394,7 +2411,13 @@ function redeemSkinCode() {
   }
 }
 function dismissSkinUnlock() { state.skinJustUnlocked = false; }
-function openSkinEditor() { state.skinJustUnlocked = false; navigate('settings'); state.settingsTab = 'allgemein'; nextTick(() => { document.querySelector('.skin-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }); }
+function openSkinEditor() {
+  // Wer den Skin anpassen möchte, will ihn auch sehen → aktivieren (Default ist aus).
+  state.settings.skinEnabled = true;
+  state.skinJustUnlocked = false;
+  navigate('settings'); state.settingsTab = 'allgemein';
+  nextTick(() => { document.querySelector('.skin-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+}
 
 // ─── WAS IST NEU ──────────────────────────────────────────────────────────────
 // Semver-artiger Vergleich ("0.155" > "0.154"): teilstückweise numerisch.
@@ -3097,6 +3120,7 @@ const App = {
             <template v-else-if="state.mistakes>0"> {{ t('win.missedMistakes') }}</template>
             <template v-else> {{ t('win.missedHints') }}</template>.
           </div>
+          <div v-if="state.lastCoinReward > 0" class="coin-reward">🪙 +{{ state.lastCoinReward }} <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
           <div class="result-stats">
             <div><b>{{ fmtTime(state.elapsed) }}</b><small>{{ t('win.timeLabel') }}</small></div>
             <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
@@ -3197,6 +3221,7 @@ const App = {
             <div class="stat-tile"><span class="stat-emoji">🔥</span><b>{{ state.streak.currentStreak }} / {{ state.streak.bestStreak }}</b><small>{{ t('stats.ovStreak') }}</small></div>
             <div class="stat-tile"><span class="stat-emoji">⭐</span><b><template v-if="generalStats.favId">{{ DIFF_BY_ID[generalStats.favId].emoji }} {{ t('difficulty.'+generalStats.favId) }}</template><template v-else>–</template></b><small>{{ t('stats.ovFav') }}</small></div>
             <div class="stat-tile clickable" @click="navTo('achievements')"><span class="stat-emoji">🏅</span><b>{{ achievementsUnlockedCount }} / {{ ACHIEVEMENTS.length }}</b><small>{{ t('stats.ovAchievements') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji">🪙</span><b>{{ state.wallet.balance }}</b><small>{{ t('wallet.coins') }}</small></div>
           </div>
           <button class="btn btn-ghost achievements-top-btn" @click="navTo('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
         </template>
@@ -3863,8 +3888,9 @@ const App = {
       </div>
     </div>
 
-    <!-- Feier-Modal: dynamischer Skin zur 1.0 freigeschaltet -->
-    <div v-if="state.skinJustUnlocked" class="modal-bg">
+    <!-- Feier-Modal: dynamischer Skin zur 1.0 freigeschaltet (erst NACH „Was ist neu",
+         damit nicht zwei Modals übereinander liegen). -->
+    <div v-if="state.skinJustUnlocked && !state.showWhatsNew" class="modal-bg">
       <div class="modal skin-unlock-modal">
         <div class="whatsnew-badge">{{ t('skin.unlockBadge') }}</div>
         <div class="skin-unlock-preview board" :class="skinPreviewClasses" :style="skinPreviewVars">
