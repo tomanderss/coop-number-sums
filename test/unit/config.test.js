@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   LIVES, HINTS, MAX_VAL, DIFFICULTIES, DIFF_BY_ID,
   REGION_COLORS, COOP_COLORS, DEFAULT_SETTINGS, DEFAULT_GAME_OPTIONS,
-  regionColorDist, regionChipInk, coinReward, coinBaseForIndex, COIN_BASE,
+  regionColorDist, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, COIN_BASE,
 } from '../../js/config.js';
 
 describe('config constants', () => {
@@ -142,15 +142,25 @@ describe('config.coinReward', () => {
     }
   });
 
-  test('coop and perfect each double; they stack (×4) and stay integer', () => {
+  test('coop, perfect and bestTime each double; they stack multiplicatively (up to ×8)', () => {
     for (let i = 0; i < DIFFICULTIES.length; i++) {
       const base = coinReward(i);
       assert.equal(coinReward(i, { coop: true }), base * 2);
       assert.equal(coinReward(i, { perfect: true }), base * 2);
-      const both = coinReward(i, { coop: true, perfect: true });
-      assert.equal(both, base * 4);
-      assert.ok(Number.isInteger(both));
+      assert.equal(coinReward(i, { bestTime: true }), base * 2);
+      assert.equal(coinReward(i, { coop: true, perfect: true }), base * 4);
+      assert.equal(coinReward(i, { perfect: true, bestTime: true }), base * 4);
+      const all = coinReward(i, { coop: true, perfect: true, bestTime: true });
+      assert.equal(all, base * 8);
+      assert.ok(Number.isInteger(all));
     }
+  });
+
+  test('coinMultiplier reflects the active bonuses (no cap)', () => {
+    assert.equal(coinMultiplier(), 1);
+    assert.equal(coinMultiplier({ coop: true }), 2);
+    assert.equal(coinMultiplier({ perfect: true, bestTime: true }), 4);
+    assert.equal(coinMultiplier({ coop: true, perfect: true, bestTime: true }), 8);
   });
 
   test('out-of-range difficulty index yields 0', () => {

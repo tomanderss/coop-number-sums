@@ -1282,6 +1282,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Münz-Belohnung auf dem Sieg-Screen */
 .coin-reward { font-weight: 900; font-size: 1.15rem; color: #f5b301; text-align: center; margin: 2px 0 4px; }
 .coin-reward .coin-total { font-size: .8rem; font-weight: 700; color: var(--text3); }
+/* Gesamt-Bonus-Multiplikator (Coop·perfekt·Bestzeit) neben der Münzgutschrift. */
+.coin-reward .coin-mult { font-size: .9rem; font-weight: 900; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 999px; padding: 1px 8px; vertical-align: middle; }
 
 /* ── Coins-Chip + Shop ──────────────────────────────────────────────────────── */
 .coin-chip {
