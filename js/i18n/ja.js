@@ -384,6 +384,7 @@ export default {
     online: 'オンライン', offline: 'オフライン', inGame: 'プレイ中 · {info}',
     mode: { solo: 'ソロ', coop: '協力', race: '1対1', team: 'チーム' },
     lbSoonTitle: 'ランキングは近日公開', lbSoonHint: '不正対策済みのランキングはサーバー集計とともに登場します。',
+    lbLoading: "ランキングを読み込み中 …", lbEmpty: "まだ記録がありません。最初の一人になろう！",
     err: { invalidUsername: 'ユーザー名が無効です。', userNotFound: 'そのユーザー名のユーザーが見つかりません。', alreadyFriends: 'すでにフレンドです。', selfFriend: '自分自身は追加できません。', notSignedIn: '先にサインインしてください。' },
   },
   shop: {

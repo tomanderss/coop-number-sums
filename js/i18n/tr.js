@@ -384,6 +384,7 @@ export default {
     online: 'Çevrimiçi', offline: 'Çevrimdışı', inGame: 'Oyunda · {info}',
     mode: { solo: 'Tek', coop: 'Coop', race: '1v1', team: 'Takım' },
     lbSoonTitle: 'Sıralamalar çok yakında', lbSoonHint: 'Hile korumalı sıralamalar sunucu tarafı puanlamayla gelecek.',
+    lbLoading: "Sıralama yükleniyor …", lbEmpty: "Henüz süre yok — ilk sen ol!",
     err: { invalidUsername: 'Geçersiz kullanıcı adı.', userNotFound: 'Bu kullanıcı adına sahip kullanıcı bulunamadı.', alreadyFriends: 'Zaten arkadaşsınız.', selfFriend: 'Kendini ekleyemezsin.', notSignedIn: 'Lütfen önce giriş yap.' },
   },
   shop: {

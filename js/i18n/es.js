@@ -384,6 +384,7 @@ export default {
     online: 'En línea', offline: 'Desconectado', inGame: 'En partida · {info}',
     mode: { solo: 'Solo', coop: 'Coop', race: '1c1', team: 'Equipo' },
     lbSoonTitle: 'Clasificaciones muy pronto', lbSoonHint: 'Los rankings a prueba de trampas llegarán con la puntuación en el servidor.',
+    lbLoading: "Cargando clasificación …", lbEmpty: "Aún no hay tiempos: ¡sé el primero!",
     err: { invalidUsername: 'Nombre de usuario no válido.', userNotFound: 'No se encontró ningún usuario con ese nombre.', alreadyFriends: 'Ya sois amigos.', selfFriend: 'No puedes añadirte a ti mismo.', notSignedIn: 'Inicia sesión primero.' },
   },
   shop: {
