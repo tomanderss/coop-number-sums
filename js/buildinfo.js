@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.23';
-export const BUILD_HASH = '61c64d6';
+export const BUILD      = '1.24';
+export const BUILD_HASH = 'f56dd34';
 
 export const CHANGELOG = [
+  {
+    "version": "1.24",
+    "date": "01.07.2026",
+    "changes": [
+      "Eine neue Bestzeit gibt jetzt doppelte Münzen. Dieser Bonus stapelt mit dem Coop-/Wettkampf-Bonus und dem Bonus für einen makellosen Sieg (bis zu ×8); der aktive Gesamt-Multiplikator wird auf dem Sieg-Screen angezeigt."
+    ]
+  },
   {
     "version": "1.23",
     "date": "01.07.2026",
