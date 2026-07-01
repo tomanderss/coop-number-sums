@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.5';
-export const BUILD_HASH = '962e72e';
+export const BUILD      = '1.6';
+export const BUILD_HASH = '6c94941';
 
 export const CHANGELOG = [
+  {
+    "version": "1.6",
+    "date": "01.07.2026",
+    "changes": [
+      "Lokales Auto-Backup entfernt (die Cloud-Sicherung ersetzt es für Konten); Backup exportieren/importieren bleibt als manuelle Sicherung erhalten."
+    ]
+  },
   {
     "version": "1.5",
     "date": "01.07.2026",
