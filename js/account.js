@@ -123,6 +123,7 @@ export async function signUp({ email, username, password }) {
     saveProfile({ displayName: username, accountId: uid, createdAt: Date.now() });
     await fb.set(userRef(fb, uid, 'profile'), {
       username, usernameKey: usernameKey(username), role: 'user', createdAt: fb.serverTimestamp(),
+      email,  // nur Owner/Admin lesbar (Rules) — erlaubt Admin, eine Passwort-Reset-Mail auszulösen
     });
     await uploadLocal(fb, uid);
     log('account', 'Registrierung erfolgreich', { uid });
@@ -367,5 +368,64 @@ export async function adminGrantCurrency(uid, amount) {
     wallet.balance = (wallet.balance || 0) + n; wallet.updatedAt = Date.now();
     await fb.set(userRef(fb, uid, 'data/wallet'), wallet);
     return { ok: true, balance: wallet.balance };
+  } catch (e) { return { ok: false, err: errKey(e) }; }
+}
+// Genauen Kontostand setzen (nicht addieren).
+export async function adminSetCurrency(uid, amount) {
+  const n = Math.max(0, Math.floor(amount || 0));
+  try {
+    const fb = await ensureFirebase();
+    await fb.set(userRef(fb, uid, 'data/wallet'), { balance: n, updatedAt: Date.now() });
+    log('account', 'Admin: Guthaben gesetzt', { uid, n });
+    return { ok: true, balance: n };
+  } catch (e) { return { ok: false, err: errKey(e) }; }
+}
+// Username eines fremden Nutzers ändern (inkl. /usernames-Index umhängen).
+export async function adminSetUsername(uid, newName) {
+  const norm = normalizeUsername(newName);
+  if (!isValidUsername(norm)) return { ok: false, err: 'invalidUsername' };
+  try {
+    const fb = await ensureFirebase();
+    const prof = (await fb.get(userRef(fb, uid, 'profile'))).val() || {};
+    const oldName = prof.username || '';
+    if (normalizeUsername(oldName) !== norm) {
+      const taken = (await fb.get(usernameIndexRef(fb, norm))).val();
+      if (taken && taken !== uid) return { ok: false, err: 'usernameTaken' };
+      await fb.set(usernameIndexRef(fb, norm), uid);
+      if (oldName && usernameKey(oldName) !== usernameKey(norm)) { try { await fb.remove(usernameIndexRef(fb, oldName)); } catch (_) {} }
+    }
+    await fb.set(userRef(fb, uid, 'profile/username'), norm);
+    await fb.set(userRef(fb, uid, 'profile/usernameKey'), usernameKey(norm));
+    log('account', 'Admin: Username gesetzt', { uid });
+    return { ok: true, username: norm };
+  } catch (e) { return { ok: false, err: errKey(e) }; }
+}
+// Beliebiges Profilfeld setzen ("jedes Informationsbit"). role/username/usernameKey
+// laufen bewusst über die dedizierten Funktionen (Index/Validierung) und sind hier
+// gesperrt. Zahlen werden als Zahl gespeichert, 'true'/'false' als Boolean.
+export async function adminSetProfileField(uid, key, rawValue) {
+  const k = String(key || '').trim();
+  if (!k || /[.$#[\]/]/.test(k)) return { ok: false, err: 'generic' };
+  if (['role', 'username', 'usernameKey'].includes(k)) return { ok: false, err: 'fieldProtected' };
+  let value = rawValue;
+  if (value === 'true') value = true; else if (value === 'false') value = false;
+  else if (value !== '' && !isNaN(Number(value))) value = Number(value);
+  try {
+    const fb = await ensureFirebase();
+    if (value === '' || value == null) await fb.remove(userRef(fb, uid, 'profile/' + k));
+    else await fb.set(userRef(fb, uid, 'profile/' + k), value);
+    log('account', 'Admin: Profilfeld gesetzt', { uid, key: k });
+    return { ok: true };
+  } catch (e) { return { ok: false, err: errKey(e) }; }
+}
+// Passwort-Reset-Mail an einen Nutzer schicken (Firebase-Mail; setzt kein Passwort
+// direkt — das geht nur über die Mail bzw. eine Cloud Function).
+export async function adminSendPasswordReset(email) {
+  if (!isValidEmail(email)) return { ok: false, err: 'invalidEmail' };
+  try {
+    const fb = await ensureFirebase();
+    await fb.authMod.sendPasswordResetEmail(fb.auth, email);
+    log('account', 'Admin: Passwort-Reset-Mail gesendet');
+    return { ok: true };
   } catch (e) { return { ok: false, err: errKey(e) }; }
 }
