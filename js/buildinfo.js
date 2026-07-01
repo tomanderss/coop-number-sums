@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.16';
-export const BUILD_HASH = '513b534';
+export const BUILD      = '1.17';
+export const BUILD_HASH = '367fe0d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.17",
+    "date": "01.07.2026",
+    "changes": [
+      "Benutzername ändern: die Verfügbarkeit wird jetzt live beim Tippen geprüft (frei/vergeben farbig markiert) und Speichern ist gesperrt, solange der Name bereits vergeben oder ungültig ist"
+    ]
+  },
   {
     "version": "1.16",
     "date": "01.07.2026",
