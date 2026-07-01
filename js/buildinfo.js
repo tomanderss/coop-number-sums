@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.25';
-export const BUILD_HASH = '48a0014';
+export const BUILD      = '1.26';
+export const BUILD_HASH = '5c06638';
 
 export const CHANGELOG = [
+  {
+    "version": "1.26",
+    "date": "01.07.2026",
+    "changes": [
+      "Schwierigkeitsauswahl kompakter: Die Münz-Belohnung steht jetzt neben der Feldgröße (statt in einer eigenen Zeile) — die ganze Auswahl passt wieder ohne Scrollen auf den Bildschirm und die Namen werden vollständig angezeigt."
+    ]
+  },
   {
     "version": "1.25",
     "date": "01.07.2026",
