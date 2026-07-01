@@ -4464,8 +4464,15 @@ if ('serviceWorker' in navigator && !(window.Capacitor && window.Capacitor.isNat
         if (!nw) return;
         nw.addEventListener('statechange', () => promote(nw));
       });
-      // Alle 30 Sekunden auf neue Deployment-Version prüfen.
-      setInterval(() => reg.update(), 30000);
+      // Auf neue Deployment-Version prüfen — aber NIE während eines laufenden
+      // Spiels/Coop. Grund: iOS lädt eine installierte PWA beim SW-Wechsel gerne
+      // selbst neu; wird während des Spielens ein neuer Service Worker entdeckt/
+      // installiert, kann das die App mitten im Spiel neu laden ("rausgeworfen").
+      // Außerhalb des Spiels ist ein Update unkritisch. Intervall zudem auf 2 min
+      // erhöht (30 s war unnötig aggressiv). Ein erkanntes Update während des
+      // Spiels wird ohnehin über offerUpdate()/pendingUpdate bis nach dem Spiel
+      // aufgeschoben.
+      setInterval(() => { if (!gameSessionActive()) { try { reg.update(); } catch (_) {} } }, 120000);
     }).catch(e => log('sw', `Service-Worker-Registrierung fehlgeschlagen`, e));
   });
 }
