@@ -185,6 +185,10 @@ const state = reactive({
     addName: '', addBusy: false, addError: null, addNotice: null,
     list: [], requests: [], presence: {},   // presence: { uid: {online, game, lastActive} }
   },
+  leaderboard: {
+    diff: 'sehrleicht',        // aktuell angezeigte Schwierigkeit
+    entries: [], loading: false,
+  },
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
@@ -2036,6 +2040,11 @@ function win(remote) {
     state.lastCoinReward = coins;
     state.lastCoinMult = coinMultiplier(bonus);
     if (state.account.status === 'in') Account.scheduleSyncUp();
+    // Neue Solo-Bestzeit (nur perfekte Solo-Siege) in die globale Bestenliste
+    // schreiben — Coop/Wettkampf/Training zählen dort bewusst nicht mit.
+    if (newHighscore && !isCoopish && state.account.status === 'in') {
+      Account.publishBestTime(state.puzzle.difficulty, state.elapsed, state.account.username);
+    }
   }
   if (!state.isTrainingGame) applyStreakAfterGame();
   if (state.isRaceGame) state.raceStats = recordRaceWin('1v1', state.elapsed);
@@ -2613,8 +2622,32 @@ function openFriends() {
   state.friends.addName = ''; state.friends.addError = null; state.friends.addNotice = null;
   startFriendsWatch();
 }
-function closeFriends() { state.friends.open = false; }
-function setFriendsTab(tab) { state.friends.tab = tab; }
+function closeFriends() { state.friends.open = false; stopLeaderboardWatch(); }
+function setFriendsTab(tab) {
+  state.friends.tab = tab;
+  if (tab === 'leaderboard') startLeaderboardWatch();
+  else stopLeaderboardWatch();
+}
+// ─── Bestenliste ──────────────────────────────────────────────────────────────
+let leaderboardUnwatch = null;
+async function startLeaderboardWatch() {
+  stopLeaderboardWatch();
+  state.leaderboard.loading = true;
+  state.leaderboard.entries = [];
+  leaderboardUnwatch = await Account.watchLeaderboard(state.leaderboard.diff, (entries) => {
+    state.leaderboard.entries = entries;
+    state.leaderboard.loading = false;
+  });
+}
+function stopLeaderboardWatch() {
+  try { leaderboardUnwatch && leaderboardUnwatch(); } catch (_) {}
+  leaderboardUnwatch = null;
+}
+function selectLeaderboardDiff(id) {
+  if (state.leaderboard.diff === id) return;
+  state.leaderboard.diff = id;
+  if (state.friends.tab === 'leaderboard') startLeaderboardWatch();
+}
 // Live-Listener auf Freunde/Anfragen aufsetzen und Präsenz aller Freunde nachziehen.
 async function startFriendsWatch() {
   if (friendsUnwatch) return;   // schon aktiv
@@ -3148,7 +3181,7 @@ const App = {
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
-      openFriends, closeFriends, setFriendsTab, addFriend, acceptFriend, declineFriend, removeFriendAsk,
+      openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendActivityText,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
@@ -4302,11 +4335,20 @@ const App = {
           </div>
         </div>
 
-        <!-- Tab: Bestenlisten (Platzhalter — server-autoritative Umsetzung in Phase 5) -->
-        <div v-else class="friends-body friends-leaderboard-placeholder">
-          <div class="friends-lb-icon">🏆</div>
-          <p class="friends-lb-title">{{ t('friends.lbSoonTitle') }}</p>
-          <p class="set-hint">{{ t('friends.lbSoonHint') }}</p>
+        <!-- Tab: Bestenliste — schnellste (perfekte) Solo-Zeiten je Schwierigkeit -->
+        <div v-else class="friends-body friends-leaderboard">
+          <div class="lb-diff-chips">
+            <button v-for="d in DIFFICULTIES" :key="d.id" class="lb-diff-chip" :class="{ active: state.leaderboard.diff===d.id }" @click="selectLeaderboardDiff(d.id)">{{ d.emoji }}</button>
+          </div>
+          <p v-if="state.leaderboard.loading" class="set-hint">{{ t('friends.lbLoading') }}</p>
+          <p v-else-if="!state.leaderboard.entries.length" class="set-hint">{{ t('friends.lbEmpty') }}</p>
+          <div v-else class="lb-list">
+            <div v-for="(e,i) in state.leaderboard.entries" :key="e.uid" class="lb-row" :class="{ me: e.uid===state.account.uid }">
+              <span class="lb-rank">{{ i+1 }}</span>
+              <span class="lb-name">{{ e.username || e.uid }}</span>
+              <span class="lb-time">{{ fmtTime(e.timeMs) }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

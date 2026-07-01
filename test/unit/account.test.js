@@ -12,8 +12,27 @@ globalThis.localStorage = new MemoryStorage();
 
 const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
-  isSignedIn, lastSyncAt, decideSync, friendActivityRank, sortFriends,
+  isSignedIn, lastSyncAt, decideSync, friendActivityRank, sortFriends, sortLeaderboard,
 } = await import('../../js/account.js');
+
+describe('account.sortLeaderboard', () => {
+  test('fastest time first; invalid/missing times sink to the end', () => {
+    const entries = [
+      { uid: 'a', username: 'ann', timeMs: 5000 },
+      { uid: 'b', username: 'bob', timeMs: 2000 },
+      { uid: 'c', username: 'cyl', timeMs: 0 },        // ungültig
+      { uid: 'd', username: 'dan' },                    // fehlt
+      { uid: 'e', username: 'eve', timeMs: 3500 },
+    ];
+    assert.deepEqual(sortLeaderboard(entries).map(e => e.uid), ['b', 'e', 'a', 'c', 'd']);
+  });
+  test('ties break alphabetically by username; input not mutated', () => {
+    const entries = [{ uid: 'x', username: 'zoe', timeMs: 1000 }, { uid: 'y', username: 'amy', timeMs: 1000 }];
+    const copy = [...entries];
+    assert.deepEqual(sortLeaderboard(entries).map(e => e.username), ['amy', 'zoe']);
+    assert.deepEqual(entries, copy);
+  });
+});
 
 describe('account.friendActivityRank', () => {
   test('in-game > online > offline/none', () => {

@@ -384,6 +384,7 @@ export default {
     online: 'Online', offline: 'Offline', inGame: 'In game · {info}',
     mode: { solo: 'Solo', coop: 'Co-op', race: '1v1', team: 'Team' },
     lbSoonTitle: 'Leaderboards coming soon', lbSoonHint: 'Cheat-resistant rankings will arrive with server-side scoring.',
+    lbLoading: "Loading leaderboard …", lbEmpty: "No times yet — be the first!",
     err: { invalidUsername: 'Invalid username.', userNotFound: 'No user found with that username.', alreadyFriends: 'You are already friends.', selfFriend: 'You can’t add yourself.', notSignedIn: 'Please sign in first.' },
   },
   shop: {

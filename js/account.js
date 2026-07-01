@@ -79,6 +79,19 @@ export function sortFriends(friends, presenceByUid = {}) {
   });
 }
 
+// Bestenliste nach Zeit AUFSTEIGEND (schnellste zuerst); ungültige/fehlende
+// Zeiten ans Ende. Reine Funktion (unit-testbar, ohne Firebase).
+export function sortLeaderboard(entries) {
+  return [...(entries || [])].sort((a, b) => {
+    const ta = Number(a && a.timeMs), tb = Number(b && b.timeMs);
+    const va = Number.isFinite(ta) && ta > 0, vb = Number.isFinite(tb) && tb > 0;
+    if (va && vb) return ta - tb || String(a.username || '').localeCompare(String(b.username || ''));
+    if (va) return -1;
+    if (vb) return 1;
+    return 0;
+  });
+}
+
 // ─── Hilfen ───────────────────────────────────────────────────────────────────
 function currentUser(fb) { return fb.auth && fb.auth.currentUser; }
 function userRef(fb, uid, sub) { return fb.ref(fb.db, `users/${uid}${sub ? '/' + sub : ''}`); }
@@ -363,6 +376,36 @@ export async function clearPresence() {
     const fb = await ensureFirebase();
     await fb.set(presenceRef, { online: false, lastActive: fb.serverTimestamp(), game: null });
   } catch (_) {}
+}
+
+// ─── Bestenliste (clientseitig, erste Ausbaustufe — ohne Cloud Functions nicht
+// voll cheat-sicher; Rules erlauben nur den eigenen Eintrag zu schreiben) ───────
+// Eigene (perfekte) Bestzeit für eine Schwierigkeit veröffentlichen. Überschreibt
+// den eigenen Eintrag nur, wenn die neue Zeit besser ist (oder noch keiner da war).
+export async function publishBestTime(difficulty, timeMs, username) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !difficulty || !(timeMs > 0)) return;
+    const ref = fb.ref(fb.db, `leaderboard/${difficulty}/${u.uid}`);
+    const prev = (await fb.get(ref)).val();
+    if (prev && typeof prev.timeMs === 'number' && prev.timeMs <= timeMs) return;
+    await fb.set(ref, { username: username || '', timeMs, ts: fb.serverTimestamp() });
+    log('account', 'Bestzeit veröffentlicht', { difficulty, timeMs });
+  } catch (e) { log('account', 'publishBestTime fehlgeschlagen', e); }
+}
+
+// Bestenliste einer Schwierigkeit live beobachten. cb(sortedEntries). Rückgabe:
+// Abmelde-Funktion.
+export async function watchLeaderboard(difficulty, cb) {
+  try {
+    const fb = await ensureFirebase();
+    const off = fb.onValue(fb.ref(fb.db, `leaderboard/${difficulty}`), (snap) => {
+      const arr = Object.entries(snap.val() || {}).map(([uid, v]) => ({ uid, ...(v || {}) }));
+      cb(sortLeaderboard(arr));
+    });
+    return () => { try { off(); } catch (_) {} };
+  } catch (e) { log('account', 'watchLeaderboard fehlgeschlagen', e); return () => {}; }
 }
 
 // Account + Cloud-Daten löschen (DSGVO: Recht auf Vergessenwerden, clientseitig).

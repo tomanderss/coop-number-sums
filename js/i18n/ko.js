@@ -384,6 +384,7 @@ export default {
     online: '온라인', offline: '오프라인', inGame: '게임 중 · {info}',
     mode: { solo: '솔로', coop: '협동', race: '1대1', team: '팀' },
     lbSoonTitle: '순위표 곧 제공', lbSoonHint: '부정행위 방지 순위는 서버 집계와 함께 제공됩니다.',
+    lbLoading: "순위표 불러오는 중 …", lbEmpty: "아직 기록이 없어요 — 첫 주자가 되어보세요!",
     err: { invalidUsername: '유효하지 않은 사용자 이름입니다.', userNotFound: '해당 사용자 이름을 찾을 수 없습니다.', alreadyFriends: '이미 친구입니다.', selfFriend: '자신을 추가할 수 없습니다.', notSignedIn: '먼저 로그인하세요.' },
   },
   shop: {
