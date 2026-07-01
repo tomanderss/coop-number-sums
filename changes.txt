@@ -1,1 +1,1 @@
-Münzen sichtbar gemacht: Kontostand + Shop-Symbol im Hauptmenü und über den Statistiken; jede Schwierigkeit zeigt ihre Münz-Belohnung (verdoppelt sich pro Stufe, ab Mashallah mehr; Coop/Wettkampf doppelt); neue (noch leere) Shop-Seite als Vorschau
+Endlos-Neulade-Schleife behoben: fehlerhafter Cloud-Abgleich lud die App nicht mehr wiederholt neu (Splash→Menü); zusätzlich harte Schleifen-Bremse, die wiederholtes Neuladen stoppt

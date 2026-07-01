@@ -521,6 +521,7 @@ export default {
     start: 'Hadi başlayalım',
   },
   update: {
+    reloadLoop: 'Tekrarlanan yeniden yükleme algılandı ve durduruldu. Devam ederse uygulamayı yeniden başlatın veya çıkış yapıp tekrar girin.',
     badge: '⬆️ Güncelleme',
     title: 'Güncelleme mevcut',
     body: 'Yeni bir sürüm hazır. Önce verilerinin yedeğini indirebilirsin; ardından uygulama güncellenip yeniden başlatılır.',

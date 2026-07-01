@@ -40,6 +40,17 @@ describe('account.decideSync (never silently overwrites local)', () => {
   test('with a baseline: nothing changed → in sync', () => {
     assert.equal(decideSync({ cloudExists: true, localRev: 4, cloudRev: 4, syncedRev: 4, hasLocalData: true }), 'inSync');
   });
+
+  test('no reload loop: after takeCloud, baseline matches cloudRev → in sync', () => {
+    // Regression (Reload-Schleife): applyCloud MUSS syncedRev == (snap.rev || 0)
+    // setzen. Tat es das nicht (syncedRev blieb auf einem durch den Import frisch
+    // hochgezählten, von cloudRev abweichenden Wert), sah der nächste reconcile
+    // cloudChanged → 'takeCloud' → safeReload → Endlos-Reload. Konsistente
+    // Basislinie = derselbe Wert wie cloudRev → 'inSync', kein weiterer Reload.
+    assert.equal(decideSync({ cloudExists: true, localRev: 0, cloudRev: 0, syncedRev: 0, hasLocalData: true }), 'inSync');
+    // Die alte Fehlsituation (Basislinie != cloudRev) hätte endlos 'takeCloud' geliefert:
+    assert.equal(decideSync({ cloudExists: true, localRev: 7, cloudRev: 0, syncedRev: 7, hasLocalData: true }), 'takeCloud');
+  });
 });
 const { saveProfile, saveLastSync } = await import('../../js/storage.js');
 
