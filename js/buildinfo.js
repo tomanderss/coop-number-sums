@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.46';
-export const BUILD_HASH = 'd3c8f07';
+export const BUILD      = '1.47';
+export const BUILD_HASH = '1e19648';
 
 export const CHANGELOG = [
+  {
+    "version": "1.47",
+    "date": "02.07.2026",
+    "changes": [
+      "Freunde-Übersicht zeigt bei offline, wann zuletzt online. Admin sieht die eigene E-Mail auch ohne gespeicherte Profil-E-Mail."
+    ]
+  },
   {
     "version": "1.46",
     "date": "02.07.2026",
