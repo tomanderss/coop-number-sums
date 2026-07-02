@@ -73,7 +73,13 @@ function remove(key) {
 
 // ─── Einstellungen ────────────────────────────────────────────────────────────
 export function loadSettings() {
-  return { ...DEFAULT_SETTINGS, ...load(KEYS.SETTINGS, {}) };
+  const stored = load(KEYS.SETTINGS, {});
+  const s = { ...DEFAULT_SETTINGS, ...stored };
+  // Migration: der frühere boolesche Dunkelmodus wird als EXPLIZITE Wahl
+  // beibehalten (wer hell/dunkel gespeichert hatte, behält es) — nur ohne
+  // gespeicherte Wahl gilt 'auto' (folgt dem System-Theme).
+  if (!stored.themeMode && typeof stored.darkMode === 'boolean') s.themeMode = stored.darkMode ? 'dark' : 'light';
+  return s;
 }
 export function saveSettings(s) { save(KEYS.SETTINGS, s); }
 

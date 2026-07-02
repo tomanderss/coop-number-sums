@@ -226,7 +226,10 @@ export const DONATE_URL = 'https://ko-fi.com/tomanders';
 
 // ─── STANDARD-EINSTELLUNGEN ───────────────────────────────────────────────────
 export const DEFAULT_SETTINGS = {
-  darkMode: true,            // Dunkelmodus ist Standard
+  // 'auto' folgt dem System-Theme (prefers-color-scheme, live bei Systemwechsel);
+  // 'dark'/'light' = manuelle Wahl. Alte gespeicherte darkMode-Booleans migriert
+  // storage.loadSettings() auf die entsprechende explizite Wahl.
+  themeMode: 'auto',
   confirmTool: 'pen',        // Standard-Werkzeug: 'pen' (einkreisen) | 'eraser'
   eraseStyle: 'hide',        // gelöschte Zahl: 'hide' (verschwindet) | 'strike' (durchgestrichen)
   coopName: '',              // eigener Anzeigename im Coop-Modus
