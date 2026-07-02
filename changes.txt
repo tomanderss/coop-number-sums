@@ -1,1 +1,0 @@
-Freunde-Button zeigt einen grünen Punkt, sobald mindestens ein Freund online ist.
