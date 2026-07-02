@@ -2754,6 +2754,71 @@ function adminFieldRows(secKey) {
   return rows;
 }
 function toggleAdminSection(key) { const a = state.account; a.adminDataSection = a.adminDataSection === key ? null : key; }
+// ── Klartext-Übersetzung (admin.dict in i18n): Der Admin soll NICHTS über die
+//    DB wissen müssen — jedes bekannte Feld bekommt Klarnamen + Beschreibung,
+//    Auswahlfelder eine Dropdown-Liste aller möglichen Werte in Klartext und
+//    Zeitstempel ein lesbares Datum. Unbekannte Felder fallen auf den rohen
+//    Schlüssel zurück und bleiben voll editierbar. ─────────────────────────────
+function adminDictLookup(path, kind) {
+  const parts = path.split('/');
+  const tries = [path];
+  if (parts.length === 3) tries.push(`${parts[0]}/*/${parts[2]}`);  // z.B. race/1v1/racesWon
+  for (const k of tries) {
+    const key = `admin.dict.f.${k}.${kind}`;
+    const v = t(key);
+    if (v !== key) return { v, wildcard: k !== path };
+  }
+  return null;
+}
+function adminRowLabel(row) {
+  const parts = row.path.split('/');
+  // Erfolge: reguläre Achievement-Texte wiederverwenden statt eigener Einträge.
+  if (parts[0] === 'achievements' && parts[1]) {
+    const key = `achievements.${parts[1]}.title`;
+    const v = t(key); if (v !== key) return v;
+  }
+  const hit = adminDictLookup(row.path, 'l');
+  if (!hit) return row.label;
+  return hit.wildcard ? `${parts[1]} · ${hit.v}` : hit.v;
+}
+function adminRowDesc(row) {
+  const parts = row.path.split('/');
+  if (parts[0] === 'achievements' && parts[1]) {
+    const key = `achievements.${parts[1]}.desc`;
+    const v = t(key); if (v !== key) return v;
+  }
+  const hit = adminDictLookup(row.path, 'd');
+  return hit ? hit.v : null;
+}
+// Auswahlfelder: bekannte Wertelisten je Pfad → Dropdown statt Freitext.
+const ADMIN_ENUM_VALUES = {
+  'settings/themeMode': ['auto', 'light', 'dark'],
+  'settings/confirmTool': ['pen', 'eraser'],
+  'settings/eraseStyle': ['hide', 'strike'],
+  'settings/skinStyle': ['solid', 'gradient', 'rainbow'],
+  'settings/skinDirection': ['cw', 'ccw'],
+  'settings/skinApplyTo': ['kept', 'removed', 'both'],
+};
+function adminEnumOptions(row) {
+  if (row.path === 'settings/language') return SUPPORTED_LOCALES.map((l) => ({ v: l.id, label: l.label }));
+  const vals = ADMIN_ENUM_VALUES[row.path];
+  if (!vals) return null;
+  const leaf = row.path.split('/').pop();
+  return vals.map((v) => {
+    const key = `admin.dict.o.${leaf}.${v}`;
+    const s = t(key);
+    return { v, label: s === key ? v : s };
+  });
+}
+function adminItemLabel(id) { const key = `admin.dict.o.item.${id}`; const s = t(key); return s === key ? id : s; }
+// Epoch-Millisekunden als lesbares Datum unter dem Zahlenfeld anzeigen.
+function adminRowTimestamp(row) {
+  const v = adminFieldValue(row);
+  if (typeof v !== 'number' || v < 1e12) return null;
+  try { return new Date(v).toLocaleString(state.settings.language || 'de'); } catch (_) { return null; }
+}
+// Datums-String-Felder (JJJJ-MM-TT) bekommen einen nativen Datums-Picker.
+function adminIsDateField(row) { return row.path === 'daily/lastCompletedDate'; }
 // Anzeige-Wert einer Zeile: ungespeicherte Änderung gewinnt über den Snapshot.
 function adminFieldValue(row) { const d = state.account.adminDataDirty; return row.path in d ? d[row.path] : row.value; }
 function adminMarkDirty(path, v) { state.account.adminDataDirty = { ...state.account.adminDataDirty, [path]: v }; }
@@ -3458,6 +3523,7 @@ const App = {
       openAdminConsole, closeAdminConsole, adminFmtDate, adminItemOptions, adminFieldOptions, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
       openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId,
+      adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, friendActivityText,
@@ -4650,7 +4716,7 @@ const App = {
               <div v-if="state.account.adminDataSection==='_inventory'" class="admin-acc-body">
                 <div class="admin-item-chips">
                   <span v-for="(v, id) in state.account.adminEditUser.inventory" :key="id" class="admin-item-chip">
-                    {{ id }}
+                    {{ adminItemLabel(id) }}
                     <button class="admin-item-x" :disabled="state.account.adminBusy" @click="adminRevokeItemId(id)" :aria-label="t('admin.revokeSkin')">✕</button>
                   </span>
                   <span v-if="!state.account.adminEditUser.itemCount" class="set-hint">—</span>
@@ -4658,7 +4724,7 @@ const App = {
                 <div class="admin-field-row">
                   <select class="text-input admin-select" v-model="state.account.adminItem">
                     <option value="" disabled>{{ t('admin.choose') }}</option>
-                    <option v-for="id in adminItemOptions()" :key="id" :value="id">{{ id }}</option>
+                    <option v-for="id in adminItemOptions()" :key="id" :value="id">{{ adminItemLabel(id) }}</option>
                   </select>
                   <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem">🎁</button>
                 </div>
@@ -4674,12 +4740,20 @@ const App = {
                   <span class="admin-acc-chev" :class="{ open: state.account.adminDataSection===sec.key }">▾</span>
                 </button>
                 <div v-if="state.account.adminDataSection===sec.key" class="admin-acc-body">
-                  <div v-for="row in adminFieldRows(sec.key)" :key="row.path" class="admin-row" :class="{ dirty: row.path in state.account.adminDataDirty }">
-                    <span class="admin-row-label">{{ row.label }}</span>
-                    <span v-if="row.type==='boolean'" class="switch" :class="{ on: adminFieldValue(row) }" @click="adminToggleField(row)"><i></i></span>
-                    <input v-else-if="row.type==='number'" class="text-input admin-row-input" type="number" inputmode="numeric" step="any" :value="adminFieldValue(row)" @change="adminInputField(row, $event)" />
-                    <input v-else-if="row.type==='string'" class="text-input admin-row-input" :value="adminFieldValue(row)" @change="adminInputField(row, $event)" autocapitalize="none" />
-                    <button v-else class="btn btn-ghost btn-sm" @click="openAdminJson(row)">{ } JSON</button>
+                  <div v-for="row in adminFieldRows(sec.key)" :key="row.path" class="admin-field-block" :class="{ dirty: row.path in state.account.adminDataDirty }">
+                    <div class="admin-row">
+                      <span class="admin-row-label">{{ adminRowLabel(row) }}</span>
+                      <span v-if="row.type==='boolean'" class="switch" :class="{ on: adminFieldValue(row) }" @click="adminToggleField(row)"><i></i></span>
+                      <select v-else-if="adminEnumOptions(row)" class="text-input admin-row-input admin-select" :value="adminFieldValue(row)" @change="adminMarkDirty(row.path, $event.target.value)">
+                        <option v-for="o in adminEnumOptions(row)" :key="o.v" :value="o.v">{{ o.label }}</option>
+                      </select>
+                      <input v-else-if="adminIsDateField(row)" class="text-input admin-row-input" type="date" :value="adminFieldValue(row)" @change="adminInputField(row, $event)" />
+                      <input v-else-if="row.type==='number'" class="text-input admin-row-input" type="number" inputmode="numeric" step="any" :value="adminFieldValue(row)" @change="adminInputField(row, $event)" />
+                      <input v-else-if="row.type==='string'" class="text-input admin-row-input" :value="adminFieldValue(row)" @change="adminInputField(row, $event)" autocapitalize="none" />
+                      <button v-else class="btn btn-ghost btn-sm" @click="openAdminJson(row)">{ } JSON</button>
+                    </div>
+                    <small v-if="adminRowTimestamp(row)" class="admin-row-desc">🕒 {{ adminRowTimestamp(row) }}</small>
+                    <small v-if="adminRowDesc(row)" class="admin-row-desc">{{ adminRowDesc(row) }}</small>
                   </div>
                   <p v-if="!adminFieldRows(sec.key).length" class="set-hint">—</p>
                 </div>
