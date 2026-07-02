@@ -1317,10 +1317,16 @@ select.admin-select {
 .admin-acc-chev.open { transform: rotate(180deg); }
 .admin-acc-body { display: flex; flex-direction: column; gap: 7px; padding: 2px 13px 12px; }
 .admin-row { display: flex; align-items: center; gap: 10px; min-height: 34px; }
-.admin-row-label { flex: 1 1 auto; min-width: 0; font-size: .84rem; font-weight: 600; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.admin-row.dirty .admin-row-label { color: var(--accent); }
-.admin-row.dirty .admin-row-label::after { content: ' ●'; font-size: .6rem; vertical-align: 2px; }
+/* Feld-Block = Zeile + Klartext-Beschreibung darunter (admin.dict) */
+.admin-field-block { display: flex; flex-direction: column; gap: 2px; }
+.admin-field-block + .admin-field-block { margin-top: 5px; }
+.admin-row-desc { color: var(--text3); font-size: .72rem; line-height: 1.35; padding: 0 2px; }
+.admin-row-label { flex: 1 1 auto; min-width: 0; font-size: .84rem; font-weight: 600; color: var(--text2); }
+.admin-field-block.dirty .admin-row-label { color: var(--accent); }
+.admin-field-block.dirty .admin-row-label::after { content: ' ●'; font-size: .6rem; vertical-align: 2px; }
 .admin-row-input { flex: 0 0 42%; max-width: 170px; padding: 8px 10px; font-size: .9rem; background: var(--bg2); }
+/* Dropdowns brauchen mehr Platz für die Klartext-Optionen (admin.dict). */
+select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .admin-item-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .admin-item-chip {
   display: inline-flex; align-items: center; gap: 6px; padding: 5px 6px 5px 11px;

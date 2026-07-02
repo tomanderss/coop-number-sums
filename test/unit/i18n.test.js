@@ -18,7 +18,12 @@ function collectKeys(obj, prefix = '') {
   return keys;
 }
 
-const DE_KEYS = collectKeys(MESSAGES.de).sort();
+// admin.dict.* ist BEWUSST nur in de.js gepflegt: das Klartext-Wörterbuch des
+// Admin-Daten-Editors (Feld-Labels/-Beschreibungen/Optionsnamen) sind reine
+// Admin-Texte; t() fällt für fehlende Schlüssel designgemäß auf Deutsch zurück.
+// Es von der Paritätsprüfung auszunehmen ist die dokumentierte Ausnahme —
+// alle NUTZER-sichtbaren Texte müssen weiterhin in allen Sprachen existieren.
+const DE_KEYS = collectKeys(MESSAGES.de).filter(k => !k.startsWith('admin.dict.')).sort();
 
 describe('i18n.SUPPORTED_LOCALES', () => {
   test('every supported locale id has a matching MESSAGES entry', () => {
