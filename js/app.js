@@ -165,7 +165,7 @@ const state = reactive({
   showWhatsNew: false,
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
-  settingsTab: 'spiel',      // aktive Sektion im Einstellungen-Screen (Drawer): spiel | darstellung | farbe | ton | konto | daten
+  settingsTab: '',           // aufgeklappte Einstellungs-Karte ('' = alle zu; spiel | darstellung | farbe | ton | konto | daten). Bewusst NICHT persistiert — Einstellungen starten immer zugeklappt.
   // Optionaler Account (E-Mail+Username+PW, Cloud-Sync). Anonymous-first: ohne
   // Login bleibt alles lokal. status: 'anon' | 'in'; busy während Auth-Aktionen.
   account: {
@@ -500,6 +500,9 @@ function openSettings() {
   if (state.screen === 'settings') return;
   settingsReturn = state.screen;
   if (state.screen === 'game') pauseGame();
+  // Immer zugeklappt starten — die zuletzt offene Karte wird bewusst nicht
+  // gemerkt (Deep-Links wie „Konto" setzen ihre Karte direkt NACH dem Öffnen).
+  state.settingsTab = '';
   navigate('settings');
 }
 // Sektion direkt öffnen (Deep-Links von Home: Konto, Skin-Editor). Beim Konto

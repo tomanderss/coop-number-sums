@@ -22,19 +22,23 @@ test.describe('settings', () => {
     await expect(page.locator('.pause-overlay')).toBeVisible();
   });
 
-  test('dark mode toggle persists across reload', async ({ page }) => {
+  test('settings open fully collapsed and theme choice (dark) persists across reload', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
-    const switchEl = page.locator('.set-row .switch').first();
-    const wasOn = await switchEl.evaluate(el => el.classList.contains('on'));
-    await switchEl.click();
-    await expect.poll(() => switchEl.evaluate(el => el.classList.contains('on'))).toBe(!wasOn);
+    // Immer zugeklappt starten: keine Karte offen, keine Options-Reihe sichtbar.
+    await expect(page.locator('.screen.settings .admin-acc-body')).toHaveCount(0);
+
+    await gotoSettingsSection(page, 'Darstellung');
+    await page.locator('.seg button', { hasText: '🌙' }).click();
+    await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('dark');
 
     await page.reload();
     await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
+    expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('dark');
+    expect(await page.evaluate(() => window.__cns.state.settings.themeMode)).toBe('dark');
+    // Auch nach dem Reload: Einstellungen starten zugeklappt.
     await page.locator('.home-settings-btn').click();
-    const isOnAfterReload = await page.locator('.set-row .switch').first().evaluate(el => el.classList.contains('on'));
-    expect(isOnAfterReload).toBe(!wasOn);
+    await expect(page.locator('.screen.settings .admin-acc-body')).toHaveCount(0);
   });
 
   test('colorblind mode toggle applies a global CSS class and persists across reload', async ({ page }) => {

@@ -38,6 +38,7 @@ test.describe('home screen', () => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
     await expect(page.locator('.screen.settings')).toBeVisible();
+    await gotoSettingsSection(page, 'Spiel');  // Einstellungen starten zugeklappt
     await page.locator('.set-howto-btn').click();
     await expect(page.locator('.modal .rules')).toBeVisible();
     await page.locator('.modal .btn-primary').click();
