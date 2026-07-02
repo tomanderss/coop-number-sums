@@ -1305,6 +1305,8 @@ select.admin-select {
   border-radius: 999px; background: var(--bg3); font-weight: 700; font-size: .82rem;
   font-variant-numeric: tabular-nums;
 }
+.admin-chip-btn { border: none; color: inherit; cursor: pointer; transition: background .12s; }
+.admin-chip-btn:active { background: var(--accent); color: #fff; }
 .admin-edit-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 8px; padding-bottom: 2px; }
 .admin-acc { border-radius: 12px; background: var(--bg3); overflow: hidden; flex: 0 0 auto; }
 .admin-acc-head {

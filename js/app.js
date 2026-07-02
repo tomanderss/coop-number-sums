@@ -2751,7 +2751,10 @@ async function adminReloadData() {
 }
 function adminDataSections() {
   const d = state.account.adminData; if (!d) return [];
-  const known = ADMIN_DATA_SECTIONS.filter(s => d[s.key] !== undefined);
+  // 💰 Wallet IMMER anzeigen, auch wenn im Snapshot noch kein wallet-Knoten liegt
+  // (frisch angelegter Nutzer): sonst gäbe es kein editierbares Guthaben-Feld und
+  // der Admin könnte gar nichts anklicken. adminFieldRows synthetisiert dann balance:0.
+  const known = ADMIN_DATA_SECTIONS.filter(s => d[s.key] !== undefined || s.key === 'wallet');
   const rest = Object.keys(d)
     .filter(k => !ADMIN_DATA_SECTIONS.some(s => s.key === k) && !ADMIN_DATA_META_KEYS.includes(k))
     .sort().map(k => ({ key: k, ic: '📦' }));
@@ -2762,7 +2765,10 @@ function adminSectionLabel(key) { const k = 'admin.sec.' + key; const s = t(k); 
 // reine Primitiv-Objekte aufgefaltet (z.B. daily.currentStreak); alles Tiefere
 // (byDifficulty, Arrays, activeGame) bekommt den JSON-Untereditor.
 function adminFieldRows(secKey) {
-  const sec = state.account.adminData ? state.account.adminData[secKey] : undefined;
+  let sec = state.account.adminData ? state.account.adminData[secKey] : undefined;
+  // Fehlt der Wallet-Knoten (frischer Nutzer), trotzdem ein editierbares
+  // balance-Feld mit Standard 0 anbieten — Speichern legt wallet/balance neu an.
+  if (secKey === 'wallet' && (sec === undefined || sec === null)) sec = { balance: 0 };
   const rows = [];
   const push = (path, label, val) => {
     const ty = typeof val;
@@ -2783,6 +2789,8 @@ function adminFieldRows(secKey) {
   return rows;
 }
 function toggleAdminSection(key) { const a = state.account; a.adminDataSection = a.adminDataSection === key ? null : key; }
+// Sektion gezielt aufklappen (nicht toggeln) — für die Kennzahlen-Chips oben.
+function openAdminSection(key) { state.account.adminDataSection = key; }
 // ── Klartext-Übersetzung (admin.dict in i18n): Der Admin soll NICHTS über die
 //    DB wissen müssen — jedes bekannte Feld bekommt Klarnamen + Beschreibung,
 //    Auswahlfelder eine Dropdown-Liste aller möglichen Werte in Klartext und
@@ -3577,7 +3585,7 @@ const App = {
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       openAdminConsole, closeAdminConsole, adminFmtDate, adminItemOptions, adminFieldOptions, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
-      adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
+      adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, openAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
       openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId,
       adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
@@ -4729,12 +4737,13 @@ const App = {
           <button class="icon-btn" @click="closeAdminEdit" :aria-label="t('common.close')">✕</button>
         </header>
 
-        <!-- Kennzahlen-Chips (live aus dem frischen Snapshot, inkl. ungespeicherter Werte) -->
+        <!-- Kennzahlen-Chips (live aus dem frischen Snapshot, inkl. ungespeicherter Werte).
+             Antippen springt in die passende Sektion — z.B. 💰 öffnet die Wallet. -->
         <div class="admin-chips">
-          <span class="admin-chip">💰 {{ adminChipValue('wallet/balance', state.account.adminEditUser.balance ?? 0) }}</span>
-          <span class="admin-chip">🔥 {{ adminChipValue('daily/currentStreak', 0) }}</span>
-          <span class="admin-chip">🏆 {{ adminChipValue('stats/won', 0) }}</span>
-          <span class="admin-chip">🎨 {{ state.account.adminEditUser.itemCount || 0 }}</span>
+          <button class="admin-chip admin-chip-btn" @click="openAdminSection('wallet')">💰 {{ adminChipValue('wallet/balance', state.account.adminEditUser.balance ?? 0) }}</button>
+          <button class="admin-chip admin-chip-btn" @click="openAdminSection('daily')">🔥 {{ adminChipValue('daily/currentStreak', 0) }}</button>
+          <button class="admin-chip admin-chip-btn" @click="openAdminSection('stats')">🏆 {{ adminChipValue('stats/won', 0) }}</button>
+          <button class="admin-chip admin-chip-btn" @click="openAdminSection('_inventory')">🎨 {{ state.account.adminEditUser.itemCount || 0 }}</button>
         </div>
 
         <!-- JSON-Untereditor (tiefe Strukturen) ersetzt den Inhalt, solange offen -->
