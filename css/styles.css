@@ -1361,6 +1361,12 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 }
 .friends-modal { max-width: 420px; width: 100%; max-height: 88vh; text-align: left; display: flex; flex-direction: column; gap: 12px; }
 .friends-head { display: flex; align-items: center; justify-content: space-between; }
+.friends-head-actions { display: flex; align-items: center; gap: 8px; }
+/* liegt ueber dem Freunde-Dialog (beide modal-bg-Geschwister, DOM-Reihenfolge
+   allein wuerde das Popup sonst verdecken) */
+.friends-add-bg { z-index: 95; }
+.friends-add-modal { text-align: center; }
+.friends-add-modal .text-input { text-align: left; }
 .friends-head h3 { margin: 0; }
 .friends-tabs { display: flex; gap: 6px; }
 .friends-tab {

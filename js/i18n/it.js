@@ -417,6 +417,7 @@ export default {
     title: 'Amici', tabFriends: 'Amici', tabLeaderboard: 'Classifiche',
     needLogin: "Accedi per invitare amici.",
     addPlaceholder: 'Nome utente…', add: 'Aggiungi', requestSent: 'Richiesta inviata a {name}',
+    addTitle: 'Aggiungi amico',
     requestsTitle: 'Richieste', accept: 'Accetta', decline: 'Rifiuta',
     listTitle: 'I tuoi amici', empty: 'Ancora nessun amico – aggiungi qualcuno tramite il nome utente qui sopra.', remove: 'Rimuovi',
     removeTitle: 'Rimuovi amico', removeMsg: 'Rimuovere {name} dalla tua lista amici?', nowFriends: '{name} ora è tuo amico 🎉',

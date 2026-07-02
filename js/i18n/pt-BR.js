@@ -417,6 +417,7 @@ export default {
     title: 'Amigos', tabFriends: 'Amigos', tabLeaderboard: 'Classificações',
     needLogin: "Entre para convidar amigos.",
     addPlaceholder: 'Nome de usuário…', add: 'Adicionar', requestSent: 'Pedido enviado para {name}',
+    addTitle: 'Adicionar amigo',
     requestsTitle: 'Pedidos', accept: 'Aceitar', decline: 'Recusar',
     listTitle: 'Seus amigos', empty: 'Ainda sem amigos – adicione alguém pelo nome de usuário acima.', remove: 'Remover',
     removeTitle: 'Remover amigo', removeMsg: 'Remover {name} da sua lista de amigos?', nowFriends: '{name} agora é seu amigo 🎉',

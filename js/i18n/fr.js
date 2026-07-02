@@ -417,6 +417,7 @@ export default {
     title: 'Amis', tabFriends: 'Amis', tabLeaderboard: 'Classements',
     needLogin: "Connecte-toi pour inviter des amis.",
     addPlaceholder: 'Nom d’utilisateur…', add: 'Ajouter', requestSent: 'Demande envoyée à {name}',
+    addTitle: 'Ajouter un ami',
     requestsTitle: 'Demandes', accept: 'Accepter', decline: 'Refuser',
     listTitle: 'Tes amis', empty: 'Pas encore d’amis – ajoute quelqu’un par son nom d’utilisateur ci-dessus.', remove: 'Retirer',
     removeTitle: 'Retirer l’ami', removeMsg: 'Retirer {name} de ta liste d’amis ?', nowFriends: '{name} est maintenant ton ami 🎉',

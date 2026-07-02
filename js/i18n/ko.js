@@ -417,6 +417,7 @@ export default {
     title: '친구', tabFriends: '친구', tabLeaderboard: '순위표',
     needLogin: "친구를 초대하려면 로그인하세요.",
     addPlaceholder: '사용자 이름…', add: '추가', requestSent: '{name}님에게 요청을 보냈습니다',
+    addTitle: '친구 추가',
     requestsTitle: '요청', accept: '수락', decline: '거절',
     listTitle: '내 친구', empty: '아직 친구가 없습니다 – 위에서 사용자 이름으로 추가하세요.', remove: '삭제',
     removeTitle: '친구 삭제', removeMsg: '{name}님을 친구 목록에서 삭제할까요?', nowFriends: '{name}님과 친구가 되었습니다 🎉',
