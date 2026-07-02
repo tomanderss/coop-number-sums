@@ -109,7 +109,9 @@ describe('config.COOP_COLORS', () => {
 
 describe('config.DEFAULT_SETTINGS / DEFAULT_GAME_OPTIONS', () => {
   test('has the expected shape and defaults', () => {
-    assert.equal(DEFAULT_SETTINGS.darkMode, true);
+    // Theme folgt standardmäßig dem System (drei Modi statt darkMode-Boolean).
+    assert.equal(DEFAULT_SETTINGS.themeMode, 'auto');
+    assert.equal(DEFAULT_SETTINGS.darkMode, undefined);
     assert.equal(DEFAULT_SETTINGS.confirmTool, 'pen');
     assert.equal(DEFAULT_SETTINGS.language, null);
     // Entfernte Optionen: Fehler immer sofort, Leben immer an, Timer immer sichtbar.

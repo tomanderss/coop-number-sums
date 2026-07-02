@@ -39,6 +39,18 @@ describe('storage.settings', () => {
     assert.equal(loaded.darkMode, false);
     assert.equal(loaded.errorReveal, DEFAULT_SETTINGS.errorReveal); // untouched default preserved
   });
+
+  // Theme-Migration: der frühere boolesche Dunkelmodus wird als EXPLIZITE Wahl
+  // beibehalten; ohne gespeicherte Wahl gilt 'auto' (folgt dem System-Theme).
+  test('themeMode migrates from a stored darkMode boolean, defaults to auto', () => {
+    assert.equal(loadSettings().themeMode, 'auto');            // frische Installation
+    saveSettings({ darkMode: true });
+    assert.equal(loadSettings().themeMode, 'dark');            // alte Dunkel-Wahl bleibt dunkel
+    saveSettings({ darkMode: false });
+    assert.equal(loadSettings().themeMode, 'light');           // alte Hell-Wahl bleibt hell
+    saveSettings({ darkMode: false, themeMode: 'auto' });
+    assert.equal(loadSettings().themeMode, 'auto');            // explizite neue Wahl gewinnt
+  });
 });
 
 describe('storage.activeGame', () => {

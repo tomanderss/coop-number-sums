@@ -265,11 +265,20 @@ function racePct(modeStats) {
   if (!modeStats.racesPlayed) return 0;
   return Math.round((modeStats.racesWon / modeStats.racesPlayed) * 100);
 }
+// Effektives Theme: manuelle Wahl gewinnt; 'auto' folgt dem System-Theme
+// (prefers-color-scheme) — der Listener in init() wendet Systemwechsel live an.
+function isDarkTheme() {
+  const m = state.settings.themeMode;
+  if (m === 'dark') return true;
+  if (m === 'light') return false;
+  try { return window.matchMedia('(prefers-color-scheme: dark)').matches; } catch (_) { return true; }
+}
 function applyTheme() {
-  document.documentElement.setAttribute('data-theme', state.settings.darkMode ? 'dark' : 'light');
+  const dark = isDarkTheme();
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   document.documentElement.classList.toggle('colorblind', state.settings.colorBlindMode);
   const tc = document.querySelector('meta[name="theme-color"]');
-  if (tc) tc.setAttribute('content', state.settings.darkMode ? '#0b1020' : '#eef2f9');
+  if (tc) tc.setAttribute('content', dark ? '#0b1020' : '#eef2f9');
 }
 function applyLocale() {
   if (!state.settings.language) state.settings.language = detectLocale();
@@ -2306,7 +2315,7 @@ function launchConfetti(perfect) {
 // ─── EINSTELLUNGEN ────────────────────────────────────────────────────────────
 function toggleSetting(key) {
   state.settings[key] = !state.settings[key];
-  if (key === 'darkMode' || key === 'colorBlindMode') applyTheme();
+  if (key === 'colorBlindMode') applyTheme();
   if (key.startsWith('music')) updateMusic();
   // Aktions-Sound beim Einschalten kurz vorspielen (zum Anhören/Prüfen).
   if (state.settings[key]) {
@@ -2324,6 +2333,7 @@ function toggleSetting(key) {
 function setSetting(key, val) {
   state.settings[key] = val;
   if (key === 'language') applyLocale();
+  if (key === 'themeMode') applyTheme();
   if (key === 'musicVolume') { Music.setVolume(val); updateMusic(); }
 }
 watch(() => state.settings, (s) => { saveSettings(s); if (state.account.status === 'in') Account.scheduleSyncUp(); }, { deep: true });
@@ -3177,6 +3187,12 @@ function init() {
     localStorage.setItem('cns_last_start', String(now));
   } catch (_) {}
   applyTheme();
+  // Bei themeMode 'auto' Systemwechsel (hell/dunkel) live übernehmen — ohne Neustart.
+  try {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (state.settings.themeMode === 'auto') applyTheme();
+    });
+  } catch (_) {}
   applyLocale();
   refreshResume();
   refreshAccountFromLocal();
@@ -4223,8 +4239,14 @@ const App = {
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='darstellung' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='darstellung'" class="admin-acc-body">
-          <div class="set-row" @click="toggleSetting('darkMode')">
-            <span>{{ t('settings.darkMode') }}</span><span class="switch" :class="{on:state.settings.darkMode}"><i></i></span>
+          <div class="set-row col">
+            <span class="set-row-label">{{ t('settings.theme') }}</span>
+            <div class="seg">
+              <button :class="{active:state.settings.themeMode==='auto'}" @click="setSetting('themeMode','auto')">{{ t('settings.themeAuto') }}</button>
+              <button :class="{active:state.settings.themeMode==='light'}" @click="setSetting('themeMode','light')">☀️ {{ t('settings.themeLight') }}</button>
+              <button :class="{active:state.settings.themeMode==='dark'}" @click="setSetting('themeMode','dark')">🌙 {{ t('settings.themeDark') }}</button>
+            </div>
+            <small class="set-hint">{{ t('settings.themeHint') }}</small>
           </div>
           <div class="set-row col">
             <span class="set-row-label">{{ t('settings.language') }}</span>
