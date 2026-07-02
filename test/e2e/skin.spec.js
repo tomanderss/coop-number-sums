@@ -8,12 +8,11 @@ import { gotoApp, startNewGame } from './helpers.js';
 test.describe('dynamic skin', () => {
   test('the secret code unlocks the skin and the editor appears', async ({ page }) => {
     await gotoApp(page);
-    // On 1.0 the skin is auto-gifted to everyone at startup ("Feier des Tages").
-    expect(await page.evaluate(() => !!window.__cns.state.inventory.dynamicColor)).toBe(true);
+    // EXKLUSIVITÄT: Neuinstallationen bekommen den Skin NICHT mehr automatisch —
+    // nur Bestandsspieler mit 1.0-Versionssprung (bzw. Code/Admin-Geschenk).
+    expect(await page.evaluate(() => !!window.__cns.state.inventory.dynamicColor)).toBe(false);
 
-    // Clear it to exercise the redeem-code path from a locked state; the code
-    // field stays visible even when unlocked, so redeeming still works.
-    await page.evaluate(() => { const s = window.__cns.state; s.inventory = {}; s.screen = 'settings'; s.settingsTab = 'farbe'; });
+    await page.evaluate(() => { const s = window.__cns.state; s.screen = 'settings'; s.settingsTab = 'farbe'; });
     const codeInput = page.getByPlaceholder('Freischaltcode');
     await expect(codeInput).toBeVisible();
 

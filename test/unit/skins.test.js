@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 const {
   SKIN_ID, SKIN_UNLOCK_VERSION, SKIN_CODE_NORM, SKIN_STYLES, FOUNDER_ID,
-  cmpVersion, qualifiesForV1Skin, eligibleForCelebrationSkin, normalizeSkinCode, skinCodeMatches,
+  cmpVersion, qualifiesForV1Skin, normalizeSkinCode, skinCodeMatches,
   skinVars, skinClasses, skinSpeedToDuration,
 } = await import('../../js/skins.js');
 
@@ -23,16 +23,6 @@ describe('skins.skinSpeedToDuration (higher speed = shorter duration)', () => {
     assert.equal(skinVars({ skinSpeed: 12 })['--skin-speed'], '1s');   // fastest
     assert.equal(skinVars({ skinSpeed: 6 })['--skin-speed'], '2s');    // default
     assert.equal(skinVars({ skinSpeed: 0 })['--skin-speed'], '0s');    // off
-  });
-});
-
-describe('skins.eligibleForCelebrationSkin', () => {
-  test('everyone on >=1.0 gets the skin — including fresh installs (no seen version)', () => {
-    assert.equal(eligibleForCelebrationSkin('1.0'), true);
-    assert.equal(eligibleForCelebrationSkin('1.4'), true);
-  });
-  test('pre-1.0 builds are not eligible', () => {
-    assert.equal(eligibleForCelebrationSkin('0.166'), false);
   });
 });
 

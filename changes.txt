@@ -1,0 +1,5 @@
+Abmelden sichert den Stand in der Cloud und setzt dieses Gerät zurück — Daten können nicht mehr in einen zweiten Account geklont werden.
+Passwort lässt sich jetzt direkt im Konto-Bereich ändern (neues Passwort zweimal eingeben).
+Der 1.0-Feier-Skin und das Gründer-Abzeichen sind jetzt exklusiv für Spieler der ersten Stunde — Neuinstallationen erhalten sie nicht mehr automatisch.
+Freunde-Dialog: Annehmen/Ablehnen stehen unter dem Namen, mehr Abstand zwischen den Bereichen.
+Lobby-Einladung: „Koop"-Tippfehler korrigiert (Coop) und der Einladen-Button wird nach einer Ablehnung wieder freigegeben.

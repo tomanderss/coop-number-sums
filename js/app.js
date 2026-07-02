@@ -22,7 +22,7 @@ import {
   setDataRev, setSyncedRev,
 } from './storage.js';
 import * as Account from './account.js';
-import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, eligibleForCelebrationSkin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
+import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 
 const APP_START = Date.now();
@@ -182,6 +182,7 @@ const state = reactive({
     adminConsoleOpen: false,  // Vollbild-Admin-Konsole (Nutzer-Tabelle) offen?
     adminUsers: [], adminFilter: '', adminEditUser: null, adminBusy: false, adminError: null,
     adminBalance: '', adminUsername: '', adminItem: '', adminFieldKey: '', adminFieldVal: '', adminEmail: '',
+    pwNew1: '', pwNew2: '', pwFormOpen: false,  // „Passwort ändern“-Formular (neues Passwort 2×)
     // Daten-Editor im Bearbeiten-Modal (frischer /users/{uid}/data-Snapshot)
     adminData: null,          // geladener Snapshot (Quelle für die Sektions-Felder)
     adminDataLoading: false,
@@ -2456,7 +2457,11 @@ async function startLobbyInviteWatch() {
   });
   lobbyResponsesUnwatch = await Account.watchLobbyInviteResponses((arr) => {
     for (const resp of arr) {
-      if (resp.status === 'declined') showToast(t('coop.inviteDeclined', { name: resp.username || resp.targetUid }), 'info', 3200);
+      if (resp.status === 'declined') {
+        showToast(t('coop.inviteDeclined', { name: resp.username || resp.targetUid }), 'info', 3200);
+        // Button wieder auf „Einladen" zurücksetzen, damit man es erneut versuchen kann.
+        state.coop.invitedUids = state.coop.invitedUids.filter((u) => u !== resp.targetUid);
+      }
       Account.clearLobbyInviteResponse(resp.targetUid);
     }
   });
@@ -2585,9 +2590,31 @@ async function doSignIn() {
 function doSignOut() {
   ask(t('account.signOutTitle'), t('account.signOutMsg'), async () => {
     state.account.busy = true;
-    try { const r = await Account.signOutAccount(); if (r.reload) safeReload('account-signout'); }
-    finally { state.account.busy = false; }
+    try {
+      // Erst den letzten Stand in die Cloud sichern (best effort), dann lokal
+      // ALLES löschen: Die Cloud ist die Wahrheit — blieben die Daten lokal,
+      // könnte man sie mit einem frisch registrierten Zweit-Account erneut
+      // hochladen (Duplikat). Beim erneuten Login desselben Kontos kommt alles
+      // aus der Cloud zurück (reconcile: takeCloud).
+      await Account.syncNow();
+      const r = await Account.signOutAccount();
+      if (r.ok) { deleteAllData(); log('account', 'Abgemeldet — lokale Daten zurückgesetzt'); }
+      if (r.reload) safeReload('account-signout');
+    } finally { state.account.busy = false; }
   });
+}
+// Passwort direkt ändern: neues Passwort zweimal eingeben + Speichern (ohne altes).
+async function doChangePassword() {
+  const a = state.account;
+  a.error = null; a.notice = null;
+  if (a.pwNew1 !== a.pwNew2) { a.error = t('account.pwMismatch'); return; }
+  a.busy = true;
+  try {
+    const r = await Account.changePassword(a.pwNew1);
+    if (!r.ok) { a.error = accErr(r.err); return; }
+    a.pwNew1 = ''; a.pwNew2 = '';
+    showToast(t('account.pwChanged'), 'success', 2200);
+  } finally { a.busy = false; }
 }
 async function doResetPassword() {
   const a = state.account;
@@ -2640,6 +2667,7 @@ function doDeleteAccount() {
     try {
       const r = await Account.deleteAccount();
       if (!r.ok) { state.account.error = accErr(r.err); return; }
+      deleteAllData();  // wie beim Abmelden: lokale Kopie nicht für neue Konten wiederverwendbar
       showToast(t('account.deleted'), 'success', 2500);
       if (r.reload) setTimeout(() => safeReload('account-auth'), 600);
     } finally { state.account.busy = false; }
@@ -3052,8 +3080,12 @@ function grantSkin(source) {
 // wer den Sprung von <1.0 aktiv miterlebt hat, einen bleibenden Founder-Marker
 // (für später). Liest die zuletzt gesehene Version VOR dismissWhatsNew.
 function maybeUnlockV1Skin() {
-  if (!state.inventory[SKIN_ID] && eligibleForCelebrationSkin(BUILD)) grantSkin('v1celebration');
-  if (!state.inventory[FOUNDER_ID] && qualifiesForV1Skin(loadSeenVersion(), BUILD)) {
+  // EXKLUSIV für Bestandsspieler, die den Sprung auf 1.0 aktiv miterlebt haben
+  // (zuletzt gesehene Version <1.0). Neue Installationen bekommen weder Skin
+  // noch Founder-Abzeichen automatisch — nur per Freischaltcode/Admin-Geschenk.
+  if (!qualifiesForV1Skin(loadSeenVersion(), BUILD)) return;
+  if (!state.inventory[SKIN_ID]) grantSkin('v1celebration');
+  if (!state.inventory[FOUNDER_ID]) {
     state.inventory = grantInventory(FOUNDER_ID, 'version-jump');
     if (state.account.status === 'in') Account.scheduleSyncUp();
     log('app', 'Founder-Marker vergeben (1.0-Sprung miterlebt)');
@@ -3520,7 +3552,7 @@ const App = {
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
-      doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
+      doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       openAdminConsole, closeAdminConsole, adminFmtDate, adminItemOptions, adminFieldOptions, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
@@ -4531,6 +4563,21 @@ const App = {
                 <template v-else>☁️ {{ t('account.syncOn') }}</template>
               </div>
               <button class="btn btn-ghost btn-sm" :disabled="state.account.syncState==='syncing'" @click="doSyncNow">🔄 {{ t('account.syncNow') }}</button>
+            </div>
+            <!-- Passwort ändern: neues Passwort 2× + Speichern (ohne altes Passwort) -->
+            <div class="admin-acc">
+              <button class="admin-acc-head" @click="state.account.pwFormOpen = !state.account.pwFormOpen">
+                <span>🔑 {{ t('account.changePw') }}</span>
+                <span class="admin-acc-chev" :class="{ open: state.account.pwFormOpen }">▾</span>
+              </button>
+              <div v-if="state.account.pwFormOpen" class="admin-acc-body">
+                <input class="text-input" type="password" autocomplete="new-password" v-model="state.account.pwNew1" :placeholder="t('account.pwNew')" />
+                <input class="text-input" type="password" autocomplete="new-password" v-model="state.account.pwNew2" :placeholder="t('account.pwRepeat')" @keydown.enter="doChangePassword" />
+                <button class="btn btn-primary" :disabled="state.account.busy || !state.account.pwNew1 || !state.account.pwNew2" @click="doChangePassword">
+                  <span v-if="state.account.busy"><span class="spinner-inline"></span></span>
+                  <span v-else>{{ t('account.save') }}</span>
+                </button>
+              </div>
             </div>
             <button class="btn btn-ghost" :disabled="state.account.busy" @click="doSignOut">{{ t('account.signOut') }}</button>
             <button class="btn btn-danger-ghost" :disabled="state.account.busy" @click="doDeleteAccount">{{ t('account.deleteAccount') }}</button>

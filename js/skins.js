@@ -20,15 +20,10 @@ export function cmpVersion(a, b) {
   return 0;
 }
 
-// „Feier des Tages": JEDER ab Version ≥1.0 bekommt den Skin geschenkt (nicht nur
-// Bestandsspieler). Erstinstallationen inklusive.
-export function eligibleForCelebrationSkin(build) {
-  return cmpVersion(build, SKIN_UNLOCK_VERSION) >= 0;
-}
-
 // „Hat den Sprung auf 1.0 aktiv miterlebt": nur Bestandsspieler, die von <1.0 auf
-// ≥1.0 aktualisieren (seen war vor dem Update <1.0). Wird für den bleibenden
-// Founder-Marker genutzt (NICHT mehr für den Skin — den bekommt ohnehin jeder).
+// ≥1.0 aktualisieren (seen war vor dem Update <1.0). Vergibt EXKLUSIV den
+// bleibenden Founder-Marker UND den dynamischen Skin — Neuinstallationen gehen
+// leer aus (Skin nur noch per Freischaltcode/Admin-Geschenk).
 export function qualifiesForV1Skin(seen, build) {
   return !!seen && cmpVersion(seen, SKIN_UNLOCK_VERSION) < 0 && cmpVersion(build, SKIN_UNLOCK_VERSION) >= 0;
 }
