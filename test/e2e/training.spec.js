@@ -7,6 +7,8 @@ import { gotoApp } from './helpers.js';
 async function openHowtoModal(page) {
   await page.locator('.home-settings-btn').click();
   await expect(page.locator('.screen.settings')).toBeVisible();
+  // Einstellungen starten komplett zugeklappt — Spiel-Karte erst aufklappen.
+  await page.locator('.screen.settings .admin-acc-head', { hasText: 'Spiel' }).click();
   await page.locator('.set-howto-btn').click();
   await expect(page.locator('.modal .rules')).toBeVisible();
 }
