@@ -318,6 +318,7 @@ export default {
   admin: {
     loadUsers: '全ユーザーを読み込む',
     openConsole: 'ユーザー管理',
+    choose: '– 選択 –',
     consoleTitle: '管理コンソール',
     reload: '再読み込み',
     userCount: '{total} 人中 {n} 人',

@@ -318,6 +318,7 @@ export default {
   admin: {
     loadUsers: '모든 사용자 불러오기',
     openConsole: '사용자 관리',
+    choose: '– 선택 –',
     consoleTitle: '관리자 콘솔',
     reload: '새로고침',
     userCount: '{total}명 중 {n}명',
