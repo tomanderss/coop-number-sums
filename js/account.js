@@ -602,6 +602,20 @@ export async function syncNow() {
     const fb = await ensureFirebase();
     const u = currentUser(fb);
     if (!u || u.isAnonymous) return { ok: false, skipped: true };
+    // Fremd-Änderungs-Schutz: Wurde die Cloud seit unserem letzten Sync von
+    // JEMAND ANDEREM geändert (Admin-Editor, anderes Gerät), würde der blinde
+    // Upload diese Änderung überschreiben — genau so verschwanden Admin-Edits
+    // binnen Sekunden wieder. Dann Upload überspringen; der nächste App-Start
+    // übernimmt die Cloud (reconcile: cloudChanged ⇒ takeCloud). Kostet nur
+    // einen Mini-Read (data/rev), kein voller Snapshot.
+    const base = syncedRev();
+    if (base != null) {
+      const cloudRev = (await fb.get(userRef(fb, u.uid, 'data/rev'))).val() || 0;
+      if (cloudRev !== base && cloudRev !== dataRev()) {
+        log('account', 'Cloud extern geändert — Upload übersprungen (Übernahme beim nächsten Start)');
+        return { ok: false, skipped: true, cloudNewer: true };
+      }
+    }
     await uploadLocal(fb, u.uid);
     _lastSyncUpAt = Date.now();
     const ts = stampSynced();

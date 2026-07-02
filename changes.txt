@@ -1,0 +1,1 @@
+Admin-Änderungen an den eigenen Daten (z. B. Streak) greifen jetzt sofort und werden nicht mehr vom automatischen Cloud-Sync überschrieben.

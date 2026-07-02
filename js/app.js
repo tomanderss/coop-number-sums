@@ -19,6 +19,7 @@ import {
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, saveProfile, loadInventory, grantInventory,
   loadWallet, grantCurrency,
+  setDataRev, setSyncedRev,
 } from './storage.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, eligibleForCelebrationSkin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
@@ -2758,6 +2759,22 @@ async function adminSaveData() {
     if (!r.ok) { a.adminError = accErr(r.err); return; }
     a.adminDataDirty = {};
     await adminReloadData();   // frischer Stand ins Formular…
+    // SELBST-Bearbeitung: sofort auf DIESEM Gerät übernehmen. Ohne das bliebe
+    // lokal der alte Stand — und der eigene Auto-Sync würde die Cloud-Änderung
+    // beim nächsten Upload wieder überschreiben (Symptom: „speichert nicht").
+    // Import bewahrt role/accountId (siehe importFromFile); rev-Abgleich stellt
+    // lokal == Cloud == Basislinie her, damit weder Upload noch reconcile die
+    // Änderung anfassen. Danach die reaktiven States auffrischen (Muster wie
+    // beim Datei-Import).
+    if (uid === state.account.uid && a.adminData) {
+      importFromFile(JSON.stringify(a.adminData));
+      const rev = a.adminData.rev || 0;
+      setDataRev(rev); setSyncedRev(rev);
+      state.settings = loadSettings(); state.stats = loadStats(); state.streak = loadStreak();
+      state.wallet = loadWallet(); state.inventory = loadInventory(); state.puzzleHistory = loadHistory();
+      applyTheme(); applyLocale(); refreshResume();
+      log('account', 'Admin: eigene Daten lokal übernommen');
+    }
     await adminLoadUsers();    // …und Tabelle (Guthaben etc.) auffrischen
     const fresh = a.adminUsers.find(u => u.uid === uid);
     if (fresh) a.adminEditUser = fresh;
