@@ -1351,6 +1351,14 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   border-radius: 999px; line-height: 1;
 }
 .home-friends-btn .friends-req-badge { position: absolute; top: -3px; right: -3px; margin: 0; }
+/* Grüner Online-Punkt: mind. ein Freund ist online (unten rechts, damit er sich
+   nicht mit dem Anfragen-Badge oben rechts beißt). var(--good) ist im
+   Farbenblind-Modus auf Blau umgemappt. */
+.friends-online-dot {
+  position: absolute; bottom: -2px; right: -2px; width: 11px; height: 11px;
+  border-radius: 50%; background: var(--good); border: 2px solid var(--bg1);
+  pointer-events: none;
+}
 .friends-modal { max-width: 420px; width: 100%; max-height: 88vh; text-align: left; display: flex; flex-direction: column; gap: 12px; }
 .friends-head { display: flex; align-items: center; justify-content: space-between; }
 .friends-head h3 { margin: 0; }

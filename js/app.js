@@ -3006,6 +3006,8 @@ function friendPresence(uid) { return state.friends.presence[uid] || null; }
 // „Im Spiel" nur, wenn ONLINE und eine Partie läuft — eine veraltete game-Info
 // eines offline gegangenen Freundes darf nie als „im Spiel" gezeigt werden.
 function friendOnline(uid) { const p = state.friends.presence[uid]; return !!(p && p.online); }
+// Ist mindestens ein Freund online (egal ob im Spiel)? → grüner Punkt am 👫-Button.
+function anyFriendOnline() { return state.friends.list.some((f) => friendOnline(f.uid)); }
 function friendInGame(uid) { const p = state.friends.presence[uid]; return !!(p && p.online && p.game); }
 // Menschlicher Aktivitätstext für einen Freund.
 function friendActivityText(uid) {
@@ -3526,7 +3528,7 @@ const App = {
       adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, acceptFriend, declineFriend, removeFriendAsk,
-      friendsSorted, friendPresence, friendOnline, friendInGame, friendActivityText,
+      friendsSorted, friendPresence, friendOnline, friendInGame, anyFriendOnline, friendActivityText,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
@@ -3546,7 +3548,7 @@ const App = {
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')">☕<span class="home-donate-heart" aria-hidden="true">❤</span></a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge">🔥{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
-        <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')">👫<span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span></button>
+        <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')">👫<span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span><span v-if="anyFriendOnline()" class="friends-online-dot"></span></button>
         <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')">🛒</button>
         <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
       </div>
