@@ -1,3 +1,0 @@
-Dynamischer Skin dreht jetzt GPU-beschleunigt (kein Dauer-Neuzeichnen aller Markierungen mehr) — behebt Abstürze mitten im Spiel auf iPhones.
-Admin-Konsole beginnt nicht mehr hinter der Dynamic Island (Safe-Area beachtet).
-Admin-Bearbeiten: Item-IDs und Profilfelder per Auswahlliste statt Freitext (alle verfügbaren Werte werden angeboten).
