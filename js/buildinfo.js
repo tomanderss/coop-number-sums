@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.45';
-export const BUILD_HASH = 'b98a63b';
+export const BUILD      = '1.46';
+export const BUILD_HASH = 'd3c8f07';
 
 export const CHANGELOG = [
+  {
+    "version": "1.46",
+    "date": "02.07.2026",
+    "changes": [
+      "Freunde hinzufügen jetzt über das ＋ oben im Freunde-Dialog (eigenes Popup statt festem Formular)."
+    ]
+  },
   {
     "version": "1.45",
     "date": "02.07.2026",
