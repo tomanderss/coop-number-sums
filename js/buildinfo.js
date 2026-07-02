@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.36';
-export const BUILD_HASH = 'e9b94ad';
+export const BUILD      = '1.37';
+export const BUILD_HASH = '11f8c04';
 
 export const CHANGELOG = [
+  {
+    "version": "1.37",
+    "date": "02.07.2026",
+    "changes": [
+      "Dynamischer Skin dreht jetzt GPU-beschleunigt (kein Dauer-Neuzeichnen aller Markierungen mehr) — behebt Abstürze mitten im Spiel auf iPhones.",
+      "Admin-Konsole beginnt nicht mehr hinter der Dynamic Island (Safe-Area beachtet).",
+      "Admin-Bearbeiten: Item-IDs und Profilfelder per Auswahlliste statt Freitext (alle verfügbaren Werte werden angeboten)."
+    ]
+  },
   {
     "version": "1.36",
     "date": "02.07.2026",
