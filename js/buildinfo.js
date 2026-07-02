@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.48';
-export const BUILD_HASH = '92e4364';
+export const BUILD      = '1.49';
+export const BUILD_HASH = 'd08fedb';
 
 export const CHANGELOG = [
+  {
+    "version": "1.49",
+    "date": "02.07.2026",
+    "changes": [
+      "Lobby-Einladung: „Eingeladen\"-Button springt nach Annahme des Freundes zurück auf „Einladen\" (erneutes Einladen nach Verlassen möglich)."
+    ]
+  },
   {
     "version": "1.48",
     "date": "02.07.2026",

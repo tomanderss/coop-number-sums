@@ -1,1 +1,0 @@
-Lobby-Einladung: „Eingeladen"-Button springt nach Annahme des Freundes zurück auf „Einladen" (erneutes Einladen nach Verlassen möglich).
