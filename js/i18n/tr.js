@@ -421,7 +421,7 @@ export default {
     requestsTitle: 'İstekler', accept: 'Kabul et', decline: 'Reddet',
     listTitle: 'Arkadaşların', empty: 'Henüz arkadaş yok – yukarıdan kullanıcı adıyla birini ekle.', remove: 'Kaldır',
     removeTitle: 'Arkadaşı kaldır', removeMsg: '{name} arkadaş listenden kaldırılsın mı?', nowFriends: '{name} artık arkadaşın 🎉',
-    online: 'Çevrimiçi', offline: 'Çevrimdışı', inGame: 'Oyunda · {info}',
+    online: 'Çevrimiçi', offline: 'Çevrimdışı', offlineSince: 'Çevrimdışı · son görülme {when}', inGame: 'Oyunda · {info}',
     mode: { solo: 'Tek', coop: 'Coop', race: '1v1', team: 'Takım' },
     lbSoonTitle: 'Sıralamalar çok yakında', lbSoonHint: 'Hile korumalı sıralamalar sunucu tarafı puanlamayla gelecek.',
     lbLoading: "Sıralama yükleniyor …", lbEmpty: "Henüz süre yok — ilk sen ol!",

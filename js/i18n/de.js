@@ -512,7 +512,7 @@ export default {
     requestsTitle: 'Anfragen', accept: 'Annehmen', decline: 'Ablehnen',
     listTitle: 'Deine Freunde', empty: 'Noch keine Freunde – füge oben jemanden über den Benutzernamen hinzu.', remove: 'Entfernen',
     removeTitle: 'Freund entfernen', removeMsg: '{name} aus deiner Freundesliste entfernen?', nowFriends: '{name} ist jetzt dein Freund 🎉',
-    online: 'Online', offline: 'Offline', inGame: 'Im Spiel · {info}',
+    online: 'Online', offline: 'Offline', offlineSince: 'Offline · zuletzt {when}', inGame: 'Im Spiel · {info}',
     mode: { solo: 'Solo', coop: 'Coop', race: '1vs1', team: 'Team' },
     lbSoonTitle: 'Bestenlisten kommen bald', lbSoonHint: 'Manipulationssichere Ranglisten folgen mit serverseitiger Auswertung.',
     lbLoading: "Bestenliste wird geladen …", lbEmpty: "Noch keine Zeiten — sei die/der Erste!",

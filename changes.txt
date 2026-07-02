@@ -1,0 +1,1 @@
+Freunde-Übersicht zeigt bei offline, wann zuletzt online. Admin sieht die eigene E-Mail auch ohne gespeicherte Profil-E-Mail.

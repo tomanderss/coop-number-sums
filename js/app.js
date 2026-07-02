@@ -3041,10 +3041,28 @@ function friendOnline(uid) { const p = state.friends.presence[uid]; return !!(p 
 // Ist mindestens ein Freund online (egal ob im Spiel)? → grüner Punkt am 👫-Button.
 function anyFriendOnline() { return state.friends.list.some((f) => friendOnline(f.uid)); }
 function friendInGame(uid) { const p = state.friends.presence[uid]; return !!(p && p.online && p.game); }
+// Relative Zeitangabe („vor 5 Min", „gestern", „vor 3 Tagen") aus einem
+// Epoch-Millisekunden-Zeitstempel — via Intl.RelativeTimeFormat in der UI-Sprache.
+function fmtRelative(ts) {
+  if (!ts || typeof ts !== 'number') return '';
+  const diffMs = Date.now() - ts;
+  const abs = Math.abs(diffMs);
+  const locale = state.settings.language || i18nState.locale || 'de';
+  let rtf; try { rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }); } catch (_) { return ''; }
+  const units = [['year', 31536e6], ['month', 2592e6], ['day', 864e5], ['hour', 36e5], ['minute', 6e4]];
+  for (const [unit, ms] of units) {
+    if (abs >= ms || unit === 'minute') return rtf.format(-Math.round(diffMs / ms), unit);
+  }
+  return '';
+}
 // Menschlicher Aktivitätstext für einen Freund.
 function friendActivityText(uid) {
   const p = state.friends.presence[uid];
-  if (!p || !p.online) return t('friends.offline');
+  if (!p || !p.online) {
+    // Offline: wenn bekannt, zeigen, wann der Freund zuletzt aktiv war.
+    const rel = p && p.lastActive ? fmtRelative(p.lastActive) : '';
+    return rel ? t('friends.offlineSince', { when: rel }) : t('friends.offline');
+  }
   if (!p.game) return t('friends.online');
   const g = p.game;
   const mode = t('friends.mode.' + (g.mode || 'solo'));

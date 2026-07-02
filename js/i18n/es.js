@@ -421,7 +421,7 @@ export default {
     requestsTitle: 'Solicitudes', accept: 'Aceptar', decline: 'Rechazar',
     listTitle: 'Tus amigos', empty: 'Aún no tienes amigos: añade a alguien por su nombre de usuario arriba.', remove: 'Quitar',
     removeTitle: 'Quitar amigo', removeMsg: '¿Quitar a {name} de tu lista de amigos?', nowFriends: '{name} ya es tu amigo 🎉',
-    online: 'En línea', offline: 'Desconectado', inGame: 'En partida · {info}',
+    online: 'En línea', offline: 'Desconectado', offlineSince: 'Desconectado · visto {when}', inGame: 'En partida · {info}',
     mode: { solo: 'Solo', coop: 'Coop', race: '1c1', team: 'Equipo' },
     lbSoonTitle: 'Clasificaciones muy pronto', lbSoonHint: 'Los rankings a prueba de trampas llegarán con la puntuación en el servidor.',
     lbLoading: "Cargando clasificación …", lbEmpty: "Aún no hay tiempos: ¡sé el primero!",
