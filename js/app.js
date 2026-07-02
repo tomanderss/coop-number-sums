@@ -2462,6 +2462,11 @@ async function startLobbyInviteWatch() {
         showToast(t('coop.inviteDeclined', { name: resp.username || resp.targetUid }), 'info', 3200);
         // Button wieder auf „Einladen" zurücksetzen, damit man es erneut versuchen kann.
         state.coop.invitedUids = state.coop.invitedUids.filter((u) => u !== resp.targetUid);
+      } else if (resp.status === 'accepted') {
+        showToast(t('coop.inviteAccepted', { name: resp.username || resp.targetUid }), 'success', 3200);
+        // Auch bei Annahme zurücksetzen: sobald der Freund die Runde verlässt,
+        // soll man ihn erneut einladen können (sonst bliebe „Eingeladen" hängen).
+        state.coop.invitedUids = state.coop.invitedUids.filter((u) => u !== resp.targetUid);
       }
       Account.clearLobbyInviteResponse(resp.targetUid);
     }
@@ -2475,7 +2480,7 @@ function stopLobbyInviteWatch() {
 // Einladung annehmen: eigene Einladung entfernen und der Lobby (Code+Modus) als Gast beitreten.
 function acceptLobbyInvite(inv) {
   if (!inv) return;
-  Account.removeLobbyInvite(inv.fromUid);
+  Account.acceptLobbyInvite(inv.fromUid, myUsername());
   state.pendingLobbyInvite = null;
   state.lobbyInvites = state.lobbyInvites.filter(i => i.fromUid !== inv.fromUid);
   coopReset();

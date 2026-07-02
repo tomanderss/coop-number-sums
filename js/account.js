@@ -504,7 +504,23 @@ export async function declineLobbyInvite(fromUid, username) {
   } catch (e) { log('account', 'declineLobbyInvite fehlgeschlagen', e); }
 }
 
-// Antworten (Ablehnungen) auf eigene Einladungen beobachten. cb(arr).
+// Einladung annehmen: dem Einladenden melden (damit sein „Eingeladen"-Button
+// zurückspringt und er den Freund nach dem Verlassen erneut einladen kann) +
+// eigene Einladung entfernen. Spiegelt declineLobbyInvite, nur mit status accepted.
+export async function acceptLobbyInvite(fromUid, username) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !fromUid) return;
+    await fb.set(fb.ref(fb.db, `users/${fromUid}/lobbyInviteResponses/${u.uid}`), {
+      status: 'accepted', username: username || '', ts: fb.serverTimestamp(),
+    });
+    await removeLobbyInvite(fromUid);
+    log('account', 'Lobby-Einladung angenommen', { fromUid });
+  } catch (e) { log('account', 'acceptLobbyInvite fehlgeschlagen', e); }
+}
+
+// Antworten (Annahmen/Ablehnungen) auf eigene Einladungen beobachten. cb(arr).
 export async function watchLobbyInviteResponses(cb) {
   try {
     const fb = await ensureFirebase();
