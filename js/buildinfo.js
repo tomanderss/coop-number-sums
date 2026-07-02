@@ -1,8 +1,19 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.44';
-export const BUILD_HASH = 'cee0033';
+export const BUILD      = '1.45';
+export const BUILD_HASH = 'b98a63b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.45",
+    "date": "02.07.2026",
+    "changes": [
+      "Abmelden sichert den Stand in der Cloud und setzt dieses Gerät zurück — Daten können nicht mehr in einen zweiten Account geklont werden.",
+      "Passwort lässt sich jetzt direkt im Konto-Bereich ändern (neues Passwort zweimal eingeben).",
+      "Der 1.0-Feier-Skin und das Gründer-Abzeichen sind jetzt exklusiv für Spieler der ersten Stunde — Neuinstallationen erhalten sie nicht mehr automatisch.",
+      "Freunde-Dialog: Annehmen/Ablehnen stehen unter dem Namen, mehr Abstand zwischen den Bereichen.",
+      "Lobby-Einladung: „Koop\"-Tippfehler korrigiert (Coop) und der Einladen-Button wird nach einer Ablehnung wieder freigegeben."
+    ]
+  },
   {
     "version": "1.44",
     "date": "02.07.2026",
