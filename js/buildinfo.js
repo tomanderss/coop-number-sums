@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.39';
-export const BUILD_HASH = '92b7188';
+export const BUILD      = '1.40';
+export const BUILD_HASH = '1a318e8';
 
 export const CHANGELOG = [
+  {
+    "version": "1.40",
+    "date": "02.07.2026",
+    "changes": [
+      "Einstellungen komplett neu gestaltet: alle Bereiche als aufklappbare Karten auf einer Seite (nichts mehr versteckt), kompaktere Optik, klarer Scroll-Hinweis."
+    ]
+  },
   {
     "version": "1.39",
     "date": "02.07.2026",
