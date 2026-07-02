@@ -1,0 +1,1 @@
+Admin: Nutzer-Editor zeigt jetzt ALLE Daten (Streak, Statistiken, Guthaben, Erfolge, Einstellungen …) in übersichtlichen Sektionen — jedes Feld direkt editierbar, Änderungen gesammelt speicherbar.

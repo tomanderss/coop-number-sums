@@ -702,6 +702,29 @@ export async function adminSetRole(uid, role) {
     return { ok: true };
   } catch (e) { return { ok: false, err: errKey(e) }; }
 }
+// ── Admin-Daten-Editor: kompletten Snapshot lesen + beliebige Felder setzen ────
+// Liest /users/{uid}/data FRISCH (nicht die evtl. veraltete Kopie aus adminListUsers).
+export async function adminGetUserData(uid) {
+  try {
+    const fb = await ensureFirebase();
+    const data = (await fb.get(userRef(fb, uid, 'data'))).val() || {};
+    return { ok: true, data };
+  } catch (e) { log('account', 'adminGetUserData fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+// Mehrere Felder im Daten-Snapshot setzen. updates = { 'stats/currentStreak': 7, … }
+// (RTDB-Multi-Path-Update; Wert null löscht das Feld). WICHTIG: bumpt data/rev —
+// ohne den Bump sähe das Gerät des Nutzers beim nächsten reconcile keine Cloud-
+// Änderung, würde seinen alten lokalen Stand hochladen und die Admin-Änderung
+// stillschweigend verwerfen. Mit Bump gilt: Cloud geändert ⇒ takeCloud beim
+// nächsten App-Start des Nutzers.
+export async function adminSetUserData(uid, updates) {
+  try {
+    const fb = await ensureFirebase();
+    await fb.update(userRef(fb, uid, 'data'), { ...updates, rev: Date.now() });
+    log('account', 'Admin: Nutzerdaten gesetzt', { uid, fields: Object.keys(updates).length });
+    return { ok: true };
+  } catch (e) { log('account', 'adminSetUserData fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
 export async function adminGrantCurrency(uid, amount) {
   const n = Math.max(0, Math.floor(amount || 0));
   try {
@@ -709,7 +732,8 @@ export async function adminGrantCurrency(uid, amount) {
     const data = (await fb.get(userRef(fb, uid, 'data'))).val() || {};
     const wallet = data.wallet || { balance: 0 };
     wallet.balance = (wallet.balance || 0) + n; wallet.updatedAt = Date.now();
-    await fb.set(userRef(fb, uid, 'data/wallet'), wallet);
+    // rev-Bump wie in adminSetUserData — sonst überschreibt der Client die Gutschrift.
+    await fb.update(userRef(fb, uid, 'data'), { wallet, rev: Date.now() });
     return { ok: true, balance: wallet.balance };
   } catch (e) { return { ok: false, err: errKey(e) }; }
 }
@@ -718,7 +742,8 @@ export async function adminSetCurrency(uid, amount) {
   const n = Math.max(0, Math.floor(amount || 0));
   try {
     const fb = await ensureFirebase();
-    await fb.set(userRef(fb, uid, 'data/wallet'), { balance: n, updatedAt: Date.now() });
+    // rev-Bump wie in adminSetUserData — sonst überschreibt der Client den Wert wieder.
+    await fb.update(userRef(fb, uid, 'data'), { wallet: { balance: n, updatedAt: Date.now() }, rev: Date.now() });
     log('account', 'Admin: Guthaben gesetzt', { uid, n });
     return { ok: true, balance: n };
   } catch (e) { return { ok: false, err: errKey(e) }; }

@@ -182,6 +182,12 @@ const state = reactive({
     adminConsoleOpen: false,  // Vollbild-Admin-Konsole (Nutzer-Tabelle) offen?
     adminUsers: [], adminFilter: '', adminEditUser: null, adminBusy: false, adminError: null,
     adminBalance: '', adminUsername: '', adminItem: '', adminFieldKey: '', adminFieldVal: '', adminEmail: '',
+    // Daten-Editor im Bearbeiten-Modal (frischer /users/{uid}/data-Snapshot)
+    adminData: null,          // geladener Snapshot (Quelle für die Sektions-Felder)
+    adminDataLoading: false,
+    adminDataDirty: {},       // pfad -> neuer Wert (ungespeicherte Änderungen)
+    adminDataSection: null,   // aktuell aufgeklappte Sektion ('wallet' | 'stats' | …)
+    adminJsonPath: null, adminJsonDraft: '', adminJsonError: null,  // JSON-Untereditor
   },
   // Freunde & Präsenz (nur mit Account nutzbar)
   friends: {
@@ -2675,8 +2681,113 @@ function openAdminEdit(u) {
   a.adminEmail = u.email || '';
   a.adminBalance = String(u.balance ?? 0);
   a.adminItem = ''; a.adminFieldKey = ''; a.adminFieldVal = '';
+  a.adminData = null; a.adminDataDirty = {}; a.adminDataSection = null;
+  a.adminJsonPath = null; a.adminJsonDraft = ''; a.adminJsonError = null;
+  adminReloadData();  // frischen /data-Snapshot für den Daten-Editor laden
 }
-function closeAdminEdit() { state.account.adminEditUser = null; }
+function closeAdminEdit() { state.account.adminEditUser = null; state.account.adminDataDirty = {}; state.account.adminJsonPath = null; }
+
+// ─── Admin-Daten-Editor: JEDES Feld des Nutzer-Snapshots einsehbar/setzbar ─────
+// Sektionen mit Icon + i18n-Label; bekannte zuerst in sinnvoller Reihenfolge,
+// alles Übrige (z.B. activeGame) generisch dahinter — nichts bleibt uneditierbar.
+const ADMIN_DATA_SECTIONS = [
+  { key: 'wallet', ic: '💰' }, { key: 'daily', ic: '🔥' }, { key: 'stats', ic: '📊' },
+  { key: 'achievements', ic: '🏅' }, { key: 'race', ic: '⚔️' }, { key: 'settings', ic: '⚙️' },
+  { key: 'profile', ic: '👤' }, { key: 'history', ic: '📜' },
+];
+const ADMIN_DATA_META_KEYS = ['rev', 'ts', 'v', 'label'];  // Sync-Metadaten, nie editieren
+async function adminReloadData() {
+  const uid = adminEditUid(); if (!uid) return;
+  const a = state.account; a.adminDataLoading = true;
+  try {
+    const r = await Account.adminGetUserData(uid);
+    if (r.ok) a.adminData = r.data; else a.adminError = accErr(r.err);
+  } finally { a.adminDataLoading = false; }
+}
+function adminDataSections() {
+  const d = state.account.adminData; if (!d) return [];
+  const known = ADMIN_DATA_SECTIONS.filter(s => d[s.key] !== undefined);
+  const rest = Object.keys(d)
+    .filter(k => !ADMIN_DATA_SECTIONS.some(s => s.key === k) && !ADMIN_DATA_META_KEYS.includes(k))
+    .sort().map(k => ({ key: k, ic: '📦' }));
+  return [...known, ...rest];
+}
+function adminSectionLabel(key) { const k = 'admin.sec.' + key; const s = t(k); return s === k ? key : s; }
+// Felder einer Sektion als flache, typisierte Zeilen. Eine Ebene tief werden
+// reine Primitiv-Objekte aufgefaltet (z.B. daily.currentStreak); alles Tiefere
+// (byDifficulty, Arrays, activeGame) bekommt den JSON-Untereditor.
+function adminFieldRows(secKey) {
+  const sec = state.account.adminData ? state.account.adminData[secKey] : undefined;
+  const rows = [];
+  const push = (path, label, val) => {
+    const ty = typeof val;
+    if (val === null || ty === 'string' || ty === 'number' || ty === 'boolean') {
+      rows.push({ path, label, type: val === null ? 'string' : ty, value: val });
+    } else rows.push({ path, label, type: 'json', value: val });
+  };
+  if (sec === null || typeof sec !== 'object') { push(secKey, secKey, sec); return rows; }
+  if (Array.isArray(sec)) { push(secKey, secKey, sec); return rows; }
+  for (const [k, v] of Object.entries(sec)) {
+    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+      const entries = Object.entries(v);
+      const allPrim = entries.length && entries.every(([, x]) => x === null || typeof x !== 'object');
+      if (allPrim && entries.length <= 12) entries.forEach(([k2, v2]) => push(`${secKey}/${k}/${k2}`, `${k} · ${k2}`, v2));
+      else push(`${secKey}/${k}`, k, v);
+    } else push(`${secKey}/${k}`, k, v);
+  }
+  return rows;
+}
+function toggleAdminSection(key) { const a = state.account; a.adminDataSection = a.adminDataSection === key ? null : key; }
+// Anzeige-Wert einer Zeile: ungespeicherte Änderung gewinnt über den Snapshot.
+function adminFieldValue(row) { const d = state.account.adminDataDirty; return row.path in d ? d[row.path] : row.value; }
+function adminMarkDirty(path, v) { state.account.adminDataDirty = { ...state.account.adminDataDirty, [path]: v }; }
+function adminInputField(row, ev) {
+  let v = ev.target.value;
+  if (row.type === 'number') { v = Number(v); if (!Number.isFinite(v)) return; }
+  adminMarkDirty(row.path, v);
+}
+function adminToggleField(row) { adminMarkDirty(row.path, !adminFieldValue(row)); }
+function adminDirtyCount() { return Object.keys(state.account.adminDataDirty).length; }
+function adminDiscardData() { state.account.adminDataDirty = {}; }
+async function adminSaveData() {
+  const a = state.account; const uid = adminEditUid();
+  if (!uid || !adminDirtyCount()) return;
+  a.adminBusy = true; a.adminError = null;
+  try {
+    const r = await Account.adminSetUserData(uid, a.adminDataDirty);
+    if (!r.ok) { a.adminError = accErr(r.err); return; }
+    a.adminDataDirty = {};
+    await adminReloadData();   // frischer Stand ins Formular…
+    await adminLoadUsers();    // …und Tabelle (Guthaben etc.) auffrischen
+    const fresh = a.adminUsers.find(u => u.uid === uid);
+    if (fresh) a.adminEditUser = fresh;
+    showToast(t('admin.saved'), 'success', 1800);
+  } finally { a.adminBusy = false; }
+}
+// JSON-Untereditor für tiefe Strukturen (byDifficulty, history, activeGame, …).
+function openAdminJson(row) {
+  const a = state.account;
+  a.adminJsonPath = row.path; a.adminJsonError = null;
+  a.adminJsonDraft = JSON.stringify(adminFieldValue(row), null, 2);
+}
+function closeAdminJson() { state.account.adminJsonPath = null; state.account.adminJsonError = null; }
+function saveAdminJson() {
+  const a = state.account;
+  try {
+    const parsed = JSON.parse(a.adminJsonDraft);
+    adminMarkDirty(a.adminJsonPath, parsed);
+    closeAdminJson();
+  } catch (e) { a.adminJsonError = String(e.message || e); }
+}
+// Kopf-Chips: Live-Werte bevorzugt aus dem frischen Snapshot (inkl. Dirty-Werte).
+function adminChipValue(path, fallback) {
+  const dirty = state.account.adminDataDirty;
+  if (path in dirty) return dirty[path];
+  const parts = path.split('/');
+  let cur = state.account.adminData;
+  for (const p of parts) { if (cur == null || typeof cur !== 'object') { cur = undefined; break; } cur = cur[p]; }
+  return cur ?? fallback;
+}
 async function adminAction(fn, ...args) {
   const a = state.account; a.adminError = null; a.adminBusy = true;
   try {
@@ -2702,6 +2813,8 @@ function adminToggleRole() {
 function adminSetBalance() { const uid = adminEditUid(); if (uid) adminAction(Account.adminSetCurrency, uid, parseInt(state.account.adminBalance || '0', 10)); }
 function adminChangeUsername() { const uid = adminEditUid(); const n = state.account.adminUsername.trim(); if (uid && n) adminAction(Account.adminSetUsername, uid, n); }
 function adminGrantAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminGrantItem, uid, id); }
+// Einzelnes Item direkt aus der Besitz-Chip-Liste entziehen (✕ am Chip).
+function adminRevokeItemId(id) { const uid = adminEditUid(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id); }
 function adminRevokeAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id); }
 function adminSetField() { const uid = adminEditUid(); const k = state.account.adminFieldKey.trim(); if (uid && k) adminAction(Account.adminSetProfileField, uid, k, state.account.adminFieldVal); }
 async function adminResetPw() {
@@ -3305,6 +3418,8 @@ const App = {
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       openAdminConsole, closeAdminConsole, adminFmtDate, adminItemOptions, adminFieldOptions, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
+      adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
+      openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, friendActivityText,
@@ -4390,72 +4505,128 @@ const App = {
         <button class="btn btn-primary" @click="closeAdminConsole">{{ t('admin.done') }}</button>
       </div>
     </div>
-    <!-- Admin: User bearbeiten -->
+    <!-- Admin: User bearbeiten — vollständiger Daten-Editor -->
     <div v-if="state.account.adminEditUser" class="modal-bg" @click.self="closeAdminEdit">
       <div class="modal admin-edit-modal">
-        <h3>✏️ {{ state.account.adminEditUser.username || state.account.adminEditUser.uid }}</h3>
-        <div class="account-card">
-          <div class="account-row"><span class="account-label">{{ t('account.role') }}</span>
-            <span class="account-role" :class="{ admin: state.account.adminEditUser.role==='admin' }">{{ state.account.adminEditUser.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span>
+        <header class="admin-edit-head">
+          <span class="admin-avatar">{{ (state.account.adminEditUser.username || state.account.adminEditUser.uid || '?').slice(0,1).toUpperCase() }}</span>
+          <div class="admin-edit-title">
+            <span class="admin-edit-name">
+              <b>{{ state.account.adminEditUser.username || '—' }}</b>
+              <span class="account-role" :class="{ admin: state.account.adminEditUser.role==='admin' }">{{ state.account.adminEditUser.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span>
+            </span>
+            <small class="admin-uid">{{ state.account.adminEditUser.uid }}</small>
           </div>
-          <div class="account-row"><span class="account-label">{{ t('account.email') }}</span><span class="admin-uid">{{ state.account.adminEditUser.email || t('admin.noEmail') }}</span></div>
-          <div class="account-row"><span class="account-label">{{ t('admin.dynamicSkin') }}</span><b>{{ state.account.adminEditUser.hasSkin ? '✅' : '—' }}</b></div>
-          <div class="account-row"><span class="account-label">{{ t('admin.itemsLabel') }}</span><b>{{ state.account.adminEditUser.itemCount || 0 }}</b></div>
-          <div class="account-row"><span class="account-label">{{ t('admin.createdAt') }}</span><span>{{ adminFmtDate(state.account.adminEditUser.createdAt) }}</span></div>
-          <div class="account-row"><span class="account-label">uid</span><span class="admin-uid">{{ state.account.adminEditUser.uid }}</span></div>
+          <button class="icon-btn" @click="closeAdminEdit" :aria-label="t('common.close')">✕</button>
+        </header>
+
+        <!-- Kennzahlen-Chips (live aus dem frischen Snapshot, inkl. ungespeicherter Werte) -->
+        <div class="admin-chips">
+          <span class="admin-chip">💰 {{ adminChipValue('wallet/balance', state.account.adminEditUser.balance ?? 0) }}</span>
+          <span class="admin-chip">🔥 {{ adminChipValue('daily/currentStreak', 0) }}</span>
+          <span class="admin-chip">🏆 {{ adminChipValue('stats/won', 0) }}</span>
+          <span class="admin-chip">🎨 {{ state.account.adminEditUser.itemCount || 0 }}</span>
         </div>
-        <div class="admin-actions">
-          <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminGrantSkin">🎁 {{ t('admin.grantSkin') }}</button>
-          <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminRevokeSkin">{{ t('admin.revokeSkin') }}</button>
-          <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminToggleRole">{{ state.account.adminEditUser.role==='admin' ? t('admin.makeUser') : t('admin.makeAdmin') }}</button>
-        </div>
-        <div class="admin-field">
-          <span class="set-row-label">{{ t('account.username') }}</span>
+
+        <!-- JSON-Untereditor (tiefe Strukturen) ersetzt den Inhalt, solange offen -->
+        <template v-if="state.account.adminJsonPath">
+          <b class="admin-json-title">{ } {{ state.account.adminJsonPath }}</b>
+          <textarea class="text-input admin-json-area" v-model="state.account.adminJsonDraft" spellcheck="false" autocapitalize="none"></textarea>
+          <p v-if="state.account.adminJsonError" class="coop-error">{{ state.account.adminJsonError }}</p>
           <div class="admin-field-row">
-            <input class="text-input" v-model="state.account.adminUsername" maxlength="20" autocapitalize="none" :placeholder="t('account.newUsername')" />
-            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminChangeUsername">{{ t('account.save') }}</button>
+            <button class="btn btn-ghost" @click="closeAdminJson">{{ t('common.back') }}</button>
+            <button class="btn btn-primary admin-json-save" @click="saveAdminJson">{{ t('account.save') }}</button>
           </div>
-        </div>
-        <div class="admin-field">
-          <span class="set-row-label">{{ t('admin.balance') }}</span>
-          <div class="admin-field-row">
-            <input class="text-input" type="number" inputmode="numeric" v-model="state.account.adminBalance" />
-            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminSetBalance">{{ t('admin.setBalance') }}</button>
+        </template>
+
+        <template v-else>
+          <div class="admin-edit-scroll">
+            <!-- ⚡ Konto-Aktionen (echte Knoten: Rolle, Username, Reset — kein Snapshot) -->
+            <div class="admin-acc">
+              <button class="admin-acc-head" @click="toggleAdminSection('_actions')">
+                <span>⚡ {{ t('admin.accountActions') }}</span>
+                <span class="admin-acc-chev" :class="{ open: state.account.adminDataSection==='_actions' }">▾</span>
+              </button>
+              <div v-if="state.account.adminDataSection==='_actions'" class="admin-acc-body">
+                <div class="account-row"><span class="account-label">{{ t('account.email') }}</span><span class="admin-uid">{{ state.account.adminEditUser.email || t('admin.noEmail') }}</span></div>
+                <div class="account-row"><span class="account-label">{{ t('admin.createdAt') }}</span><span>{{ adminFmtDate(state.account.adminEditUser.createdAt) }}</span></div>
+                <div class="admin-actions">
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminToggleRole">{{ state.account.adminEditUser.role==='admin' ? t('admin.makeUser') : t('admin.makeAdmin') }}</button>
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminResetPw">📧 {{ t('admin.resetPw') }}</button>
+                </div>
+                <div class="admin-field-row">
+                  <input class="text-input" v-model="state.account.adminUsername" maxlength="20" autocapitalize="none" :placeholder="t('account.newUsername')" />
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminChangeUsername">{{ t('account.save') }}</button>
+                </div>
+                <div class="admin-field-row">
+                  <select class="text-input admin-select" v-model="state.account.adminFieldKey">
+                    <option value="" disabled>{{ t('admin.profileField') }}: {{ t('admin.choose') }}</option>
+                    <option v-for="k in adminFieldOptions()" :key="k" :value="k">{{ k }}</option>
+                  </select>
+                  <input class="text-input" v-model="state.account.adminFieldVal" :placeholder="t('admin.fieldValue')" />
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminFieldKey" @click="adminSetField">{{ t('account.save') }}</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 🎒 Inventar (autoritativer Union-Knoten, nicht der Snapshot) -->
+            <div class="admin-acc">
+              <button class="admin-acc-head" @click="toggleAdminSection('_inventory')">
+                <span>🎒 {{ t('admin.inventory') }} <small class="admin-acc-count">{{ state.account.adminEditUser.itemCount || 0 }}</small></span>
+                <span class="admin-acc-chev" :class="{ open: state.account.adminDataSection==='_inventory' }">▾</span>
+              </button>
+              <div v-if="state.account.adminDataSection==='_inventory'" class="admin-acc-body">
+                <div class="admin-item-chips">
+                  <span v-for="(v, id) in state.account.adminEditUser.inventory" :key="id" class="admin-item-chip">
+                    {{ id }}
+                    <button class="admin-item-x" :disabled="state.account.adminBusy" @click="adminRevokeItemId(id)" :aria-label="t('admin.revokeSkin')">✕</button>
+                  </span>
+                  <span v-if="!state.account.adminEditUser.itemCount" class="set-hint">—</span>
+                </div>
+                <div class="admin-field-row">
+                  <select class="text-input admin-select" v-model="state.account.adminItem">
+                    <option value="" disabled>{{ t('admin.choose') }}</option>
+                    <option v-for="id in adminItemOptions()" :key="id" :value="id">{{ id }}</option>
+                  </select>
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem">🎁</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Daten-Sektionen: JEDES Feld des Snapshots typisiert editierbar -->
+            <div v-if="state.account.adminDataLoading" class="admin-console-empty"><span class="spinner-inline"></span> {{ t('account.working') }}</div>
+            <template v-else>
+              <div v-for="sec in adminDataSections()" :key="sec.key" class="admin-acc">
+                <button class="admin-acc-head" @click="toggleAdminSection(sec.key)">
+                  <span>{{ sec.ic }} {{ adminSectionLabel(sec.key) }}</span>
+                  <span class="admin-acc-chev" :class="{ open: state.account.adminDataSection===sec.key }">▾</span>
+                </button>
+                <div v-if="state.account.adminDataSection===sec.key" class="admin-acc-body">
+                  <div v-for="row in adminFieldRows(sec.key)" :key="row.path" class="admin-row" :class="{ dirty: row.path in state.account.adminDataDirty }">
+                    <span class="admin-row-label">{{ row.label }}</span>
+                    <span v-if="row.type==='boolean'" class="switch" :class="{ on: adminFieldValue(row) }" @click="adminToggleField(row)"><i></i></span>
+                    <input v-else-if="row.type==='number'" class="text-input admin-row-input" type="number" inputmode="numeric" step="any" :value="adminFieldValue(row)" @change="adminInputField(row, $event)" />
+                    <input v-else-if="row.type==='string'" class="text-input admin-row-input" :value="adminFieldValue(row)" @change="adminInputField(row, $event)" autocapitalize="none" />
+                    <button v-else class="btn btn-ghost btn-sm" @click="openAdminJson(row)">{ } JSON</button>
+                  </div>
+                  <p v-if="!adminFieldRows(sec.key).length" class="set-hint">—</p>
+                </div>
+              </div>
+            </template>
+            <small class="set-hint">{{ t('admin.dataHint') }}</small>
           </div>
-        </div>
-        <div class="admin-field">
-          <span class="set-row-label">{{ t('admin.item') }}</span>
-          <div class="admin-field-row">
-            <select class="text-input admin-select" v-model="state.account.adminItem">
-              <option value="" disabled>{{ t('admin.choose') }}</option>
-              <option v-for="id in adminItemOptions()" :key="id" :value="id">{{ id }}</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem">🎁</button>
-            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminRevokeAnyItem">🗑️</button>
+
+          <p v-if="state.account.adminError" class="coop-error">{{ state.account.adminError }}</p>
+          <!-- Sammel-Speichern: erscheint nur bei ungespeicherten Änderungen -->
+          <div v-if="adminDirtyCount()" class="admin-save-bar">
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminDiscardData">{{ t('admin.discard') }}</button>
+            <button class="btn btn-primary admin-save-btn" :disabled="state.account.adminBusy" @click="adminSaveData">
+              <span v-if="state.account.adminBusy"><span class="spinner-inline"></span></span>
+              <span v-else>💾 {{ t('admin.saveN', { n: adminDirtyCount() }) }}</span>
+            </button>
           </div>
-        </div>
-        <div class="admin-field">
-          <span class="set-row-label">{{ t('admin.profileField') }}</span>
-          <div class="admin-field-row">
-            <select class="text-input admin-select" v-model="state.account.adminFieldKey">
-              <option value="" disabled>{{ t('admin.choose') }}</option>
-              <option v-for="k in adminFieldOptions()" :key="k" :value="k">{{ k }}</option>
-            </select>
-            <input class="text-input" v-model="state.account.adminFieldVal" :placeholder="t('admin.fieldValue')" />
-            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminFieldKey" @click="adminSetField">{{ t('account.save') }}</button>
-          </div>
-          <small class="set-hint">{{ t('admin.fieldHint') }}</small>
-        </div>
-        <div class="admin-field">
-          <span class="set-row-label">{{ t('admin.resetPw') }}</span>
-          <div class="admin-field-row">
-            <input class="text-input" type="email" inputmode="email" v-model="state.account.adminEmail" :placeholder="t('account.email')" />
-            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminResetPw">📧</button>
-          </div>
-          <small class="set-hint">{{ t('admin.resetPwHint') }}</small>
-        </div>
-        <p v-if="state.account.adminError" class="coop-error">{{ state.account.adminError }}</p>
-        <button class="btn btn-primary" @click="closeAdminEdit">{{ t('admin.done') }}</button>
+          <button v-else class="btn btn-primary" @click="closeAdminEdit">{{ t('admin.done') }}</button>
+        </template>
       </div>
     </div>
 
