@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.47';
-export const BUILD_HASH = '1e19648';
+export const BUILD      = '1.48';
+export const BUILD_HASH = '92e4364';
 
 export const CHANGELOG = [
+  {
+    "version": "1.48",
+    "date": "02.07.2026",
+    "changes": [
+      "Admin-Editor: Guthaben antippbar (Chip öffnet die Wallet-Sektion) und Wallet ist auch für Nutzer ohne Guthaben-Knoten editierbar."
+    ]
+  },
   {
     "version": "1.47",
     "date": "02.07.2026",
