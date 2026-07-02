@@ -421,7 +421,7 @@ export default {
     requestsTitle: '요청', accept: '수락', decline: '거절',
     listTitle: '내 친구', empty: '아직 친구가 없습니다 – 위에서 사용자 이름으로 추가하세요.', remove: '삭제',
     removeTitle: '친구 삭제', removeMsg: '{name}님을 친구 목록에서 삭제할까요?', nowFriends: '{name}님과 친구가 되었습니다 🎉',
-    online: '온라인', offline: '오프라인', inGame: '게임 중 · {info}',
+    online: '온라인', offline: '오프라인', offlineSince: '오프라인 · 마지막 접속 {when}', inGame: '게임 중 · {info}',
     mode: { solo: '솔로', coop: '협동', race: '1대1', team: '팀' },
     lbSoonTitle: '순위표 곧 제공', lbSoonHint: '부정행위 방지 순위는 서버 집계와 함께 제공됩니다.',
     lbLoading: "순위표 불러오는 중 …", lbEmpty: "아직 기록이 없어요 — 첫 주자가 되어보세요!",

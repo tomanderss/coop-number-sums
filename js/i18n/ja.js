@@ -421,7 +421,7 @@ export default {
     requestsTitle: 'リクエスト', accept: '承認', decline: '拒否',
     listTitle: 'フレンド一覧', empty: 'まだフレンドがいません。上のユーザー名から追加できます。', remove: '削除',
     removeTitle: 'フレンドを削除', removeMsg: '{name} をフレンドから削除しますか？', nowFriends: '{name} がフレンドになりました 🎉',
-    online: 'オンライン', offline: 'オフライン', inGame: 'プレイ中 · {info}',
+    online: 'オンライン', offline: 'オフライン', offlineSince: 'オフライン · 最終 {when}', inGame: 'プレイ中 · {info}',
     mode: { solo: 'ソロ', coop: '協力', race: '1対1', team: 'チーム' },
     lbSoonTitle: 'ランキングは近日公開', lbSoonHint: '不正対策済みのランキングはサーバー集計とともに登場します。',
     lbLoading: "ランキングを読み込み中 …", lbEmpty: "まだ記録がありません。最初の一人になろう！",

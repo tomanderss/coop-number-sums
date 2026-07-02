@@ -421,7 +421,7 @@ export default {
     requestsTitle: 'Demandes', accept: 'Accepter', decline: 'Refuser',
     listTitle: 'Tes amis', empty: 'Pas encore d’amis – ajoute quelqu’un par son nom d’utilisateur ci-dessus.', remove: 'Retirer',
     removeTitle: 'Retirer l’ami', removeMsg: 'Retirer {name} de ta liste d’amis ?', nowFriends: '{name} est maintenant ton ami 🎉',
-    online: 'En ligne', offline: 'Hors ligne', inGame: 'En partie · {info}',
+    online: 'En ligne', offline: 'Hors ligne', offlineSince: 'Hors ligne · vu {when}', inGame: 'En partie · {info}',
     mode: { solo: 'Solo', coop: 'Coop', race: '1c1', team: 'Équipe' },
     lbSoonTitle: 'Classements bientôt disponibles', lbSoonHint: 'Des classements anti-triche arriveront avec le calcul côté serveur.',
     lbLoading: "Chargement du classement …", lbEmpty: "Pas encore de temps — sois le premier !",

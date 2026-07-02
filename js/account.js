@@ -702,6 +702,12 @@ export async function adminListUsers() {
         return shape(uid, { profile, data, inventory });
       }));
     }
+    // Eigene E-Mail auffüllen: profile.email kann fehlen (z.B. per Console
+    // gebootstrappter Admin ohne den Signup-Schreibvorgang) — für den eingeloggten
+    // Nutzer liefert Auth aber die echte E-Mail. Bei fremden Nutzern bleibt nur die
+    // (Rules-geschützte) profile.email-Kopie.
+    const self = currentUser(fb);
+    if (self && self.email) { const me = list.find((u) => u.uid === self.uid); if (me && !me.email) me.email = self.email; }
     list.sort((a, b) => (a.username || a.uid).localeCompare(b.username || b.uid));
     log('account', 'Admin: User-Liste geladen', { count: list.length });
     return { ok: true, users: list };
