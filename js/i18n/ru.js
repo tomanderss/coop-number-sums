@@ -318,6 +318,7 @@ export default {
   admin: {
     loadUsers: 'Загрузить всех пользователей',
     openConsole: 'Управление пользователями',
+    choose: '– выбрать –',
     consoleTitle: 'Консоль администратора',
     reload: 'Обновить',
     userCount: '{n} из {total} пользователей',

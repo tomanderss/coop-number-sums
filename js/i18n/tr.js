@@ -318,6 +318,7 @@ export default {
   admin: {
     loadUsers: 'Tüm kullanıcıları yükle',
     openConsole: 'Kullanıcıları yönet',
+    choose: '– seçin –',
     consoleTitle: 'Yönetici konsolu',
     reload: 'Yeniden yükle',
     userCount: '{total} kullanıcıdan {n}’i',

@@ -318,6 +318,7 @@ export default {
   admin: {
     loadUsers: 'Charger tous les utilisateurs',
     openConsole: 'Gérer les utilisateurs',
+    choose: '– choisir –',
     consoleTitle: 'Console admin',
     reload: 'Recharger',
     userCount: '{n} sur {total} utilisateurs',

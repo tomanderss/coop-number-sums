@@ -2646,6 +2646,20 @@ function adminFmtDate(ts) {
   if (!ts || typeof ts !== 'number') return '—';
   try { return new Date(ts).toLocaleDateString(state.settings.locale || 'de'); } catch { return '—'; }
 }
+// Auswahl-Listen fürs Bearbeiten-Modal: statt Freitext alle BEKANNTEN Werte
+// anbieten (statisch bekannte IDs + alles, was in den geladenen Nutzern real
+// vorkommt) — der Admin muss keine Schlüssel auswendig kennen.
+function adminItemOptions() {
+  const ids = new Set([SKIN_ID, FOUNDER_ID]);
+  for (const u of state.account.adminUsers) Object.keys(u.inventory || {}).forEach((k) => ids.add(k));
+  return [...ids].sort();
+}
+function adminFieldOptions() {
+  const keys = new Set(['displayName', 'email']);
+  for (const u of state.account.adminUsers) Object.keys(u.profile || {}).forEach((k) => keys.add(k));
+  keys.delete('role'); keys.delete('username');  // haben eigene, sichere Admin-Aktionen
+  return [...keys].sort();
+}
 // Client-Filter über die geladene Liste (Username/E-Mail/uid).
 function filteredAdminUsers() {
   const q = (state.account.adminFilter || '').trim().toLowerCase();
@@ -3290,7 +3304,7 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
-      openAdminConsole, closeAdminConsole, adminFmtDate, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
+      openAdminConsole, closeAdminConsole, adminFmtDate, adminItemOptions, adminFieldOptions, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, friendActivityText,
@@ -4412,17 +4426,23 @@ const App = {
         <div class="admin-field">
           <span class="set-row-label">{{ t('admin.item') }}</span>
           <div class="admin-field-row">
-            <input class="text-input" v-model="state.account.adminItem" :placeholder="t('admin.itemPlaceholder')" />
-            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminGrantAnyItem">🎁</button>
-            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminRevokeAnyItem">🗑️</button>
+            <select class="text-input admin-select" v-model="state.account.adminItem">
+              <option value="" disabled>{{ t('admin.choose') }}</option>
+              <option v-for="id in adminItemOptions()" :key="id" :value="id">{{ id }}</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem">🎁</button>
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminRevokeAnyItem">🗑️</button>
           </div>
         </div>
         <div class="admin-field">
           <span class="set-row-label">{{ t('admin.profileField') }}</span>
           <div class="admin-field-row">
-            <input class="text-input" v-model="state.account.adminFieldKey" :placeholder="t('admin.fieldKey')" />
+            <select class="text-input admin-select" v-model="state.account.adminFieldKey">
+              <option value="" disabled>{{ t('admin.choose') }}</option>
+              <option v-for="k in adminFieldOptions()" :key="k" :value="k">{{ k }}</option>
+            </select>
             <input class="text-input" v-model="state.account.adminFieldVal" :placeholder="t('admin.fieldValue')" />
-            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminSetField">{{ t('account.save') }}</button>
+            <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminFieldKey" @click="adminSetField">{{ t('account.save') }}</button>
           </div>
           <small class="set-hint">{{ t('admin.fieldHint') }}</small>
         </div>
