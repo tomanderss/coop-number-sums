@@ -1124,18 +1124,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .cell.hintmark.coop-mark { box-shadow: inset 0 0 0 2px var(--markcol); }
 
 /* ─── Dynamischer Skin (1.0, freischaltbar) ───────────────────────────────────
-   Rotierende, leuchtende Markierungen. Statt das Element zu drehen (würde an einer
-   quadratischen Umrandung die Ecken herumschleudern), animieren wir den Winkel des
-   conic-gradient über die registrierte Custom-Property --skin-angle — die Farben
-   „laufen" wie ein Ladebalken, das Element bleibt ruhig. --skin-grad/--skin-speed/
-   --skin-glow/--skin-thickness kommen inline vom Brett-Container (skins.js).
-   Hints bleiben bewusst unangetastet (grüner Ring). Fällt @property nicht an
-   (sehr alte WebViews), bleibt ein statischer Gradient-Ring mit Glow — kein Bruch. */
-@property --skin-angle { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
-@keyframes skinAngleCW { to { --skin-angle: 360deg; } }
-@keyframes skinAngleCCW { to { --skin-angle: -360deg; } }
-.board.skin-dynamic.skin-spin { animation: skinAngleCW var(--skin-speed) linear infinite; }
-.board.skin-dynamic.skin-spin.skin-ccw { animation-name: skinAngleCCW; }
+   Rotierende, leuchtende Markierungen — GPU-GÜNSTIG: Der conic-gradient steht FEST
+   (from 0deg) und das RUNDE ::after wird per transform gedreht. Transform-Animationen
+   laufen auf dem Compositor (Layer wird einmal gerastert, dann nur gedreht — kein
+   Repaint). Die frühere Animation der registrierten Custom-Property --skin-angle
+   zwang WebKit dagegen, JEDE markierte Zelle (conic-gradient + drop-shadow) mit
+   60 fps neu zu rastern — auf iPhones (3x DPR, Dutzende Markierungen) genau der
+   Speicherdruck, der die PWA mitten im Spiel hart beendete (Jetsam-Kill).
+   Beide Markierungen sind KREISE (rotationsinvariant — nichts „schleudert"):
+   kept nutzt das runde Basis-::after; removed bekommt statt des früheren
+   Rechteck-Rahmens ebenfalls einen runden Gradient-Ring (ein gedrehtes Rechteck
+   würde die Ecken herumschleudern). --skin-grad/--skin-speed/--skin-glow/
+   --skin-thickness kommen inline vom Brett-Container (skins.js).
+   Hints bleiben bewusst unangetastet (grüner Ring). */
+@keyframes skinSpinCW { to { transform: rotate(360deg); } }
+@keyframes skinSpinCCW { to { transform: rotate(-360deg); } }
+.board.skin-dynamic.skin-spin.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
+.board.skin-dynamic.skin-spin.skin-removed .cell.removed.coop-mark-removed::after {
+  animation: skinSpinCW var(--skin-speed) linear infinite;
+}
+.board.skin-dynamic.skin-spin.skin-ccw.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
+.board.skin-dynamic.skin-spin.skin-ccw.skin-removed .cell.removed.coop-mark-removed::after {
+  animation-name: skinSpinCCW;
+}
 
 /* Einkreis-Ring: Gradient-Fläche, per radialer Maske zum Ring beschnitten. */
 .skin-dynamic.skin-kept .cell.kept.coop-mark:not(.hintmark)::after {
@@ -1144,14 +1155,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
   filter: drop-shadow(0 0 var(--skin-glow) var(--markcol));
 }
-/* Coop-Gelöscht-Umrandung: rotierender Gradient-Rahmen (statt statischer box-shadow). */
+/* Coop-Gelöscht: ebenfalls runder rotierender Gradient-Ring (rotationsinvariant;
+   siehe Kommentar oben — der frühere eckige xor-Masken-Rahmen ließe sich nicht
+   billig per transform drehen). */
 .skin-dynamic.skin-removed .cell.removed.coop-mark-removed { box-shadow: none; }
 .skin-dynamic.skin-removed .cell.removed.coop-mark-removed::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 1; pointer-events: none;
-  padding: var(--skin-thickness);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
+  content: ''; position: absolute; inset: 11%; border-radius: 50%; z-index: 1; pointer-events: none;
+  -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
+          mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
   filter: drop-shadow(0 0 var(--skin-glow) var(--markcol));
 }
 /* Der Gradient selbst MUSS hier (auf ::after) stehen, NICHT als Custom-Property am
@@ -1160,11 +1171,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    fallen via var(--skin-cN, …) auf eine aus --markcol abgeleitete Farbe zurück. */
 .skin-style-solid.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
 .skin-style-solid.skin-removed .cell.removed.coop-mark-removed::after {
-  background: conic-gradient(from var(--skin-angle), var(--markcol) 0deg, color-mix(in srgb, var(--markcol) 25%, transparent) 150deg, transparent 250deg, var(--markcol) 360deg);
+  background: conic-gradient(from 0deg, var(--markcol) 0deg, color-mix(in srgb, var(--markcol) 25%, transparent) 150deg, transparent 250deg, var(--markcol) 360deg);
 }
 .skin-style-gradient.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
 .skin-style-gradient.skin-removed .cell.removed.coop-mark-removed::after {
-  background: conic-gradient(from var(--skin-angle),
+  background: conic-gradient(from 0deg,
     var(--skin-c1, var(--markcol)),
     var(--skin-c2, color-mix(in srgb, var(--markcol) 38%, #fff)),
     var(--skin-c3, color-mix(in srgb, var(--markcol) 60%, #000)),
@@ -1172,10 +1183,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .skin-style-rainbow.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
 .skin-style-rainbow.skin-removed .cell.removed.coop-mark-removed::after {
-  background: conic-gradient(from var(--skin-angle), #ff004c, #ff9a00, #ffe600, #43e043, #00c8ff, #6a5cff, #ff00c8, #ff004c);
+  background: conic-gradient(from 0deg, #ff004c, #ff9a00, #ffe600, #43e043, #00c8ff, #6a5cff, #ff00c8, #ff004c);
 }
 @media (prefers-reduced-motion: reduce) {
-  .board.skin-dynamic.skin-spin { animation: none; }
+  .board.skin-dynamic.skin-spin.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
+  .board.skin-dynamic.skin-spin.skin-removed .cell.removed.coop-mark-removed::after { animation: none; }
 }
 
 /* Editor-Vorschau + Feier-Modal-Vorschau: kleines Mini-Brett mit Demo-Zellen. */

@@ -1,0 +1,1 @@
+Dynamischer Skin dreht jetzt GPU-beschleunigt (kein Dauer-Neuzeichnen aller Markierungen mehr) — behebt Abstürze mitten im Spiel auf iPhones.
