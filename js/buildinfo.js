@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.40';
-export const BUILD_HASH = '1a318e8';
+export const BUILD      = '1.41';
+export const BUILD_HASH = '04d192f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.41",
+    "date": "02.07.2026",
+    "changes": [
+      "Design folgt jetzt automatisch dem System (Hell/Dunkel) — in den Einstellungen weiterhin manuell auf Hell oder Dunkel festlegbar."
+    ]
+  },
   {
     "version": "1.40",
     "date": "02.07.2026",

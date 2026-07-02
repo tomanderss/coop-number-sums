@@ -1,1 +1,0 @@
-Design folgt jetzt automatisch dem System (Hell/Dunkel) — in den Einstellungen weiterhin manuell auf Hell oder Dunkel festlegbar.
