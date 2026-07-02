@@ -1,1 +1,0 @@
-Admin-Verwaltung als vollständige, editierbare Nutzer-Tabelle (Vollbild-Konsole).

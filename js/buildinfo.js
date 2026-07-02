@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.35';
-export const BUILD_HASH = '46a2693';
+export const BUILD      = '1.36';
+export const BUILD_HASH = 'e9b94ad';
 
 export const CHANGELOG = [
+  {
+    "version": "1.36",
+    "date": "02.07.2026",
+    "changes": [
+      "Admin-Verwaltung als vollständige, editierbare Nutzer-Tabelle (Vollbild-Konsole)."
+    ]
+  },
   {
     "version": "1.35",
     "date": "01.07.2026",
