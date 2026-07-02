@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.42';
-export const BUILD_HASH = 'd2461dc';
+export const BUILD      = '1.43';
+export const BUILD_HASH = 'b3b7bc2';
 
 export const CHANGELOG = [
+  {
+    "version": "1.43",
+    "date": "02.07.2026",
+    "changes": [
+      "Admin-Editor spricht jetzt Klartext: jedes Feld mit verständlichem Namen + Beschreibung, Auswahlfelder als Dropdown mit allen Optionen, Zeitstempel als lesbares Datum, Datums-Picker für den letzten Spieltag."
+    ]
+  },
   {
     "version": "1.42",
     "date": "02.07.2026",

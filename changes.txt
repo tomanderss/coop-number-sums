@@ -1,1 +1,0 @@
-Admin-Editor spricht jetzt Klartext: jedes Feld mit verständlichem Namen + Beschreibung, Auswahlfelder als Dropdown mit allen Optionen, Zeitstempel als lesbares Datum, Datums-Picker für den letzten Spieltag.
