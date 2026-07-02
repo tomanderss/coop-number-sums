@@ -1,0 +1,1 @@
+Admin-Editor: Guthaben antippbar (Chip öffnet die Wallet-Sektion) und Wallet ist auch für Nutzer ohne Guthaben-Knoten editierbar.
