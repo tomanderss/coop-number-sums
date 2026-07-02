@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.37';
-export const BUILD_HASH = '11f8c04';
+export const BUILD      = '1.38';
+export const BUILD_HASH = '2a19591';
 
 export const CHANGELOG = [
+  {
+    "version": "1.38",
+    "date": "02.07.2026",
+    "changes": [
+      "Admin: Nutzer-Editor zeigt jetzt ALLE Daten (Streak, Statistiken, Guthaben, Erfolge, Einstellungen …) in übersichtlichen Sektionen — jedes Feld direkt editierbar, Änderungen gesammelt speicherbar."
+    ]
+  },
   {
     "version": "1.37",
     "date": "02.07.2026",
