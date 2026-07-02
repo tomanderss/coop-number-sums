@@ -417,6 +417,7 @@ export default {
     title: 'Friends', tabFriends: 'Friends', tabLeaderboard: 'Leaderboards',
     needLogin: "Sign in to invite friends.",
     addPlaceholder: 'Username…', add: 'Add', requestSent: 'Request sent to {name}',
+    addTitle: 'Add friend',
     requestsTitle: 'Requests', accept: 'Accept', decline: 'Decline',
     listTitle: 'Your friends', empty: 'No friends yet – add someone by username above.', remove: 'Remove',
     removeTitle: 'Remove friend', removeMsg: 'Remove {name} from your friends list?', nowFriends: '{name} is now your friend 🎉',

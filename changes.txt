@@ -1,0 +1,1 @@
+Freunde hinzufügen jetzt über das ＋ oben im Freunde-Dialog (eigenes Popup statt festem Formular).

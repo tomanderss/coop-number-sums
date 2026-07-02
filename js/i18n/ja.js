@@ -417,6 +417,7 @@ export default {
     title: 'フレンド', tabFriends: 'フレンド', tabLeaderboard: 'ランキング',
     needLogin: "友達を招待するにはサインインしてください。",
     addPlaceholder: 'ユーザー名…', add: '追加', requestSent: '{name} にリクエストを送信しました',
+    addTitle: 'フレンドを追加',
     requestsTitle: 'リクエスト', accept: '承認', decline: '拒否',
     listTitle: 'フレンド一覧', empty: 'まだフレンドがいません。上のユーザー名から追加できます。', remove: '削除',
     removeTitle: 'フレンドを削除', removeMsg: '{name} をフレンドから削除しますか？', nowFriends: '{name} がフレンドになりました 🎉',

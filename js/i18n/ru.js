@@ -417,6 +417,7 @@ export default {
     title: 'Друзья', tabFriends: 'Друзья', tabLeaderboard: 'Таблицы лидеров',
     needLogin: "Войдите, чтобы приглашать друзей.",
     addPlaceholder: 'Имя пользователя…', add: 'Добавить', requestSent: 'Запрос отправлен {name}',
+    addTitle: 'Добавить друга',
     requestsTitle: 'Запросы', accept: 'Принять', decline: 'Отклонить',
     listTitle: 'Ваши друзья', empty: 'Пока нет друзей — добавьте кого-нибудь по имени пользователя выше.', remove: 'Удалить',
     removeTitle: 'Удалить друга', removeMsg: 'Удалить {name} из списка друзей?', nowFriends: '{name} теперь ваш друг 🎉',

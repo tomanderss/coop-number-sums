@@ -417,6 +417,7 @@ export default {
     title: 'Arkadaşlar', tabFriends: 'Arkadaşlar', tabLeaderboard: 'Sıralamalar',
     needLogin: "Arkadaş davet etmek için giriş yap.",
     addPlaceholder: 'Kullanıcı adı…', add: 'Ekle', requestSent: '{name} kişisine istek gönderildi',
+    addTitle: 'Arkadaş ekle',
     requestsTitle: 'İstekler', accept: 'Kabul et', decline: 'Reddet',
     listTitle: 'Arkadaşların', empty: 'Henüz arkadaş yok – yukarıdan kullanıcı adıyla birini ekle.', remove: 'Kaldır',
     removeTitle: 'Arkadaşı kaldır', removeMsg: '{name} arkadaş listenden kaldırılsın mı?', nowFriends: '{name} artık arkadaşın 🎉',

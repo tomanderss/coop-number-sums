@@ -508,6 +508,7 @@ export default {
     title: 'Freunde', tabFriends: 'Freunde', tabLeaderboard: 'Bestenlisten',
     needLogin: "Melde dich an, um Freunde einzuladen.",
     addPlaceholder: 'Benutzername…', add: 'Hinzufügen', requestSent: 'Anfrage an {name} gesendet',
+    addTitle: 'Freund hinzufügen',
     requestsTitle: 'Anfragen', accept: 'Annehmen', decline: 'Ablehnen',
     listTitle: 'Deine Freunde', empty: 'Noch keine Freunde – füge oben jemanden über den Benutzernamen hinzu.', remove: 'Entfernen',
     removeTitle: 'Freund entfernen', removeMsg: '{name} aus deiner Freundesliste entfernen?', nowFriends: '{name} ist jetzt dein Freund 🎉',

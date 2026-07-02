@@ -193,6 +193,7 @@ const state = reactive({
   // Freunde & Präsenz (nur mit Account nutzbar)
   friends: {
     open: false, tab: 'friends',   // 'friends' | 'leaderboard'
+    addOpen: false,  // ➕-Popup „Freund hinzufügen" (im Kopf, statt Inline-Formular)
     addName: '', addBusy: false, addError: null, addNotice: null,
     list: [], requests: [], presence: {},   // presence: { uid: {online, game, lastActive} }
   },
@@ -3007,6 +3008,8 @@ async function rearmPresenceWatch() {
   const uids = state.friends.list.map((f) => f.uid);
   presenceUnwatch = await Account.watchPresence(uids, (uid, status) => { state.friends.presence[uid] = status; });
 }
+function openAddFriend() { const f = state.friends; f.addOpen = true; f.addName = ''; f.addError = null; f.addNotice = null; }
+function closeAddFriend() { state.friends.addOpen = false; }
 async function addFriend() {
   const f = state.friends;
   const name = (f.addName || '').trim();
@@ -3015,7 +3018,8 @@ async function addFriend() {
   try {
     const r = await Account.sendFriendRequest(name);
     if (!r.ok) { const k = 'friends.err.' + r.err, s = t(k); f.addError = s === k ? accErr(r.err) : s; return; }
-    f.addNotice = t('friends.requestSent', { name }); f.addName = '';
+    f.addName = ''; f.addOpen = false;
+    showToast(t('friends.requestSent', { name }), 'success', 2600);
   } finally { f.addBusy = false; }
 }
 async function acceptFriend(req) {
@@ -3559,7 +3563,7 @@ const App = {
       openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId,
       adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
-      openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, acceptFriend, declineFriend, removeFriendAsk,
+      openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, anyFriendOnline, friendActivityText,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
@@ -4825,12 +4829,29 @@ const App = {
       </div>
     </div>
 
+    <!-- Freund hinzufügen: kleines Popup über dem Freunde-Dialog (➕ im Kopf) -->
+    <div v-if="state.friends.addOpen" class="modal-bg friends-add-bg" @click.self="closeAddFriend">
+      <div class="modal modal-sm friends-add-modal">
+        <h3>➕ {{ t('friends.addTitle') }}</h3>
+        <input class="text-input" v-model="state.friends.addName" maxlength="20" autocapitalize="none" autocomplete="off" :placeholder="t('friends.addPlaceholder')" @keydown.enter="addFriend" />
+        <p v-if="state.friends.addError" class="coop-error">{{ state.friends.addError }}</p>
+        <button class="btn btn-primary" :disabled="state.friends.addBusy || !state.friends.addName.trim()" @click="addFriend">
+          <span v-if="state.friends.addBusy"><span class="spinner-inline"></span></span>
+          <span v-else>{{ t('friends.add') }}</span>
+        </button>
+        <button class="btn-link" @click="closeAddFriend">{{ t('common.cancel') }}</button>
+      </div>
+    </div>
+
     <!-- ══ FREUNDE ══ -->
     <div v-if="state.friends.open" class="modal-bg" @click.self="closeFriends">
       <div class="modal friends-modal">
         <header class="friends-head">
           <h3>👫 {{ t('friends.title') }}</h3>
-          <button class="icon-btn" @click="closeFriends" :aria-label="t('common.close')">✕</button>
+          <span class="friends-head-actions">
+            <button class="icon-btn" @click="openAddFriend" :aria-label="t('friends.addTitle')" :title="t('friends.addTitle')">＋</button>
+            <button class="icon-btn" @click="closeFriends" :aria-label="t('common.close')">✕</button>
+          </span>
         </header>
         <div class="friends-tabs">
           <button class="friends-tab" :class="{ active: state.friends.tab==='friends' }" @click="setFriendsTab('friends')">{{ t('friends.tabFriends') }}<span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span></button>
@@ -4839,14 +4860,6 @@ const App = {
 
         <!-- Tab: Freunde -->
         <div v-if="state.friends.tab==='friends'" class="friends-body">
-          <!-- Freund hinzufügen -->
-          <div class="friends-add">
-            <input class="text-input" v-model="state.friends.addName" maxlength="20" autocapitalize="none" autocomplete="off" :placeholder="t('friends.addPlaceholder')" @keydown.enter="addFriend" />
-            <button class="btn btn-primary btn-sm" :disabled="state.friends.addBusy || !state.friends.addName.trim()" @click="addFriend">{{ t('friends.add') }}</button>
-          </div>
-          <p v-if="state.friends.addError" class="coop-error">{{ state.friends.addError }}</p>
-          <p v-else-if="state.friends.addNotice" class="friends-notice">{{ state.friends.addNotice }}</p>
-
           <!-- Eingehende Anfragen -->
           <template v-if="state.friends.requests.length">
             <div class="friends-section-title">{{ t('friends.requestsTitle') }}</div>
