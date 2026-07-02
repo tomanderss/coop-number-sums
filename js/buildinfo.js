@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.43';
-export const BUILD_HASH = 'b3b7bc2';
+export const BUILD      = '1.44';
+export const BUILD_HASH = 'cee0033';
 
 export const CHANGELOG = [
+  {
+    "version": "1.44",
+    "date": "02.07.2026",
+    "changes": [
+      "Freunde-Button zeigt einen grünen Punkt, sobald mindestens ein Freund online ist."
+    ]
+  },
   {
     "version": "1.43",
     "date": "02.07.2026",
