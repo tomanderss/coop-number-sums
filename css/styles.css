@@ -1244,6 +1244,25 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .admin-user-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-role-tag { padding: 0 6px; font-size: .7rem; }
 .admin-user-meta { flex: 0 0 auto; color: var(--text3); font-size: .8rem; font-variant-numeric: tabular-nums; }
+/* Admin-Konsole: Vollbild-Modal mit scrollbarer Nutzer-Tabelle */
+.admin-console-modal { max-width: 480px; width: 100%; max-height: 90vh; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.admin-console-toolbar { display: flex; gap: 8px; align-items: center; }
+.admin-console-toolbar .text-input { flex: 1 1 auto; min-width: 0; }
+.admin-console-toolbar .btn { flex: 0 0 auto; }
+.admin-console-count { margin: 0; }
+.admin-console-empty { padding: 20px 0; text-align: center; color: var(--text3); }
+.admin-console-table { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 4px; }
+.admin-tbl-head { display: flex; align-items: center; gap: 10px; padding: 2px 12px; color: var(--text3);
+  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; position: sticky; top: 0; background: var(--bg1); z-index: 1; }
+.admin-tbl-row { display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 12px; border-radius: 10px; background: var(--bg2); box-shadow: 0 1px 4px var(--shadow); text-align: left; }
+.admin-col-user { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.admin-tbl-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.admin-tbl-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-tbl-sub { color: var(--text3); font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-tbl-uid { font-family: monospace; font-size: .66rem; opacity: .8; }
+.admin-col-bal { flex: 0 0 auto; min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.admin-col-skin { flex: 0 0 auto; min-width: 28px; text-align: center; }
 .admin-edit-modal { max-width: 400px; width: 100%; max-height: 88vh; overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 10px; }
 .admin-edit-modal h3 { word-break: break-all; }
 

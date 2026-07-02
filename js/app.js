@@ -179,6 +179,7 @@ const state = reactive({
     syncErrorMsg: '',        // konkrete Fehlermeldung des letzten fehlgeschlagenen Syncs
     lastSyncAt: 0,           // Zeitstempel der letzten erfolgreichen Cloud-Sicherung
     // Admin (nur sichtbar/aktiv bei role==='admin'; Rules erzwingen es serverseitig)
+    adminConsoleOpen: false,  // Vollbild-Admin-Konsole (Nutzer-Tabelle) offen?
     adminUsers: [], adminFilter: '', adminEditUser: null, adminBusy: false, adminError: null,
     adminBalance: '', adminUsername: '', adminItem: '', adminFieldKey: '', adminFieldVal: '', adminEmail: '',
   },
@@ -2623,6 +2624,14 @@ function doDeleteAccount() {
   });
 }
 // ─── Admin (Geschenke/Rollen) ─────────────────────────────────────────────────
+// Vollbild-Admin-Konsole öffnen/schließen. Als eigenes Modal (statt inline im
+// Konto-Tab), damit die Nutzer-Tabelle nicht unter den Seitenfalz rutscht und
+// sicher scrollbar ist — die frühere Inline-Liste war auf iOS oft nicht sichtbar.
+function openAdminConsole() {
+  state.account.adminConsoleOpen = true;
+  if (!state.account.adminUsers.length) adminLoadUsers();
+}
+function closeAdminConsole() { state.account.adminConsoleOpen = false; }
 // Alle User laden (für den durchsuchbaren Browser).
 async function adminLoadUsers() {
   const a = state.account; a.adminError = null; a.adminBusy = true;
@@ -2631,6 +2640,11 @@ async function adminLoadUsers() {
     if (!r.ok) { a.adminError = accErr(r.err); return; }
     a.adminUsers = r.users;
   } finally { a.adminBusy = false; }
+}
+// Erstellungsdatum eines Users lesbar (leer, wenn unbekannt/Server-Timestamp fehlt).
+function adminFmtDate(ts) {
+  if (!ts || typeof ts !== 'number') return '—';
+  try { return new Date(ts).toLocaleDateString(state.settings.locale || 'de'); } catch { return '—'; }
 }
 // Client-Filter über die geladene Liste (Username/E-Mail/uid).
 function filteredAdminUsers() {
@@ -3276,7 +3290,7 @@ const App = {
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
-      adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
+      openAdminConsole, closeAdminConsole, adminFmtDate, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, friendActivityText,
@@ -4262,22 +4276,7 @@ const App = {
             <template v-if="state.account.role==='admin'">
               <div class="set-group-title">{{ t('admin.title') }}</div>
               <small class="set-hint">{{ t('admin.intro') }}</small>
-              <button class="btn btn-primary" :disabled="state.account.adminBusy" @click="adminLoadUsers">
-                <span v-if="state.account.adminBusy"><span class="spinner-inline"></span> {{ t('account.working') }}</span>
-                <span v-else>👥 {{ t('admin.loadUsers') }}<template v-if="state.account.adminUsers.length"> ({{ state.account.adminUsers.length }})</template></span>
-              </button>
-              <input v-if="state.account.adminUsers.length" class="text-input" v-model="state.account.adminFilter" :placeholder="t('admin.filterPlaceholder')" autocapitalize="none" />
-              <div v-if="state.account.adminUsers.length" class="admin-user-list">
-                <button v-for="u in filteredAdminUsers()" :key="u.uid" class="admin-user-row" @click="openAdminEdit(u)">
-                  <span class="admin-user-main">
-                    <b>{{ u.username || '—' }}</b>
-                    <span v-if="u.role==='admin'" class="account-role admin admin-role-tag">👑</span>
-                  </span>
-                  <span class="admin-user-meta">💰 {{ u.balance }} · ✏️</span>
-                </button>
-                <p v-if="!filteredAdminUsers().length" class="set-hint">{{ t('admin.noMatch') }}</p>
-              </div>
-              <p v-if="state.account.adminError && !state.account.adminEditUser" class="coop-error">{{ state.account.adminError }}</p>
+              <button class="btn btn-primary" @click="openAdminConsole">👥 {{ t('admin.openConsole') }}</button>
             </template>
           </template>
 
@@ -4337,6 +4336,46 @@ const App = {
     </transition>
 
     <!-- ══ MODALS ══ -->
+    <!-- Admin-Konsole: vollständige, editierbare Nutzer-Tabelle (Vollbild-Modal) -->
+    <div v-if="state.account.adminConsoleOpen" class="modal-bg" @click.self="closeAdminConsole">
+      <div class="modal admin-console-modal">
+        <header class="friends-head">
+          <h3>👑 {{ t('admin.consoleTitle') }}</h3>
+          <button class="icon-btn" @click="closeAdminConsole" :aria-label="t('common.close')">✕</button>
+        </header>
+        <div class="admin-console-toolbar">
+          <input class="text-input" v-model="state.account.adminFilter" :placeholder="t('admin.filterPlaceholder')" autocapitalize="none" />
+          <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminLoadUsers" :aria-label="t('admin.reload')">
+            <span v-if="state.account.adminBusy" class="spinner-inline"></span>
+            <span v-else>🔄</span>
+          </button>
+        </div>
+        <p class="set-hint admin-console-count">{{ t('admin.userCount', { n: filteredAdminUsers().length, total: state.account.adminUsers.length }) }}</p>
+        <p v-if="state.account.adminError" class="coop-error">{{ state.account.adminError }}</p>
+        <div v-if="state.account.adminBusy && !state.account.adminUsers.length" class="admin-console-empty"><span class="spinner-inline"></span> {{ t('account.working') }}</div>
+        <div v-else class="admin-console-table">
+          <div class="admin-tbl-head">
+            <span class="admin-col-user">{{ t('admin.colUser') }}</span>
+            <span class="admin-col-bal">💰</span>
+            <span class="admin-col-skin">🎨</span>
+          </div>
+          <button v-for="u in filteredAdminUsers()" :key="u.uid" class="admin-tbl-row" @click="openAdminEdit(u)">
+            <span class="admin-col-user">
+              <span class="admin-tbl-name">
+                <b>{{ u.username || '—' }}</b>
+                <span v-if="u.role==='admin'" class="account-role admin admin-role-tag">👑</span>
+              </span>
+              <small class="admin-tbl-sub">{{ u.email || t('admin.noEmail') }}</small>
+              <small class="admin-tbl-sub admin-tbl-uid">{{ u.uid }}</small>
+            </span>
+            <span class="admin-col-bal">{{ u.balance }}</span>
+            <span class="admin-col-skin">{{ u.hasSkin ? '✅' : '—' }}</span>
+          </button>
+          <p v-if="!filteredAdminUsers().length && !state.account.adminBusy" class="set-hint admin-console-empty">{{ t('admin.noMatch') }}</p>
+        </div>
+        <button class="btn btn-primary" @click="closeAdminConsole">{{ t('admin.done') }}</button>
+      </div>
+    </div>
     <!-- Admin: User bearbeiten -->
     <div v-if="state.account.adminEditUser" class="modal-bg" @click.self="closeAdminEdit">
       <div class="modal admin-edit-modal">
@@ -4345,7 +4384,10 @@ const App = {
           <div class="account-row"><span class="account-label">{{ t('account.role') }}</span>
             <span class="account-role" :class="{ admin: state.account.adminEditUser.role==='admin' }">{{ state.account.adminEditUser.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span>
           </div>
+          <div class="account-row"><span class="account-label">{{ t('account.email') }}</span><span class="admin-uid">{{ state.account.adminEditUser.email || t('admin.noEmail') }}</span></div>
           <div class="account-row"><span class="account-label">{{ t('admin.dynamicSkin') }}</span><b>{{ state.account.adminEditUser.hasSkin ? '✅' : '—' }}</b></div>
+          <div class="account-row"><span class="account-label">{{ t('admin.itemsLabel') }}</span><b>{{ state.account.adminEditUser.itemCount || 0 }}</b></div>
+          <div class="account-row"><span class="account-label">{{ t('admin.createdAt') }}</span><span>{{ adminFmtDate(state.account.adminEditUser.createdAt) }}</span></div>
           <div class="account-row"><span class="account-label">uid</span><span class="admin-uid">{{ state.account.adminEditUser.uid }}</span></div>
         </div>
         <div class="admin-actions">
