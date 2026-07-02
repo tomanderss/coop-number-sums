@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.38';
-export const BUILD_HASH = '2a19591';
+export const BUILD      = '1.39';
+export const BUILD_HASH = '92b7188';
 
 export const CHANGELOG = [
+  {
+    "version": "1.39",
+    "date": "02.07.2026",
+    "changes": [
+      "Admin-Änderungen an den eigenen Daten (z. B. Streak) greifen jetzt sofort und werden nicht mehr vom automatischen Cloud-Sync überschrieben."
+    ]
+  },
   {
     "version": "1.38",
     "date": "02.07.2026",
