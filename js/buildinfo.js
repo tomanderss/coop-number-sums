@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.41';
-export const BUILD_HASH = '04d192f';
+export const BUILD      = '1.42';
+export const BUILD_HASH = 'd2461dc';
 
 export const CHANGELOG = [
+  {
+    "version": "1.42",
+    "date": "02.07.2026",
+    "changes": [
+      "Einstellungen starten jetzt immer komplett zugeklappt — keine gemerkte Position mehr."
+    ]
+  },
   {
     "version": "1.41",
     "date": "02.07.2026",
