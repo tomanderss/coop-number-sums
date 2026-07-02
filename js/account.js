@@ -213,6 +213,21 @@ export async function signOutAccount() {
   } catch (e) { log('account', 'Abmelden fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
 
+// Passwort direkt in der App ändern (neues Passwort, ohne das alte). Firebase
+// verlangt dafür eine „frische" Anmeldung — ist die Session zu alt, kommt
+// requires-recent-login (errKey 'reauth': kurz ab- und wieder anmelden).
+export async function changePassword(newPw) {
+  if (passwordIssue(newPw)) return { ok: false, err: 'weakPassword' };
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, err: 'notSignedIn' };
+    await fb.authMod.updatePassword(u, newPw);
+    log('account', 'Passwort geändert');
+    return { ok: true };
+  } catch (e) { log('account', 'Passwort ändern fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+
 export async function resetPassword(email) {
   if (!isValidEmail(email)) return { ok: false, err: 'invalidEmail' };
   try {
