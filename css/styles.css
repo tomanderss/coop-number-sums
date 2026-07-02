@@ -813,41 +813,34 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    scrollbar), was den Schatten am linken/rechten Rand abschneidet. */
 .stats-body, .settings-body { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; overflow-y: auto; padding: 0 4px 12px; }
 
-/* ── Einstellungen: Seitenleiste (Drawer) statt Top-Tabs ──────────────────────
-   Hamburger oben RECHTS öffnet ein von RECHTS einschiebendes Panel (bewusst
-   schmaler als der Viewport — deckt den Screen nicht komplett), mit vertikaler
-   Sektionsliste. Backdrop dimmt den Rest und schließt bei Tap. */
-.settings-menu-btn { font-size: 1.3rem; line-height: 1; }
-.settings-drawer-backdrop {
-  position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.5);
-  backdrop-filter: blur(2px); animation: fadein .2s ease;
+/* ── Einstellungen: EINE Seite mit Accordion-Karten (Look des Admin-Editors) ──
+   Der frühere Drawer entfällt: alle Bereiche stehen als Karten-Köpfe direkt
+   untereinander — nichts versteckt sich, und angeschnittene Karten am unteren
+   Rand + das Sticky-Fade zeigen klar, dass darunter mehr kommt. */
+.topbar-spacer { width: 40px; flex: 0 0 auto; }  /* symmetrischer Platzhalter (Breite des Zurück-Buttons) */
+.settings-cards { gap: 8px; }
+/* Karten-Köpfe minimal höher als im Admin-Modal (Hauptnavigation, 44px-Tippfläche). */
+.settings-cards .admin-acc { flex: 0 0 auto; }
+.settings-cards .admin-acc-head { padding: 13px 14px; font-size: .98rem; min-height: 48px; }
+/* Kompakte Reihen INNERHALB der Karten: die Karten liefern bereits die Gruppierung,
+   also dünnere Zeilen (Hintergrund bg2 gegen die bg3-Karte) statt der fetten
+   Vollbreiten-Kacheln von früher. */
+.settings-cards .admin-acc-body { gap: 6px; }
+.settings-cards .admin-acc-body .set-row { padding: 10px 12px; border-radius: 10px; font-size: .92rem; font-weight: 600; }
+.settings-cards .admin-acc-body .set-hint { padding: 0 2px; }
+.settings-cards .admin-acc-body .btn { padding-top: 11px; padding-bottom: 11px; }
+/* Unter-Überschriften in Karten: schlanker als die alten Seiten-Trenner. */
+.settings-cards .admin-acc-body .set-group-title {
+  font-size: .74rem; font-weight: 800; color: var(--text3); text-transform: uppercase;
+  letter-spacing: .05em; margin: 10px 0 0; padding-top: 0; border-top: none;
 }
-.settings-drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 81;
-  width: min(76vw, 280px); background: var(--bg2);
-  box-shadow: -4px 0 24px var(--shadow);
-  display: flex; flex-direction: column; gap: 2px;
-  /* Safe-Area oben/rechts/unten berücksichtigen, sonst verschwindet der Titel
-     hinter der Dynamic Island/Notch. Oben mind. so tief wie der Topbar beginnt,
-     damit die Nav-Liste auf gleicher Höhe startet wie der Öffnen-Knopf. */
-  padding: calc(env(safe-area-inset-top) + 14px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 14px) 10px;
-  transform: translateX(100%); transition: transform .25s cubic-bezier(.2,.9,.3,1);
-  overflow-y: auto; overscroll-behavior: contain;
+/* Scroll-Hinweis: Sticky-Fade am unteren Rand des Scrollbereichs — solange
+   Inhalt folgt, „verläuft" die letzte Zeile sichtbar in den Hintergrund. */
+.settings-body::after {
+  content: ''; position: sticky; bottom: -12px; display: block; flex: 0 0 auto;
+  height: 26px; margin-top: -26px; pointer-events: none;
+  background: linear-gradient(transparent, var(--bg1));
 }
-.settings-drawer.open { transform: translateX(0); }
-.settings-drawer-title {
-  font-size: .78rem; font-weight: 800; color: var(--text3);
-  text-transform: uppercase; letter-spacing: .04em; padding: 6px 12px 10px;
-}
-.settings-nav-item {
-  display: flex; align-items: center; gap: 12px; width: 100%;
-  min-height: 48px; padding: 10px 14px; border-radius: 12px;
-  font-weight: 700; color: var(--text2); font-size: .98rem; text-align: left;
-  background: transparent;
-}
-.settings-nav-item .nav-ic { font-size: 1.2rem; width: 24px; text-align: center; flex-shrink: 0; }
-.settings-nav-item.active { background: var(--accent); color: #fff; }
-@media (prefers-reduced-motion: reduce) { .settings-drawer { transition: none; } }
 .stats-section-title { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; margin-top: 14px; }
 /* Einstellungs-Bereiche klar voneinander abgegrenzt: kräftige Akzent-Überschrift
    mit Trennlinie darüber und großzügigem Abstand statt blasser Mini-Headline. */

@@ -1,0 +1,1 @@
+Einstellungen komplett neu gestaltet: alle Bereiche als aufklappbare Karten auf einer Seite (nichts mehr versteckt), kompaktere Optik, klarer Scroll-Hinweis.

@@ -57,12 +57,13 @@ test.describe('settings', () => {
   test('switching language updates UI text immediately and persists', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
-    // Sprachwahl liegt jetzt unter „Darstellung"; der Titel zeigt die aktive Sektion.
+    // Sprachwahl liegt in der Karte „Darstellung"; der Screen-Titel ist statisch
+    // („Einstellungen") und wechselt mit der Sprache mit.
     await gotoSettingsSection(page, 'Darstellung');
-    await expect(page.locator('.screen.settings h2')).toHaveText('Darstellung');
+    await expect(page.locator('.screen.settings h2')).toHaveText('Einstellungen');
 
     await page.locator('select.text-input').selectOption('en');
-    await expect(page.locator('.screen.settings h2')).toHaveText('Appearance');
+    await expect(page.locator('.screen.settings h2')).toHaveText('Settings');
 
     await page.reload();
     await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
