@@ -490,6 +490,21 @@ export async function removeLobbyInvite(fromUid) {
   } catch (e) { log('account', 'removeLobbyInvite fehlgeschlagen', e); }
 }
 
+// Eigene, noch offene Einladung ZURÜCKZIEHEN (Gegenstück zu sendLobbyInvite):
+// löscht users/{targetUid}/lobbyInvites/{eigene uid}. Die Rules erlauben das
+// bereits ($fromUid darf schreiben) — beim Eingeladenen verschwindet das Banner
+// live über seinen watchLobbyInvites-onValue.
+export async function cancelLobbyInvite(targetUid) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !targetUid) return { ok: false, err: 'notSignedIn' };
+    await fb.set(fb.ref(fb.db, `users/${targetUid}/lobbyInvites/${u.uid}`), null);
+    log('account', 'Lobby-Einladung zurückgezogen', { targetUid });
+    return { ok: true };
+  } catch (e) { log('account', 'cancelLobbyInvite fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+
 // Einladung ablehnen: dem Einladenden melden + eigene Einladung entfernen.
 export async function declineLobbyInvite(fromUid, username) {
   try {

@@ -1250,6 +1250,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .invite-picker-head { display: flex; align-items: center; justify-content: space-between; font-weight: 800; }
 .invite-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; background: var(--bg1); border-radius: 10px; }
 .invite-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+/* Offene Einladung zurückziehen: dezent warnfarben statt Primär-Blau */
+.invite-withdraw { color: var(--bad); background: var(--bad-soft); }
 .coop-waiting { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; }
 .coop-error { background: var(--bad-soft); color: var(--bad); border-radius: 12px; padding: 12px 16px; font-weight: 600; font-size: .9rem; text-align: center; margin: 0; }
 .coop-input {

@@ -2713,6 +2713,19 @@ async function inviteFriendToLobby(fr) {
   if (r && r.ok) showToast(t('coop.inviteSent', { name: fr.username || fr.uid }), 'success', 2400);
   else { showToast(accErr((r && r.err) || 'generic'), 'error', 2600); state.coop.invitedUids = state.coop.invitedUids.filter(u => u !== fr.uid); }
 }
+// Offene (weder angenommene noch abgelehnte) Einladung zurückziehen: löscht sie
+// beim Freund (sein Banner verschwindet live via onValue) und gibt den Button
+// wieder als „Einladen" frei — erneutes Einladen sofort möglich.
+async function withdrawLobbyInvite(fr) {
+  if (!fr) return;
+  const r = await Account.cancelLobbyInvite(fr.uid);
+  if (r && r.ok) {
+    state.coop.invitedUids = state.coop.invitedUids.filter((u) => u !== fr.uid);
+    showToast(t('coop.inviteWithdrawn', { name: fr.username || fr.uid }), 'info', 2400);
+  } else {
+    showToast(accErr((r && r.err) || 'generic'), 'error', 2600);
+  }
+}
 
 // ─── Eingehende Einladungen (global, solange eingeloggt) ────────────────────────
 let lobbyInvitesUnwatch = null, lobbyResponsesUnwatch = null;
@@ -2720,12 +2733,16 @@ async function startLobbyInviteWatch() {
   if (lobbyInvitesUnwatch) return;
   lobbyInvitesUnwatch = await Account.watchLobbyInvites((arr) => {
     state.lobbyInvites = arr;
-    // Neueste offene Einladung als Banner zeigen — aber nie mitten im Spiel.
-    if (arr.length && !gameSessionActive()) {
-      state.pendingLobbyInvite = arr[arr.length - 1];
-    } else if (!arr.length) {
-      state.pendingLobbyInvite = null;
-    }
+    // Neueste offene Einladung als Banner zeigen — AUCH mitten im Spiel
+    // (Nutzerwunsch: Einladungen sollen immer ankommen; wer spielt, kann sie
+    // ablehnen oder ignorieren; Annahme sichert den Solo-Stand, s.u.). Wichtig:
+    // bedingungslos setzen — zieht der Einladende zurück (cancelLobbyInvite),
+    // fällt sie aus arr und das Banner verschwindet live (bzw. wechselt zur
+    // nächsten offenen), sonst nähme man eine Geister-Einladung an. Die alte
+    // Spiel-Sperre hatte zudem ein Loch: endete das Spiel, feuerte der
+    // onValue-Listener nicht erneut (Daten unverändert) — die Einladung blieb
+    // für immer unsichtbar.
+    state.pendingLobbyInvite = arr.length ? arr[arr.length - 1] : null;
   });
   lobbyResponsesUnwatch = await Account.watchLobbyInviteResponses((arr) => {
     for (const resp of arr) {
@@ -2751,6 +2768,12 @@ function stopLobbyInviteWatch() {
 // Einladung annehmen: eigene Einladung entfernen und der Lobby (Code+Modus) als Gast beitreten.
 function acceptLobbyInvite(inv) {
   if (!inv) return;
+  // Einladungen erscheinen jetzt auch MITTEN im Spiel: läuft gerade eine
+  // Solo-Partie, wird sie vor dem Wechsel in die Lobby gesichert (Fortsetzen-
+  // Button wie bei „Zum Menü"), damit kein Fortschritt verloren geht.
+  if (state.status === 'playing' && !state.isTrainingGame && !state.coop.active && !state.race.active && !state.team.active) {
+    saveActiveGame(activeSnapshot());
+  }
   Account.acceptLobbyInvite(inv.fromUid, myUsername());
   state.pendingLobbyInvite = null;
   state.lobbyInvites = state.lobbyInvites.filter(i => i.fromUid !== inv.fromUid);
@@ -3881,7 +3904,7 @@ const App = {
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
-      openInvitePicker, closeInvitePicker, inviteFriendToLobby, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
+      openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       t, i18nState, SUPPORTED_LOCALES,
@@ -4488,7 +4511,10 @@ const App = {
             <div v-for="fr in friendsSorted()" :key="fr.uid" class="invite-row">
               <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
               <span class="invite-name">{{ fr.username || fr.uid }}</span>
-              <button class="btn btn-primary btn-sm" :disabled="state.coop.invitedUids.includes(fr.uid)" @click="inviteFriendToLobby(fr)">{{ state.coop.invitedUids.includes(fr.uid) ? t('coop.invited') : t('coop.invite') }}</button>
+              <!-- Offene Einladung → „Zurückziehen" (löscht sie live beim Freund),
+                   danach ist erneutes Einladen sofort wieder möglich. -->
+              <button v-if="state.coop.invitedUids.includes(fr.uid)" class="btn btn-ghost btn-sm invite-withdraw" @click="withdrawLobbyInvite(fr)">{{ t('coop.inviteWithdraw') }}</button>
+              <button v-else class="btn btn-primary btn-sm" @click="inviteFriendToLobby(fr)">{{ t('coop.invite') }}</button>
             </div>
           </div>
           <p v-if="state.coop.teamMode" class="coop-subtext">{{ t('team.assignHint') }}</p>

@@ -126,7 +126,7 @@ export default {
     setCode: 'Imposta codice (6 cifre)',
     startHosting: 'Ospita 🚀',
     yourCode: 'Il tuo codice',
-    inviteFriends: "Invita amici", invite: "Invita", invited: "Invitato", inviteSent: "Hai invitato {name}", inviteDeclined: "{name} ha rifiutato", inviteAccepted: "{name} è entrato", inviteTitle: "Invito alla lobby", inviteBody: "{name} ti invita in una lobby {mode}.", inviteAccept: "Unisciti", inviteDecline: "Rifiuta", modeCoop: "Coop", modeRace: "Duello (1v1)", modeTeam: "Squadra (2v2)",
+    inviteFriends: "Invita amici", invite: "Invita", invited: "Invitato", inviteSent: "Hai invitato {name}", inviteWithdraw: "Ritira", inviteWithdrawn: "Invito a {name} ritirato", inviteDeclined: "{name} ha rifiutato", inviteAccepted: "{name} è entrato", inviteTitle: "Invito alla lobby", inviteBody: "{name} ti invita in una lobby {mode}.", inviteAccept: "Unisciti", inviteDecline: "Rifiuta", modeCoop: "Coop", modeRace: "Duello (1v1)", modeTeam: "Squadra (2v2)",
     shareCode: 'Condividi questo codice con il tuo compagno',
     waitingForGuest: 'In attesa di un compagno…',
     enterHostCode: "Inserisci il codice dell'host",
