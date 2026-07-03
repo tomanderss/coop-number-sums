@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.49';
-export const BUILD_HASH = 'd08fedb';
+export const BUILD      = '1.50';
+export const BUILD_HASH = '8c27226';
 
 export const CHANGELOG = [
+  {
+    "version": "1.50",
+    "date": "03.07.2026",
+    "changes": [
+      "Coop-Verbindung deutlich stabiler: Nach Hintergrund/Standby heilt sich die Lobby jetzt beidseitig selbst (kein „halb verbundenes\" Spiel mehr, Züge gehen nicht mehr verloren), und der „Coop fortsetzen\"-Button funktioniert endlich (bis 12 Std. nach der letzten Runde, ohne den Spielstand zu überschreiben)."
+    ]
+  },
   {
     "version": "1.49",
     "date": "02.07.2026",
