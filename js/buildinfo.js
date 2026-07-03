@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.51';
-export const BUILD_HASH = '2e3b3f2';
+export const BUILD      = '1.52';
+export const BUILD_HASH = '34a11fa';
 
 export const CHANGELOG = [
+  {
+    "version": "1.52",
+    "date": "03.07.2026",
+    "changes": [
+      "Freunde-Einladungen erreichen dich jetzt auch mitten im Spiel (laufende Solo-Partie wird beim Annehmen gesichert), und offene Einladungen lassen sich per „Zurückziehen\" zurücknehmen und sofort neu senden."
+    ]
+  },
   {
     "version": "1.51",
     "date": "03.07.2026",
