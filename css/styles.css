@@ -787,24 +787,222 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes hintGroupPulse { 0%,100% { box-shadow: inset 0 0 0 2px var(--accent); } 50% { box-shadow: inset 0 0 0 4px var(--accent); } }
 
 /* ─── Confetti ─── */
-/* contain: scope Layout/Paint auf den Konfetti-Container, damit das
-   gleichzeitige Animieren von bis zu 160 Teilchen den Rest der Seite
-   (insbesondere die Sieg-Karte darunter) nicht in jedes Repaint mit hineinzieht. */
-.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; contain: layout style paint; }
-/* will-change befördert jedes Teilchen schon VOR dem ersten Animationsframe auf
-   eine eigene Compositor-Ebene -- ohne das passiert die Layer-Erzeugung für
-   alle Teilchen gleichzeitig im ersten Frame, was genau den Ruckler am Anfang
-   verursacht, den dieser Effekt eigentlich kaschieren soll. */
-.confetti i { position: absolute; top: -20px; border-radius: 2px; animation: fall linear forwards; will-change: transform, opacity; }
+/* ─── Sieganimationen (.winfx, Katalog in js/wineffects.js) ───────────────────
+   Alle Effekte animieren AUSSCHLIESSLICH transform/opacity (GPU-Compositor,
+   keine Repaints — Lehre aus dem iOS-Skin-Crash). contain: scoped Layout/Paint
+   auf den Container, damit bis zu ~180 Teilchen den Rest der Seite (v.a. die
+   Sieg-Karte darunter) nicht in jedes Repaint hineinziehen. will-change hebt
+   jedes Teilchen schon VOR dem ersten Frame auf eine eigene Compositor-Ebene
+   (sonst Initial-Ruckler). Statische filter (hue-rotate/brightness) sind ok —
+   sie werden einmal gerastert, NICHT pro Frame animiert. */
+.winfx { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; contain: layout style paint; }
+.winfx i { position: absolute; will-change: transform, opacity; font-style: normal; line-height: 1; }
+.winfx i.em { background: none !important; }
+.winfx.perfect i { filter: brightness(1.15); }
+/* Retro-Label (Arcade) */
+.winfx-label {
+  position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%) scale(.2);
+  font-family: monospace; font-size: clamp(34px, 9vw, 64px); font-weight: 900; letter-spacing: .12em;
+  color: #ffec27; text-shadow: 3px 3px 0 #ff004d, -3px -3px 0 #29adff;
+  animation: fxLabelPop .7s cubic-bezier(.2,1.6,.4,1) forwards, fxBlink 1s step-end .7s infinite;
+  will-change: transform, opacity; opacity: 0;
+}
+@keyframes fxLabelPop { to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@keyframes fxBlink { 50% { opacity: .35; } }
+
+/* Confetti (Gratis-Standard) */
+.fx-confetti i { top: -20px; border-radius: 2px; animation: fall linear forwards; }
 @keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: .9; } }
-/* Makelloser Sieg: dichteres, leicht glänzendes Konfetti (mehr/größere Teile
-   kommen bereits aus app.js). brightness() statt des vorherigen zusätzlichen
-   drop-shadow(): drop-shadow erzwingt pro Teilchen und Frame eine eigene
-   Weichzeichner-Faltung außerhalb des normalen Compositors -- bei bis zu 160
-   gleichzeitigen Teilchen war genau das die Ursache des Ruckelns am Anfang.
-   brightness() ist eine reine Pixel-Matrix-Operation ohne Faltung und bleibt
-   auf dem GPU-Compositor-Pfad. */
-.confetti.perfect i { filter: brightness(1.25); }
+.fx-confetti.perfect i { filter: brightness(1.25); }
+
+/* 🎈 Ballons: steigen von unten, sanftes Pendeln; Farbvielfalt via statischem hue-rotate */
+.fx-balloons i { top: 105vh; animation: fxRiseSway ease-in forwards; filter: hue-rotate(calc(var(--hue, 0) * 1deg)); }
+@keyframes fxRiseSway {
+  25% { transform: translate(14px, -30vh) rotate(6deg); }
+  50% { transform: translate(-12px, -60vh) rotate(-6deg); }
+  75% { transform: translate(10px, -90vh) rotate(5deg); }
+  to  { transform: translate(0, -125vh) rotate(0deg); opacity: .9; }
+}
+
+/* ⭐ Sternenregen: fallen mit Funkel-Drehung */
+.fx-stars i { top: -30px; animation: fxStarFall linear forwards; }
+@keyframes fxStarFall { 50% { transform: translateY(52vh) rotate(180deg) scale(1.25); } to { transform: translateY(108vh) rotate(360deg) scale(.8); opacity: .8; } }
+
+/* 🫧 Seifenblasen: schillernde Kreise steigen auf und "zerplatzen" (scale+fade) */
+.fx-bubbles i {
+  top: 105vh; border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, rgba(255,255,255,.85), rgba(255,255,255,.12) 42%, rgba(150,210,255,.18) 70%, rgba(255,255,255,.3));
+  box-shadow: inset 0 0 6px rgba(255,255,255,.35);
+  animation: fxBubble ease-in forwards;
+}
+@keyframes fxBubble {
+  0% { transform: translate(0, 0) scale(.6); opacity: 0; }
+  12% { opacity: 1; }
+  70% { transform: translate(var(--dx, 0), -70vh) scale(1); opacity: 1; }
+  92% { transform: translate(calc(var(--dx, 0) * 1.2), -92vh) scale(1.15); opacity: .9; }
+  to  { transform: translate(calc(var(--dx, 0) * 1.2), -94vh) scale(1.6); opacity: 0; }
+}
+
+/* 🌸 Kirschblüten: seitliches Wehen mit Taumeln */
+.fx-petals i { top: -30px; left: -10%; animation: fxPetal ease-in-out forwards; }
+@keyframes fxPetal {
+  30% { transform: translate(calc(var(--dx, 60px) * .5), 30vh) rotate(120deg); }
+  60% { transform: translate(calc(var(--dx, 60px) * .8), 62vh) rotate(200deg); }
+  to  { transform: translate(var(--dx, 60px), 108vh) rotate(340deg); opacity: .85; }
+}
+
+/* ❄️ Schneezauber: ruhiges Rieseln mit Drift */
+.fx-snow i { top: -30px; animation: fxSnow linear forwards; }
+@keyframes fxSnow { 50% { transform: translate(var(--dx, 0), 55vh) rotate(160deg); } to { transform: translate(calc(var(--dx, 0) * -0.6), 108vh) rotate(320deg); opacity: .9; } }
+.fx-snow::before { /* Frost-Schimmer vom Rand */
+  content: ''; position: absolute; inset: 0;
+  box-shadow: inset 0 0 90px 30px rgba(160, 210, 255, .28);
+  opacity: 0; animation: fxFrost 3.6s ease-out forwards;
+}
+@keyframes fxFrost { 25% { opacity: 1; } to { opacity: 0; } }
+
+/* 🎇 Wunderkerzen: Funken sprühen aus den vier Ecken (c0-c3) */
+.fx-sparklers i { width: 8px; height: 8px; border-radius: 50%; background: #ffd76a; box-shadow: 0 0 6px 1px rgba(255, 215, 106, .8); animation: fxSpark ease-out forwards; opacity: 0; }
+.fx-sparklers i.c0 { left: -1%; top: -1%; } .fx-sparklers i.c1 { right: -1%; top: -1%; }
+.fx-sparklers i.c2 { left: -1%; bottom: -1%; } .fx-sparklers i.c3 { right: -1%; bottom: -1%; }
+@keyframes fxSpark { 0% { transform: translate(0,0) scale(1); opacity: 1; } to { transform: translate(calc(var(--dx, 40px) * 8), calc(var(--dy, 30px) * 8)) scale(.2); opacity: 0; } }
+
+/* 🎆 Feuerwerk: radiale Funken je Burst (Zielvektor --dx/--dy), warme Glut via hue */
+.fx-fireworks i { width: 7px; height: 7px; border-radius: 50%; background: hsl(var(--hue, 40) 100% 65%); box-shadow: 0 0 8px 2px hsl(var(--hue, 40) 100% 60% / .7); animation: fxBurst ease-out forwards; opacity: 0; }
+@keyframes fxBurst {
+  0% { transform: translate(0, 0) scale(1.4); opacity: 1; }
+  70% { opacity: 1; }
+  to { transform: translate(var(--dx, 60px), calc(var(--dy, 60px) + 40px)) scale(.3); opacity: 0; }
+}
+
+/* 🪙 Münzregen: fallende Coins mit Dreh-Wobble (rotateY braucht kein 3D-Setup: scaleX-Pendel) */
+.fx-coins i { top: -36px; animation: fxCoin linear forwards; }
+@keyframes fxCoin { 25% { transform: translateY(26vh) scaleX(.35); } 50% { transform: translateY(53vh) scaleX(1); } 75% { transform: translateY(80vh) scaleX(.35); } to { transform: translateY(108vh) scaleX(1); opacity: .95; } }
+
+/* 🌈 Regenbogen: 7 Farbbahnen (b0-b6) fegen diagonal drüber + Glitzer */
+.fx-rainbow i[class*="b"] { left: -140%; width: 240vw; height: 5vh; border-radius: 999px; background: hsl(var(--hue, 0) 95% 60% / .55); transform: rotate(-14deg) translateX(-30vw); opacity: 0; animation: fxBand ease-in-out forwards; }
+.fx-rainbow i.b0 { top: 18%; } .fx-rainbow i.b1 { top: 25%; } .fx-rainbow i.b2 { top: 32%; } .fx-rainbow i.b3 { top: 39%; } .fx-rainbow i.b4 { top: 46%; } .fx-rainbow i.b5 { top: 53%; } .fx-rainbow i.b6 { top: 60%; }
+@keyframes fxBand { 0% { transform: rotate(-14deg) translateX(-40vw); opacity: 0; } 25% { opacity: 1; } to { transform: rotate(-14deg) translateX(48vw); opacity: 0; } }
+.fx-rainbow i.em { top: -20px; animation: fall linear forwards; }
+
+/* 🌊 Welle: Wasserkämme (b0-b2) schwappen von links + Tropfen springen */
+.fx-wave i[class*="b"] { left: -160%; bottom: -12vh; top: auto; width: 260vw; height: 42vh; border-radius: 45% 55% 0 0 / 90% 100% 0 0; background: linear-gradient(rgba(64, 164, 255, .5), rgba(20, 90, 200, .65)); opacity: 0; animation: fxWave ease-in-out forwards; }
+.fx-wave i.b1 { height: 32vh; } .fx-wave i.b2 { height: 22vh; }
+@keyframes fxWave { 0% { transform: translateX(-30vw) rotate(2deg); opacity: 1; } 55% { transform: translateX(20vw) rotate(-1deg); opacity: .9; } to { transform: translateX(60vw) translateY(46vh) rotate(0); opacity: 0; } }
+.fx-wave i.em { bottom: 30vh; top: auto; animation: fxDrop ease-out forwards; opacity: 0; }
+@keyframes fxDrop { 0% { transform: translateY(0); opacity: 1; } to { transform: translateY(calc(var(--dy, -100px) * -1)) ; opacity: 0; } }
+
+/* 🟢 Matrix: Ziffernkolonnen rieseln (Spalten-Text via white-space) */
+.fx-matrix { background: rgba(0, 12, 4, .28); }
+.fx-matrix i { top: -110vh; color: #29ff6a; text-shadow: 0 0 6px rgba(41, 255, 106, .8); white-space: pre; font-family: monospace; font-weight: 700; animation: fxMatrix linear forwards; }
+@keyframes fxMatrix { to { transform: translateY(240vh); opacity: .85; } }
+
+/* 🪩 Disco: Kugel senkt sich (::before), Lichtflecken wandern */
+.fx-disco::before { content: '🪩'; position: absolute; left: 50%; top: -14%; font-size: 64px; transform: translateX(-50%); animation: fxBallDrop 1s ease-out forwards, fxBallSpin 2.4s linear 1s infinite; will-change: transform; }
+@keyframes fxBallDrop { to { transform: translateX(-50%) translateY(26vh); } }
+@keyframes fxBallSpin { 50% { transform: translateX(-50%) translateY(26vh) rotate(12deg); } 100% { transform: translateX(-50%) translateY(26vh) rotate(0); } }
+.fx-disco i { border-radius: 50%; background: hsl(var(--hue, 0) 90% 60% / .30); animation: fxSpot ease-in-out forwards; opacity: 0; }
+@keyframes fxSpot { 0% { transform: translate(0,0) scale(.6); opacity: 0; } 25% { opacity: 1; } to { transform: translate(var(--dx, 60px), var(--dy, 40px)) scale(1.3); opacity: 0; } }
+
+/* 👾 Arcade: harte Pixel-Blöcke fallen ruckartig (steps()) */
+.fx-arcade i { top: -20px; border-radius: 0; animation: fxPixelFall steps(14, end) forwards; image-rendering: pixelated; }
+@keyframes fxPixelFall { to { transform: translateY(106vh); opacity: .95; } }
+
+/* 🌌 Galaxie: Sterne kreisen spiralförmig um die Mitte (rotate um Zentrum via Verschachtelung
+   in EINEM transform: rotate → translate → counter-scale) + Sternschnuppen */
+.fx-galaxy { background: radial-gradient(circle at 50% 45%, rgba(30, 20, 70, .42), rgba(5, 5, 20, .55)); }
+.fx-galaxy i:not(.em) { left: 50%; top: 45%; border-radius: 50%; background: hsl(var(--hue, 240) 90% 75%); box-shadow: 0 0 6px 1px hsl(var(--hue, 240) 90% 70% / .8); animation: fxOrbit linear forwards; opacity: 0; }
+@keyframes fxOrbit {
+  0%  { transform: rotate(var(--ang, 0deg)) translateX(var(--rad, 120px)) scale(1); opacity: 0; }
+  15% { opacity: 1; }
+  to  { transform: rotate(calc(var(--ang, 0deg) + 340deg)) translateX(calc(var(--rad, 120px) * .25)) scale(.5); opacity: 0; }
+}
+.fx-galaxy i.em { animation: fxShoot ease-in forwards; opacity: 0; }
+@keyframes fxShoot { 0% { transform: translate(0,0); opacity: 1; } to { transform: translate(46vw, 30vh); opacity: 0; } }
+
+/* 🕳️ Schwarzes Loch: Sog einwärts (Spirale schrumpft), dann Supernova-Ring (::after) */
+.fx-blackhole { background: radial-gradient(circle at 50% 45%, rgba(0,0,0,.5), rgba(10,5,25,.35)); }
+.fx-blackhole i { left: 50%; top: 45%; border-radius: 50%; background: hsl(var(--hue, 40) 100% 65%); box-shadow: 0 0 6px 1px hsl(var(--hue, 40) 100% 60% / .8); animation: fxSuck ease-in forwards; opacity: 0; }
+@keyframes fxSuck {
+  0%  { transform: rotate(var(--ang, 0deg)) translateX(var(--rad, 240px)) scale(1.1); opacity: 1; }
+  to  { transform: rotate(calc(var(--ang, 0deg) + 420deg)) translateX(0) scale(.1); opacity: .4; }
+}
+.fx-blackhole::after { /* Supernova nach dem Kollaps */
+  content: ''; position: absolute; left: 50%; top: 45%; width: 40px; height: 40px; border-radius: 50%;
+  background: radial-gradient(circle, #fff, #ffd76a 35%, rgba(255, 120, 40, .6) 60%, transparent 72%);
+  transform: translate(-50%, -50%) scale(0); animation: fxNova 1.4s cubic-bezier(.2, .8, .3, 1) 1.9s forwards; will-change: transform, opacity;
+}
+@keyframes fxNova { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 60% { opacity: 1; } to { transform: translate(-50%,-50%) scale(28); opacity: 0; } }
+
+/* 🧨 Kettenreaktion: Explosionsringe laufen als Diagonalwelle übers Raster */
+.fx-chain i:not(.em) { border: 3px solid hsl(var(--hue, 30) 100% 60%); border-radius: 50%; box-shadow: 0 0 12px hsl(var(--hue, 30) 100% 55% / .6), inset 0 0 8px hsl(var(--hue, 30) 100% 65% / .5); animation: fxRing ease-out forwards; transform: translate(-50%, -50%) scale(0); opacity: 0; margin: 0; }
+@keyframes fxRing { 0% { transform: translate(-50%,-50%) scale(.05); opacity: 1; } 70% { opacity: .9; } to { transform: translate(-50%,-50%) scale(1); opacity: 0; } }
+.fx-chain i.em { animation: fxPop ease-out forwards; transform: scale(0); opacity: 0; }
+@keyframes fxPop { 0% { transform: scale(.2); opacity: 1; } 60% { transform: scale(1.25); opacity: 1; } to { transform: scale(.9); opacity: 0; } }
+
+/* 🐉 Drache: fliegt in Sinuswelle übers Brett (::before), Funken-Spur folgt */
+.fx-dragon::before { content: '🐉'; position: absolute; left: -14%; top: 24%; font-size: 74px; transform: scaleX(-1); animation: fxFly 2.6s ease-in-out forwards; will-change: transform; }
+@keyframes fxFly {
+  25% { transform: scaleX(-1) translate(-32vw, 9vh) rotate(8deg); }
+  50% { transform: scaleX(-1) translate(-64vw, -4vh) rotate(-6deg); }
+  75% { transform: scaleX(-1) translate(-96vw, 8vh) rotate(6deg); }
+  to  { transform: scaleX(-1) translate(-128vw, 0) rotate(0); }
+}
+.fx-dragon i { border-radius: 50%; background: hsl(var(--hue, 30) 100% 60%); box-shadow: 0 0 8px 2px hsl(var(--hue, 30) 100% 55% / .7); animation: fxEmber ease-out forwards; opacity: 0; }
+@keyframes fxEmber { 0% { transform: translate(0,0) scale(1.2); opacity: 1; } to { transform: translate(0, 60px) scale(.2); opacity: 0; } }
+
+/* 🚀 Rakete: hebt mittig ab (::before), Rauch unten (k1), Sterne ziehen vorbei (k2) */
+.fx-rocket::before { content: '🚀'; position: absolute; left: 50%; bottom: -12%; font-size: 64px; transform: translateX(-50%) rotate(-45deg); animation: fxLaunch 2.6s cubic-bezier(.45, 0, .8, .4) forwards; will-change: transform; }
+@keyframes fxLaunch { 15% { transform: translate(-50%, -4vh) rotate(-45deg); } to { transform: translate(-50%, -135vh) rotate(-45deg); } }
+.fx-rocket i.k1 { bottom: -6vh; top: auto; animation: fxSmoke ease-out forwards; opacity: 0; }
+@keyframes fxSmoke { 0% { transform: translateY(0) scale(.5); opacity: .9; } to { transform: translateY(-22vh) scale(1.7); opacity: 0; } }
+.fx-rocket i.k2 { top: -4vh; color: #fff; animation: fxStarPass linear forwards; opacity: 0; }
+@keyframes fxStarPass { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .9; } to { transform: translateY(115vh); opacity: 0; } }
+
+/* 💎 Diamantsplitter: Scherben fliegen radial aus der Mitte (clip-path-Dreiecke) */
+.fx-shatter i:not(.em) { left: 50%; top: 45%; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: linear-gradient(160deg, rgba(200, 240, 255, .95), rgba(120, 180, 255, .55)); box-shadow: 0 0 8px rgba(160, 220, 255, .5); animation: fxShard cubic-bezier(.2, .7, .5, 1) forwards; opacity: 0; }
+@keyframes fxShard { 0% { transform: translate(0, 0) rotate(0) scale(1); opacity: 1; } to { transform: translate(var(--dx, 100px), var(--dy, 100px)) rotate(var(--rot, 360deg)) scale(.7); opacity: 0; } }
+.fx-shatter i.em { top: -30px; animation: fxStarFall linear forwards; }
+.fx-shatter::before { /* kurzer Blitz beim "Zerspringen" */
+  content: ''; position: absolute; inset: 0; background: rgba(220, 240, 255, .5); opacity: 0; animation: fxFlash .5s ease-out forwards;
+}
+@keyframes fxFlash { 0% { opacity: 1; } to { opacity: 0; } }
+
+/* 🔥 Phönix: Flammenmeer steigt, Vogel-Silhouette gleitet hoch (::before) */
+.fx-phoenix::before { content: '🦅'; position: absolute; left: 50%; bottom: -14%; font-size: 78px; transform: translateX(-50%); filter: sepia(1) saturate(6) hue-rotate(-28deg) brightness(1.15) drop-shadow(0 0 14px rgba(255, 120, 20, .8)); animation: fxPhoenixRise 3s ease-out forwards; will-change: transform; }
+@keyframes fxPhoenixRise { 40% { transform: translate(-50%, -52vh) scale(1.15); } to { transform: translate(-50%, -120vh) scale(1.25); } }
+.fx-phoenix i { top: 105vh; animation: fxFlame ease-out forwards; }
+@keyframes fxFlame { 0% { transform: translateY(0) scale(.8); opacity: 1; } to { transform: translateY(-70vh) scale(1.3); opacity: 0; } }
+
+/* 🎰 Jackpot: Lichterkranz pulsiert am Rand (::before), Münzschauer + 777 (k1) */
+.fx-jackpot::before {
+  content: ''; position: absolute; inset: 8px; border-radius: 18px; border: 6px dotted #ffd76a;
+  box-shadow: 0 0 18px rgba(255, 215, 106, .55), inset 0 0 18px rgba(255, 215, 106, .35);
+  animation: fxMarquee .5s step-end infinite; will-change: transform;
+}
+@keyframes fxMarquee { 50% { transform: rotate(.4deg) scale(1.004); border-color: #ff9d3b; } }
+.fx-jackpot i { top: -36px; animation: fxCoin linear forwards; }
+.fx-jackpot i.k1 { animation: fxSeven cubic-bezier(.2, 1.4, .4, 1) forwards; transform: translateY(-30vh) scale(.3); opacity: 0; }
+@keyframes fxSeven { 0% { transform: translateY(-30vh) scale(.4); opacity: 0; } 60% { opacity: 1; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+/* 🦄 Einhorn: galoppiert übers Brett (::before), Regenbogenspur + Funkeln (k1) */
+.fx-unicorn::before { content: '🦄'; position: absolute; left: -14%; top: 48%; font-size: 70px; transform: scaleX(-1); animation: fxGallop 2.8s ease-in-out forwards; will-change: transform; }
+@keyframes fxGallop {
+  20% { transform: scaleX(-1) translate(-26vw, -7vh) rotate(-5deg); }
+  40% { transform: scaleX(-1) translate(-52vw, -13vh) rotate(4deg); }
+  60% { transform: scaleX(-1) translate(-78vw, -9vh) rotate(-5deg); }
+  80% { transform: scaleX(-1) translate(-104vw, -2vh) rotate(4deg); }
+  to  { transform: scaleX(-1) translate(-130vw, 0) rotate(0); }
+}
+.fx-unicorn i:not(.k1) { border-radius: 50%; background: hsl(var(--hue, 0) 95% 62%); box-shadow: 0 0 8px hsl(var(--hue, 0) 95% 60% / .7); animation: fxTrail ease-out forwards; opacity: 0; }
+@keyframes fxTrail { 0% { transform: translateY(0) scale(1); opacity: .95; } to { transform: translateY(26px) scale(.3); opacity: 0; } }
+.fx-unicorn i.k1 { animation: fxTwinkle ease-in-out forwards; opacity: 0; }
+@keyframes fxTwinkle { 0% { transform: scale(.4); opacity: 0; } 40% { transform: scale(1.2); opacity: 1; } to { transform: scale(.5); opacity: 0; } }
+
+/* Reduzierte Bewegung: nur der ruhige Standard, keine Dauer-Loops */
+@media (prefers-reduced-motion: reduce) {
+  .fx-disco::before, .fx-jackpot::before, .winfx-label { animation-iteration-count: 1; }
+}
 
 /* ─── Stats ─── */
 /* Kleines horizontales Padding, damit der Box-Shadow der Stat-Boxen (und der
@@ -1451,3 +1649,14 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
   color: var(--text3); background: var(--bg3); border-radius: 999px; padding: 2px 8px;
 }
+/* Sieganimations-Karten: Vorschau oben rechts, Kauf-/Aktiv-Zustand unten */
+.shop-sec-title { font-weight: 900; font-size: 1.02rem; margin: 6px 0 0; }
+.shop-sec-hint { color: var(--text2); font-size: .84rem; margin: 0 0 4px; }
+.shop-card.fx.fxactive { box-shadow: 0 0 0 2px var(--accent), 0 2px 8px var(--shadow); }
+.shop-fx-preview {
+  position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bg3); color: var(--text2); font-size: .78rem; display: flex; align-items: center; justify-content: center;
+}
+.shop-fx-preview:active { background: var(--accent); color: #fff; }
+.shop-buy-btn { min-width: 84px; }
+.shop-fx-state.on { font-size: .78rem; font-weight: 800; color: var(--accent); padding: 6px 0 2px; }

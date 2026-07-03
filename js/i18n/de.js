@@ -240,6 +240,7 @@ export default {
     sfxWin: 'Gewonnen',
     sfxLose: 'Verloren',
     a11y: 'Barrierefreiheit',
+    winEffect: 'Sieganimation', winEffectHint: 'Wird bei jedem Sieg abgespielt. Mehr davon im',
     colorBlindMode: '🎨 Farbenblind-Modus',
     colorBlindModeHint: 'Ersetzt Grün/Rot im gesamten Spiel (richtig/falsch, Hinweise, Leben, Coop-Farben, ...) durch besser unterscheidbare Töne für Rot-Grün-/Blau-Gelb-Sehschwäche.',
     coop: 'Coop',
@@ -519,6 +520,10 @@ export default {
     err: { invalidUsername: 'Ungültiger Benutzername.', userNotFound: 'Kein Nutzer mit diesem Benutzernamen gefunden.', alreadyFriends: 'Ihr seid bereits befreundet.', selfFriend: 'Du kannst dich nicht selbst hinzufügen.', notSignedIn: 'Bitte melde dich zuerst an.' },
   },
   shop: {
+    winFxTitle: 'Sieganimationen', winFxHint: 'Kaufe neue Animationen für deinen Sieg-Moment — Vorschau mit ▶, gekaufte jederzeit wechselbar.',
+    preview: 'Vorschau', activate: 'Aktivieren', active: 'Aktiv',
+    bought: 'Gekauft! 🎉', notEnough: 'Nicht genug Münzen', activated: 'Aktiviert',
+    effect: { confetti: 'Konfetti', balloons: 'Ballon-Party', stars: 'Sternenregen', bubbles: 'Seifenblasen', petals: 'Kirschblüten', snow: 'Schneezauber', sparklers: 'Wunderkerzen', fireworks: 'Feuerwerk', coins: 'Münzregen', rainbow: 'Regenbogen-Welle', wave: 'Welle', matrix: 'Matrix-Regen', disco: 'Disco', arcade: 'Retro-Arcade', galaxy: 'Galaxie-Wirbel', blackhole: 'Schwarzes Loch', chain: 'Kettenreaktion', dragon: 'Drachenflug', rocket: 'Raketenstart', shatter: 'Diamantsplitter', phoenix: 'Phönix', jackpot: 'Jackpot', unicorn: 'Einhorn' },
     title: 'Shop',
     intro: 'Verdiene Münzen durch Siege und gib sie hier für kosmetische Extras aus.',
     wip: 'Der Shop ist noch in Arbeit — bald kannst du deine Münzen hier ausgeben.',

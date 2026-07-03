@@ -240,6 +240,7 @@ export default {
     sfxWin: '勝利',
     sfxLose: '敗北',
     a11y: 'アクセシビリティ',
+    winEffect: '勝利アニメーション', winEffectHint: '勝利のたびに再生されます。追加は',
     colorBlindMode: '🎨 色覚サポートモード',
     colorBlindModeHint: 'ゲーム全体（正解/不正解、ヒント、ライフ、Coopカラーなど）の緑/赤を、赤緑・青黄色覚異常でも区別しやすい色に置き換えます。',
     coop: 'Coop',
@@ -428,6 +429,10 @@ export default {
     err: { invalidUsername: 'ユーザー名が無効です。', userNotFound: 'そのユーザー名のユーザーが見つかりません。', alreadyFriends: 'すでにフレンドです。', selfFriend: '自分自身は追加できません。', notSignedIn: '先にサインインしてください。' },
   },
   shop: {
+    winFxTitle: '勝利アニメーション', winFxHint: '勝利の瞬間を彩るアニメーションを購入 — ▶でプレビュー、いつでも切り替え可能。',
+    preview: 'プレビュー', activate: '使う', active: '使用中',
+    bought: '購入しました！🎉', notEnough: 'コインが足りません', activated: '設定しました',
+    effect: { confetti: '紙吹雪', balloons: 'バルーンパーティー', stars: '星のシャワー', bubbles: 'シャボン玉', petals: '桜吹雪', snow: '雪の魔法', sparklers: '線香花火', fireworks: '打ち上げ花火', coins: 'コインの雨', rainbow: '虹の波', wave: '大波', matrix: 'マトリックスの雨', disco: 'ディスコ', arcade: 'レトロアーケード', galaxy: '銀河の渦', blackhole: 'ブラックホール', chain: '連鎖爆発', dragon: 'ドラゴンの飛行', rocket: 'ロケット発射', shatter: 'ダイヤの欠片', phoenix: 'フェニックス', jackpot: 'ジャックポット', unicorn: 'ユニコーン' },
     title: 'ショップ',
     intro: '勝ってコインを稼ぎ、ここで装飾アイテムに使えます。',
     wip: 'ショップは準備中です — まもなくコインを使えるようになります。',

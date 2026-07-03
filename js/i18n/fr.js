@@ -240,6 +240,7 @@ export default {
     sfxWin: 'Victoire',
     sfxLose: 'Défaite',
     a11y: 'Accessibilité',
+    winEffect: 'Animation de victoire', winEffectHint: 'Jouée à chaque victoire. Plus de choix dans la',
     colorBlindMode: '🎨 Mode daltonien',
     colorBlindModeHint: 'Remplace le vert/rouge partout dans le jeu (correct/incorrect, indices, vies, couleurs coop, ...) par des teintes plus distinguables pour la déficience visuelle rouge-vert/bleu-jaune.',
     coop: 'Coopératif',
@@ -428,6 +429,10 @@ export default {
     err: { invalidUsername: 'Nom d’utilisateur invalide.', userNotFound: 'Aucun utilisateur trouvé avec ce nom.', alreadyFriends: 'Vous êtes déjà amis.', selfFriend: 'Tu ne peux pas t’ajouter toi-même.', notSignedIn: 'Connecte-toi d’abord.' },
   },
   shop: {
+    winFxTitle: 'Animations de victoire', winFxHint: 'Achète des animations pour ton moment de victoire — aperçu avec ▶, change à tout moment.',
+    preview: 'Aperçu', activate: 'Activer', active: 'Active',
+    bought: 'Acheté ! 🎉', notEnough: 'Pas assez de pièces', activated: 'Activée',
+    effect: { confetti: 'Confettis', balloons: 'Fête de ballons', stars: 'Pluie d\'étoiles', bubbles: 'Bulles de savon', petals: 'Fleurs de cerisier', snow: 'Magie de neige', sparklers: 'Cierges magiques', fireworks: 'Feu d\'artifice', coins: 'Pluie de pièces', rainbow: 'Vague arc-en-ciel', wave: 'Vague océane', matrix: 'Pluie Matrix', disco: 'Disco', arcade: 'Arcade rétro', galaxy: 'Tourbillon galactique', blackhole: 'Trou noir', chain: 'Réaction en chaîne', dragon: 'Vol du dragon', rocket: 'Décollage de fusée', shatter: 'Éclats de diamant', phoenix: 'Phénix', jackpot: 'Jackpot', unicorn: 'Licorne' },
     title: 'Boutique',
     intro: 'Gagne des pièces en gagnant et dépense-les ici pour des extras cosmétiques.',
     wip: 'La boutique est en cours — bientôt tu pourras dépenser tes pièces ici.',

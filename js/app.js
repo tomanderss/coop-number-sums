@@ -18,9 +18,10 @@ import {
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, saveProfile, loadInventory, grantInventory,
-  loadWallet, grantCurrency,
+  loadWallet, grantCurrency, spendCurrency,
   setDataRev, setSyncedRev,
 } from './storage.js';
+import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -207,7 +208,7 @@ const state = reactive({
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
-  confetti: [],
+  winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
 });
 
@@ -484,7 +485,6 @@ const SHOP_ITEMS = [
   { id: 'coopColors', icon: '✨' },
   { id: 'numberFonts', icon: '🔢' },
   { id: 'soundPacks', icon: '🎵' },
-  { id: 'winEffects', icon: '🎉' },
   { id: 'profileBadges', icon: '🏅' },
   { id: 'boardFrames', icon: '🖼️' },
   { id: 'moreSoon', icon: '➕' },
@@ -497,6 +497,31 @@ function openShop() {
   navigate('shop');
 }
 function closeShop() { const b = shopReturn || 'home'; shopReturn = null; navigate(b); }
+// ── Sieganimationen: erste echte Shop-Kategorie (Katalog: js/wineffects.js) ────
+function ownsWinFx(id) { return ownsEffect(state.inventory, id); }
+function winFxActive(id) { return resolveActiveEffect(state.settings.winEffect, state.inventory) === id; }
+// Liste der eigenen (kaufbaren + gekauften) Effekte für den Settings-Picker.
+function ownedWinFx() { return WIN_EFFECTS.filter(e => ownsWinFx(e.id)); }
+function buyWinFx(id) {
+  if (ownsWinFx(id)) return;
+  const price = effectPrice(id);
+  const r = spendCurrency(price, 'shop:' + id);
+  if (!r.ok) { showToast(t('shop.notEnough'), 'error', 2600); return; }
+  state.wallet = loadWallet();
+  state.inventory = grantInventory(winEffectInvKey(id), 'shop');
+  setSetting('winEffect', id); // Gekauftes direkt aktivieren — das will man praktisch immer
+  log('game', 'Sieganimation gekauft', { id, price, balance: r.balance });
+  showToast(t('shop.bought'), 'success', 2400);
+  if (state.account.status === 'in') Account.scheduleSyncUp();
+}
+function activateWinFx(id) {
+  if (!ownsWinFx(id)) return;
+  setSetting('winEffect', id);
+  showToast(t('shop.activated'), 'success', 1800);
+}
+// Vorschau: spielt die Animation sofort auf dem aktuellen Screen ab (Overlay ist
+// global) — ohne Kauf, ohne Sieg. Perfekt-Variante zeigt das volle Spektakel.
+function previewWinFx(id) { launchWinFx(true, id); }
 
 function openSettings() {
   if (state.screen === 'settings') return;
@@ -2091,7 +2116,7 @@ function win(remote) {
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
-  launchConfetti((state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0);
+  launchWinFx((state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0);
   // Trainingsrätsel (geführter Lernmodus, keine echte eigene Leistung)
   // fließen bewusst nicht in die nach Schwierigkeit gebucketeten Streaks/
   // Bestzeiten ein.
@@ -2364,29 +2389,203 @@ function attemptCoopRejoin(sess) {
   });
 }
 
-// ─── CONFETTI ─────────────────────────────────────────────────────────────────
-// Bei einem makellosen Sieg (keine Fehler, keine Hinweise) fällt die Animation
-// dichter und länger aus -- abgestufte Belohnung statt eines einzigen festen
-// Effekts für jeden Sieg.
-function launchConfetti(perfect) {
+// ─── SIEGANIMATIONEN (Confetti + kaufbare Shop-Effekte) ───────────────────────
+// Bei einem makellosen Sieg (keine Fehler, keine Hinweise) fällt jede Animation
+// dichter/länger aus -- abgestufte Belohnung statt eines festen Effekts.
+//
+// Architektur: js/wineffects.js hält den Katalog (ids/Preise/Besitzlogik), hier
+// erzeugt PIECE_GENERATORS pro Effekt einmalig ein Partikel-Array; gerendert
+// wird alles in EINEM fixed Overlay (.winfx.fx-<id>), dessen Optik komplett in
+// css/styles.css lebt (nur transform/opacity-Animationen — GPU-Kompositor,
+// keine Repaints; Lehre aus dem iOS-Skin-Crash). markRaw: die Teilchen ändern
+// sich nach dem Erzeugen nie wieder -- ohne markRaw würde Vue für jedes der bis
+// zu ~180 Objekte einen reaktiven Proxy anlegen (Initial-Ruckler).
+const R = (a, b) => a + Math.random() * (b - a);
+// Standard-Faller (Confetti/Sterne/Blüten/Schnee/Münzen …): von oben herab.
+function fallPieces(n, make) {
+  const out = [];
+  for (let i = 0; i < n; i++) out.push({ id: i, left: R(0, 100), delay: R(0, 0.9), dur: R(1.8, 3.4), rot: R(0, 360), ...make(i) });
+  return out;
+}
+// Aufsteiger (Ballons/Blasen/Flammen): von unten nach oben.
+function risePieces(n, make) {
+  const out = [];
+  for (let i = 0; i < n; i++) out.push({ id: i, left: R(0, 100), delay: R(0, 1.4), dur: R(2.2, 4), rot: R(-20, 20), ...make(i) });
+  return out;
+}
+const PIECE_GENERATORS = {
+  confetti(perfect) {
+    const colors = REGION_COLORS.map(c => `hsl(${c.h} ${c.s}% ${c.l}%)`);
+    return fallPieces(perfect ? 160 : 80, (i) => ({
+      color: colors[i % colors.length], size: perfect ? R(8, 18) : R(6, 14), delay: R(0, 0.5), dur: R(1.6, 3),
+    }));
+  },
+  balloons(perfect) {
+    return risePieces(perfect ? 26 : 16, () => ({ ch: '🎈', size: R(26, 46), hue: Math.floor(R(0, 360)) }));
+  },
+  stars(perfect) {
+    const chs = ['⭐', '🌟', '✨'];
+    return fallPieces(perfect ? 90 : 50, (i) => ({ ch: chs[i % 3], size: R(12, 30) }));
+  },
+  bubbles(perfect) {
+    return risePieces(perfect ? 60 : 34, () => ({ size: R(10, 44), dx: R(-30, 30) }));
+  },
+  petals(perfect) {
+    const chs = ['🌸', '🌺'];
+    return fallPieces(perfect ? 60 : 34, (i) => ({ ch: chs[i % 2], size: R(14, 28), dx: R(30, 120), dur: R(3, 5) }));
+  },
+  snow(perfect) {
+    const chs = ['❄️', '❅', '❆'];
+    return fallPieces(perfect ? 90 : 50, (i) => ({ ch: chs[i % 3], size: R(10, 26), dx: R(-40, 40), dur: R(2.6, 4.6) }));
+  },
+  sparklers(perfect) {
+    // Funken sprühen aus den vier Ecken zur Mitte: corner 0-3, Streuwinkel als dx/dy-Ziel.
+    const n = perfect ? 120 : 70, out = [];
+    for (let i = 0; i < n; i++) {
+      const corner = i % 4;
+      out.push({ id: i, corner, delay: R(0, 1.6), dur: R(0.9, 1.8), size: R(6, 14),
+        dx: R(18, 60) * (corner % 2 === 0 ? 1 : -1), dy: R(12, 45) * (corner < 2 ? 1 : -1) });
+    }
+    return out;
+  },
+  fireworks(perfect) {
+    // Bursts: je Explosion ein Zentrum, 14 Funken radial (Winkel via --dx/--dy vorberechnet).
+    const bursts = perfect ? 7 : 4, out = []; let id = 0;
+    for (let b = 0; b < bursts; b++) {
+      const cx = R(15, 85), cy = R(12, 45), delay = b * 0.55 + R(0, 0.2), hue = Math.floor(R(0, 360));
+      for (let k = 0; k < 14; k++) {
+        const ang = (k / 14) * Math.PI * 2, r = R(60, 130);
+        out.push({ id: id++, left: cx, top: cy, delay, dur: R(1, 1.6), size: R(5, 9), hue,
+          dx: Math.cos(ang) * r, dy: Math.sin(ang) * r });
+      }
+    }
+    return out;
+  },
+  coins(perfect) {
+    const chs = ['🪙', '💰'];
+    return fallPieces(perfect ? 70 : 40, (i) => ({ ch: chs[i % 5 === 0 ? 1 : 0], size: R(16, 32), dur: R(1.4, 2.6) }));
+  },
+  rainbow(perfect) {
+    // 7 Farbbahnen fegen diagonal über den Schirm + Glitzer hinterher.
+    const out = [];
+    for (let i = 0; i < 7; i++) out.push({ id: i, band: i, delay: i * 0.12, dur: 1.8, hue: [0, 30, 55, 120, 200, 240, 280][i] });
+    for (let i = 0; i < (perfect ? 50 : 26); i++) out.push({ id: 100 + i, ch: '✨', left: R(0, 100), delay: R(0.6, 2), dur: R(1, 2), size: R(10, 20) });
+    return out;
+  },
+  wave(perfect) {
+    // 3 Wellenkämme schwappen von links + Tropfen spritzen oben ab.
+    const out = [];
+    for (let i = 0; i < 3; i++) out.push({ id: i, band: i, delay: i * 0.4, dur: 2.4 });
+    for (let i = 0; i < (perfect ? 46 : 26); i++) out.push({ id: 100 + i, ch: '💧', left: R(0, 100), delay: R(0.4, 2.2), dur: R(0.9, 1.6), size: R(10, 20), dy: R(-160, -60) });
+    return out;
+  },
+  matrix(perfect) {
+    // Zahlenkolonnen (jede Spalte ein Element mit vertikalem Ziffern-Text).
+    const cols = perfect ? 26 : 16, out = [];
+    for (let i = 0; i < cols; i++) {
+      let txt = ''; const len = Math.floor(R(6, 14));
+      for (let k = 0; k < len; k++) txt += Math.floor(R(1, 10)) + '\n';
+      out.push({ id: i, left: (i + 0.5) * (100 / cols), delay: R(0, 1.2), dur: R(1.6, 3), size: R(12, 20), txt });
+    }
+    return out;
+  },
+  disco(perfect) {
+    // Wandernde Lichtflecken; die Kugel selbst ist ::before des Overlays.
+    const n = perfect ? 26 : 14, out = [];
+    for (let i = 0; i < n; i++) out.push({ id: i, left: R(0, 100), top: R(10, 90), delay: R(0, 1.5), dur: R(1.2, 2.4), size: R(40, 110), hue: Math.floor(R(0, 360)), dx: R(-120, 120), dy: R(-80, 80) });
+    return out;
+  },
+  arcade(perfect) {
+    // Pixel-Quadrate explodieren blockig; "YOU WIN" via Overlay-Label (CSS).
+    const n = perfect ? 90 : 50, colors = ['#ff004d', '#ffa300', '#ffec27', '#00e436', '#29adff', '#ff77a8'];
+    return fallPieces(n, (i) => ({ color: colors[i % colors.length], size: Math.floor(R(1, 4)) * 6, dur: R(1.2, 2.2), rot: 0 }));
+  },
+  galaxy(perfect) {
+    // Sterne kreisen spiralförmig um die Mitte (rotierender Arm via --ang) + Sternschnuppen.
+    const n = perfect ? 80 : 46, out = [];
+    for (let i = 0; i < n; i++) out.push({ id: i, ang: R(0, 360), rad: R(30, 240), delay: R(0, 0.8), dur: R(2.4, 4), size: R(3, 7), hue: R(190, 300) });
+    for (let i = 0; i < (perfect ? 6 : 3); i++) out.push({ id: 500 + i, ch: '💫', left: R(0, 70), top: R(5, 40), delay: R(0.4, 2.4), dur: 1.1, size: R(16, 26) });
+    return out;
+  },
+  blackhole(perfect) {
+    // Phase im CSS: erst spiralig einwärts (Sog), dann Supernova-Burst (::after).
+    const n = perfect ? 90 : 54, out = [];
+    for (let i = 0; i < n; i++) out.push({ id: i, ang: R(0, 360), rad: R(120, 420), delay: R(0, 0.7), dur: R(1.2, 2), size: R(3, 8), hue: R(20, 60) });
+    return out;
+  },
+  chain(perfect) {
+    // Explosionsringe laufen als Welle diagonal über den Schirm (Grid 6×4).
+    const cols = 6, rows = 4, out = []; let id = 0;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      out.push({ id: id++, left: (c + 0.5) * (100 / cols), top: (r + 0.5) * (100 / rows), delay: (c + r) * 0.16 + R(0, 0.06), dur: 0.9, size: perfect ? 130 : 100, hue: R(10, 50) });
+    }
+    for (let i = 0; i < (perfect ? 40 : 22); i++) out.push({ id: 900 + i, ch: '💥', left: R(0, 100), top: R(0, 100), delay: R(0.2, 1.8), dur: 0.8, size: R(16, 30) });
+    return out;
+  },
+  dragon(perfect) {
+    // Drache fliegt via Overlay-::before; hier nur die Funken-Spur entlang der Flugbahn.
+    const n = perfect ? 70 : 40, out = [];
+    for (let i = 0; i < n; i++) { const p = i / n; out.push({ id: i, left: p * 110 - 5, top: 26 + Math.sin(p * Math.PI * 2) * 14, delay: p * 2 + R(0, 0.12), dur: R(0.8, 1.6), size: R(5, 11), hue: R(10, 55) }); }
+    return out;
+  },
+  rocket(perfect) {
+    // Rakete = ::before; Rauchwolken unten + vorbeiziehende Sterne.
+    const out = [];
+    for (let i = 0; i < (perfect ? 26 : 16); i++) out.push({ id: i, ch: '💨', left: R(35, 65), delay: R(0, 1.4), dur: R(1.2, 2), size: R(18, 38), kind: 1 });
+    for (let i = 0; i < (perfect ? 50 : 30); i++) out.push({ id: 100 + i, ch: '✦', left: R(0, 100), delay: R(0, 2), dur: R(0.7, 1.4), size: R(8, 16), kind: 2 });
+    return out;
+  },
+  shatter(perfect) {
+    // Kristallscherben (clip-path-Dreiecke) fliegen radial aus der Mitte + Diamanten.
+    const n = perfect ? 60 : 36, out = [];
+    for (let i = 0; i < n; i++) { const ang = R(0, Math.PI * 2), r = R(140, 420); out.push({ id: i, dx: Math.cos(ang) * r, dy: Math.sin(ang) * r, delay: R(0, 0.25), dur: R(1, 1.8), size: R(10, 26), rot: R(0, 720) }); }
+    for (let i = 0; i < 8; i++) out.push({ id: 500 + i, ch: '💎', left: R(10, 90), delay: R(0.3, 1), dur: R(1.4, 2.2), size: R(16, 28), kind: 1 });
+    return out;
+  },
+  phoenix(perfect) {
+    // Flammenzungen steigen vom unteren Rand; der Phönix selbst ist ::before.
+    return risePieces(perfect ? 80 : 46, () => ({ ch: '🔥', size: R(16, 40), dur: R(1.4, 2.6), delay: R(0, 1.8) }));
+  },
+  jackpot(perfect) {
+    // Lichterkranz = Overlay-Rahmen (::before/::after); Münzschauer + 7er.
+    const out = fallPieces(perfect ? 70 : 40, (i) => ({ ch: i % 6 === 0 ? '💰' : '🪙', size: R(16, 32), dur: R(1.3, 2.4) }));
+    for (let i = 0; i < 3; i++) out.push({ id: 800 + i, ch: '7️⃣', left: 32 + i * 16, top: 30, delay: 0.3 + i * 0.35, dur: 1.6, size: 44, kind: 1 });
+    return out;
+  },
+  unicorn(perfect) {
+    // Einhorn galoppiert via ::before; Regenbogenspur + Funken folgen der Bahn.
+    const n = perfect ? 60 : 36, out = [];
+    for (let i = 0; i < n; i++) { const p = i / n; out.push({ id: i, left: p * 110 - 5, top: 55 - Math.sin(p * Math.PI) * 18, delay: p * 2.2, dur: 1.6, size: R(8, 16), hue: Math.floor(p * 360) }); }
+    for (let i = 0; i < 14; i++) out.push({ id: 500 + i, ch: '✨', left: R(0, 100), top: R(30, 75), delay: R(0.5, 2.4), dur: 1, size: R(10, 18), kind: 1 });
+    return out;
+  },
+};
+const WINFX_DURATION = { confetti: [3500, 4800] }; // Default unten: 4200/5600
+function launchWinFx(perfect, forceId) {
+  const id = forceId || resolveActiveEffect(state.settings.winEffect, state.inventory);
+  const gen = PIECE_GENERATORS[id] || PIECE_GENERATORS[CONFETTI_ID];
   state.perfectWin = !!perfect;
-  const colors = REGION_COLORS.map(c => `hsl(${c.h} ${c.s}% ${c.l}%)`);
-  const count = perfect ? 160 : 80;
-  const pieces = [];
-  for (let i = 0; i < count; i++) {
-    pieces.push({
-      id: i, left: Math.random() * 100,
-      delay: Math.random() * 0.5, dur: 1.6 + Math.random() * 1.4,
-      color: colors[i % colors.length], rot: Math.random() * 360,
-      size: perfect ? 8 + Math.random() * 10 : 6 + Math.random() * 8,
-    });
-  }
-  // markRaw: die Teilchen ändern sich nach dem Erzeugen nie wieder (reine
-  // CSS-Animation übernimmt den Rest) -- ohne markRaw würde Vue für jedes der
-  // bis zu 160 Objekte einen reaktiven Proxy anlegen, was beim Auslösen genau
-  // den Initial-Ruckler verursacht, den dieser Effekt eigentlich feiern soll.
-  state.confetti = pieces.map(p => markRaw(p));
-  setTimeout(() => { state.confetti = []; }, perfect ? 4800 : 3500);
+  const [durNormal, durPerfect] = WINFX_DURATION[id] || [4200, 5600];
+  state.winFx = { id, pieces: gen(!!perfect).map(p => markRaw(p)), seq: (state.winFx?.seq || 0) + 1 };
+  const mySeq = state.winFx.seq;
+  setTimeout(() => { if (state.winFx && state.winFx.seq === mySeq) state.winFx = null; }, perfect ? durPerfect : durNormal);
+}
+// Stil-Bindung eines Partikels (nur einmal beim Erzeugen ausgewertet; die
+// eigentliche Bewegung machen CSS-Keyframes über transform/opacity).
+function winFxStyle(p) {
+  const s = { animationDelay: p.delay + 's', animationDuration: p.dur + 's' };
+  if (p.left != null) s.left = p.left + '%';
+  if (p.top != null) s.top = p.top + '%';
+  if (p.ch || p.txt) s.fontSize = p.size + 'px';
+  else { s.width = p.size + 'px'; s.height = p.size + 'px'; }
+  if (p.color) s.background = p.color;
+  if (p.hue != null) s['--hue'] = p.hue;
+  if (p.dx != null) s['--dx'] = p.dx + 'px';
+  if (p.dy != null) s['--dy'] = p.dy + 'px';
+  if (p.ang != null) s['--ang'] = p.ang + 'deg';
+  if (p.rad != null) s['--rad'] = p.rad + 'px';
+  if (p.rot) s['--rot'] = p.rot + 'deg';
+  return s;
 }
 
 // ─── EINSTELLUNGEN ────────────────────────────────────────────────────────────
@@ -2779,6 +2978,8 @@ function adminFmtDate(ts) {
 // vorkommt) — der Admin muss keine Schlüssel auswendig kennen.
 function adminItemOptions() {
   const ids = new Set([SKIN_ID, FOUNDER_ID]);
+  // Alle kaufbaren Sieganimationen sind auch verschenkbar (Confetti nicht — die gehört allen).
+  for (const e of WIN_EFFECTS) if (e.id !== CONFETTI_ID) ids.add(winEffectInvKey(e.id));
   for (const u of state.account.adminUsers) Object.keys(u.inventory || {}).forEach((k) => ids.add(k));
   return [...ids].sort();
 }
@@ -2924,7 +3125,13 @@ function adminEnumOptions(row) {
     return { v, label: s === key ? v : s };
   });
 }
-function adminItemLabel(id) { const key = `admin.dict.o.item.${id}`; const s = t(key); return s === key ? id : s; }
+function adminItemLabel(id) {
+  const key = `admin.dict.o.item.${id}`; const s = t(key);
+  if (s !== key) return s;
+  // Sieganimationen: Shop-Namen wiederverwenden statt eigener Dict-Einträge.
+  if (id.startsWith('winfx_')) { const k2 = `shop.effect.${id.slice(6)}`; const s2 = t(k2); if (s2 !== k2) return `🎉 ${s2}`; }
+  return id;
+}
 // Epoch-Millisekunden als lesbares Datum unter dem Zahlenfeld anzeigen.
 function adminRowTimestamp(row) {
   const v = adminFieldValue(row);
@@ -3656,6 +3863,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, coinFor, SHOP_ITEMS,
+      WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -4086,10 +4294,6 @@ const App = {
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
-      <!-- Confetti -->
-      <div v-if="state.confetti.length" class="confetti" :class="{ perfect: state.perfectWin }">
-        <i v-for="p in state.confetti" :key="p.id" :style="{left:p.left+'%', background:p.color, animationDelay:p.delay+'s', animationDuration:p.dur+'s', width:p.size+'px', height:p.size+'px', transform:'rotate('+p.rot+'deg)'}"></i>
-      </div>
     </section>
 
     <!-- ══ STATS ══ -->
@@ -4394,6 +4598,21 @@ const App = {
       </header>
       <div class="shop-body">
         <p class="shop-intro">{{ t('shop.intro') }}</p>
+
+        <!-- 🎉 Sieganimationen: erste echte Kategorie (kaufen/aktivieren/Vorschau) -->
+        <div class="shop-sec-title">🎉 {{ t('shop.winFxTitle') }}</div>
+        <p class="shop-sec-hint">{{ t('shop.winFxHint') }}</p>
+        <div class="shop-grid">
+          <div v-for="e in WIN_EFFECTS" :key="e.id" class="shop-card fx" :class="{ owned: ownsWinFx(e.id), fxactive: winFxActive(e.id) }">
+            <button class="shop-fx-preview" @click="previewWinFx(e.id)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
+            <span class="shop-card-ic">{{ e.icon }}</span>
+            <span class="shop-card-name">{{ t('shop.effect.'+e.id) }}</span>
+            <button v-if="!ownsWinFx(e.id)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < effectPrice(e.id)" @click="buyWinFx(e.id)">💰 {{ effectPrice(e.id) }}</button>
+            <span v-else-if="winFxActive(e.id)" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
+            <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="activateWinFx(e.id)">{{ t('shop.activate') }}</button>
+          </div>
+        </div>
+
         <div class="shop-wip-banner">🚧 {{ t('shop.wip') }}</div>
         <div class="shop-grid">
           <div v-for="it in SHOP_ITEMS" :key="it.id" class="shop-card disabled">
@@ -4463,6 +4682,15 @@ const App = {
             <select class="text-input" :value="state.settings.language" @change="setSetting('language', $event.target.value)">
               <option v-for="l in SUPPORTED_LOCALES" :key="l.id" :value="l.id">{{ l.label }}</option>
             </select>
+          </div>
+
+          <!-- 🎉 Sieganimation: Auswahl aller GEKAUFTEN Effekte (Kauf im Shop) -->
+          <div class="set-row col">
+            <span class="set-row-label">🎉 {{ t('settings.winEffect') }}</span>
+            <select class="text-input" :value="state.settings.winEffect || 'confetti'" @change="activateWinFx($event.target.value)">
+              <option v-for="e in ownedWinFx()" :key="e.id" :value="e.id">{{ e.icon }} {{ t('shop.effect.'+e.id) }}</option>
+            </select>
+            <small class="set-hint">{{ t('settings.winEffectHint') }} <button class="btn-link" @click="openShop">{{ t('shop.title') }} ›</button></small>
           </div>
 
           <div class="set-group-title">{{ t('settings.a11y') }}</div>
@@ -4752,6 +4980,13 @@ const App = {
     <!-- ══ TOAST ══ -->
     <transition name="toast">
       <div v-if="state.toast" class="toast" :class="state.toast.type">{{ state.toast.msg }}</div>
+
+    <!-- Sieganimation: global (fixed Overlay), damit die Shop-Vorschau auf jedem
+         Screen funktioniert — nicht nur im Spiel. -->
+    <div v-if="state.winFx" class="winfx" :class="['fx-' + state.winFx.id, { perfect: state.perfectWin }]" :key="state.winFx.seq">
+      <i v-for="p in state.winFx.pieces" :key="p.id" :class="[p.ch ? 'em' : '', p.txt ? 'tx' : '', p.kind ? 'k' + p.kind : '', p.corner != null ? 'c' + p.corner : '', p.band != null ? 'b' + p.band : '']" :style="winFxStyle(p)">{{ p.ch || p.txt || '' }}</i>
+      <b v-if="state.winFx.id==='arcade'" class="winfx-label">YOU WIN</b>
+    </div>
     </transition>
     <!-- Top-Banner statt Toast: verdeckt nie das Spielfeld, sitzt am oberen Rand. -->
     <transition name="toast">

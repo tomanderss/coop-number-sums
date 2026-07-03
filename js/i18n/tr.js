@@ -240,6 +240,7 @@ export default {
     sfxWin: 'Kazanma',
     sfxLose: 'Kaybetme',
     a11y: 'Erişilebilirlik',
+    winEffect: 'Zafer animasyonu', winEffectHint: 'Her zaferde oynatılır. Daha fazlası:',
     colorBlindMode: '🎨 Renk körlüğü modu',
     colorBlindModeHint: 'Oyunun her yerindeki (doğru/yanlış, ipuçları, canlar, coop renkleri, ...) yeşil/kırmızıyı, kırmızı-yeşil/mavi-sarı renk görme bozukluğu için daha kolay ayırt edilen tonlarla değiştirir.',
     coop: 'Coop',
@@ -428,6 +429,10 @@ export default {
     err: { invalidUsername: 'Geçersiz kullanıcı adı.', userNotFound: 'Bu kullanıcı adına sahip kullanıcı bulunamadı.', alreadyFriends: 'Zaten arkadaşsınız.', selfFriend: 'Kendini ekleyemezsin.', notSignedIn: 'Lütfen önce giriş yap.' },
   },
   shop: {
+    winFxTitle: 'Zafer animasyonları', winFxHint: 'Zafer anın için animasyonlar satın al — ▶ ile önizle, istediğin zaman değiştir.',
+    preview: 'Önizleme', activate: 'Etkinleştir', active: 'Etkin',
+    bought: 'Satın alındı! 🎉', notEnough: 'Yeterli para yok', activated: 'Etkinleştirildi',
+    effect: { confetti: 'Konfeti', balloons: 'Balon partisi', stars: 'Yıldız yağmuru', bubbles: 'Sabun köpüğü', petals: 'Kiraz çiçekleri', snow: 'Kar büyüsü', sparklers: 'Maytap', fireworks: 'Havai fişek', coins: 'Para yağmuru', rainbow: 'Gökkuşağı dalgası', wave: 'Dalga', matrix: 'Matrix yağmuru', disco: 'Disko', arcade: 'Retro atari', galaxy: 'Galaksi girdabı', blackhole: 'Kara delik', chain: 'Zincirleme patlama', dragon: 'Ejderha uçuşu', rocket: 'Roket kalkışı', shatter: 'Elmas kırıkları', phoenix: 'Anka kuşu', jackpot: 'Büyük ikramiye', unicorn: 'Tek boynuz' },
     title: 'Mağaza',
     intro: 'Kazanarak jeton topla ve burada kozmetik ekstralara harca.',
     wip: 'Mağaza hâlâ hazırlanıyor — yakında jetonlarını burada harcayabileceksin.',
