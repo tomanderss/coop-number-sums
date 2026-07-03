@@ -852,6 +852,43 @@ export async function adminSetProfileField(uid, key, rawValue) {
     return { ok: true };
   } catch (e) { return { ok: false, err: errKey(e) }; }
 }
+// ─── Admin-Benachrichtigungen an Nutzer ────────────────────────────────────────
+// Persistente Nachricht unter /users/{uid}/notices/{pushId} — kommt auch an,
+// wenn der Betroffene gerade offline ist (sein watchNotices liest sie beim
+// nächsten App-Start). Die Rules erlauben Admin-Schreibzugriffe auf den ganzen
+// /users/{uid}-Baum bereits; der Empfänger löscht die Notiz nach Anzeige selbst.
+export async function sendAdminNotice(targetUid, notice) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !targetUid) return { ok: false, err: 'notSignedIn' };
+    await fb.push(fb.ref(fb.db, `users/${targetUid}/notices`), { ...notice, ts: fb.serverTimestamp() });
+    log('account', 'Admin: Nutzer-Benachrichtigung gesendet', { targetUid, kind: notice && notice.kind });
+    return { ok: true };
+  } catch (e) { log('account', 'sendAdminNotice fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+// Eigene Benachrichtigungen live beobachten. cb(arr mit {id, ...}).
+export async function watchNotices(cb) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return () => {};
+    const off = fb.onValue(userRef(fb, u.uid, 'notices'), (snap) => {
+      cb(Object.entries(snap.val() || {}).map(([id, v]) => ({ id, ...(v || {}) })));
+    });
+    return () => { try { off(); } catch (_) {} };
+  } catch (e) { log('account', 'watchNotices fehlgeschlagen', e); return () => {}; }
+}
+// Angezeigte Benachrichtigung entfernen (Bestätigung durch den Empfänger).
+export async function clearNotice(id) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !id) return;
+    await fb.set(userRef(fb, u.uid, `notices/${id}`), null);
+  } catch (e) { log('account', 'clearNotice fehlgeschlagen', e); }
+}
+
 // Passwort-Reset-Mail an einen Nutzer schicken (Firebase-Mail; setzt kein Passwort
 // direkt — das geht nur über die Mail bzw. eine Cloud Function).
 export async function adminSendPasswordReset(email) {

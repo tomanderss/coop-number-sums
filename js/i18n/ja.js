@@ -364,7 +364,7 @@ export default {
     fieldKey: '項目',
     fieldValue: '値',
     fieldHint: 'users/{uid}/profile/<項目> を設定。role/username は別。空値で削除。',
-    resetPw: 'パスワード再設定メール',
+    resetPw: 'パスワード再設定メール', notifyUser: 'ユーザーに通知',
     resetPwHint: 'ユーザーにパスワード再設定メールを送信します（Firebaseでは直接設定できません）。',
     resetSent: '再設定メールを送信しました ✅',
     title: '🛠 管理',
@@ -428,6 +428,7 @@ export default {
     lbLoading: "ランキングを読み込み中 …", lbEmpty: "まだ記録がありません。最初の一人になろう！",
     err: { invalidUsername: 'ユーザー名が無効です。', userNotFound: 'そのユーザー名のユーザーが見つかりません。', alreadyFriends: 'すでにフレンドです。', selfFriend: '自分自身は追加できません。', notSignedIn: '先にサインインしてください。' },
   },
+  notice: { gift: '{from} さんから「{item}」が贈られました！', revoke: '{from} さんが「{item}」を取り消しました。', currency: '{from} さんが残高を {n} 💰 に設定しました。' },
   shop: {
     winFxTitle: '勝利アニメーション', winFxHint: '勝利の瞬間を彩るアニメーションを購入 — ▶でプレビュー、いつでも切り替え可能。',
     preview: 'プレビュー', activate: '使う', active: '使用中',

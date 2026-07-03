@@ -183,6 +183,7 @@ const state = reactive({
     adminConsoleOpen: false,  // Vollbild-Admin-Konsole (Nutzer-Tabelle) offen?
     adminUsers: [], adminFilter: '', adminEditUser: null, adminBusy: false, adminError: null,
     adminBalance: '', adminUsername: '', adminItem: '', adminFieldKey: '', adminFieldVal: '', adminEmail: '',
+    adminNotify: true,        // Haken „Nutzer benachrichtigen" bei Geschenk/Entzug/Guthaben (nicht bei Selbst-Aktionen)
     pwNew1: '', pwNew2: '', pwFormOpen: false,  // „Passwort ändern“-Formular (neues Passwort 2×)
     // Daten-Editor im Bearbeiten-Modal (frischer /users/{uid}/data-Snapshot)
     adminData: null,          // geladener Snapshot (Quelle für die Sektions-Felder)
@@ -210,6 +211,7 @@ const state = reactive({
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
+  adminNotice: null,             // aktuell angezeigte Admin-Benachrichtigung {id, kind, item|amount, from} (Modal)
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
 });
 
@@ -2891,12 +2893,39 @@ async function refreshAccount() {
         pushPresence();          // Präsenz melden, sobald der Account bestätigt ist
         startFriendsWatch();     // Freundes-/Anfragen-Listener (Badge) starten
         startLobbyInviteWatch(); // eingehende Lobby-Einladungen + Ablehnungen beobachten
+        startNoticeWatch();      // Admin-Benachrichtigungen (Geschenk/Entzug/Guthaben) empfangen
         startRoleWatch();        // Admin-Status live halten (ohne Neustart/Navigation)
       }
       else state.account.status = 'anon';
     } catch (e) { log('account', 'refreshAccount fehlgeschlagen', e); }
   }
 }
+// ─── Admin-Benachrichtigungen (Empfängerseite) ────────────────────────────────
+// Persistente Notizen unter /users/{uid}/notices: onValue liefert alle offenen;
+// angezeigt wird eine nach der anderen (Modal), OK löscht sie in der RTDB und
+// der Listener rückt automatisch zur nächsten vor.
+let noticesUnwatch = null;
+async function startNoticeWatch() {
+  if (noticesUnwatch) return;
+  noticesUnwatch = await Account.watchNotices((arr) => {
+    arr.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    state.adminNotice = arr[0] || null;
+  });
+}
+function dismissAdminNotice() {
+  const n = state.adminNotice;
+  if (!n) return;
+  Account.clearNotice(n.id);
+  state.adminNotice = null; // onValue liefert danach ggf. die nächste
+}
+function adminNoticeText(n) {
+  if (!n) return '';
+  const from = n.from || 'Admin';
+  if (n.kind === 'currency') return t('notice.currency', { from, n: n.amount ?? 0 });
+  const item = adminItemLabel(n.item || '');
+  return t(n.kind === 'revoke' ? 'notice.revoke' : 'notice.gift', { from, item });
+}
+
 function accErr(suffix) { return t('account.err.' + suffix); }
 async function doSignUp() {
   const a = state.account;
@@ -3281,6 +3310,20 @@ function adminEditUid() { return state.account.adminEditUser && state.account.ad
 // Start-Reconcile (Symptom: selbst verschenkte Items erst nach Neustart
 // ausrüstbar). Inventar lokal idempotent nachziehen (Union-Semantik bleibt
 // gewahrt), Wallet per Differenz angleichen; die reaktiven States springen mit.
+// Fremde Nutzer über die Änderung benachrichtigen (persistente RTDB-Notiz;
+// kommt auch offline an — beim nächsten App-Start). Nur wenn der Haken an ist.
+function adminNotifyUser(uid, notice) {
+  if (!uid || uid === state.account.uid || !state.account.adminNotify) return;
+  Account.sendAdminNotice(uid, { ...notice, from: state.account.username || 'Admin' });
+}
+function adminAfterItem(uid, id, granted) {
+  adminMirrorSelfItem(uid, id, granted);
+  adminNotifyUser(uid, { kind: granted ? 'gift' : 'revoke', item: id });
+}
+function adminAfterBalance(uid, n) {
+  adminMirrorSelfBalance(uid, n);
+  adminNotifyUser(uid, { kind: 'currency', amount: n });
+}
 function adminMirrorSelfItem(uid, id, granted) {
   if (!uid || uid !== state.account.uid) return;
   state.inventory = granted ? grantInventory(id, 'gift') : revokeInventory(id);
@@ -3293,18 +3336,18 @@ function adminMirrorSelfBalance(uid, n) {
   else if (n < cur) spendCurrency(cur - n, 'admin');
   state.wallet = loadWallet();
 }
-function adminGrantSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminGrantItem, uid, 'dynamicColor').then((ok) => ok && adminMirrorSelfItem(uid, 'dynamicColor', true)); }
-function adminRevokeSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminRevokeItem, uid, 'dynamicColor').then((ok) => ok && adminMirrorSelfItem(uid, 'dynamicColor', false)); }
+function adminGrantSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminGrantItem, uid, 'dynamicColor').then((ok) => ok && adminAfterItem(uid, 'dynamicColor', true)); }
+function adminRevokeSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminRevokeItem, uid, 'dynamicColor').then((ok) => ok && adminAfterItem(uid, 'dynamicColor', false)); }
 function adminToggleRole() {
   const u = state.account.adminEditUser; if (!u) return;
   adminAction(Account.adminSetRole, u.uid, u.role === 'admin' ? 'user' : 'admin');
 }
-function adminSetBalance() { const uid = adminEditUid(); const n = parseInt(state.account.adminBalance || '0', 10); if (uid) adminAction(Account.adminSetCurrency, uid, n).then((ok) => ok && adminMirrorSelfBalance(uid, Math.max(0, Math.floor(n || 0)))); }
+function adminSetBalance() { const uid = adminEditUid(); const n = parseInt(state.account.adminBalance || '0', 10); if (uid) adminAction(Account.adminSetCurrency, uid, n).then((ok) => ok && adminAfterBalance(uid, Math.max(0, Math.floor(n || 0)))); }
 function adminChangeUsername() { const uid = adminEditUid(); const n = state.account.adminUsername.trim(); if (uid && n) adminAction(Account.adminSetUsername, uid, n); }
-function adminGrantAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminGrantItem, uid, id).then((ok) => ok && adminMirrorSelfItem(uid, id, true)); }
+function adminGrantAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminGrantItem, uid, id).then((ok) => ok && adminAfterItem(uid, id, true)); }
 // Einzelnes Item direkt aus der Besitz-Chip-Liste entziehen (✕ am Chip).
-function adminRevokeItemId(id) { const uid = adminEditUid(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminMirrorSelfItem(uid, id, false)); }
-function adminRevokeAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminMirrorSelfItem(uid, id, false)); }
+function adminRevokeItemId(id) { const uid = adminEditUid(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminAfterItem(uid, id, false)); }
+function adminRevokeAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminAfterItem(uid, id, false)); }
 function adminSetField() { const uid = adminEditUid(); const k = state.account.adminFieldKey.trim(); if (uid && k) adminAction(Account.adminSetProfileField, uid, k, state.account.adminFieldVal); }
 async function adminResetPw() {
   const a = state.account; const email = (a.adminEmail || (a.adminEditUser && a.adminEditUser.email) || '').trim();
@@ -3944,7 +3987,7 @@ const App = {
       adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, openAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
       openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId,
       adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
-      adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw,
+      adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw, dismissAdminNotice, adminNoticeText,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, anyFriendOnline, friendActivityText,
       skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
@@ -5170,6 +5213,10 @@ const App = {
                   <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminToggleRole">{{ state.account.adminEditUser.role==='admin' ? t('admin.makeUser') : t('admin.makeAdmin') }}</button>
                   <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminResetPw">📧 {{ t('admin.resetPw') }}</button>
                 </div>
+                <!-- Haken: Betroffenen über Geschenk/Entzug/Guthaben benachrichtigen -->
+                <div class="set-row" @click="state.account.adminNotify = !state.account.adminNotify">
+                  <span>🔔 {{ t('admin.notifyUser') }}</span><span class="switch" :class="{on:state.account.adminNotify}"><i></i></span>
+                </div>
                 <div class="admin-field-row">
                   <input class="text-input" v-model="state.account.adminUsername" maxlength="20" autocapitalize="none" :placeholder="t('account.newUsername')" />
                   <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminChangeUsername">{{ t('account.save') }}</button>
@@ -5330,6 +5377,15 @@ const App = {
     </div>
 
     <!-- Eingehende Lobby-Einladung eines Freundes: annehmen (beitreten) oder ablehnen -->
+    <!-- Admin-Benachrichtigung: „X hat dir Y geschenkt/entzogen" -->
+    <div v-if="state.adminNotice" class="modal-bg">
+      <div class="modal modal-sm">
+        <div class="whatsnew-badge">{{ state.adminNotice.kind === 'gift' ? '🎁' : state.adminNotice.kind === 'currency' ? '💰' : '👑' }} Admin</div>
+        <p class="result-msg">{{ adminNoticeText(state.adminNotice) }}</p>
+        <button class="btn btn-primary" @click="dismissAdminNotice">{{ t('common.ok') }}</button>
+      </div>
+    </div>
+
     <div v-if="state.pendingLobbyInvite" class="modal-bg">
       <div class="modal">
         <div class="whatsnew-badge">👥 {{ t('coop.inviteTitle') }}</div>

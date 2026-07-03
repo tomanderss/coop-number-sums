@@ -364,7 +364,7 @@ export default {
     fieldKey: 'Champ',
     fieldValue: 'Valeur',
     fieldHint: 'Définit users/{uid}/profile/<champ>. role/username à part. Valeur vide supprime le champ.',
-    resetPw: 'E-mail de réinitialisation',
+    resetPw: 'E-mail de réinitialisation', notifyUser: 'Notifier l\'utilisateur',
     resetPwHint: 'Envoie à l’utilisateur un e-mail de réinitialisation du mot de passe (définition directe impossible via Firebase).',
     resetSent: 'E-mail de réinitialisation envoyé ✅',
     title: '🛠 Admin',
@@ -428,6 +428,7 @@ export default {
     lbLoading: "Chargement du classement …", lbEmpty: "Pas encore de temps — sois le premier !",
     err: { invalidUsername: 'Nom d’utilisateur invalide.', userNotFound: 'Aucun utilisateur trouvé avec ce nom.', alreadyFriends: 'Vous êtes déjà amis.', selfFriend: 'Tu ne peux pas t’ajouter toi-même.', notSignedIn: 'Connecte-toi d’abord.' },
   },
+  notice: { gift: '{from} t\'a offert « {item} » !', revoke: '{from} t\'a retiré « {item} ».', currency: '{from} a fixé ton solde à {n} 💰.' },
   shop: {
     winFxTitle: 'Animations de victoire', winFxHint: 'Achète des animations pour ton moment de victoire — aperçu avec ▶, change à tout moment.',
     preview: 'Aperçu', activate: 'Activer', active: 'Active',

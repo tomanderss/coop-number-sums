@@ -364,7 +364,7 @@ export default {
     fieldKey: 'Campo',
     fieldValue: 'Valor',
     fieldHint: 'Fija users/{uid}/profile/<campo>. role/username aparte. Valor vacío elimina el campo.',
-    resetPw: 'Correo de restablecimiento',
+    resetPw: 'Correo de restablecimiento', notifyUser: 'Notificar al usuario',
     resetPwHint: 'Envía al usuario un correo para restablecer la contraseña (no se puede fijar directamente con Firebase).',
     resetSent: 'Correo de restablecimiento enviado ✅',
     title: '🛠 Admin',
@@ -428,6 +428,7 @@ export default {
     lbLoading: "Cargando clasificación …", lbEmpty: "Aún no hay tiempos: ¡sé el primero!",
     err: { invalidUsername: 'Nombre de usuario no válido.', userNotFound: 'No se encontró ningún usuario con ese nombre.', alreadyFriends: 'Ya sois amigos.', selfFriend: 'No puedes añadirte a ti mismo.', notSignedIn: 'Inicia sesión primero.' },
   },
+  notice: { gift: '¡{from} te ha regalado «{item}»!', revoke: '{from} te ha quitado «{item}».', currency: '{from} ha fijado tu saldo en {n} 💰.' },
   shop: {
     winFxTitle: 'Animaciones de victoria', winFxHint: 'Compra animaciones para tu momento de victoria: vista previa con ▶ y cambia entre las tuyas cuando quieras.',
     preview: 'Vista previa', activate: 'Activar', active: 'Activa',

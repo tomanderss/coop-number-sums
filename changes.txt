@@ -1,0 +1,1 @@
+Admin-Änderungen benachrichtigen den Betroffenen jetzt („X hat dir Y geschenkt/entzogen", auch Guthaben) — abschaltbar per Haken im Admin-Editor.
