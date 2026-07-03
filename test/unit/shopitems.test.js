@@ -37,6 +37,10 @@ describe('shopitems.catalog', () => {
     assert.ok(SFX_PACKS.standard, 'free default pack');
   });
 
+  test('font category has 7 number styles', () => {
+    assert.equal(catItems('font').length, 7);
+  });
+
   test('palette category has 8 purchasable palettes with fx params', () => {
     const pals = catItems('palette');
     assert.equal(pals.length, 8);

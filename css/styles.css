@@ -1757,6 +1757,37 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .shop-cat { cursor: pointer; font: inherit; color: inherit; }
 .shop-cat:active { box-shadow: 0 0 0 2px var(--accent), 0 2px 8px var(--shadow); }
 .shop-cat-count { font-size: .78rem; font-weight: 800; color: var(--accent); }
+/* ─── Zahlen-Stile (Shop-Kategorie 'font'): Typo/Effekte für Brett-Ziffern ────
+   Wirken auf Zellwerte (.cnum), Kopfsummen und Cage-Chips (.rchip) über die
+   font-family-Vererbung des Bretts; Effekte gezielt auf .cnum. Alle Effekte
+   sind STATISCH (einmal gerastert) — keine Animationen auf Textschatten. */
+.board.font-mono, .font-demo.font-mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; letter-spacing: .02em; }
+.board.font-serif, .font-demo.font-serif { font-family: Georgia, 'Times New Roman', serif; }
+.board.font-hand, .font-demo.font-hand { font-family: 'Segoe Script', 'Bradley Hand', 'Marker Felt', 'Comic Sans MS', cursive; }
+.board.font-graviert .cnum, .font-demo.font-graviert {
+  color: color-mix(in srgb, var(--ink) 82%, var(--cell-bg));
+  text-shadow: 0 1px 0 rgba(255,255,255,.35), 0 -1px 1px rgba(0,0,0,.45);
+  font-weight: 800;
+}
+.board.font-neonfont .cnum, .font-demo.font-neonfont {
+  color: var(--accent2);
+  text-shadow: 0 0 4px var(--accent-soft), 0 0 8px var(--accent), 0 0 14px var(--accent);
+  font-weight: 800;
+}
+.board.font-umriss .cnum, .font-demo.font-umriss {
+  color: transparent;
+  -webkit-text-stroke: 1.4px var(--ink);
+  font-weight: 900;
+}
+.board.font-gold .cnum, .font-demo.font-gold {
+  background: linear-gradient(165deg, #f6e27a 10%, #b8860b 42%, #ffd700 55%, #8a6508 90%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 1px 1px rgba(80, 50, 0, .35);
+  font-weight: 900;
+}
+/* Demo-Ziffern auf der Shop-Karte */
+.font-demo { font-size: 1.5rem; font-weight: 700; line-height: 1; color: var(--text); }
+
 /* Paletten-Vorschau: 6 transformierte Cage-Farben als Punktreihe */
 .shop-pal-dots { display: flex; gap: 4px; }
 .shop-pal-dots i { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }

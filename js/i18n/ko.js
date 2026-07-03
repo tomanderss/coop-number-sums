@@ -430,9 +430,9 @@ export default {
   },
   notice: { gift: '{from} 님이 "{item}" 을(를) 선물했어요!', revoke: '{from} 님이 "{item}" 을(를) 회수했어요.', currency: '{from} 님이 잔액을 {n} 💰 로 설정했어요.' },
   shop: {
-    catHint: { palette: '보드 케이지 색을 바꿔보세요 — 색 구분은 항상 유지됩니다.', theme: '앱 전체의 색상 세계를 통째로 바꾸세요 — OLED 블랙부터 벚꽃까지.' , sfx: '모든 게임 사운드에 새로운 음색을 — ▶ 로 미리 들어보세요.'},
-    free: { palette: '클래식', theme: '기본 (라이트/다크)' , sfx: '기본'},
-    it: { zen: '선 정원', arcade: '8비트 아케이드', kristall: '크리스털 벨', kosmos: '코스모스', synthwave: '신스웨이브', kaffee: '커피하우스', oled: 'OLED 나이트', tiefsee: '심해', wald: '밤의 숲', sakura: '사쿠라', nebula: '성운', sunset: '노을', cyberpunk: '사이버펑크', pastell: '파스텔 드림', vintage: '빈티지', daemmerung: '황혼', neon: '네온 글로우', arktis: '북극', spiegel: '거울 세계', cyber: '사이버 그리드', karneval: '카니발' },
+    catHint: { palette: '보드 케이지 색을 바꿔보세요 — 색 구분은 항상 유지됩니다.', theme: '앱 전체의 색상 세계를 통째로 바꾸세요 — OLED 블랙부터 벚꽃까지.' , sfx: '모든 게임 사운드에 새로운 음색을 — ▶ 로 미리 들어보세요.', font: '보드 숫자에 새로운 서체와 효과를.'},
+    free: { palette: '클래식', theme: '기본 (라이트/다크)' , sfx: '기본', font: '클래식'},
+    it: { mono: '레트로 모노', serif: '우아한 세리프', hand: '손글씨', graviert: '돌에 새김', neonfont: '네온 글자', umriss: '아웃라인', gold: '골드 엠보싱', zen: '선 정원', arcade: '8비트 아케이드', kristall: '크리스털 벨', kosmos: '코스모스', synthwave: '신스웨이브', kaffee: '커피하우스', oled: 'OLED 나이트', tiefsee: '심해', wald: '밤의 숲', sakura: '사쿠라', nebula: '성운', sunset: '노을', cyberpunk: '사이버펑크', pastell: '파스텔 드림', vintage: '빈티지', daemmerung: '황혼', neon: '네온 글로우', arktis: '북극', spiegel: '거울 세계', cyber: '사이버 그리드', karneval: '카니발' },
     winFxTitle: '승리 애니메이션', winFxHint: '승리의 순간을 빛낼 애니메이션을 구매하세요 — ▶로 미리보기, 언제든 변경 가능.',
     preview: '미리보기', activate: '사용하기', active: '사용 중',
     bought: '구매 완료! 🎉', notEnough: '코인이 부족해요', activated: '설정 완료',

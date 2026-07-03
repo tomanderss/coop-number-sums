@@ -1,0 +1,1 @@
+Neue Shop-Kategorie „Zahlen-Stile": 7 Schrift-Stile für die Zahlen auf dem Brett (Mono, Serif, Handschrift, Graviert, Neon, Umriss, Gold).
