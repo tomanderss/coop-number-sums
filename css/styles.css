@@ -1662,3 +1662,7 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .shop-fx-preview:active { background: var(--accent); color: #fff; }
 .shop-buy-btn { min-width: 84px; }
 .shop-fx-state.on { font-size: .78rem; font-weight: 800; color: var(--accent); padding: 6px 0 2px; }
+/* Kategorien-Karte in der Shop-Übersicht (antippbar, mit Besitz-Zähler) */
+.shop-cat { cursor: pointer; font: inherit; color: inherit; }
+.shop-cat:active { box-shadow: 0 0 0 2px var(--accent), 0 2px 8px var(--shadow); }
+.shop-cat-count { font-size: .78rem; font-weight: 800; color: var(--accent); }
