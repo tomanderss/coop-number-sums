@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.56';
-export const BUILD_HASH = 'fece169';
+export const BUILD      = '1.57';
+export const BUILD_HASH = '4975356';
 
 export const CHANGELOG = [
+  {
+    "version": "1.57",
+    "date": "03.07.2026",
+    "changes": [
+      "Admin-Änderungen benachrichtigen den Betroffenen jetzt („X hat dir Y geschenkt/entzogen\", auch Guthaben) — abschaltbar per Haken im Admin-Editor."
+    ]
+  },
   {
     "version": "1.56",
     "date": "03.07.2026",
