@@ -142,7 +142,7 @@ export default {
     becameHost: 'Anfitrión desconectado — ahora eres el anfitrión 📡',
     partnerConnected: 'Compañero conectado 👥',
     partnerDisconnected: '{name} ha abandonado la sala',
-    reconnected: 'Reconectado ✅',
+    reconnected: 'Reconectado ✅', partnerReconnected: '{name} ha vuelto',
     connectionLost: "Conexión perdida: sin conexión. Intentando reconectar…",
     errorRoomGone: 'La sala ya no existe — no se puede continuar la partida coop.',
     hostDisconnectedPromoting: '{name} (anfitrión) desconectado — convirtiéndose en nuevo anfitrión…',

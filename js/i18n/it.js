@@ -142,7 +142,7 @@ export default {
     becameHost: 'Host disconnesso — ora sei tu l\'host 📡',
     partnerConnected: 'Compagno connesso 👥',
     partnerDisconnected: '{name} ha lasciato la lobby',
-    reconnected: 'Riconnesso ✅',
+    reconnected: 'Riconnesso ✅', partnerReconnected: '{name} è tornato',
     connectionLost: "Connessione persa – offline. Tentativo di riconnessione…",
     errorRoomGone: 'La stanza non esiste più — impossibile riprendere la partita coop.',
     hostDisconnectedPromoting: '{name} (host) disconnesso — diventi il nuovo host…',

@@ -1299,10 +1299,31 @@ const CODE_RE = /^\d{6}$/;
 // fertig"-Signal (TEAM_DONE) wird bewusst NICHT über coopSend() verschickt,
 // sondern direkt über Coop.send() (siehe win()), da es absichtlich beide Teams
 // erreichen muss.
+// Ausgangs-Puffer für die Roster-Lücke: ist ein Mitspieler kurz weg
+// (connected=false), werden eigene Züge NICHT mehr stillschweigend verworfen
+// (das ließ die Bretter unbemerkt auseinanderlaufen — „halbe Lobby"), sondern
+// gepuffert und beim Wiederauftauchen in Originalreihenfolge nachgesendet.
+// Eigene Socket-Ausfälle puffert das Firebase-SDK ohnehin selbst.
+let coopOutbox = [];
+const COOP_OUTBOX_MAX = 300;
 function coopSend(msg) {
-  if (!state.coop.active || !state.coop.connected) return;
+  if (!state.coop.active) return;
+  if (!state.coop.connected) {
+    coopOutbox.push(msg);
+    if (coopOutbox.length > COOP_OUTBOX_MAX) coopOutbox.shift();
+    return;
+  }
   if (state.team.active) Coop.sendTeamEvent(state.team.myTeam, msg);
   else Coop.send(msg);
+}
+function flushCoopOutbox() {
+  if (!coopOutbox.length) return;
+  const pending = coopOutbox; coopOutbox = [];
+  log('coop', `Sende ${pending.length} gepufferte Züge nach Roster-Heilung nach`);
+  for (const m of pending) {
+    if (state.team.active) Coop.sendTeamEvent(state.team.myTeam, m);
+    else Coop.send(m);
+  }
 }
 
 function handleCoopMsg(msg) {
@@ -1337,11 +1358,7 @@ function handleCoopMsg(msg) {
   } else if (msg.type === Coop.MSG.IDENTITY) {
     // Nur der Host wertet Identitäts-Meldungen aus und verteilt die Liste neu —
     // er entscheidet (Konfliktauflösung), welche Farbe ein Mitspieler tatsächlich bekommt.
-    if (state.coop.role === 'host') {
-      upsertPlayer(msg.author, msg.name, msg.color, msg.username);
-      broadcastRoster();
-      showToast(t('coop.playerJoinedLobby', { name: playerLabel({ name: msg.name, username: msg.username }) }));
-    }
+    hostRegisterPlayer(msg.author, msg.name, msg.color, msg.username);
   } else if (msg.type === Coop.MSG.ROSTER) {
     const prevHostId = state.coop.hostId;
     state.coop.players = msg.players;
@@ -1409,6 +1426,7 @@ function handleCoopMsg(msg) {
 
 function coopReset() {
   coopIntentionalLeave = true;
+  coopOutbox = [];
   Coop.leave();
   clearCoopSession();
   // Ausstehende nachgelagerte Fortschritts-Pushs (siehe pushTeamProgress()/
@@ -1502,13 +1520,34 @@ function removePlayer(id) {
 // generalisiert das frühere binäre Host/Gast-Partner-Flag auf bis zu
 // COOP_MAX_PLAYERS Mitspieler.
 function updateConnectedFlag() {
+  const was = state.coop.connected;
   state.coop.connected = state.coop.players.some(p => p.id !== state.coop.myId);
+  // Mitspieler wieder da → während der Lücke gepufferte eigene Züge nachsenden.
+  if (!was && state.coop.connected) flushCoopOutbox();
 }
 // Roster-Broadcast läuft unabhängig vom "Spiel aktiv"-Status (auch schon in der
 // Lobby vor dem Start nötig) — bewusst über Coop.send direkt statt coopSend(),
 // dessen Guard `state.coop.active` voraussetzt.
 function broadcastRoster() {
   Coop.send({ type: Coop.MSG.ROSTER, players: state.coop.players, hostId: state.coop.hostId, teamMode: state.coop.teamMode });
+}
+// Host-Pfad: Spieler in den Roster aufnehmen + an alle verteilen. Wird sowohl
+// von IDENTITY-Nachrichten als auch direkt vom players/-onChildAdded gespeist —
+// Letzteres heilt den Fall, dass ein Mitspieler nach stillem Verbindungsabriss
+// (Hintergrund/Standby) wieder auftaucht, ohne erneut IDENTITY zu senden (ältere
+// App-Version): ohne Aufnahme bliebe connected=false und unsere Züge würden nie
+// mehr gesendet. Toast nur beim ERSTEN Auftauchen; mitten im Spiel als
+// „ist wieder da" statt „ist der Lobby beigetreten".
+function hostRegisterPlayer(id, name, color, username) {
+  if (state.coop.role !== 'host' || !id || id === state.coop.myId) return;
+  const known = state.coop.players.some(p => p.id === id);
+  upsertPlayer(id, name, color, username);
+  broadcastRoster();
+  if (!known) {
+    const label = playerLabel({ name, username }) || t('common.defaultPlayerName');
+    const midGame = state.coop.active && state.status === 'playing';
+    showToast(t(midGame ? 'coop.partnerReconnected' : 'coop.playerJoinedLobby', { name: label }), midGame ? 'success' : 'info', 3000);
+  }
 }
 // ─── BEREIT-SYSTEM (vor Mehrspieler-Start) ─────────────────────────────────────
 // Alle Mitspieler außer dem Host müssen "Bereit" bestätigen, bevor der Host das
@@ -1644,15 +1683,31 @@ function promoteToHost() {
 // abgehängte Client selbst zeigte weiter "online". Jetzt spiegelt state.coop.online
 // den echten eigenen Verbindungszustand → der Coop-Chip zeigt auch beim Client
 // "offline", und bei Wiederverbindung kommt eine Bestätigung.
-function handleCoopConnection(online, isReconnect) {
+function handleCoopConnection(online, isReconnect, currentHostId) {
   state.coop.online = online;
   if (!online) {
     log('coop', 'Eigene Verbindung verloren – zeige Offline-Status');
     showToast(t('coop.connectionLost'), 'info', 4000);
-  } else if (isReconnect) {
-    log('coop', 'Eigene Verbindung wiederhergestellt');
-    showToast(t('coop.reconnected'), 'success', 2000);
+    return;
   }
+  if (!isReconnect) return;
+  log('coop', 'Eigene Verbindung wiederhergestellt');
+  showToast(t('coop.reconnected'), 'success', 2000);
+  // Warmer Reconnect: die eigene Anwesenheit hat coop.js schon neu gesetzt —
+  // aber die MITSPIELER haben uns beim Abriss aus ihrem Roster entfernt
+  // (onChildRemoved) und ihr connected-Flag steht auf false. Ohne erneute
+  // Anmeldung entstand die „halbe Lobby": ihre Züge wurden nie mehr gesendet
+  // (coopSend blockt bei connected=false), unsere kamen weiter an. Daher wie
+  // beim kalten rejoin(): Rolle ggf. abgeben + IDENTITY neu melden, damit der
+  // Host uns wieder aufnimmt und den Roster an alle verteilt.
+  if (!state.coop.myId) return; // kein Raum aktiv (z.B. Verbindungs-Watch überlebt Teardown-Race)
+  if (currentHostId && currentHostId !== state.coop.myId && state.coop.role === 'host') {
+    state.coop.role = 'guest';
+    state.coop.hostId = currentHostId;
+    log('coop', 'Host-Rolle wurde während Abwesenheit übernommen – jetzt Gast', { newHost: currentHostId });
+  }
+  Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor, username: myUsername() });
+  if (state.coop.role === 'host') broadcastRoster();
 }
 
 function startHosting() {
@@ -1683,11 +1738,13 @@ function startHosting() {
       state.coop.error = e.type === 'code-taken'
         ? t('coop.errorCodeTaken') : t('coop.errorConnection');
     },
-    // Das eigentliche Hinzufügen zur Roster-Liste passiert über die vom
-    // beitretenden Spieler gesendete IDENTITY-Nachricht (handleCoopMsg) — hier
-    // genügt ein Diagnose-Log, der Spieler erscheint sobald IDENTITY eintrifft.
-    onJoin(id) {
-      log('game', `Mitspieler in Lobby beigetreten (Coop)`, { id });
+    // Spieler direkt aus dem players-Snapshot aufnehmen (name/color stehen im
+    // Präsenz-Eintrag) — die kurz darauf eintreffende IDENTITY-Nachricht ergänzt
+    // nur noch den Account-Username. So heilt auch ein still abgerissener und
+    // wieder auftauchender Mitspieler den Roster sofort (siehe hostRegisterPlayer).
+    onJoin(id, data) {
+      log('game', `Mitspieler (wieder) im Raum (Coop)`, { id });
+      if (data && data.name) hostRegisterPlayer(id, data.name, data.color);
     },
     onLeave(id) {
       const leavingName = playerLabel(state.coop.players.find(p => p.id === id)) || t('common.defaultPlayerName');
@@ -2159,7 +2216,8 @@ function quitToHome() {
   // So bleibt der "Coop fortsetzen"-Button im Hauptmenü sichtbar und der
   // Spieler kann per resumeCoopGame() wieder beitreten, solange der Raum offen ist.
   const coopSnap = wasCoop && wasPlaying && !state.race.active ? activeSnapshot() : null;
-  const coopSess = coopSnap ? { code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId } : null;
+  // lastEventKey VOR coopReset() abgreifen — Coop.leave() setzt ihn zurück.
+  const coopSess = coopSnap ? { code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId, lastEventKey: Coop.getLastEventKey() } : null;
   if (state.coop.role) coopReset();
   // Solo- und Coop-Spielstände leben in getrennten Storage-Slots (siehe
   // persistGame()) -- ein Verlassen des einen Modus darf den gespeicherten
@@ -2212,7 +2270,11 @@ function persistGame() {
   saveThrottle = now;
   if (state.coop.active) {
     saveActiveGameCoop(activeSnapshot());
-    saveCoopSession({ code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId });
+    // lastEventKey = Wiederaufsetzpunkt: der spätere rejoin() hängt den Event-
+    // Listener HINTER diesem Key an, statt die komplette Historie (inkl. INIT/
+    // START/STATUS) erneut abzuspielen — Snapshot und Key werden im selben
+    // Moment gesichert und sind damit konsistent zueinander.
+    saveCoopSession({ code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId, lastEventKey: Coop.getLastEventKey() });
   } else {
     saveActiveGame(activeSnapshot());
   }
@@ -2221,7 +2283,13 @@ function refreshResume() {
   const g = loadActiveGame();
   state.resumeAvailable = (g && g.puzzle) ? g : null;
   const gc = loadActiveGameCoop();
-  state.resumeAvailableCoop = (gc && gc.puzzle) ? gc : null;
+  // Coop-Fortsetzen nur anbieten, solange auch das Wiederverbindungs-Token
+  // (Coop-Session mit Raumcode/Rolle) noch gültig ist — vorher zeigte der
+  // Button ins Leere: der Spielstand-Snapshot hat keine TTL, die Session schon;
+  // ein Klick nach Ablauf tat schlicht nichts. Verwaiste Snapshots aufräumen.
+  const sess = (gc && gc.puzzle) ? loadCoopSession() : null;
+  state.resumeAvailableCoop = (gc && gc.puzzle && sess) ? gc : null;
+  if (gc && gc.puzzle && !sess) saveActiveGameCoop(null);
 }
 function resumeGame() {
   const g = state.resumeAvailable;
@@ -2254,6 +2322,10 @@ function attemptCoopRejoin(sess) {
   state.coop.online = true;
   Coop.rejoin({
     code: sess.code, name: sess.name, color: sess.color, role: sess.role,
+    // Nur die während der Abwesenheit verpassten Events nachziehen — ohne den
+    // Anker würde die komplette Historie replayed (INIT überschreibt den
+    // wiederhergestellten Spielstand und reaktiviert die Bereit-Lobby).
+    afterEventKey: sess.lastEventKey || null,
     onOpen(id, actualRole) {
       state.coop.myId = id;
       state.coop.waitingForGuest = false;
@@ -5180,7 +5252,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, cellStyle, cellClasses, Music, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, cellStyle, cellClasses, Music, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');
