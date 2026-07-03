@@ -29,6 +29,14 @@ describe('shopitems.catalog', () => {
     }
   });
 
+  test('sfx category has 5 packs and every pack id exists in music.js SFX_PACKS', async () => {
+    const packs = catItems('sfx');
+    assert.equal(packs.length, 5);
+    const { SFX_PACKS } = await import('../../js/music.js');
+    for (const p of packs) assert.ok(SFX_PACKS[p.id], `missing SFX_PACKS entry for ${p.id}`);
+    assert.ok(SFX_PACKS.standard, 'free default pack');
+  });
+
   test('palette category has 8 purchasable palettes with fx params', () => {
     const pals = catItems('palette');
     assert.equal(pals.length, 8);

@@ -293,6 +293,8 @@ function applyTheme() {
   const tc = document.querySelector('meta[name="theme-color"]');
   if (tc) tc.setAttribute('content', themeIt ? themeIt.data.top : (dark ? '#0b1020' : '#eef2f9'));
 }
+// Ausgerüstetes Sound-Paket beim Start scharf schalten (music.js hält es im Modul).
+function applySfxPack() { Music.setSfxPack(shopEquippedId('sfx')); }
 function applyLocale() {
   if (!state.settings.language) state.settings.language = detectLocale();
   setLocale(state.settings.language);
@@ -492,7 +494,6 @@ const SHOP_ITEMS = [
   { id: 'skinPresets', icon: '🎨' },
   { id: 'coopColors', icon: '✨' },
   { id: 'numberFonts', icon: '🔢' },
-  { id: 'soundPacks', icon: '🎵' },
   { id: 'profileBadges', icon: '🏅' },
   { id: 'boardFrames', icon: '🖼️' },
   { id: 'moreSoon', icon: '➕' },
@@ -555,6 +556,15 @@ function equipShopItem(it) {
   setSetting(SHOP_CATS[it.cat].settingKey, it.id);
   showToast(t('shop.activated'), 'success', 1800);
 }
+// Hör-Vorschau eines Sound-Pakets: Paket kurz aktivieren, kleine Demo-Sequenz
+// spielen, danach das ausgerüstete Paket wiederherstellen (auch ohne Kauf).
+function previewSfxPack(it) {
+  Music.setSfxPack(it.id);
+  Music.sfxKeep();
+  setTimeout(() => Music.sfxComplete(2), 320);
+  setTimeout(() => Music.sfxWin(), 760);
+  setTimeout(() => Music.setSfxPack(shopEquippedId('sfx')), 2600);
+}
 function equipShopFree(cat) {
   if (!SHOP_CATS[cat].settingKey) return;
   setSetting(SHOP_CATS[cat].settingKey, SHOP_CATS[cat].free);
@@ -594,6 +604,7 @@ function shopCategoryTitle(cat) {
   if (cat === 'winfx') return '🎉 ' + t('shop.winFxTitle');
   if (cat === 'palette') return '🌈 ' + t('shop.item.boardPalettes');
   if (cat === 'theme') return '🖌️ ' + t('shop.item.appThemes');
+  if (cat === 'sfx') return '🎵 ' + t('shop.item.soundPacks');
   return t('shop.title');
 }
 
@@ -2718,6 +2729,7 @@ function setSetting(key, val) {
   state.settings[key] = val;
   if (key === 'language') applyLocale();
   if (key === 'themeMode' || key === 'appTheme') applyTheme();
+  if (key === 'sfxPack') Music.setSfxPack(shopEquippedId('sfx'));
   if (key === 'musicVolume') { Music.setVolume(val); updateMusic(); }
 }
 watch(() => state.settings, (s) => { saveSettings(s); if (state.account.status === 'in') Account.scheduleSyncUp(); }, { deep: true });
@@ -2732,7 +2744,7 @@ function doImport(ev) {
   reader.onload = () => {
     try {
       importFromFile(reader.result);
-      state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applyLocale(); refreshResume();
+      state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applySfxPack(); applyLocale(); refreshResume();
       showToast(t('toast.importSuccess'), 'success');
     } catch { showToast(t('toast.importFailed'), 'error'); }
   };
@@ -2747,7 +2759,7 @@ function resetStats() {
 function doDeleteAllData() {
   ask(t('settings.deleteAllConfirmTitle'), t('settings.deleteAllConfirmMsg'), () => {
     deleteAllData();
-    state.settings = loadSettings(); state.stats = loadStats(); state.streak = loadStreak(); state.puzzleHistory = loadHistory(); applyTheme(); applyLocale(); refreshResume();
+    state.settings = loadSettings(); state.stats = loadStats(); state.streak = loadStreak(); state.puzzleHistory = loadHistory(); applyTheme(); applySfxPack(); applyLocale(); refreshResume();
     showToast(t('settings.deleteAllDone'), 'success');
   });
 }
@@ -3340,7 +3352,7 @@ async function adminSaveData() {
       setDataRev(rev); setSyncedRev(rev);
       state.settings = loadSettings(); state.stats = loadStats(); state.streak = loadStreak();
       state.wallet = loadWallet(); state.inventory = loadInventory(); state.puzzleHistory = loadHistory();
-      applyTheme(); applyLocale(); refreshResume();
+      applyTheme(); applySfxPack(); applyLocale(); refreshResume();
       log('account', 'Admin: eigene Daten lokal übernommen');
     }
     await adminLoadUsers();    // …und Tabelle (Guthaben etc.) auffrischen
@@ -3801,6 +3813,7 @@ function init() {
     localStorage.setItem('cns_last_start', String(now));
   } catch (_) {}
   applyTheme();
+  applySfxPack();
   // Bei themeMode 'auto' Systemwechsel (hell/dunkel) live übernehmen — ohne Neustart.
   try {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -4061,7 +4074,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
-      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle,
+      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4828,6 +4841,7 @@ const App = {
           </div>
           <div v-for="it in shopCatItems(state.shopCategory)" :key="it.id" class="shop-card fx" :class="{ owned: ownsShop(it), fxactive: shopEquippedId(state.shopCategory) === it.id }">
             <span class="shop-card-ic">{{ it.icon }}</span>
+            <button v-if="it.cat === 'sfx'" class="shop-fx-preview" @click="previewSfxPack(it)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             <span v-if="shopPreviewDots(it)" class="shop-pal-dots"><i v-for="(c, di) in shopPreviewDots(it)" :key="di" :style="{ background: c }"></i></span>
             <span class="shop-card-name">{{ t('shop.it.' + it.id) }}</span>
             <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it)" @click="buyShopItem(it)">💰 {{ shopItemPrice(it) }}</button>
@@ -4850,6 +4864,11 @@ const App = {
             <span class="shop-card-ic">🌈</span>
             <span class="shop-card-name">{{ t('shop.item.boardPalettes') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('palette') + 1 }}/{{ shopCatItems('palette').length + 1 }} ›</span>
+          </button>
+          <button class="shop-card shop-cat" @click="openShopCategory('sfx')">
+            <span class="shop-card-ic">🎵</span>
+            <span class="shop-card-name">{{ t('shop.item.soundPacks') }}</span>
+            <span class="shop-cat-count">{{ shopOwnedCount('sfx') + 1 }}/{{ shopCatItems('sfx').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('theme')">
             <span class="shop-card-ic">🖌️</span>

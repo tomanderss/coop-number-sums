@@ -244,6 +244,7 @@ export const DEFAULT_SETTINGS = {
                             // COOP_COLORS für die Coop-Spielerpalette.
   appTheme: 'standard',     // ausgerüstetes App-Theme (Shop-Kategorie 'theme');
                             // 'standard' = eingebautes Hell/Dunkel (themeMode).
+  sfxPack: 'standard',      // ausgerüstetes Sound-Paket (Shop-Kategorie 'sfx', js/music.js SFX_PACKS)
   boardPalette: 'classic',  // ausgerüstete Brett-Palette (js/shopitems.js, Kategorie 'palette');
                             // 'classic' = eingebaute REGION_COLORS, Käufe transformieren sie (HSL).
   winEffect: 'confetti',    // aktive Sieganimation (js/wineffects.js); alles außer

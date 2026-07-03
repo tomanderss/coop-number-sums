@@ -53,6 +53,17 @@ export const THEME_ITEMS = [
 ];
 SHOP_CATALOG.push(...THEME_ITEMS);
 
+// 🎵 Sound-Pakete: Klangfarben für ALLE UI-Sounds (parametrische Synthese in
+// js/music.js SFX_PACKS — Wellenform, Tonlage, Hüllkurve, Schimmer/Sub/Chorus).
+export const SFX_ITEMS = [
+  { id: 'zen',       cat: 'sfx', icon: '🧘', tier: 1 },
+  { id: 'arcade',    cat: 'sfx', icon: '👾', tier: 2 },
+  { id: 'kristall',  cat: 'sfx', icon: '🔔', tier: 2 },
+  { id: 'kosmos',    cat: 'sfx', icon: '🪐', tier: 3 },
+  { id: 'synthwave', cat: 'sfx', icon: '🌆', tier: 4 },
+];
+SHOP_CATALOG.push(...SFX_ITEMS);
+
 export function shopItemById(id) { return SHOP_CATALOG.find((i) => i.id === id) || null; }
 export function catItems(cat) { return SHOP_CATALOG.filter((i) => i.cat === cat); }
 export function shopItemPrice(idOrItem) {
