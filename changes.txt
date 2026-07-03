@@ -1,0 +1,1 @@
+Admin: Selbst verschenkte Items und gesetztes Guthaben sind sofort nutzbar (kein Neustart mehr nötig).

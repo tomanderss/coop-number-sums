@@ -17,7 +17,7 @@ import {
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
   saveCoopSession, loadCoopSession, clearCoopSession,
-  loadProfile, saveProfile, loadInventory, grantInventory,
+  loadProfile, saveProfile, loadInventory, grantInventory, revokeInventory,
   loadWallet, grantCurrency, spendCurrency,
   setDataRev, setSyncedRev,
 } from './storage.js';
@@ -3276,18 +3276,35 @@ async function adminAction(fn, ...args) {
   } finally { a.adminBusy = false; }
 }
 function adminEditUid() { return state.account.adminEditUser && state.account.adminEditUser.uid; }
-function adminGrantSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminGrantItem, uid, 'dynamicColor'); }
-function adminRevokeSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminRevokeItem, uid, 'dynamicColor'); }
+// Selbst-gerichtete Admin-Aktionen sofort lokal spiegeln: Grant/Revoke/Guthaben
+// schreiben direkt in die Cloud — das EIGENE Gerät sähe das sonst erst beim
+// Start-Reconcile (Symptom: selbst verschenkte Items erst nach Neustart
+// ausrüstbar). Inventar lokal idempotent nachziehen (Union-Semantik bleibt
+// gewahrt), Wallet per Differenz angleichen; die reaktiven States springen mit.
+function adminMirrorSelfItem(uid, id, granted) {
+  if (!uid || uid !== state.account.uid) return;
+  state.inventory = granted ? grantInventory(id, 'gift') : revokeInventory(id);
+  log('account', 'Admin: Selbst-Geschenk lokal gespiegelt', { id, granted });
+}
+function adminMirrorSelfBalance(uid, n) {
+  if (!uid || uid !== state.account.uid) return;
+  const cur = loadWallet().balance || 0;
+  if (n > cur) grantCurrency(n - cur, 'admin');
+  else if (n < cur) spendCurrency(cur - n, 'admin');
+  state.wallet = loadWallet();
+}
+function adminGrantSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminGrantItem, uid, 'dynamicColor').then((ok) => ok && adminMirrorSelfItem(uid, 'dynamicColor', true)); }
+function adminRevokeSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminRevokeItem, uid, 'dynamicColor').then((ok) => ok && adminMirrorSelfItem(uid, 'dynamicColor', false)); }
 function adminToggleRole() {
   const u = state.account.adminEditUser; if (!u) return;
   adminAction(Account.adminSetRole, u.uid, u.role === 'admin' ? 'user' : 'admin');
 }
-function adminSetBalance() { const uid = adminEditUid(); if (uid) adminAction(Account.adminSetCurrency, uid, parseInt(state.account.adminBalance || '0', 10)); }
+function adminSetBalance() { const uid = adminEditUid(); const n = parseInt(state.account.adminBalance || '0', 10); if (uid) adminAction(Account.adminSetCurrency, uid, n).then((ok) => ok && adminMirrorSelfBalance(uid, Math.max(0, Math.floor(n || 0)))); }
 function adminChangeUsername() { const uid = adminEditUid(); const n = state.account.adminUsername.trim(); if (uid && n) adminAction(Account.adminSetUsername, uid, n); }
-function adminGrantAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminGrantItem, uid, id); }
+function adminGrantAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminGrantItem, uid, id).then((ok) => ok && adminMirrorSelfItem(uid, id, true)); }
 // Einzelnes Item direkt aus der Besitz-Chip-Liste entziehen (✕ am Chip).
-function adminRevokeItemId(id) { const uid = adminEditUid(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id); }
-function adminRevokeAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id); }
+function adminRevokeItemId(id) { const uid = adminEditUid(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminMirrorSelfItem(uid, id, false)); }
+function adminRevokeAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminMirrorSelfItem(uid, id, false)); }
 function adminSetField() { const uid = adminEditUid(); const k = state.account.adminFieldKey.trim(); if (uid && k) adminAction(Account.adminSetProfileField, uid, k, state.account.adminFieldVal); }
 async function adminResetPw() {
   const a = state.account; const email = (a.adminEmail || (a.adminEditUser && a.adminEditUser.email) || '').trim();
