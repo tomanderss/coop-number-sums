@@ -430,6 +430,9 @@ export default {
   },
   notice: { gift: '{from} 님이 "{item}" 을(를) 선물했어요!', revoke: '{from} 님이 "{item}" 을(를) 회수했어요.', currency: '{from} 님이 잔액을 {n} 💰 로 설정했어요.' },
   shop: {
+    catHint: { palette: '보드 케이지 색을 바꿔보세요 — 색 구분은 항상 유지됩니다.' },
+    free: { palette: '클래식' },
+    it: { pastell: '파스텔 드림', vintage: '빈티지', daemmerung: '황혼', neon: '네온 글로우', arktis: '북극', spiegel: '거울 세계', cyber: '사이버 그리드', karneval: '카니발' },
     winFxTitle: '승리 애니메이션', winFxHint: '승리의 순간을 빛낼 애니메이션을 구매하세요 — ▶로 미리보기, 언제든 변경 가능.',
     preview: '미리보기', activate: '사용하기', active: '사용 중',
     bought: '구매 완료! 🎉', notEnough: '코인이 부족해요', activated: '설정 완료',

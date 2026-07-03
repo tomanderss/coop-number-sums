@@ -430,6 +430,9 @@ export default {
   },
   notice: { gift: '{from} sana "{item}" hediye etti!', revoke: '{from} senden "{item}" aldı.', currency: '{from} bakiyeni {n} 💰 yaptı.' },
   shop: {
+    catHint: { palette: 'Tahtandaki kafesleri yeniden renklendir — renk ayırt edilebilirliği her zaman korunur.' },
+    free: { palette: 'Klasik' },
+    it: { pastell: 'Pastel rüya', vintage: 'Vintage', daemmerung: 'Alacakaranlık', neon: 'Neon ışıltı', arktis: 'Arktik', spiegel: 'Ayna dünyası', cyber: 'Siber ızgara', karneval: 'Karnaval' },
     winFxTitle: 'Zafer animasyonları', winFxHint: 'Zafer anın için animasyonlar satın al — ▶ ile önizle, istediğin zaman değiştir.',
     preview: 'Önizleme', activate: 'Etkinleştir', active: 'Etkin',
     bought: 'Satın alındı! 🎉', notEnough: 'Yeterli para yok', activated: 'Etkinleştirildi',

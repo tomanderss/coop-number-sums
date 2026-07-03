@@ -430,6 +430,9 @@ export default {
   },
   notice: { gift: '{from} gifted you "{item}"!', revoke: '{from} removed "{item}" from you.', currency: '{from} set your balance to {n} 💰.' },
   shop: {
+    catHint: { palette: 'Recolor your board cages — color distinguishability is always preserved.' },
+    free: { palette: 'Classic' },
+    it: { pastell: 'Pastel Dream', vintage: 'Vintage', daemmerung: 'Dusk', neon: 'Neon Glow', arktis: 'Arctic', spiegel: 'Mirror World', cyber: 'Cyber Grid', karneval: 'Carnival' },
     winFxTitle: 'Win animations', winFxHint: 'Buy new animations for your victory moment — preview with ▶, switch owned ones anytime.',
     preview: 'Preview', activate: 'Activate', active: 'Active',
     bought: 'Purchased! 🎉', notEnough: 'Not enough coins', activated: 'Activated',

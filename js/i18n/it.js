@@ -430,6 +430,9 @@ export default {
   },
   notice: { gift: '{from} ti ha regalato "{item}"!', revoke: '{from} ti ha tolto "{item}".', currency: '{from} ha impostato il tuo saldo a {n} 💰.' },
   shop: {
+    catHint: { palette: 'Ricolora le gabbie del tabellone — la distinguibilità dei colori è sempre garantita.' },
+    free: { palette: 'Classico' },
+    it: { pastell: 'Sogno pastello', vintage: 'Vintage', daemmerung: 'Crepuscolo', neon: 'Bagliore neon', arktis: 'Artico', spiegel: 'Mondo specchio', cyber: 'Cyber-griglia', karneval: 'Carnevale' },
     winFxTitle: 'Animazioni di vittoria', winFxHint: 'Compra nuove animazioni per il tuo momento di gloria — anteprima con ▶, cambia quando vuoi.',
     preview: 'Anteprima', activate: 'Attiva', active: 'In uso',
     bought: 'Acquistato! 🎉', notEnough: 'Monete insufficienti', activated: 'Attivata',

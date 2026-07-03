@@ -1666,3 +1666,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .shop-cat { cursor: pointer; font: inherit; color: inherit; }
 .shop-cat:active { box-shadow: 0 0 0 2px var(--accent), 0 2px 8px var(--shadow); }
 .shop-cat-count { font-size: .78rem; font-weight: 800; color: var(--accent); }
+/* Paletten-Vorschau: 6 transformierte Cage-Farben als Punktreihe */
+.shop-pal-dots { display: flex; gap: 4px; }
+.shop-pal-dots i { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }

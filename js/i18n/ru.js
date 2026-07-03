@@ -430,6 +430,9 @@ export default {
   },
   notice: { gift: '{from} подарил тебе «{item}»!', revoke: '{from} забрал у тебя «{item}».', currency: '{from} установил твой баланс: {n} 💰.' },
   shop: {
+    catHint: { palette: 'Перекрась клетки поля — различимость цветов всегда сохраняется.' },
+    free: { palette: 'Классика' },
+    it: { pastell: 'Пастельная мечта', vintage: 'Винтаж', daemmerung: 'Сумерки', neon: 'Неоновое сияние', arktis: 'Арктика', spiegel: 'Зазеркалье', cyber: 'Кибер-сетка', karneval: 'Карнавал' },
     winFxTitle: 'Анимации победы', winFxHint: 'Покупай анимации для момента победы — предпросмотр по ▶, меняй в любой момент.',
     preview: 'Предпросмотр', activate: 'Включить', active: 'Активна',
     bought: 'Куплено! 🎉', notEnough: 'Недостаточно монет', activated: 'Включена',
