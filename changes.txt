@@ -1,0 +1,1 @@
+Admin-Werkzeug: Nutzer-Passwort direkt per Skript setzen (ohne Reset-Mail) — für vergessene Passwörter.
