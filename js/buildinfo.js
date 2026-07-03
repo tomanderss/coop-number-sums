@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.57';
-export const BUILD_HASH = '4975356';
+export const BUILD      = '1.58';
+export const BUILD_HASH = '7c883cf';
 
 export const CHANGELOG = [
+  {
+    "version": "1.58",
+    "date": "03.07.2026",
+    "changes": [
+      "Neue Shop-Kategorie „Brett-Farbpaletten\": 8 kaufbare Paletten (Pastell-Traum, Neon-Glühen, Cyber-Grid, Spiegelwelt, …) färben die Cages um — Farb-Unterscheidbarkeit bleibt immer erhalten."
+    ]
+  },
   {
     "version": "1.57",
     "date": "03.07.2026",
