@@ -110,10 +110,14 @@ test.describe('home screen', () => {
     // Fake a separately-saved coop game in the dedicated coop slot (real coop
     // saves go through Coop.rejoin()'s Firebase round-trip, which the E2E
     // suite deliberately never exercises -- see coop.spec.js) and reload so
-    // refreshResume() (run on mount) picks it up from localStorage.
+    // refreshResume() (run on mount) picks it up from localStorage. The coop
+    // resume button additionally requires a still-valid coop SESSION (the
+    // rejoin token with room code/role) -- without it the button used to point
+    // at nothing, so refreshResume() now hides it; fake the session too.
     await page.evaluate(() => {
       const solo = JSON.parse(localStorage.getItem('cns_active_game'));
       localStorage.setItem('cns_active_game_coop', JSON.stringify({ ...solo, ts: Date.now() }));
+      localStorage.setItem('cns_coop_session', JSON.stringify({ code: '123456', role: 'host', name: 'Tester', color: '#5b8cff', hostId: 'u1', lastEventKey: '-Otest', ts: Date.now() }));
     });
     await page.reload();
     await page.waitForSelector('.screen.home');

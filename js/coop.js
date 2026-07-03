@@ -36,6 +36,11 @@ let unsubConn = null;
 let selfInfo = null;        // {name, color, role} — für Presence-Wiederherstellung nach Reconnect
 let everOnline = false;     // true sobald die Verbindung mind. einmal stand (unterdrückt Offline-Flash beim Erst-Connect)
 let sawDisconnect = false;  // true sobald sie danach abriss (steuert Reconnect-Toast + Presence-Neuaufbau)
+let lastEventKey = null;    // Push-Key des zuletzt gesehenen events-Kinds (auch eigene) — Wiederaufsetzpunkt für rejoin()
+
+// Wiederaufsetzpunkt für den kalten Rejoin (siehe attachListeners/rejoin):
+// app.js persistiert diesen Key zusammen mit dem Coop-Spielstand.
+export function getLastEventKey() { return lastEventKey; }
 
 export function isAvailable() { return typeof window !== 'undefined' && typeof fetch !== 'undefined'; }
 
@@ -60,7 +65,7 @@ function withTimeout(promise) {
   ]);
 }
 
-function attachListeners(f, code, { onJoin, onLeave, onMessage }) {
+function attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey) {
   // Defensive: falls eine vorherige Session (derselbe Tab, neue Lobby ohne
   // zwischenzeitlichen leave()-Aufruf) noch Listener auf dem alten Raum hängen
   // hat, müssen die ZUERST abgehängt werden -- sonst überschreiben wir nur die
@@ -71,7 +76,15 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }) {
   unsubJoin && unsubJoin(); unsubLeave && unsubLeave(); unsubEvents && unsubEvents();
 
   const playersRef = f.ref(f.db, `rooms/${code}/players`);
+  // Nach einem kalten Rejoin darf die Event-Historie NICHT von Anfang an
+  // wiederholt werden: das replayte INIT würde den wiederhergestellten
+  // Spielstand überschreiben und awaitingStart reaktivieren („hängende
+  // Bereit-Lobby"), ein replaytes STATUS eine längst beendete Runde sofort
+  // wieder beenden. Push-Keys sind chronologisch sortiert, daher genügt
+  // orderByKey().startAfter(letzter verarbeiteter Key) — es kommen exakt die
+  // während der Abwesenheit verpassten Events an.
   const eventsRef = f.ref(f.db, `rooms/${code}/events`);
+  const eventsSrc = afterEventKey ? f.query(eventsRef, f.orderByKey(), f.startAfter(afterEventKey)) : eventsRef;
 
   unsubJoin = f.onChildAdded(playersRef, (snap) => {
     if (snap.key === f.uid) return;
@@ -81,7 +94,8 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }) {
     if (snap.key === f.uid) return;
     onLeave && onLeave(snap.key);
   });
-  unsubEvents = f.onChildAdded(eventsRef, (snap) => {
+  unsubEvents = f.onChildAdded(eventsSrc, (snap) => {
+    lastEventKey = snap.key; // JEDES Event zählt (auch eigene) — Anker für den nächsten rejoin()
     const msg = snap.val();
     if (!msg || msg.author === f.uid) return;
     onMessage && onMessage(msg);
@@ -106,14 +120,21 @@ function watchConnection(f, cb) {
     if (online) {
       const isReconnect = sawDisconnect;
       everOnline = true;
+      let currentHostId = null;
       if (isReconnect && myPlayerRef && selfInfo) {
         try {
+          // Während der Abwesenheit kann ein Mitspieler die Host-Rolle übernommen
+          // haben (promoteToHost → meta.hostId) — meta ist die Quelle der Wahrheit.
+          // Sonst kämen wir mit stale role:'host' zurück und es gäbe zwei Hosts.
+          const hostSnap = await f.get(f.ref(f.db, `rooms/${roomCode}/meta/hostId`));
+          currentHostId = hostSnap.exists() ? hostSnap.val() : null;
+          if (currentHostId) selfInfo.role = currentHostId === f.uid ? 'host' : 'guest';
           await f.set(myPlayerRef, { ...selfInfo, joinedAt: f.serverTimestamp() });
           f.onDisconnect(myPlayerRef).remove();
-          log('coop', 'Verbindung wieder online – Anwesenheit neu gesetzt');
+          log('coop', 'Verbindung wieder online – Anwesenheit neu gesetzt', { role: selfInfo.role });
         } catch (e) { log('coop', 'Presence nach Reconnect fehlgeschlagen', e); }
       }
-      cb && cb(true, isReconnect);
+      cb && cb(true, isReconnect, currentHostId);
     } else {
       if (!everOnline) return; // initiales "noch nicht verbunden" ignorieren (kein Offline-Flash beim Join)
       sawDisconnect = true;
@@ -193,7 +214,7 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
 // anders als hostGame()/joinGame() NICHT Kapazität/Belegung erneut, sondern
 // nur, ob der Raum überhaupt noch existiert — wer schon drin war, darf wieder
 // hinein, auch wenn der Raum inzwischen "voll" wäre.
-export async function rejoin({ code, name, color, role, onOpen, onError, onJoin, onLeave, onMessage, onConnection }) {
+export async function rejoin({ code, name, color, role, afterEventKey, onOpen, onError, onJoin, onLeave, onMessage, onConnection }) {
   try {
     const f = await ensureDb();
     log('coop', `Verbinde erneut mit Raum ${code}…`);
@@ -213,9 +234,12 @@ export async function rejoin({ code, name, color, role, onOpen, onError, onJoin,
     await f.set(myPlayerRef, { name, color, role: actualRole, joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
     selfInfo = { name, color, role: actualRole };
-    attachListeners(f, code, { onJoin, onLeave, onMessage });
+    // Anker vorbelegen: der nächste persistGame()-Save darf nicht mit null
+    // starten und so einen späteren zweiten Rejoin wieder zum Voll-Replay machen.
+    lastEventKey = afterEventKey || null;
+    attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey);
     watchConnection(f, onConnection);
-    log('coop', `Raum ${code} wieder verbunden als ${actualRole}`, { uid: f.uid });
+    log('coop', `Raum ${code} wieder verbunden als ${actualRole}`, { uid: f.uid, afterEventKey: afterEventKey || null });
     onOpen && onOpen(f.uid, actualRole);
   } catch (e) {
     log('coop', `Wiederverbindung zu Raum ${code} fehlgeschlagen`, e);
@@ -332,7 +356,7 @@ export async function leave() {
   unsubTeamEvents && unsubTeamEvents(); unsubTeamProgress && unsubTeamProgress();
   unsubRaceProgress && unsubRaceProgress(); unsubConn && unsubConn();
   unsubJoin = unsubLeave = unsubEvents = unsubTeamEvents = unsubTeamProgress = unsubRaceProgress = unsubConn = null;
-  selfInfo = null; everOnline = false; sawDisconnect = false;
+  selfInfo = null; everOnline = false; sawDisconnect = false; lastEventKey = null;
   roomCode = null; myPlayerRef = null;
   if (!f || !playerRef) return;
   try {

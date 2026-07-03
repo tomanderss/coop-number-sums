@@ -33,7 +33,13 @@ const USER_DATA_KEYS = new Set([
   'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_stats', 'cns_daily',
   'cns_history', 'cns_achievements', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
 ]);
-const COOP_SESSION_TTL_MS = 5 * 60 * 1000;
+// Wie lange „Coop fortsetzen" nach der letzten Sicherung angeboten wird. Der
+// Raum lebt in der RTDB weiter, solange ihn niemand aktiv verlässt (Präsenz-
+// Einträge verschwinden zwar per onDisconnect, meta/events bleiben) — beide
+// Spieler können also auch deutlich später unabhängig zurückkehren. Die
+// früheren 5 Minuten waren der Hauptgrund, warum der Fortsetzen-Button
+// praktisch nie funktionierte (Klick lief in eine bereits verfallene Session).
+const COOP_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const HISTORY_MAX = 20;
 
 function load(key, fallback) {

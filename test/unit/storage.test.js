@@ -116,21 +116,26 @@ describe('storage.coopSession', () => {
     assert.equal(loadCoopSession(), null);
   });
 
-  test('a session older than the 5-minute TTL expires and is removed on read', () => {
+  test('a session older than the 12-hour TTL expires and is removed on read', () => {
     saveCoopSession({ code: '123456', role: 'host' });
     const raw = JSON.parse(globalThis.localStorage.getItem('cns_coop_session'));
-    raw.ts = Date.now() - 6 * 60 * 1000; // 6 minutes ago, past the 5-minute TTL
+    raw.ts = Date.now() - 13 * 60 * 60 * 1000; // 13 hours ago, past the 12-hour TTL
     globalThis.localStorage.setItem('cns_coop_session', JSON.stringify(raw));
     assert.equal(loadCoopSession(), null);
     assert.equal(globalThis.localStorage.getItem('cns_coop_session'), null); // self-cleaned up
   });
 
-  test('a session just inside the 5-minute TTL is still valid', () => {
+  test('a session just inside the 12-hour TTL is still valid (e.g. hours after backgrounding)', () => {
     saveCoopSession({ code: '123456', role: 'host' });
     const raw = JSON.parse(globalThis.localStorage.getItem('cns_coop_session'));
-    raw.ts = Date.now() - 4 * 60 * 1000; // 4 minutes ago, still inside the TTL
+    raw.ts = Date.now() - 11 * 60 * 60 * 1000; // 11 hours ago, still inside the TTL
     globalThis.localStorage.setItem('cns_coop_session', JSON.stringify(raw));
     assert.ok(loadCoopSession());
+  });
+
+  test('saveCoopSession preserves the rejoin event anchor (lastEventKey)', () => {
+    saveCoopSession({ code: '123456', role: 'host', lastEventKey: '-OabcDEF123' });
+    assert.equal(loadCoopSession().lastEventKey, '-OabcDEF123');
   });
 });
 

@@ -142,7 +142,7 @@ export default {
     becameHost: 'ホストが切断されました — あなたが新しいホストです 📡',
     partnerConnected: '仲間が接続しました 👥',
     partnerDisconnected: '{name}さんがロビーを退出しました',
-    reconnected: '再接続しました ✅',
+    reconnected: '再接続しました ✅', partnerReconnected: '{name} が戻ってきました',
     connectionLost: "接続が切れました – オフライン。再接続を試みています…",
     errorRoomGone: 'ルームが存在しません。Coopゲームを再開できません。',
     hostDisconnectedPromoting: 'ホストの{name}さんが切断されました — 新しいホストになっています…',

@@ -142,7 +142,7 @@ export default {
     becameHost: "Hôte déconnecté — tu es maintenant l'hôte 📡",
     partnerConnected: 'Partenaire connecté 👥',
     partnerDisconnected: '{name} a quitté le salon',
-    reconnected: 'Reconnecté ✅',
+    reconnected: 'Reconnecté ✅', partnerReconnected: '{name} est de retour',
     connectionLost: "Connexion perdue – hors ligne. Tentative de reconnexion…",
     errorRoomGone: "Le salon n'existe plus — impossible de reprendre la partie coop.",
     hostDisconnectedPromoting: '{name} (hôte) déconnecté — devient le nouvel hôte…',
