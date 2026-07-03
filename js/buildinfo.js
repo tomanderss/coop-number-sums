@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.50';
-export const BUILD_HASH = '8c27226';
+export const BUILD      = '1.51';
+export const BUILD_HASH = '2e3b3f2';
 
 export const CHANGELOG = [
+  {
+    "version": "1.51",
+    "date": "03.07.2026",
+    "changes": [
+      "Neuer Shop-Bereich „Sieganimationen\": 22 kaufbare Animationen (400–900 Münzen, z.B. Feuerwerk, Schwarzes Loch, Drachenflug, Jackpot) mit Vorschau — Auswahl im Shop oder in den Einstellungen, Confetti bleibt gratis."
+    ]
+  },
   {
     "version": "1.50",
     "date": "03.07.2026",
