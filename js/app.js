@@ -22,6 +22,7 @@ import {
   setDataRev, setSyncedRev,
 } from './storage.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
+import { SHOP_CATS, SHOP_CATALOG, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -483,7 +484,6 @@ function coinFor(d, coopish) {
 // Ideen, kein Pay-to-win. Namen via i18n (shop.item.<id>).
 const SHOP_ITEMS = [
   { id: 'skinPresets', icon: '🎨' },
-  { id: 'boardPalettes', icon: '🌈' },
   { id: 'appThemes', icon: '🖌️' },
   { id: 'coopColors', icon: '✨' },
   { id: 'numberFonts', icon: '🔢' },
@@ -496,8 +496,11 @@ const SHOP_ITEMS = [
 let shopReturn = null;
 function openShop(category) {
   // Direkteinstieg in eine Kategorie erlaubt (z.B. Settings-Link „Shop ›"),
-  // sonst startet der Shop in der Kategorien-Übersicht.
-  state.shopCategory = category || null;
+  // sonst startet der Shop in der Kategorien-Übersicht. WICHTIG: nur bekannte
+  // Kategorie-Strings akzeptieren — @click="openShop" übergibt sonst das
+  // Click-EVENT als „Kategorie" und der Kategorie-Zweig rendert mit Unsinn.
+  const valid = category === 'winfx' || !!SHOP_CATS[category];
+  state.shopCategory = valid ? category : null;
   if (state.screen === 'shop') return;
   shopReturn = state.screen;
   navigate('shop');
@@ -531,6 +534,57 @@ function activateWinFx(id) {
 // Vorschau: spielt die Animation sofort auf dem aktuellen Screen ab (Overlay ist
 // global) — ohne Kauf, ohne Sieg. Perfekt-Variante zeigt das volle Spektakel.
 function previewWinFx(id) { launchWinFx(true, id); }
+
+// ── Generische Shop-Artikel (Katalog: js/shopitems.js) ────────────────────────
+// Gleiche Mechanik wie Sieganimationen: kaufen (Coins → Inventar, Union-synct),
+// ausrüsten (settings[settingKey]), Gratis-Standard immer verfügbar.
+function shopCatItems(cat) { return catItems(cat); }
+function ownsShop(it) { return ownsShopItem(state.inventory, it); }
+function shopEquippedId(cat) {
+  const meta = SHOP_CATS[cat];
+  return resolveEquipped(cat, meta && meta.settingKey ? state.settings[meta.settingKey] : null, state.inventory);
+}
+function shopOwnedCount(cat) { return catItems(cat).filter((it) => ownsShop(it)).length; }
+function equipShopItem(it) {
+  if (!ownsShop(it) || !SHOP_CATS[it.cat].settingKey) return;
+  setSetting(SHOP_CATS[it.cat].settingKey, it.id);
+  showToast(t('shop.activated'), 'success', 1800);
+}
+function equipShopFree(cat) {
+  if (!SHOP_CATS[cat].settingKey) return;
+  setSetting(SHOP_CATS[cat].settingKey, SHOP_CATS[cat].free);
+  showToast(t('shop.activated'), 'success', 1800);
+}
+function buyShopItem(it) {
+  if (ownsShop(it)) return;
+  const price = shopItemPrice(it);
+  const r = spendCurrency(price, 'shop:' + it.id);
+  if (!r.ok) { showToast(t('shop.notEnough'), 'error', 2600); return; }
+  state.wallet = loadWallet();
+  state.inventory = grantInventory(shopInvKey(it), 'shop');
+  if (SHOP_CATS[it.cat].settingKey) setSetting(SHOP_CATS[it.cat].settingKey, it.id); // direkt ausrüsten
+  log('game', 'Shop-Artikel gekauft', { id: it.id, cat: it.cat, price, balance: r.balance });
+  showToast(t('shop.bought'), 'success', 2400);
+  if (state.account.status === 'in') Account.scheduleSyncUp();
+}
+// Aktive Paletten-Transformation für cellStyle (null = Klassisch/unverändert).
+function activePaletteFx() {
+  const it = shopItemById(shopEquippedId('palette'));
+  return it ? it.fx : null;
+}
+// Vorschau-Punkte einer Palette: 6 repräsentative Cage-Farben, transformiert.
+function palettePreview(it) {
+  return [0, 3, 6, 9, 12, 15].map((i) => {
+    const c = applyPaletteFx(REGION_COLORS[i], it.fx);
+    return `hsl(${c.h} ${c.s}% ${c.l}%)`;
+  });
+}
+// Kategorie-Titel für die Shop-Topbar (Kategorie-Karten nutzen dieselben Keys).
+function shopCategoryTitle(cat) {
+  if (cat === 'winfx') return '🎉 ' + t('shop.winFxTitle');
+  if (cat === 'palette') return '🌈 ' + t('shop.item.boardPalettes');
+  return t('shop.title');
+}
 
 function openSettings() {
   if (state.screen === 'settings') return;
@@ -2707,7 +2761,12 @@ function historyCellClasses(r, c) {
 function historyCellStyle(r, c) {
   const m = state.historyDetail.cellMeta[r][c];
   const st = { fontSize: 'var(--fs)' };
-  if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; st['--rc-ink'] = regionChipInk(m.color); }
+  if (m.color) {
+    // Ausgerüstete Brett-Palette (Shop): reine HSL-Transformation der Cage-Farbe —
+    // Rotation/Skalierung erhält die optimierten Farb-Abstände (shopitems.js).
+    const col = applyPaletteFx(m.color, activePaletteFx());
+    st['--rc-h'] = col.h; st['--rc-s'] = col.s + '%'; st['--rc-l'] = col.l + '%'; st['--rc-ink'] = regionChipInk(col);
+  }
   return st;
 }
 // Erzeugt per Seed exakt dasselbe Rätsel neu und startet eine frische,
@@ -3063,6 +3122,7 @@ function adminItemOptions() {
   const ids = new Set([SKIN_ID, FOUNDER_ID]);
   // Alle kaufbaren Sieganimationen sind auch verschenkbar (Confetti nicht — die gehört allen).
   for (const e of WIN_EFFECTS) if (e.id !== CONFETTI_ID) ids.add(winEffectInvKey(e.id));
+  for (const it of SHOP_CATALOG) ids.add(shopInvKey(it));
   for (const u of state.account.adminUsers) Object.keys(u.inventory || {}).forEach((k) => ids.add(k));
   return [...ids].sort();
 }
@@ -3213,6 +3273,9 @@ function adminItemLabel(id) {
   if (s !== key) return s;
   // Sieganimationen: Shop-Namen wiederverwenden statt eigener Dict-Einträge.
   if (id.startsWith('winfx_')) { const k2 = `shop.effect.${id.slice(6)}`; const s2 = t(k2); if (s2 !== k2) return `🎉 ${s2}`; }
+  // Generische Shop-Artikel: Kategorie-Präfix abtrennen, Shop-Namen nutzen.
+  const us = id.indexOf('_');
+  if (us > 0 && SHOP_CATS[id.slice(0, us)]) { const k3 = `shop.it.${id.slice(us + 1)}`; const s3 = t(k3); if (s3 !== k3) return `${SHOP_CATS[id.slice(0, us)].icon} ${s3}`; }
   return id;
 }
 // Epoch-Millisekunden als lesbares Datum unter dem Zahlenfeld anzeigen.
@@ -3977,6 +4040,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
+      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, palettePreview, shopCategoryTitle,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4711,7 +4775,7 @@ const App = {
       <header class="topbar">
         <!-- Zurück: aus einer Kategorie erst zur Kategorien-Übersicht, dann raus. -->
         <button class="icon-btn" @click="state.shopCategory ? closeShopCategory() : closeShop()">‹</button>
-        <h2>{{ state.shopCategory === 'winfx' ? '🎉 ' + t('shop.winFxTitle') : t('shop.title') }}</h2>
+        <h2>{{ state.shopCategory ? shopCategoryTitle(state.shopCategory) : t('shop.title') }}</h2>
         <span class="coin-chip coin-chip-static">💰 {{ state.wallet.balance || 0 }}</span>
       </header>
 
@@ -4730,14 +4794,41 @@ const App = {
         </div>
       </div>
 
+      <!-- Generische Artikel-Kategorie (Paletten & künftige): Gratis-Standard +
+           Kaufkarten mit kategoriespezifischer Vorschau. -->
+      <div v-if="state.shopCategory && state.shopCategory !== 'winfx'" class="shop-body">
+        <p class="shop-sec-hint">{{ t('shop.catHint.' + state.shopCategory) }}</p>
+        <div class="shop-grid">
+          <div class="shop-card fx" :class="{ fxactive: shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free }">
+            <span class="shop-card-ic">✔️</span>
+            <span class="shop-card-name">{{ t('shop.free.' + state.shopCategory) }}</span>
+            <span v-if="shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
+            <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopFree(state.shopCategory)">{{ t('shop.activate') }}</button>
+          </div>
+          <div v-for="it in shopCatItems(state.shopCategory)" :key="it.id" class="shop-card fx" :class="{ owned: ownsShop(it), fxactive: shopEquippedId(state.shopCategory) === it.id }">
+            <span class="shop-card-ic">{{ it.icon }}</span>
+            <span v-if="it.cat === 'palette'" class="shop-pal-dots"><i v-for="(c, di) in palettePreview(it)" :key="di" :style="{ background: c }"></i></span>
+            <span class="shop-card-name">{{ t('shop.it.' + it.id) }}</span>
+            <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it)" @click="buyShopItem(it)">💰 {{ shopItemPrice(it) }}</button>
+            <span v-else-if="shopEquippedId(state.shopCategory) === it.id" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
+            <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopItem(it)">{{ t('shop.activate') }}</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Kategorien-Übersicht: erst die Kategorie wählen, dann die Artikel. -->
-      <div v-else class="shop-body">
+      <div v-if="!state.shopCategory" class="shop-body">
         <p class="shop-intro">{{ t('shop.intro') }}</p>
         <div class="shop-grid">
           <button class="shop-card shop-cat" @click="openShopCategory('winfx')">
             <span class="shop-card-ic">🎉</span>
             <span class="shop-card-name">{{ t('shop.winFxTitle') }}</span>
             <span class="shop-cat-count">{{ ownedWinFx().length }}/{{ WIN_EFFECTS.length }} ›</span>
+          </button>
+          <button class="shop-card shop-cat" @click="openShopCategory('palette')">
+            <span class="shop-card-ic">🌈</span>
+            <span class="shop-card-name">{{ t('shop.item.boardPalettes') }}</span>
+            <span class="shop-cat-count">{{ shopOwnedCount('palette') + 1 }}/{{ shopCatItems('palette').length + 1 }} ›</span>
           </button>
         </div>
         <div class="shop-wip-banner">🚧 {{ t('shop.wip') }}</div>
@@ -5607,7 +5698,11 @@ function inHintGroup(r, c) {
 function cellStyle(r, c) {
   const m = state.cellMeta[r][c];
   const st = { fontSize: 'var(--fs)' };
-  if (m.color) { st['--rc-h'] = m.color.h; st['--rc-s'] = m.color.s + '%'; st['--rc-l'] = m.color.l + '%'; st['--rc-ink'] = regionChipInk(m.color); }
+  if (m.color) {
+    // Ausgerüstete Brett-Palette (Shop) auch hier — s. shopitems.js/applyPaletteFx.
+    const col = applyPaletteFx(m.color, activePaletteFx());
+    st['--rc-h'] = col.h; st['--rc-s'] = col.s + '%'; st['--rc-l'] = col.l + '%'; st['--rc-ink'] = regionChipInk(col);
+  }
   const who = state.markedBy[r][c];
   if (who) { const col = who === LOCAL_PLAYER_ID ? state.settings.coopMyColor : playerColor(who); if (col) st['--markcol'] = col; }
   const pe = pulseEdges(r, c);

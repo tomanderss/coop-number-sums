@@ -521,6 +521,9 @@ export default {
   },
   notice: { gift: '{from} hat dir „{item}" geschenkt!', revoke: '{from} hat dir „{item}" entzogen.', currency: '{from} hat dein Guthaben auf {n} 💰 gesetzt.' },
   shop: {
+    catHint: { palette: 'Färbe die Cages deines Bretts um — die Unterscheidbarkeit der Farben bleibt dabei immer erhalten.' },
+    free: { palette: 'Klassisch' },
+    it: { pastell: 'Pastell-Traum', vintage: 'Vintage', daemmerung: 'Dämmerung', neon: 'Neon-Glühen', arktis: 'Arktis', spiegel: 'Spiegelwelt', cyber: 'Cyber-Grid', karneval: 'Karneval' },
     winFxTitle: 'Sieganimationen', winFxHint: 'Kaufe neue Animationen für deinen Sieg-Moment — Vorschau mit ▶, gekaufte jederzeit wechselbar.',
     preview: 'Vorschau', activate: 'Aktivieren', active: 'Aktiv',
     bought: 'Gekauft! 🎉', notEnough: 'Nicht genug Münzen', activated: 'Aktiviert',

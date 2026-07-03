@@ -242,6 +242,8 @@ export const DEFAULT_SETTINGS = {
                             // (richtig/falsch, Hinweis/Fehler, Leben, Toasts, ...) durch
                             // Blau/Orange (css/styles.css) UND nutzt COOP_COLORS_CB statt
                             // COOP_COLORS für die Coop-Spielerpalette.
+  boardPalette: 'classic',  // ausgerüstete Brett-Palette (js/shopitems.js, Kategorie 'palette');
+                            // 'classic' = eingebaute REGION_COLORS, Käufe transformieren sie (HSL).
   winEffect: 'confetti',    // aktive Sieganimation (js/wineffects.js); alles außer
                             // 'confetti' muss im Inventar liegen (Shop-Kauf/Gift),
                             // sonst Fallback auf Confetti (resolveActiveEffect).
