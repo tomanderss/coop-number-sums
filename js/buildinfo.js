@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.58';
-export const BUILD_HASH = '7c883cf';
+export const BUILD      = '1.59';
+export const BUILD_HASH = '6e96ab4';
 
 export const CHANGELOG = [
+  {
+    "version": "1.59",
+    "date": "03.07.2026",
+    "changes": [
+      "Neue Shop-Kategorie „App-Themes\": 8 komplette Farbwelten für die ganze App (OLED-Nacht, Nebula, Tiefsee, Nachtwald, Sakura, Sonnenuntergang, Kaffeehaus, Cyberpunk)."
+    ]
+  },
   {
     "version": "1.58",
     "date": "03.07.2026",
