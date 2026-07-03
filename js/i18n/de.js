@@ -455,7 +455,7 @@ export default {
     fieldKey: 'Feld',
     fieldValue: 'Wert',
     fieldHint: 'Setzt users/{uid}/profile/<Feld>. role/username separat. Leerer Wert löscht das Feld.',
-    resetPw: 'Passwort-Reset-Mail',
+    resetPw: 'Passwort-Reset-Mail', notifyUser: 'Nutzer benachrichtigen',
     resetPwHint: 'Sendet dem Nutzer eine Passwort-Reset-Mail (direktes Setzen ist per Firebase nicht möglich).',
     resetSent: 'Reset-Mail gesendet ✅',
     title: '🛠 Admin',
@@ -519,6 +519,7 @@ export default {
     lbLoading: "Bestenliste wird geladen …", lbEmpty: "Noch keine Zeiten — sei die/der Erste!",
     err: { invalidUsername: 'Ungültiger Benutzername.', userNotFound: 'Kein Nutzer mit diesem Benutzernamen gefunden.', alreadyFriends: 'Ihr seid bereits befreundet.', selfFriend: 'Du kannst dich nicht selbst hinzufügen.', notSignedIn: 'Bitte melde dich zuerst an.' },
   },
+  notice: { gift: '{from} hat dir „{item}" geschenkt!', revoke: '{from} hat dir „{item}" entzogen.', currency: '{from} hat dein Guthaben auf {n} 💰 gesetzt.' },
   shop: {
     winFxTitle: 'Sieganimationen', winFxHint: 'Kaufe neue Animationen für deinen Sieg-Moment — Vorschau mit ▶, gekaufte jederzeit wechselbar.',
     preview: 'Vorschau', activate: 'Aktivieren', active: 'Aktiv',

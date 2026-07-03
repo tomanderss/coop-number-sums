@@ -364,7 +364,7 @@ export default {
     fieldKey: '필드',
     fieldValue: '값',
     fieldHint: 'users/{uid}/profile/<필드> 설정. role/username은 별도. 빈 값은 삭제.',
-    resetPw: '비밀번호 재설정 메일',
+    resetPw: '비밀번호 재설정 메일', notifyUser: '사용자에게 알림',
     resetPwHint: '사용자에게 비밀번호 재설정 메일을 보냅니다(Firebase로 직접 설정 불가).',
     resetSent: '재설정 메일을 보냈습니다 ✅',
     title: '🛠 관리자',
@@ -428,6 +428,7 @@ export default {
     lbLoading: "순위표 불러오는 중 …", lbEmpty: "아직 기록이 없어요 — 첫 주자가 되어보세요!",
     err: { invalidUsername: '유효하지 않은 사용자 이름입니다.', userNotFound: '해당 사용자 이름을 찾을 수 없습니다.', alreadyFriends: '이미 친구입니다.', selfFriend: '자신을 추가할 수 없습니다.', notSignedIn: '먼저 로그인하세요.' },
   },
+  notice: { gift: '{from} 님이 "{item}" 을(를) 선물했어요!', revoke: '{from} 님이 "{item}" 을(를) 회수했어요.', currency: '{from} 님이 잔액을 {n} 💰 로 설정했어요.' },
   shop: {
     winFxTitle: '승리 애니메이션', winFxHint: '승리의 순간을 빛낼 애니메이션을 구매하세요 — ▶로 미리보기, 언제든 변경 가능.',
     preview: '미리보기', activate: '사용하기', active: '사용 중',

@@ -364,7 +364,7 @@ export default {
     fieldKey: 'Field',
     fieldValue: 'Value',
     fieldHint: 'Sets users/{uid}/profile/<field>. role/username are separate. Empty value deletes the field.',
-    resetPw: 'Password reset email',
+    resetPw: 'Password reset email', notifyUser: 'Notify user',
     resetPwHint: 'Sends the user a password reset email (direct setting isn’t possible via Firebase).',
     resetSent: 'Reset email sent ✅',
     title: '🛠 Admin',
@@ -428,6 +428,7 @@ export default {
     lbLoading: "Loading leaderboard …", lbEmpty: "No times yet — be the first!",
     err: { invalidUsername: 'Invalid username.', userNotFound: 'No user found with that username.', alreadyFriends: 'You are already friends.', selfFriend: 'You can’t add yourself.', notSignedIn: 'Please sign in first.' },
   },
+  notice: { gift: '{from} gifted you "{item}"!', revoke: '{from} removed "{item}" from you.', currency: '{from} set your balance to {n} 💰.' },
   shop: {
     winFxTitle: 'Win animations', winFxHint: 'Buy new animations for your victory moment — preview with ▶, switch owned ones anytime.',
     preview: 'Preview', activate: 'Activate', active: 'Active',

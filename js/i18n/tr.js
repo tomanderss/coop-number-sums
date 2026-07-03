@@ -364,7 +364,7 @@ export default {
     fieldKey: 'Alan',
     fieldValue: 'Değer',
     fieldHint: 'users/{uid}/profile/<alan> ayarlar. role/username ayrı. Boş değer alanı siler.',
-    resetPw: 'Parola sıfırlama e-postası',
+    resetPw: 'Parola sıfırlama e-postası', notifyUser: 'Kullanıcıyı bilgilendir',
     resetPwHint: 'Kullanıcıya parola sıfırlama e-postası gönderir (Firebase ile doğrudan ayarlama mümkün değil).',
     resetSent: 'Sıfırlama e-postası gönderildi ✅',
     title: '🛠 Yönetici',
@@ -428,6 +428,7 @@ export default {
     lbLoading: "Sıralama yükleniyor …", lbEmpty: "Henüz süre yok — ilk sen ol!",
     err: { invalidUsername: 'Geçersiz kullanıcı adı.', userNotFound: 'Bu kullanıcı adına sahip kullanıcı bulunamadı.', alreadyFriends: 'Zaten arkadaşsınız.', selfFriend: 'Kendini ekleyemezsin.', notSignedIn: 'Lütfen önce giriş yap.' },
   },
+  notice: { gift: '{from} sana "{item}" hediye etti!', revoke: '{from} senden "{item}" aldı.', currency: '{from} bakiyeni {n} 💰 yaptı.' },
   shop: {
     winFxTitle: 'Zafer animasyonları', winFxHint: 'Zafer anın için animasyonlar satın al — ▶ ile önizle, istediğin zaman değiştir.',
     preview: 'Önizleme', activate: 'Etkinleştir', active: 'Etkin',

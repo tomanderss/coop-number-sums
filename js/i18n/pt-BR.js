@@ -364,7 +364,7 @@ export default {
     fieldKey: 'Campo',
     fieldValue: 'Valor',
     fieldHint: 'Define users/{uid}/profile/<campo>. role/username à parte. Valor vazio apaga o campo.',
-    resetPw: 'E-mail de redefinição',
+    resetPw: 'E-mail de redefinição', notifyUser: 'Notificar usuário',
     resetPwHint: 'Envia ao usuário um e-mail de redefinição de senha (definição direta não é possível via Firebase).',
     resetSent: 'E-mail de redefinição enviado ✅',
     title: '🛠 Admin',
@@ -428,6 +428,7 @@ export default {
     lbLoading: "Carregando ranking …", lbEmpty: "Ainda sem tempos — seja o primeiro!",
     err: { invalidUsername: 'Nome de usuário inválido.', userNotFound: 'Nenhum usuário encontrado com esse nome.', alreadyFriends: 'Vocês já são amigos.', selfFriend: 'Você não pode adicionar a si mesmo.', notSignedIn: 'Faça login primeiro.' },
   },
+  notice: { gift: '{from} te presenteou com "{item}"!', revoke: '{from} removeu "{item}" de você.', currency: '{from} definiu seu saldo em {n} 💰.' },
   shop: {
     winFxTitle: 'Animações de vitória', winFxHint: 'Compre animações para o seu momento de vitória — prévia com ▶, troque quando quiser.',
     preview: 'Prévia', activate: 'Ativar', active: 'Ativa',
