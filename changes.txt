@@ -1,1 +1,0 @@
-Sieganimationen räumen sauber auf: keine nachglühenden Pixel mehr nach dem Schwarzen Loch, Overlays enden jetzt direkt mit der sichtbaren Animation.
