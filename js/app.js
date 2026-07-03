@@ -209,6 +209,7 @@ const state = reactive({
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
+  shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
 });
 
@@ -491,12 +492,18 @@ const SHOP_ITEMS = [
 ];
 // Shop öffnen/schließen (eigener Screen; Coins oben, WIP-Kaufkarten).
 let shopReturn = null;
-function openShop() {
+function openShop(category) {
+  // Direkteinstieg in eine Kategorie erlaubt (z.B. Settings-Link „Shop ›"),
+  // sonst startet der Shop in der Kategorien-Übersicht.
+  state.shopCategory = category || null;
   if (state.screen === 'shop') return;
   shopReturn = state.screen;
   navigate('shop');
 }
-function closeShop() { const b = shopReturn || 'home'; shopReturn = null; navigate(b); }
+function closeShop() { const b = shopReturn || 'home'; shopReturn = null; state.shopCategory = null; navigate(b); }
+// Kategorie öffnen/schließen — Zurück in der Kategorie führt zur Übersicht, nicht raus.
+function openShopCategory(cat) { state.shopCategory = cat; }
+function closeShopCategory() { state.shopCategory = null; }
 // ── Sieganimationen: erste echte Shop-Kategorie (Katalog: js/wineffects.js) ────
 function ownsWinFx(id) { return ownsEffect(state.inventory, id); }
 function winFxActive(id) { return resolveActiveEffect(state.settings.winEffect, state.inventory) === id; }
@@ -3909,7 +3916,7 @@ const App = {
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
-      openShop, closeShop, coinFor, SHOP_ITEMS,
+      openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4642,15 +4649,14 @@ const App = {
     <!-- ══ SHOP (Work in Progress) ══ -->
     <section v-else-if="state.screen==='shop'" class="screen shop">
       <header class="topbar">
-        <button class="icon-btn" @click="closeShop">‹</button>
-        <h2>{{ t('shop.title') }}</h2>
+        <!-- Zurück: aus einer Kategorie erst zur Kategorien-Übersicht, dann raus. -->
+        <button class="icon-btn" @click="state.shopCategory ? closeShopCategory() : closeShop()">‹</button>
+        <h2>{{ state.shopCategory === 'winfx' ? '🎉 ' + t('shop.winFxTitle') : t('shop.title') }}</h2>
         <span class="coin-chip coin-chip-static">💰 {{ state.wallet.balance || 0 }}</span>
       </header>
-      <div class="shop-body">
-        <p class="shop-intro">{{ t('shop.intro') }}</p>
 
-        <!-- 🎉 Sieganimationen: erste echte Kategorie (kaufen/aktivieren/Vorschau) -->
-        <div class="shop-sec-title">🎉 {{ t('shop.winFxTitle') }}</div>
+      <!-- Kategorie: 🎉 Sieganimationen (kaufen/aktivieren/Vorschau) -->
+      <div v-if="state.shopCategory === 'winfx'" class="shop-body">
         <p class="shop-sec-hint">{{ t('shop.winFxHint') }}</p>
         <div class="shop-grid">
           <div v-for="e in WIN_EFFECTS" :key="e.id" class="shop-card fx" :class="{ owned: ownsWinFx(e.id), fxactive: winFxActive(e.id) }">
@@ -4662,7 +4668,18 @@ const App = {
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="activateWinFx(e.id)">{{ t('shop.activate') }}</button>
           </div>
         </div>
+      </div>
 
+      <!-- Kategorien-Übersicht: erst die Kategorie wählen, dann die Artikel. -->
+      <div v-else class="shop-body">
+        <p class="shop-intro">{{ t('shop.intro') }}</p>
+        <div class="shop-grid">
+          <button class="shop-card shop-cat" @click="openShopCategory('winfx')">
+            <span class="shop-card-ic">🎉</span>
+            <span class="shop-card-name">{{ t('shop.winFxTitle') }}</span>
+            <span class="shop-cat-count">{{ ownedWinFx().length }}/{{ WIN_EFFECTS.length }} ›</span>
+          </button>
+        </div>
         <div class="shop-wip-banner">🚧 {{ t('shop.wip') }}</div>
         <div class="shop-grid">
           <div v-for="it in SHOP_ITEMS" :key="it.id" class="shop-card disabled">
@@ -4742,7 +4759,7 @@ const App = {
             <select class="text-input" :value="state.settings.winEffect || 'confetti'" @change="activateWinFx($event.target.value)">
               <option v-for="e in ownedWinFx()" :key="e.id" :value="e.id">{{ e.icon }} {{ t('shop.effect.'+e.id) }}</option>
             </select>
-            <small class="set-hint">{{ t('settings.winEffectHint') }} <button class="btn-link" @click="openShop">{{ t('shop.title') }} ›</button></small>
+            <small class="set-hint">{{ t('settings.winEffectHint') }} <button class="btn-link" @click="openShop('winfx')">{{ t('shop.title') }} ›</button></small>
           </div>
 
           <div class="set-group-title">{{ t('settings.a11y') }}</div>
