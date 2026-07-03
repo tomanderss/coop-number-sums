@@ -244,6 +244,7 @@ export const DEFAULT_SETTINGS = {
                             // COOP_COLORS für die Coop-Spielerpalette.
   appTheme: 'standard',     // ausgerüstetes App-Theme (Shop-Kategorie 'theme');
                             // 'standard' = eingebautes Hell/Dunkel (themeMode).
+  boardFrame: 'none',       // ausgerüsteter Brett-Rahmen (Shop-Kategorie 'frame', .board.frame-<id>)
   numberFont: 'classic',    // ausgerüsteter Zahlen-Stil (Shop-Kategorie 'font', .board.font-<id>)
   sfxPack: 'standard',      // ausgerüstetes Sound-Paket (Shop-Kategorie 'sfx', js/music.js SFX_PACKS)
   boardPalette: 'classic',  // ausgerüstete Brett-Palette (js/shopitems.js, Kategorie 'palette');
