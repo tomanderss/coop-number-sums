@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.53';
-export const BUILD_HASH = 'a10929d';
+export const BUILD      = '1.54';
+export const BUILD_HASH = '194ce7d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.54",
+    "date": "03.07.2026",
+    "changes": [
+      "Shop: Sieganimationen liegen jetzt in einer eigenen Kategorie — erst Kategorie antippen, dann stöbern."
+    ]
+  },
   {
     "version": "1.53",
     "date": "03.07.2026",
