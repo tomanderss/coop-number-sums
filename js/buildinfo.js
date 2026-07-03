@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.54';
-export const BUILD_HASH = '194ce7d';
+export const BUILD      = '1.55';
+export const BUILD_HASH = '18a6969';
 
 export const CHANGELOG = [
+  {
+    "version": "1.55",
+    "date": "03.07.2026",
+    "changes": [
+      "Admin: Selbst verschenkte Items und gesetztes Guthaben sind sofort nutzbar (kein Neustart mehr nötig)."
+    ]
+  },
   {
     "version": "1.54",
     "date": "03.07.2026",
