@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.59';
-export const BUILD_HASH = '6e96ab4';
+export const BUILD      = '1.60';
+export const BUILD_HASH = '7d492a6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.60",
+    "date": "03.07.2026",
+    "changes": [
+      "Sieganimationen räumen sauber auf: keine nachglühenden Pixel mehr nach dem Schwarzen Loch, Overlays enden jetzt direkt mit der sichtbaren Animation."
+    ]
+  },
   {
     "version": "1.59",
     "date": "03.07.2026",
