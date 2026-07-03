@@ -430,9 +430,9 @@ export default {
   },
   notice: { gift: '{from} さんから「{item}」が贈られました！', revoke: '{from} さんが「{item}」を取り消しました。', currency: '{from} さんが残高を {n} 💰 に設定しました。' },
   shop: {
-    catHint: { palette: '盤面のケージを塗り替え — 色の見分けやすさは常に保たれます。' },
-    free: { palette: 'クラシック' },
-    it: { pastell: 'パステルドリーム', vintage: 'ビンテージ', daemmerung: 'たそがれ', neon: 'ネオングロー', arktis: '北極', spiegel: 'ミラーワールド', cyber: 'サイバーグリッド', karneval: 'カーニバル' },
+    catHint: { palette: '盤面のケージを塗り替え — 色の見分けやすさは常に保たれます。', theme: 'アプリ全体の配色をまるごと変える — OLEDブラックから桜まで。' },
+    free: { palette: 'クラシック', theme: '標準（ライト/ダーク）' },
+    it: { kaffee: 'コーヒーハウス', oled: 'OLEDナイト', tiefsee: '深海', wald: '夜の森', sakura: 'さくら', nebula: '星雲', sunset: '夕焼け', cyberpunk: 'サイバーパンク', pastell: 'パステルドリーム', vintage: 'ビンテージ', daemmerung: 'たそがれ', neon: 'ネオングロー', arktis: '北極', spiegel: 'ミラーワールド', cyber: 'サイバーグリッド', karneval: 'カーニバル' },
     winFxTitle: '勝利アニメーション', winFxHint: '勝利の瞬間を彩るアニメーションを購入 — ▶でプレビュー、いつでも切り替え可能。',
     preview: 'プレビュー', activate: '使う', active: '使用中',
     bought: '購入しました！🎉', notEnough: 'コインが足りません', activated: '設定しました',
