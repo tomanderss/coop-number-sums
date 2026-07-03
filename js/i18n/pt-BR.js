@@ -430,9 +430,9 @@ export default {
   },
   notice: { gift: '{from} te presenteou com "{item}"!', revoke: '{from} removeu "{item}" de você.', currency: '{from} definiu seu saldo em {n} 💰.' },
   shop: {
-    catHint: { palette: 'Recolora as gaiolas do tabuleiro — as cores continuam sempre distinguíveis.' },
-    free: { palette: 'Clássico' },
-    it: { pastell: 'Sonho pastel', vintage: 'Vintage', daemmerung: 'Crepúsculo', neon: 'Brilho neon', arktis: 'Ártico', spiegel: 'Mundo espelho', cyber: 'Cibergrade', karneval: 'Carnaval' },
+    catHint: { palette: 'Recolora as gaiolas do tabuleiro — as cores continuam sempre distinguíveis.', theme: 'Mundos de cores completos para o app inteiro — do preto OLED ao sakura.' },
+    free: { palette: 'Clássico', theme: 'Padrão (claro/escuro)' },
+    it: { kaffee: 'Cafeteria', oled: 'Noite OLED', tiefsee: 'Mar profundo', wald: 'Floresta noturna', sakura: 'Sakura', nebula: 'Nebulosa', sunset: 'Pôr do sol', cyberpunk: 'Cyberpunk', pastell: 'Sonho pastel', vintage: 'Vintage', daemmerung: 'Crepúsculo', neon: 'Brilho neon', arktis: 'Ártico', spiegel: 'Mundo espelho', cyber: 'Cibergrade', karneval: 'Carnaval' },
     winFxTitle: 'Animações de vitória', winFxHint: 'Compre animações para o seu momento de vitória — prévia com ▶, troque quando quiser.',
     preview: 'Prévia', activate: 'Ativar', active: 'Ativa',
     bought: 'Comprado! 🎉', notEnough: 'Moedas insuficientes', activated: 'Ativada',

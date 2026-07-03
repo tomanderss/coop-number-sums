@@ -35,6 +35,96 @@
   --bad: #D55E00; --bad-soft: rgba(213,94,0,.14);
 }
 
+/* ═══ Kaufbare App-Themes (Shop-Kategorie 'theme', js/shopitems.js) ═══════════
+   Komplette Farbwelten via :root[data-apptheme="<id>"]. Sie stehen NACH den
+   Basis-Themes (gewinnen per Reihenfolge bei gleicher Spezifität); die
+   Farbblind-Overrides oben ([data-theme].colorblind, Spezifität 0,2,0)
+   schlagen die Themes (0,1,0) weiterhin — Barrierefreiheit gewinnt immer. */
+
+/* ☕ Kaffeehaus — warmes Creme/Braun (hell) */
+:root[data-apptheme="kaffee"] {
+  --bg: #f3ece2; --bg2: #fffaf2; --bg3: #eadfce; --card: #fffaf2; --grid: #d8c8b0;
+  --text: #3c2f23; --text2: #7a6551; --text3: #a8937c;
+  --accent: #8a5a2b; --accent2: #6f4620; --accent-soft: rgba(138,90,43,.14);
+  --cell-bg: #fffaf2; --hdr-bg: #efe4d3; --ink: #33281d;
+  --good: #4a7c2f; --good-soft: rgba(74,124,47,.16);
+  --bad: #b3402e; --bad-soft: rgba(179,64,46,.14);
+  --warn: #b07d10; --shadow: rgba(90,65,40,.18);
+}
+/* 🖤 OLED-Nacht — pures Schwarz, kühles Blau */
+:root[data-apptheme="oled"] {
+  --bg: #000000; --bg2: #0d0d11; --bg3: #16161d; --card: #0d0d11; --grid: #26262f;
+  --text: #e8e8ee; --text2: #9a9aad; --text3: #5c5c70;
+  --accent: #4f7dff; --accent2: #7396ff; --accent-soft: rgba(79,125,255,.16);
+  --cell-bg: #0d0d11; --hdr-bg: #17171f; --ink: #e8e8ee;
+  --good: #2fd48f; --good-soft: rgba(47,212,143,.18);
+  --bad: #ff5d5d; --bad-soft: rgba(255,93,93,.2);
+  --warn: #f2b52a; --shadow: rgba(0,0,0,.7);
+}
+/* 🐋 Tiefsee — dunkles Petrol, Türkis-Akzent */
+:root[data-apptheme="tiefsee"] {
+  --bg: #04121c; --bg2: #0a2434; --bg3: #103349; --card: #0a2434; --grid: #1c4a63;
+  --text: #dcf3f7; --text2: #8fbfcb; --text3: #52808f;
+  --accent: #2dd4bf; --accent2: #5eead4; --accent-soft: rgba(45,212,191,.16);
+  --cell-bg: #0a2434; --hdr-bg: #123950; --ink: #dcf3f7;
+  --good: #4ade80; --good-soft: rgba(74,222,128,.18);
+  --bad: #fb7185; --bad-soft: rgba(251,113,133,.2);
+  --warn: #fbbf24; --shadow: rgba(0,10,20,.55);
+}
+/* 🌲 Nachtwald — tiefes Grün, weiches Moos */
+:root[data-apptheme="wald"] {
+  --bg: #0c1510; --bg2: #15251a; --bg3: #1e3525; --card: #15251a; --grid: #2f5038;
+  --text: #e6f2e4; --text2: #a3c2a0; --text3: #628a63;
+  --accent: #7cc26a; --accent2: #9ad489; --accent-soft: rgba(124,194,106,.16);
+  --cell-bg: #15251a; --hdr-bg: #203a29; --ink: #e6f2e4;
+  --good: #8ee08a; --good-soft: rgba(142,224,138,.18);
+  --bad: #e8705f; --bad-soft: rgba(232,112,95,.2);
+  --warn: #d9b13b; --shadow: rgba(0,12,4,.55);
+}
+/* 🌸 Sakura — zartes Rosa (hell) */
+:root[data-apptheme="sakura"] {
+  --bg: #fdf0f4; --bg2: #ffffff; --bg3: #f7dfe8; --card: #ffffff; --grid: #ecc6d5;
+  --text: #43222f; --text2: #8a5b6c; --text3: #bd93a3;
+  --accent: #d6488a; --accent2: #b93372; --accent-soft: rgba(214,72,138,.13);
+  --cell-bg: #ffffff; --hdr-bg: #f9e6ed; --ink: #3c1f2b;
+  --good: #2f9e63; --good-soft: rgba(47,158,99,.15);
+  --bad: #d84a3f; --bad-soft: rgba(216,74,63,.13);
+  --warn: #c98a12; --shadow: rgba(120,50,80,.16);
+}
+/* 🌌 Nebula — Violett-Galaxie, Magenta-Glühen */
+:root[data-apptheme="nebula"] {
+  --bg: #0d0a1f; --bg2: #1a1438; --bg3: #261d50; --card: #1a1438; --grid: #3b2f73;
+  --text: #ece6fb; --text2: #b0a3d9; --text3: #6f639c;
+  --accent: #c26bff; --accent2: #d795ff; --accent-soft: rgba(194,107,255,.17);
+  --cell-bg: #1a1438; --hdr-bg: #2a2158; --ink: #ece6fb;
+  --good: #52e0b8; --good-soft: rgba(82,224,184,.18);
+  --bad: #ff6d9d; --bad-soft: rgba(255,109,157,.2);
+  --warn: #f5c542; --shadow: rgba(8,3,26,.6);
+}
+/* 🌇 Sonnenuntergang — warmes Dunkelrot, Orange-Akzent */
+:root[data-apptheme="sunset"] {
+  --bg: #1d0f12; --bg2: #301a1c; --bg3: #452624; --card: #301a1c; --grid: #63403a;
+  --text: #f7e8de; --text2: #cfa896; --text3: #94705f;
+  --accent: #ff8a4c; --accent2: #ffa872; --accent-soft: rgba(255,138,76,.16);
+  --cell-bg: #301a1c; --hdr-bg: #3d2321; --ink: #f7e8de;
+  --good: #7ed67a; --good-soft: rgba(126,214,122,.18);
+  --bad: #ff6259; --bad-soft: rgba(255,98,89,.2);
+  --warn: #ffc23d; --shadow: rgba(20,5,5,.55);
+}
+/* 🦾 Cyberpunk (Legendär) — Neon-Gelb auf Nachtschwarz, Magenta-Kante */
+:root[data-apptheme="cyberpunk"] {
+  --bg: #08080c; --bg2: #12121c; --bg3: #1c1c2c; --card: #12121c; --grid: #33334d;
+  --text: #f2f2e9; --text2: #a8a8b8; --text3: #62627a;
+  --accent: #f7e733; --accent2: #fff566; --accent-soft: rgba(247,231,51,.14);
+  --cell-bg: #12121c; --hdr-bg: #1b1b29; --ink: #f2f2e9;
+  --good: #3df5c0; --good-soft: rgba(61,245,192,.18);
+  --bad: #ff2e88; --bad-soft: rgba(255,46,136,.2);
+  --warn: #ffb02e; --shadow: rgba(247,231,51,.08);
+}
+/* Cyberpunk-Extra: Akzent-Buttons brauchen dunkle Schrift auf Neon-Gelb */
+:root[data-apptheme="cyberpunk"] .btn-primary,
+:root[data-apptheme="cyberpunk"] .seg button.active { color: #14140a; }
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 html, body, #rotate-fix { margin: 0; height: 100%; }
 body {

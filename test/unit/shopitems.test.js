@@ -19,6 +19,16 @@ describe('shopitems.catalog', () => {
     }
   });
 
+  test('theme category has 8 themes with complete data (base/top/sw)', () => {
+    const themes = catItems('theme');
+    assert.equal(themes.length, 8);
+    for (const th of themes) {
+      assert.ok(['dark', 'light'].includes(th.data.base), th.id);
+      assert.match(th.data.top, /^#[0-9a-f]{6}$/i, th.id);
+      assert.equal(th.data.sw.length, 4, th.id);
+    }
+  });
+
   test('palette category has 8 purchasable palettes with fx params', () => {
     const pals = catItems('palette');
     assert.equal(pals.length, 8);

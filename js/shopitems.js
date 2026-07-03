@@ -36,6 +36,23 @@ export const SHOP_CATALOG = [
   { id: 'karneval',   cat: 'palette', icon: '🎭', tier: 3, fx: { hue: 90,  sat: 1.35, light: 2 } },
 ];
 
+// 🖌️ App-Themes: komplette UI-Farbwelten (CSS-Variablen-Sets in styles.css,
+// :root[data-apptheme="<id>"]). data.base legt fest, ob das Theme auf der
+// dunklen oder hellen Grundwelt aufsetzt (steuert data-theme + Farbblind-
+// Overrides), data.top = Browser-Chrome-Farbe (meta theme-color),
+// data.sw = 4 Vorschau-Farben für die Shop-Karte (bg, Karte, Akzent, Text).
+export const THEME_ITEMS = [
+  { id: 'kaffee',    cat: 'theme', icon: '☕', tier: 1, data: { base: 'light', top: '#f3ece2', sw: ['#f3ece2', '#fffaf2', '#8a5a2b', '#3c2f23'] } },
+  { id: 'oled',      cat: 'theme', icon: '🖤', tier: 2, data: { base: 'dark',  top: '#000000', sw: ['#000000', '#0d0d11', '#4f7dff', '#e8e8ee'] } },
+  { id: 'tiefsee',   cat: 'theme', icon: '🐋', tier: 2, data: { base: 'dark',  top: '#04121c', sw: ['#04121c', '#0a2434', '#2dd4bf', '#dcf3f7'] } },
+  { id: 'wald',      cat: 'theme', icon: '🌲', tier: 2, data: { base: 'dark',  top: '#0c1510', sw: ['#0c1510', '#15251a', '#7cc26a', '#e6f2e4'] } },
+  { id: 'sakura',    cat: 'theme', icon: '🌸', tier: 2, data: { base: 'light', top: '#fdf0f4', sw: ['#fdf0f4', '#ffffff', '#d6488a', '#43222f'] } },
+  { id: 'nebula',    cat: 'theme', icon: '🌌', tier: 3, data: { base: 'dark',  top: '#0d0a1f', sw: ['#0d0a1f', '#1a1438', '#c26bff', '#ece6fb'] } },
+  { id: 'sunset',    cat: 'theme', icon: '🌇', tier: 3, data: { base: 'dark',  top: '#1d0f12', sw: ['#1d0f12', '#301a1c', '#ff8a4c', '#f7e8de'] } },
+  { id: 'cyberpunk', cat: 'theme', icon: '🦾', tier: 4, data: { base: 'dark',  top: '#08080c', sw: ['#08080c', '#12121c', '#f7e733', '#ff2e88'] } },
+];
+SHOP_CATALOG.push(...THEME_ITEMS);
+
 export function shopItemById(id) { return SHOP_CATALOG.find((i) => i.id === id) || null; }
 export function catItems(cat) { return SHOP_CATALOG.filter((i) => i.cat === cat); }
 export function shopItemPrice(idOrItem) {

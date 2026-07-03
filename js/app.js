@@ -281,11 +281,17 @@ function isDarkTheme() {
   try { return window.matchMedia('(prefers-color-scheme: dark)').matches; } catch (_) { return true; }
 }
 function applyTheme() {
-  const dark = isDarkTheme();
+  // Ausgerüstetes Shop-Theme (komplette Farbwelt) hat Vorrang: es bestimmt die
+  // Grundwelt (data-theme steuert Farbblind-Overrides & Co.) und liefert die
+  // Browser-Chrome-Farbe. Ohne Theme gilt das eingebaute Hell/Dunkel (themeMode).
+  const themeIt = shopItemById(shopEquippedId('theme'));
+  const dark = themeIt ? themeIt.data.base === 'dark' : isDarkTheme();
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  if (themeIt) document.documentElement.setAttribute('data-apptheme', themeIt.id);
+  else document.documentElement.removeAttribute('data-apptheme');
   document.documentElement.classList.toggle('colorblind', state.settings.colorBlindMode);
   const tc = document.querySelector('meta[name="theme-color"]');
-  if (tc) tc.setAttribute('content', dark ? '#0b1020' : '#eef2f9');
+  if (tc) tc.setAttribute('content', themeIt ? themeIt.data.top : (dark ? '#0b1020' : '#eef2f9'));
 }
 function applyLocale() {
   if (!state.settings.language) state.settings.language = detectLocale();
@@ -484,7 +490,6 @@ function coinFor(d, coopish) {
 // Ideen, kein Pay-to-win. Namen via i18n (shop.item.<id>).
 const SHOP_ITEMS = [
   { id: 'skinPresets', icon: '🎨' },
-  { id: 'appThemes', icon: '🖌️' },
   { id: 'coopColors', icon: '✨' },
   { id: 'numberFonts', icon: '🔢' },
   { id: 'soundPacks', icon: '🎵' },
@@ -572,17 +577,23 @@ function activePaletteFx() {
   const it = shopItemById(shopEquippedId('palette'));
   return it ? it.fx : null;
 }
-// Vorschau-Punkte einer Palette: 6 repräsentative Cage-Farben, transformiert.
-function palettePreview(it) {
-  return [0, 3, 6, 9, 12, 15].map((i) => {
-    const c = applyPaletteFx(REGION_COLORS[i], it.fx);
-    return `hsl(${c.h} ${c.s}% ${c.l}%)`;
-  });
+// Vorschau-Punkte einer Karte: Paletten zeigen 6 transformierte Cage-Farben,
+// Themes ihre 4 Kern-Farben (bg, Karte, Akzent, Text); sonst keine Punkte.
+function shopPreviewDots(it) {
+  if (it.cat === 'palette') {
+    return [0, 3, 6, 9, 12, 15].map((i) => {
+      const c = applyPaletteFx(REGION_COLORS[i], it.fx);
+      return `hsl(${c.h} ${c.s}% ${c.l}%)`;
+    });
+  }
+  if (it.cat === 'theme') return it.data.sw;
+  return null;
 }
 // Kategorie-Titel für die Shop-Topbar (Kategorie-Karten nutzen dieselben Keys).
 function shopCategoryTitle(cat) {
   if (cat === 'winfx') return '🎉 ' + t('shop.winFxTitle');
   if (cat === 'palette') return '🌈 ' + t('shop.item.boardPalettes');
+  if (cat === 'theme') return '🖌️ ' + t('shop.item.appThemes');
   return t('shop.title');
 }
 
@@ -2696,7 +2707,7 @@ function toggleSetting(key) {
 function setSetting(key, val) {
   state.settings[key] = val;
   if (key === 'language') applyLocale();
-  if (key === 'themeMode') applyTheme();
+  if (key === 'themeMode' || key === 'appTheme') applyTheme();
   if (key === 'musicVolume') { Music.setVolume(val); updateMusic(); }
 }
 watch(() => state.settings, (s) => { saveSettings(s); if (state.account.status === 'in') Account.scheduleSyncUp(); }, { deep: true });
@@ -4040,7 +4051,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
-      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, palettePreview, shopCategoryTitle,
+      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4807,7 +4818,7 @@ const App = {
           </div>
           <div v-for="it in shopCatItems(state.shopCategory)" :key="it.id" class="shop-card fx" :class="{ owned: ownsShop(it), fxactive: shopEquippedId(state.shopCategory) === it.id }">
             <span class="shop-card-ic">{{ it.icon }}</span>
-            <span v-if="it.cat === 'palette'" class="shop-pal-dots"><i v-for="(c, di) in palettePreview(it)" :key="di" :style="{ background: c }"></i></span>
+            <span v-if="shopPreviewDots(it)" class="shop-pal-dots"><i v-for="(c, di) in shopPreviewDots(it)" :key="di" :style="{ background: c }"></i></span>
             <span class="shop-card-name">{{ t('shop.it.' + it.id) }}</span>
             <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it)" @click="buyShopItem(it)">💰 {{ shopItemPrice(it) }}</button>
             <span v-else-if="shopEquippedId(state.shopCategory) === it.id" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
@@ -4829,6 +4840,11 @@ const App = {
             <span class="shop-card-ic">🌈</span>
             <span class="shop-card-name">{{ t('shop.item.boardPalettes') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('palette') + 1 }}/{{ shopCatItems('palette').length + 1 }} ›</span>
+          </button>
+          <button class="shop-card shop-cat" @click="openShopCategory('theme')">
+            <span class="shop-card-ic">🖌️</span>
+            <span class="shop-card-name">{{ t('shop.item.appThemes') }}</span>
+            <span class="shop-cat-count">{{ shopOwnedCount('theme') + 1 }}/{{ shopCatItems('theme').length + 1 }} ›</span>
           </button>
         </div>
         <div class="shop-wip-banner">🚧 {{ t('shop.wip') }}</div>
