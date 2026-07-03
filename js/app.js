@@ -2285,7 +2285,17 @@ function persistGame() {
   // gespeicherten Stand des anderen.
   // Trainingsrätsel werden nie persistiert/fortgesetzt -- sie sind als
   // wiederholbarer Lerndurchlauf gedacht, kein "Spielstand".
-  if (state.status !== 'playing' || state.isTrainingGame) {
+  // Training fasst gespeicherte Spielstände NIE an: ein Trainingsrätsel läuft
+  // parallel zu einem evtl. unterbrochenen Solo-Spiel — vorher löschte jeder
+  // Trainings-Zug (und jedes Ausblenden während des Trainings) den Solo-Slot.
+  if (state.isTrainingGame) return;
+  // 'idle' = in dieser Sitzung wurde (noch) nichts geladen (frischer App-Start).
+  // Früher lief das in den Lösch-Zweig: App öffnen → ohne zu spielen wieder
+  // schließen/hintergrund → pagehide/persistGame löschte den gespeicherten
+  // Solo-Stand („Fortsetzen" verschwand scheinbar grundlos). Nur ein wirklich
+  // BEENDETES Spiel ('won'/'lost') räumt den Slot auf.
+  if (state.status === 'idle') return;
+  if (state.status !== 'playing') {
     if (state.coop.active) { saveActiveGameCoop(null); clearCoopSession(); }
     else saveActiveGame(null);
     return;
@@ -2319,6 +2329,20 @@ function refreshResume() {
 function resumeGame() {
   const g = state.resumeAvailable;
   if (!g) return;
+  // Alt-Spielstände (vor der Eigene-Farbe-Markierung) haben kein oder lücken-
+  // haftes markedBy. Ohne Besitzer bekommt eine wiederhergestellte Markierung
+  // weder die eigene Farbe noch den dynamischen Skin (Symptom: „bereits
+  // eingekreiste Zahlen sind nach dem Fortsetzen nicht animiert"). Eigene
+  // Solo-Züge daher nachträglich als eigene ausweisen.
+  if (g.marks) {
+    if (!Array.isArray(g.markedBy)) g.markedBy = g.marks.map((row) => row.map(() => null));
+    for (let r = 0; r < g.marks.length; r++) {
+      if (!Array.isArray(g.markedBy[r])) g.markedBy[r] = g.marks[r].map(() => null);
+      for (let c = 0; c < g.marks[r].length; c++) {
+        if (g.marks[r][c] !== 'none' && !g.markedBy[r][c]) g.markedBy[r][c] = LOCAL_PLAYER_ID;
+      }
+    }
+  }
   navigate('game');
   loadPuzzleIntoState(g.puzzle, g);
   startTimer();

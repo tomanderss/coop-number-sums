@@ -1,0 +1,1 @@
+Solo fortsetzen: bereits eingekreiste Zahlen zeigen wieder Farbe und dynamischen Skin. Außerdem geht ein gespeicherter Spielstand nicht mehr verloren, wenn die App ohne zu spielen geschlossen wird oder Training läuft.
