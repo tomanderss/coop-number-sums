@@ -4679,7 +4679,9 @@ const App = {
           </div>
           <div class="set-row col">
             <span class="set-row-label">{{ t('settings.language') }}</span>
-            <select class="text-input" :value="state.settings.language" @change="setSetting('language', $event.target.value)">
+            <!-- lang-select: eindeutiger Anker für E2E-Tests (die Darstellung-Sektion
+                 enthält inzwischen mehrere Selects, u.a. die Sieganimation). -->
+            <select class="text-input lang-select" :value="state.settings.language" @change="setSetting('language', $event.target.value)">
               <option v-for="l in SUPPORTED_LOCALES" :key="l.id" :value="l.id">{{ l.label }}</option>
             </select>
           </div>

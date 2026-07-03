@@ -66,7 +66,7 @@ test.describe('settings', () => {
     await gotoSettingsSection(page, 'Darstellung');
     await expect(page.locator('.screen.settings h2')).toHaveText('Einstellungen');
 
-    await page.locator('select.text-input').selectOption('en');
+    await page.locator('select.lang-select').selectOption('en');
     await expect(page.locator('.screen.settings h2')).toHaveText('Settings');
 
     await page.reload();
@@ -87,7 +87,7 @@ test.describe('settings', () => {
       await gotoApp(page);
       await page.locator('.home-settings-btn').click();
       await gotoSettingsSection(page, 'Darstellung'); // Sprachwahl-Select liegt hier
-      await page.locator('select.text-input').selectOption(locale);
+      await page.locator('select.lang-select').selectOption(locale);
       await page.locator('.screen.settings .topbar .icon-btn').first().click(); // Zurück (erster Icon-Button, links)
       await expect(page.locator('.screen.home')).toBeVisible();
 
