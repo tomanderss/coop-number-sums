@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.52';
-export const BUILD_HASH = '34a11fa';
+export const BUILD      = '1.53';
+export const BUILD_HASH = 'a10929d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.53",
+    "date": "03.07.2026",
+    "changes": [
+      "Solo fortsetzen: bereits eingekreiste Zahlen zeigen wieder Farbe und dynamischen Skin. Außerdem geht ein gespeicherter Spielstand nicht mehr verloren, wenn die App ohne zu spielen geschlossen wird oder Training läuft."
+    ]
+  },
   {
     "version": "1.52",
     "date": "03.07.2026",
