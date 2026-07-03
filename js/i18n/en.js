@@ -240,6 +240,7 @@ export default {
     sfxWin: 'Win',
     sfxLose: 'Loss',
     a11y: 'Accessibility',
+    winEffect: 'Win animation', winEffectHint: 'Plays on every win. Get more in the',
     colorBlindMode: '🎨 Colorblind-friendly mode',
     colorBlindModeHint: 'Replaces green/red everywhere in the game (correct/wrong, hints, lives, co-op colors, ...) with more distinguishable tones for red-green/blue-yellow color vision deficiency.',
     coop: 'Co-op',
@@ -428,6 +429,10 @@ export default {
     err: { invalidUsername: 'Invalid username.', userNotFound: 'No user found with that username.', alreadyFriends: 'You are already friends.', selfFriend: 'You can’t add yourself.', notSignedIn: 'Please sign in first.' },
   },
   shop: {
+    winFxTitle: 'Win animations', winFxHint: 'Buy new animations for your victory moment — preview with ▶, switch owned ones anytime.',
+    preview: 'Preview', activate: 'Activate', active: 'Active',
+    bought: 'Purchased! 🎉', notEnough: 'Not enough coins', activated: 'Activated',
+    effect: { confetti: 'Confetti', balloons: 'Balloon Party', stars: 'Star Shower', bubbles: 'Soap Bubbles', petals: 'Cherry Blossoms', snow: 'Snow Magic', sparklers: 'Sparklers', fireworks: 'Fireworks', coins: 'Coin Rain', rainbow: 'Rainbow Wave', wave: 'Ocean Wave', matrix: 'Matrix Rain', disco: 'Disco', arcade: 'Retro Arcade', galaxy: 'Galaxy Swirl', blackhole: 'Black Hole', chain: 'Chain Reaction', dragon: 'Dragon Flight', rocket: 'Rocket Launch', shatter: 'Diamond Shatter', phoenix: 'Phoenix', jackpot: 'Jackpot', unicorn: 'Unicorn' },
     title: 'Shop',
     intro: 'Earn coins by winning and spend them here on cosmetic extras.',
     wip: 'The shop is still in the works — soon you can spend your coins here.',

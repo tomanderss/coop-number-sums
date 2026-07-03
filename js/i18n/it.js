@@ -240,6 +240,7 @@ export default {
     sfxWin: 'Vittoria',
     sfxLose: 'Sconfitta',
     a11y: 'Accessibilità',
+    winEffect: 'Animazione di vittoria', winEffectHint: 'Riprodotta a ogni vittoria. Altre nello',
     colorBlindMode: '🎨 Modalità per daltonici',
     colorBlindModeHint: 'Sostituisce il verde/rosso in tutto il gioco (corretto/errato, suggerimenti, vite, colori co-op, ...) con tonalità più distinguibili per il deficit visivo rosso-verde/blu-giallo.',
     coop: 'Co-op',
@@ -428,6 +429,10 @@ export default {
     err: { invalidUsername: 'Nome utente non valido.', userNotFound: 'Nessun utente trovato con questo nome.', alreadyFriends: 'Siete già amici.', selfFriend: 'Non puoi aggiungere te stesso.', notSignedIn: 'Accedi prima.' },
   },
   shop: {
+    winFxTitle: 'Animazioni di vittoria', winFxHint: 'Compra nuove animazioni per il tuo momento di gloria — anteprima con ▶, cambia quando vuoi.',
+    preview: 'Anteprima', activate: 'Attiva', active: 'In uso',
+    bought: 'Acquistato! 🎉', notEnough: 'Monete insufficienti', activated: 'Attivata',
+    effect: { confetti: 'Coriandoli', balloons: 'Festa di palloncini', stars: 'Pioggia di stelle', bubbles: 'Bolle di sapone', petals: 'Fiori di ciliegio', snow: 'Magia di neve', sparklers: 'Stelline scintillanti', fireworks: 'Fuochi d\'artificio', coins: 'Pioggia di monete', rainbow: 'Onda arcobaleno', wave: 'Onda marina', matrix: 'Pioggia Matrix', disco: 'Disco', arcade: 'Arcade retrò', galaxy: 'Vortice galattico', blackhole: 'Buco nero', chain: 'Reazione a catena', dragon: 'Volo del drago', rocket: 'Lancio del razzo', shatter: 'Frammenti di diamante', phoenix: 'Fenice', jackpot: 'Jackpot', unicorn: 'Unicorno' },
     title: 'Negozio',
     intro: 'Guadagna monete vincendo e spendile qui per extra estetici.',
     wip: 'Il negozio è in lavorazione — presto potrai spendere qui le tue monete.',

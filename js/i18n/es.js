@@ -240,6 +240,7 @@ export default {
     sfxWin: 'Victoria',
     sfxLose: 'Derrota',
     a11y: 'Accesibilidad',
+    winEffect: 'Animación de victoria', winEffectHint: 'Se reproduce al ganar. Consigue más en la',
     colorBlindMode: '🎨 Modo para daltónicos',
     colorBlindModeHint: 'Sustituye el verde/rojo en todo el juego (correcto/incorrecto, pistas, vidas, colores cooperativos, ...) por tonos más distinguibles para la discapacidad visual rojo-verde/azul-amarillo.',
     coop: 'Cooperativo',
@@ -428,6 +429,10 @@ export default {
     err: { invalidUsername: 'Nombre de usuario no válido.', userNotFound: 'No se encontró ningún usuario con ese nombre.', alreadyFriends: 'Ya sois amigos.', selfFriend: 'No puedes añadirte a ti mismo.', notSignedIn: 'Inicia sesión primero.' },
   },
   shop: {
+    winFxTitle: 'Animaciones de victoria', winFxHint: 'Compra animaciones para tu momento de victoria: vista previa con ▶ y cambia entre las tuyas cuando quieras.',
+    preview: 'Vista previa', activate: 'Activar', active: 'Activa',
+    bought: '¡Comprado! 🎉', notEnough: 'Monedas insuficientes', activated: 'Activada',
+    effect: { confetti: 'Confeti', balloons: 'Fiesta de globos', stars: 'Lluvia de estrellas', bubbles: 'Burbujas', petals: 'Flores de cerezo', snow: 'Magia de nieve', sparklers: 'Bengalas', fireworks: 'Fuegos artificiales', coins: 'Lluvia de monedas', rainbow: 'Ola arcoíris', wave: 'Ola marina', matrix: 'Lluvia Matrix', disco: 'Disco', arcade: 'Arcade retro', galaxy: 'Remolino galáctico', blackhole: 'Agujero negro', chain: 'Reacción en cadena', dragon: 'Vuelo del dragón', rocket: 'Despegue de cohete', shatter: 'Diamantes rotos', phoenix: 'Fénix', jackpot: 'Jackpot', unicorn: 'Unicornio' },
     title: 'Tienda',
     intro: 'Gana monedas ganando y gástalas aquí en extras cosméticos.',
     wip: 'La tienda está en desarrollo — pronto podrás gastar tus monedas aquí.',

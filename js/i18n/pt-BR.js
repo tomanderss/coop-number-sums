@@ -240,6 +240,7 @@ export default {
     sfxWin: 'Vitória',
     sfxLose: 'Derrota',
     a11y: 'Acessibilidade',
+    winEffect: 'Animação de vitória', winEffectHint: 'Tocada a cada vitória. Mais na',
     colorBlindMode: '🎨 Modo para daltônicos',
     colorBlindModeHint: 'Substitui o verde/vermelho em todo o jogo (certo/errado, dicas, vidas, cores do coop, ...) por tons mais distinguíveis para deficiência visual vermelho-verde/azul-amarelo.',
     coop: 'Cooperativo',
@@ -428,6 +429,10 @@ export default {
     err: { invalidUsername: 'Nome de usuário inválido.', userNotFound: 'Nenhum usuário encontrado com esse nome.', alreadyFriends: 'Vocês já são amigos.', selfFriend: 'Você não pode adicionar a si mesmo.', notSignedIn: 'Faça login primeiro.' },
   },
   shop: {
+    winFxTitle: 'Animações de vitória', winFxHint: 'Compre animações para o seu momento de vitória — prévia com ▶, troque quando quiser.',
+    preview: 'Prévia', activate: 'Ativar', active: 'Ativa',
+    bought: 'Comprado! 🎉', notEnough: 'Moedas insuficientes', activated: 'Ativada',
+    effect: { confetti: 'Confete', balloons: 'Festa de balões', stars: 'Chuva de estrelas', bubbles: 'Bolhas de sabão', petals: 'Flores de cerejeira', snow: 'Magia de neve', sparklers: 'Estrelinhas', fireworks: 'Fogos de artifício', coins: 'Chuva de moedas', rainbow: 'Onda arco-íris', wave: 'Onda do mar', matrix: 'Chuva Matrix', disco: 'Disco', arcade: 'Fliperama retrô', galaxy: 'Redemoinho galáctico', blackhole: 'Buraco negro', chain: 'Reação em cadeia', dragon: 'Voo do dragão', rocket: 'Lançamento de foguete', shatter: 'Estilhaços de diamante', phoenix: 'Fênix', jackpot: 'Jackpot', unicorn: 'Unicórnio' },
     title: 'Loja',
     intro: 'Ganhe moedas vencendo e gaste-as aqui em extras cosméticos.',
     wip: 'A loja está em desenvolvimento — em breve você poderá gastar suas moedas aqui.',

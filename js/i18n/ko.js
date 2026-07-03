@@ -240,6 +240,7 @@ export default {
     sfxWin: '승리',
     sfxLose: '패배',
     a11y: '접근성',
+    winEffect: '승리 애니메이션', winEffectHint: '승리할 때마다 재생됩니다. 추가 구매는',
     colorBlindMode: '🎨 색맹 친화 모드',
     colorBlindModeHint: '게임 전체(정답/오답, 힌트, 생명, 협동 색상 등)의 초록/빨강을 적록/청황 색각 이상에서도 구별하기 쉬운 색으로 바꿉니다.',
     coop: '협동',
@@ -428,6 +429,10 @@ export default {
     err: { invalidUsername: '유효하지 않은 사용자 이름입니다.', userNotFound: '해당 사용자 이름을 찾을 수 없습니다.', alreadyFriends: '이미 친구입니다.', selfFriend: '자신을 추가할 수 없습니다.', notSignedIn: '먼저 로그인하세요.' },
   },
   shop: {
+    winFxTitle: '승리 애니메이션', winFxHint: '승리의 순간을 빛낼 애니메이션을 구매하세요 — ▶로 미리보기, 언제든 변경 가능.',
+    preview: '미리보기', activate: '사용하기', active: '사용 중',
+    bought: '구매 완료! 🎉', notEnough: '코인이 부족해요', activated: '설정 완료',
+    effect: { confetti: '색종이', balloons: '풍선 파티', stars: '별똥별 샤워', bubbles: '비눗방울', petals: '벚꽃', snow: '눈의 마법', sparklers: '스파클러', fireworks: '불꽃놀이', coins: '동전 비', rainbow: '무지개 물결', wave: '파도', matrix: '매트릭스 레인', disco: '디스코', arcade: '레트로 아케이드', galaxy: '은하 소용돌이', blackhole: '블랙홀', chain: '연쇄 폭발', dragon: '드래곤 비행', rocket: '로켓 발사', shatter: '다이아몬드 파편', phoenix: '불사조', jackpot: '잭팟', unicorn: '유니콘' },
     title: '상점',
     intro: '승리로 코인을 모아 여기서 꾸미기 아이템에 사용하세요.',
     wip: '상점은 준비 중입니다 — 곧 코인을 사용할 수 있어요.',
