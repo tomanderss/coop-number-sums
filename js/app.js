@@ -2658,7 +2658,17 @@ const PIECE_GENERATORS = {
     return out;
   },
 };
-const WINFX_DURATION = { confetti: [3500, 4800] }; // Default unten: 4200/5600
+// Overlay-Lebensdauer je Effekt [normal, perfekt] — möglichst dicht an der
+// tatsächlich sichtbaren Animation, damit nach ihrem Ende nichts „nachhängt"
+// (Nutzerreport: Schwarzes Loch ließ 2-3 Pixel nachglühen und fühlte sich
+// blockierend an, obwohl das Overlay pointer-events: none hat).
+const WINFX_DURATION = {
+  confetti: [3500, 4800],
+  blackhole: [3500, 3600],   // Sog ~2,7s + Supernova endet bei ~3,3s
+  chain: [3200, 3400],       // Diagonalwelle (max delay ~1,7s) + Ringe 0,9s
+  shatter: [2600, 2800],     // Scherbenflug ≤ 2,05s + 💎-Fall
+  fireworks: [3400, 4600],   // letzte Burst-Welle je nach Anzahl
+};
 function launchWinFx(perfect, forceId) {
   const id = forceId || resolveActiveEffect(state.settings.winEffect, state.inventory);
   const gen = PIECE_GENERATORS[id] || PIECE_GENERATORS[CONFETTI_ID];

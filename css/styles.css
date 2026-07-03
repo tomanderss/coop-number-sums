@@ -1015,7 +1015,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .fx-blackhole i { left: 50%; top: 45%; border-radius: 50%; background: hsl(var(--hue, 40) 100% 65%); box-shadow: 0 0 6px 1px hsl(var(--hue, 40) 100% 60% / .8); animation: fxSuck ease-in forwards; opacity: 0; }
 @keyframes fxSuck {
   0%  { transform: rotate(var(--ang, 0deg)) translateX(var(--rad, 240px)) scale(1.1); opacity: 1; }
-  to  { transform: rotate(calc(var(--ang, 0deg) + 420deg)) translateX(0) scale(.1); opacity: .4; }
+  85% { opacity: .4; }
+  to  { transform: rotate(calc(var(--ang, 0deg) + 420deg)) translateX(0) scale(.1); opacity: 0; }
 }
 .fx-blackhole::after { /* Supernova nach dem Kollaps */
   content: ''; position: absolute; left: 50%; top: 45%; width: 40px; height: 40px; border-radius: 50%;
