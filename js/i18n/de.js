@@ -126,7 +126,7 @@ export default {
     setCode: 'Code festlegen (6 Ziffern)',
     startHosting: 'Hosten 🚀',
     yourCode: 'Dein Code',
-    inviteFriends: "Freunde einladen", invite: "Einladen", invited: "Eingeladen", inviteSent: "{name} eingeladen", inviteDeclined: "{name} hat abgelehnt", inviteAccepted: "{name} ist beigetreten", inviteTitle: "Lobby-Einladung", inviteBody: "{name} lädt dich in eine {mode}-Lobby ein.", inviteAccept: "Beitreten", inviteDecline: "Ablehnen", modeCoop: "Coop", modeRace: "Duell (1v1)", modeTeam: "Team (2v2)",
+    inviteFriends: "Freunde einladen", invite: "Einladen", invited: "Eingeladen", inviteSent: "{name} eingeladen", inviteWithdraw: "Zurückziehen", inviteWithdrawn: "Einladung an {name} zurückgezogen", inviteDeclined: "{name} hat abgelehnt", inviteAccepted: "{name} ist beigetreten", inviteTitle: "Lobby-Einladung", inviteBody: "{name} lädt dich in eine {mode}-Lobby ein.", inviteAccept: "Beitreten", inviteDecline: "Ablehnen", modeCoop: "Coop", modeRace: "Duell (1v1)", modeTeam: "Team (2v2)",
     shareCode: 'Gib diesen Code deinem Mitspieler',
     waitingForGuest: 'Auf Mitspieler warten…',
     enterHostCode: 'Code des Hosts eingeben',

@@ -126,7 +126,7 @@ export default {
     setCode: 'Définir un code (6 chiffres)',
     startHosting: 'Héberger 🚀',
     yourCode: 'Ton code',
-    inviteFriends: "Inviter des amis", invite: "Inviter", invited: "Invité", inviteSent: "{name} invité(e)", inviteDeclined: "{name} a refusé", inviteAccepted: "{name} a rejoint", inviteTitle: "Invitation au salon", inviteBody: "{name} t'invite dans un salon {mode}.", inviteAccept: "Rejoindre", inviteDecline: "Refuser", modeCoop: "Coop", modeRace: "Duel (1v1)", modeTeam: "Équipe (2v2)",
+    inviteFriends: "Inviter des amis", invite: "Inviter", invited: "Invité", inviteSent: "{name} invité(e)", inviteWithdraw: "Retirer", inviteWithdrawn: "Invitation à {name} retirée", inviteDeclined: "{name} a refusé", inviteAccepted: "{name} a rejoint", inviteTitle: "Invitation au salon", inviteBody: "{name} t'invite dans un salon {mode}.", inviteAccept: "Rejoindre", inviteDecline: "Refuser", modeCoop: "Coop", modeRace: "Duel (1v1)", modeTeam: "Équipe (2v2)",
     shareCode: 'Partage ce code avec ton partenaire',
     waitingForGuest: "En attente d'un partenaire…",
     enterHostCode: "Entrer le code de l'hôte",
