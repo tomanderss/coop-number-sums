@@ -1,0 +1,1 @@
+Brettrahmen-Fix: Feld ragt mit aktivem Rahmen nicht mehr aus dem Bildschirm (Rahmen-Abstand wird jetzt in die Zellgröße eingerechnet); animierte Rahmen-Effekte laufen nur noch am Rand entlang statt durchs Spielfeld
