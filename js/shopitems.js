@@ -10,12 +10,12 @@ export const SHOP_TIER_PRICES = { 1: 400, 2: 600, 3: 900, 4: 1500 };
 // skinpreset hat keinen settingKey — Presets werden ANGEWENDET (schreiben die
 // Skin-Einstellungen), nicht ausgerüstet.
 export const SHOP_CATS = {
-  palette:    { icon: '🌈', settingKey: 'boardPalette', free: 'classic' },
-  theme:      { icon: '🖌️', settingKey: 'appTheme',     free: 'standard' },
-  frame:      { icon: '🖼️', settingKey: 'boardFrame',   free: 'none' },
-  font:       { icon: '🔢', settingKey: 'numberFont',   free: 'classic' },
-  skinpreset: { icon: '🎨', settingKey: null,           free: null },
-  sfx:        { icon: '🎵', settingKey: 'sfxPack',      free: 'standard' },
+  palette:    { icon: 'rainbow', settingKey: 'boardPalette', free: 'classic' },
+  theme:      { icon: 'palette', settingKey: 'appTheme',     free: 'standard' },
+  frame:      { icon: 'frame', settingKey: 'boardFrame',   free: 'none' },
+  font:       { icon: 'digits', settingKey: 'numberFont',   free: 'classic' },
+  skinpreset: { icon: 'brush', settingKey: null,           free: null },
+  sfx:        { icon: 'music', settingKey: 'sfxPack',      free: 'standard' },
 };
 
 // ─── Katalog ──────────────────────────────────────────────────────────────────
@@ -25,14 +25,14 @@ export const SHOP_CATS = {
 // zwischen den Cage-Farben (siehe REGION_COLORS in config.js); niemals Farbtöne
 // in einen Teilbereich stauchen (Kollisionsgefahr).
 export const SHOP_CATALOG = [
-  { id: 'pastell',    cat: 'palette', icon: '🍭', tier: 1, fx: { hue: 0,   sat: 0.55, light: 16 } },
-  { id: 'vintage',    cat: 'palette', icon: '📻', tier: 1, fx: { hue: 15,  sat: 0.70, light: 6 } },
-  { id: 'daemmerung', cat: 'palette', icon: '🌆', tier: 1, fx: { hue: -25, sat: 0.90, light: -6 } },
-  { id: 'neon',       cat: 'palette', icon: '💡', tier: 2, fx: { hue: 0,   sat: 1.30, light: 4 } },
-  { id: 'arktis',     cat: 'palette', icon: '🧊', tier: 2, fx: { hue: 160, sat: 0.85, light: 8 } },
-  { id: 'spiegel',    cat: 'palette', icon: '🪞', tier: 2, fx: { hue: 180, sat: 1.00, light: 0 } },
-  { id: 'cyber',      cat: 'palette', icon: '🤖', tier: 3, fx: { hue: 45,  sat: 1.20, light: -2 } },
-  { id: 'karneval',   cat: 'palette', icon: '🎭', tier: 3, fx: { hue: 90,  sat: 1.35, light: 2 } },
+  { id: 'pastell',    cat: 'palette', icon: 'candy', tier: 1, fx: { hue: 0,   sat: 0.55, light: 16 } },
+  { id: 'vintage',    cat: 'palette', icon: 'radio', tier: 1, fx: { hue: 15,  sat: 0.70, light: 6 } },
+  { id: 'daemmerung', cat: 'palette', icon: 'sunset', tier: 1, fx: { hue: -25, sat: 0.90, light: -6 } },
+  { id: 'neon',       cat: 'palette', icon: 'bulb', tier: 2, fx: { hue: 0,   sat: 1.30, light: 4 } },
+  { id: 'arktis',     cat: 'palette', icon: 'snow', tier: 2, fx: { hue: 160, sat: 0.85, light: 8 } },
+  { id: 'spiegel',    cat: 'palette', icon: 'mirror', tier: 2, fx: { hue: 180, sat: 1.00, light: 0 } },
+  { id: 'cyber',      cat: 'palette', icon: 'robot', tier: 3, fx: { hue: 45,  sat: 1.20, light: -2 } },
+  { id: 'karneval',   cat: 'palette', icon: 'mask', tier: 3, fx: { hue: 90,  sat: 1.35, light: 2 } },
 ];
 
 // 🖌️ App-Themes: komplette UI-Farbwelten (CSS-Variablen-Sets in styles.css,
@@ -41,25 +41,25 @@ export const SHOP_CATALOG = [
 // Overrides), data.top = Browser-Chrome-Farbe (meta theme-color),
 // data.sw = 4 Vorschau-Farben für die Shop-Karte (bg, Karte, Akzent, Text).
 export const THEME_ITEMS = [
-  { id: 'kaffee',    cat: 'theme', icon: '☕', tier: 1, data: { base: 'light', top: '#f3ece2', sw: ['#f3ece2', '#fffaf2', '#8a5a2b', '#3c2f23'] } },
-  { id: 'oled',      cat: 'theme', icon: '🖤', tier: 2, data: { base: 'dark',  top: '#000000', sw: ['#000000', '#0d0d11', '#4f7dff', '#e8e8ee'] } },
-  { id: 'tiefsee',   cat: 'theme', icon: '🐋', tier: 2, data: { base: 'dark',  top: '#04121c', sw: ['#04121c', '#0a2434', '#2dd4bf', '#dcf3f7'] } },
-  { id: 'wald',      cat: 'theme', icon: '🌲', tier: 2, data: { base: 'dark',  top: '#0c1510', sw: ['#0c1510', '#15251a', '#7cc26a', '#e6f2e4'] } },
-  { id: 'sakura',    cat: 'theme', icon: '🌸', tier: 2, data: { base: 'light', top: '#fdf0f4', sw: ['#fdf0f4', '#ffffff', '#d6488a', '#43222f'] } },
-  { id: 'nebula',    cat: 'theme', icon: '🌌', tier: 3, data: { base: 'dark',  top: '#0d0a1f', sw: ['#0d0a1f', '#1a1438', '#c26bff', '#ece6fb'] } },
-  { id: 'sunset',    cat: 'theme', icon: '🌇', tier: 3, data: { base: 'dark',  top: '#1d0f12', sw: ['#1d0f12', '#301a1c', '#ff8a4c', '#f7e8de'] } },
-  { id: 'cyberpunk', cat: 'theme', icon: '🦾', tier: 4, data: { base: 'dark',  top: '#08080c', sw: ['#08080c', '#12121c', '#f7e733', '#ff2e88'] } },
+  { id: 'kaffee',    cat: 'theme', icon: 'coffee', tier: 1, data: { base: 'light', top: '#f3ece2', sw: ['#f3ece2', '#fffaf2', '#8a5a2b', '#3c2f23'] } },
+  { id: 'oled',      cat: 'theme', icon: 'oled', tier: 2, data: { base: 'dark',  top: '#000000', sw: ['#000000', '#0d0d11', '#4f7dff', '#e8e8ee'] } },
+  { id: 'tiefsee',   cat: 'theme', icon: 'whale', tier: 2, data: { base: 'dark',  top: '#04121c', sw: ['#04121c', '#0a2434', '#2dd4bf', '#dcf3f7'] } },
+  { id: 'wald',      cat: 'theme', icon: 'tree', tier: 2, data: { base: 'dark',  top: '#0c1510', sw: ['#0c1510', '#15251a', '#7cc26a', '#e6f2e4'] } },
+  { id: 'sakura',    cat: 'theme', icon: 'blossom', tier: 2, data: { base: 'light', top: '#fdf0f4', sw: ['#fdf0f4', '#ffffff', '#d6488a', '#43222f'] } },
+  { id: 'nebula',    cat: 'theme', icon: 'galaxy', tier: 3, data: { base: 'dark',  top: '#0d0a1f', sw: ['#0d0a1f', '#1a1438', '#c26bff', '#ece6fb'] } },
+  { id: 'sunset',    cat: 'theme', icon: 'sunset', tier: 3, data: { base: 'dark',  top: '#1d0f12', sw: ['#1d0f12', '#301a1c', '#ff8a4c', '#f7e8de'] } },
+  { id: 'cyberpunk', cat: 'theme', icon: 'circuit', tier: 4, data: { base: 'dark',  top: '#08080c', sw: ['#08080c', '#12121c', '#f7e733', '#ff2e88'] } },
 ];
 SHOP_CATALOG.push(...THEME_ITEMS);
 
 // 🎵 Sound-Pakete: Klangfarben für ALLE UI-Sounds (parametrische Synthese in
 // js/music.js SFX_PACKS — Wellenform, Tonlage, Hüllkurve, Schimmer/Sub/Chorus).
 export const SFX_ITEMS = [
-  { id: 'zen',       cat: 'sfx', icon: '🧘', tier: 1 },
-  { id: 'arcade',    cat: 'sfx', icon: '👾', tier: 2 },
-  { id: 'kristall',  cat: 'sfx', icon: '🔔', tier: 2 },
-  { id: 'kosmos',    cat: 'sfx', icon: '🪐', tier: 3 },
-  { id: 'synthwave', cat: 'sfx', icon: '🌆', tier: 4 },
+  { id: 'zen',       cat: 'sfx', icon: 'lotus', tier: 1 },
+  { id: 'arcade',    cat: 'sfx', icon: 'invader', tier: 2 },
+  { id: 'kristall',  cat: 'sfx', icon: 'bell', tier: 2 },
+  { id: 'kosmos',    cat: 'sfx', icon: 'planet', tier: 3 },
+  { id: 'synthwave', cat: 'sfx', icon: 'sunset', tier: 4 },
 ];
 SHOP_CATALOG.push(...SFX_ITEMS);
 
@@ -67,13 +67,13 @@ SHOP_CATALOG.push(...SFX_ITEMS);
 // Kopfsummen, Cage-Chips). Reine System-Font-Stacks + CSS-Text-Effekte
 // (.board.font-<id>, styles.css) — kein Font-Download, kein Build-Schritt.
 export const FONT_ITEMS = [
-  { id: 'mono',     cat: 'font', icon: '⌨️', tier: 1 },
-  { id: 'serif',    cat: 'font', icon: '📜', tier: 1 },
-  { id: 'hand',     cat: 'font', icon: '✍️', tier: 2 },
-  { id: 'graviert', cat: 'font', icon: '🪨', tier: 2 },
-  { id: 'neonfont', cat: 'font', icon: '💫', tier: 3 },
-  { id: 'umriss',   cat: 'font', icon: '⭕', tier: 3 },
-  { id: 'gold',     cat: 'font', icon: '🥇', tier: 4 },
+  { id: 'mono',     cat: 'font', icon: 'keyboard', tier: 1 },
+  { id: 'serif',    cat: 'font', icon: 'scroll', tier: 1 },
+  { id: 'hand',     cat: 'font', icon: 'pen', tier: 2 },
+  { id: 'graviert', cat: 'font', icon: 'stone', tier: 2 },
+  { id: 'neonfont', cat: 'font', icon: 'sparkles', tier: 3 },
+  { id: 'umriss',   cat: 'font', icon: 'outline', tier: 3 },
+  { id: 'gold',     cat: 'font', icon: 'medal', tier: 4 },
 ];
 SHOP_CATALOG.push(...FONT_ITEMS);
 
@@ -81,18 +81,18 @@ SHOP_CATALOG.push(...FONT_ITEMS);
 // ::before/::after in styles.css). Animationen ausschließlich transform/
 // opacity (Orbiter-Glanzpunkte, Puls/Flackern) — GPU-Compositor-Regel.
 export const FRAME_ITEMS = [
-  { id: 'holz',       cat: 'frame', icon: '🪵', tier: 1 },
-  { id: 'goldbarock', cat: 'frame', icon: '🏛️', tier: 2 },
-  { id: 'eis',        cat: 'frame', icon: '❄️', tier: 2 },
-  { id: 'lauflicht',  cat: 'frame', icon: '💡', tier: 2 },
-  { id: 'neonpuls',   cat: 'frame', icon: '💜', tier: 3 },
-  { id: 'feuer',      cat: 'frame', icon: '🔥', tier: 3 },
-  { id: 'regenbogen', cat: 'frame', icon: '🌈', tier: 3 },
-  { id: 'plasma',     cat: 'frame', icon: '🔮', tier: 3 },
-  { id: 'sternenstaub', cat: 'frame', icon: '✨', tier: 3 },
-  { id: 'funkenring', cat: 'frame', icon: '⚡', tier: 3 },
-  { id: 'galaxie',    cat: 'frame', icon: '🌌', tier: 4 },
-  { id: 'pulsar',     cat: 'frame', icon: '📡', tier: 4 },
+  { id: 'holz',       cat: 'frame', icon: 'wood', tier: 1 },
+  { id: 'goldbarock', cat: 'frame', icon: 'column', tier: 2 },
+  { id: 'eis',        cat: 'frame', icon: 'snow', tier: 2 },
+  { id: 'lauflicht',  cat: 'frame', icon: 'bulb', tier: 2 },
+  { id: 'neonpuls',   cat: 'frame', icon: 'pulse', tier: 3 },
+  { id: 'feuer',      cat: 'frame', icon: 'flame', tier: 3 },
+  { id: 'regenbogen', cat: 'frame', icon: 'rainbow', tier: 3 },
+  { id: 'plasma',     cat: 'frame', icon: 'orb', tier: 3 },
+  { id: 'sternenstaub', cat: 'frame', icon: 'sparkles', tier: 3 },
+  { id: 'funkenring', cat: 'frame', icon: 'bolt', tier: 3 },
+  { id: 'galaxie',    cat: 'frame', icon: 'galaxy', tier: 4 },
+  { id: 'pulsar',     cat: 'frame', icon: 'signal', tier: 4 },
 ];
 SHOP_CATALOG.push(...FRAME_ITEMS);
 
@@ -113,14 +113,14 @@ export const BADGE_SYMBOLS = ['stern', 'klee', 'blitz', 'flamme', 'einhorn', 'ra
 // Farben, Tempo, Glow, Dicke) — danach frei weiter-editierbar; deshalb kein
 // settingKey/„ausgerüstet"-Zustand. data.c = 3 Verlaufs-Farben (leer bei rainbow).
 export const SKINPRESET_ITEMS = [
-  { id: 'lagune',          cat: 'skinpreset', icon: '🏝️', tier: 1, data: { style: 'gradient', c: ['#00c2a8', '#1976d2', '#0a3d62'], speed: 4,  glow: 6,  thickness: 2.5 } },
-  { id: 'smaragd',         cat: 'skinpreset', icon: '💚', tier: 1, data: { style: 'gradient', c: ['#2ecc71', '#00b894', '#145a32'], speed: 3,  glow: 5,  thickness: 2.5 } },
-  { id: 'abendrot',        cat: 'skinpreset', icon: '🌅', tier: 2, data: { style: 'gradient', c: ['#ff7043', '#e91e63', '#6a1b9a'], speed: 5,  glow: 7,  thickness: 2.5 } },
-  { id: 'goldrausch',      cat: 'skinpreset', icon: '🪙', tier: 2, data: { style: 'gradient', c: ['#ffd700', '#ff9800', '#8d5a00'], speed: 4,  glow: 9,  thickness: 3 } },
-  { id: 'mitternacht',     cat: 'skinpreset', icon: '🌙', tier: 2, data: { style: 'gradient', c: ['#283593', '#5e35b1', '#0d1117'], speed: 2,  glow: 4,  thickness: 2 } },
-  { id: 'polarlicht',      cat: 'skinpreset', icon: '❇️', tier: 3, data: { style: 'gradient', c: ['#00e5a0', '#00b0ff', '#7c4dff'], speed: 7,  glow: 10, thickness: 3 } },
-  { id: 'lava',            cat: 'skinpreset', icon: '🌋', tier: 3, data: { style: 'gradient', c: ['#ff3d00', '#ff9100', '#3e2723'], speed: 8,  glow: 12, thickness: 3.5 } },
-  { id: 'hyperregenbogen', cat: 'skinpreset', icon: '🌈', tier: 4, data: { style: 'rainbow',  c: [],                                speed: 10, glow: 12, thickness: 3 } },
+  { id: 'lagune',          cat: 'skinpreset', icon: 'island', tier: 1, data: { style: 'gradient', c: ['#00c2a8', '#1976d2', '#0a3d62'], speed: 4,  glow: 6,  thickness: 2.5 } },
+  { id: 'smaragd',         cat: 'skinpreset', icon: 'gem', tier: 1, data: { style: 'gradient', c: ['#2ecc71', '#00b894', '#145a32'], speed: 3,  glow: 5,  thickness: 2.5 } },
+  { id: 'abendrot',        cat: 'skinpreset', icon: 'sunset', tier: 2, data: { style: 'gradient', c: ['#ff7043', '#e91e63', '#6a1b9a'], speed: 5,  glow: 7,  thickness: 2.5 } },
+  { id: 'goldrausch',      cat: 'skinpreset', icon: 'coin', tier: 2, data: { style: 'gradient', c: ['#ffd700', '#ff9800', '#8d5a00'], speed: 4,  glow: 9,  thickness: 3 } },
+  { id: 'mitternacht',     cat: 'skinpreset', icon: 'moon', tier: 2, data: { style: 'gradient', c: ['#283593', '#5e35b1', '#0d1117'], speed: 2,  glow: 4,  thickness: 2 } },
+  { id: 'polarlicht',      cat: 'skinpreset', icon: 'aurora', tier: 3, data: { style: 'gradient', c: ['#00e5a0', '#00b0ff', '#7c4dff'], speed: 7,  glow: 10, thickness: 3 } },
+  { id: 'lava',            cat: 'skinpreset', icon: 'volcano', tier: 3, data: { style: 'gradient', c: ['#ff3d00', '#ff9100', '#3e2723'], speed: 8,  glow: 12, thickness: 3.5 } },
+  { id: 'hyperregenbogen', cat: 'skinpreset', icon: 'rainbow', tier: 4, data: { style: 'rainbow',  c: [],                                speed: 10, glow: 12, thickness: 3 } },
 ];
 SHOP_CATALOG.push(...SKINPRESET_ITEMS);
 
