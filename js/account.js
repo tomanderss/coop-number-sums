@@ -867,6 +867,20 @@ export async function sendAdminNotice(targetUid, notice) {
     return { ok: true };
   } catch (e) { log('account', 'sendAdminNotice fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
+// Eigenes Inventar + Wallet live beobachten (Empfängerseite von Admin-Geschenken):
+// Admin schreibt direkt in /users/{uid}/inventory bzw. data/wallet — dieser
+// Watcher macht Geschenk/Entzug/Guthaben OHNE Neustart wirksam, auch wenn der
+// Admin die Benachrichtigung abgewählt hat. cb({inventory}) bzw. cb({wallet}).
+export async function watchGifts(cb) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return () => {};
+    const offInv = fb.onValue(userRef(fb, u.uid, 'inventory'), (snap) => cb({ inventory: snap.val() || {} }));
+    const offWal = fb.onValue(userRef(fb, u.uid, 'data/wallet'), (snap) => cb({ wallet: snap.val() || null }));
+    return () => { try { offInv(); } catch (_) {} try { offWal(); } catch (_) {} };
+  } catch (e) { log('account', 'watchGifts fehlgeschlagen', e); return () => {}; }
+}
 // Eigene Benachrichtigungen live beobachten. cb(arr mit {id, ...}).
 export async function watchNotices(cb) {
   try {

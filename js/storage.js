@@ -339,6 +339,29 @@ export function mergeInventory(other) {
   return inv;
 }
 
+// Live-Abgleich mit dem Cloud-Inventar (/users/{uid}/inventory, s. watchGifts in
+// account.js): Cloud-Einträge werden übernommen (Geschenke sofort nutzbar, ohne
+// Neustart), lokale SELBST-Unlocks (Kauf/Code/Versions-Skin) bleiben erhalten,
+// auch wenn sie noch nicht hochgesynct sind. Admin-vergebene Einträge (source
+// 'gift') existieren nur, solange sie in der Cloud stehen — so wirkt auch ein
+// Entzug sofort. Einschränkung: den Entzug eines KAUF-Items sieht ein gerade
+// aktiver Client erst beim nächsten Start (Selbst-Unlocks sind clientautoritativ).
+export function reconcileInventoryFromCloud(cloud) {
+  if (!cloud || typeof cloud !== 'object') cloud = {};
+  const local = loadInventory();
+  const inv = {};
+  for (const [id, meta] of Object.entries(cloud)) {
+    if (meta) inv[id] = { acquiredAt: meta.acquiredAt || Date.now(), source: meta.source || 'sync' };
+  }
+  for (const [id, meta] of Object.entries(local)) {
+    if (!meta) continue;
+    if (inv[id]) { if (meta.acquiredAt && meta.acquiredAt < inv[id].acquiredAt) inv[id].acquiredAt = meta.acquiredAt; continue; }
+    if (meta.source !== 'gift') inv[id] = meta;
+  }
+  save(KEYS.INVENTORY, inv);
+  return inv;
+}
+
 // ─── Wallet (In-Game-Währung) ─────────────────────────────────────────────────
 // Modular gehalten: ALLE Guthaben-Änderungen laufen über grant-/spendCurrency,
 // damit später eine serverautoritative Quelle (Cloud Function für Käufe) ergänzt
@@ -363,6 +386,15 @@ export function spendCurrency(amount, reason = 'spend') {
   saveWallet(w);
   log('storage', 'Währung ausgegeben', { amount: n, reason, balance: w.balance });
   return { ok: true, balance: w.balance };
+}
+// Cloud-Wallet übernehmen (watchGifts): nur aufrufen, wenn die Cloud NEUER ist
+// als der lokale Stand — lokale Käufe zwischen zwei Sync-ups gewinnen sonst.
+export function applyCloudWallet(w) {
+  if (w && typeof w.balance === 'number') {
+    saveWallet({ balance: Math.max(0, Math.floor(w.balance)), updatedAt: w.updatedAt || Date.now() });
+    log('storage', 'Cloud-Guthaben übernommen', { balance: w.balance });
+  }
+  return loadWallet();
 }
 
 // ─── Lokales Profil (displayName, role, accountId) ────────────────────────────

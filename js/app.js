@@ -18,6 +18,7 @@ import {
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, saveProfile, loadInventory, grantInventory, revokeInventory,
+  reconcileInventoryFromCloud, applyCloudWallet,
   loadWallet, grantCurrency, spendCurrency,
   setDataRev, setSyncedRev,
 } from './storage.js';
@@ -3046,6 +3047,7 @@ async function refreshAccount() {
         startFriendsWatch();     // Freundes-/Anfragen-Listener (Badge) starten
         startLobbyInviteWatch(); // eingehende Lobby-Einladungen + Ablehnungen beobachten
         startNoticeWatch();      // Admin-Benachrichtigungen (Geschenk/Entzug/Guthaben) empfangen
+        startGiftWatch();        // Inventar/Wallet live: Geschenke ohne Neustart nutzbar
         startRoleWatch();        // Admin-Status live halten (ohne Neustart/Navigation)
       }
       else state.account.status = 'anon';
@@ -3062,6 +3064,25 @@ async function startNoticeWatch() {
   noticesUnwatch = await Account.watchNotices((arr) => {
     arr.sort((a, b) => (a.ts || 0) - (b.ts || 0));
     state.adminNotice = arr[0] || null;
+  });
+}
+// Inventar + Wallet live aus der Cloud übernehmen: Admin-Geschenke/-Entzüge und
+// Guthaben-Änderungen sind damit SOFORT nutzbar (kein App-Neustart nötig) — auch
+// dann, wenn der Admin die Benachrichtigung abgewählt hat. Käufe auf einem
+// anderen eigenen Gerät erscheinen so ebenfalls live.
+let giftsUnwatch = null;
+async function startGiftWatch() {
+  if (giftsUnwatch) return;
+  giftsUnwatch = await Account.watchGifts((upd) => {
+    if (upd.inventory) {
+      const before = Object.keys(state.inventory || {}).length;
+      state.inventory = reconcileInventoryFromCloud(upd.inventory);
+      const after = Object.keys(state.inventory).length;
+      if (after !== before) log('account', 'Inventar live abgeglichen', { before, after });
+    }
+    if (upd.wallet && (upd.wallet.updatedAt || 0) > (loadWallet().updatedAt || 0)) {
+      state.wallet = applyCloudWallet(upd.wallet);
+    }
   });
 }
 function dismissAdminNotice() {
@@ -5026,12 +5047,15 @@ const App = {
             </select>
           </div>
 
-          <!-- 🎉 Sieganimation: Auswahl aller GEKAUFTEN Effekte (Kauf im Shop) -->
+          <!-- 🎉 Sieganimation: Auswahl aller GEKAUFTEN Effekte (Kauf im Shop) + ▶ Vorschau -->
           <div class="set-row col">
             <span class="set-row-label">🎉 {{ t('settings.winEffect') }}</span>
-            <select class="text-input" :value="state.settings.winEffect || 'confetti'" @change="activateWinFx($event.target.value)">
-              <option v-for="e in ownedWinFx()" :key="e.id" :value="e.id">{{ e.icon }} {{ t('shop.effect.'+e.id) }}</option>
-            </select>
+            <div class="set-fx-row">
+              <select class="text-input" :value="state.settings.winEffect || 'confetti'" @change="activateWinFx($event.target.value)">
+                <option v-for="e in ownedWinFx()" :key="e.id" :value="e.id">{{ e.icon }} {{ t('shop.effect.'+e.id) }}</option>
+              </select>
+              <button class="shop-fx-preview set-fx-preview" @click="previewWinFx(state.settings.winEffect || 'confetti')" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
+            </div>
             <small class="set-hint">{{ t('settings.winEffectHint') }} <button class="btn-link" @click="openShop('winfx')">{{ t('shop.title') }} ›</button></small>
           </div>
 
