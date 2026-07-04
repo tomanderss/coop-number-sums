@@ -1,1 +1,2 @@
 Streak-Anzeige überlappt nicht mehr das Freunde-Symbol (sitzt jetzt in der sicheren Mittelzone zwischen den Kopfleisten-Buttons)
+Sieganimationen neu: Drache, Einhorn und Phönix als detailliert gezeichnete SVG-Kreaturen (Flügelschlag/Galopp/wehender Schweif); alle Emoji-Partikel durch eigene SVG-Formen ersetzt
