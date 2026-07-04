@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.60';
-export const BUILD_HASH = '7d492a6';
+export const BUILD      = '1.61';
+export const BUILD_HASH = 'ae3eef0';
 
 export const CHANGELOG = [
+  {
+    "version": "1.61",
+    "date": "04.07.2026",
+    "changes": [
+      "Neue Shop-Kategorie „Sound-Pakete\": 5 Klangwelten für alle Spiel-Sounds (Zen-Garten, 8-Bit-Arcade, Kristallglocken, Kosmos, Synthwave) — mit Hör-Vorschau."
+    ]
+  },
   {
     "version": "1.60",
     "date": "03.07.2026",
