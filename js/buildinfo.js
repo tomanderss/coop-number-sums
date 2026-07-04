@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.70';
-export const BUILD_HASH = '7e15593';
+export const BUILD      = '1.71';
+export const BUILD_HASH = '8fead0f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.71",
+    "date": "04.07.2026",
+    "changes": [
+      "Shop: Die Live-Vorschau bleibt beim Scrollen durch die Karten immer sichtbar (die Auswahl scrollt dahinter)."
+    ]
+  },
   {
     "version": "1.70",
     "date": "04.07.2026",
