@@ -1,2 +1,0 @@
-Shop aufgeräumt: WIP-Banner und Platzhalter-Karten entfernt.
-Brett-Rahmen liegen jetzt außen um die Spielfläche und ragen nicht mehr in die Zellen.
