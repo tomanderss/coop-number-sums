@@ -329,6 +329,7 @@ export default {
     loadUsers: '全ユーザーを読み込む',
     openConsole: 'ユーザー管理',
     choose: '– 選択 –',
+    grantAll: 'すべて解放', allItems: 'コンプリートパック（全アイテム）',
     'accountActions': 'アカウント操作',
     'inventory': 'インベントリ',
     'dataHint': '変更はユーザーの次回アプリ起動時に反映されます。',

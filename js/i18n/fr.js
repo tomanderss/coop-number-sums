@@ -329,6 +329,7 @@ export default {
     loadUsers: 'Charger tous les utilisateurs',
     openConsole: 'Gérer les utilisateurs',
     choose: '– choisir –',
+    grantAll: 'Tout débloquer', allItems: 'le pack complet (tous les articles)',
     'accountActions': 'Actions du compte',
     'inventory': 'Inventaire',
     'dataHint': 'Les modifications prennent effet au prochain démarrage de l\'app de l\'utilisateur.',

@@ -329,6 +329,7 @@ export default {
     loadUsers: 'Carregar todos os usuários',
     openConsole: 'Gerenciar usuários',
     choose: '– escolher –',
+    grantAll: 'Desbloquear tudo', allItems: 'o pacote completo (todos os itens)',
     'accountActions': 'Ações da conta',
     'inventory': 'Inventário',
     'dataHint': 'As alterações entram em vigor no próximo início do app do usuário.',

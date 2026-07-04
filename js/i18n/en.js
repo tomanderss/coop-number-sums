@@ -329,6 +329,7 @@ export default {
     loadUsers: 'Load all users',
     openConsole: 'Manage users',
     choose: '– choose –',
+    grantAll: 'Unlock everything', allItems: 'the complete bundle (all items)',
     'accountActions': 'Account actions',
     'inventory': 'Inventory',
     'dataHint': 'Data changes take effect on the user\'s device at the next app start.',

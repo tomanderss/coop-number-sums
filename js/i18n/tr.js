@@ -329,6 +329,7 @@ export default {
     loadUsers: 'Tüm kullanıcıları yükle',
     openConsole: 'Kullanıcıları yönet',
     choose: '– seçin –',
+    grantAll: 'Tümünün kilidini aç', allItems: 'komple paket (tüm ögeler)',
     'accountActions': 'Hesap işlemleri',
     'inventory': 'Envanter',
     'dataHint': 'Değişiklikler, kullanıcının uygulamayı bir sonraki açışında geçerli olur.',
