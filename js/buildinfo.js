@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.61';
-export const BUILD_HASH = 'ae3eef0';
+export const BUILD      = '1.62';
+export const BUILD_HASH = '187aa5a';
 
 export const CHANGELOG = [
+  {
+    "version": "1.62",
+    "date": "04.07.2026",
+    "changes": [
+      "Neue Shop-Kategorie „Zahlen-Stile\": 7 Schrift-Stile für die Zahlen auf dem Brett (Mono, Serif, Handschrift, Graviert, Neon, Umriss, Gold)."
+    ]
+  },
   {
     "version": "1.61",
     "date": "04.07.2026",
