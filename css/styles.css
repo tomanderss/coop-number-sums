@@ -1927,8 +1927,14 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .shop-sec-title { font-weight: 900; font-size: 1.02rem; margin: 6px 0 0; }
 .shop-sec-hint { color: var(--text2); font-size: .84rem; margin: 0 0 4px; }
 .shop-lock-hint { color: var(--warn, #e6a23c); font-weight: 600; }
-/* Live-Demo im Shop (Vorschau für Brett-Kategorien + Badge-Chip) */
-.shop-demo-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 4px 0 10px; }
+/* Live-Demo im Shop (Vorschau für Brett-Kategorien + Badge-Chip).
+   sticky: bleibt beim Scrollen durch die Karten oben sichtbar — die Auswahl
+   scrollt „hinter" die Vorschau (deckender Hintergrund + z-index nötig). */
+.shop-demo-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 4px 0 10px;
+  position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 6px 0 8px;
+  box-shadow: 0 10px 12px -10px var(--shadow, rgba(0, 0, 0, .35));
+}
 .board.shop-demo {
   display: grid; grid-template-columns: repeat(4, 46px); gap: 8px; justify-content: center;
   width: auto; padding: 14px; border-radius: 14px; background: var(--bg2, rgba(128,128,128,.08));

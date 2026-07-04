@@ -1,0 +1,1 @@
+Shop: Die Live-Vorschau bleibt beim Scrollen durch die Karten immer sichtbar (die Auswahl scrollt dahinter).
