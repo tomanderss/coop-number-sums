@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP } from './config.js';
 import { generatePuzzle } from './generator.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
@@ -50,7 +50,8 @@ const state = reactive({
   inventory: loadInventory(),    // { itemId: { acquiredAt, source } } — Besitz von Cosmetics (z.B. Skin 'dynamicColor')
   wallet: loadWallet(),          // { balance, updatedAt } — In-Game-Währung (Münzen pro Sieg)
   lastCoinReward: 0,             // zuletzt auf dem Sieg-Screen gutgeschriebene Münzen (0 = ausblenden)
-  lastCoinMult: 1,               // Gesamt-Multiplikator des letzten Siegs (Coop·perfekt·Bestzeit); >1 → Bonus anzeigen
+  lastCoinMult: 1,               // Gesamt-Multiplikator des letzten Siegs (Coop·perfekt·Bestzeit·Streak); >1 → Bonus anzeigen
+  lastStreakUsed: 0,             // Streak-Tage, die in den letzten Sieg-Multiplikator eingeflossen sind (>0 → Streak-Bonus anzeigen)
   skinJustUnlocked: false,       // einmalige Feier-Anzeige in dieser Session
   skinCodeInput: '',             // Eingabefeld zum Einlösen des Geheimcodes
   historyDetail: null,       // { entry, puzzle, cellMeta } während der Endboard-Ansicht eines Verlauf-Eintrags, sonst null
@@ -490,6 +491,10 @@ const SETTINGS_SECTIONS = [
 // vor, da er erst beim Sieg feststeht.
 function coinFor(d, coopish) {
   return coinReward(DIFFICULTIES.indexOf(d), { coop: !!coopish });
+}
+// Streak-Münz-Bonus in Prozent (für die Anzeige, z.B. Streak 5 ⇒ 25).
+function streakBonusPct(streak) {
+  return Math.round(coinStreakBonus(streak) * 100);
 }
 // Shop öffnen/schließen (eigener Screen; Coins oben).
 let shopReturn = null;
@@ -2301,6 +2306,10 @@ function win(remote) {
     state.hintsUsed = remote.hintsUsed;
   }
   launchWinFx((state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0);
+  // Streak ZUERST buchen (vor der Münz-Belohnung), damit der heutige Sieg bereits
+  // in der Streak steckt und der Streak-Münz-Multiplikator (+5% je Streak-Tag)
+  // ihn mitzählt — z.B. 5er-Streak ⇒ +25%.
+  if (!state.isTrainingGame) applyStreakAfterGame();
   // Trainingsrätsel (geführter Lernmodus, keine echte eigene Leistung)
   // fließen bewusst nicht in die nach Schwierigkeit gebucketeten Streaks/
   // Bestzeiten ein.
@@ -2330,11 +2339,16 @@ function win(remote) {
     const dIdx = DIFFICULTIES.findIndex(d => d.id === state.puzzle.difficulty);
     const perfect = state.mistakes === 0 && state.hintsUsed === 0;
     const isCoopish = state.coop.active || state.isRaceGame || state.team.active;
-    const bonus = { coop: isCoopish, perfect, bestTime: newHighscore };
+    // Streak-Bonus (+5% je Streak-Tag, additiv) fließt in den Gesamt-Multiplikator
+    // ein — applyStreakAfterGame() lief oben bereits, state.streak ist aktuell.
+    const streakDays = state.streak.currentStreak || 0;
+    const bonus = { coop: isCoopish, perfect, bestTime: newHighscore, streak: streakDays };
     const coins = coinReward(dIdx, bonus);
     state.wallet = grantCurrency(coins, 'win');
     state.lastCoinReward = coins;
-    state.lastCoinMult = coinMultiplier(bonus);
+    state.lastCoinMult = Math.round(coinMultiplier(bonus) * 100) / 100;
+    state.lastStreakUsed = streakDays;
+    log('game', 'Münz-Belohnung', { coins, mult: state.lastCoinMult, streakDays, coop: isCoopish, perfect, bestTime: newHighscore });
     if (state.account.status === 'in') Account.scheduleSyncUp();
     // Neue Solo-Bestzeit (nur perfekte Solo-Siege) in die globale Bestenliste
     // schreiben — Coop/Wettkampf/Training zählen dort bewusst nicht mit.
@@ -4366,7 +4380,7 @@ const App = {
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
-      openShop, closeShop, openShopCategory, closeShopCategory, coinFor,
+      openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon, applySkinPreset,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
@@ -4728,6 +4742,7 @@ const App = {
             <template v-else> {{ t('win.missedHints') }}</template>.
           </div>
           <div v-if="state.lastCoinReward > 0" class="coin-reward">💰 +{{ state.lastCoinReward }} <span v-if="state.lastCoinMult > 1" class="coin-mult">×{{ state.lastCoinMult }}</span> <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
+          <div v-if="state.lastStreakUsed > 0" class="coin-streak-bonus">🔥 {{ t('wallet.streakBonus', { days: state.lastStreakUsed, pct: streakBonusPct(state.lastStreakUsed) }) }}</div>
           <div class="result-stats">
             <div><b>{{ fmtTime(state.elapsed) }}</b><small>{{ t('win.timeLabel') }}</small></div>
             <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
@@ -6003,6 +6018,7 @@ const App = {
         <div class="streak-emoji">🔥</div>
         <h3 class="streak-title">{{ t(state.streakExtended.continued ? 'streak.extendedTitle' : 'streak.startedTitle') }}</h3>
         <div class="streak-count"><b>{{ state.streakExtended.current }}</b><small>{{ t(state.streakExtended.current === 1 ? 'streak.dayLabel' : 'streak.daysLabel') }}</small></div>
+        <div v-if="state.streakExtended.current > 0" class="streak-coin-bonus">💰 {{ t('streak.coinBonus', { pct: streakBonusPct(state.streakExtended.current) }) }}</div>
         <div v-if="state.streakExtended.isNewRecord" class="highscore-badge">{{ t('streak.recordBadge') }}</div>
         <p class="streak-msg">
           {{ state.streakExtended.isNewRecord

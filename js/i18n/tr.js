@@ -460,9 +460,10 @@ export default {
     },
   },
   wallet: {
-    rewardHint: 'Bu seviyede bir galibiyet için jeton (ortak/rekabet iki katı, kusursuz iki katı).',
+    rewardHint: 'Bu seviyede bir galibiyet için jeton (ortak/rekabet iki katı, kusursuz iki katı, + seri bonusu).',
     coins: 'Jeton',
     total: 'toplam: {n}',
+    streakBonus: '{days} günlük seri: +%{pct} jeton',
   },
   sync: {
     mismatchBadge: 'Sürüm uyuşmazlığı',
@@ -491,6 +492,7 @@ export default {
     bestLine: 'Önceki en iyi: {best} gün',
     recordBadge: '🏆 Yeni seri rekoru!',
     recordPraise: 'Harika! Bu şimdiye kadarki en uzun serin. 🎉',
+    coinBonus: 'Serin sayesinde her galibiyette +%{pct} jeton',
     continue: 'Devam',
   },
   training: {

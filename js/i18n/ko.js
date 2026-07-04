@@ -460,9 +460,10 @@ export default {
     },
   },
   wallet: {
-    rewardHint: '이 난이도 승리 시 코인(협동/경쟁 2배, 무결점 2배).',
+    rewardHint: '이 난이도 승리 시 코인(협동/경쟁 2배, 무결점 2배, + 연속 보너스).',
     coins: '코인',
     total: '합계: {n}',
+    streakBonus: '{days}일 연속: 코인 +{pct}%',
   },
   sync: {
     mismatchBadge: '버전 불일치',
@@ -491,6 +492,7 @@ export default {
     bestLine: '이전 최고 기록: {best}일',
     recordBadge: '🏆 새로운 최고 연속 기록!',
     recordPraise: '대단해요! 역대 최장 연속 기록이에요. 🎉',
+    coinBonus: '연속 기록으로 승리마다 코인 +{pct}%',
     continue: '계속',
   },
   training: {

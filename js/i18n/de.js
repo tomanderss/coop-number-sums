@@ -551,9 +551,10 @@ export default {
     },
   },
   wallet: {
-    rewardHint: 'Münzen für einen Sieg auf dieser Stufe (Coop/Wettkampf doppelt, makellos doppelt).',
+    rewardHint: 'Münzen für einen Sieg auf dieser Stufe (Coop/Wettkampf doppelt, makellos doppelt, + Streak-Bonus).',
     coins: 'Münzen',
     total: 'gesamt: {n}',
+    streakBonus: '{days}-Tage-Streak: +{pct}% Münzen',
   },
   sync: {
     mismatchBadge: 'Versions-Mismatch',
@@ -582,6 +583,7 @@ export default {
     bestLine: 'Bisherige Bestmarke: {best} Tage',
     recordBadge: '🏆 Neue Höchst-Streak!',
     recordPraise: 'Stark! Das ist deine längste Streak aller Zeiten. 🎉',
+    coinBonus: '+{pct}% Münzen pro Sieg dank deiner Streak',
     continue: 'Weiter',
   },
   training: {

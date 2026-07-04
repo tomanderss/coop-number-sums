@@ -64,22 +64,35 @@ export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
 // perfekt+Bestzeit → ×4, Coop+perfekt+Bestzeit → ×8.
 export const COIN_BASE = [5, 10, 20, 40, 80, 180, 400, 900, 2000];
 export const COIN_COOP_MULT = 2, COIN_PERFECT_MULT = 2, COIN_BESTTIME_MULT = 2;
+// Streak-Bonus: +5% Münzen pro Tages-Streak, ADDITIV auf den Boni-Multiplikator
+// (nicht multiplikativ) und ohne Cap. Beispiel: Streak 5 ⇒ +25% (×1,25),
+// Streak 10 ⇒ +50%, Streak 20 ⇒ +100%. Kombiniert mit einer neuen Bestzeit (×2)
+// und Streak 5 ⇒ ×2,25. Bricht die Streak, fällt der Bonus auf 0 zurück (die
+// currentStreak wird in storage.recordStreakResult() zurückgesetzt).
+export const COIN_STREAK_STEP = 0.05;
+// Zusätzlicher additiver Multiplikator-Anteil aus der aktuellen Streak (≥0).
+export function coinStreakBonus(streak = 0) {
+  return COIN_STREAK_STEP * Math.max(0, Math.floor(streak || 0));
+}
 // Basis-Münzen für eine Schwierigkeit (per Index in DIFFICULTIES); dIdx<0 → 0.
 export function coinBaseForIndex(dIdx) {
   if (dIdx < 0) return 0;
   return COIN_BASE[Math.min(dIdx, COIN_BASE.length - 1)];
 }
 // Gesamt-Multiplikator eines Siegs aus den aktiven Boni (für Anzeige + Reward).
-export function coinMultiplier({ coop = false, perfect = false, bestTime = false } = {}) {
+// Die Boni Coop/Perfekt/Bestzeit stapeln MULTIPLIKATIV; der Streak-Bonus wird
+// ADDITIV obendrauf gerechnet (z.B. ×2 aus Bestzeit + Streak 5 ⇒ ×2,25).
+export function coinMultiplier({ coop = false, perfect = false, bestTime = false, streak = 0 } = {}) {
   let m = 1;
   if (coop) m *= COIN_COOP_MULT;
   if (perfect) m *= COIN_PERFECT_MULT;
   if (bestTime) m *= COIN_BESTTIME_MULT;
+  m += coinStreakBonus(streak);
   return m;
 }
-// Endgültige Münzen für einen Sieg inkl. Coop-/Perfekt-/Bestzeit-Multiplikatoren.
-export function coinReward(dIdx, { coop = false, perfect = false, bestTime = false } = {}) {
-  return Math.round(coinBaseForIndex(dIdx) * coinMultiplier({ coop, perfect, bestTime }));
+// Endgültige Münzen für einen Sieg inkl. Coop-/Perfekt-/Bestzeit-/Streak-Multiplikatoren.
+export function coinReward(dIdx, { coop = false, perfect = false, bestTime = false, streak = 0 } = {}) {
+  return Math.round(coinBaseForIndex(dIdx) * coinMultiplier({ coop, perfect, bestTime, streak }));
 }
 
 // ─── REGIONEN-FARBPALETTE ─────────────────────────────────────────────────────

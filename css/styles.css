@@ -1890,8 +1890,12 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 /* Münz-Belohnung auf dem Sieg-Screen */
 .coin-reward { font-weight: 900; font-size: 1.15rem; color: #f5b301; text-align: center; margin: 2px 0 4px; }
 .coin-reward .coin-total { font-size: .8rem; font-weight: 700; color: var(--text3); }
-/* Gesamt-Bonus-Multiplikator (Coop·perfekt·Bestzeit) neben der Münzgutschrift. */
+/* Gesamt-Bonus-Multiplikator (Coop·perfekt·Bestzeit·Streak) neben der Münzgutschrift. */
 .coin-reward .coin-mult { font-size: .9rem; font-weight: 900; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 999px; padding: 1px 8px; vertical-align: middle; }
+/* Streak-Münz-Bonus-Zeile unter der Gutschrift (Sieg-Screen). */
+.coin-streak-bonus { text-align: center; font-size: .82rem; font-weight: 800; color: #f97316; margin: -1px 0 4px; }
+/* Münz-Bonus-Zeile im "Streak verlängert"-Screen. */
+.streak-coin-bonus { text-align: center; font-size: .9rem; font-weight: 800; color: #f5b301; margin: 0 0 4px; }
 
 /* ── Coins-Chip + Shop ──────────────────────────────────────────────────────── */
 .coin-chip {

@@ -460,9 +460,10 @@ export default {
     },
   },
   wallet: {
-    rewardHint: 'このレベルの勝利で得られるコイン（協力/対戦は2倍、パーフェクトは2倍）。',
+    rewardHint: 'このレベルの勝利で得られるコイン（協力/対戦は2倍、パーフェクトは2倍、＋連続ボーナス）。',
     coins: 'コイン',
     total: '合計: {n}',
+    streakBonus: '{days}日連続: コイン+{pct}%',
   },
   sync: {
     mismatchBadge: 'バージョンの不一致',
@@ -491,6 +492,7 @@ export default {
     bestLine: 'これまでの最高記録：{best}日',
     recordBadge: '🏆 自己最高の連続記録！',
     recordPraise: 'すごい！自己最長の連続記録です。🎉',
+    coinBonus: '連続記録で勝利ごとにコイン+{pct}%',
     continue: '続ける',
   },
   training: {

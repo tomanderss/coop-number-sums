@@ -460,9 +460,10 @@ export default {
     },
   },
   wallet: {
-    rewardHint: 'Pièces pour une victoire à ce niveau (coop/compétition double, sans faute double).',
+    rewardHint: 'Pièces pour une victoire à ce niveau (coop/compétition double, sans faute double, + bonus de série).',
     coins: 'Pièces',
     total: 'total : {n}',
+    streakBonus: 'Série de {days} jours : +{pct}% de pièces',
   },
   sync: {
     mismatchBadge: 'Conflit de version',
@@ -491,6 +492,7 @@ export default {
     bestLine: 'Meilleure série précédente : {best} jours',
     recordBadge: '🏆 Nouveau record de série !',
     recordPraise: "Bravo ! C'est ta plus longue série à ce jour. 🎉",
+    coinBonus: '+{pct}% de pièces par victoire grâce à ta série',
     continue: 'Continuer',
   },
   training: {
