@@ -1,15 +1,17 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { badgeDefsMarkup, badgeMedalMarkup, hasBadgeMedal } from '../../js/badgeart.js';
-import { BADGE_ITEMS } from '../../js/shopitems.js';
+import { BADGE_SYMBOLS } from '../../js/shopitems.js';
 
 describe('badgeart medals', () => {
-  test('every badge catalog item has a drawable medal motif', () => {
-    for (const it of BADGE_ITEMS) {
-      assert.ok(hasBadgeMedal(it.id), `missing motif for badge "${it.id}"`);
-      const svg = badgeMedalMarkup(it.id);
-      assert.match(svg, /^<svg[\s>]/, `${it.id} should render an <svg>`);
-      assert.match(svg, /<\/svg>$/, `${it.id} should close its <svg>`);
+  test('every badge symbol has a drawable medal motif in every tier', () => {
+    for (const sym of BADGE_SYMBOLS) {
+      assert.ok(hasBadgeMedal(sym), `missing motif for badge "${sym}"`);
+      for (let tier = 1; tier <= 4; tier++) {
+        const svg = badgeMedalMarkup(sym, { tier });
+        assert.match(svg, /^<svg[\s>]/, `${sym} t${tier} should render an <svg>`);
+        assert.match(svg, /<\/svg>$/, `${sym} t${tier} should close its <svg>`);
+      }
     }
   });
 

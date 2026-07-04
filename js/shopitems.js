@@ -14,7 +14,6 @@ export const SHOP_CATS = {
   theme:      { icon: '🖌️', settingKey: 'appTheme',     free: 'standard' },
   frame:      { icon: '🖼️', settingKey: 'boardFrame',   free: 'none' },
   font:       { icon: '🔢', settingKey: 'numberFont',   free: 'classic' },
-  badge:      { icon: '🏅', settingKey: 'profileBadge', free: 'none' },
   skinpreset: { icon: '🎨', settingKey: null,           free: null },
   sfx:        { icon: '🎵', settingKey: 'sfxPack',      free: 'standard' },
 };
@@ -101,26 +100,12 @@ SHOP_CATALOG.push(...FRAME_ITEMS);
 // Coop-Roster (IDENTITY/ROSTER), in der Freundesliste (Präsenz) und in der
 // Bestenliste. Fremde Clients rendern NUR bekannte Katalog-IDs (badgeIcon-
 // Lookup) — beliebige Strings aus der RTDB werden nie direkt angezeigt.
-export const BADGE_ITEMS = [
-  { id: 'stern',   cat: 'badge', icon: '🌟', tier: 1 },
-  { id: 'klee',    cat: 'badge', icon: '🍀', tier: 1 },
-  { id: 'blitz',   cat: 'badge', icon: '⚡', tier: 1 },
-  { id: 'flamme',  cat: 'badge', icon: '🔥', tier: 2 },
-  { id: 'einhorn', cat: 'badge', icon: '🦄', tier: 2 },
-  { id: 'rakete',  cat: 'badge', icon: '🚀', tier: 2 },
-  { id: 'gehirn',  cat: 'badge', icon: '🧠', tier: 2 },
-  { id: 'alien',   cat: 'badge', icon: '👽', tier: 2 },
-  { id: 'trophae', cat: 'badge', icon: '🏆', tier: 3 },
-  { id: 'diamant', cat: 'badge', icon: '💎', tier: 3 },
-  { id: 'drache',  cat: 'badge', icon: '🐉', tier: 3 },
-  { id: 'krone',   cat: 'badge', icon: '👑', tier: 4 },
-];
-SHOP_CATALOG.push(...BADGE_ITEMS);
-// Sicherer Icon-Lookup für Fremd-Daten (unbekannte ID ⇒ leer, nie Roh-String).
-export function badgeIcon(id) {
-  const it = shopItemById(id);
-  return it && it.cat === 'badge' ? it.icon : '';
-}
+// Die zwölf Abzeichen-SYMBOLE. Sie sind KEINE Shop-Items mehr — Abzeichen werden
+// verdient, nicht gekauft (Prestige-System, s. js/prestige.js). Diese Liste
+// bleibt als reine Symbol-Referenz (z.B. für Tests/Art); sie wird NICHT in den
+// SHOP_CATALOG aufgenommen und hat keine Kategorie/Preis mehr.
+export const BADGE_SYMBOLS = ['stern', 'klee', 'blitz', 'flamme', 'einhorn', 'rakete',
+  'gehirn', 'alien', 'trophae', 'diamant', 'drache', 'krone'];
 
 // 🎨 Skin-Vorlagen: kuratierte Konfigurationen für den EXKLUSIVEN dynamischen
 // Skin (Inventar-Item 'dynamicColor' — Kauf setzt dessen Besitz voraus, s.

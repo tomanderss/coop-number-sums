@@ -245,16 +245,59 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .home-topbar-right { position: absolute; top: 0; right: 0; z-index: 1; display: flex; gap: 8px; }
 .home-streak-badge {
   position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 2px; height: 44px;
-  font-size: .95rem; font-weight: 800; color: var(--text2);
+  display: flex; align-items: center; gap: 4px; height: 44px;
+  font-size: 1.15rem; font-weight: 800; color: var(--text2);
 }
+/* Streak-Flamme deutlich größer als der Zähler (auffälliger). */
+.home-streak-badge .ico { width: 1.6em; height: 1.6em; }
 .brand { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 4px; }
 /* Eigenes Badge auf dem Home-Screen (nur sichtbar, wenn eins ausgerüstet ist) */
 .home-profile-chip {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 2px;
   padding: 4px 14px; border-radius: 99px; background: var(--bg3);
-  font-weight: 800; font-size: .92rem;
+  font-weight: 800; font-size: .92rem; border: none; color: inherit; cursor: pointer;
 }
+.home-profile-chip:active { transform: translateY(1px); }
+
+/* ── Prestige-Screen (verdiente Abzeichen) ──────────────────────────────────── */
+.prestige-modal { max-width: 560px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; }
+.prestige-intro { margin: 0 0 10px; }
+.prestige-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.prestige-cat { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.prestige-cat.locked { opacity: .82; }
+.prestige-lead { display: flex; gap: 12px; align-items: center; }
+.prestige-cat-medal { flex: none; width: 48px; height: 48px; }
+.prestige-cat-medal svg { width: 48px; height: 48px; display: block; }
+.prestige-cat-medal.dim { filter: grayscale(1) brightness(.6); opacity: .7; }
+.prestige-cat-info { flex: 1; min-width: 0; }
+.prestige-cat-nm { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.prestige-cat-nm b { font-size: 1rem; font-weight: 700; }
+.prestige-tier-pill { font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; padding: 3px 8px; border-radius: 99px; background: var(--bg3); color: var(--text2); white-space: nowrap; }
+.prestige-tier-pill.t1 { color: #e7b98a; background: rgba(180,110,50,.16); }
+.prestige-tier-pill.t2 { color: #cfd8e6; background: rgba(150,165,190,.16); }
+.prestige-tier-pill.t3 { color: #f4c430; background: rgba(220,170,30,.16); }
+.prestige-tier-pill.t4 { color: #5ff0ab; background: rgba(30,200,120,.16); }
+.prestige-metric { color: var(--text3); font-size: .8rem; margin: 4px 0 6px; }
+.prestige-metric b { color: var(--text); }
+.prestige-bar { height: 6px; border-radius: 99px; background: var(--bg3); overflow: hidden; }
+.prestige-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.prestige-bar.done i { background: linear-gradient(90deg, #f4c430, #5ff0ab); }
+.prestige-next { font-size: .7rem; color: var(--text3); margin-top: 5px; }
+.prestige-tiers { display: flex; gap: 8px; margin-top: 10px; }
+.prestige-tier-btn {
+  position: relative; flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg3);
+  cursor: pointer; transition: border-color .15s, transform .1s;
+}
+.prestige-tier-btn:disabled { cursor: default; opacity: .5; }
+.prestige-tier-btn .prestige-tier-medal { display: inline-flex; }
+.prestige-tier-btn .prestige-tier-medal svg { width: 34px; height: 34px; display: block; }
+.prestige-tier-btn:disabled .prestige-tier-medal { filter: grayscale(1) brightness(.55); }
+.prestige-tier-btn.unlocked:not(.equipped):active { transform: translateY(1px); }
+.prestige-tier-btn.equipped { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.prestige-eq-dot { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; }
+.prestige-eq-dot .ico { width: 12px; height: 12px; }
+.prestige-unequip { margin-top: 12px; width: 100%; flex: none; }
 .brand-logo {
   width: 88px; height: 88px; border-radius: 24px; display: block;
   box-shadow: 0 12px 38px var(--accent-soft), 0 4px 12px var(--shadow);
@@ -1964,6 +2007,9 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .ico { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; flex: none; }
 /* In einem runden Icon-Button etwas größer und mittig. */
 .icon-btn .ico { width: 1.35em; height: 1.35em; vertical-align: middle; }
+/* Das Zahnrad-Glyph füllt den Viewport bis zum Rand (Zähne außen) und wirkt
+   dadurch größer als die anderen (eingerückten) Icons — optisch angleichen. */
+.ico-gear { transform: scale(.86); }
 /* Wrapper, wenn ein Icon per <span v-html> inline neben Text steht. */
 .ico-lead { display: inline-flex; align-items: center; margin-right: .4em; vertical-align: -0.14em; }
 

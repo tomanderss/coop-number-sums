@@ -23,9 +23,10 @@ import {
   setDataRev, setSyncedRev,
 } from './storage.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
-import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx, badgeIcon } from './shopitems.js';
+import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
 import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup } from './badgeart.js';
 import { icon as customIcon, hasIcon } from './icons.js';
+import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge } from './prestige.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -215,6 +216,7 @@ const state = reactive({
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
+  prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
   adminNotice: null,             // aktuell angezeigte Admin-Benachrichtigung {id, kind, item|amount, from} (Modal)
@@ -706,7 +708,6 @@ function shopCategoryTitle(cat) {
   if (cat === 'sfx') return '🎵 ' + t('shop.item.soundPacks');
   if (cat === 'font') return '🔢 ' + t('shop.item.numberFonts');
   if (cat === 'frame') return '🖼️ ' + t('shop.item.boardFrames');
-  if (cat === 'badge') return '🏅 ' + t('shop.item.profileBadges');
   if (cat === 'skinpreset') return '🎨 ' + t('shop.item.skinPresets');
   return t('shop.title');
 }
@@ -1695,15 +1696,59 @@ function upsertPlayer(id, name, requestedColor, username, badge) {
   state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color, username: (username || existing?.username || '').trim(), badge: badge ?? existing?.badge ?? null, team: existing?.team ?? null, ready: existing?.ready ?? false }];
   updateConnectedFlag();
 }
-// Ausgerüstetes Profil-Badge (Katalog-ID) oder null — wird mit IDENTITY/Präsenz/
-// Bestzeit mitgesendet; Fremd-Clients rendern nur bekannte IDs (badgeIcon).
-function myBadge() { const id = shopEquippedId('badge'); return id && id !== 'none' ? id : null; }
-// Selbstgezeichnete Abzeichen-Medaille (SVG-String) für ein Badge — ersetzt die
-// alten Emojis überall (Home-Chip, Coop-Roster, Freunde, Bestenliste, Shop).
-// ribbon=true zeigt die große Medaille am Halsband (Shop-Vorschau). Unbekannte/
-// Fremd-IDs ⇒ '' (nichts). Wird per v-html gerendert; Defs liegen einmal im DOM.
-function badgeSvg(id, ribbon = false) { return hasBadgeMedal(id) ? badgeMedalMarkup(id, { ribbon, size: ribbon ? 96 : 40 }) : ''; }
+// Ausgerüstetes Profil-Abzeichen als kodierte Prestige-ID "sym-tier" (z.B.
+// "drache-3") oder null. Wird mit IDENTITY/Präsenz/Bestzeit mitgesendet;
+// Fremd-Clients dekodieren (decodeBadge akzeptiert auch das alte Nur-Symbol-
+// Format aus der gekauften Ära → als Stufe 1). Prestige-System: nicht mehr
+// gekauft, sondern verdient (s. prestige.js / Prestige-Screen).
+function myBadge() { const id = state.settings.profileBadge; return id && id !== 'none' && decodeBadge(id) ? id : null; }
+// Prestige-Kontext für alle Kategorie-Berechnungen (aus den lokalen Statistiken).
+function prestigeCtx() {
+  return { stats: state.stats, streak: state.streak, race: state.raceStats,
+    difficulties: DIFFICULTIES.map(d => d.id) };
+}
+// Selbstgezeichnete Abzeichen-Medaille (SVG-String) für eine kodierte Badge-ID
+// ("sym-tier"). Überall gerendert (Home-Chip, Coop-Roster, Freunde, Bestenliste,
+// Prestige-Screen). ribbon=true = große Medaille am Halsband. Unbekannt ⇒ ''.
+function badgeSvg(id, ribbon = false) {
+  const b = decodeBadge(id);
+  return b ? badgeMedalMarkup(b.sym, { tier: b.tier, ribbon, size: ribbon ? 96 : 40 }) : '';
+}
+// Ist die (kodierte) Badge-ID darstellbar? (für v-if in Templates)
+function badgeShown(id) { return !!decodeBadge(id); }
 function badgeDefs() { return badgeDefsMarkup(); }
+
+// ─── Prestige-Screen (verdiente Abzeichen) ────────────────────────────────────
+function openPrestige() { state.prestigeOpen = true; log('app', 'Prestige geöffnet'); }
+function closePrestige() { state.prestigeOpen = false; }
+// Fortschritt aller Kategorien inkl. i18n-Name/Metrik-Label für die Anzeige.
+function prestigeList() {
+  return allPrestige(prestigeCtx()).map(p => ({
+    ...p,
+    name: t('prestige.cat.' + p.key),
+    metricLabel: t('prestige.metric.' + p.key),
+  }));
+}
+// Ist genau diese (Symbol, Stufe) aktuell ausgerüstet?
+function isBadgeEquipped(sym, tier) { return state.settings.profileBadge === encodeBadge(sym, tier); }
+// Höchste freigeschaltete Stufe einer Kategorie (0 = keine).
+function earnedTier(sym) { const c = categoryProgress(prestigeBySym(sym), prestigeCtx()); return c.tier; }
+// Eine freigeschaltete Stufe als Profil-Abzeichen ausrüsten (oder abnehmen).
+function equipBadge(sym, tier) {
+  if (!isUnlocked(sym, tier, prestigeCtx())) return;
+  setSetting('profileBadge', encodeBadge(sym, tier));
+  log('app', 'Abzeichen ausgerüstet', { sym, tier });
+  afterBadgeChange();
+}
+function unequipBadge() { setSetting('profileBadge', 'none'); afterBadgeChange(); }
+// Nach einer Abzeichen-Änderung: Coop-Identität/Präsenz mit neuem Badge auffrischen.
+function afterBadgeChange() {
+  if (state.coop.active && state.coop.myId) {
+    Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor, username: myUsername(), badge: myBadge() });
+  }
+  if (state.account.status === 'in') { Account.publishPresence(currentGameInfo(), myBadge()); Account.scheduleSyncUp(); }
+}
+function prestigeTierName(tier) { return tier ? t('prestige.tier.t' + tier) : t('prestige.locked'); }
 // Custom-Icon (SVG-String) für ein UI-Glyph — Emoji-Ersatz, per v-html gerendert.
 // Unbekannte Namen ⇒ '' (nie rohen Fremdtext rendern). Größe/Farbe via CSS (.ico).
 function ic(name) { return customIcon(name); }
@@ -4398,8 +4443,9 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
-      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon, applySkinPreset,
-      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, hasBadgeMedal, ic,
+      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
+      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
+      openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4442,8 +4488,12 @@ const App = {
       <div class="brand">
         <img class="brand-logo" src="./icons/icon-192.png" alt="" />
         <h1 class="brand-title">Coop<br>Number Sums</h1>
-        <!-- Eigenes Profil-Badge auch auf Home (nur wenn eins ausgerüstet ist) -->
-        <span v-if="myBadge()" class="home-profile-chip">{{ shopDemoBadgeName() }} <b class="badge-medal-inline" v-html="badgeSvg(myBadge())"></b></span>
+        <!-- Profil-Chip: öffnet den Prestige-Screen. Zeigt das ausgerüstete
+             verdiente Abzeichen (oder eine Einladung, eins zu verdienen). -->
+        <button class="home-profile-chip" @click="openPrestige">
+          <template v-if="myBadge()">{{ shopDemoBadgeName() }} <b class="badge-medal-inline" v-html="badgeSvg(myBadge())"></b></template>
+          <template v-else><span class="ico-wrap" v-html="ic('medal')"></span> {{ t('prestige.title') }}</template>
+        </button>
       </div>
 
       <div class="home-actions">
@@ -4699,7 +4749,7 @@ const App = {
           <div class="coop-roster" v-if="nonHostPlayers().length">
             <span v-for="p in nonHostPlayers()" :key="p.id" class="player-chip" :class="{ 'ready-chip': p.ready }"
                   :style="{ background: p.color, color: chipTextColor(p.color) }">
-              <span v-if="hasBadgeMedal(p.badge)" class="badge-medal-inline" v-html="badgeSvg(p.badge)"></span>{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+              <span v-if="badgeShown(p.badge)" class="badge-medal-inline" v-html="badgeSvg(p.badge)"></span>{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
               {{ p.ready ? '✅' : '⏳' }}
             </span>
           </div>
@@ -5180,11 +5230,6 @@ const App = {
           </div>
           <small class="shop-demo-hint">{{ t('shop.demoHint') }}</small>
         </div>
-        <!-- Badge-Demo: eigener Name mit dem Vorschau-Abzeichen -->
-        <div v-if="state.shopCategory==='badge'" class="shop-demo-wrap">
-          <span class="shop-demo-chip">{{ shopDemoBadgeName() }} <b v-if="hasBadgeMedal(shopDemoId('badge'))" class="badge-medal-lg" v-html="badgeSvg(shopDemoId('badge'), true)"></b></span>
-          <small class="shop-demo-hint">{{ t('shop.demoHint') }}</small>
-        </div>
 
         <div class="shop-grid">
           <!-- Gratis-Standard (entfällt bei Anwenden-Kategorien wie Skin-Vorlagen) -->
@@ -5199,7 +5244,7 @@ const App = {
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopFree(state.shopCategory)">{{ t('shop.activate') }}</button>
           </div>
           <div v-for="it in shopCatItems(state.shopCategory)" :key="it.id" class="shop-card fx" :class="{ owned: ownsShop(it), fxactive: shopEquippedId(state.shopCategory) === it.id }">
-            <span class="shop-card-ic"><span v-if="state.shopCategory==='badge' && hasBadgeMedal(it.id)" class="badge-medal-card" v-html="badgeSvg(it.id)"></span><template v-else>{{ it.icon }}</template></span>
+            <span class="shop-card-ic">{{ it.icon }}</span>
             <button class="shop-fx-preview" :class="{ prevon: shopDemoActive(it) }" @click="shopPreviewIt(it)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             <span v-if="it.cat === 'font'" class="font-demo" :class="'font-' + it.id">123</span>
             <span v-if="it.cat === 'frame'" class="frame-demo" :class="'frame-' + it.id"></span>
@@ -5241,11 +5286,6 @@ const App = {
             <span class="shop-card-ic">🖼️</span>
             <span class="shop-card-name">{{ t('shop.item.boardFrames') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('frame') + 1 }}/{{ shopCatItems('frame').length + 1 }} ›</span>
-          </button>
-          <button class="shop-card shop-cat" @click="openShopCategory('badge')">
-            <span class="shop-card-ic">🏅</span>
-            <span class="shop-card-name">{{ t('shop.item.profileBadges') }}</span>
-            <span class="shop-cat-count">{{ shopOwnedCount('badge') + 1 }}/{{ shopCatItems('badge').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('theme')">
             <span class="shop-card-ic">🖌️</span>
@@ -5838,7 +5878,7 @@ const App = {
     <div v-if="state.friends.open" class="modal-bg" @click.self="closeFriends">
       <div class="modal friends-modal">
         <header class="friends-head">
-          <h3>👫 {{ t('friends.title') }}</h3>
+          <h3><span class="ico-wrap" v-html="ic('users')"></span> {{ t('friends.title') }}</h3>
           <span class="friends-head-actions">
             <button class="icon-btn" @click="openAddFriend" :aria-label="t('friends.addTitle')" :title="t('friends.addTitle')">＋</button>
             <button class="icon-btn" @click="closeFriends" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
@@ -5869,7 +5909,7 @@ const App = {
           <div v-for="fr in friendsSorted()" :key="fr.uid" class="friends-row">
             <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
             <span class="friends-info">
-              <span class="friends-name"><span v-if="hasBadgeMedal(friendPresence(fr.uid)?.badge)" class="badge-medal-inline" v-html="badgeSvg(friendPresence(fr.uid)?.badge)"></span>{{ fr.username || fr.uid }}</span>
+              <span class="friends-name"><span v-if="badgeShown(friendPresence(fr.uid)?.badge)" class="badge-medal-inline" v-html="badgeSvg(friendPresence(fr.uid)?.badge)"></span>{{ fr.username || fr.uid }}</span>
               <small class="friends-activity">{{ friendActivityText(fr.uid) }}</small>
               <span v-if="friendInGame(fr.uid)" class="friends-progress"><span class="friends-progress-fill" :style="{ width: (friendPresence(fr.uid).game.pct||0) + '%' }"></span></span>
             </span>
@@ -5887,7 +5927,7 @@ const App = {
           <div v-else class="lb-list">
             <div v-for="(e,i) in state.leaderboard.entries" :key="e.uid" class="lb-row" :class="{ me: e.uid===state.account.uid }">
               <span class="lb-rank">{{ i+1 }}</span>
-              <span class="lb-name"><span v-if="hasBadgeMedal(e.badge)" class="badge-medal-inline" v-html="badgeSvg(e.badge)"></span>{{ e.username || e.uid }}</span>
+              <span class="lb-name"><span v-if="badgeShown(e.badge)" class="badge-medal-inline" v-html="badgeSvg(e.badge)"></span>{{ e.username || e.uid }}</span>
               <span class="lb-time">{{ fmtTime(e.timeMs) }}</span>
             </div>
           </div>
@@ -6028,6 +6068,42 @@ const App = {
         <p class="result-msg">{{ t('skin.unlockBody') }}</p>
         <button class="btn btn-primary" @click="openSkinEditor">{{ t('skin.unlockCustomize') }}</button>
         <button class="btn btn-ghost" @click="dismissSkinUnlock">{{ t('skin.unlockLater') }}</button>
+      </div>
+    </div>
+
+    <!-- ══ PRESTIGE: verdiente Abzeichen (nicht kaufbar) ══ -->
+    <div v-if="state.prestigeOpen" class="modal-bg" @click.self="closePrestige">
+      <div class="modal prestige-modal">
+        <header class="friends-head">
+          <h3><span class="ico-wrap" v-html="ic('medal')"></span> {{ t('prestige.title') }}</h3>
+          <button class="icon-btn" @click="closePrestige" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
+        </header>
+        <p class="set-hint prestige-intro">{{ t('prestige.intro') }}</p>
+        <div class="prestige-list">
+          <div v-for="p in prestigeList()" :key="p.sym" class="prestige-cat" :class="{ locked: p.tier===0 }">
+            <div class="prestige-lead">
+              <div class="badge-medal-card prestige-cat-medal" :class="{ dim: p.tier===0 }" v-html="badgeSvg(p.sym + '-' + Math.max(1,p.tier))"></div>
+              <div class="prestige-cat-info">
+                <div class="prestige-cat-nm"><b>{{ p.name }}</b><span class="prestige-tier-pill" :class="'t'+p.tier">{{ prestigeTierName(p.tier) }}</span></div>
+                <div class="prestige-metric">{{ p.metricLabel }}: <b>{{ p.value }}</b></div>
+                <div class="prestige-bar" :class="{ done: p.next==null }"><i :style="{ width: Math.round(p.frac*100)+'%' }"></i></div>
+                <div class="prestige-next">{{ p.next==null ? t('prestige.maxed') : t('prestige.toNext', { n: p.next - p.value, tier: prestigeTierName(p.tier+1) }) }}</div>
+              </div>
+            </div>
+            <!-- Vier Stufen: freigeschaltete anklickbar zum Ausrüsten, gesperrte ausgegraut -->
+            <div class="prestige-tiers">
+              <button v-for="ti in 4" :key="ti" class="prestige-tier-btn"
+                :class="{ unlocked: ti<=p.tier, equipped: isBadgeEquipped(p.sym, ti) }"
+                :disabled="ti>p.tier"
+                @click="equipBadge(p.sym, ti)"
+                :aria-label="prestigeTierName(ti)" :title="prestigeTierName(ti)">
+                <span class="prestige-tier-medal" v-html="badgeSvg(p.sym + '-' + ti)"></span>
+                <span v-if="isBadgeEquipped(p.sym, ti)" class="prestige-eq-dot"><span class="ico-wrap" v-html="ic('check')"></span></span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <button v-if="myBadge()" class="btn btn-ghost prestige-unequip" @click="unequipBadge">{{ t('prestige.unequip') }}</button>
       </div>
     </div>
 
