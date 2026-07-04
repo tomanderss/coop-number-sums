@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.72';
-export const BUILD_HASH = '74c817f';
+export const BUILD      = '1.73';
+export const BUILD_HASH = '202b99b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.73",
+    "date": "04.07.2026",
+    "changes": [
+      "Skin-Vorlagen sind jetzt für alle frei kaufbar und sofort nutzbar — der exklusive dynamische Skin schaltet nur noch zusätzlich den freien Skin-Editor frei.",
+      "Dein Profil-Badge erscheint jetzt auch auf dem Home-Screen.",
+      "Bestenliste: Vorhandene Bestzeiten werden beim Start automatisch eingetragen (nicht mehr nur neue Rekorde)."
+    ]
+  },
   {
     "version": "1.72",
     "date": "04.07.2026",
