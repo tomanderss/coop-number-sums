@@ -1,0 +1,1 @@
+Eigenes Icon-Set: Emoji in der Oberfläche (Einstellungen, Kopfleisten-Buttons, Münz-/Streak-Chip, Schließen) durch selbst gezeichnete SVG-Icons ersetzt

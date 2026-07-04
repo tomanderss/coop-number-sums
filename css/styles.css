@@ -1957,6 +1957,16 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
    jede Medaille ist ein eigenständiges <svg>, per v-html eingesetzt. Größen rein
    über CSS (überschreiben die width/height-Attribute des SVG). */
 .badge-defs-holder { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ── Custom-Icons (SVG statt Emoji) ───────────────────────────────────────────
+   Strich-Icons erben Farbe (currentColor) und Größe (1em) vom Umgebungstext;
+   gefüllte Icons (Münze/Flamme/…) bringen ihre Farben selbst mit. */
+.ico { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; flex: none; }
+/* In einem runden Icon-Button etwas größer und mittig. */
+.icon-btn .ico { width: 1.35em; height: 1.35em; vertical-align: middle; }
+/* Wrapper, wenn ein Icon per <span v-html> inline neben Text steht. */
+.ico-lead { display: inline-flex; align-items: center; margin-right: .4em; vertical-align: -0.14em; }
+
 /* Inline neben einem Namen (Home-Chip, Coop-Roster, Freunde, Bestenliste). */
 .badge-medal-inline { display: inline-flex; vertical-align: -0.3em; margin-right: 0.3em; flex: none; }
 .badge-medal-inline svg { width: 1.5em; height: 1.5em; display: block; }
