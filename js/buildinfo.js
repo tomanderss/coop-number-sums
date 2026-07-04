@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.63';
-export const BUILD_HASH = '2cb0a1f';
+export const BUILD      = '1.64';
+export const BUILD_HASH = '1747607';
 
 export const CHANGELOG = [
+  {
+    "version": "1.64",
+    "date": "04.07.2026",
+    "changes": [
+      "Neue Shop-Kategorie „Profil-Badges\": 12 Abzeichen neben deinem Namen — sichtbar im Coop, in der Freundesliste und der Bestenliste."
+    ]
+  },
   {
     "version": "1.63",
     "date": "04.07.2026",
