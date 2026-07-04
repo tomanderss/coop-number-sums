@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.68';
-export const BUILD_HASH = '12e5329';
+export const BUILD      = '1.69';
+export const BUILD_HASH = 'e23424f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.69",
+    "date": "04.07.2026",
+    "changes": [
+      "Shop: Auch „Klassisch\"-Gratis-Karten zeigen Farbpunkte/Demo und haben die ▶-Vorschau.",
+      "Admin-Inventar: neuer Button „Alles freischalten\" schenkt alle Artikel auf einmal."
+    ]
+  },
   {
     "version": "1.68",
     "date": "04.07.2026",
