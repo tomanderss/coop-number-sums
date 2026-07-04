@@ -24,6 +24,7 @@ import {
 } from './storage.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx, badgeIcon } from './shopitems.js';
+import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup } from './badgeart.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -1690,6 +1691,12 @@ function upsertPlayer(id, name, requestedColor, username, badge) {
 // Ausgerüstetes Profil-Badge (Katalog-ID) oder null — wird mit IDENTITY/Präsenz/
 // Bestzeit mitgesendet; Fremd-Clients rendern nur bekannte IDs (badgeIcon).
 function myBadge() { const id = shopEquippedId('badge'); return id && id !== 'none' ? id : null; }
+// Selbstgezeichnete Abzeichen-Medaille (SVG-String) für ein Badge — ersetzt die
+// alten Emojis überall (Home-Chip, Coop-Roster, Freunde, Bestenliste, Shop).
+// ribbon=true zeigt die große Medaille am Halsband (Shop-Vorschau). Unbekannte/
+// Fremd-IDs ⇒ '' (nichts). Wird per v-html gerendert; Defs liegen einmal im DOM.
+function badgeSvg(id, ribbon = false) { return hasBadgeMedal(id) ? badgeMedalMarkup(id, { ribbon, size: ribbon ? 96 : 40 }) : ''; }
+function badgeDefs() { return badgeDefsMarkup(); }
 // Eigener eindeutiger Account-Username (nur eingeloggt) — wird im Coop mitgesendet.
 function myUsername() { return state.account.status === 'in' && state.account.username ? state.account.username : ''; }
 // Anzeige „Anzeigename (username)" – nur wenn ein (abweichender) Account-Username bekannt ist.
@@ -4382,7 +4389,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon, applySkinPreset,
-      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge,
+      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, hasBadgeMedal,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4410,6 +4417,9 @@ const App = {
   template: `
   <div class="app" :class="{ generating: state.generating, 'modal-open': !!state.modal, 'app-game': state.screen === 'game', 'app-home': state.screen === 'home' }">
 
+    <!-- Gemeinsame SVG-Defs (Verläufe/Symbole) für alle Abzeichen-Medaillen, EINMAL im Dokument. -->
+    <span class="badge-defs-holder" v-html="badgeDefs()" aria-hidden="true"></span>
+
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')">☕<span class="home-donate-heart" aria-hidden="true">❤</span></a>
@@ -4423,7 +4433,7 @@ const App = {
         <img class="brand-logo" src="./icons/icon-192.png" alt="" />
         <h1 class="brand-title">Coop<br>Number Sums</h1>
         <!-- Eigenes Profil-Badge auch auf Home (nur wenn eins ausgerüstet ist) -->
-        <span v-if="myBadge()" class="home-profile-chip">{{ shopDemoBadgeName() }} <b>{{ badgeIcon(myBadge()) }}</b></span>
+        <span v-if="myBadge()" class="home-profile-chip">{{ shopDemoBadgeName() }} <b class="badge-medal-inline" v-html="badgeSvg(myBadge())"></b></span>
       </div>
 
       <div class="home-actions">
@@ -4679,7 +4689,7 @@ const App = {
           <div class="coop-roster" v-if="nonHostPlayers().length">
             <span v-for="p in nonHostPlayers()" :key="p.id" class="player-chip" :class="{ 'ready-chip': p.ready }"
                   :style="{ background: p.color, color: chipTextColor(p.color) }">
-              <template v-if="badgeIcon(p.badge)">{{ badgeIcon(p.badge) }} </template>{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+              <span v-if="hasBadgeMedal(p.badge)" class="badge-medal-inline" v-html="badgeSvg(p.badge)"></span>{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
               {{ p.ready ? '✅' : '⏳' }}
             </span>
           </div>
@@ -5162,7 +5172,7 @@ const App = {
         </div>
         <!-- Badge-Demo: eigener Name mit dem Vorschau-Abzeichen -->
         <div v-if="state.shopCategory==='badge'" class="shop-demo-wrap">
-          <span class="shop-demo-chip">{{ shopDemoBadgeName() }} <b v-if="badgeIcon(shopDemoId('badge'))">{{ badgeIcon(shopDemoId('badge')) }}</b></span>
+          <span class="shop-demo-chip">{{ shopDemoBadgeName() }} <b v-if="hasBadgeMedal(shopDemoId('badge'))" class="badge-medal-lg" v-html="badgeSvg(shopDemoId('badge'), true)"></b></span>
           <small class="shop-demo-hint">{{ t('shop.demoHint') }}</small>
         </div>
 
@@ -5179,7 +5189,7 @@ const App = {
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopFree(state.shopCategory)">{{ t('shop.activate') }}</button>
           </div>
           <div v-for="it in shopCatItems(state.shopCategory)" :key="it.id" class="shop-card fx" :class="{ owned: ownsShop(it), fxactive: shopEquippedId(state.shopCategory) === it.id }">
-            <span class="shop-card-ic">{{ it.icon }}</span>
+            <span class="shop-card-ic"><span v-if="state.shopCategory==='badge' && hasBadgeMedal(it.id)" class="badge-medal-card" v-html="badgeSvg(it.id)"></span><template v-else>{{ it.icon }}</template></span>
             <button class="shop-fx-preview" :class="{ prevon: shopDemoActive(it) }" @click="shopPreviewIt(it)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             <span v-if="it.cat === 'font'" class="font-demo" :class="'font-' + it.id">123</span>
             <span v-if="it.cat === 'frame'" class="frame-demo" :class="'frame-' + it.id"></span>
@@ -5849,7 +5859,7 @@ const App = {
           <div v-for="fr in friendsSorted()" :key="fr.uid" class="friends-row">
             <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
             <span class="friends-info">
-              <span class="friends-name"><template v-if="badgeIcon(friendPresence(fr.uid)?.badge)">{{ badgeIcon(friendPresence(fr.uid)?.badge) }} </template>{{ fr.username || fr.uid }}</span>
+              <span class="friends-name"><span v-if="hasBadgeMedal(friendPresence(fr.uid)?.badge)" class="badge-medal-inline" v-html="badgeSvg(friendPresence(fr.uid)?.badge)"></span>{{ fr.username || fr.uid }}</span>
               <small class="friends-activity">{{ friendActivityText(fr.uid) }}</small>
               <span v-if="friendInGame(fr.uid)" class="friends-progress"><span class="friends-progress-fill" :style="{ width: (friendPresence(fr.uid).game.pct||0) + '%' }"></span></span>
             </span>
@@ -5867,7 +5877,7 @@ const App = {
           <div v-else class="lb-list">
             <div v-for="(e,i) in state.leaderboard.entries" :key="e.uid" class="lb-row" :class="{ me: e.uid===state.account.uid }">
               <span class="lb-rank">{{ i+1 }}</span>
-              <span class="lb-name"><template v-if="badgeIcon(e.badge)">{{ badgeIcon(e.badge) }} </template>{{ e.username || e.uid }}</span>
+              <span class="lb-name"><span v-if="hasBadgeMedal(e.badge)" class="badge-medal-inline" v-html="badgeSvg(e.badge)"></span>{{ e.username || e.uid }}</span>
               <span class="lb-time">{{ fmtTime(e.timeMs) }}</span>
             </div>
           </div>
