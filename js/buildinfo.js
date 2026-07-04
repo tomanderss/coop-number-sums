@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.78';
-export const BUILD_HASH = 'd99de54';
+export const BUILD      = '1.79';
+export const BUILD_HASH = '4d33026';
 
 export const CHANGELOG = [
+  {
+    "version": "1.79",
+    "date": "04.07.2026",
+    "changes": [
+      "Prestige-System: Profil-Abzeichen werden jetzt VERDIENT statt gekauft — 12 Kategorien (an Statistiken gekoppelt) mit je 4 Stufen (Bronze→Legendär), eigener Prestige-Screen zum Ausrüsten; Badges raus aus dem Shop",
+      "Streak-Flamme auf dem Home-Screen vergrößert"
+    ]
+  },
   {
     "version": "1.78",
     "date": "04.07.2026",

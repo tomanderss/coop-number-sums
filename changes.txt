@@ -1,2 +1,0 @@
-Prestige-System: Profil-Abzeichen werden jetzt VERDIENT statt gekauft — 12 Kategorien (an Statistiken gekoppelt) mit je 4 Stufen (Bronze→Legendär), eigener Prestige-Screen zum Ausrüsten; Badges raus aus dem Shop
-Streak-Flamme auf dem Home-Screen vergrößert
