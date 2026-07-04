@@ -1809,6 +1809,7 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 /* Sieganimations-Karten: Vorschau oben rechts, Kauf-/Aktiv-Zustand unten */
 .shop-sec-title { font-weight: 900; font-size: 1.02rem; margin: 6px 0 0; }
 .shop-sec-hint { color: var(--text2); font-size: .84rem; margin: 0 0 4px; }
+.shop-lock-hint { color: var(--warn, #e6a23c); font-weight: 600; }
 .shop-card.fx.fxactive { box-shadow: 0 0 0 2px var(--accent), 0 2px 8px var(--shadow); }
 .shop-fx-preview {
   position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%;

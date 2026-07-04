@@ -117,6 +117,23 @@ export function badgeIcon(id) {
   return it && it.cat === 'badge' ? it.icon : '';
 }
 
+// 🎨 Skin-Vorlagen: kuratierte Konfigurationen für den EXKLUSIVEN dynamischen
+// Skin (Inventar-Item 'dynamicColor' — Kauf setzt dessen Besitz voraus, s.
+// buyShopItem in app.js). „Anwenden" SCHREIBT die Skin-Einstellungen (Stil,
+// Farben, Tempo, Glow, Dicke) — danach frei weiter-editierbar; deshalb kein
+// settingKey/„ausgerüstet"-Zustand. data.c = 3 Verlaufs-Farben (leer bei rainbow).
+export const SKINPRESET_ITEMS = [
+  { id: 'lagune',          cat: 'skinpreset', icon: '🏝️', tier: 1, data: { style: 'gradient', c: ['#00c2a8', '#1976d2', '#0a3d62'], speed: 4,  glow: 6,  thickness: 2.5 } },
+  { id: 'smaragd',         cat: 'skinpreset', icon: '💚', tier: 1, data: { style: 'gradient', c: ['#2ecc71', '#00b894', '#145a32'], speed: 3,  glow: 5,  thickness: 2.5 } },
+  { id: 'abendrot',        cat: 'skinpreset', icon: '🌅', tier: 2, data: { style: 'gradient', c: ['#ff7043', '#e91e63', '#6a1b9a'], speed: 5,  glow: 7,  thickness: 2.5 } },
+  { id: 'goldrausch',      cat: 'skinpreset', icon: '🪙', tier: 2, data: { style: 'gradient', c: ['#ffd700', '#ff9800', '#8d5a00'], speed: 4,  glow: 9,  thickness: 3 } },
+  { id: 'mitternacht',     cat: 'skinpreset', icon: '🌙', tier: 2, data: { style: 'gradient', c: ['#283593', '#5e35b1', '#0d1117'], speed: 2,  glow: 4,  thickness: 2 } },
+  { id: 'polarlicht',      cat: 'skinpreset', icon: '❇️', tier: 3, data: { style: 'gradient', c: ['#00e5a0', '#00b0ff', '#7c4dff'], speed: 7,  glow: 10, thickness: 3 } },
+  { id: 'lava',            cat: 'skinpreset', icon: '🌋', tier: 3, data: { style: 'gradient', c: ['#ff3d00', '#ff9100', '#3e2723'], speed: 8,  glow: 12, thickness: 3.5 } },
+  { id: 'hyperregenbogen', cat: 'skinpreset', icon: '🌈', tier: 4, data: { style: 'rainbow',  c: [],                                speed: 10, glow: 12, thickness: 3 } },
+];
+SHOP_CATALOG.push(...SKINPRESET_ITEMS);
+
 export function shopItemById(id) { return SHOP_CATALOG.find((i) => i.id === id) || null; }
 export function catItems(cat) { return SHOP_CATALOG.filter((i) => i.cat === cat); }
 export function shopItemPrice(idOrItem) {
