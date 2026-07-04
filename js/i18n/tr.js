@@ -436,6 +436,7 @@ export default {
     winFxTitle: 'Zafer animasyonları', winFxHint: 'Zafer anın için animasyonlar satın al — ▶ ile önizle, istediğin zaman değiştir.',
     preview: 'Önizleme', activate: 'Etkinleştir', active: 'Etkin',
     apply: 'Uygula', applied: 'Hazır ayar uygulandı!', needsSkin: 'Özel dinamik skin gerekir (sürüm 1.0 ödülü veya kod).',
+    demoHint: 'Canlı önizleme için bir karttaki ▶ simgesine dokun.', previewTheme: 'Tema önizlemesi — 4 saniye sonra geri döner.',
     bought: 'Satın alındı! 🎉', notEnough: 'Yeterli para yok', activated: 'Etkinleştirildi',
     effect: { confetti: 'Konfeti', balloons: 'Balon partisi', stars: 'Yıldız yağmuru', bubbles: 'Sabun köpüğü', petals: 'Kiraz çiçekleri', snow: 'Kar büyüsü', sparklers: 'Maytap', fireworks: 'Havai fişek', coins: 'Para yağmuru', rainbow: 'Gökkuşağı dalgası', wave: 'Dalga', matrix: 'Matrix yağmuru', disco: 'Disko', arcade: 'Retro atari', galaxy: 'Galaksi girdabı', blackhole: 'Kara delik', chain: 'Zincirleme patlama', dragon: 'Ejderha uçuşu', rocket: 'Roket kalkışı', shatter: 'Elmas kırıkları', phoenix: 'Anka kuşu', jackpot: 'Büyük ikramiye', unicorn: 'Tek boynuz', meteor: 'Meteor Fırtınası', gewitter: 'Gök Gürültülü Fırtına', portal: 'Boyut Portalı', feuertornado: 'Ateş Kasırgası', synthgrid: 'Synthwave Güneşi' },
     title: 'Mağaza',

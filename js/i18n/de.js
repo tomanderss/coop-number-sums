@@ -527,6 +527,7 @@ export default {
     winFxTitle: 'Sieganimationen', winFxHint: 'Kaufe neue Animationen für deinen Sieg-Moment — Vorschau mit ▶, gekaufte jederzeit wechselbar.',
     preview: 'Vorschau', activate: 'Aktivieren', active: 'Aktiv',
     apply: 'Anwenden', applied: 'Vorlage angewendet!', needsSkin: 'Benötigt den exklusiven dynamischen Skin (Version-1.0-Belohnung bzw. Freischalt-Code).',
+    demoHint: 'Tippe ▶ auf einer Karte für die Live-Vorschau.', previewTheme: 'Theme-Vorschau — für 4 Sekunden, dann geht\'s zurück.',
     bought: 'Gekauft! 🎉', notEnough: 'Nicht genug Münzen', activated: 'Aktiviert',
     effect: { confetti: 'Konfetti', balloons: 'Ballon-Party', stars: 'Sternenregen', bubbles: 'Seifenblasen', petals: 'Kirschblüten', snow: 'Schneezauber', sparklers: 'Wunderkerzen', fireworks: 'Feuerwerk', coins: 'Münzregen', rainbow: 'Regenbogen-Welle', wave: 'Welle', matrix: 'Matrix-Regen', disco: 'Disco', arcade: 'Retro-Arcade', galaxy: 'Galaxie-Wirbel', blackhole: 'Schwarzes Loch', chain: 'Kettenreaktion', dragon: 'Drachenflug', rocket: 'Raketenstart', shatter: 'Diamantsplitter', phoenix: 'Phönix', jackpot: 'Jackpot', unicorn: 'Einhorn', meteor: 'Meteorsturm', gewitter: 'Gewitter', portal: 'Dimensionsportal', feuertornado: 'Feuertornado', synthgrid: 'Synthwave-Sonne' },
     title: 'Shop',

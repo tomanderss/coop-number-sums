@@ -436,6 +436,7 @@ export default {
     winFxTitle: 'Animaciones de victoria', winFxHint: 'Compra animaciones para tu momento de victoria: vista previa con ▶ y cambia entre las tuyas cuando quieras.',
     preview: 'Vista previa', activate: 'Activar', active: 'Activa',
     apply: 'Aplicar', applied: '¡Plantilla aplicada!', needsSkin: 'Requiere el skin dinámico exclusivo (recompensa de la versión 1.0 o código).',
+    demoHint: 'Toca ▶ en una tarjeta para la vista previa en vivo.', previewTheme: 'Vista previa del tema: 4 segundos y vuelve.',
     bought: '¡Comprado! 🎉', notEnough: 'Monedas insuficientes', activated: 'Activada',
     effect: { confetti: 'Confeti', balloons: 'Fiesta de globos', stars: 'Lluvia de estrellas', bubbles: 'Burbujas', petals: 'Flores de cerezo', snow: 'Magia de nieve', sparklers: 'Bengalas', fireworks: 'Fuegos artificiales', coins: 'Lluvia de monedas', rainbow: 'Ola arcoíris', wave: 'Ola marina', matrix: 'Lluvia Matrix', disco: 'Disco', arcade: 'Arcade retro', galaxy: 'Remolino galáctico', blackhole: 'Agujero negro', chain: 'Reacción en cadena', dragon: 'Vuelo del dragón', rocket: 'Despegue de cohete', shatter: 'Diamantes rotos', phoenix: 'Fénix', jackpot: 'Jackpot', unicorn: 'Unicornio', meteor: 'Tormenta de meteoros', gewitter: 'Tormenta eléctrica', portal: 'Portal dimensional', feuertornado: 'Tornado de fuego', synthgrid: 'Sol synthwave' },
     title: 'Tienda',

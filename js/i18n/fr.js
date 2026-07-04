@@ -436,6 +436,7 @@ export default {
     winFxTitle: 'Animations de victoire', winFxHint: 'Achète des animations pour ton moment de victoire — aperçu avec ▶, change à tout moment.',
     preview: 'Aperçu', activate: 'Activer', active: 'Active',
     apply: 'Appliquer', applied: 'Préréglage appliqué !', needsSkin: 'Nécessite le skin dynamique exclusif (récompense 1.0 ou code).',
+    demoHint: 'Touche ▶ sur une carte pour l\'aperçu en direct.', previewTheme: 'Aperçu du thème — 4 secondes, puis retour.',
     bought: 'Acheté ! 🎉', notEnough: 'Pas assez de pièces', activated: 'Activée',
     effect: { confetti: 'Confettis', balloons: 'Fête de ballons', stars: 'Pluie d\'étoiles', bubbles: 'Bulles de savon', petals: 'Fleurs de cerisier', snow: 'Magie de neige', sparklers: 'Cierges magiques', fireworks: 'Feu d\'artifice', coins: 'Pluie de pièces', rainbow: 'Vague arc-en-ciel', wave: 'Vague océane', matrix: 'Pluie Matrix', disco: 'Disco', arcade: 'Arcade rétro', galaxy: 'Tourbillon galactique', blackhole: 'Trou noir', chain: 'Réaction en chaîne', dragon: 'Vol du dragon', rocket: 'Décollage de fusée', shatter: 'Éclats de diamant', phoenix: 'Phénix', jackpot: 'Jackpot', unicorn: 'Licorne', meteor: 'Tempête de météores', gewitter: 'Orage', portal: 'Portail dimensionnel', feuertornado: 'Tornade de feu', synthgrid: 'Soleil synthwave' },
     title: 'Boutique',
