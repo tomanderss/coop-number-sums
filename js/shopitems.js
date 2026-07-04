@@ -85,10 +85,15 @@ export const FRAME_ITEMS = [
   { id: 'holz',       cat: 'frame', icon: '🪵', tier: 1 },
   { id: 'goldbarock', cat: 'frame', icon: '🏛️', tier: 2 },
   { id: 'eis',        cat: 'frame', icon: '❄️', tier: 2 },
+  { id: 'lauflicht',  cat: 'frame', icon: '💡', tier: 2 },
   { id: 'neonpuls',   cat: 'frame', icon: '💜', tier: 3 },
   { id: 'feuer',      cat: 'frame', icon: '🔥', tier: 3 },
   { id: 'regenbogen', cat: 'frame', icon: '🌈', tier: 3 },
+  { id: 'plasma',     cat: 'frame', icon: '🔮', tier: 3 },
+  { id: 'sternenstaub', cat: 'frame', icon: '✨', tier: 3 },
+  { id: 'funkenring', cat: 'frame', icon: '⚡', tier: 3 },
   { id: 'galaxie',    cat: 'frame', icon: '🌌', tier: 4 },
+  { id: 'pulsar',     cat: 'frame', icon: '📡', tier: 4 },
 ];
 SHOP_CATALOG.push(...FRAME_ITEMS);
 
