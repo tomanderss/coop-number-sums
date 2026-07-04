@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.73';
-export const BUILD_HASH = '202b99b';
+export const BUILD      = '1.74';
+export const BUILD_HASH = '6e868c5';
 
 export const CHANGELOG = [
+  {
+    "version": "1.74",
+    "date": "04.07.2026",
+    "changes": [
+      "Shop aufgeräumt: WIP-Banner und Platzhalter-Karten entfernt.",
+      "Brett-Rahmen liegen jetzt außen um die Spielfläche und ragen nicht mehr in die Zellen."
+    ]
+  },
   {
     "version": "1.73",
     "date": "04.07.2026",
