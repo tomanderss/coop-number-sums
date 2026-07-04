@@ -1,1 +1,0 @@
-Streak-Bonus: +5% Münzen pro Streak-Tag (additiv, z.B. 5er-Streak +25%), sichtbar im Sieg- und Streak-Popup

@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.74';
-export const BUILD_HASH = '6e868c5';
+export const BUILD      = '1.75';
+export const BUILD_HASH = '3996afb';
 
 export const CHANGELOG = [
+  {
+    "version": "1.75",
+    "date": "04.07.2026",
+    "changes": [
+      "Streak-Bonus: +5% Münzen pro Streak-Tag (additiv, z.B. 5er-Streak +25%), sichtbar im Sieg- und Streak-Popup"
+    ]
+  },
   {
     "version": "1.74",
     "date": "04.07.2026",
