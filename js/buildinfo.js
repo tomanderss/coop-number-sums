@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.71';
-export const BUILD_HASH = '8fead0f';
+export const BUILD      = '1.72';
+export const BUILD_HASH = '74c817f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.72",
+    "date": "04.07.2026",
+    "changes": [
+      "Shop: 5 neue dynamische Brett-Rahmen — Lauflicht, Plasma-Ring, Sternenstaub, Funkenring und Pulsar (durchgehend animiert)."
+    ]
+  },
   {
     "version": "1.71",
     "date": "04.07.2026",
