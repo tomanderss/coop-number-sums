@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.84';
-export const BUILD_HASH = 'da36f70';
+export const BUILD      = '1.85';
+export const BUILD_HASH = '51c4cde';
 
 export const CHANGELOG = [
+  {
+    "version": "1.85",
+    "date": "04.07.2026",
+    "changes": [
+      "2v2: Gegner-Team jetzt als Fortschrittsbalken + Lebensanzeige (Layout wie in den anderen Wettkampfmodi)",
+      "2v2: Falscher eigener Prozentwert im Endscreen behoben"
+    ]
+  },
   {
     "version": "1.84",
     "date": "04.07.2026",
