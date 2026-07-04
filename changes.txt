@@ -1,0 +1,1 @@
+Streak-Anzeige überlappt nicht mehr das Freunde-Symbol (sitzt jetzt in der sicheren Mittelzone zwischen den Kopfleisten-Buttons)

@@ -243,10 +243,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .home-donate-heart { animation: none; }
 }
 .home-topbar-right { position: absolute; top: 0; right: 0; z-index: 1; display: flex; gap: 8px; }
+/* Streak sitzt in der SICHEREN Mittelzone zwischen dem Spenden-Button (links)
+   und dem Freunde/Shop/Einstellungen-Cluster (rechts, bis 3 Buttons ≈ 150px) —
+   so überlappt die (größere) Flamme nie mehr das Freunde-Symbol. pointer-events
+   aus, damit sie nie einen Button-Klick abfängt. */
 .home-streak-badge {
-  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 4px; height: 44px;
-  font-size: 1.15rem; font-weight: 800; color: var(--text2);
+  position: absolute; top: 0; left: 56px; right: 150px;
+  display: flex; align-items: center; justify-content: center; gap: 4px; height: 44px;
+  font-size: 1.15rem; font-weight: 800; color: var(--text2); pointer-events: none;
 }
 /* Streak-Flamme deutlich größer als der Zähler (auffälliger). */
 .home-streak-badge .ico { width: 1.6em; height: 1.6em; }
