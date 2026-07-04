@@ -15,7 +15,7 @@ test.describe('team vs team', () => {
   async function goToCoopHostChoice(page) {
     await gotoApp(page);
     await page.locator('.race-btn').click();
-    await page.locator('.modal-bg .btn-ghost').first().click(); // "2 vs 2" choice
+    await page.locator('.modal-bg button', { hasText: '2 gegen 2' }).click(); // "2 vs 2" choice (nicht der FFA-Button)
     await page.waitForSelector('.screen.coop-screen');
     await page.locator('.coop-body .text-input').fill('Tom');
     await page.locator('.coop-body .btn-primary').click(); // confirm identity
