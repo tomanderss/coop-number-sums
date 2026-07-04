@@ -38,6 +38,27 @@ let everOnline = false;     // true sobald die Verbindung mind. einmal stand (un
 let sawDisconnect = false;  // true sobald sie danach abriss (steuert Reconnect-Toast + Presence-Neuaufbau)
 let lastEventKey = null;    // Push-Key des zuletzt gesehenen events-Kinds (auch eigene) — Wiederaufsetzpunkt für rejoin()
 
+// Abweichung der lokalen Uhr zur Firebase-Server-Uhr (ms). Firebase pflegt diesen
+// Wert unter `.info/serverTimeOffset` lokal (initial per NTP-artigem Abgleich beim
+// Connect). Damit lässt sich eine geräteübergreifend konsistente Zeit berechnen
+// (serverNow()) — nötig, weil sonst der Host seinen Date.now()-Startzeitpunkt an
+// Gäste sendet und deren abweichende Uhr eine falsche/negative Spielzeit ergibt.
+let serverTimeOffset = 0;
+let offsetWatched = false;
+function watchServerTimeOffset(f) {
+  if (offsetWatched) return;
+  offsetWatched = true;
+  try {
+    f.onValue(f.ref(f.db, '.info/serverTimeOffset'), (snap) => {
+      const v = snap.val();
+      if (typeof v === 'number' && isFinite(v)) serverTimeOffset = v;
+    });
+  } catch (e) { log('coop', 'serverTimeOffset-Watch fehlgeschlagen', e); }
+}
+// Serverkorrigierte „Jetzt"-Zeit (ms seit Epoch). Ohne geladenes Firebase
+// (Solo) bleibt der Offset 0 → identisch zu Date.now().
+export function serverNow() { return Date.now() + serverTimeOffset; }
+
 // Wiederaufsetzpunkt für den kalten Rejoin (siehe attachListeners/rejoin):
 // app.js persistiert diesen Key zusammen mit dem Coop-Spielstand.
 export function getLastEventKey() { return lastEventKey; }
@@ -51,6 +72,7 @@ async function ensureDb() {
     fb = await ensureFirebase();
     log('coop', 'Firebase verbunden', { uid: fb.uid });
   }
+  watchServerTimeOffset(fb);
   return fb;
 }
 

@@ -441,11 +441,19 @@ function scheduleScrollLockUpdate() {
 }
 
 // ─── TIMER ────────────────────────────────────────────────────────────────────
+// Geräteübergreifend konsistente „Jetzt"-Zeit für den Spieltimer: in
+// Mehrspielerpartien (Coop/Race/Team) die serverkorrigierte Zeit (Coop.serverNow),
+// damit alle Geräte trotz abweichender lokaler Uhr denselben — und nie negativen —
+// Timer zeigen. Solo bleibt reines Date.now() (Offset 0). Der Startzeitpunkt
+// (state.startTime) MUSS mit derselben Uhr gestempelt werden, die ihn ausliest.
+function gameNow() {
+  return (state.coop.active || state.race.active || state.team.active) ? Coop.serverNow() : Date.now();
+}
 function startTimer() {
   stopTimer();
   if (state.status !== 'playing' || state.paused || state.coop.awaitingStart) return;
   timerHandle = setInterval(() => {
-    state.elapsed = Date.now() - state.startTime;
+    state.elapsed = Math.max(0, gameNow() - state.startTime);
   }, 250);
   updateMusic(); // ein aktiv laufendes Rätsel ist genau der Moment für Musik
 }
@@ -460,7 +468,7 @@ function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandl
 function pauseGame(broadcast = true, remoteElapsed) {
   if (state.status !== 'playing' || state.paused || state.coop.awaitingStart) return;
   state.paused = true;
-  state.elapsed = remoteElapsed != null ? remoteElapsed : Date.now() - state.startTime; // einfrieren
+  state.elapsed = remoteElapsed != null ? remoteElapsed : Math.max(0, gameNow() - state.startTime); // einfrieren
   stopTimer();
   updateMusic();
   if (broadcast) {
@@ -474,7 +482,7 @@ function pauseGame(broadcast = true, remoteElapsed) {
 function resumeFromPause(broadcast = true) {
   if (!state.paused) return;
   state.paused = false;
-  state.startTime = Date.now() - state.elapsed; // Zeit fortsetzen
+  state.startTime = gameNow() - state.elapsed; // Zeit fortsetzen
   startTimer();
   updateMusic();
   if (broadcast) {
@@ -759,6 +767,9 @@ function startCoopGame(startTime) {
   state.coop.awaitingStart = false;
   state.elapsed = 0;
   state.startTime = startTime;
+  // Diagnose: eigene Uhr-Abweichung zur (server-korrigierten) Startzeit festhalten
+  // — so lässt sich ein „falsche/negative Zeit"-Report im Protokoll nachvollziehen.
+  log('coop', 'Coop-Timer gestartet', { startTime, localNow: Date.now(), serverNow: gameNow(), skewMs: gameNow() - Date.now() });
   startTimer();
   updateMusic();
 }
@@ -772,7 +783,10 @@ function startCoopRound() {
   // seiner eigenen Generierung bereit melden kann, ist "alle bereit" zugleich
   // die Garantie, dass bei jedem Client ein fertiges Rätsel vorliegt.
   if (state.coop.role !== 'host' || !allGuestsReady()) return;
-  const startTime = Date.now();
+  // Serverkorrigierter Startzeitpunkt (siehe gameNow): der Host stempelt hier mit
+  // derselben Server-Uhr, gegen die alle Clients ihre Spielzeit rechnen — sonst
+  // ergab die Uhr-Abweichung des Hosts bei Gästen eine falsche/negative Zeit.
+  const startTime = gameNow();
   startCoopGame(startTime);
   // Race-Matches halten state.coop.active absichtlich auf false (siehe
   // state.race-Kommentar), wodurch coopSend()s Guard das START-Signal
@@ -1011,7 +1025,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.elapsed = saved?.elapsed ?? 0;
   // Bei Coop-INIT übernimmt der Gast den exakten Host-Startzeitpunkt, damit beide
   // Seiten dieselbe Zeit anzeigen (sonst Drift durch Verbindungsaufbau-Latenz).
-  state.startTime = saved?.startTime ?? (Date.now() - state.elapsed);
+  state.startTime = saved?.startTime ?? (gameNow() - state.elapsed);
   state.zoom = 1;
   computeCellSize();
   // .board-wrap existiert beim ersten Aufruf (vor dem nächsten Vue-Render) noch
