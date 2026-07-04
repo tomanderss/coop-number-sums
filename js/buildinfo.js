@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.64';
-export const BUILD_HASH = '1747607';
+export const BUILD      = '1.65';
+export const BUILD_HASH = '5638007';
 
 export const CHANGELOG = [
+  {
+    "version": "1.65",
+    "date": "04.07.2026",
+    "changes": [
+      "5 neue legendäre Sieganimationen (1500 Münzen): Meteorsturm, Gewitter, Dimensionsportal, Feuertornado und Synthwave-Sonne."
+    ]
+  },
   {
     "version": "1.64",
     "date": "04.07.2026",
