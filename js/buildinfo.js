@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.76';
-export const BUILD_HASH = 'f4c9aea';
+export const BUILD      = '1.77';
+export const BUILD_HASH = '18738d6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.77",
+    "date": "04.07.2026",
+    "changes": [
+      "Eigenes Icon-Set: Emoji in der Oberfläche (Einstellungen, Kopfleisten-Buttons, Münz-/Streak-Chip, Schließen) durch selbst gezeichnete SVG-Icons ersetzt"
+    ]
+  },
   {
     "version": "1.76",
     "date": "04.07.2026",
