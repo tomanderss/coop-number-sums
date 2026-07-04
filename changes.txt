@@ -1,0 +1,2 @@
+2v2: Gegner-Team jetzt als Fortschrittsbalken + Lebensanzeige (Layout wie in den anderen Wettkampfmodi)
+2v2: Falscher eigener Prozentwert im Endscreen behoben

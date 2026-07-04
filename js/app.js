@@ -1635,6 +1635,11 @@ function handleCoopMsg(msg) {
     state.team.winningTeam = msg.outcome === 'won' ? msg.team : (msg.team === 'A' ? 'B' : 'A');
     state.team.endReason = msg.outcome;
     if (msg.team === state.team.myTeam) return; // eigenes Team meldet sich direkt aus win()/lose()
+    // Eigenen Endstand-Prozentwert für die Ergebnisanzeige festhalten (analog zu
+    // RACE_DONE, Zeile darunter) -- ohne das blieb state.team.myPct auf der
+    // empfangenden Seite stehen (0/veraltet) und der 2v2-Endscreen zeigte einen
+    // falschen eigenen Prozentwert an.
+    state.team.myPct = progressPct();
     if (state.status === 'playing') {
       const remote = { timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed };
       if (state.team.winningTeam === state.team.myTeam) win(remote);
@@ -4688,13 +4693,6 @@ const App = {
             <span class="ei" v-html="ic('users')"></span> {{ t('game.coopTag') }}{{ (state.coop.connected && state.coop.online) ? '' : t('game.coopOfflineSuffix') }}
           </span>
           <span v-if="state.team.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ t('team.label'+state.team.myTeam) }}</span>
-          <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>
-          <span v-if="state.team.active" class="chip coop-chip hearts-chip" :aria-label="t('win.mistakesCount', { count: state.team.opponentMistakes })">
-            <span v-for="(full,i) in opponentTeamLivesArr" :key="i" class="heart" :class="{empty:!full}">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-              <i v-if="!full" class="heart-strike opp-heart-strike"></i>
-            </span>
-          </span>
           <span v-if="state.race.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ state.race.ffa ? t('race.ffaTag', { n: state.race.opponents.length + 1 }) : state.race.opponentName }}</span>
           <span class="zoomctl">
             <!-- Reset-Knopf bewusst LINKS: die Leiste ist rechtsbündig (margin-left:auto),
@@ -4712,9 +4710,28 @@ const App = {
         <div class="progress-row">
           <div class="progress-line" :aria-label="t('game.progressLabel', { pct: myProgressPct })">
             <span v-if="state.race.active" class="progress-label">{{ t('common.you') }}</span>
+            <span v-else-if="state.team.active" class="progress-label">{{ t('team.label'+state.team.myTeam) }}</span>
             <span class="progress-pct">{{ myProgressPct }}%</span>
             <span class="progress-bar"><span class="progress-bar-fill mine" :style="{ width: myProgressPct + '%' }"></span></span>
           </div>
+          <!-- Team-vs-Team (2v2): Gegner-Team als Fortschrittsbalken + Leben-Zeile,
+               exakt wie im 1v1-Race (statt der früheren Chip-Anzeige). -->
+          <template v-if="state.team.active">
+            <div class="progress-line" :aria-label="t('team.opponentProgress', { pct: state.team.opponentPct })">
+              <span class="progress-label">{{ t('team.label'+(state.team.myTeam==='A'?'B':'A')) }}</span>
+              <span class="progress-pct">{{ state.team.opponentPct }}%</span>
+              <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.team.opponentPct + '%' }"></span></span>
+            </div>
+            <div class="progress-line opponent-lives-line" :aria-label="t('win.mistakesCount', { count: state.team.opponentMistakes })">
+              <span class="progress-label"></span>
+              <span class="opponent-lives">
+                <span v-for="(full,i) in opponentTeamLivesArr" :key="i" class="heart" :class="{empty:!full}">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  <i v-if="!full" class="heart-strike opp-heart-strike"></i>
+                </span>
+              </span>
+            </div>
+          </template>
           <!-- FFA (jeder gegen jeden): ein Fortschrittsbalken je Gegner. -->
           <template v-if="state.race.active && state.race.ffa">
             <div class="progress-line" v-for="o in state.race.opponents" :key="o.id" :class="{ 'ffa-out': o.out }" :aria-label="t('race.opponentProgress', { pct: o.pct })">
