@@ -1029,6 +1029,12 @@ function computeCellSize() {
     availW = Math.min(window.innerWidth - 44, 496); // 2*(14px App-Padding + 6px Board-Wrap-Padding) + Sicherheitspuffer
     availH = window.innerHeight - 200; // grobe Schätzung für Kopf-/Werkzeugleiste vor dem ersten Render
   }
+  // Aktiver Brett-Rahmen legt außen einen 10px-Innenabstand um die Spielfläche
+  // (2*10 = 20px je Achse, s. .board[class*="frame-"] in styles.css). Dieser
+  // Platz muss VOR der Zellgröße abgezogen werden, sonst wird das Brett um 20px
+  // breiter/höher als der verfügbare Raum und ragt aus dem Bildschirm.
+  const framePad = boardFrameClass() ? 20 : 0;
+  availW -= framePad; availH -= framePad;
   const idealW = Math.floor(availW / (cols + 1)); // +1 für Kopfspalte
   const idealH = Math.floor(availH / (rows + 1)); // +1 für Kopfzeile
   const ideal = Math.min(idealW, idealH);
