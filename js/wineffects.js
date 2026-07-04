@@ -6,7 +6,7 @@
 // Preismodell (vom Nutzer abgesegnet): gestaffelt nach Aufwand/Spektakel.
 // Tier 0 = Confetti, der kostenlose Standard (immer im Besitz, nicht kaufbar).
 export const CONFETTI_ID = 'confetti';
-export const TIER_PRICES = { 0: 0, 1: 400, 2: 600, 3: 900 };
+export const TIER_PRICES = { 0: 0, 1: 400, 2: 600, 3: 900, 4: 1500 };
 
 // Reihenfolge = Anzeige-Reihenfolge im Shop (aufsteigend nach Preis, dann Kuration).
 export const WIN_EFFECTS = [
@@ -36,6 +36,12 @@ export const WIN_EFFECTS = [
   { id: 'phoenix',   icon: '🔥', tier: 3 },
   { id: 'jackpot',   icon: '🎰', tier: 3 },
   { id: 'unicorn',   icon: '🦄', tier: 3 },
+  // ── Tier 4 (1500): Legendär — mehrphasige Groß-Spektakel ────────────────────
+  { id: 'meteor',    icon: '☄️', tier: 4 },
+  { id: 'gewitter',  icon: '⛈️', tier: 4 },
+  { id: 'portal',    icon: '🌀', tier: 4 },
+  { id: 'feuertornado', icon: '🌪️', tier: 4 },
+  { id: 'synthgrid', icon: '🌇', tier: 4 },
 ];
 
 export function effectById(id) { return WIN_EFFECTS.find((e) => e.id === id) || null; }

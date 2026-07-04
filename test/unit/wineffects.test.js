@@ -7,9 +7,10 @@ import {
 } from '../../js/wineffects.js';
 
 describe('wineffects.catalog', () => {
-  test('contains confetti plus the 22 purchasable effects', () => {
-    assert.equal(WIN_EFFECTS.length, 23);
+  test('contains confetti plus the 27 purchasable effects', () => {
+    assert.equal(WIN_EFFECTS.length, 28);
     assert.equal(WIN_EFFECTS.filter((e) => e.tier === 0).length, 1);
+    assert.equal(WIN_EFFECTS.filter((e) => e.tier === 4).length, 5);
     assert.equal(WIN_EFFECTS[0].id, CONFETTI_ID);
   });
 
@@ -23,12 +24,14 @@ describe('wineffects.catalog', () => {
     }
   });
 
-  test('price tiers are 0/400/600/900 as approved', () => {
-    assert.deepEqual(TIER_PRICES, { 0: 0, 1: 400, 2: 600, 3: 900 });
+  test('price tiers are 0/400/600/900/1500 as approved', () => {
+    assert.deepEqual(TIER_PRICES, { 0: 0, 1: 400, 2: 600, 3: 900, 4: 1500 });
     assert.equal(effectPrice('confetti'), 0);
     assert.equal(effectPrice('stars'), 400);
     assert.equal(effectPrice('fireworks'), 600);
     assert.equal(effectPrice('blackhole'), 900);
+    assert.equal(effectPrice('meteor'), 1500);
+    assert.equal(effectPrice('synthgrid'), 1500);
     assert.equal(effectPrice('nonexistent'), 0);
   });
 

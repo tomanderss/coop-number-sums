@@ -1090,9 +1090,73 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .fx-unicorn i.k1 { animation: fxTwinkle ease-in-out forwards; opacity: 0; }
 @keyframes fxTwinkle { 0% { transform: scale(.4); opacity: 0; } 40% { transform: scale(1.2); opacity: 1; } to { transform: scale(.5); opacity: 0; } }
 
+/* ── Tier 4 (Legendär) ──────────────────────────────────────────────────── */
+
+/* ☄️ Meteorsturm: Feuerbälle mit Schweif stürzen herab, Einschlags-Ringe (k1), Glut-Regen (k2) */
+.fx-meteor { background: radial-gradient(circle at 70% 0%, rgba(60, 25, 10, .4), rgba(8, 5, 15, .5)); }
+.fx-meteor i:not(.k1):not(.k2) { border-radius: 50%; background: hsl(var(--hue, 30) 100% 70%); box-shadow: 0 0 10px 3px hsl(var(--hue, 30) 100% 60% / .9); animation: fxMeteorFall ease-in forwards; opacity: 0; }
+.fx-meteor i:not(.k1):not(.k2)::after { content: ''; position: absolute; left: 50%; top: 50%; width: 900%; height: 30%; transform-origin: 0 50%; transform: rotate(-125deg); background: linear-gradient(90deg, hsl(var(--hue, 30) 100% 75% / .9), transparent); border-radius: 99px; }
+@keyframes fxMeteorFall { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } to { transform: translate(-62vw, 105vh); opacity: 0; } }
+.fx-meteor i.k1 { border: 3px solid hsl(var(--hue, 30) 100% 65%); border-radius: 50%; box-shadow: 0 0 16px hsl(var(--hue, 30) 100% 60% / .7), inset 0 0 12px hsl(var(--hue, 30) 100% 60% / .5); background: none; transform: translate(-50%, -50%) scale(.05); animation: fxRing ease-out forwards; opacity: 0; }
+.fx-meteor i.k2 { top: -8px; border-radius: 50%; background: hsl(var(--hue, 30) 100% 62%); box-shadow: 0 0 6px 1px hsl(var(--hue, 30) 100% 55% / .8); animation: fxPixelFall linear forwards; opacity: .95; }
+
+/* ⛈️ Gewitter: Zickzack-Blitze (scaleY-gestreckt), Wetterleuchten (::after), Wolkenbank (::before), Dauerregen (k2) */
+.fx-gewitter { background: linear-gradient(rgba(15, 20, 40, .6), rgba(10, 12, 25, .45)); }
+.fx-gewitter::before { content: ''; position: absolute; left: -10%; right: -10%; top: -12%; height: 26%; border-radius: 0 0 50% 50%; background: radial-gradient(ellipse at 50% 0%, rgba(40, 48, 70, .95), rgba(25, 30, 48, .6) 70%, transparent); animation: fxCloudSway 4s ease-in-out infinite alternate; will-change: transform; }
+@keyframes fxCloudSway { to { transform: translateX(24px); } }
+.fx-gewitter::after { content: ''; position: absolute; inset: 0; background: rgba(210, 225, 255, .5); opacity: 0; animation: fxSheet 3.6s linear 1; }
+@keyframes fxSheet { 0%, 11%, 15%, 38%, 42%, 46%, 74%, 79%, 100% { opacity: 0; } 12.5%, 40%, 44%, 76.5% { opacity: 1; } 13.5%, 41%, 45%, 77.5% { opacity: .15; } }
+.fx-gewitter i:not(.k2) { clip-path: polygon(48% 0, 62% 0, 46% 34%, 60% 32%, 34% 72%, 46% 68%, 22% 100%, 40% 58%, 28% 60%, 50% 26%, 38% 28%); background: hsl(var(--hue, 220) 100% 88%); transform-origin: 50% 0; transform: scaleY(7); animation: fxBolt linear forwards; opacity: 0; filter: drop-shadow(0 0 8px hsl(var(--hue, 220) 100% 80%)); }
+@keyframes fxBolt { 0% { transform: scaleY(7); opacity: 0; } 8% { opacity: 1; } 26% { opacity: .25; } 40% { opacity: .95; } to { transform: scaleY(7); opacity: 0; } }
+.fx-gewitter i.k2 { background: linear-gradient(rgba(190, 210, 255, .05), rgba(190, 210, 255, .55)); transform: scale(.05, 1); animation: fxRainFall linear infinite; opacity: .8; border-radius: 99px; }
+@keyframes fxRainFall { 0% { transform: translate(0, -12vh) scale(.05, 1); } to { transform: translate(-6vw, 112vh) scale(.05, 1); } }
+
+/* 🌀 Portal: rotierender Wirbel reißt auf (::before/::after), Sterne fliegen aufs Auge zu, dann Kollaps */
+.fx-portal { background: radial-gradient(circle at 50% 45%, rgba(40, 15, 70, .5), rgba(8, 5, 20, .55)); }
+.fx-portal::before { content: ''; position: absolute; left: 50%; top: 45%; width: 260px; height: 260px; margin: -130px 0 0 -130px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 30deg, rgba(140, 90, 255, .9) 60deg, transparent 120deg, rgba(80, 200, 255, .8) 200deg, transparent 260deg, rgba(200, 120, 255, .85) 320deg, transparent 360deg); filter: blur(2px) drop-shadow(0 0 18px rgba(150, 90, 255, .8)); animation: fxPortalSpin 4.2s cubic-bezier(.3, 0, .7, 1) forwards; will-change: transform; }
+@keyframes fxPortalSpin { 0% { transform: scale(0) rotate(0); } 12% { transform: scale(1) rotate(180deg); } 82% { transform: scale(1.05) rotate(1040deg); } to { transform: scale(0) rotate(1440deg); } }
+.fx-portal::after { content: ''; position: absolute; left: 50%; top: 45%; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: radial-gradient(circle, rgba(230, 210, 255, .95), rgba(140, 90, 255, .5) 60%, transparent 70%); animation: fxPortalCore 4.2s ease-in-out forwards; will-change: transform, opacity; }
+@keyframes fxPortalCore { 0% { transform: scale(0); opacity: 0; } 14% { transform: scale(1); opacity: 1; } 80% { transform: scale(1.1); opacity: 1; } to { transform: scale(0); opacity: 0; } }
+.fx-portal i:not(.k1) { left: 50%; top: 45%; border-radius: 50%; background: hsl(var(--hue, 260) 95% 75%); box-shadow: 0 0 8px 2px hsl(var(--hue, 260) 95% 65% / .8); animation: fxPortalOut ease-in forwards; opacity: 0; }
+@keyframes fxPortalOut { 0% { transform: translate(0, 0) scale(.15); opacity: 0; } 15% { opacity: 1; } to { transform: translate(var(--dx, 200px), var(--dy, 0)) scale(3); opacity: 0; } }
+.fx-portal i.k1 { animation: fxTwinkle ease-in-out forwards; opacity: 0; }
+
+/* 🌪️ Feuertornado: Flammenwirbel kreist um die Mittelachse und steigt auf, 🔥-Funken (k1) */
+.fx-feuertornado { background: radial-gradient(circle at 50% 100%, rgba(70, 25, 5, .5), rgba(12, 6, 4, .5)); }
+.fx-feuertornado i:not(.k1) { left: 50%; top: 104%; border-radius: 50%; background: hsl(var(--hue, 30) 100% 62%); box-shadow: 0 0 8px 2px hsl(var(--hue, 30) 100% 55% / .85); animation: fxVortex linear forwards; opacity: 0; }
+@keyframes fxVortex {
+  0% { transform: translateY(0) rotate(var(--ang, 0deg)) translateX(var(--rad, 60px)); opacity: 0; }
+  10% { opacity: 1; }
+  to { transform: translateY(-98vh) rotate(calc(var(--ang, 0deg) + 940deg)) translateX(calc(var(--rad, 60px) * .45)); opacity: 0; }
+}
+.fx-feuertornado i.k1 { animation: fxPop ease-out forwards; opacity: 0; }
+
+/* 🌇 Synthwave-Grid: scrollendes Perspektiv-Raster (::before), Neon-Sonne (::after), Streifen + Sterne */
+.fx-synthgrid { background: linear-gradient(rgba(25, 8, 45, .6), rgba(45, 10, 60, .5) 55%, rgba(10, 5, 25, .6)); }
+.fx-synthgrid::before {
+  content: ''; position: absolute; left: -30%; right: -30%; bottom: -55%; height: 95%;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 80, 200, .55) 0 2px, transparent 2px 44px),
+    repeating-linear-gradient(90deg, rgba(255, 80, 200, .4) 0 2px, transparent 2px 60px);
+  transform: perspective(320px) rotateX(62deg) translateY(0); transform-origin: 50% 0;
+  animation: fxGridScroll 1.1s linear infinite; will-change: transform;
+}
+@keyframes fxGridScroll { to { transform: perspective(320px) rotateX(62deg) translateY(44px); } }
+.fx-synthgrid::after {
+  content: ''; position: absolute; left: 50%; bottom: 38%; width: 180px; height: 180px; margin-left: -90px;
+  border-radius: 50%; background: linear-gradient(#ffd76a, #ff7ac8 55%, #b44dff);
+  box-shadow: 0 0 44px rgba(255, 130, 190, .8); transform: translateY(70%) scale(.6);
+  animation: fxSunRise 3.6s cubic-bezier(.2, .7, .4, 1) forwards; will-change: transform;
+}
+@keyframes fxSunRise { to { transform: translateY(6%) scale(1); } }
+.fx-synthgrid i:not(.k1) { background: linear-gradient(90deg, transparent, hsl(var(--hue, 300) 100% 70%), transparent); transform: scale(1, .05); border-radius: 99px; box-shadow: 0 0 10px hsl(var(--hue, 300) 100% 65% / .6); animation: fxNeonStreak ease-in forwards; opacity: 0; }
+@keyframes fxNeonStreak { 0% { transform: translateX(0) scale(1, .05); opacity: 0; } 12% { opacity: 1; } to { transform: translateX(135vw) scale(1, .05); opacity: 0; } }
+.fx-synthgrid i.k1 { animation: fxTwinkle ease-in-out forwards; opacity: 0; }
+
 /* Reduzierte Bewegung: nur der ruhige Standard, keine Dauer-Loops */
 @media (prefers-reduced-motion: reduce) {
-  .fx-disco::before, .fx-jackpot::before, .winfx-label { animation-iteration-count: 1; }
+  .fx-disco::before, .fx-jackpot::before, .winfx-label,
+  .fx-gewitter::before, .fx-gewitter i.k2, .fx-synthgrid::before { animation-iteration-count: 1; }
 }
 
 /* ─── Stats ─── */
