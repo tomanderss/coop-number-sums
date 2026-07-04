@@ -94,7 +94,12 @@ test.describe('team vs team', () => {
     expect(await page.evaluate(() => window.__cns.state.team.active)).toBe(true);
     expect(await page.evaluate(() => window.__cns.state.team.myTeam)).toBe('A');
     await expect(page.locator('.coop-chip', { hasText: 'Team A' })).toBeVisible();
-    await expect(page.locator('.coop-chip', { hasText: 'Gegner' })).toBeVisible();
+    // Gegner-Team wird jetzt (wie in den anderen Wettkampfmodi) als
+    // Fortschrittsbalken mit Lebensanzeige gezeigt, nicht mehr als Chip:
+    // eigener Balken "Team A" + Gegner-Balken "Team B" + Gegner-Leben-Zeile.
+    await expect(page.locator('.progress-line .progress-label', { hasText: 'Team A' })).toBeVisible();
+    await expect(page.locator('.progress-line .progress-label', { hasText: 'Team B' })).toBeVisible();
+    await expect(page.locator('.progress-line.opponent-lives-line')).toBeVisible();
     // Subtiler Akzent-Streifen je Modus (Punkt 14): Team-Match -> team-mode,
     // nicht race-mode.
     await expect(page.locator('.screen.game')).toHaveClass(/team-mode/);
