@@ -28,7 +28,7 @@ test.describe('history', () => {
     await expect(page.locator('.screen.history')).toBeVisible();
     const row = page.locator('.history-row').first();
     await expect(row).toBeVisible();
-    await expect(row.locator('.history-outcome')).toHaveText('🏆');
+    await expect(row.locator('.history-outcome .ico-trophy')).toBeVisible();
 
     // "Ansehen" opens a read-only board overlay without touching the live game state
     // (state.puzzle/state.status, which quitToHome/goNextPuzzle rely on for resuming).
@@ -72,6 +72,6 @@ test.describe('history', () => {
 
     await historyBtn(page).click();
     const row = page.locator('.history-row').first();
-    await expect(row.locator('.history-outcome')).toHaveText('💔');
+    await expect(row.locator('.history-outcome .ico-heart-broken')).toBeVisible();
   });
 });

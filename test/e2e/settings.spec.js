@@ -29,7 +29,7 @@ test.describe('settings', () => {
     await expect(page.locator('.screen.settings .admin-acc-body')).toHaveCount(0);
 
     await gotoSettingsSection(page, 'Darstellung');
-    await page.locator('.seg button', { hasText: '🌙' }).click();
+    await page.locator('.seg button', { hasText: 'Dunkel' }).click();
     await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('dark');
 
     await page.reload();
@@ -45,7 +45,7 @@ test.describe('settings', () => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
     await gotoSettingsSection(page, 'Darstellung'); // Farbenblind-Modus lebt jetzt unter „Darstellung"
-    const row = page.locator('.set-row', { hasText: '🎨' });
+    const row = page.locator('.set-row', { hasText: 'Farbenblind' });
     await expect(row).toBeVisible();
     const isColorblind = () => page.evaluate(() => document.documentElement.classList.contains('colorblind'));
     expect(await isColorblind()).toBe(false);
