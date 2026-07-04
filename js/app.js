@@ -25,6 +25,7 @@ import {
 import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
 import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup } from './badgeart.js';
+import { winShapeDefs, winShape, dragonMarkup, unicornMarkup, phoenixMarkup } from './winshapes.js';
 import { icon as customIcon, hasIcon } from './icons.js';
 import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge } from './prestige.js';
 import * as Account from './account.js';
@@ -2715,7 +2716,7 @@ const PIECE_GENERATORS = {
   balloons(perfect) {
     // 2.0: Ballons steigen UND platzen (k1 = Knall-Ring mittig oben), danach
     // regnen bunte Schnipsel (k2) aus den Platz-Höhen.
-    const out = risePieces(perfect ? 30 : 18, () => ({ ch: '🎈', size: R(26, 48), hue: Math.floor(R(0, 360)) }));
+    const out = risePieces(perfect ? 30 : 18, () => ({ shape: 'balloon', size: R(26, 48), hue: Math.floor(R(0, 360)) }));
     for (let i = 0; i < (perfect ? 12 : 7); i++) {
       const delay = R(1.2, 2.8), left = R(10, 90), top = R(8, 42);
       out.push({ id: 500 + i, left, top, delay, dur: 0.55, size: R(52, 84), hue: Math.floor(R(0, 360)), kind: 1 });
@@ -2726,8 +2727,8 @@ const PIECE_GENERATORS = {
   stars(perfect) {
     // 2.0: Sternenregen + Starburst-Strahlen aus der Mitte (k1) + Kometen mit
     // Glitzerschweif (k2), die diagonal übers Bild ziehen.
-    const chs = ['⭐', '🌟', '✨'];
-    const out = fallPieces(perfect ? 100 : 56, (i) => ({ ch: chs[i % 3], size: R(12, 30) }));
+    const chs = ['star', 'star', 'sparkle'];
+    const out = fallPieces(perfect ? 100 : 56, (i) => ({ shape: chs[i % 3], size: R(12, 30) }));
     for (let i = 0; i < 12; i++) out.push({ id: 500 + i, left: 50, top: 42, delay: R(0, 0.2), dur: R(0.9, 1.3), size: R(4, 7), ang: i * 30 + R(-8, 8), rad: R(180, 380), kind: 1 });
     for (let i = 0; i < (perfect ? 6 : 3); i++) out.push({ id: 600 + i, left: R(-10, 40), top: R(5, 35), delay: R(0.4, 2.6), dur: R(1, 1.5), size: R(14, 22), kind: 2 });
     return out;
@@ -2743,17 +2744,17 @@ const PIECE_GENERATORS = {
   petals(perfect) {
     // 2.0: Blütenregen + Windböen-Schleier (k1) + rosa Blüten-Wirbel um die
     // Mitte (k2, Spiralarm wie Galaxie).
-    const chs = ['🌸', '🌺'];
-    const out = fallPieces(perfect ? 66 : 40, (i) => ({ ch: chs[i % 2], size: R(14, 28), dx: R(30, 120), dur: R(3, 5) }));
+    const chs = ['petal', 'petal'];
+    const out = fallPieces(perfect ? 66 : 40, (i) => ({ shape: chs[i % 2], size: R(14, 28), dx: R(30, 120), dur: R(3, 5) }));
     for (let i = 0; i < 4; i++) out.push({ id: 500 + i, top: R(10, 80), delay: i * 0.8 + R(0, 0.3), dur: 1.6, size: R(60, 110), kind: 1 });
-    for (let i = 0; i < (perfect ? 26 : 14); i++) out.push({ id: 600 + i, left: 50, top: 45, ang: R(0, 360), rad: R(60, 220), delay: R(0.4, 2), dur: R(1.8, 2.8), size: R(10, 18), kind: 2, ch: '🌸' });
+    for (let i = 0; i < (perfect ? 26 : 14); i++) out.push({ id: 600 + i, left: 50, top: 45, ang: R(0, 360), rad: R(60, 220), delay: R(0.4, 2), dur: R(1.8, 2.8), size: R(10, 18), kind: 2, shape: 'petal' });
     return out;
   },
   snow(perfect) {
     // 2.0: Schneefall in zwei Tiefen (nah = groß/verschwommen) + Sturm-Böen
     // (k1, horizontale Schleier) + anwachsende Schneedecke am Boden (k2).
-    const chs = ['❄️', '❅', '❆'];
-    const out = fallPieces(perfect ? 100 : 56, (i) => ({ ch: chs[i % 3], size: i % 5 === 0 ? R(28, 44) : R(10, 26), dx: R(-40, 40), dur: R(2.6, 4.6) }));
+    const chs = ['snowflake', 'snowflake', 'snowflake'];
+    const out = fallPieces(perfect ? 100 : 56, (i) => ({ shape: chs[i % 3], size: i % 5 === 0 ? R(28, 44) : R(10, 26), dx: R(-40, 40), dur: R(2.6, 4.6) }));
     for (let i = 0; i < 4; i++) out.push({ id: 500 + i, top: R(15, 75), delay: i * 0.9 + R(0, 0.3), dur: 1.4, size: R(70, 120), kind: 1 });
     out.push({ id: 900, left: 0, delay: 0.4, dur: 3.6, size: 0, kind: 2 });
     return out;
@@ -2791,9 +2792,9 @@ const PIECE_GENERATORS = {
   coins(perfect) {
     // 2.0: Münzregen + Münz-VULKAN aus der Bodenmitte (k1, Parabelflug) +
     // goldener Glanz-Sweep (k2) übers Bild.
-    const chs = ['🪙', '💰'];
-    const out = fallPieces(perfect ? 76 : 46, (i) => ({ ch: chs[i % 5 === 0 ? 1 : 0], size: R(16, 32), dur: R(1.4, 2.6) }));
-    for (let i = 0; i < (perfect ? 30 : 18); i++) out.push({ id: 500 + i, ch: '🪙', left: R(42, 58), top: 100, delay: R(0.2, 1.6), dur: R(1.2, 1.7), size: R(16, 30), dx: R(-220, 220), dy: -R(320, 620), kind: 1 });
+    const chs = ['coin', 'coin'];
+    const out = fallPieces(perfect ? 76 : 46, (i) => ({ shape: chs[i % 5 === 0 ? 1 : 0], size: R(16, 32), dur: R(1.4, 2.6) }));
+    for (let i = 0; i < (perfect ? 30 : 18); i++) out.push({ id: 500 + i, shape: 'coin', left: R(42, 58), top: 100, delay: R(0.2, 1.6), dur: R(1.2, 1.7), size: R(16, 30), dx: R(-220, 220), dy: -R(320, 620), kind: 1 });
     out.push({ id: 900, top: 0, left: 0, delay: 0.8, dur: 1.4, size: 0, kind: 2 });
     return out;
   },
@@ -2803,7 +2804,7 @@ const PIECE_GENERATORS = {
     const out = [];
     for (let i = 0; i < 7; i++) out.push({ id: i, band: i, delay: i * 0.12, dur: 1.8, hue: [0, 30, 55, 120, 200, 240, 280][i] });
     for (let i = 0; i < 7; i++) out.push({ id: 50 + i, band: i, delay: 1.3 + i * 0.12, dur: 1.8, hue: [0, 30, 55, 120, 200, 240, 280][i] });
-    for (let i = 0; i < (perfect ? 50 : 28); i++) out.push({ id: 100 + i, ch: '✨', left: R(0, 100), delay: R(0.6, 2.4), dur: R(1, 2), size: R(10, 20) });
+    for (let i = 0; i < (perfect ? 50 : 28); i++) out.push({ id: 100 + i, shape: 'sparkle', left: R(0, 100), delay: R(0.6, 2.4), dur: R(1, 2), size: R(10, 20) });
     for (let i = 0; i < 3; i++) out.push({ id: 200 + i, left: -8, top: R(8, 40), delay: 0.5 + i * 1.1, dur: 1.2, size: R(16, 24), kind: 1 });
     for (let i = 0; i < (perfect ? 36 : 20); i++) out.push({ id: 300 + i, left: R(0, 100), delay: R(1, 2.4), dur: R(1, 1.6), size: R(5, 9), hue: Math.floor(R(0, 360)), kind: 2 });
     return out;
@@ -2813,9 +2814,9 @@ const PIECE_GENERATORS = {
     // Delfine (k2, Parabelbogen) + Tropfen.
     const out = [];
     for (let i = 0; i < 5; i++) out.push({ id: i, band: i % 3, delay: i * 0.35, dur: 2.4 });
-    for (let i = 0; i < (perfect ? 50 : 30); i++) out.push({ id: 100 + i, ch: '💧', left: R(0, 100), delay: R(0.4, 2.2), dur: R(0.9, 1.6), size: R(10, 20), dy: R(-160, -60) });
+    for (let i = 0; i < (perfect ? 50 : 30); i++) out.push({ id: 100 + i, shape: 'droplet', left: R(0, 100), delay: R(0.4, 2.2), dur: R(0.9, 1.6), size: R(10, 20), dy: R(-160, -60) });
     for (let i = 0; i < (perfect ? 26 : 14); i++) out.push({ id: 200 + i, left: R(0, 100), top: R(52, 78), delay: R(0.5, 2.4), dur: R(0.7, 1.2), size: R(5, 10), kind: 1 });
-    for (let i = 0; i < 3; i++) out.push({ id: 300 + i, ch: '🐬', left: R(10, 70), top: 70, delay: 0.6 + i * 0.9, dur: 1.3, size: R(28, 40), kind: 2 });
+    for (let i = 0; i < 3; i++) out.push({ id: 300 + i, shape: 'dolphin', left: R(10, 70), top: 70, delay: 0.6 + i * 0.9, dur: 1.3, size: R(28, 40), kind: 2 });
     return out;
   },
   matrix(perfect) {
@@ -2838,7 +2839,7 @@ const PIECE_GENERATORS = {
     for (let i = 0; i < n; i++) out.push({ id: i, left: R(0, 100), top: R(10, 90), delay: R(0, 1.5), dur: R(1.2, 2.4), size: R(40, 110), hue: Math.floor(R(0, 360)), dx: R(-120, 120), dy: R(-80, 80) });
     for (let i = 0; i < 4; i++) out.push({ id: 500 + i, left: 50, top: 27, delay: i * 0.1, dur: R(2.6, 3.4), size: 0, ang: -39 + i * 26, hue: Math.floor(R(0, 360)), kind: 1 });
     for (let i = 0; i < 5; i++) out.push({ id: 600 + i, left: 0, top: 0, delay: 0.6 + i * 0.7, dur: 0.18, size: 0, kind: 2 });
-    for (let i = 0; i < (perfect ? 14 : 8); i++) out.push({ id: 700 + i, ch: i % 2 ? '🎵' : '🎶', left: R(5, 95), delay: R(0.3, 2.4), dur: R(1.4, 2.2), size: R(16, 28), kind: 3 });
+    for (let i = 0; i < (perfect ? 14 : 8); i++) out.push({ id: 700 + i, shape: 'note', left: R(5, 95), delay: R(0.3, 2.4), dur: R(1.4, 2.2), size: R(16, 28), kind: 3 });
     return out;
   },
   arcade(perfect) {
@@ -2846,7 +2847,7 @@ const PIECE_GENERATORS = {
     // Bewegung) + hochzählende Score-Popups (k2) — Retro pur.
     const n = perfect ? 100 : 56, colors = ['#ff004d', '#ffa300', '#ffec27', '#00e436', '#29adff', '#ff77a8'];
     const out = fallPieces(n, (i) => ({ color: colors[i % colors.length], size: Math.floor(R(1, 4)) * 6, dur: R(1.2, 2.2), rot: 0 }));
-    for (let i = 0; i < 6; i++) out.push({ id: 500 + i, ch: '👾', left: -10 - i * 9, top: 12 + (i % 2) * 7, delay: 0.3 + i * 0.05, dur: 2.8, size: R(22, 30), kind: 1 });
+    for (let i = 0; i < 6; i++) out.push({ id: 500 + i, shape: 'invader', left: -10 - i * 9, top: 12 + (i % 2) * 7, delay: 0.3 + i * 0.05, dur: 2.8, size: R(22, 30), kind: 1 });
     for (let i = 0; i < (perfect ? 8 : 5); i++) out.push({ id: 600 + i, txt: ['+100', '+250', '+500'][i % 3], left: R(12, 82), top: R(30, 75), delay: R(0.4, 2.4), dur: 1.1, size: R(16, 24), kind: 2 });
     return out;
   },
@@ -2855,7 +2856,7 @@ const PIECE_GENERATORS = {
     // Funkenschweif (k1) + Mini-Supernova-Puls im Zentrum (k2).
     const n = perfect ? 90 : 54, out = [];
     for (let i = 0; i < n; i++) out.push({ id: i, ang: R(0, 360), rad: R(30, 240), delay: R(0, 0.8), dur: R(2.4, 4), size: R(3, 7), hue: R(190, 300) });
-    for (let i = 0; i < (perfect ? 6 : 3); i++) out.push({ id: 500 + i, ch: '💫', left: R(0, 70), top: R(5, 40), delay: R(0.4, 2.4), dur: 1.1, size: R(16, 26) });
+    for (let i = 0; i < (perfect ? 6 : 3); i++) out.push({ id: 500 + i, shape: 'sparkle', left: R(0, 70), top: R(5, 40), delay: R(0.4, 2.4), dur: 1.1, size: R(16, 26) });
     for (let i = 0; i < 14; i++) { const p = i / 14; out.push({ id: 600 + i, left: p * 90, top: 12 + p * 42, delay: 1 + p * 0.9, dur: 0.9, size: R(3, 6), hue: R(190, 300), kind: 1 }); }
     for (let i = 0; i < 3; i++) out.push({ id: 700 + i, left: 50, top: 45, delay: 0.8 + i * 1.1, dur: 0.9, size: R(60, 100), hue: 260, kind: 2 });
     return out;
@@ -2876,7 +2877,7 @@ const PIECE_GENERATORS = {
       if ((c + r) % 3 === 0) for (let k = 0; k < 4; k++) { const ang = R(0, Math.PI * 2); out.push({ id: id++, left, top, delay: delay + 0.1, dur: R(0.9, 1.4), size: R(6, 12), hue: R(10, 50), dx: Math.cos(ang) * R(80, 200), dy: Math.sin(ang) * R(80, 200), rot: R(180, 720), kind: 2 }); }
     }
     for (let i = 0; i < 3; i++) out.push({ id: 800 + i, left: 50, top: 50, delay: 0.5 + i * 0.55, dur: 1, size: R(200, 300), hue: 30, kind: 1 });
-    for (let i = 0; i < (perfect ? 40 : 24); i++) out.push({ id: 900 + i, ch: '💥', left: R(0, 100), top: R(0, 100), delay: R(0.2, 1.8), dur: 0.8, size: R(16, 30) });
+    for (let i = 0; i < (perfect ? 40 : 24); i++) out.push({ id: 900 + i, shape: 'burst', left: R(0, 100), top: R(0, 100), delay: R(0.2, 1.8), dur: 0.8, size: R(16, 30) });
     return out;
   },
   dragon(perfect) {
@@ -2886,44 +2887,48 @@ const PIECE_GENERATORS = {
     for (let i = 0; i < n; i++) { const p = i / n; out.push({ id: i, left: p * 110 - 5, top: 26 + Math.sin(p * Math.PI * 2) * 14, delay: p * 2 + R(0, 0.12), dur: R(0.8, 1.6), size: R(5, 11), hue: R(10, 55) }); }
     for (let b = 0; b < 3; b++) { const p = 0.25 + b * 0.25, left = p * 110 - 5, top = 26 + Math.sin(p * Math.PI * 2) * 14;
       for (let k = 0; k < 10; k++) out.push({ id: 500 + b * 10 + k, left: left + 4, top: top + 2, delay: p * 2 + R(0, 0.15), dur: R(0.5, 0.9), size: R(6, 14), hue: R(10, 45), dx: R(60, 200), dy: R(20, 90), kind: 1 }); }
-    for (let i = 0; i < 8; i++) { const p = i / 8; out.push({ id: 700 + i, ch: '💨', left: p * 100, top: 24 + Math.sin(p * Math.PI * 2) * 14, delay: p * 2 + 0.3, dur: R(1.2, 2), size: R(14, 26), kind: 2 }); }
+    for (let i = 0; i < 8; i++) { const p = i / 8; out.push({ id: 700 + i, shape: 'puff', left: p * 100, top: 24 + Math.sin(p * Math.PI * 2) * 14, delay: p * 2 + 0.3, dur: R(1.2, 2), size: R(14, 26), kind: 2 }); }
+    // Gezeichneter Drache fliegt über die Bahn (SVG, Flügelschlag via CSS).
+    out.push({ id: 'cr', creature: dragonMarkup(), size: 150, delay: 0, dur: 4.4 });
     return out;
   },
   rocket(perfect) {
     // 2.0: Start + STUFENTRENNUNG (k3, abgesprengter Ring auf halber Höhe) +
     // Satellit im Orbit (k4) + Warp-Sterne, die schneller werden.
     const out = [];
-    for (let i = 0; i < (perfect ? 28 : 18); i++) out.push({ id: i, ch: '💨', left: R(35, 65), delay: R(0, 1.4), dur: R(1.2, 2), size: R(18, 38), kind: 1 });
-    for (let i = 0; i < (perfect ? 56 : 34); i++) out.push({ id: 100 + i, ch: '✦', left: R(0, 100), delay: R(0, 2), dur: R(0.5, 1.4), size: R(8, 16), kind: 2 });
+    for (let i = 0; i < (perfect ? 28 : 18); i++) out.push({ id: i, shape: 'puff', left: R(35, 65), delay: R(0, 1.4), dur: R(1.2, 2), size: R(18, 38), kind: 1 });
+    for (let i = 0; i < (perfect ? 56 : 34); i++) out.push({ id: 100 + i, shape: 'sparkle', left: R(0, 100), delay: R(0, 2), dur: R(0.5, 1.4), size: R(8, 16), kind: 2 });
     out.push({ id: 800, left: 50, top: 45, delay: 1.15, dur: 0.9, size: 90, hue: 35, kind: 3 });
-    out.push({ id: 801, ch: '🛰️', left: 50, top: 24, delay: 1.6, dur: 2.4, size: 26, ang: 0, rad: 90, kind: 4 });
+    out.push({ id: 801, shape: 'satellite', left: 50, top: 24, delay: 1.6, dur: 2.4, size: 26, ang: 0, rad: 90, kind: 4 });
     return out;
   },
   shatter(perfect) {
     // 2.0: Kristall WÄCHST erst in der Mitte (k2), Glanz läuft durch, DANN
     // Blitz + radialer Scherbenflug + Diamanten + Funkel-Glints (k3).
     const n = perfect ? 66 : 40, out = [];
-    out.push({ id: 990, ch: '💎', left: 50, top: 42, delay: 0, dur: 0.85, size: 84, kind: 2 });
+    out.push({ id: 990, shape: 'gem', left: 50, top: 42, delay: 0, dur: 0.85, size: 84, kind: 2 });
     for (let i = 0; i < n; i++) { const ang = R(0, Math.PI * 2), r = R(140, 420); out.push({ id: i, dx: Math.cos(ang) * r, dy: Math.sin(ang) * r, delay: 0.85 + R(0, 0.2), dur: R(1, 1.8), size: R(10, 26), rot: R(0, 720) }); }
-    for (let i = 0; i < 8; i++) out.push({ id: 500 + i, ch: '💎', left: R(10, 90), delay: R(1, 1.8), dur: R(1.4, 2.2), size: R(16, 28), kind: 1 });
-    for (let i = 0; i < (perfect ? 22 : 12); i++) out.push({ id: 600 + i, ch: '✦', left: R(5, 95), top: R(10, 90), delay: R(1, 2.6), dur: 0.8, size: R(8, 16), kind: 3 });
+    for (let i = 0; i < 8; i++) out.push({ id: 500 + i, shape: 'gem', left: R(10, 90), delay: R(1, 1.8), dur: R(1.4, 2.2), size: R(16, 28), kind: 1 });
+    for (let i = 0; i < (perfect ? 22 : 12); i++) out.push({ id: 600 + i, shape: 'sparkle', left: R(5, 95), top: R(10, 90), delay: R(1, 2.6), dur: 0.8, size: R(8, 16), kind: 3 });
     return out;
   },
   phoenix(perfect) {
     // 2.0: Wiedergeburts-Blitz (::after, CSS) + Flammenmeer + Glut-Spirale um
     // die Aufstiegsbahn (k1) + herabsegelnde Glutfedern (k2).
-    const out = risePieces(perfect ? 86 : 50, () => ({ ch: '🔥', size: R(16, 40), dur: R(1.4, 2.6), delay: R(0, 1.8) }));
+    const out = risePieces(perfect ? 86 : 50, () => ({ shape: 'flame', size: R(16, 40), dur: R(1.4, 2.6), delay: R(0, 1.8) }));
     for (let i = 0; i < (perfect ? 30 : 18); i++) out.push({ id: 500 + i, left: 50, top: 100, ang: R(0, 360), rad: R(20, 90), delay: R(0.2, 1.6), dur: R(1.6, 2.4), size: R(4, 8), hue: R(12, 50), kind: 1 });
-    for (let i = 0; i < 10; i++) out.push({ id: 600 + i, ch: '🪶', left: R(20, 80), delay: R(1.4, 2.6), dur: R(1.6, 2.4), size: R(14, 24), kind: 2 });
+    for (let i = 0; i < 10; i++) out.push({ id: 600 + i, shape: 'feather', left: R(20, 80), delay: R(1.4, 2.6), dur: R(1.6, 2.4), size: R(14, 24), kind: 2 });
+    // Gezeichneter Phönix steigt aus den Flammen auf (SVG, Schwingen via CSS).
+    out.push({ id: 'cr', creature: phoenixMarkup(), size: 140, delay: 0, dur: 3.6 });
     return out;
   },
   jackpot(perfect) {
     // 2.0: Lichterkranz + Münzschauer + 777 + Münz-ERUPTION aus der Bodenmitte
     // (k2, Parabel) + blinkende Gewinn-Sterne (k3).
-    const out = fallPieces(perfect ? 76 : 46, (i) => ({ ch: i % 6 === 0 ? '💰' : '🪙', size: R(16, 32), dur: R(1.3, 2.4) }));
-    for (let i = 0; i < 3; i++) out.push({ id: 800 + i, ch: '7️⃣', left: 32 + i * 16, top: 30, delay: 0.3 + i * 0.35, dur: 1.6, size: 44, kind: 1 });
-    for (let i = 0; i < (perfect ? 26 : 16); i++) out.push({ id: 850 + i, ch: '🪙', left: R(44, 56), top: 100, delay: 1.4 + R(0, 0.5), dur: R(1.1, 1.6), size: R(16, 28), dx: R(-260, 260), dy: -R(300, 600), kind: 2 });
-    for (let i = 0; i < 10; i++) out.push({ id: 950 + i, ch: '✨', left: R(5, 95), top: R(5, 60), delay: R(0.4, 2.6), dur: 0.7, size: R(12, 22), kind: 3 });
+    const out = fallPieces(perfect ? 76 : 46, (i) => ({ shape: 'coin', size: R(16, 32), dur: R(1.3, 2.4) }));
+    for (let i = 0; i < 3; i++) out.push({ id: 800 + i, shape: 'seven', left: 32 + i * 16, top: 30, delay: 0.3 + i * 0.35, dur: 1.6, size: 44, kind: 1 });
+    for (let i = 0; i < (perfect ? 26 : 16); i++) out.push({ id: 850 + i, shape: 'coin', left: R(44, 56), top: 100, delay: 1.4 + R(0, 0.5), dur: R(1.1, 1.6), size: R(16, 28), dx: R(-260, 260), dy: -R(300, 600), kind: 2 });
+    for (let i = 0; i < 10; i++) out.push({ id: 950 + i, shape: 'sparkle', left: R(5, 95), top: R(5, 60), delay: R(0.4, 2.6), dur: 0.7, size: R(12, 22), kind: 3 });
     return out;
   },
   unicorn(perfect) {
@@ -2931,9 +2936,11 @@ const PIECE_GENERATORS = {
     // Finale (k3), wenn das Einhorn durch ist.
     const n = perfect ? 70 : 44, out = [];
     for (let i = 0; i < n; i++) { const p = i / n; out.push({ id: i, left: p * 110 - 5, top: 55 - Math.sin(p * Math.PI) * 18, delay: p * 2.2, dur: 1.6, size: R(10, 20), hue: Math.floor(p * 360) }); }
-    for (let i = 0; i < 14; i++) out.push({ id: 500 + i, ch: '✨', left: R(0, 100), top: R(30, 75), delay: R(0.5, 2.4), dur: 1, size: R(10, 18), kind: 1 });
-    for (let i = 0; i < (perfect ? 12 : 7); i++) out.push({ id: 600 + i, ch: '💖', left: R(10, 90), top: R(25, 70), delay: R(0.8, 2.6), dur: 0.9, size: R(14, 26), kind: 2 });
-    for (let i = 0; i < (perfect ? 30 : 16); i++) out.push({ id: 700 + i, ch: '✨', left: R(0, 100), delay: R(2.4, 3.4), dur: R(1, 1.6), size: R(8, 16), kind: 3 });
+    for (let i = 0; i < 14; i++) out.push({ id: 500 + i, shape: 'sparkle', left: R(0, 100), top: R(30, 75), delay: R(0.5, 2.4), dur: 1, size: R(10, 18), kind: 1 });
+    for (let i = 0; i < (perfect ? 12 : 7); i++) out.push({ id: 600 + i, shape: 'heart', left: R(10, 90), top: R(25, 70), delay: R(0.8, 2.6), dur: 0.9, size: R(14, 26), kind: 2 });
+    for (let i = 0; i < (perfect ? 30 : 16); i++) out.push({ id: 700 + i, shape: 'sparkle', left: R(0, 100), delay: R(2.4, 3.4), dur: R(1, 1.6), size: R(8, 16), kind: 3 });
+    // Gezeichnetes Einhorn galoppiert über die Bahn (SVG, Beine/Mähne via CSS).
+    out.push({ id: 'cr', creature: unicornMarkup(), size: 130, delay: 0, dur: 4.2 });
     return out;
   },
   // ── Tier 4 (Legendär): mehrphasige Groß-Spektakel ──────────────────────────
@@ -2962,7 +2969,7 @@ const PIECE_GENERATORS = {
     // Sterne schießen daraus aufs Auge zu (Scale 0.15 → 3), am Ende kollabiert es.
     const n = perfect ? 70 : 42, out = [];
     for (let i = 0; i < n; i++) { const ang = R(0, Math.PI * 2), r = R(120, 480); out.push({ id: i, dx: Math.cos(ang) * r, dy: Math.sin(ang) * r, delay: R(0.5, 2.6), dur: R(0.9, 1.6), size: R(4, 9), hue: R(160, 320) }); }
-    for (let i = 0; i < 10; i++) out.push({ id: 500 + i, ch: '✦', left: R(10, 90), top: R(10, 90), delay: R(0.8, 3), dur: 1, size: R(10, 20), kind: 1 });
+    for (let i = 0; i < 10; i++) out.push({ id: 500 + i, shape: 'sparkle', left: R(10, 90), top: R(10, 90), delay: R(0.8, 3), dur: 1, size: R(10, 20), kind: 1 });
     return out;
   },
   feuertornado(perfect) {
@@ -2970,7 +2977,7 @@ const PIECE_GENERATORS = {
     // steigen dabei vom Boden auf; 🔥-Funken (k1) sprühen aus dem Trichter.
     const n = perfect ? 90 : 56, out = [];
     for (let i = 0; i < n; i++) out.push({ id: i, ang: R(0, 360), rad: R(14, 110), delay: R(0, 1.6), dur: R(1.6, 2.6), size: R(4, 10), hue: R(12, 55) });
-    for (let i = 0; i < (perfect ? 24 : 14); i++) out.push({ id: 500 + i, ch: '🔥', left: R(20, 80), top: R(30, 95), delay: R(0.4, 2.4), dur: R(0.8, 1.4), size: R(14, 26), kind: 1 });
+    for (let i = 0; i < (perfect ? 24 : 14); i++) out.push({ id: 500 + i, shape: 'flame', left: R(20, 80), top: R(30, 95), delay: R(0.4, 2.4), dur: R(0.8, 1.4), size: R(14, 26), kind: 1 });
     return out;
   },
   synthgrid(perfect) {
@@ -2978,7 +2985,7 @@ const PIECE_GENERATORS = {
     // Neon-Sonne (::after); quer schießende Neon-Streifen + funkelnde Sterne (k1).
     const out = [];
     for (let i = 0; i < (perfect ? 22 : 14); i++) out.push({ id: i, left: -20, top: R(6, 58), delay: R(0, 2.2), dur: R(0.9, 1.6), size: R(50, 130), hue: [300, 190, 320, 210][i % 4] });
-    for (let i = 0; i < (perfect ? 40 : 24); i++) out.push({ id: 500 + i, ch: '✦', left: R(0, 100), top: R(0, 55), delay: R(0, 2.6), dur: 1.1, size: R(8, 16), kind: 1 });
+    for (let i = 0; i < (perfect ? 40 : 24); i++) out.push({ id: 500 + i, shape: 'sparkle', left: R(0, 100), top: R(0, 55), delay: R(0, 2.6), dur: 1.1, size: R(8, 16), kind: 1 });
     return out;
   },
 };
@@ -3010,7 +3017,7 @@ function winFxStyle(p) {
   const s = { animationDelay: p.delay + 's', animationDuration: p.dur + 's' };
   if (p.left != null) s.left = p.left + '%';
   if (p.top != null) s.top = p.top + '%';
-  if (p.ch || p.txt) s.fontSize = p.size + 'px';
+  if (p.txt) s.fontSize = p.size + 'px';
   else { s.width = p.size + 'px'; s.height = p.size + 'px'; }
   if (p.color) s.background = p.color;
   if (p.hue != null) s['--hue'] = p.hue;
@@ -4446,7 +4453,7 @@ const App = {
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
       openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
-      WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
+      WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle, winShape, winShapeDefs,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -4475,6 +4482,7 @@ const App = {
 
     <!-- Gemeinsame SVG-Defs (Verläufe/Symbole) für alle Abzeichen-Medaillen, EINMAL im Dokument. -->
     <span class="badge-defs-holder" v-html="badgeDefs()" aria-hidden="true"></span>
+    <span class="badge-defs-holder" v-html="winShapeDefs()" aria-hidden="true"></span>
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
@@ -5671,7 +5679,7 @@ const App = {
     <!-- Sieganimation: global (fixed Overlay), damit die Shop-Vorschau auf jedem
          Screen funktioniert — nicht nur im Spiel. -->
     <div v-if="state.winFx" class="winfx" :class="['fx-' + state.winFx.id, { perfect: state.perfectWin }]" :key="state.winFx.seq">
-      <i v-for="p in state.winFx.pieces" :key="p.id" :class="[p.ch ? 'em' : '', p.txt ? 'tx' : '', p.kind ? 'k' + p.kind : '', p.corner != null ? 'c' + p.corner : '', p.band != null ? 'b' + p.band : '']" :style="winFxStyle(p)">{{ p.ch || p.txt || '' }}</i>
+      <i v-for="p in state.winFx.pieces" :key="p.id" :class="[p.creature ? 'cr' : '', p.shape ? 'sv' : '', p.txt ? 'tx' : '', p.kind ? 'k' + p.kind : '', p.corner != null ? 'c' + p.corner : '', p.band != null ? 'b' + p.band : '']" :style="winFxStyle(p)" v-html="p.creature || (p.shape ? winShape(p.shape, p.hue) : (p.txt || ''))"></i>
       <b v-if="state.winFx.id==='arcade'" class="winfx-label">YOU WIN</b>
     </div>
     </transition>
@@ -6229,7 +6237,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, cellStyle, cellClasses, Music, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, cellStyle, cellClasses, Music, launchWinFx, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');

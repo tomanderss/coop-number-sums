@@ -940,7 +940,30 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    sie werden einmal gerastert, NICHT pro Frame animiert. */
 .winfx { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; contain: layout style paint; }
 .winfx i { position: absolute; will-change: transform, opacity; font-style: normal; line-height: 1; }
-.winfx i.em { background: none !important; }
+.winfx i.sv { background: none !important; }
+/* SVG-Partikel füllen ihre Box (Größe kommt aus winFxStyle). */
+.winfx i.sv svg, .winfx i.cr svg { width: 100%; height: 100%; display: block; overflow: visible; }
+/* Kreatur-Pieces (Drache/Einhorn/Phönix): kein Partikel-Styling, eigene Flugbahn. */
+.winfx i.cr { background: none !important; box-shadow: none !important; border: none !important; margin: 0; transform-origin: center; z-index: 2; }
+/* Kein Filter auf der animierten Kreatur (Kompositor-Ghosts + Repaints vermeiden). */
+@keyframes wfFlap { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(22deg); } }
+@keyframes wfFlapFar { 0%,100% { transform: rotate(3deg); } 50% { transform: rotate(-16deg); } }
+@keyframes wfSway { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes wfGalA { 0%,100% { transform: rotate(22deg); } 50% { transform: rotate(-22deg); } }
+@keyframes wfGalB { 0%,100% { transform: rotate(-22deg); } 50% { transform: rotate(22deg); } }
+.winfx .wf-wing { animation: wfFlap .42s ease-in-out infinite; }
+.winfx .wf-wing-far { animation: wfFlapFar .42s ease-in-out infinite; }
+.winfx .wf-tail, .winfx .wf-phx-tail { animation: wfSway 1.1s ease-in-out infinite; }
+.winfx .wf-mane { animation: wfSway .8s ease-in-out infinite; }
+.winfx .wf-phx-wing-l, .winfx .wf-phx-wing-r { animation: wfFlap .5s ease-in-out infinite; }
+.winfx .wf-leg-b, .winfx .wf-leg-f2 { animation: wfGalA .3s linear infinite; }
+.winfx .wf-leg-b2, .winfx .wf-leg-f { animation: wfGalB .3s linear infinite; }
+@keyframes fxDragonFly { 0% { transform: translate(-34vw,10vh) rotate(-4deg); opacity: 0; } 8% { opacity: 1; } 50% { transform: translate(34vw,-8vh) rotate(3deg); } 92% { opacity: 1; } 100% { transform: translate(120vw,6vh) rotate(-4deg); opacity: 0; } }
+@keyframes fxUniGallop { 0% { transform: translate(-34vw,0); opacity: 0; } 8% { opacity: 1; } 50% { transform: translate(34vw,-2vh); } 92% { opacity: 1; } 100% { transform: translate(120vw,0); opacity: 0; } }
+@keyframes fxPhxRise { 0% { transform: translate(-50%,60vh) scale(.55); opacity: 0; } 22% { opacity: 1; } 68% { transform: translate(-50%,-4vh) scale(1); opacity: 1; } 100% { transform: translate(-50%,-12vh) scale(1); opacity: 0; } }
+.fx-dragon i.cr { left: 0; top: 34%; animation: fxDragonFly 4.4s ease-in-out forwards; }
+.fx-unicorn i.cr { left: 0; top: 52%; animation: fxUniGallop 4.2s linear forwards; }
+.fx-phoenix i.cr { left: 50%; top: 40%; animation: fxPhxRise 3.6s ease-out forwards; }
 .winfx.perfect i { filter: brightness(1.15); }
 /* Retro-Label (Arcade) */
 .winfx-label {
@@ -959,7 +982,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .fx-confetti.perfect i { filter: brightness(1.25); }
 
 /* 🎈 Ballons: steigen von unten, sanftes Pendeln; Farbvielfalt via statischem hue-rotate */
-.fx-balloons i { top: 105vh; animation: fxRiseSway ease-in forwards; filter: hue-rotate(calc(var(--hue, 0) * 1deg)); }
+.fx-balloons i { top: 105vh; animation: fxRiseSway ease-in forwards; }
 @keyframes fxRiseSway {
   25% { transform: translate(14px, -30vh) rotate(6deg); }
   50% { transform: translate(-12px, -60vh) rotate(-6deg); }
@@ -1026,13 +1049,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .fx-rainbow i[class*="b"] { left: -140%; width: 240vw; height: 5vh; border-radius: 999px; background: hsl(var(--hue, 0) 95% 60% / .55); transform: rotate(-14deg) translateX(-30vw); opacity: 0; animation: fxBand ease-in-out forwards; }
 .fx-rainbow i.b0 { top: 18%; } .fx-rainbow i.b1 { top: 25%; } .fx-rainbow i.b2 { top: 32%; } .fx-rainbow i.b3 { top: 39%; } .fx-rainbow i.b4 { top: 46%; } .fx-rainbow i.b5 { top: 53%; } .fx-rainbow i.b6 { top: 60%; }
 @keyframes fxBand { 0% { transform: rotate(-14deg) translateX(-40vw); opacity: 0; } 25% { opacity: 1; } to { transform: rotate(-14deg) translateX(48vw); opacity: 0; } }
-.fx-rainbow i.em { top: -20px; animation: fall linear forwards; }
+.fx-rainbow i.sv { top: -20px; animation: fall linear forwards; }
 
 /* 🌊 Welle: Wasserkämme (b0-b2) schwappen von links + Tropfen springen */
 .fx-wave i[class*="b"] { left: -160%; bottom: -12vh; top: auto; width: 260vw; height: 42vh; border-radius: 45% 55% 0 0 / 90% 100% 0 0; background: linear-gradient(rgba(64, 164, 255, .5), rgba(20, 90, 200, .65)); opacity: 0; animation: fxWave ease-in-out forwards; }
 .fx-wave i.b1 { height: 32vh; } .fx-wave i.b2 { height: 22vh; }
 @keyframes fxWave { 0% { transform: translateX(-30vw) rotate(2deg); opacity: 1; } 55% { transform: translateX(20vw) rotate(-1deg); opacity: .9; } to { transform: translateX(60vw) translateY(46vh) rotate(0); opacity: 0; } }
-.fx-wave i.em { bottom: 30vh; top: auto; animation: fxDrop ease-out forwards; opacity: 0; }
+.fx-wave i.sv { bottom: 30vh; top: auto; animation: fxDrop ease-out forwards; opacity: 0; }
 @keyframes fxDrop { 0% { transform: translateY(0); opacity: 1; } to { transform: translateY(calc(var(--dy, -100px) * -1)) ; opacity: 0; } }
 
 /* 🟢 Matrix: Ziffernkolonnen rieseln (Spalten-Text via white-space) */
@@ -1054,13 +1077,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* 🌌 Galaxie: Sterne kreisen spiralförmig um die Mitte (rotate um Zentrum via Verschachtelung
    in EINEM transform: rotate → translate → counter-scale) + Sternschnuppen */
 .fx-galaxy { background: radial-gradient(circle at 50% 45%, rgba(30, 20, 70, .42), rgba(5, 5, 20, .55)); }
-.fx-galaxy i:not(.em) { left: 50%; top: 45%; border-radius: 50%; background: hsl(var(--hue, 240) 90% 75%); box-shadow: 0 0 6px 1px hsl(var(--hue, 240) 90% 70% / .8); animation: fxOrbit linear forwards; opacity: 0; }
+.fx-galaxy i:not(.sv):not(.cr) { left: 50%; top: 45%; border-radius: 50%; background: hsl(var(--hue, 240) 90% 75%); box-shadow: 0 0 6px 1px hsl(var(--hue, 240) 90% 70% / .8); animation: fxOrbit linear forwards; opacity: 0; }
 @keyframes fxOrbit {
   0%  { transform: rotate(var(--ang, 0deg)) translateX(var(--rad, 120px)) scale(1); opacity: 0; }
   15% { opacity: 1; }
   to  { transform: rotate(calc(var(--ang, 0deg) + 340deg)) translateX(calc(var(--rad, 120px) * .25)) scale(.5); opacity: 0; }
 }
-.fx-galaxy i.em { animation: fxShoot ease-in forwards; opacity: 0; }
+.fx-galaxy i.sv { animation: fxShoot ease-in forwards; opacity: 0; }
 @keyframes fxShoot { 0% { transform: translate(0,0); opacity: 1; } to { transform: translate(46vw, 30vh); opacity: 0; } }
 
 /* 🕳️ Schwarzes Loch: Sog einwärts (Spirale schrumpft), dann Supernova-Ring (::after) */
@@ -1079,9 +1102,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes fxNova { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 60% { opacity: 1; } to { transform: translate(-50%,-50%) scale(28); opacity: 0; } }
 
 /* 🧨 Kettenreaktion: Explosionsringe laufen als Diagonalwelle übers Raster */
-.fx-chain i:not(.em) { border: 3px solid hsl(var(--hue, 30) 100% 60%); border-radius: 50%; box-shadow: 0 0 12px hsl(var(--hue, 30) 100% 55% / .6), inset 0 0 8px hsl(var(--hue, 30) 100% 65% / .5); animation: fxRing ease-out forwards; transform: translate(-50%, -50%) scale(0); opacity: 0; margin: 0; }
+.fx-chain i:not(.sv):not(.cr) { border: 3px solid hsl(var(--hue, 30) 100% 60%); border-radius: 50%; box-shadow: 0 0 12px hsl(var(--hue, 30) 100% 55% / .6), inset 0 0 8px hsl(var(--hue, 30) 100% 65% / .5); animation: fxRing ease-out forwards; transform: translate(-50%, -50%) scale(0); opacity: 0; margin: 0; }
 @keyframes fxRing { 0% { transform: translate(-50%,-50%) scale(.05); opacity: 1; } 70% { opacity: .9; } to { transform: translate(-50%,-50%) scale(1); opacity: 0; } }
-.fx-chain i.em { animation: fxPop ease-out forwards; transform: scale(0); opacity: 0; }
+.fx-chain i.sv { animation: fxPop ease-out forwards; transform: scale(0); opacity: 0; }
 @keyframes fxPop { 0% { transform: scale(.2); opacity: 1; } 60% { transform: scale(1.25); opacity: 1; } to { transform: scale(.9); opacity: 0; } }
 
 /* 🐉 Drache: fliegt in Sinuswelle übers Brett (::before), Funken-Spur folgt */
@@ -1104,9 +1127,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes fxStarPass { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .9; } to { transform: translateY(115vh); opacity: 0; } }
 
 /* 💎 Diamantsplitter: Scherben fliegen radial aus der Mitte (clip-path-Dreiecke) */
-.fx-shatter i:not(.em) { left: 50%; top: 45%; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: linear-gradient(160deg, rgba(200, 240, 255, .95), rgba(120, 180, 255, .55)); box-shadow: 0 0 8px rgba(160, 220, 255, .5); animation: fxShard cubic-bezier(.2, .7, .5, 1) forwards; opacity: 0; }
+.fx-shatter i:not(.sv):not(.cr) { left: 50%; top: 45%; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: linear-gradient(160deg, rgba(200, 240, 255, .95), rgba(120, 180, 255, .55)); box-shadow: 0 0 8px rgba(160, 220, 255, .5); animation: fxShard cubic-bezier(.2, .7, .5, 1) forwards; opacity: 0; }
 @keyframes fxShard { 0% { transform: translate(0, 0) rotate(0) scale(1); opacity: 1; } to { transform: translate(var(--dx, 100px), var(--dy, 100px)) rotate(var(--rot, 360deg)) scale(.7); opacity: 0; } }
-.fx-shatter i.em { top: -30px; animation: fxStarFall linear forwards; }
+.fx-shatter i.sv { top: -30px; animation: fxStarFall linear forwards; }
 .fx-shatter::before { /* kurzer Blitz beim "Zerspringen" */
   content: ''; position: absolute; inset: 0; background: rgba(220, 240, 255, .5); opacity: 0; animation: fxFlash .5s ease-out forwards;
 }
