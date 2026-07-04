@@ -252,18 +252,21 @@ export function recordStreakResult(dateStr = todayDateStr()) {
 
 // ─── Race-/Duell-Modus (1v1 und 2v2, einfache Zähler ohne Periodenbindung) ───
 const EMPTY_RACE_MODE = { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null };
-const EMPTY_RACE = { '1v1': { ...EMPTY_RACE_MODE }, '2v2': { ...EMPTY_RACE_MODE } };
+const EMPTY_RACE = { '1v1': { ...EMPTY_RACE_MODE }, '2v2': { ...EMPTY_RACE_MODE }, 'ffa': { ...EMPTY_RACE_MODE } };
 
 // Ältere Speicherstände hatten eine flache Form ({racesPlayed,...} ohne
 // Modus-Aufteilung) — wird hier transparent als "1v1"-Daten übernommen, statt
-// beim Umstieg auf die Modus-Aufteilung verloren zu gehen.
+// beim Umstieg auf die Modus-Aufteilung verloren zu gehen. Der 'ffa'-Bucket
+// (jeder-gegen-jeden, 3–4 Spieler) kam später dazu und wird für alte Stände
+// leer ergänzt.
 function migrateRace(loaded) {
   if (loaded && typeof loaded.racesPlayed === 'number') {
-    return { '1v1': { ...EMPTY_RACE_MODE, ...loaded }, '2v2': { ...EMPTY_RACE_MODE } };
+    return { '1v1': { ...EMPTY_RACE_MODE, ...loaded }, '2v2': { ...EMPTY_RACE_MODE }, 'ffa': { ...EMPTY_RACE_MODE } };
   }
   return {
     '1v1': { ...EMPTY_RACE_MODE, ...(loaded?.['1v1'] || {}) },
     '2v2': { ...EMPTY_RACE_MODE, ...(loaded?.['2v2'] || {}) },
+    'ffa': { ...EMPTY_RACE_MODE, ...(loaded?.['ffa'] || {}) },
   };
 }
 export function loadRace() { return migrateRace(load(KEYS.RACE, {})); }

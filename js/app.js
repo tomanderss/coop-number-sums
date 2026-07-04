@@ -114,6 +114,7 @@ const state = reactive({
     generating: false,           // Rätsel wird gerade (im Worker) für diese Lobby generiert — Start/Bereit ist bis zur Fertigstellung gesperrt
 
     teamMode: false,               // Host-Lobby-Toggle: Team-vs-Team statt normalem Coop
+    ffaMode: false,                // Host-Lobby-Toggle: Free-for-All (jeder gegen jeden, 3–4 Spieler) — Race-Familie mit N Gegnern
     raceMode: false,               // Host-Lobby-Toggle: Race-/Duell-Modus (1v1, getrennte Fortschritte) statt normalem Coop
 
     invitePickerOpen: false,       // Freunde-Auswahl zum Einladen in die Lobby offen?
@@ -161,6 +162,14 @@ const state = reactive({
     myPct: 0,
     opponentPct: 0,
     opponentMistakes: 0,
+    // Free-for-All (jeder gegen jeden, 3–4 Spieler): dieselbe Race-Mechanik
+    // (eigenes Gitter, geteilter Seed, per-uid-Fortschritt), aber MEHRERE Gegner.
+    // Der Transport (raceProgress/{uid}) ist bereits pro-Spieler; hier halten wir
+    // die Liste aller Gegner statt genau eines. Die 1v1-Felder oben bleiben für
+    // den klassischen 1v1-Ergebnis-/HUD-Text erhalten.
+    ffa: false,             // true, wenn dieses Race-Match ein FFA (≥3 Spieler) ist
+    opponents: [],          // [{ id, name, color, pct, mistakes, out }] — alle Gegner (ohne mich)
+    winnerName: '',         // Name des ersten Fertigen (für den FFA-Ergebnis-Text)
     rematchPending: false,  // true nur nach einem beendeten Match bis zum nächsten Hosten --
                              // steuert, ob die Race-Lobby ihre eigene Schwierigkeitsauswahl
                              // nochmal zeigt (siehe rematchRace()/startHosting()).
@@ -1335,6 +1344,13 @@ function pushRaceProgress() {
 // Empfängt den Fortschritt beider Spieler (eigener + Gegner) -- nur der
 // Gegner-Eintrag (per uid) ist relevant, der eigene Stand ist lokal genauer.
 function onRaceProgressUpdate(progressByUid) {
+  // FFA: Fortschritt/Fehler ALLER Gegner aus der per-uid-Map aktualisieren.
+  if (state.race.ffa) {
+    for (const o of state.race.opponents) {
+      const p = progressByUid[o.id];
+      if (p) { o.pct = p.pct || 0; o.mistakes = p.mistakes || 0; }
+    }
+  }
   const opp = progressByUid[state.race.opponentId];
   if (opp) { state.race.opponentPct = opp.pct || 0; state.race.opponentMistakes = opp.mistakes || 0; }
 }
@@ -1627,15 +1643,48 @@ function handleCoopMsg(msg) {
   } else if (msg.type === Coop.MSG.RACE_START) {
     applyRaceStart(msg.seed, msg.difficulty);
   } else if (msg.type === Coop.MSG.RACE_DONE) {
-    // Race ist strikt 1v1 -- jede empfangene RACE_DONE-Nachricht stammt damit
-    // notwendig vom Gegner (kein Selbst-Skip-Check nötig wie bei TEAM_DONE,
-    // dessen Raum mehr als zwei Parteien haben kann).
-    if (!state.race.active || state.race.matchOver) return;
+    if (!state.race.active) return;
+    if (msg.from === state.coop.myId) return; // eigenes Ergebnis wird lokal in win()/lose() behandelt
+    // Endstand des Melders für die Ergebnis-Balken festhalten.
+    const fin = state.race.opponents.find(o => o.id === msg.from);
+    if (fin) { fin.pct = msg.finalPct ?? fin.pct; fin.mistakes = msg.finalMistakes ?? fin.mistakes; }
+    if (msg.from === state.race.opponentId) {
+      state.race.opponentPct = msg.finalPct ?? state.race.opponentPct;
+      state.race.opponentMistakes = msg.finalMistakes ?? state.race.opponentMistakes;
+    }
+    if (state.race.ffa) {
+      // FFA (jeder gegen jeden): nur ein GELÖSTES Spiel ("won") beendet das Match
+      // für alle -- der erste Fertige gewinnt, alle anderen verlieren. Ein
+      // Ausgeschiedener ("lost": Leben verloren/aufgegeben) fällt nur raus, die
+      // Übrigen spielen weiter; bin danach nur noch ich übrig, gewinne ich.
+      if (msg.outcome === 'won') {
+        if (state.race.matchOver) return;
+        state.race.matchOver = true;
+        state.race.winner = 'opponent';
+        state.race.endReason = 'won';
+        state.race.winnerName = (fin && fin.name) || t('common.defaultPlayerName');
+        state.race.myPct = progressPct();
+        if (state.status === 'playing') lose({ timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
+        return;
+      }
+      if (fin) fin.out = true;
+      if (state.race.matchOver) return;
+      if (state.race.opponents.every(o => o.out) && state.status === 'playing') {
+        state.race.matchOver = true;
+        state.race.winner = 'me';
+        state.race.endReason = 'lost';
+        state.race.winnerName = myUsername() || t('common.you');
+        state.race.myPct = progressPct();
+        win({ timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
+      }
+      return;
+    }
+    // Strikt 1v1: jede empfangene RACE_DONE stammt notwendig vom (einzigen)
+    // Gegner und beendet das Match binär.
+    if (state.race.matchOver) return;
     state.race.matchOver = true;
     state.race.winner = msg.outcome === 'won' ? 'opponent' : 'me';
     state.race.endReason = msg.outcome;
-    state.race.opponentPct = msg.finalPct ?? state.race.opponentPct;
-    state.race.opponentMistakes = msg.finalMistakes ?? state.race.opponentMistakes;
     state.race.myPct = progressPct();
     if (state.status === 'playing') {
       const remote = { timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed };
@@ -1663,6 +1712,7 @@ function coopReset() {
   state.coop.generating = false;
   state.coop.teamMode = false;
   state.coop.raceMode = false;
+  state.coop.ffaMode = false;
   state.coop.invitePickerOpen = false; state.coop.invitedUids = [];
   state.team.active = false; state.team.myTeam = null; state.team.matchOver = false;
   state.team.winningTeam = null; state.team.endReason = null; state.team.opponentPct = 0; state.team.opponentMistakes = 0; state.team.myPct = 0;
@@ -1670,6 +1720,7 @@ function coopReset() {
   state.race.active = false; state.race.opponentId = null; state.race.opponentName = '';
   state.race.opponentColor = '#888'; state.race.matchOver = false; state.race.winner = null; state.race.endReason = null;
   state.race.myPct = 0; state.race.opponentPct = 0; state.race.opponentMistakes = 0;
+  state.race.ffa = false; state.race.opponents = []; state.race.winnerName = '';
   state.race.rematchPending = false;
   state.isRaceGame = false;
 }
@@ -1924,8 +1975,12 @@ function goRace(mode) {
   coopReset();
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
-  state.coop.raceMode = mode !== '2v2';
+  // Race-Familie (eigenes Gitter, geteilter Seed): 1v1 UND ffa. teamMode ist die
+  // separate 2v2-Variante (geteiltes Gitter je Team). ffaMode unterscheidet das
+  // FFA (≥3 Spieler) vom strikten 1v1 (Spielerzahl-Cap, Start-Gate, N Gegner).
   state.coop.teamMode = mode === '2v2';
+  state.coop.ffaMode = mode === 'ffa';
+  state.coop.raceMode = mode === '1v1' || mode === 'ffa';
   state.modal = null;
   pushNav(() => { coopReset(); navigate('home'); });
   navigate('coop');
@@ -2135,7 +2190,9 @@ function applyTeamStart(seed, difficulty) {
 // Strikt 1v1 -- die Lobby ist dieselbe coop-Lobby, aber state.coop.raceMode
 // begrenzt sie auf genau 2 Spieler (siehe startJoining()/joinGame()).
 function canStartRaceMatch() {
-  return state.coop.role === 'host' && state.coop.players.length === 2;
+  if (state.coop.role !== 'host') return false;
+  // FFA (jeder gegen jeden): mind. 3 Spieler; strikt 1v1: genau 2.
+  return state.coop.ffaMode ? state.coop.players.length >= 3 : state.coop.players.length === 2;
 }
 // Wie startTeamMatch(): nur Seed+Schwierigkeit wandern raumweit, jeder Client
 // generiert sein (identisches) Rätsel lokal über generatePuzzle({difficulty,
@@ -2155,13 +2212,20 @@ function startRaceMatch() {
 // anzeige werden über state.isRaceGame separat erzwungen (siehe setMark()/
 // registerMistake()/doCheck()).
 function applyRaceStart(seed, difficulty) {
-  const opponent = state.coop.players.find(p => p.id !== state.coop.myId);
+  const others = state.coop.players.filter(p => p.id !== state.coop.myId);
+  state.race.ffa = !!state.coop.ffaMode;
+  // Alle Gegner (im 1v1 genau einer). Der per-uid-Fortschritt (raceProgress/{uid})
+  // wird pro Eintrag gepflegt (onRaceProgressUpdate); `out` markiert Ausgeschiedene
+  // (Leben verloren/aufgegeben) im FFA — das Match läuft dann für die Übrigen weiter.
+  state.race.opponents = others.map(p => ({ id: p.id, name: playerLabel(p) || '', color: p.color || '#888', pct: 0, mistakes: 0, out: false }));
+  const opponent = others[0];
   state.race.opponentId = opponent?.id || null;
   state.race.opponentName = playerLabel(opponent) || '';
   state.race.opponentColor = opponent?.color || '#888';
   state.race.active = true;
   state.race.matchOver = false;
   state.race.winner = null;
+  state.race.winnerName = '';
   state.race.endReason = null;
   state.race.myPct = 0;
   state.race.opponentPct = 0;
@@ -2227,7 +2291,7 @@ function startJoining() {
     code: state.coop.code,
     name: state.settings.coopName,
     color: state.settings.coopMyColor,
-    maxPlayers: state.coop.raceMode ? 2 : COOP_MAX_PLAYERS,
+    maxPlayers: (state.coop.raceMode && !state.coop.ffaMode) ? 2 : COOP_MAX_PLAYERS,
     onOpen(id) {
       // Eigene ID dieser Session sichern und sofort dem Host die eigene Identität
       // melden — coopSend() blockt hier noch (state.coop.connected wird erst nach
@@ -2337,7 +2401,14 @@ function broadcastTeamDone(outcome) {
 // Team-vs-Team).
 function broadcastRaceDone(outcome) {
   state.race.matchOver = true;
-  state.race.winner = outcome === 'won' ? 'me' : 'opponent';
+  if (state.race.ffa && outcome === 'lost') {
+    // FFA: selbst ausgeschieden (Leben verloren/aufgegeben) -- das Match läuft für
+    // die Übrigen weiter, deshalb 'out' statt eines Gegner-Siegs anzeigen.
+    state.race.winner = 'out';
+  } else {
+    state.race.winner = outcome === 'won' ? 'me' : 'opponent';
+    if (outcome === 'won') state.race.winnerName = myUsername() || t('common.you');
+  }
   state.race.endReason = outcome;
   state.race.myPct = progressPct();
   Coop.send({ type: Coop.MSG.RACE_DONE, from: state.coop.myId, outcome, finalPct: state.race.myPct, finalMistakes: state.mistakes });
@@ -2420,7 +2491,7 @@ function win(remote) {
     }
   }
   if (!state.isTrainingGame) applyStreakAfterGame();
-  if (state.isRaceGame) state.raceStats = recordRaceWin('1v1', state.elapsed);
+  if (state.isRaceGame) state.raceStats = recordRaceWin(state.race.ffa ? 'ffa' : '1v1', state.elapsed);
   if (state.team.active) state.raceStats = recordRaceWin('2v2', state.elapsed);
   // Trainingsrätsel landen bewusst nicht im Verlauf/in den Achievements (siehe
   // oben) -- sie werden beliebig oft wiederholt und sollen den Ringpuffer bzw.
@@ -2465,7 +2536,7 @@ function lose(remote) {
     state.stats = stats;
   }
   if (!state.isTrainingGame) applyStreakAfterGame();
-  if (state.isRaceGame) state.raceStats = recordRaceLoss('1v1');
+  if (state.isRaceGame) state.raceStats = recordRaceLoss(state.race.ffa ? 'ffa' : '1v1');
   if (state.team.active) state.raceStats = recordRaceLoss('2v2');
   if (!state.isTrainingGame) {
     state.puzzleHistory = recordHistory({
@@ -3142,9 +3213,9 @@ function replayHistoryEntry(entry) {
 // ─── TEILEN (viraler Loop) ─────────────────────────────────────────────────────
 // ─── Lobby-Einladungen an Freunde ──────────────────────────────────────────────
 // Aktueller Lobby-Modus als kompakter String für die Einladung.
-function lobbyMode() { return state.coop.teamMode ? '2v2' : state.coop.raceMode ? '1v1' : 'coop'; }
+function lobbyMode() { return state.coop.teamMode ? '2v2' : state.coop.ffaMode ? 'ffa' : state.coop.raceMode ? '1v1' : 'coop'; }
 function lobbyModeLabel(mode) {
-  return mode === '2v2' ? t('coop.modeTeam') : mode === '1v1' ? t('coop.modeRace') : t('coop.modeCoop');
+  return mode === '2v2' ? t('coop.modeTeam') : mode === 'ffa' ? t('coop.modeFfa') : mode === '1v1' ? t('coop.modeRace') : t('coop.modeCoop');
 }
 // „Freunde einladen" in der Lobby: öffnet die Auswahl (nur wenn eingeloggt).
 function openInvitePicker() {
@@ -3225,8 +3296,9 @@ function acceptLobbyInvite(inv) {
   state.pendingLobbyInvite = null;
   state.lobbyInvites = state.lobbyInvites.filter(i => i.fromUid !== inv.fromUid);
   coopReset();
-  state.coop.raceMode = inv.mode === '1v1';
   state.coop.teamMode = inv.mode === '2v2';
+  state.coop.ffaMode = inv.mode === 'ffa';
+  state.coop.raceMode = inv.mode === '1v1' || inv.mode === 'ffa';
   state.coop.identityConfirmed = true;              // gespeicherten Namen verwenden
   state.coop.nameDraft = state.settings.coopName;
   state.coop.code = String(inv.code || '');
@@ -4361,6 +4433,15 @@ const App = {
     const raceResultMsg = computed(() => {
       const r = state.race;
       const name = r.opponentName || t('common.defaultPlayerName');
+      // FFA (jeder gegen jeden): kein 1v1-„Du vs {name}"-Text, sondern Platz/
+      // Sieger unter N Spielern. `winner==='out'` = selbst ausgeschieden, Match
+      // läuft für die Übrigen weiter.
+      if (r.ffa) {
+        const n = r.opponents.length + 1;
+        if (r.winner === 'me') return t('race.ffaYouWon', { n, myPct: r.myPct });
+        if (r.winner === 'out') return t('race.ffaEliminated', { myPct: r.myPct });
+        return t('race.ffaYouLost', { name: r.winnerName || name, n, myPct: r.myPct });
+      }
       if (r.winner === 'me') {
         if (r.endReason === 'lost') return t('race.youWonByOpponentLives', { name, myPct: r.myPct, oppPct: r.opponentPct });
         const key = state.mistakes === 0 ? 'race.youWonClean' : 'race.youWonMistakes';
@@ -4614,7 +4695,7 @@ const App = {
               <i v-if="!full" class="heart-strike opp-heart-strike"></i>
             </span>
           </span>
-          <span v-if="state.race.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ state.race.opponentName }}</span>
+          <span v-if="state.race.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ state.race.ffa ? t('race.ffaTag', { n: state.race.opponents.length + 1 }) : state.race.opponentName }}</span>
           <span class="zoomctl">
             <!-- Reset-Knopf bewusst LINKS: die Leiste ist rechtsbündig (margin-left:auto),
                  d.h. ein links eingeschobener Knopf wächst nach links und lässt − / +
@@ -4634,12 +4715,21 @@ const App = {
             <span class="progress-pct">{{ myProgressPct }}%</span>
             <span class="progress-bar"><span class="progress-bar-fill mine" :style="{ width: myProgressPct + '%' }"></span></span>
           </div>
-          <div class="progress-line" v-if="state.race.active" :aria-label="t('race.opponentProgress', { pct: state.race.opponentPct })">
+          <!-- FFA (jeder gegen jeden): ein Fortschrittsbalken je Gegner. -->
+          <template v-if="state.race.active && state.race.ffa">
+            <div class="progress-line" v-for="o in state.race.opponents" :key="o.id" :class="{ 'ffa-out': o.out }" :aria-label="t('race.opponentProgress', { pct: o.pct })">
+              <span class="progress-label">{{ o.name }}<template v-if="o.out"> · {{ t('race.ffaOutTag') }}</template></span>
+              <span class="progress-pct">{{ o.pct }}%</span>
+              <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: o.pct + '%', background: o.color }"></span></span>
+            </div>
+          </template>
+          <!-- Strikt 1v1: einzelner Gegner-Balken + Leben-Anzeige. -->
+          <div class="progress-line" v-if="state.race.active && !state.race.ffa" :aria-label="t('race.opponentProgress', { pct: state.race.opponentPct })">
             <span class="progress-label">{{ state.race.opponentName }}</span>
             <span class="progress-pct">{{ state.race.opponentPct }}%</span>
             <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.race.opponentPct + '%', background: state.race.opponentColor }"></span></span>
           </div>
-          <div class="progress-line opponent-lives-line" v-if="state.race.active" :aria-label="t('win.mistakesCount', { count: state.race.opponentMistakes })">
+          <div class="progress-line opponent-lives-line" v-if="state.race.active && !state.race.ffa" :aria-label="t('win.mistakesCount', { count: state.race.opponentMistakes })">
             <span class="progress-label"></span>
             <span class="opponent-lives">
               <span v-for="(full,i) in opponentLivesArr" :key="i" class="heart" :class="{empty:!full}">
@@ -5154,13 +5244,13 @@ const App = {
               </button>
             </div>
           </template>
-          <p class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: state.coop.raceMode ? 2 : COOP_MAX_PLAYERS }) }}</p>
+          <p class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: (state.coop.raceMode && !state.coop.ffaMode) ? 2 : COOP_MAX_PLAYERS }) }}</p>
           <button v-if="state.coop.teamMode" class="btn btn-primary" :disabled="!canStartTeamMatch()" @click="startTeamMatch">{{ t('team.startMatch') }}</button>
           <button v-else-if="state.coop.raceMode" class="btn btn-primary" :disabled="!canStartRaceMatch()" @click="startRaceMatch">{{ t('race.startMatch') }}</button>
           <button v-else class="btn btn-primary" :disabled="!canStartCoopMatch()" @click="startCoopMatch">{{ t('coop.startMatch') }}</button>
           <div v-if="state.coop.teamMode ? !canStartTeamMatch() : (state.coop.raceMode ? !canStartRaceMatch() : !canStartCoopMatch())" class="coop-waiting">
             <div class="spinner"></div>
-            <div class="loading-tx">{{ t(state.coop.teamMode ? 'team.waitingForTeams' : (state.coop.raceMode ? 'race.waitingForOpponent' : 'coop.waitingForGuest')) }}</div>
+            <div class="loading-tx">{{ t(state.coop.teamMode ? 'team.waitingForTeams' : (state.coop.raceMode ? (state.coop.ffaMode ? 'race.waitingForPlayers' : 'race.waitingForOpponent') : 'coop.waitingForGuest')) }}</div>
           </div>
         </template>
         <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
@@ -5186,7 +5276,7 @@ const App = {
             <b v-if="state.coop.teamMode">{{ p.team ? t('team.label'+p.team) : t('team.unassigned') }}</b>
           </span>
         </div>
-        <p v-if="state.coop.waitingForGuest && state.coop.myId" class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: state.coop.raceMode ? 2 : COOP_MAX_PLAYERS }) }}</p>
+        <p v-if="state.coop.waitingForGuest && state.coop.myId" class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: (state.coop.raceMode && !state.coop.ffaMode) ? 2 : COOP_MAX_PLAYERS }) }}</p>
         <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
         <button class="btn btn-ghost" style="margin-top:4px" @click="goBack()">{{ t('common.back') }}</button>
       </div>
@@ -5989,6 +6079,9 @@ const App = {
         <p class="coop-tagline">{{ t('race.choiceHint') }}</p>
         <button class="btn btn-primary" @click="goRace('1v1')">
           <span class="btn-ic"><span class="ei" v-html="ic('versus')"></span></span><span class="btn-tx"><b>{{ t('race.choice1v1') }}</b><small>{{ t('home.raceHint') }}</small></span>
+        </button>
+        <button class="btn btn-ghost" @click="goRace('ffa')">
+          <span class="btn-ic"><span class="ei" v-html="ic('swords')"></span></span><span class="btn-tx"><b>{{ t('race.choiceFfa') }}</b><small>{{ t('race.choiceFfaHint') }}</small></span>
         </button>
         <button class="btn btn-ghost" @click="goRace('2v2')">
           <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('race.choice2v2') }}</b><small>{{ t('team.assignHint') }}</small></span>

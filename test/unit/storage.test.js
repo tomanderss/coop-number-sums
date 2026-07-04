@@ -358,8 +358,19 @@ describe('storage.race', () => {
 
   const EMPTY_MODE = { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null };
 
-  test('loadRace returns empty defaults for both modes when nothing is stored', () => {
-    assert.deepEqual(loadRace(), { '1v1': EMPTY_MODE, '2v2': EMPTY_MODE });
+  test('loadRace returns empty defaults for all modes when nothing is stored', () => {
+    assert.deepEqual(loadRace(), { '1v1': EMPTY_MODE, '2v2': EMPTY_MODE, 'ffa': EMPTY_MODE });
+  });
+
+  test('recordRaceWin/Loss track the ffa (free-for-all) bucket independently', () => {
+    recordRaceWin('ffa', 4200);
+    const r = recordRaceLoss('ffa');
+    assert.equal(r['ffa'].racesPlayed, 2);
+    assert.equal(r['ffa'].racesWon, 1);
+    assert.equal(r['ffa'].racesLost, 1);
+    assert.equal(r['ffa'].fastestWinMs, 4200);
+    assert.deepEqual(r['1v1'], EMPTY_MODE);
+    assert.deepEqual(r['2v2'], EMPTY_MODE);
   });
 
   test('recordRaceWin increments played/won and sets fastestWinMs for the given mode', () => {
