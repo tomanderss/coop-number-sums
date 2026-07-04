@@ -45,6 +45,15 @@ describe('shopitems.catalog', () => {
     assert.equal(catItems('frame').length, 7);
   });
 
+  test('badge category has 12 badges and badgeIcon only resolves known ids', async () => {
+    const { badgeIcon } = await import('../../js/shopitems.js');
+    assert.equal(catItems('badge').length, 12);
+    assert.equal(badgeIcon('krone'), '👑');
+    assert.equal(badgeIcon('<script>'), '');
+    assert.equal(badgeIcon('neon'), '');  // Palette-ID darf nicht als Badge rendern
+    assert.equal(badgeIcon(null), '');
+  });
+
   test('palette category has 8 purchasable palettes with fx params', () => {
     const pals = catItems('palette');
     assert.equal(pals.length, 8);

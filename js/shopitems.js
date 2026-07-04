@@ -92,6 +92,31 @@ export const FRAME_ITEMS = [
 ];
 SHOP_CATALOG.push(...FRAME_ITEMS);
 
+// 🏅 Profil-Badges: Emoji-Abzeichen neben dem eigenen Namen — sichtbar im
+// Coop-Roster (IDENTITY/ROSTER), in der Freundesliste (Präsenz) und in der
+// Bestenliste. Fremde Clients rendern NUR bekannte Katalog-IDs (badgeIcon-
+// Lookup) — beliebige Strings aus der RTDB werden nie direkt angezeigt.
+export const BADGE_ITEMS = [
+  { id: 'stern',   cat: 'badge', icon: '🌟', tier: 1 },
+  { id: 'klee',    cat: 'badge', icon: '🍀', tier: 1 },
+  { id: 'blitz',   cat: 'badge', icon: '⚡', tier: 1 },
+  { id: 'flamme',  cat: 'badge', icon: '🔥', tier: 2 },
+  { id: 'einhorn', cat: 'badge', icon: '🦄', tier: 2 },
+  { id: 'rakete',  cat: 'badge', icon: '🚀', tier: 2 },
+  { id: 'gehirn',  cat: 'badge', icon: '🧠', tier: 2 },
+  { id: 'alien',   cat: 'badge', icon: '👽', tier: 2 },
+  { id: 'trophae', cat: 'badge', icon: '🏆', tier: 3 },
+  { id: 'diamant', cat: 'badge', icon: '💎', tier: 3 },
+  { id: 'drache',  cat: 'badge', icon: '🐉', tier: 3 },
+  { id: 'krone',   cat: 'badge', icon: '👑', tier: 4 },
+];
+SHOP_CATALOG.push(...BADGE_ITEMS);
+// Sicherer Icon-Lookup für Fremd-Daten (unbekannte ID ⇒ leer, nie Roh-String).
+export function badgeIcon(id) {
+  const it = shopItemById(id);
+  return it && it.cat === 'badge' ? it.icon : '';
+}
+
 export function shopItemById(id) { return SHOP_CATALOG.find((i) => i.id === id) || null; }
 export function catItems(cat) { return SHOP_CATALOG.filter((i) => i.cat === cat); }
 export function shopItemPrice(idOrItem) {

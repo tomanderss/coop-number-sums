@@ -396,7 +396,7 @@ function isPermissionDenied(e) { return !!e && (e.code === 'PERMISSION_DENIED' |
 
 // Eigene Präsenz veröffentlichen. game=null ⇒ online im Menü; game={...} ⇒ in einer Partie.
 // onDisconnect setzt den Knoten beim Verbindungsabbruch auf offline.
-export async function publishPresence(game = null) {
+export async function publishPresence(game = null, badge = null) {
   if (presenceBlocked) return;
   try {
     const fb = await ensureFirebase();
@@ -404,7 +404,7 @@ export async function publishPresence(game = null) {
     if (!u || u.isAnonymous) return;
     presenceRef = fb.ref(fb.db, `status/${u.uid}`);
     fb.onDisconnect(presenceRef).set({ online: false, lastActive: fb.serverTimestamp(), game: null });
-    await fb.set(presenceRef, { online: true, lastActive: fb.serverTimestamp(), game: game || null });
+    await fb.set(presenceRef, { online: true, lastActive: fb.serverTimestamp(), game: game || null, badge: badge || null });
   } catch (e) {
     if (isPermissionDenied(e)) { presenceBlocked = true; log('account', 'Präsenz deaktiviert (PERMISSION_DENIED — RTDB-Rules nicht veröffentlicht?)'); }
     else log('account', 'publishPresence fehlgeschlagen', e);
@@ -424,7 +424,7 @@ export async function clearPresence() {
 // voll cheat-sicher; Rules erlauben nur den eigenen Eintrag zu schreiben) ───────
 // Eigene (perfekte) Bestzeit für eine Schwierigkeit veröffentlichen. Überschreibt
 // den eigenen Eintrag nur, wenn die neue Zeit besser ist (oder noch keiner da war).
-export async function publishBestTime(difficulty, timeMs, username) {
+export async function publishBestTime(difficulty, timeMs, username, badge = null) {
   try {
     const fb = await ensureFirebase();
     const u = currentUser(fb);
@@ -432,7 +432,7 @@ export async function publishBestTime(difficulty, timeMs, username) {
     const ref = fb.ref(fb.db, `leaderboard/${difficulty}/${u.uid}`);
     const prev = (await fb.get(ref)).val();
     if (prev && typeof prev.timeMs === 'number' && prev.timeMs <= timeMs) return;
-    await fb.set(ref, { username: username || '', timeMs, ts: fb.serverTimestamp() });
+    await fb.set(ref, { username: username || '', timeMs, ts: fb.serverTimestamp(), badge: badge || null });
     log('account', 'Bestzeit veröffentlicht', { difficulty, timeMs });
   } catch (e) { log('account', 'publishBestTime fehlgeschlagen', e); }
 }
