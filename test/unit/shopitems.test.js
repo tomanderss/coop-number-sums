@@ -41,6 +41,10 @@ describe('shopitems.catalog', () => {
     assert.equal(catItems('font').length, 7);
   });
 
+  test('frame category has 7 board frames', () => {
+    assert.equal(catItems('frame').length, 7);
+  });
+
   test('palette category has 8 purchasable palettes with fx params', () => {
     const pals = catItems('palette');
     assert.equal(pals.length, 8);

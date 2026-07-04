@@ -78,6 +78,20 @@ export const FONT_ITEMS = [
 ];
 SHOP_CATALOG.push(...FONT_ITEMS);
 
+// 🖼️ Brett-Rahmen: dekorative Ring-Overlays am Brett (.board.frame-<id>,
+// ::before/::after in styles.css). Animationen ausschließlich transform/
+// opacity (Orbiter-Glanzpunkte, Puls/Flackern) — GPU-Compositor-Regel.
+export const FRAME_ITEMS = [
+  { id: 'holz',       cat: 'frame', icon: '🪵', tier: 1 },
+  { id: 'goldbarock', cat: 'frame', icon: '🏛️', tier: 2 },
+  { id: 'eis',        cat: 'frame', icon: '❄️', tier: 2 },
+  { id: 'neonpuls',   cat: 'frame', icon: '💜', tier: 3 },
+  { id: 'feuer',      cat: 'frame', icon: '🔥', tier: 3 },
+  { id: 'regenbogen', cat: 'frame', icon: '🌈', tier: 3 },
+  { id: 'galaxie',    cat: 'frame', icon: '🌌', tier: 4 },
+];
+SHOP_CATALOG.push(...FRAME_ITEMS);
+
 export function shopItemById(id) { return SHOP_CATALOG.find((i) => i.id === id) || null; }
 export function catItems(cat) { return SHOP_CATALOG.filter((i) => i.cat === cat); }
 export function shopItemPrice(idOrItem) {

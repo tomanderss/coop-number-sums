@@ -494,7 +494,6 @@ const SHOP_ITEMS = [
   { id: 'skinPresets', icon: '🎨' },
   { id: 'coopColors', icon: '✨' },
   { id: 'profileBadges', icon: '🏅' },
-  { id: 'boardFrames', icon: '🖼️' },
   { id: 'moreSoon', icon: '➕' },
 ];
 // Shop öffnen/schließen (eigener Screen; Coins oben, WIP-Kaufkarten).
@@ -586,6 +585,11 @@ function boardFontClass() {
   const id = shopEquippedId('font');
   return id && id !== 'classic' ? 'font-' + id : '';
 }
+// Brett-Klasse des ausgerüsteten Rahmens ('' = keiner).
+function boardFrameClass() {
+  const id = shopEquippedId('frame');
+  return id && id !== 'none' ? 'frame-' + id : '';
+}
 // Aktive Paletten-Transformation für cellStyle (null = Klassisch/unverändert).
 function activePaletteFx() {
   const it = shopItemById(shopEquippedId('palette'));
@@ -610,6 +614,7 @@ function shopCategoryTitle(cat) {
   if (cat === 'theme') return '🖌️ ' + t('shop.item.appThemes');
   if (cat === 'sfx') return '🎵 ' + t('shop.item.soundPacks');
   if (cat === 'font') return '🔢 ' + t('shop.item.numberFonts');
+  if (cat === 'frame') return '🖼️ ' + t('shop.item.boardFrames');
   return t('shop.title');
 }
 
@@ -4079,7 +4084,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
-      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass,
+      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4276,7 +4281,7 @@ const App = {
         </div>
 
         <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
-          <div class="board" :class="[skinBoardClasses, boardFontClass()]" :style="[gridStyle, skinVars]">
+          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass()]" :style="[gridStyle, skinVars]">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolved(c-1), pulse: state.justResolved['col-'+(c-1)]}">
               <template v-if="!colResolved(c-1)">
@@ -4848,6 +4853,7 @@ const App = {
             <span class="shop-card-ic">{{ it.icon }}</span>
             <button v-if="it.cat === 'sfx'" class="shop-fx-preview" @click="previewSfxPack(it)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             <span v-if="it.cat === 'font'" class="font-demo" :class="'font-' + it.id">123</span>
+            <span v-if="it.cat === 'frame'" class="frame-demo" :class="'frame-' + it.id"></span>
             <span v-if="shopPreviewDots(it)" class="shop-pal-dots"><i v-for="(c, di) in shopPreviewDots(it)" :key="di" :style="{ background: c }"></i></span>
             <span class="shop-card-name">{{ t('shop.it.' + it.id) }}</span>
             <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it)" @click="buyShopItem(it)">💰 {{ shopItemPrice(it) }}</button>
@@ -4880,6 +4886,11 @@ const App = {
             <span class="shop-card-ic">🔢</span>
             <span class="shop-card-name">{{ t('shop.item.numberFonts') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('font') + 1 }}/{{ shopCatItems('font').length + 1 }} ›</span>
+          </button>
+          <button class="shop-card shop-cat" @click="openShopCategory('frame')">
+            <span class="shop-card-ic">🖼️</span>
+            <span class="shop-card-name">{{ t('shop.item.boardFrames') }}</span>
+            <span class="shop-cat-count">{{ shopOwnedCount('frame') + 1 }}/{{ shopCatItems('frame').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('theme')">
             <span class="shop-card-ic">🖌️</span>
