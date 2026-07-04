@@ -191,6 +191,20 @@ stroke('calendar', '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4
 filled('shield', '<path d="M12 3l7 2.5v5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5v-5z" fill="#5a8fd9" stroke="#2a6bb0" stroke-width="1" stroke-linejoin="round"/><path d="M9 12l2 2 4-4.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>');
 stroke('runner', '<circle cx="15" cy="4.6" r="2"/><path d="M15 7l-2.5 4L9 10.5M15 7l1.5 4 3 1.5M12.5 11l-.5 4.5-3 4M12 15.5l2.5 4.5"/>');
 
+// ── Weitere UI-Glyphen (Emoji-Sweep) ─────────────────────────────────────────
+stroke('pause', '<path d="M8 5v14M16 5v14"/>');
+stroke('hourglass', '<path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/>');
+
+// Schwierigkeits-Glyphen: farbige Stufen-Punkte (bringen eigene Farbe mit) +
+// thematische „Härtegrade" (Schädel/Meteor/Geist/Grabstein).
+filled('lvl-green',  '<circle cx="12" cy="12" r="8" fill="#3fb27f" stroke="#2a7d59" stroke-width="1.3"/>');
+filled('lvl-yellow', '<circle cx="12" cy="12" r="8" fill="#f2c024" stroke="#c99a10" stroke-width="1.3"/>');
+filled('lvl-orange', '<circle cx="12" cy="12" r="8" fill="#f2953b" stroke="#c96f1e" stroke-width="1.3"/>');
+filled('lvl-red',    '<circle cx="12" cy="12" r="8" fill="#e7405a" stroke="#b02a40" stroke-width="1.3"/>');
+filled('lvl-purple', '<circle cx="12" cy="12" r="8" fill="#9a6bff" stroke="#6b3fd0" stroke-width="1.3"/>');
+filled('ghost', '<path d="M6 11a6 6 0 0 1 12 0v9l-2-1.6-2 1.6-2-1.6-2 1.6-2-1.6V11z" fill="#e6e9ff" stroke="#a9b0e0" stroke-width="1" stroke-linejoin="round"/><circle cx="9.5" cy="11" r="1.1" fill="#3a3f57"/><circle cx="14.5" cy="11" r="1.1" fill="#3a3f57"/>');
+filled('grave', '<path d="M7 21V10.5a5 5 0 0 1 10 0V21z" fill="#9aa3ad" stroke="#6b7580" stroke-width="1" stroke-linejoin="round"/><path d="M12 7.5v5M9.7 9.8h4.6" fill="none" stroke="#6b7580" stroke-width="1.4"/><path d="M5 21h14" stroke="#5a636e" stroke-width="1.4"/>');
+
 // Öffentliches Set aller Namen (für Tests).
 export const ICON_NAMES = Object.keys(PATHS);
 

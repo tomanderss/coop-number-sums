@@ -27,7 +27,7 @@ test.describe('achievements', () => {
     await solveActivePuzzle(page);
     await dismissStreakModal(page);
     await expect(page.locator('.result-card.win')).toBeVisible();
-    await expect(page.locator('.toast')).toContainText('🏅');
+    await expect(page.locator('.toast')).toContainText('Achievement');
     await page.locator('.result-card.win .btn-ghost').last().click(); // "Zum Menü"
     await expect(page.locator('.screen.home')).toBeVisible();
 

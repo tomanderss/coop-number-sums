@@ -1553,7 +1553,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .cl-entry .cl-head b { font-size: 1rem; color: var(--accent2); }
 .cl-entry .cl-head span { font-size: .76rem; color: var(--text3); }
 .cl-entry ul, .whatsnew { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
-.cl-entry li, .whatsnew li { font-size: .86rem; color: var(--text2); line-height: 1.4; }
+.cl-entry li, .whatsnew li { font-size: .86rem; color: var(--text2); line-height: 1.4; position: relative; padding-left: 1.1em; }
+/* Eigener Aufzählungspunkt (ersetzt das frühere ✦-Zeichen). */
+.cl-entry li::before, .whatsnew li::before { content: ""; position: absolute; left: 0; top: .55em; width: 5px; height: 5px; border-radius: 50%; background: var(--accent2); }
 .confirm-msg { color: var(--text2); margin: 0; }
 .confirm-actions { display: flex; gap: 10px; }
 .confirm-actions .btn { flex: 1; }
@@ -2040,6 +2042,10 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .ico-gear { transform: scale(.86); }
 /* Wrapper, wenn ein Icon per <span v-html> inline neben Text steht. */
 .ico-lead { display: inline-flex; align-items: center; margin-right: .4em; vertical-align: -0.14em; }
+/* Inline-Icon (Emoji-Ersatz im Fließtext/Chips/Tiles): erbt Textgröße & -farbe,
+   die enthaltene <svg>.ico skaliert über 1em automatisch auf die Umgebungsgröße. */
+.ei { display: inline-flex; align-items: center; justify-content: center; vertical-align: -0.14em; line-height: 0; }
+.ei .ico { width: 1em; height: 1em; }
 
 /* Inline neben einem Namen (Home-Chip, Coop-Roster, Freunde, Bestenliste). */
 .badge-medal-inline { display: inline-flex; vertical-align: -0.3em; margin-right: 0.3em; flex: none; }

@@ -463,7 +463,7 @@ export const CHANGELOG = [
     "version": "1.19",
     "date": "01.07.2026",
     "changes": [
-      "Neue Freunde-Funktion: 👫-Icon im Hauptmenü öffnet eine Freundesliste mit Live-Status (online/offline/im Spiel inkl. Modus, Schwierigkeit, Größe und Fortschrittsbalken); Freunde per Benutzername hinzufügen, Anfragen annehmen/ablehnen. Zweiter Tab „Bestenlisten\" folgt."
+      "Neue Freunde-Funktion: -Icon im Hauptmenü öffnet eine Freundesliste mit Live-Status (online/offline/im Spiel inkl. Modus, Schwierigkeit, Größe und Fortschrittsbalken); Freunde per Benutzername hinzufügen, Anfragen annehmen/ablehnen. Zweiter Tab „Bestenlisten\" folgt."
     ]
   },
   {
@@ -492,7 +492,7 @@ export const CHANGELOG = [
     "date": "01.07.2026",
     "changes": [
       "Schwierigkeitsauswahl: die Münz-Belohnung überdeckt nicht mehr den Namen der Schwierigkeit",
-      "Admin-Kennzeichen aus dem Hauptmenü entfernt (überdeckte Icons); der Admin-Status steht jetzt nur in den Einstellungen unter Konto (👑)"
+      "Admin-Kennzeichen aus dem Hauptmenü entfernt (überdeckte Icons); der Admin-Status steht jetzt nur in den Einstellungen unter Konto ()"
     ]
   },
   {
@@ -511,7 +511,7 @@ export const CHANGELOG = [
       "Einstellungen: Zurück-Button ist jetzt oben links, das Menü oben rechts (Seitenleiste schiebt von rechts rein)",
       "Coins nur noch in der Shop-Übersicht sichtbar (nicht mehr im Hauptmenü); Coin-Symbol gewechselt (war einem Mond zu ähnlich)",
       "Benutzername ist jetzt in den Einstellungen unter „Konto\" änderbar (mit Eindeutigkeitsprüfung); der freie Anzeigename bleibt davon getrennt",
-      "Admin erweitert: In-Game-Abzeichen „👑 Administrator\", jeden Nutzer umfassend bearbeiten (Username, Rolle, Guthaben, Inventar, beliebige Profilfelder) und Passwort-Reset-Mail auslösen"
+      "Admin erweitert: In-Game-Abzeichen „ Administrator\", jeden Nutzer umfassend bearbeiten (Username, Rolle, Guthaben, Inventar, beliebige Profilfelder) und Passwort-Reset-Mail auslösen"
     ]
   },
   {
@@ -609,7 +609,7 @@ export const CHANGELOG = [
       "Daten-Fundament für kommende Accounts & Skins: Inventar, Guthaben und Profil werden nun in Backups und im Export/Import mitgesichert",
       "Optionale Konten: Mit E-Mail + Benutzername + Passwort anmelden und Einstellungen, Statistik und Freischaltungen geräteübergreifend in der Cloud sichern (Einstellungen ▸ Konto). Ohne Konto bleibt wie bisher alles lokal.",
       "Admin-Bereich (nur für Administratoren): Spieler per Benutzername finden, Geschenke (z. B. Skins) und Rollen vergeben.",
-      "✨ Zur Feier von 1.0: freischaltbarer „Dynamischer Skin\" — deine persönliche Farbe wird zu einer sich drehenden, leuchtenden Einkreisung/Umrandung. Automatisch beim Sprung auf 1.0 oder per Code freigeschaltet, voll anpassbar (Stil, Farben, Tempo, Leuchten, Dicke) in den Einstellungen."
+      "Zur Feier von 1.0: freischaltbarer „Dynamischer Skin\" — deine persönliche Farbe wird zu einer sich drehenden, leuchtenden Einkreisung/Umrandung. Automatisch beim Sprung auf 1.0 oder per Code freigeschaltet, voll anpassbar (Stil, Farben, Tempo, Leuchten, Dicke) in den Einstellungen."
     ]
   },
   {
@@ -702,21 +702,21 @@ export const CHANGELOG = [
     "version": "0.154",
     "date": "29.06.2026",
     "changes": [
-      "Schwierigkeiten angepasst: 12×12 = „Dikka was\", 13×13 = „Bismillah\", neu 14×14 = „R.I.P.\" 🪦 (die Stufe „Çüş\" entfällt)"
+      "Schwierigkeiten angepasst: 12×12 = „Dikka was\", 13×13 = „Bismillah\", neu 14×14 = „R.I.P.\" (die Stufe „Çüş\" entfällt)"
     ]
   },
   {
     "version": "0.153",
     "date": "29.06.2026",
     "changes": [
-      "Neue Schwierigkeit „Çüş\" 😵‍💫 (12×12) – schließt die Lücke zwischen Mashallah (11×11) und Dikka was (13×13), schnell generierbar und weiterhin ohne Raten lösbar"
+      "Neue Schwierigkeit „Çüş\" (12×12) – schließt die Lücke zwischen Mashallah (11×11) und Dikka was (13×13), schnell generierbar und weiterhin ohne Raten lösbar"
     ]
   },
   {
     "version": "0.152",
     "date": "29.06.2026",
     "changes": [
-      "Neue Schwierigkeit „Bismillah\" ☄️ (14×14) – das bislang größte Feld, weiterhin garantiert ohne Raten lösbar (dank Vorgenerierung im Hintergrund startet es trotz aufwändiger Generierung normalerweise sofort)",
+      "Neue Schwierigkeit „Bismillah\" (14×14) – das bislang größte Feld, weiterhin garantiert ohne Raten lösbar (dank Vorgenerierung im Hintergrund startet es trotz aufwändiger Generierung normalerweise sofort)",
       "Vorgenerierung priorisiert jetzt große Felder, damit sie früher bereitliegen"
     ]
   },
@@ -724,7 +724,7 @@ export const CHANGELOG = [
     "version": "0.151",
     "date": "29.06.2026",
     "changes": [
-      "Neue Schwierigkeit „Dikka was\" 🫠 (13×13) – größere Felder, längeres Knobeln, weiterhin garantiert ohne Raten lösbar",
+      "Neue Schwierigkeit „Dikka was\" (13×13) – größere Felder, längeres Knobeln, weiterhin garantiert ohne Raten lösbar",
       "Rätsel werden jetzt im Hintergrund vorgeneriert – der Spielstart ist dadurch sofort, ohne spürbare Wartezeit oder kurzes Aufblitzen",
       "Generierung großer Felder deutlich beschleunigt",
       "Mehr Cage-Farben für klarere Unterscheidbarkeit, besonders auf großen Feldern",
@@ -967,7 +967,7 @@ export const CHANGELOG = [
     "version": "0.119",
     "date": "26.06.2026",
     "changes": [
-      "Hinweis ist jetzt dreistufig: erst nur den relevanten Bereich markieren, dann die Leitfrage einblenden, dann auflösen — und das Hinweis-Banner lässt sich per ✕ wegklicken"
+      "Hinweis ist jetzt dreistufig: erst nur den relevanten Bereich markieren, dann die Leitfrage einblenden, dann auflösen — und das Hinweis-Banner lässt sich per wegklicken"
     ]
   },
   {
@@ -1403,7 +1403,7 @@ export const CHANGELOG = [
     "version": "0.64",
     "date": "22.06.2026",
     "changes": [
-      "🏅 Achievements/Badges: 15 Erfolge zum Freischalten (erster Sieg, Siegesserien, perfektes Spiel, schwerste Stufe, Coop-Sieg, Daily-/Boss-Streaks u.v.m.) — Übersicht über die Stats-Seite erreichbar"
+      "Achievements/Badges: 15 Erfolge zum Freischalten (erster Sieg, Siegesserien, perfektes Spiel, schwerste Stufe, Coop-Sieg, Daily-/Boss-Streaks u.v.m.) — Übersicht über die Stats-Seite erreichbar"
     ]
   },
   {
@@ -1889,7 +1889,7 @@ export const CHANGELOG = [
     "version": "0.1",
     "date": "16.06.2026",
     "changes": [
-      "Erste Version von Coop Number Sums 🎉",
+      "Erste Version von Coop Number Sums",
       "Logik-Rätsel mit Reihen-, Spalten- und farbigen Regions-Summen",
       "Fünf Feldgrößen: Klein bis Unendlichkeit (4×4 bis 14×14)",
       "Vier Schwierigkeitsgrade: Leicht, Mittel, Schwer, Experte",
@@ -1898,7 +1898,7 @@ export const CHANGELOG = [
       "Hinweise, Rückgängig, Auto-Durchstreichen, Timer & Statistik",
       "Dunkelmodus (Standard) und Hellmodus",
       "Offline spielbar (PWA), Fortsetzen-Funktion und Auto-Backups",
-      "Coop-Modus in Vorbereitung 👥"
+      "Coop-Modus in Vorbereitung"
     ]
   }
 ];

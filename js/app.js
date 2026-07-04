@@ -202,7 +202,7 @@ const state = reactive({
   // Freunde & Präsenz (nur mit Account nutzbar)
   friends: {
     open: false, tab: 'friends',   // 'friends' | 'leaderboard'
-    addOpen: false,  // ➕-Popup „Freund hinzufügen" (im Kopf, statt Inline-Formular)
+ addOpen: false, // -Popup „Freund hinzufügen" (im Kopf, statt Inline-Formular)
     addName: '', addBusy: false, addError: null, addNotice: null,
     list: [], requests: [], presence: {},   // presence: { uid: {online, game, lastActive} }
   },
@@ -484,12 +484,12 @@ let settingsReturn = null;
 // sortiert: spielrelevantes zuerst, Farbe/Anpassung als eigener Reiter, Konto,
 // Daten/Sicherung ganz zuletzt.
 const SETTINGS_SECTIONS = [
-  { id: 'spiel',       ic: '🎮', key: 'settings.tabGame' },
-  { id: 'darstellung', ic: '🌓', key: 'settings.secAppearance' },
-  { id: 'farbe',       ic: '🎨', key: 'settings.secColors' },
-  { id: 'ton',         ic: '🔊', key: 'settings.tabSound' },
-  { id: 'konto',       ic: '👤', key: 'settings.tabAccount' },
-  { id: 'daten',       ic: '💾', key: 'settings.tabData' },
+  { id: 'spiel',       ic: 'controller', key: 'settings.tabGame' },
+  { id: 'darstellung', ic: 'theme', key: 'settings.secAppearance' },
+  { id: 'farbe',       ic: 'palette', key: 'settings.secColors' },
+  { id: 'ton',         ic: 'sound', key: 'settings.tabSound' },
+  { id: 'konto',       ic: 'user', key: 'settings.tabAccount' },
+  { id: 'daten',       ic: 'save', key: 'settings.tabData' },
 ];
 // Münz-Belohnung einer Schwierigkeit für die Anzeige auf der Auswahlkarte
 // (Basiswert; im Coop/Wettkampf verdoppelt). Perfekt-Bonus bleibt bewusst außen
@@ -631,7 +631,7 @@ function shopDemoSkin() {
   return { vars: buildSkinVars(s), classes: buildSkinClasses(s, true) };
 }
 // Badge-Demo: eigener Name + Vorschau-/ausgerüstetes Abzeichen als Chip.
-function shopDemoBadgeName() { return myUsername() || state.settings.coopName || '🙂'; }
+function shopDemoBadgeName() { return myUsername() || state.settings.coopName || '?'; }
 // Anzeige-Elemente der Gratis-Standard-Karte („Klassisch"): dieselbe Vorschau
 // wie auf den Kauf-Karten — Original-Cage-Farben bzw. die eingebaute Farbwelt.
 function shopFreeDots(cat) {
@@ -703,13 +703,13 @@ function shopPreviewDots(it) {
 }
 // Kategorie-Titel für die Shop-Topbar (Kategorie-Karten nutzen dieselben Keys).
 function shopCategoryTitle(cat) {
-  if (cat === 'winfx') return '🎉 ' + t('shop.winFxTitle');
-  if (cat === 'palette') return '🌈 ' + t('shop.item.boardPalettes');
-  if (cat === 'theme') return '🖌️ ' + t('shop.item.appThemes');
-  if (cat === 'sfx') return '🎵 ' + t('shop.item.soundPacks');
-  if (cat === 'font') return '🔢 ' + t('shop.item.numberFonts');
-  if (cat === 'frame') return '🖼️ ' + t('shop.item.boardFrames');
-  if (cat === 'skinpreset') return '🎨 ' + t('shop.item.skinPresets');
+  if (cat === 'winfx') return t('shop.winFxTitle');
+  if (cat === 'palette') return t('shop.item.boardPalettes');
+  if (cat === 'theme') return t('shop.item.appThemes');
+  if (cat === 'sfx') return t('shop.item.soundPacks');
+  if (cat === 'font') return t('shop.item.numberFonts');
+  if (cat === 'frame') return t('shop.item.boardFrames');
+  if (cat === 'skinpreset') return t('shop.item.skinPresets');
   return t('shop.title');
 }
 
@@ -2997,7 +2997,7 @@ const WINFX_DURATION = {
   confetti: [3500, 4800],
   blackhole: [3500, 3600],   // Sog ~2,7s + Supernova endet bei ~3,3s
   chain: [3200, 3400],       // Diagonalwelle (max delay ~1,7s) + Ringe 0,9s
-  shatter: [2600, 2800],     // Scherbenflug ≤ 2,05s + 💎-Fall
+ shatter: [2600, 2800], // Scherbenflug ≤ 2,05s + -Fall
   fireworks: [3400, 4600],   // letzte Burst-Welle je nach Anzahl
   meteor: [4600, 5600], gewitter: [4400, 5200], portal: [4200, 5000],
   feuertornado: [4200, 5000], synthgrid: [4600, 5600],
@@ -3548,9 +3548,9 @@ function closeAdminEdit() { state.account.adminEditUser = null; state.account.ad
 // Sektionen mit Icon + i18n-Label; bekannte zuerst in sinnvoller Reihenfolge,
 // alles Übrige (z.B. activeGame) generisch dahinter — nichts bleibt uneditierbar.
 const ADMIN_DATA_SECTIONS = [
-  { key: 'wallet', ic: '💰' }, { key: 'daily', ic: '🔥' }, { key: 'stats', ic: '📊' },
-  { key: 'achievements', ic: '🏅' }, { key: 'race', ic: '⚔️' }, { key: 'settings', ic: '⚙️' },
-  { key: 'profile', ic: '👤' }, { key: 'history', ic: '📜' },
+  { key: 'wallet', ic: 'coin' }, { key: 'daily', ic: 'flame' }, { key: 'stats', ic: 'chart' },
+  { key: 'achievements', ic: 'medal' }, { key: 'race', ic: 'swords' }, { key: 'settings', ic: 'gear' },
+  { key: 'profile', ic: 'user' }, { key: 'history', ic: 'scroll' },
 ];
 const ADMIN_DATA_META_KEYS = ['rev', 'ts', 'v', 'label'];  // Sync-Metadaten, nie editieren
 async function adminReloadData() {
@@ -3569,7 +3569,7 @@ function adminDataSections() {
   const known = ADMIN_DATA_SECTIONS.filter(s => d[s.key] !== undefined || s.key === 'wallet');
   const rest = Object.keys(d)
     .filter(k => !ADMIN_DATA_SECTIONS.some(s => s.key === k) && !ADMIN_DATA_META_KEYS.includes(k))
-    .sort().map(k => ({ key: k, ic: '📦' }));
+    .sort().map(k => ({ key: k, ic: 'box' }));
   return [...known, ...rest];
 }
 function adminSectionLabel(key) { const k = 'admin.sec.' + key; const s = t(k); return s === k ? key : s; }
@@ -4513,25 +4513,25 @@ const App = {
             </span>
           </button>
           <button v-if="state.resumeAvailableCoop" class="btn btn-resume" @click="resumeCoopGame">
-            <span class="btn-ic">👥</span>
+            <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span>
             <span class="btn-tx"><b>{{ t('home.resumeCoop') }}</b>
               <small>{{ t('difficulty.'+state.resumeAvailableCoop.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailableCoop.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailableCoop.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailableCoop.elapsed||0) }}</small>
             </span>
           </button>
         </div>
         <button class="btn btn-primary" @click="coopReset(); navTo('setup')">
-          <span class="btn-ic">🧩</span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
+          <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
         <button class="btn btn-coop" :disabled="!coopAvailable" @click="goCoop">
-          <span class="btn-ic">👥</span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
+          <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
           <span v-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
         </button>
         <button class="btn btn-ghost race-btn" :disabled="!coopAvailable" @click="state.modal='raceChoice'">
-          <span class="btn-ic">🆚</span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
+          <span class="btn-ic"><span class="ei" v-html="ic('versus')"></span></span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
         </button>
         <div class="home-grid">
-          <button class="btn btn-ghost" @click="navTo('stats')"><span class="btn-ic">📊</span> {{ t('home.stats') }}</button>
-          <button class="btn btn-ghost" @click="navTo('history')"><span class="btn-ic">🕘</span> {{ t('home.history') }}</button>
+          <button class="btn btn-ghost" @click="navTo('stats')"><span class="btn-ic"><span class="ei" v-html="ic('chart')"></span></span> {{ t('home.stats') }}</button>
+          <button class="btn btn-ghost" @click="navTo('history')"><span class="btn-ic"><span class="ei" v-html="ic('clock')"></span></span> {{ t('home.history') }}</button>
         </div>
       </div>
       <div class="home-version">v{{ BUILD }}</div>
@@ -4548,11 +4548,11 @@ const App = {
         <div class="setup-label">{{ t('common.difficulty') }}</div>
         <div class="option-grid">
           <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card" :class="{active: state.sel.difficulty===d.id}" @click="state.sel.difficulty=d.id">
-            <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
-            <span class="opt-dimrow"><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span><span class="opt-coins" :title="t('wallet.rewardHint')">💰 {{ coinFor(d, false) }}</span></span>
+            <span class="opt-head"><span class="opt-emoji" v-html="ic(d.emoji)"></span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
+            <span class="opt-dimrow"><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span><span class="opt-coins" :title="t('wallet.rewardHint')"><span class="ei" v-html="ic('coin')"></span> {{ coinFor(d, false) }}</span></span>
             <span class="opt-chips">
               <span class="chip">⌀ {{ avgTimeFor(d.id)!=null ? fmtTime(avgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-              <span class="chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              <span class="chip best-time-chip"><span class="ei" v-html="ic('trophy')"></span> {{ state.stats.byDifficulty[d.id]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
             </span>
           </button>
         </div>
@@ -4575,7 +4575,7 @@ const App = {
               <i v-if="!full && state.coop.active && lifeLossColor(i)" class="heart-strike" :style="{background: lifeLossColor(i)}"></i>
             </span>
           </div>
-          <div class="hud-item timer"><span class="timer-icon">⏱</span><span>{{ fmtTime(state.elapsed) }}</span></div>
+          <div class="hud-item timer"><span class="timer-icon"><span class="ei" v-html="ic('clock')"></span></span><span>{{ fmtTime(state.elapsed) }}</span></div>
         </div>
         <div class="top-actions">
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing' && !state.coop.awaitingStart" @click="pauseGame" :title="t('game.pauseTitle')">
@@ -4601,12 +4601,12 @@ const App = {
              Spielfeld (siehe @media ... orientation:landscape). -->
         <div class="game-sidebar-top">
         <div class="game-meta">
-          <span class="chip">{{ DIFF_BY_ID[state.puzzle.difficulty].emoji }} {{ t('difficulty.'+state.puzzle.difficulty) }}</span>
+          <span class="chip"><span class="ei" v-html="ic(DIFF_BY_ID[state.puzzle.difficulty].emoji)"></span> {{ t('difficulty.'+state.puzzle.difficulty) }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
           <span v-if="state.coop.active" class="chip coop-chip" :class="(state.coop.connected && state.coop.online) ? 'coop-on' : 'coop-off'">
-            👥 {{ t('game.coopTag') }}{{ (state.coop.connected && state.coop.online) ? '' : t('game.coopOfflineSuffix') }}
+            <span class="ei" v-html="ic('users')"></span> {{ t('game.coopTag') }}{{ (state.coop.connected && state.coop.online) ? '' : t('game.coopOfflineSuffix') }}
           </span>
-          <span v-if="state.team.active" class="chip coop-chip">🆚 {{ t('team.label'+state.team.myTeam) }}</span>
+          <span v-if="state.team.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ t('team.label'+state.team.myTeam) }}</span>
           <span v-if="state.team.active" class="chip coop-chip">{{ t('team.opponentProgress', { pct: state.team.opponentPct }) }}</span>
           <span v-if="state.team.active" class="chip coop-chip hearts-chip" :aria-label="t('win.mistakesCount', { count: state.team.opponentMistakes })">
             <span v-for="(full,i) in opponentTeamLivesArr" :key="i" class="heart" :class="{empty:!full}">
@@ -4614,7 +4614,7 @@ const App = {
               <i v-if="!full" class="heart-strike opp-heart-strike"></i>
             </span>
           </span>
-          <span v-if="state.race.active" class="chip coop-chip">🆚 {{ state.race.opponentName }}</span>
+          <span v-if="state.race.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ state.race.opponentName }}</span>
           <span class="zoomctl">
             <!-- Reset-Knopf bewusst LINKS: die Leiste ist rechtsbündig (margin-left:auto),
                  d.h. ein links eingeschobener Knopf wächst nach links und lässt − / +
@@ -4741,7 +4741,7 @@ const App = {
            verdeckt. -->
       <div v-if="state.hintNudge && state.hintNudge.stage>=2 && !state.isTrainingGame && state.status==='playing' && !state.paused" class="hint-banner">
         <div class="hint-text">
-          <b>💡 {{ t('training.group.'+state.hintNudge.group.kind, { n: state.hintNudge.group.ref+1 }) }}<template v-if="state.hintNudge.group.target!=null"> ({{ t('training.target', { n: state.hintNudge.group.target }) }})</template></b>
+          <b><span class="ei" v-html="ic('bulb')"></span> {{ t('training.group.'+state.hintNudge.group.kind, { n: state.hintNudge.group.ref+1 }) }}<template v-if="state.hintNudge.group.target!=null"> ({{ t('training.target', { n: state.hintNudge.group.target }) }})</template></b>
           <span>{{ t('hint.socratic.'+state.hintNudge.reason, { rem: state.hintNudge.rem }) }}</span>
         </div>
         <button class="btn btn-ghost btn-sm" @click="revealHintNudge">{{ t('hint.reveal') }}</button>
@@ -4751,14 +4751,14 @@ const App = {
       <!-- Coop-Lobby: Rätsel ist da, Zeit läuft erst nach "Starten" -->
       <div v-if="state.coop.awaitingStart" class="overlay coop-lobby-overlay">
         <div class="result-card">
-          <div class="result-emoji">👥</div>
+          <div class="result-emoji"><span class="ei" v-html="ic('users')"></span></div>
           <h2>{{ t('coop.lobbyTitle') }}</h2>
           <p class="result-msg">{{ state.coop.generating ? t('coop.generating') : t('coop.lobbyMsg') }}</p>
           <div class="coop-roster" v-if="nonHostPlayers().length">
             <span v-for="p in nonHostPlayers()" :key="p.id" class="player-chip" :class="{ 'ready-chip': p.ready }"
                   :style="{ background: p.color, color: chipTextColor(p.color) }">
               <span v-if="badgeShown(p.badge)" class="badge-medal-inline" v-html="badgeSvg(p.badge)"></span>{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
-              {{ p.ready ? '✅' : '⏳' }}
+              <span class="ei" v-html="ic(p.ready ? 'check' : 'hourglass')"></span>
             </span>
           </div>
           <!-- Solange das eigene Rätsel noch generiert wird: laufender Ladebalken
@@ -4785,17 +4785,17 @@ const App = {
       <!-- Pause -->
       <div v-if="state.paused" class="overlay pause-overlay">
         <div class="result-card">
-          <div class="result-emoji">⏸️</div>
+          <div class="result-emoji"><span class="ei" v-html="ic('pause')"></span></div>
           <h2>{{ t('pause.title') }}</h2>
-          <div class="pause-time">⏱ {{ fmtTime(state.elapsed) }}</div>
+          <div class="pause-time"><span class="ei" v-html="ic('clock')"></span> {{ fmtTime(state.elapsed) }}</div>
           <p class="result-msg">{{ t('pause.msg') }}</p>
           <button class="btn btn-primary" @click="resumeFromPause">{{ t('pause.resume') }}</button>
           <!-- Aus dem Pausenmenü erreichbar: Einstellungen (öffnet das Menü, Spiel
                bleibt pausiert), Anleitung und Aufgeben. So läuft beim Öffnen der
                Einstellungen im Spiel exakt dieselbe Pausenmechanik wie über den
                Pause-Knopf (für alle Coop-Spieler synchron pausiert). -->
-          <button class="btn btn-ghost" @click="openSettings"><span class="btn-ic">⚙️</span> {{ t('home.settings') }}</button>
-          <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic">📖</span> {{ t('home.howto') }}</button>
+          <button class="btn btn-ghost" @click="openSettings"><span class="btn-ic"><span class="ei" v-html="ic('gear')"></span></span> {{ t('home.settings') }}</button>
+          <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic"><span class="ei" v-html="ic('book')"></span></span> {{ t('home.howto') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
@@ -4803,7 +4803,7 @@ const App = {
       <!-- Gewonnen / Verloren -->
       <div v-if="state.status==='won'" class="overlay">
         <div class="result-card win" :class="{ perfect: state.perfectWin }">
-          <div class="result-emoji">🎉</div>
+          <div class="result-emoji"><span class="ei" v-html="ic('party')"></span></div>
           <h2>{{ winTitle }}</h2>
           <div v-if="state.team.active" class="team-result">
             <p class="result-msg">{{ teamResultMsg }}</p>
@@ -4819,8 +4819,8 @@ const App = {
             <template v-else-if="state.mistakes>0"> {{ t('win.missedMistakes') }}</template>
             <template v-else> {{ t('win.missedHints') }}</template>.
           </div>
-          <div v-if="state.lastCoinReward > 0" class="coin-reward">💰 +{{ state.lastCoinReward }} <span v-if="state.lastCoinMult > 1" class="coin-mult">×{{ state.lastCoinMult }}</span> <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
-          <div v-if="state.lastStreakUsed > 0" class="coin-streak-bonus">🔥 {{ t('wallet.streakBonus', { days: state.lastStreakUsed, pct: streakBonusPct(state.lastStreakUsed) }) }}</div>
+          <div v-if="state.lastCoinReward > 0" class="coin-reward"><span class="ei" v-html="ic('coin')"></span> +{{ state.lastCoinReward }} <span v-if="state.lastCoinMult > 1" class="coin-mult">×{{ state.lastCoinMult }}</span> <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
+          <div v-if="state.lastStreakUsed > 0" class="coin-streak-bonus"><span class="ei" v-html="ic('flame')"></span> {{ t('wallet.streakBonus', { days: state.lastStreakUsed, pct: streakBonusPct(state.lastStreakUsed) }) }}</div>
           <div class="result-stats">
             <div><b>{{ fmtTime(state.elapsed) }}</b><small>{{ t('win.timeLabel') }}</small></div>
             <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
@@ -4855,7 +4855,7 @@ const App = {
       </div>
       <div v-if="state.status==='lost'" class="overlay">
         <div class="result-card lose">
-          <div class="result-emoji">💔</div>
+          <div class="result-emoji"><span class="ei" v-html="ic('heart-broken')"></span></div>
           <template v-if="state.team.active">
             <h2>{{ t('team.lossTitleAuto') }}</h2>
             <p class="result-msg">{{ teamResultMsg }}</p>
@@ -4902,7 +4902,7 @@ const App = {
       <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('stats.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button></header>
       <div class="stats-body">
         <button class="btn btn-ghost shop-entry-btn" @click="openShop">
-          <span class="btn-ic">🛒</span>
+          <span class="btn-ic"><span class="ei" v-html="ic('cart')"></span></span>
           <span class="btn-tx"><b>{{ t('shop.title') }}</b><small>{{ t('shop.entryHint') }}</small></span>
         </button>
         <div class="seg stats-tabs">
@@ -4914,14 +4914,14 @@ const App = {
         <!-- Reiter: Allgemein -->
         <template v-if="state.statsTab==='allgemein'">
           <div class="stats-overview">
-            <div class="stat-tile"><span class="stat-emoji">🎮</span><b>{{ generalStats.played }}</b><small>{{ t('stats.ovPlayed') }}</small></div>
-            <div class="stat-tile"><span class="stat-emoji">🥇</span><b>{{ generalStats.won }} · {{ generalStats.winPct }}%</b><small>{{ t('stats.wonPlayedLabel') }}</small></div>
-            <div class="stat-tile"><span class="stat-emoji">⏱️</span><b>{{ fmtDuration(generalStats.timeMs) }}</b><small>{{ t('stats.ovTime') }}</small></div>
-            <div class="stat-tile"><span class="stat-emoji">✨</span><b>{{ generalStats.perfect }}</b><small>{{ t('stats.ovPerfect') }}</small></div>
-            <div class="stat-tile"><span class="stat-emoji">🔥</span><b>{{ state.streak.currentStreak }} / {{ state.streak.bestStreak }}</b><small>{{ t('stats.ovStreak') }}</small></div>
-            <div class="stat-tile"><span class="stat-emoji">⭐</span><b><template v-if="generalStats.favId">{{ DIFF_BY_ID[generalStats.favId].emoji }} {{ t('difficulty.'+generalStats.favId) }}</template><template v-else>–</template></b><small>{{ t('stats.ovFav') }}</small></div>
-            <div class="stat-tile clickable" @click="navTo('achievements')"><span class="stat-emoji">🏅</span><b>{{ achievementsUnlockedCount }} / {{ ACHIEVEMENTS.length }}</b><small>{{ t('stats.ovAchievements') }}</small></div>
-            <div class="stat-tile"><span class="stat-emoji">💰</span><b>{{ state.wallet.balance }}</b><small>{{ t('wallet.coins') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji"><span class="ei" v-html="ic('controller')"></span></span><b>{{ generalStats.played }}</b><small>{{ t('stats.ovPlayed') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji"><span class="ei" v-html="ic('medal')"></span></span><b>{{ generalStats.won }} · {{ generalStats.winPct }}%</b><small>{{ t('stats.wonPlayedLabel') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji"><span class="ei" v-html="ic('clock')"></span></span><b>{{ fmtDuration(generalStats.timeMs) }}</b><small>{{ t('stats.ovTime') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji"><span class="ei" v-html="ic('sparkles')"></span></span><b>{{ generalStats.perfect }}</b><small>{{ t('stats.ovPerfect') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji"><span class="ei" v-html="ic('flame')"></span></span><b>{{ state.streak.currentStreak }} / {{ state.streak.bestStreak }}</b><small>{{ t('stats.ovStreak') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji"><span class="ei" v-html="ic('star')"></span></span><b><template v-if="generalStats.favId"><span class="ei" v-html="ic(DIFF_BY_ID[generalStats.favId].emoji)"></span> {{ t('difficulty.'+generalStats.favId) }}</template><template v-else>–</template></b><small>{{ t('stats.ovFav') }}</small></div>
+            <div class="stat-tile clickable" @click="navTo('achievements')"><span class="stat-emoji"><span class="ei" v-html="ic('medal')"></span></span><b>{{ achievementsUnlockedCount }} / {{ ACHIEVEMENTS.length }}</b><small>{{ t('stats.ovAchievements') }}</small></div>
+            <div class="stat-tile"><span class="stat-emoji"><span class="ei" v-html="ic('coin')"></span></span><b>{{ state.wallet.balance }}</b><small>{{ t('wallet.coins') }}</small></div>
           </div>
           <button class="btn btn-ghost achievements-top-btn" @click="navTo('achievements')">{{ t('stats.achievementsButton') }} ({{ achievementsUnlockedCount }}/{{ ACHIEVEMENTS.length }})</button>
         </template>
@@ -4929,12 +4929,12 @@ const App = {
         <!-- Reiter: Solo -->
         <template v-else-if="state.statsTab==='solo'">
           <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
-            <div class="diff-row-top"><span class="diff-name">{{ d.emoji }} {{ t('difficulty.'+d.id) }}</span></div>
+            <div class="diff-row-top"><span class="diff-name"><span class="ei" v-html="ic(d.emoji)"></span> {{ t('difficulty.'+d.id) }}</span></div>
             <div class="diff-row-sub">
-              <span class="chip">🥇 {{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
-              <span class="chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              <span class="chip"><span class="ei" v-html="ic('medal')"></span> {{ (state.stats.byDifficulty[d.id]?.won)||0 }} / {{ (state.stats.byDifficulty[d.id]?.played)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+              <span class="chip best-time-chip"><span class="ei" v-html="ic('trophy')"></span> {{ state.stats.byDifficulty[d.id]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               <span class="chip">⌀ {{ avgTimeFor(d.id)!=null ? fmtTime(avgTimeFor(d.id)) : '-:--' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-              <span class="chip">💔 {{ (state.stats.byDifficulty[d.id]?.lost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
+              <span class="chip"><span class="ei" v-html="ic('heart-broken')"></span> {{ (state.stats.byDifficulty[d.id]?.lost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
             </div>
           </div>
         </template>
@@ -4942,12 +4942,12 @@ const App = {
         <!-- Reiter: Coop (inkl. Wettkampf/Duell) -->
         <template v-else>
           <div v-for="d in DIFFICULTIES" :key="d.id" class="diff-row">
-            <div class="diff-row-top"><span class="diff-name">{{ d.emoji }} {{ t('difficulty.'+d.id) }}</span></div>
+            <div class="diff-row-top"><span class="diff-name"><span class="ei" v-html="ic(d.emoji)"></span> {{ t('difficulty.'+d.id) }}</span></div>
             <div class="diff-row-sub">
-              <span class="chip coop-chip">🥇 {{ (state.stats.byDifficulty[d.id]?.coopWon)||0 }} / {{ (state.stats.byDifficulty[d.id]?.coopPlayed)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
-              <span class="chip coop-chip best-time-chip">🏆 {{ state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              <span class="chip coop-chip"><span class="ei" v-html="ic('medal')"></span> {{ (state.stats.byDifficulty[d.id]?.coopWon)||0 }} / {{ (state.stats.byDifficulty[d.id]?.coopPlayed)||0 }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+              <span class="chip coop-chip best-time-chip"><span class="ei" v-html="ic('trophy')"></span> {{ state.stats.byDifficulty[d.id]?.coopBestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].coopBestTimeMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               <span class="chip coop-chip">⌀ {{ coopAvgTimeFor(d.id)!=null ? fmtTime(coopAvgTimeFor(d.id)) : '-:--' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-              <span class="chip coop-chip">💔 {{ (state.stats.byDifficulty[d.id]?.coopLost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
+              <span class="chip coop-chip"><span class="ei" v-html="ic('heart-broken')"></span> {{ (state.stats.byDifficulty[d.id]?.coopLost)||0 }}<span class="chip-label">{{ t('stats.lostLabel') }}</span></span>
             </div>
           </div>
           <div class="stats-section-title">{{ t('stats.raceSection') }}</div>
@@ -4955,17 +4955,17 @@ const App = {
             <div class="diff-sub">
               <div class="diff-sub-label">{{ t('stats.race1v1') }}</div>
               <div class="diff-row-sub">
-                <span class="chip">🥇 {{ state.raceStats['1v1'].racesWon }} / {{ state.raceStats['1v1'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
-                <span class="chip">📈 {{ racePct(state.raceStats['1v1']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
-                <span class="chip best-time-chip">🏆 {{ state.raceStats['1v1'].fastestWinMs!=null ? fmtTime(state.raceStats['1v1'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+                <span class="chip"><span class="ei" v-html="ic('medal')"></span> {{ state.raceStats['1v1'].racesWon }} / {{ state.raceStats['1v1'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+                <span class="chip"><span class="ei" v-html="ic('chart-up')"></span> {{ racePct(state.raceStats['1v1']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
+                <span class="chip best-time-chip"><span class="ei" v-html="ic('trophy')"></span> {{ state.raceStats['1v1'].fastestWinMs!=null ? fmtTime(state.raceStats['1v1'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               </div>
             </div>
             <div class="diff-sub">
               <div class="diff-sub-label coop">{{ t('stats.race2v2') }}</div>
               <div class="diff-row-sub">
-                <span class="chip coop-chip">🥇 {{ state.raceStats['2v2'].racesWon }} / {{ state.raceStats['2v2'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
-                <span class="chip coop-chip">📈 {{ racePct(state.raceStats['2v2']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
-                <span class="chip coop-chip best-time-chip">🏆 {{ state.raceStats['2v2'].fastestWinMs!=null ? fmtTime(state.raceStats['2v2'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+                <span class="chip coop-chip"><span class="ei" v-html="ic('medal')"></span> {{ state.raceStats['2v2'].racesWon }} / {{ state.raceStats['2v2'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+                <span class="chip coop-chip"><span class="ei" v-html="ic('chart-up')"></span> {{ racePct(state.raceStats['2v2']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
+                <span class="chip coop-chip best-time-chip"><span class="ei" v-html="ic('trophy')"></span> {{ state.raceStats['2v2'].fastestWinMs!=null ? fmtTime(state.raceStats['2v2'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               </div>
             </div>
           </div>
@@ -5002,10 +5002,10 @@ const App = {
         <div v-if="!state.puzzleHistory.length" class="empty">{{ t('history.empty') }}</div>
         <div v-for="h in state.puzzleHistory" :key="h.ts" class="history-row">
           <div class="history-row-main">
-            <span class="history-outcome" :class="'outcome-'+h.outcome">{{ h.outcome==='won' ? '🏆' : (h.outcome==='lost' ? '💔' : '🏳') }}</span>
-            <span class="diff-name">{{ DIFF_BY_ID[h.difficulty]?.emoji }} {{ t('difficulty.'+h.difficulty) }}</span>
+            <span class="history-outcome" :class="'outcome-'+h.outcome"><span class="ei" v-html="ic(h.outcome==='won' ? 'trophy' : (h.outcome==='lost' ? 'heart-broken' : 'flag'))"></span></span>
+            <span class="diff-name"><span class="ei" v-html="ic(DIFF_BY_ID[h.difficulty]?.emoji)"></span> {{ t('difficulty.'+h.difficulty) }}</span>
             <span class="chip">{{ h.dim.r }}×{{ h.dim.c }}</span>
-            <span v-if="h.coop" class="chip coop-chip">👥</span>
+            <span v-if="h.coop" class="chip coop-chip"><span class="ei" v-html="ic('users')"></span></span>
           </div>
           <div class="history-row-sub">
             <span>{{ t('history.outcome.'+h.outcome) }} · {{ fmtTime(h.timeMs) }}</span>
@@ -5044,11 +5044,11 @@ const App = {
       <div v-else-if="state.coop.role === null" class="coop-body">
         <p class="coop-tagline">{{ t('coop.tagline') }}</p>
         <button class="btn btn-primary" @click="coopChooseHost()">
-          <span class="btn-ic">📡</span>
+          <span class="btn-ic"><span class="ei" v-html="ic('signal')"></span></span>
           <span class="btn-tx"><b>{{ t('coop.host') }}</b><small>{{ t('coop.hostHint') }}</small></span>
         </button>
         <button class="btn btn-ghost" @click="coopChooseGuest()">
-          <span class="btn-ic">🔗</span>
+          <span class="btn-ic"><span class="ei" v-html="ic('link')"></span></span>
           <span class="btn-tx"><b>{{ t('coop.join') }}</b><small>{{ t('coop.joinHint') }}</small></span>
         </button>
       </div>
@@ -5064,11 +5064,11 @@ const App = {
             <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                     :class="{active: state.coop.lobbyDiffId===d.id}"
                     @click="state.coop.lobbyDiffId=d.id">
-              <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
-              <span class="opt-dimrow"><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span><span class="opt-coins" :title="t('wallet.rewardHint')">💰 {{ coinFor(d, true) }}</span></span>
+              <span class="opt-head"><span class="opt-emoji" v-html="ic(d.emoji)"></span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
+              <span class="opt-dimrow"><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span><span class="opt-coins" :title="t('wallet.rewardHint')"><span class="ei" v-html="ic('coin')"></span> {{ coinFor(d, true) }}</span></span>
               <span class="opt-chips">
                 <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-                <span class="chip best-time-chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">🏆 {{ lobbyBestTimeMs(d.id)!=null ? fmtTime(lobbyBestTimeMs(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+                <span class="chip best-time-chip" :class="{ 'coop-chip': !lobbyIsCompetition() }"><span class="ei" v-html="ic('trophy')"></span> {{ lobbyBestTimeMs(d.id)!=null ? fmtTime(lobbyBestTimeMs(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               </span>
             </button>
           </div>
@@ -5078,7 +5078,7 @@ const App = {
           <div class="coop-code-label">{{ t('coop.yourCode') }}</div>
           <div class="coop-code">{{ state.coop.code }}</div>
           <p class="coop-subtext">{{ t('coop.shareCode') }}</p>
-          <button class="btn btn-ghost btn-sm" @click="openInvitePicker">👥 {{ t('coop.inviteFriends') }}</button>
+          <button class="btn btn-ghost btn-sm" @click="openInvitePicker"><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteFriends') }}</button>
           <!-- Freunde-Auswahl zum Einladen in diese Lobby -->
           <div v-if="state.coop.invitePickerOpen" class="invite-picker">
             <div class="invite-picker-head">
@@ -5096,7 +5096,7 @@ const App = {
             </div>
           </div>
           <p v-if="state.coop.teamMode" class="coop-subtext">{{ t('team.assignHint') }}</p>
-          <button v-if="state.coop.teamMode && state.coop.role==='host'" class="btn btn-ghost btn-sm randomize-teams-btn" :disabled="state.coop.players.length<2" @click="randomizeTeams">🔀 {{ t('team.randomize') }}</button>
+          <button v-if="state.coop.teamMode && state.coop.role==='host'" class="btn btn-ghost btn-sm randomize-teams-btn" :disabled="state.coop.players.length<2" @click="randomizeTeams"><span class="ei" v-html="ic('shuffle')"></span> {{ t('team.randomize') }}</button>
           <div class="team-picker" v-if="state.coop.teamMode && state.coop.players.length">
             <div class="team-picker-header team-picker-header-a">{{ t('team.labelA') }}</div>
             <div class="team-picker-header team-picker-header-mid"></div>
@@ -5145,11 +5145,11 @@ const App = {
               <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
                       :class="{active: state.coop.lobbyDiffId===d.id}"
                       @click="state.coop.lobbyDiffId=d.id">
-                <span class="opt-coins" :title="t('wallet.rewardHint')">💰 {{ coinFor(d, true) }}</span>
-                <span class="opt-head"><span class="opt-emoji">{{ d.emoji }}</span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
+                <span class="opt-coins" :title="t('wallet.rewardHint')"><span class="ei" v-html="ic('coin')"></span> {{ coinFor(d, true) }}</span>
+                <span class="opt-head"><span class="opt-emoji" v-html="ic(d.emoji)"></span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
                 <span class="opt-chips">
                   <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-                  <span class="chip best-time-chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">🏆 {{ lobbyBestTimeMs(d.id)!=null ? fmtTime(lobbyBestTimeMs(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+                  <span class="chip best-time-chip" :class="{ 'coop-chip': !lobbyIsCompetition() }"><span class="ei" v-html="ic('trophy')"></span> {{ lobbyBestTimeMs(d.id)!=null ? fmtTime(lobbyBestTimeMs(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
                 </span>
               </button>
             </div>
@@ -5210,8 +5210,8 @@ const App = {
             <button class="shop-fx-preview" @click="previewWinFx(e.id)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             <span class="shop-card-ic" v-html="ic(e.icon)"></span>
             <span class="shop-card-name">{{ t('shop.effect.'+e.id) }}</span>
-            <button v-if="!ownsWinFx(e.id)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < effectPrice(e.id)" @click="buyWinFx(e.id)">💰 {{ effectPrice(e.id) }}</button>
-            <span v-else-if="winFxActive(e.id)" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
+            <button v-if="!ownsWinFx(e.id)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < effectPrice(e.id)" @click="buyWinFx(e.id)"><span class="ei" v-html="ic('coin')"></span> {{ effectPrice(e.id) }}</button>
+            <span v-else-if="winFxActive(e.id)" class="shop-fx-state on"><span class="ei" v-html="ic('check')"></span> {{ t('shop.active') }}</span>
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="activateWinFx(e.id)">{{ t('shop.activate') }}</button>
           </div>
         </div>
@@ -5242,13 +5242,13 @@ const App = {
         <div class="shop-grid">
           <!-- Gratis-Standard (entfällt bei Anwenden-Kategorien wie Skin-Vorlagen) -->
           <div v-if="SHOP_CATS[state.shopCategory].free" class="shop-card fx" :class="{ fxactive: shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free }">
-            <span class="shop-card-ic">✔️</span>
+            <span class="shop-card-ic"><span class="ei" v-html="ic('check')"></span></span>
             <button class="shop-fx-preview" :class="{ prevon: state.shopPreview && state.shopPreview.id === SHOP_CATS[state.shopCategory].free }" @click="shopPreviewFree(state.shopCategory)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             <span v-if="state.shopCategory === 'font'" class="font-demo">123</span>
             <span v-if="state.shopCategory === 'frame'" class="frame-demo"></span>
             <span v-if="shopFreeDots(state.shopCategory)" class="shop-pal-dots"><i v-for="(c, di) in shopFreeDots(state.shopCategory)" :key="di" :style="{ background: c }"></i></span>
             <span class="shop-card-name">{{ t('shop.free.' + state.shopCategory) }}</span>
-            <span v-if="shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
+            <span v-if="shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free" class="shop-fx-state on"><span class="ei" v-html="ic('check')"></span> {{ t('shop.active') }}</span>
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopFree(state.shopCategory)">{{ t('shop.activate') }}</button>
           </div>
           <div v-for="it in shopCatItems(state.shopCategory)" :key="it.id" class="shop-card fx" :class="{ owned: ownsShop(it), fxactive: shopEquippedId(state.shopCategory) === it.id }">
@@ -5258,9 +5258,9 @@ const App = {
             <span v-if="it.cat === 'frame'" class="frame-demo" :class="'frame-' + it.id"></span>
             <span v-if="shopPreviewDots(it)" class="shop-pal-dots"><i v-for="(c, di) in shopPreviewDots(it)" :key="di" :style="{ background: c }"></i></span>
             <span class="shop-card-name">{{ t('shop.it.' + it.id) }}</span>
-            <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it)" @click="buyShopItem(it)">💰 {{ shopItemPrice(it) }}</button>
+            <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it)" @click="buyShopItem(it)"><span class="ei" v-html="ic('coin')"></span> {{ shopItemPrice(it) }}</button>
             <button v-else-if="it.cat === 'skinpreset'" class="btn btn-ghost btn-sm shop-buy-btn" @click="applySkinPreset(it)">{{ t('shop.apply') }}</button>
-            <span v-else-if="shopEquippedId(state.shopCategory) === it.id" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
+            <span v-else-if="shopEquippedId(state.shopCategory) === it.id" class="shop-fx-state on"><span class="ei" v-html="ic('check')"></span> {{ t('shop.active') }}</span>
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopItem(it)">{{ t('shop.activate') }}</button>
           </div>
         </div>
@@ -5331,7 +5331,7 @@ const App = {
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='spiel' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='spiel'" class="admin-acc-body">
-          <button class="btn btn-ghost set-howto-btn" @click="state.modal='howto'"><span class="btn-ic">📖</span> {{ t('home.howto') }}</button>
+          <button class="btn btn-ghost set-howto-btn" @click="state.modal='howto'"><span class="btn-ic"><span class="ei" v-html="ic('book')"></span></span> {{ t('home.howto') }}</button>
           <div class="set-row col">
             <span class="set-row-label">{{ t('settings.eraseStyle') }}</span>
             <div class="seg">
@@ -5357,8 +5357,8 @@ const App = {
             <span class="set-row-label">{{ t('settings.theme') }}</span>
             <div class="seg">
               <button :class="{active:state.settings.themeMode==='auto'}" @click="setSetting('themeMode','auto')">{{ t('settings.themeAuto') }}</button>
-              <button :class="{active:state.settings.themeMode==='light'}" @click="setSetting('themeMode','light')">☀️ {{ t('settings.themeLight') }}</button>
-              <button :class="{active:state.settings.themeMode==='dark'}" @click="setSetting('themeMode','dark')">🌙 {{ t('settings.themeDark') }}</button>
+              <button :class="{active:state.settings.themeMode==='light'}" @click="setSetting('themeMode','light')"><span class="ei" v-html="ic('sun')"></span> {{ t('settings.themeLight') }}</button>
+              <button :class="{active:state.settings.themeMode==='dark'}" @click="setSetting('themeMode','dark')"><span class="ei" v-html="ic('moon')"></span> {{ t('settings.themeDark') }}</button>
             </div>
             <small class="set-hint">{{ t('settings.themeHint') }}</small>
           </div>
@@ -5373,7 +5373,7 @@ const App = {
 
           <!-- 🎉 Sieganimation: Auswahl aller GEKAUFTEN Effekte (Kauf im Shop) + ▶ Vorschau -->
           <div class="set-row col">
-            <span class="set-row-label">🎉 {{ t('settings.winEffect') }}</span>
+            <span class="set-row-label"><span class="ei" v-html="ic('party')"></span> {{ t('settings.winEffect') }}</span>
             <div class="set-fx-row">
               <select class="text-input" :value="state.settings.winEffect || 'confetti'" @change="activateWinFx($event.target.value)">
                 <option v-for="e in ownedWinFx()" :key="e.id" :value="e.id">{{ t('shop.effect.'+e.id) }}</option>
@@ -5573,9 +5573,9 @@ const App = {
               <div v-if="state.account.usernameEditing" class="account-username-form">
                 <input class="text-input" :class="{ 'input-invalid': ['taken','invalid'].includes(state.account.usernameCheck), 'input-valid': ['available'].includes(state.account.usernameCheck) }" v-model="state.account.usernameDraft" maxlength="20" autocapitalize="none" autocomplete="off" :placeholder="t('account.newUsername')" @input="onUsernameInput" @keydown.enter="doChangeUsername" />
                 <small v-if="state.account.usernameCheck==='checking'" class="username-status checking">{{ t('account.usernameChecking') }}</small>
-                <small v-else-if="state.account.usernameCheck==='available'" class="username-status ok">✓ {{ t('account.usernameAvailable') }}</small>
-                <small v-else-if="state.account.usernameCheck==='taken'" class="username-status err">✕ {{ t('account.usernameTaken') }}</small>
-                <small v-else-if="state.account.usernameCheck==='invalid'" class="username-status err">✕ {{ t('account.usernameInvalid') }}</small>
+                <small v-else-if="state.account.usernameCheck==='available'" class="username-status ok"><span class="ei" v-html="ic('check')"></span> {{ t('account.usernameAvailable') }}</small>
+                <small v-else-if="state.account.usernameCheck==='taken'" class="username-status err"><span class="ei" v-html="ic('close')"></span> {{ t('account.usernameTaken') }}</small>
+                <small v-else-if="state.account.usernameCheck==='invalid'" class="username-status err"><span class="ei" v-html="ic('close')"></span> {{ t('account.usernameInvalid') }}</small>
                 <div class="account-username-actions">
                   <button class="btn btn-primary btn-sm" :disabled="state.account.busy || !canSaveUsername()" @click="doChangeUsername">
                     <span v-if="state.account.busy"><span class="spinner-inline"></span></span><span v-else>{{ t('account.save') }}</span>
@@ -5585,19 +5585,19 @@ const App = {
                 <small class="set-hint">{{ t('account.usernameHint') }}</small>
               </div>
               <div class="account-row" v-if="state.account.email"><span class="account-label">{{ t('account.email') }}</span><span>{{ state.account.email }}</span></div>
-              <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }">{{ state.account.role==='admin' ? '👑 ' + t('account.roleAdmin') : t('account.roleUser') }}</span></div>
+              <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }"><span v-if="state.account.role==='admin'" class="ei" v-html="ic('crown')"></span> {{ state.account.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
               <div class="account-sync" :class="'sync-'+state.account.syncState">
                 <template v-if="state.account.syncState==='syncing'"><span class="spinner-inline"></span> {{ t('account.syncing') }}</template>
-                <template v-else-if="state.account.syncState==='error'">⚠️ {{ state.account.syncErrorMsg || t('account.syncError') }}</template>
+                <template v-else-if="state.account.syncState==='error'"><span class="ei" v-html="ic('warning')"></span> {{ state.account.syncErrorMsg || t('account.syncError') }}</template>
                 <template v-else-if="state.account.lastSyncAt">{{ t('account.syncedAt', { time: fmtSyncTime(state.account.lastSyncAt) }) }}</template>
-                <template v-else>☁️ {{ t('account.syncOn') }}</template>
+                <template v-else><span class="ei" v-html="ic('cloud')"></span> {{ t('account.syncOn') }}</template>
               </div>
-              <button class="btn btn-ghost btn-sm" :disabled="state.account.syncState==='syncing'" @click="doSyncNow">🔄 {{ t('account.syncNow') }}</button>
+              <button class="btn btn-ghost btn-sm" :disabled="state.account.syncState==='syncing'" @click="doSyncNow"><span class="ei" v-html="ic('refresh')"></span> {{ t('account.syncNow') }}</button>
             </div>
             <!-- Passwort ändern: neues Passwort 2× + Speichern (ohne altes Passwort) -->
             <div class="admin-acc">
               <button class="admin-acc-head" @click="state.account.pwFormOpen = !state.account.pwFormOpen">
-                <span>🔑 {{ t('account.changePw') }}</span>
+                <span><span class="ei" v-html="ic('key')"></span> {{ t('account.changePw') }}</span>
                 <span class="admin-acc-chev" :class="{ open: state.account.pwFormOpen }">▾</span>
               </button>
               <div v-if="state.account.pwFormOpen" class="admin-acc-body">
@@ -5616,7 +5616,7 @@ const App = {
             <template v-if="state.account.role==='admin'">
               <div class="set-group-title">{{ t('admin.title') }}</div>
               <small class="set-hint">{{ t('admin.intro') }}</small>
-              <button class="btn btn-primary" @click="openAdminConsole">👥 {{ t('admin.openConsole') }}</button>
+              <button class="btn btn-primary" @click="openAdminConsole"><span class="ei" v-html="ic('users')"></span> {{ t('admin.openConsole') }}</button>
             </template>
           </template>
 
@@ -5685,7 +5685,7 @@ const App = {
     </transition>
     <!-- Top-Banner statt Toast: verdeckt nie das Spielfeld, sitzt am oberen Rand. -->
     <transition name="toast">
-      <div v-if="state.bestTimeNotice" class="best-time-banner">⏱️ {{ state.bestTimeNotice }}</div>
+      <div v-if="state.bestTimeNotice" class="best-time-banner"><span class="ei" v-html="ic('clock')"></span> {{ state.bestTimeNotice }}</div>
     </transition>
 
     <!-- ══ MODALS ══ -->
@@ -5693,14 +5693,14 @@ const App = {
     <div v-if="state.account.adminConsoleOpen" class="modal-bg" @click.self="closeAdminConsole">
       <div class="modal admin-console-modal">
         <header class="friends-head">
-          <h3>👑 {{ t('admin.consoleTitle') }}</h3>
+          <h3><span class="ei" v-html="ic('crown')"></span> {{ t('admin.consoleTitle') }}</h3>
           <button class="icon-btn" @click="closeAdminConsole" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
         </header>
         <div class="admin-console-toolbar">
           <input class="text-input" v-model="state.account.adminFilter" :placeholder="t('admin.filterPlaceholder')" autocapitalize="none" />
           <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminLoadUsers" :aria-label="t('admin.reload')">
             <span v-if="state.account.adminBusy" class="spinner-inline"></span>
-            <span v-else>🔄</span>
+            <span v-else><span class="ei" v-html="ic('refresh')"></span></span>
           </button>
         </div>
         <p class="set-hint admin-console-count">{{ t('admin.userCount', { n: filteredAdminUsers().length, total: state.account.adminUsers.length }) }}</p>
@@ -5709,20 +5709,20 @@ const App = {
         <div v-else class="admin-console-table">
           <div class="admin-tbl-head">
             <span class="admin-col-user">{{ t('admin.colUser') }}</span>
-            <span class="admin-col-bal">💰</span>
-            <span class="admin-col-skin">🎨</span>
+            <span class="admin-col-bal"><span class="ei" v-html="ic('coin')"></span></span>
+            <span class="admin-col-skin"><span class="ei" v-html="ic('palette')"></span></span>
           </div>
           <button v-for="u in filteredAdminUsers()" :key="u.uid" class="admin-tbl-row" @click="openAdminEdit(u)">
             <span class="admin-col-user">
               <span class="admin-tbl-name">
                 <b>{{ u.username || '—' }}</b>
-                <span v-if="u.role==='admin'" class="account-role admin admin-role-tag">👑</span>
+                <span v-if="u.role==='admin'" class="account-role admin admin-role-tag"><span class="ei" v-html="ic('crown')"></span></span>
               </span>
               <small class="admin-tbl-sub">{{ u.email || t('admin.noEmail') }}</small>
               <small class="admin-tbl-sub admin-tbl-uid">{{ u.uid }}</small>
             </span>
             <span class="admin-col-bal">{{ u.balance }}</span>
-            <span class="admin-col-skin">{{ u.hasSkin ? '✅' : '—' }}</span>
+            <span class="admin-col-skin"><span v-if="u.hasSkin" class="ei" v-html="ic('check')"></span><span v-else>—</span></span>
           </button>
           <p v-if="!filteredAdminUsers().length && !state.account.adminBusy" class="set-hint admin-console-empty">{{ t('admin.noMatch') }}</p>
         </div>
@@ -5745,12 +5745,12 @@ const App = {
         </header>
 
         <!-- Kennzahlen-Chips (live aus dem frischen Snapshot, inkl. ungespeicherter Werte).
-             Antippen springt in die passende Sektion — z.B. 💰 öffnet die Wallet. -->
+ Antippen springt in die passende Sektion — z.B. öffnet die Wallet. -->
         <div class="admin-chips">
-          <button class="admin-chip admin-chip-btn" @click="openAdminSection('wallet')">💰 {{ adminChipValue('wallet/balance', state.account.adminEditUser.balance ?? 0) }}</button>
-          <button class="admin-chip admin-chip-btn" @click="openAdminSection('daily')">🔥 {{ adminChipValue('daily/currentStreak', 0) }}</button>
-          <button class="admin-chip admin-chip-btn" @click="openAdminSection('stats')">🏆 {{ adminChipValue('stats/won', 0) }}</button>
-          <button class="admin-chip admin-chip-btn" @click="openAdminSection('_inventory')">🎨 {{ state.account.adminEditUser.itemCount || 0 }}</button>
+          <button class="admin-chip admin-chip-btn" @click="openAdminSection('wallet')"><span class="ei" v-html="ic('coin')"></span> {{ adminChipValue('wallet/balance', state.account.adminEditUser.balance ?? 0) }}</button>
+          <button class="admin-chip admin-chip-btn" @click="openAdminSection('daily')"><span class="ei" v-html="ic('flame')"></span> {{ adminChipValue('daily/currentStreak', 0) }}</button>
+          <button class="admin-chip admin-chip-btn" @click="openAdminSection('stats')"><span class="ei" v-html="ic('trophy')"></span> {{ adminChipValue('stats/won', 0) }}</button>
+          <button class="admin-chip admin-chip-btn" @click="openAdminSection('_inventory')"><span class="ei" v-html="ic('palette')"></span> {{ state.account.adminEditUser.itemCount || 0 }}</button>
         </div>
 
         <!-- JSON-Untereditor (tiefe Strukturen) ersetzt den Inhalt, solange offen -->
@@ -5769,7 +5769,7 @@ const App = {
             <!-- ⚡ Konto-Aktionen (echte Knoten: Rolle, Username, Reset — kein Snapshot) -->
             <div class="admin-acc">
               <button class="admin-acc-head" @click="toggleAdminSection('_actions')">
-                <span>⚡ {{ t('admin.accountActions') }}</span>
+                <span><span class="ei" v-html="ic('bolt')"></span> {{ t('admin.accountActions') }}</span>
                 <span class="admin-acc-chev" :class="{ open: state.account.adminDataSection==='_actions' }">▾</span>
               </button>
               <div v-if="state.account.adminDataSection==='_actions'" class="admin-acc-body">
@@ -5777,11 +5777,11 @@ const App = {
                 <div class="account-row"><span class="account-label">{{ t('admin.createdAt') }}</span><span>{{ adminFmtDate(state.account.adminEditUser.createdAt) }}</span></div>
                 <div class="admin-actions">
                   <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminToggleRole">{{ state.account.adminEditUser.role==='admin' ? t('admin.makeUser') : t('admin.makeAdmin') }}</button>
-                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminResetPw">📧 {{ t('admin.resetPw') }}</button>
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminResetPw"><span class="ei" v-html="ic('mail')"></span> {{ t('admin.resetPw') }}</button>
                 </div>
                 <!-- Haken: Betroffenen über Geschenk/Entzug/Guthaben benachrichtigen -->
                 <div class="set-row" @click="state.account.adminNotify = !state.account.adminNotify">
-                  <span>🔔 {{ t('admin.notifyUser') }}</span><span class="switch" :class="{on:state.account.adminNotify}"><i></i></span>
+                  <span><span class="ei" v-html="ic('bell')"></span> {{ t('admin.notifyUser') }}</span><span class="switch" :class="{on:state.account.adminNotify}"><i></i></span>
                 </div>
                 <div class="admin-field-row">
                   <input class="text-input" v-model="state.account.adminUsername" maxlength="20" autocapitalize="none" :placeholder="t('account.newUsername')" />
@@ -5801,7 +5801,7 @@ const App = {
             <!-- 🎒 Inventar (autoritativer Union-Knoten, nicht der Snapshot) -->
             <div class="admin-acc">
               <button class="admin-acc-head" @click="toggleAdminSection('_inventory')">
-                <span>🎒 {{ t('admin.inventory') }} <small class="admin-acc-count">{{ state.account.adminEditUser.itemCount || 0 }}</small></span>
+                <span><span class="ei" v-html="ic('backpack')"></span> {{ t('admin.inventory') }} <small class="admin-acc-count">{{ state.account.adminEditUser.itemCount || 0 }}</small></span>
                 <span class="admin-acc-chev" :class="{ open: state.account.adminDataSection==='_inventory' }">▾</span>
               </button>
               <div v-if="state.account.adminDataSection==='_inventory'" class="admin-acc-body">
@@ -5817,9 +5817,9 @@ const App = {
                     <option value="" disabled>{{ t('admin.choose') }}</option>
                     <option v-for="id in adminItemOptions()" :key="id" :value="id">{{ adminItemLabel(id) }}</option>
                   </select>
-                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem">🎁</button>
+                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem"><span class="ei" v-html="ic('gift')"></span></button>
                 </div>
-                <button class="btn btn-primary btn-sm admin-grant-all" :disabled="state.account.adminBusy" @click="adminGrantAllItems">🎁 {{ t('admin.grantAll') }}</button>
+                <button class="btn btn-primary btn-sm admin-grant-all" :disabled="state.account.adminBusy" @click="adminGrantAllItems"><span class="ei" v-html="ic('gift')"></span> {{ t('admin.grantAll') }}</button>
               </div>
             </div>
 
@@ -5828,7 +5828,7 @@ const App = {
             <template v-else>
               <div v-for="sec in adminDataSections()" :key="sec.key" class="admin-acc">
                 <button class="admin-acc-head" @click="toggleAdminSection(sec.key)">
-                  <span>{{ sec.ic }} {{ adminSectionLabel(sec.key) }}</span>
+                  <span><span class="ei" v-html="ic(sec.ic)"></span> {{ adminSectionLabel(sec.key) }}</span>
                   <span class="admin-acc-chev" :class="{ open: state.account.adminDataSection===sec.key }">▾</span>
                 </button>
                 <div v-if="state.account.adminDataSection===sec.key" class="admin-acc-body">
@@ -5844,7 +5844,7 @@ const App = {
                       <input v-else-if="row.type==='string'" class="text-input admin-row-input" :value="adminFieldValue(row)" @change="adminInputField(row, $event)" autocapitalize="none" />
                       <button v-else class="btn btn-ghost btn-sm" @click="openAdminJson(row)">{ } JSON</button>
                     </div>
-                    <small v-if="adminRowTimestamp(row)" class="admin-row-desc">🕒 {{ adminRowTimestamp(row) }}</small>
+                    <small v-if="adminRowTimestamp(row)" class="admin-row-desc"><span class="ei" v-html="ic('clock')"></span> {{ adminRowTimestamp(row) }}</small>
                     <small v-if="adminRowDesc(row)" class="admin-row-desc">{{ adminRowDesc(row) }}</small>
                   </div>
                   <p v-if="!adminFieldRows(sec.key).length" class="set-hint">—</p>
@@ -5860,7 +5860,7 @@ const App = {
             <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy" @click="adminDiscardData">{{ t('admin.discard') }}</button>
             <button class="btn btn-primary admin-save-btn" :disabled="state.account.adminBusy" @click="adminSaveData">
               <span v-if="state.account.adminBusy"><span class="spinner-inline"></span></span>
-              <span v-else>💾 {{ t('admin.saveN', { n: adminDirtyCount() }) }}</span>
+              <span v-else><span class="ei" v-html="ic('save')"></span> {{ t('admin.saveN', { n: adminDirtyCount() }) }}</span>
             </button>
           </div>
           <button v-else class="btn btn-primary" @click="closeAdminEdit">{{ t('admin.done') }}</button>
@@ -5871,7 +5871,7 @@ const App = {
     <!-- Freund hinzufügen: kleines Popup über dem Freunde-Dialog (➕ im Kopf) -->
     <div v-if="state.friends.addOpen" class="modal-bg friends-add-bg" @click.self="closeAddFriend">
       <div class="modal modal-sm friends-add-modal">
-        <h3>➕ {{ t('friends.addTitle') }}</h3>
+        <h3><span class="ei" v-html="ic('plus')"></span> {{ t('friends.addTitle') }}</h3>
         <input class="text-input" v-model="state.friends.addName" maxlength="20" autocapitalize="none" autocomplete="off" :placeholder="t('friends.addPlaceholder')" @keydown.enter="addFriend" />
         <p v-if="state.friends.addError" class="coop-error">{{ state.friends.addError }}</p>
         <button class="btn btn-primary" :disabled="state.friends.addBusy || !state.friends.addName.trim()" @click="addFriend">
@@ -5921,14 +5921,14 @@ const App = {
               <small class="friends-activity">{{ friendActivityText(fr.uid) }}</small>
               <span v-if="friendInGame(fr.uid)" class="friends-progress"><span class="friends-progress-fill" :style="{ width: (friendPresence(fr.uid).game.pct||0) + '%' }"></span></span>
             </span>
-            <button class="icon-btn friends-remove" @click="removeFriendAsk(fr)" :aria-label="t('friends.remove')" :title="t('friends.remove')">🗑</button>
+            <button class="icon-btn friends-remove" @click="removeFriendAsk(fr)" :aria-label="t('friends.remove')" :title="t('friends.remove')"><span class="ei" v-html="ic('trash')"></span></button>
           </div>
         </div>
 
         <!-- Tab: Bestenliste — schnellste (perfekte) Solo-Zeiten je Schwierigkeit -->
         <div v-else class="friends-body friends-leaderboard">
           <div class="lb-diff-chips">
-            <button v-for="d in DIFFICULTIES" :key="d.id" class="lb-diff-chip" :class="{ active: state.leaderboard.diff===d.id }" @click="selectLeaderboardDiff(d.id)">{{ d.emoji }}</button>
+            <button v-for="d in DIFFICULTIES" :key="d.id" class="lb-diff-chip" :class="{ active: state.leaderboard.diff===d.id }" @click="selectLeaderboardDiff(d.id)"><span class="ei" v-html="ic(d.emoji)"></span></button>
           </div>
           <p v-if="state.leaderboard.loading" class="set-hint">{{ t('friends.lbLoading') }}</p>
           <p v-else-if="!state.leaderboard.entries.length" class="set-hint">{{ t('friends.lbEmpty') }}</p>
@@ -5947,7 +5947,7 @@ const App = {
     <!-- Admin-Benachrichtigung: „X hat dir Y geschenkt/entzogen" -->
     <div v-if="state.adminNotice" class="modal-bg">
       <div class="modal modal-sm">
-        <div class="whatsnew-badge">{{ state.adminNotice.kind === 'gift' ? '🎁' : state.adminNotice.kind === 'currency' ? '💰' : '👑' }} Admin</div>
+        <div class="whatsnew-badge"><span class="ei" v-html="ic(state.adminNotice.kind === 'gift' ? 'gift' : state.adminNotice.kind === 'currency' ? 'coin' : 'crown')"></span> Admin</div>
         <p class="result-msg">{{ adminNoticeText(state.adminNotice) }}</p>
         <button class="btn btn-primary" @click="dismissAdminNotice">{{ t('common.ok') }}</button>
       </div>
@@ -5955,7 +5955,7 @@ const App = {
 
     <div v-if="state.pendingLobbyInvite" class="modal-bg">
       <div class="modal">
-        <div class="whatsnew-badge">👥 {{ t('coop.inviteTitle') }}</div>
+        <div class="whatsnew-badge"><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteTitle') }}</div>
         <p class="result-msg">{{ t('coop.inviteBody', { name: state.pendingLobbyInvite.username || state.pendingLobbyInvite.fromUid, mode: lobbyModeLabel(state.pendingLobbyInvite.mode) }) }}</p>
         <button class="btn btn-primary" @click="acceptLobbyInvite(state.pendingLobbyInvite)">{{ t('coop.inviteAccept') }}</button>
         <button class="btn btn-ghost btn-sm" @click="declineLobbyInviteUI(state.pendingLobbyInvite)">{{ t('coop.inviteDecline') }}</button>
@@ -5976,7 +5976,7 @@ const App = {
           <li v-html="t('howto.rule9')"></li>
         </ol>
         <button class="btn btn-ghost training-btn" @click="state.modal=null; startTrainingGame()">
-          <span class="btn-ic">🎓</span>
+          <span class="btn-ic"><span class="ei" v-html="ic('graduation')"></span></span>
           <span class="btn-tx"><b>{{ t('home.trainingMode') }}</b><small>{{ t('home.trainingHint') }}</small></span>
         </button>
         <button class="btn btn-primary" @click="state.modal=null">{{ t('howto.understood') }}</button>
@@ -5988,10 +5988,10 @@ const App = {
         <h3>{{ t('home.raceMode') }}</h3>
         <p class="coop-tagline">{{ t('race.choiceHint') }}</p>
         <button class="btn btn-primary" @click="goRace('1v1')">
-          <span class="btn-ic">🆚</span><span class="btn-tx"><b>{{ t('race.choice1v1') }}</b><small>{{ t('home.raceHint') }}</small></span>
+          <span class="btn-ic"><span class="ei" v-html="ic('versus')"></span></span><span class="btn-tx"><b>{{ t('race.choice1v1') }}</b><small>{{ t('home.raceHint') }}</small></span>
         </button>
         <button class="btn btn-ghost" @click="goRace('2v2')">
-          <span class="btn-ic">👥</span><span class="btn-tx"><b>{{ t('race.choice2v2') }}</b><small>{{ t('team.assignHint') }}</small></span>
+          <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('race.choice2v2') }}</b><small>{{ t('team.assignHint') }}</small></span>
         </button>
         <button class="btn btn-ghost" style="margin-top:8px" @click="state.modal=null">{{ t('common.cancel') }}</button>
       </div>
@@ -6004,7 +6004,7 @@ const App = {
         <div class="changelog">
           <div v-for="e in CHANGELOG" :key="e.version" class="cl-entry">
             <div class="cl-head"><b>v{{ e.version }}</b><span>{{ e.date }}</span></div>
-            <ul><li v-for="(it,i) in e.changes" :key="i">✦ {{ it }}</li></ul>
+            <ul><li v-for="(it,i) in e.changes" :key="i">{{ it }}</li></ul>
           </div>
         </div>
         <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>
@@ -6013,7 +6013,7 @@ const App = {
 
     <div v-if="state.historyDetail" class="modal-bg" @click.self="closeHistoryDetail">
       <div class="modal modal-history">
-        <h3>{{ DIFF_BY_ID[state.historyDetail.entry.difficulty]?.emoji }} {{ t('difficulty.'+state.historyDetail.entry.difficulty) }} · {{ state.historyDetail.entry.dim.r }}×{{ state.historyDetail.entry.dim.c }}</h3>
+        <h3><span class="ei" v-html="ic(DIFF_BY_ID[state.historyDetail.entry.difficulty]?.emoji)"></span> {{ t('difficulty.'+state.historyDetail.entry.difficulty) }} · {{ state.historyDetail.entry.dim.r }}×{{ state.historyDetail.entry.dim.c }}</h3>
         <div class="board-wrap">
           <div class="board" :style="historyGridStyle(state.historyDetail.puzzle)">
             <div class="corner"></div>
@@ -6053,11 +6053,11 @@ const App = {
         <h3>{{ t('whatsnew.title', { version: CHANGELOG[0]?.version }) }}</h3>
         <!-- Alle Versionen seit der zuletzt gesehenen (neueste oben, scrollbar). Bei
              nur einer neuen Version entfällt die Versions-Kopfzeile (eine einfache Liste). -->
-        <ul v-if="whatsNewEntries.length <= 1" class="whatsnew"><li v-for="(it,i) in (whatsNewEntries[0]?.changes || [])" :key="i">✦ {{ it }}</li></ul>
+        <ul v-if="whatsNewEntries.length <= 1" class="whatsnew"><li v-for="(it,i) in (whatsNewEntries[0]?.changes || [])" :key="i">{{ it }}</li></ul>
         <div v-else class="changelog whatsnew-multi">
           <div v-for="e in whatsNewEntries" :key="e.version" class="cl-entry">
             <div class="cl-head"><b>v{{ e.version }}</b><span>{{ e.date }}</span></div>
-            <ul><li v-for="(it,i) in e.changes" :key="i">✦ {{ it }}</li></ul>
+            <ul><li v-for="(it,i) in e.changes" :key="i">{{ it }}</li></ul>
           </div>
         </div>
         <button class="btn btn-primary" @click="dismissWhatsNew">{{ t('whatsnew.start') }}</button>
@@ -6119,10 +6119,10 @@ const App = {
          abgeschlossenen Spiel des Tages (analog zum "Gewonnen"-Screen). -->
     <div v-if="state.streakExtended" class="modal-bg">
       <div class="modal streak-modal extended">
-        <div class="streak-emoji">🔥</div>
+        <div class="streak-emoji"><span class="ei" v-html="ic('flame')"></span></div>
         <h3 class="streak-title">{{ t(state.streakExtended.continued ? 'streak.extendedTitle' : 'streak.startedTitle') }}</h3>
         <div class="streak-count"><b>{{ state.streakExtended.current }}</b><small>{{ t(state.streakExtended.current === 1 ? 'streak.dayLabel' : 'streak.daysLabel') }}</small></div>
-        <div v-if="state.streakExtended.current > 0" class="streak-coin-bonus">💰 {{ t('streak.coinBonus', { pct: streakBonusPct(state.streakExtended.current) }) }}</div>
+        <div v-if="state.streakExtended.current > 0" class="streak-coin-bonus"><span class="ei" v-html="ic('coin')"></span> {{ t('streak.coinBonus', { pct: streakBonusPct(state.streakExtended.current) }) }}</div>
         <div v-if="state.streakExtended.isNewRecord" class="highscore-badge">{{ t('streak.recordBadge') }}</div>
         <p class="streak-msg">
           {{ state.streakExtended.isNewRecord
@@ -6136,7 +6136,7 @@ const App = {
     <!-- Streak verloren — gedämpfter Hinweis beim App-Start, wenn ein Tag fehlte. -->
     <div v-if="state.streakLostNotice" class="modal-bg">
       <div class="modal streak-modal lost">
-        <div class="streak-emoji">💔</div>
+        <div class="streak-emoji"><span class="ei" v-html="ic('heart-broken')"></span></div>
         <h3 class="streak-title">{{ t('streak.lostTitle') }}</h3>
         <p class="streak-msg">{{ t('streak.lostBody', { best: state.streak.bestStreak }) }}</p>
         <button class="btn btn-primary" @click="dismissStreakLostNotice">{{ t('common.ok') }}</button>
