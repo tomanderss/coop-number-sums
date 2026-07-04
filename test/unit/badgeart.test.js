@@ -34,22 +34,23 @@ describe('badgeart medals', () => {
     assert.ok(ribbon.includes('M18 4'));
   });
 
-  test('tier escalation: higher tiers add richer framing', () => {
-    // Bronze (stern, tier 1): schlicht, kein Lorbeer/Strahlenkranz
-    const bronze = badgeMedalMarkup('stern');
+  test('tier escalation: the SAME symbol gets richer framing per explicit tier', () => {
+    // Jedes Symbol gibt es jetzt in allen Stufen — die Stufe kommt aus opts.tier.
+    const bronze = badgeMedalMarkup('drache', { tier: 1 });
     assert.ok(!bronze.includes('bm-laurel'));
     assert.ok(!bronze.includes('bm-halo'));
-    // Silber (flamme, tier 2): kein Lorbeer
-    const silver = badgeMedalMarkup('flamme');
+    const silver = badgeMedalMarkup('drache', { tier: 2 });
     assert.ok(!silver.includes('bm-laurel'));
-    // Gold (trophae, tier 3): Lorbeerkranz
-    const gold = badgeMedalMarkup('trophae');
+    // Gold (Stufe 3): Lorbeerkranz
+    const gold = badgeMedalMarkup('drache', { tier: 3 });
     assert.ok(gold.includes('bm-laurel'));
-    // Legendär (krone, tier 4): Strahlenkranz + Smaragd-Feld + irisierende Kante
-    const legend = badgeMedalMarkup('krone');
+    // Legendär (Stufe 4): Strahlenkranz + Smaragd-Feld + irisierende Kante
+    const legend = badgeMedalMarkup('drache', { tier: 4 });
     assert.ok(legend.includes('bm-halo'));
     assert.ok(legend.includes('bm-field-em'));
     assert.ok(legend.includes('bm-irid'));
+    // Default ohne tier = Stufe 1 (Bronze)
+    assert.ok(!badgeMedalMarkup('drache').includes('bm-laurel'));
   });
 
   test('shared defs markup is a single hidden <svg> with the referenced gradients/symbols', () => {
