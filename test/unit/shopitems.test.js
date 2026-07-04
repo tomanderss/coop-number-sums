@@ -41,8 +41,11 @@ describe('shopitems.catalog', () => {
     assert.equal(catItems('font').length, 7);
   });
 
-  test('frame category has 7 board frames', () => {
-    assert.equal(catItems('frame').length, 7);
+  test('frame category has 12 board frames (incl. 5 dynamic)', () => {
+    assert.equal(catItems('frame').length, 12);
+    for (const id of ['lauflicht', 'plasma', 'sternenstaub', 'funkenring', 'pulsar']) {
+      assert.ok(catItems('frame').some((f) => f.id === id), id);
+    }
   });
 
   test('badge category has 12 badges and badgeIcon only resolves known ids', async () => {

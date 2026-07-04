@@ -2062,6 +2062,64 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   animation: frameOrbit 8s linear infinite; will-change: transform;
 }
 
+/* ── Dynamische Rahmen: durchgehend animiert (nur transform/opacity) ─────── */
+/* 💡 Lauflicht: dunkler Ring mit atmendem Glanz + jagender Lichtpunkt */
+.frame-lauflicht::before { background: linear-gradient(140deg, #23283f, #3a415f 50%, #23283f) border-box; animation: frameBreathe 4s ease-in-out infinite; }
+.frame-lauflicht::after {
+  background: radial-gradient(circle 6px at 50% 3px, rgba(255, 235, 150, .95) 30%, transparent 70%);
+  animation: frameOrbit 1.8s linear infinite; will-change: transform;
+}
+
+/* 🔮 Plasma: Conic-Energie-Ring + zwei schnell kreisende Glut-Punkte */
+.frame-plasma::before { background: conic-gradient(#7d4fff, #ff4fd8 30%, #4fd8ff 55%, #b04fff 80%, #7d4fff) border-box; animation: frameBreathe 2.8s ease-in-out infinite; }
+.frame-plasma::after {
+  background:
+    radial-gradient(circle 7px at 50% 3px, rgba(255, 120, 235, .95) 30%, transparent 70%),
+    radial-gradient(circle 6px at 50% calc(100% - 3px), rgba(120, 225, 255, .9) 30%, transparent 70%);
+  animation: frameOrbit 1.6s linear infinite; will-change: transform;
+}
+
+/* ✨ Sternenstaub: Staubring + wechselnd funkelnde Glimmer + Schimmer-Umlauf */
+.frame-sternenstaub::before {
+  background:
+    radial-gradient(circle 1.4px at 16% 4px, #fff 50%, transparent 60%),
+    radial-gradient(circle 1.2px at 44% calc(100% - 4px), #ffe9c9 50%, transparent 60%),
+    radial-gradient(circle 1.4px at 72% 4px, #cfe4ff 50%, transparent 60%),
+    radial-gradient(circle 1.2px at 4px 40%, #fff 50%, transparent 60%),
+    radial-gradient(circle 1.2px at calc(100% - 4px) 66%, #ffd9f2 50%, transparent 60%),
+    linear-gradient(150deg, #2a2340, #4a3f6b 50%, #2a2340) border-box;
+}
+.frame-sternenstaub::after {
+  background:
+    radial-gradient(circle 2.5px at 30% 4px, #fff 40%, transparent 60%),
+    radial-gradient(circle 2px at 86% calc(100% - 4px), #ffe9c9 40%, transparent 60%),
+    radial-gradient(circle 2px at 4px 76%, #cfe4ff 40%, transparent 60%),
+    radial-gradient(circle 6px at 50% 3px, rgba(255, 255, 255, .8) 25%, transparent 70%);
+  animation: frameTwinkle 1.4s ease-in-out infinite alternate, frameOrbit 7s linear infinite; will-change: transform, opacity;
+}
+@keyframes frameTwinkle { from { opacity: .35; } to { opacity: 1; } }
+
+/* ⚡ Funkenring: Stahlring + zuckende Funken (steps) + rasender Funke */
+.frame-funkenring::before { background: linear-gradient(120deg, #3d4a63, #8fb4de 45%, #2e3950 70%, #6a86ad) border-box; }
+.frame-funkenring::after {
+  background:
+    radial-gradient(circle 3px at 22% 4px, #d6ecff 40%, transparent 60%),
+    radial-gradient(circle 2.5px at 78% calc(100% - 4px), #ffffff 40%, transparent 60%),
+    radial-gradient(circle 3px at calc(100% - 4px) 34%, #bfe0ff 40%, transparent 60%),
+    radial-gradient(circle 6px at 50% 3px, rgba(200, 235, 255, .95) 30%, transparent 70%);
+  animation: frameSparkFlicker .5s steps(2, end) infinite, frameOrbit 1s linear infinite; will-change: transform, opacity;
+}
+@keyframes frameSparkFlicker { 50% { opacity: .25; } }
+
+/* 📡 Pulsar: heller Doppelring pulsiert (scale) + rotierender Leuchtstrahl */
+.frame-pulsar::before { background: linear-gradient(90deg, #dff3ff, #6ea8ff 40%, #ffffff 60%, #4f7dff) border-box; animation: framePulse 1.6s ease-in-out infinite; will-change: transform, opacity; }
+@keyframes framePulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.012); opacity: .55; } }
+.frame-pulsar::after {
+  background: radial-gradient(circle 8px at 50% 3px, rgba(220, 240, 255, .95) 25%, transparent 70%);
+  box-shadow: inset 0 0 16px rgba(110, 168, 255, .45);
+  animation: frameOrbit 1.2s linear infinite; will-change: transform;
+}
+
 /* Demo-Ziffern auf der Shop-Karte */
 .font-demo { font-size: 1.5rem; font-weight: 700; line-height: 1; color: var(--text); }
 
