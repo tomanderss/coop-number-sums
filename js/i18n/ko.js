@@ -381,6 +381,7 @@ export default {
     makeUser: '관리자 해제',
   },
   skin: {
+    presetOnlyHint: '구매한 스킨 프리셋으로 사용 가능 — 독점 다이내믹 스킨은 자유 편집기를 추가로 해제합니다.',
     title: '✨ 다이내믹 스킨',
     lockedHint: '1.0 기념 한정 스킨: 개인 색상이 회전하며 빛나는 표시로 바뀝니다. 1.0으로의 전환을 함께했다면 자동으로 해제되고, 아니면 코드로 해제합니다.',
     codePlaceholder: '해제 코드',
@@ -431,7 +432,7 @@ export default {
   },
   notice: { gift: '{from} 님이 "{item}" 을(를) 선물했어요!', revoke: '{from} 님이 "{item}" 을(를) 회수했어요.', currency: '{from} 님이 잔액을 {n} 💰 로 설정했어요.' },
   shop: {
-    catHint: { palette: '보드 케이지 색을 바꿔보세요 — 색 구분은 항상 유지됩니다.', theme: '앱 전체의 색상 세계를 통째로 바꾸세요 — OLED 블랙부터 벚꽃까지.' , sfx: '모든 게임 사운드에 새로운 음색을 — ▶ 로 미리 들어보세요.', font: '보드 숫자에 새로운 서체와 효과를.', frame: '보드를 두르는 장식 프레임 — 나무부터 빛이 도는 은하 링까지.', badge: '이름 옆에 붙는 배지 — 협동, 친구 목록, 리더보드에서 보여요.', skinpreset: '독점 다이내믹 스킨을 위한 엄선된 프리셋 — 적용하면 스타일·색상·속도가 설정되며 이후 자유롭게 수정할 수 있습니다.' },
+    catHint: { palette: '보드 케이지 색을 바꿔보세요 — 색 구분은 항상 유지됩니다.', theme: '앱 전체의 색상 세계를 통째로 바꾸세요 — OLED 블랙부터 벚꽃까지.' , sfx: '모든 게임 사운드에 새로운 음색을 — ▶ 로 미리 들어보세요.', font: '보드 숫자에 새로운 서체와 효과를.', frame: '보드를 두르는 장식 프레임 — 나무부터 빛이 도는 은하 링까지.', badge: '이름 옆에 붙는 배지 — 협동, 친구 목록, 리더보드에서 보여요.', skinpreset: '엄선된 스킨 디자인 — 누구나 구매하고 적용할 수 있습니다. 독점 다이내믹 스킨은 자유 편집기를 추가로 해제합니다.' },
     free: { palette: '클래식', theme: '기본 (라이트/다크)' , sfx: '기본', font: '클래식', frame: '프레임 없음', badge: '배지 없음'},
     it: { stern: '별', klee: '네잎클로버', blitz: '번개', flamme: '불꽃', einhorn: '유니콘', rakete: '로켓', gehirn: '천재', alien: '외계인', trophae: '트로피', diamant: '다이아몬드', drache: '용', krone: '왕관', holz: '나무 프레임', goldbarock: '골드 바로크', eis: '얼음 결정', neonpuls: '네온 펄스', feuer: '불의 고리', regenbogen: '무지개 러너', galaxie: '은하 링', mono: '레트로 모노', serif: '우아한 세리프', hand: '손글씨', graviert: '돌에 새김', neonfont: '네온 글자', umriss: '아웃라인', gold: '골드 엠보싱', zen: '선 정원', arcade: '8비트 아케이드', kristall: '크리스털 벨', kosmos: '코스모스', synthwave: '신스웨이브', kaffee: '커피하우스', oled: 'OLED 나이트', tiefsee: '심해', wald: '밤의 숲', sakura: '사쿠라', nebula: '성운', sunset: '노을', cyberpunk: '사이버펑크', pastell: '파스텔 드림', vintage: '빈티지', daemmerung: '황혼', neon: '네온 글로우', arktis: '북극', spiegel: '거울 세계', cyber: '사이버 그리드', karneval: '카니발', lagune: '라군', smaragd: '에메랄드', abendrot: '노을', goldrausch: '골드러시', mitternacht: '자정', polarlicht: '오로라', lava: '용암', hyperregenbogen: '하이퍼 무지개', lauflicht: '러닝 라이트', plasma: '플라스마 링', sternenstaub: '스타더스트', funkenring: '스파크 링', pulsar: '펄서' },
     winFxTitle: '승리 애니메이션', winFxHint: '승리의 순간을 빛낼 애니메이션을 구매하세요 — ▶로 미리보기, 언제든 변경 가능.',

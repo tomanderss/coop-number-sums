@@ -381,6 +381,7 @@ export default {
     makeUser: '管理者を解除',
   },
   skin: {
+    presetOnlyHint: '購入したスキンプリセットで利用可能。限定ダイナミックスキンはさらに自由編集エディタを解放します。',
     title: '✨ ダイナミックスキン',
     lockedHint: '1.0記念の限定スキン：あなたの個人カラーが回転して光るマークになります。1.0への切り替えを体験していれば自動で解除、そうでなければコードで解除します。',
     codePlaceholder: '解除コード',
@@ -431,7 +432,7 @@ export default {
   },
   notice: { gift: '{from} さんから「{item}」が贈られました！', revoke: '{from} さんが「{item}」を取り消しました。', currency: '{from} さんが残高を {n} 💰 に設定しました。' },
   shop: {
-    catHint: { palette: '盤面のケージを塗り替え — 色の見分けやすさは常に保たれます。', theme: 'アプリ全体の配色をまるごと変える — OLEDブラックから桜まで。' , sfx: 'すべての効果音に新しい音色を — ▶ で試聴できます。', font: '盤面の数字に新しい書体とエフェクトを。', frame: '盤面を飾るフレーム — 木製からオービットライト付き銀河リングまで。', badge: '名前の横に表示されるバッジ — 協力プレイ、フレンドリスト、ランキングで見えます。', skinpreset: '限定ダイナミックスキン用の厳選プリセット。適用でスタイル・色・速度を設定し、その後スキンエディタで自由に調整できます。' },
+    catHint: { palette: '盤面のケージを塗り替え — 色の見分けやすさは常に保たれます。', theme: 'アプリ全体の配色をまるごと変える — OLEDブラックから桜まで。' , sfx: 'すべての効果音に新しい音色を — ▶ で試聴できます。', font: '盤面の数字に新しい書体とエフェクトを。', frame: '盤面を飾るフレーム — 木製からオービットライト付き銀河リングまで。', badge: '名前の横に表示されるバッジ — 協力プレイ、フレンドリスト、ランキングで見えます。', skinpreset: '厳選されたスキンデザイン。誰でも購入・適用できます。限定ダイナミックスキンはさらに自由編集エディタを解放します。' },
     free: { palette: 'クラシック', theme: '標準（ライト/ダーク）' , sfx: '標準', font: 'クラシック', frame: 'フレームなし', badge: 'バッジなし'},
     it: { stern: 'スター', klee: '四つ葉', blitz: 'イナズマ', flamme: '炎', einhorn: 'ユニコーン', rakete: 'ロケット', gehirn: '天才', alien: 'エイリアン', trophae: 'トロフィー', diamant: 'ダイヤ', drache: 'ドラゴン', krone: '王冠', holz: '木のフレーム', goldbarock: 'ゴールドバロック', eis: '氷の結晶', neonpuls: 'ネオンパルス', feuer: '炎のリング', regenbogen: 'レインボーラン', galaxie: '銀河リング', mono: 'レトロモノ', serif: 'エレガントセリフ', hand: '手書き', graviert: '石刻', neonfont: 'ネオン文字', umriss: 'アウトライン', gold: 'ゴールド刻印', zen: '禅の庭', arcade: '8ビットアーケード', kristall: 'クリスタルベル', kosmos: 'コスモス', synthwave: 'シンセウェイブ', kaffee: 'コーヒーハウス', oled: 'OLEDナイト', tiefsee: '深海', wald: '夜の森', sakura: 'さくら', nebula: '星雲', sunset: '夕焼け', cyberpunk: 'サイバーパンク', pastell: 'パステルドリーム', vintage: 'ビンテージ', daemmerung: 'たそがれ', neon: 'ネオングロー', arktis: '北極', spiegel: 'ミラーワールド', cyber: 'サイバーグリッド', karneval: 'カーニバル', lagune: 'ラグーン', smaragd: 'エメラルド', abendrot: '夕焼け', goldrausch: 'ゴールドラッシュ', mitternacht: '真夜中', polarlicht: 'オーロラ', lava: '溶岩', hyperregenbogen: 'ハイパーレインボー', lauflicht: 'ランニングライト', plasma: 'プラズマリング', sternenstaub: 'スターダスト', funkenring: 'スパークリング', pulsar: 'パルサー' },
     winFxTitle: '勝利アニメーション', winFxHint: '勝利の瞬間を彩るアニメーションを購入 — ▶でプレビュー、いつでも切り替え可能。',
