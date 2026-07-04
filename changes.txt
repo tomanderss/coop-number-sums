@@ -1,1 +1,0 @@
-Komplette Oberfläche ohne System-Emojis: i18n-Texte, Popups, Schwierigkeits- & Changelog-Symbole auf eigene SVG-Icons umgestellt

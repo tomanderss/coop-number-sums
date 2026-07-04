@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.82';
-export const BUILD_HASH = '62e3f1f';
+export const BUILD      = '1.83';
+export const BUILD_HASH = 'eb7854f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.83",
+    "date": "04.07.2026",
+    "changes": [
+      "Komplette Oberfläche ohne System-Emojis: i18n-Texte, Popups, Schwierigkeits- & Changelog-Symbole auf eigene SVG-Icons umgestellt"
+    ]
+  },
   {
     "version": "1.82",
     "date": "04.07.2026",
