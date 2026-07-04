@@ -48,13 +48,13 @@ describe('shopitems.catalog', () => {
     }
   });
 
-  test('badge category has 12 badges and badgeIcon only resolves known ids', async () => {
-    const { badgeIcon } = await import('../../js/shopitems.js');
-    assert.equal(catItems('badge').length, 12);
-    assert.equal(badgeIcon('krone'), '👑');
-    assert.equal(badgeIcon('<script>'), '');
-    assert.equal(badgeIcon('neon'), '');  // Palette-ID darf nicht als Badge rendern
-    assert.equal(badgeIcon(null), '');
+  test('badges are NOT a shop category anymore (earned via prestige, not bought)', async () => {
+    const { SHOP_CATS, BADGE_SYMBOLS } = await import('../../js/shopitems.js');
+    assert.ok(!('badge' in SHOP_CATS), 'badge must no longer be a shop category');
+    assert.equal(catItems('badge').length, 0);
+    // Die zwölf Symbole bleiben als reine Referenz erhalten.
+    assert.equal(BADGE_SYMBOLS.length, 12);
+    assert.ok(BADGE_SYMBOLS.includes('krone'));
   });
 
   test('palette category has 8 purchasable palettes with fx params', () => {

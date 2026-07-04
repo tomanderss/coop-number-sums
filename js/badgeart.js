@@ -15,7 +15,8 @@
 // Motive sind bewusst symmetrisch um die Mittelachse und weich gerundet
 // (stroke-linejoin:round) — geprägt, nicht krakelig.
 
-import { shopItemById } from './shopitems.js';
+// Die Stufe (tier 1..4) wird jetzt EXPLIZIT übergeben (Prestige-System) — jedes
+// Symbol gibt es in allen vier Stufen. Kein Shop-Katalog-Lookup mehr nötig.
 
 // Zentrierte Motiv-Silhouetten (Ursprung 0,0, Radius ~15). Ohne fill/stroke —
 // die bekommt die Fassung (Verlauf + Kontur) vom Assembler. Zusätzliche, fest
@@ -94,19 +95,20 @@ export function badgeDefsMarkup() {
     '</defs></svg>';
 }
 
-// Erzeugt die Medaille eines Abzeichens. ribbon=true hängt sie ans Halsband.
-// Gibt '' zurück für unbekannte/keine Abzeichen (Fremd-IDs aus der RTDB).
+// Erzeugt die Medaille eines Abzeichens. `id` = Symbol (z.B. 'drache'), die
+// Stufe kommt aus opts.tier (1..4, Prestige-System; Default 1). ribbon=true
+// hängt sie ans Halsband. Gibt '' für unbekannte Symbole zurück (Fremd-IDs).
 export function badgeMedalMarkup(id, opts = {}) {
-  const it = shopItemById(id);
-  if (!it || it.cat !== 'badge' || !MOTIFS[id]) return '';
-  const t = TIERS[it.tier] || TIERS[1];
+  if (!MOTIFS[id]) return '';
+  const tier = Math.max(1, Math.min(4, Math.floor(opts.tier || 1)));
+  const t = TIERS[tier] || TIERS[1];
   const size = opts.size || 64;
   const ribbon = !!opts.ribbon;
   // Medaillen-Zentrum + Rahmen-Radien im Koordinatenraum (72er Feld).
   const cy = ribbon ? 44 : 36;
   const vb = ribbon ? '0 0 72 96' : '0 0 72 72';
   const rimR = t.legendary ? 34.5 : 33;
-  let s = `<svg class="bm bm-${t.key}${ribbon ? ' bm-ribbon' : ''}" viewBox="${vb}" width="${size}" height="${ribbon ? Math.round(size * 96 / 72) : size}" role="img" aria-label="${it.id}">`;
+  let s = `<svg class="bm bm-${t.key}${ribbon ? ' bm-ribbon' : ''}" viewBox="${vb}" width="${size}" height="${ribbon ? Math.round(size * 96 / 72) : size}" role="img" aria-label="${id}">`;
 
   // Halsband (V von oben) zuerst — Medaille liegt darüber.
   if (ribbon) {

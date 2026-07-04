@@ -550,6 +550,17 @@ export default {
       moreSoon: 'Mehr in Kürze',
     },
   },
+  prestige: {
+    title: 'Prestige',
+    intro: 'Abzeichen werden verdient, nicht gekauft. Jedes Symbol ist eine Kategorie mit vier Stufen. Rüste eine freigeschaltete Stufe als Profil-Abzeichen aus.',
+    locked: 'Gesperrt',
+    maxed: 'Höchste Stufe erreicht',
+    toNext: 'Noch {n} bis {tier}',
+    unequip: 'Abzeichen abnehmen',
+    tier: { t1: 'Bronze', t2: 'Silber', t3: 'Gold', t4: 'Legendär' },
+    cat: { soloMaster: 'Solo-Meister', teamSpirit: 'Team-Geist', duelist: 'Wettkampf', teamDuel: 'Team-Duell', streak: 'Serie', flawless: 'Makellos', perfectTeam: 'Perfektes Team', thinker: 'Denker', endurance: 'Ausdauer', recordHunter: 'Rekordjäger', topClass: 'Königsklasse', explorer: 'Entdecker' },
+    metric: { soloMaster: 'Solo-Siege', teamSpirit: 'Coop-Siege', duelist: '1v1-Siege', teamDuel: '2v2-Siege', streak: 'längste Tages-Streak', flawless: 'perfekte Siege', perfectTeam: 'perfekte Coop-Siege', thinker: 'gelöste Rätsel', endurance: 'gespielte Partien', recordHunter: 'Stufen mit Bestzeit', topClass: 'Siege höchste Stufe', explorer: 'Stufen mit Sieg' },
+  },
   wallet: {
     rewardHint: 'Münzen für einen Sieg auf dieser Stufe (Coop/Wettkampf doppelt, makellos doppelt, + Streak-Bonus).',
     coins: 'Münzen',

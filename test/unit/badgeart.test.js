@@ -1,15 +1,17 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { badgeDefsMarkup, badgeMedalMarkup, hasBadgeMedal } from '../../js/badgeart.js';
-import { BADGE_ITEMS } from '../../js/shopitems.js';
+import { BADGE_SYMBOLS } from '../../js/shopitems.js';
 
 describe('badgeart medals', () => {
-  test('every badge catalog item has a drawable medal motif', () => {
-    for (const it of BADGE_ITEMS) {
-      assert.ok(hasBadgeMedal(it.id), `missing motif for badge "${it.id}"`);
-      const svg = badgeMedalMarkup(it.id);
-      assert.match(svg, /^<svg[\s>]/, `${it.id} should render an <svg>`);
-      assert.match(svg, /<\/svg>$/, `${it.id} should close its <svg>`);
+  test('every badge symbol has a drawable medal motif in every tier', () => {
+    for (const sym of BADGE_SYMBOLS) {
+      assert.ok(hasBadgeMedal(sym), `missing motif for badge "${sym}"`);
+      for (let tier = 1; tier <= 4; tier++) {
+        const svg = badgeMedalMarkup(sym, { tier });
+        assert.match(svg, /^<svg[\s>]/, `${sym} t${tier} should render an <svg>`);
+        assert.match(svg, /<\/svg>$/, `${sym} t${tier} should close its <svg>`);
+      }
     }
   });
 
@@ -34,22 +36,23 @@ describe('badgeart medals', () => {
     assert.ok(ribbon.includes('M18 4'));
   });
 
-  test('tier escalation: higher tiers add richer framing', () => {
-    // Bronze (stern, tier 1): schlicht, kein Lorbeer/Strahlenkranz
-    const bronze = badgeMedalMarkup('stern');
+  test('tier escalation: the SAME symbol gets richer framing per explicit tier', () => {
+    // Jedes Symbol gibt es jetzt in allen Stufen — die Stufe kommt aus opts.tier.
+    const bronze = badgeMedalMarkup('drache', { tier: 1 });
     assert.ok(!bronze.includes('bm-laurel'));
     assert.ok(!bronze.includes('bm-halo'));
-    // Silber (flamme, tier 2): kein Lorbeer
-    const silver = badgeMedalMarkup('flamme');
+    const silver = badgeMedalMarkup('drache', { tier: 2 });
     assert.ok(!silver.includes('bm-laurel'));
-    // Gold (trophae, tier 3): Lorbeerkranz
-    const gold = badgeMedalMarkup('trophae');
+    // Gold (Stufe 3): Lorbeerkranz
+    const gold = badgeMedalMarkup('drache', { tier: 3 });
     assert.ok(gold.includes('bm-laurel'));
-    // Legendär (krone, tier 4): Strahlenkranz + Smaragd-Feld + irisierende Kante
-    const legend = badgeMedalMarkup('krone');
+    // Legendär (Stufe 4): Strahlenkranz + Smaragd-Feld + irisierende Kante
+    const legend = badgeMedalMarkup('drache', { tier: 4 });
     assert.ok(legend.includes('bm-halo'));
     assert.ok(legend.includes('bm-field-em'));
     assert.ok(legend.includes('bm-irid'));
+    // Default ohne tier = Stufe 1 (Bronze)
+    assert.ok(!badgeMedalMarkup('drache').includes('bm-laurel'));
   });
 
   test('shared defs markup is a single hidden <svg> with the referenced gradients/symbols', () => {
