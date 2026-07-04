@@ -1,4 +1,4 @@
-const CACHE = 'coop-number-sums-v1.75';
+const CACHE = 'coop-number-sums-v1.76';
 const ASSETS = [
   './index.html',
   './privacy.html',
