@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.67';
-export const BUILD_HASH = '39c4940';
+export const BUILD      = '1.68';
+export const BUILD_HASH = '12e5329';
 
 export const CHANGELOG = [
+  {
+    "version": "1.68",
+    "date": "04.07.2026",
+    "changes": [
+      "Shop: Live-Vorschau für jedes Item — ▶ auf jeder Karte zeigt Paletten, Zahlen-Stile, Rahmen und Skin-Vorlagen auf einem Demo-Brett, Badges als Namens-Chip und Themes 4 Sekunden in echt."
+    ]
+  },
   {
     "version": "1.67",
     "date": "04.07.2026",
