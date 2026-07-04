@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.80';
-export const BUILD_HASH = 'ab5b649';
+export const BUILD      = '1.81';
+export const BUILD_HASH = '66cad90';
 
 export const CHANGELOG = [
+  {
+    "version": "1.81",
+    "date": "04.07.2026",
+    "changes": [
+      "Shop: eigene SVG-Icons für alle Artikel, Kategorien und Sieganimationen statt System-Emojis"
+    ]
+  },
   {
     "version": "1.80",
     "date": "04.07.2026",
