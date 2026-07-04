@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.81';
-export const BUILD_HASH = '66cad90';
+export const BUILD      = '1.82';
+export const BUILD_HASH = '62e3f1f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.82",
+    "date": "04.07.2026",
+    "changes": [
+      "Erfolge: eigene SVG-Icons statt Emoji (gesperrte Erfolge mit Schloss-Symbol)"
+    ]
+  },
   {
     "version": "1.81",
     "date": "04.07.2026",
