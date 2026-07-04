@@ -527,7 +527,7 @@ export default {
     winFxTitle: 'Sieganimationen', winFxHint: 'Kaufe neue Animationen für deinen Sieg-Moment — Vorschau mit ▶, gekaufte jederzeit wechselbar.',
     preview: 'Vorschau', activate: 'Aktivieren', active: 'Aktiv',
     bought: 'Gekauft! 🎉', notEnough: 'Nicht genug Münzen', activated: 'Aktiviert',
-    effect: { confetti: 'Konfetti', balloons: 'Ballon-Party', stars: 'Sternenregen', bubbles: 'Seifenblasen', petals: 'Kirschblüten', snow: 'Schneezauber', sparklers: 'Wunderkerzen', fireworks: 'Feuerwerk', coins: 'Münzregen', rainbow: 'Regenbogen-Welle', wave: 'Welle', matrix: 'Matrix-Regen', disco: 'Disco', arcade: 'Retro-Arcade', galaxy: 'Galaxie-Wirbel', blackhole: 'Schwarzes Loch', chain: 'Kettenreaktion', dragon: 'Drachenflug', rocket: 'Raketenstart', shatter: 'Diamantsplitter', phoenix: 'Phönix', jackpot: 'Jackpot', unicorn: 'Einhorn' },
+    effect: { confetti: 'Konfetti', balloons: 'Ballon-Party', stars: 'Sternenregen', bubbles: 'Seifenblasen', petals: 'Kirschblüten', snow: 'Schneezauber', sparklers: 'Wunderkerzen', fireworks: 'Feuerwerk', coins: 'Münzregen', rainbow: 'Regenbogen-Welle', wave: 'Welle', matrix: 'Matrix-Regen', disco: 'Disco', arcade: 'Retro-Arcade', galaxy: 'Galaxie-Wirbel', blackhole: 'Schwarzes Loch', chain: 'Kettenreaktion', dragon: 'Drachenflug', rocket: 'Raketenstart', shatter: 'Diamantsplitter', phoenix: 'Phönix', jackpot: 'Jackpot', unicorn: 'Einhorn', meteor: 'Meteorsturm', gewitter: 'Gewitter', portal: 'Dimensionsportal', feuertornado: 'Feuertornado', synthgrid: 'Synthwave-Sonne' },
     title: 'Shop',
     intro: 'Verdiene Münzen durch Siege und gib sie hier für kosmetische Extras aus.',
     wip: 'Der Shop ist noch in Arbeit — bald kannst du deine Münzen hier ausgeben.',

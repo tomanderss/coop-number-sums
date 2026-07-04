@@ -2681,6 +2681,51 @@ const PIECE_GENERATORS = {
     for (let i = 0; i < 14; i++) out.push({ id: 500 + i, ch: '✨', left: R(0, 100), top: R(30, 75), delay: R(0.5, 2.4), dur: 1, size: R(10, 18), kind: 1 });
     return out;
   },
+  // ── Tier 4 (Legendär): mehrphasige Groß-Spektakel ──────────────────────────
+  meteor(perfect) {
+    // Feuerbälle mit Glühschweif stürzen diagonal herab; je Meteor ein
+    // Einschlags-Ring (k1) unten, danach glimmender Glut-Regen (k2).
+    const out = []; let id = 0;
+    for (let i = 0; i < (perfect ? 10 : 6); i++) {
+      const delay = i * 0.34 + R(0, 0.15);
+      out.push({ id: id++, left: R(25, 115), top: -8, delay, dur: R(0.7, 1), size: R(10, 18), hue: R(15, 45) });
+      out.push({ id: id++, left: R(5, 90), top: R(55, 92), delay: delay + 0.5, dur: 0.9, size: R(90, 160), hue: R(15, 45), kind: 1 });
+    }
+    for (let i = 0; i < (perfect ? 50 : 30); i++) out.push({ id: 500 + i, left: R(0, 100), delay: R(1.2, 3.2), dur: R(1.4, 2.4), size: R(3, 7), hue: R(15, 50), kind: 2 });
+    return out;
+  },
+  gewitter(perfect) {
+    // Zickzack-Blitze (clip-path, via scaleY gestreckt) schlagen versetzt ein;
+    // Ganzbild-Wetterleuchten + Wolkenbank sind ::before/::after, Regen = k2 (endlos).
+    const out = []; let id = 0;
+    for (let i = 0; i < (perfect ? 9 : 6); i++) out.push({ id: id++, left: R(8, 92), top: 0, delay: i * 0.42 + R(0, 0.2), dur: 0.5, size: R(40, 70), hue: R(200, 260) });
+    for (let i = 0; i < (perfect ? 80 : 50); i++) out.push({ id: 500 + i, left: R(0, 100), top: -12, delay: R(0, 1.2), dur: R(0.5, 0.9), size: R(60, 110), kind: 2 });
+    return out;
+  },
+  portal(perfect) {
+    // Wirbel-Portal (rotierendes Conic-Ring-::before) reißt in der Mitte auf;
+    // Sterne schießen daraus aufs Auge zu (Scale 0.15 → 3), am Ende kollabiert es.
+    const n = perfect ? 70 : 42, out = [];
+    for (let i = 0; i < n; i++) { const ang = R(0, Math.PI * 2), r = R(120, 480); out.push({ id: i, dx: Math.cos(ang) * r, dy: Math.sin(ang) * r, delay: R(0.5, 2.6), dur: R(0.9, 1.6), size: R(4, 9), hue: R(160, 320) }); }
+    for (let i = 0; i < 10; i++) out.push({ id: 500 + i, ch: '✦', left: R(10, 90), top: R(10, 90), delay: R(0.8, 3), dur: 1, size: R(10, 20), kind: 1 });
+    return out;
+  },
+  feuertornado(perfect) {
+    // Flammenwirbel: Partikel kreisen um die Mittelachse (rotate+translateX) und
+    // steigen dabei vom Boden auf; 🔥-Funken (k1) sprühen aus dem Trichter.
+    const n = perfect ? 90 : 56, out = [];
+    for (let i = 0; i < n; i++) out.push({ id: i, ang: R(0, 360), rad: R(14, 110), delay: R(0, 1.6), dur: R(1.6, 2.6), size: R(4, 10), hue: R(12, 55) });
+    for (let i = 0; i < (perfect ? 24 : 14); i++) out.push({ id: 500 + i, ch: '🔥', left: R(20, 80), top: R(30, 95), delay: R(0.4, 2.4), dur: R(0.8, 1.4), size: R(14, 26), kind: 1 });
+    return out;
+  },
+  synthgrid(perfect) {
+    // Retro-Sonnenaufgang: scrollendes Perspektiv-Grid (::before) + aufgehende
+    // Neon-Sonne (::after); quer schießende Neon-Streifen + funkelnde Sterne (k1).
+    const out = [];
+    for (let i = 0; i < (perfect ? 22 : 14); i++) out.push({ id: i, left: -20, top: R(6, 58), delay: R(0, 2.2), dur: R(0.9, 1.6), size: R(50, 130), hue: [300, 190, 320, 210][i % 4] });
+    for (let i = 0; i < (perfect ? 40 : 24); i++) out.push({ id: 500 + i, ch: '✦', left: R(0, 100), top: R(0, 55), delay: R(0, 2.6), dur: 1.1, size: R(8, 16), kind: 1 });
+    return out;
+  },
 };
 // Overlay-Lebensdauer je Effekt [normal, perfekt] — möglichst dicht an der
 // tatsächlich sichtbaren Animation, damit nach ihrem Ende nichts „nachhängt"
@@ -2692,6 +2737,8 @@ const WINFX_DURATION = {
   chain: [3200, 3400],       // Diagonalwelle (max delay ~1,7s) + Ringe 0,9s
   shatter: [2600, 2800],     // Scherbenflug ≤ 2,05s + 💎-Fall
   fireworks: [3400, 4600],   // letzte Burst-Welle je nach Anzahl
+  meteor: [4600, 5600], gewitter: [4400, 5200], portal: [4200, 5000],
+  feuertornado: [4200, 5000], synthgrid: [4600, 5600],
 };
 function launchWinFx(perfect, forceId) {
   const id = forceId || resolveActiveEffect(state.settings.winEffect, state.inventory);

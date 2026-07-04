@@ -436,7 +436,7 @@ export default {
     winFxTitle: 'Win animations', winFxHint: 'Buy new animations for your victory moment — preview with ▶, switch owned ones anytime.',
     preview: 'Preview', activate: 'Activate', active: 'Active',
     bought: 'Purchased! 🎉', notEnough: 'Not enough coins', activated: 'Activated',
-    effect: { confetti: 'Confetti', balloons: 'Balloon Party', stars: 'Star Shower', bubbles: 'Soap Bubbles', petals: 'Cherry Blossoms', snow: 'Snow Magic', sparklers: 'Sparklers', fireworks: 'Fireworks', coins: 'Coin Rain', rainbow: 'Rainbow Wave', wave: 'Ocean Wave', matrix: 'Matrix Rain', disco: 'Disco', arcade: 'Retro Arcade', galaxy: 'Galaxy Swirl', blackhole: 'Black Hole', chain: 'Chain Reaction', dragon: 'Dragon Flight', rocket: 'Rocket Launch', shatter: 'Diamond Shatter', phoenix: 'Phoenix', jackpot: 'Jackpot', unicorn: 'Unicorn' },
+    effect: { confetti: 'Confetti', balloons: 'Balloon Party', stars: 'Star Shower', bubbles: 'Soap Bubbles', petals: 'Cherry Blossoms', snow: 'Snow Magic', sparklers: 'Sparklers', fireworks: 'Fireworks', coins: 'Coin Rain', rainbow: 'Rainbow Wave', wave: 'Ocean Wave', matrix: 'Matrix Rain', disco: 'Disco', arcade: 'Retro Arcade', galaxy: 'Galaxy Swirl', blackhole: 'Black Hole', chain: 'Chain Reaction', dragon: 'Dragon Flight', rocket: 'Rocket Launch', shatter: 'Diamond Shatter', phoenix: 'Phoenix', jackpot: 'Jackpot', unicorn: 'Unicorn', meteor: 'Meteor Storm', gewitter: 'Thunderstorm', portal: 'Dimension Portal', feuertornado: 'Fire Tornado', synthgrid: 'Synthwave Sun' },
     title: 'Shop',
     intro: 'Earn coins by winning and spend them here on cosmetic extras.',
     wip: 'The shop is still in the works — soon you can spend your coins here.',
