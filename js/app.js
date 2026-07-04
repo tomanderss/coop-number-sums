@@ -491,13 +491,7 @@ const SETTINGS_SECTIONS = [
 function coinFor(d, coopish) {
   return coinReward(DIFFICULTIES.indexOf(d), { coop: !!coopish });
 }
-// Shop-Sortiment (vorerst reine Vorschau/WIP — nichts kaufbar). Rein kosmetische
-// Ideen, kein Pay-to-win. Namen via i18n (shop.item.<id>).
-const SHOP_ITEMS = [
-  { id: 'coopColors', icon: '✨' },
-  { id: 'moreSoon', icon: '➕' },
-];
-// Shop öffnen/schließen (eigener Screen; Coins oben, WIP-Kaufkarten).
+// Shop öffnen/schließen (eigener Screen; Coins oben).
 let shopReturn = null;
 function openShop(category) {
   // Direkteinstieg in eine Kategorie erlaubt (z.B. Settings-Link „Shop ›"),
@@ -4372,7 +4366,7 @@ const App = {
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
-      openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
+      openShop, closeShop, openShopCategory, closeShopCategory, coinFor,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon, applySkinPreset,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
@@ -5228,14 +5222,6 @@ const App = {
             <span class="shop-card-name">{{ t('shop.item.skinPresets') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('skinpreset') }}/{{ shopCatItems('skinpreset').length }} ›</span>
           </button>
-        </div>
-        <div class="shop-wip-banner">🚧 {{ t('shop.wip') }}</div>
-        <div class="shop-grid">
-          <div v-for="it in SHOP_ITEMS" :key="it.id" class="shop-card disabled">
-            <span class="shop-card-ic">{{ it.icon }}</span>
-            <span class="shop-card-name">{{ t('shop.item.'+it.id) }}</span>
-            <span class="shop-card-soon">{{ t('shop.soon') }}</span>
-          </div>
         </div>
       </div>
     </section>
