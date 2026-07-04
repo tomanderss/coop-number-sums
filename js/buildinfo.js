@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.77';
-export const BUILD_HASH = '18738d6';
+export const BUILD      = '1.78';
+export const BUILD_HASH = 'd99de54';
 
 export const CHANGELOG = [
+  {
+    "version": "1.78",
+    "date": "04.07.2026",
+    "changes": [
+      "Brettrahmen-Fix: Feld ragt mit aktivem Rahmen nicht mehr aus dem Bildschirm (Rahmen-Abstand wird jetzt in die Zellgröße eingerechnet); animierte Rahmen-Effekte laufen nur noch am Rand entlang statt durchs Spielfeld"
+    ]
+  },
   {
     "version": "1.77",
     "date": "04.07.2026",
