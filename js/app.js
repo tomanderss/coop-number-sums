@@ -492,7 +492,6 @@ function coinFor(d, coopish) {
 // Shop-Sortiment (vorerst reine Vorschau/WIP — nichts kaufbar). Rein kosmetische
 // Ideen, kein Pay-to-win. Namen via i18n (shop.item.<id>).
 const SHOP_ITEMS = [
-  { id: 'skinPresets', icon: '🎨' },
   { id: 'coopColors', icon: '✨' },
   { id: 'moreSoon', icon: '➕' },
 ];
@@ -570,15 +569,36 @@ function equipShopFree(cat) {
 }
 function buyShopItem(it) {
   if (ownsShop(it)) return;
+  // Skin-Vorlagen setzen den exklusiven dynamischen Skin voraus — ohne ihn
+  // wäre der Kauf nutzlos (die Vorlage schreibt nur dessen Einstellungen).
+  if (it.cat === 'skinpreset' && !state.inventory[SKIN_ID]) { showToast(t('shop.needsSkin'), 'error', 3200); return; }
   const price = shopItemPrice(it);
   const r = spendCurrency(price, 'shop:' + it.id);
   if (!r.ok) { showToast(t('shop.notEnough'), 'error', 2600); return; }
   state.wallet = loadWallet();
   state.inventory = grantInventory(shopInvKey(it), 'shop');
   if (SHOP_CATS[it.cat].settingKey) setSetting(SHOP_CATS[it.cat].settingKey, it.id); // direkt ausrüsten
+  if (it.cat === 'skinpreset') applySkinPreset(it); // Gekauftes direkt anwenden
   log('game', 'Shop-Artikel gekauft', { id: it.id, cat: it.cat, price, balance: r.balance });
   showToast(t('shop.bought'), 'success', 2400);
   if (state.account.status === 'in') Account.scheduleSyncUp();
+}
+// 🎨 Skin-Vorlage anwenden: schreibt die Einstellungen des dynamischen Skins
+// (Stil/Farben/Tempo/Glow/Dicke) und schaltet ihn ein — danach im Skin-Editor
+// frei weiter-anpassbar (deshalb kein „ausgerüstet"-Zustand, nur „Anwenden").
+function applySkinPreset(it) {
+  if (!ownsShop(it) || !state.inventory[SKIN_ID]) return;
+  const d = it.data || {};
+  setSetting('skinStyle', d.style || 'gradient');
+  setSetting('skinColor1', (d.c && d.c[0]) || '');
+  setSetting('skinColor2', (d.c && d.c[1]) || '');
+  setSetting('skinColor3', (d.c && d.c[2]) || '');
+  if (d.speed != null) setSetting('skinSpeed', d.speed);
+  if (d.glow != null) setSetting('skinGlow', d.glow);
+  if (d.thickness != null) setSetting('skinThickness', d.thickness);
+  setSetting('skinEnabled', true);
+  log('game', 'Skin-Vorlage angewendet', { id: it.id });
+  showToast(t('shop.applied'), 'success', 1800);
 }
 // Brett-Klasse des ausgerüsteten Zahlen-Stils ('' = Klassisch).
 function boardFontClass() {
@@ -605,6 +625,10 @@ function shopPreviewDots(it) {
     });
   }
   if (it.cat === 'theme') return it.data.sw;
+  if (it.cat === 'skinpreset') {
+    if (it.data.style === 'rainbow') return [0, 60, 120, 180, 240, 300].map((h) => `hsl(${h} 90% 55%)`);
+    return it.data.c;
+  }
   return null;
 }
 // Kategorie-Titel für die Shop-Topbar (Kategorie-Karten nutzen dieselben Keys).
@@ -616,6 +640,7 @@ function shopCategoryTitle(cat) {
   if (cat === 'font') return '🔢 ' + t('shop.item.numberFonts');
   if (cat === 'frame') return '🖼️ ' + t('shop.item.boardFrames');
   if (cat === 'badge') return '🏅 ' + t('shop.item.profileBadges');
+  if (cat === 'skinpreset') return '🎨 ' + t('shop.item.skinPresets');
   return t('shop.title');
 }
 
@@ -4155,7 +4180,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
-      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon,
+      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon, applySkinPreset,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4913,8 +4938,10 @@ const App = {
            Kaufkarten mit kategoriespezifischer Vorschau. -->
       <div v-if="state.shopCategory && state.shopCategory !== 'winfx'" class="shop-body">
         <p class="shop-sec-hint">{{ t('shop.catHint.' + state.shopCategory) }}</p>
+        <p v-if="state.shopCategory === 'skinpreset' && !skinUnlocked" class="shop-sec-hint shop-lock-hint">🔒 {{ t('shop.needsSkin') }}</p>
         <div class="shop-grid">
-          <div class="shop-card fx" :class="{ fxactive: shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free }">
+          <!-- Gratis-Standard (entfällt bei Anwenden-Kategorien wie Skin-Vorlagen) -->
+          <div v-if="SHOP_CATS[state.shopCategory].free" class="shop-card fx" :class="{ fxactive: shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free }">
             <span class="shop-card-ic">✔️</span>
             <span class="shop-card-name">{{ t('shop.free.' + state.shopCategory) }}</span>
             <span v-if="shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
@@ -4927,7 +4954,8 @@ const App = {
             <span v-if="it.cat === 'frame'" class="frame-demo" :class="'frame-' + it.id"></span>
             <span v-if="shopPreviewDots(it)" class="shop-pal-dots"><i v-for="(c, di) in shopPreviewDots(it)" :key="di" :style="{ background: c }"></i></span>
             <span class="shop-card-name">{{ t('shop.it.' + it.id) }}</span>
-            <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it)" @click="buyShopItem(it)">💰 {{ shopItemPrice(it) }}</button>
+            <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it) || (it.cat === 'skinpreset' && !skinUnlocked)" @click="buyShopItem(it)">💰 {{ shopItemPrice(it) }}</button>
+            <button v-else-if="it.cat === 'skinpreset'" class="btn btn-ghost btn-sm shop-buy-btn" @click="applySkinPreset(it)">{{ t('shop.apply') }}</button>
             <span v-else-if="shopEquippedId(state.shopCategory) === it.id" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopItem(it)">{{ t('shop.activate') }}</button>
           </div>
@@ -4972,6 +5000,11 @@ const App = {
             <span class="shop-card-ic">🖌️</span>
             <span class="shop-card-name">{{ t('shop.item.appThemes') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('theme') + 1 }}/{{ shopCatItems('theme').length + 1 }} ›</span>
+          </button>
+          <button class="shop-card shop-cat" @click="openShopCategory('skinpreset')">
+            <span class="shop-card-ic">🎨</span>
+            <span class="shop-card-name">{{ t('shop.item.skinPresets') }}</span>
+            <span class="shop-cat-count">{{ shopOwnedCount('skinpreset') }}/{{ shopCatItems('skinpreset').length }} ›</span>
           </button>
         </div>
         <div class="shop-wip-banner">🚧 {{ t('shop.wip') }}</div>

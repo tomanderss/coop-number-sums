@@ -60,6 +60,21 @@ describe('shopitems.catalog', () => {
     for (const p of pals) assert.ok(p.fx && typeof p.fx === 'object', p.id);
   });
 
+  test('skinpreset category has 8 presets with complete apply-data', () => {
+    const presets = catItems('skinpreset');
+    assert.equal(presets.length, 8);
+    for (const p of presets) {
+      assert.ok(['solid', 'gradient', 'rainbow'].includes(p.data.style), p.id);
+      assert.ok(Array.isArray(p.data.c), p.id);
+      if (p.data.style === 'gradient') assert.equal(p.data.c.length, 3, p.id);
+      for (const c of p.data.c) assert.match(c, /^#[0-9a-f]{6}$/i, p.id);
+      assert.ok(p.data.speed >= 0 && p.data.speed <= 10, p.id);
+    }
+    // Anwenden-Kategorie: kein settingKey/Gratis-Standard, resolveEquipped → null
+    assert.equal(SHOP_CATS.skinpreset.settingKey, null);
+    assert.equal(resolveEquipped('skinpreset', 'lagune', {}), null);
+  });
+
   test('price helpers resolve by id and item', () => {
     assert.equal(shopItemPrice('pastell'), 400);
     assert.equal(shopItemPrice('neon'), 600);
