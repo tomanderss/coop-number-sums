@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.75';
-export const BUILD_HASH = '3996afb';
+export const BUILD      = '1.76';
+export const BUILD_HASH = 'f4c9aea';
 
 export const CHANGELOG = [
+  {
+    "version": "1.76",
+    "date": "04.07.2026",
+    "changes": [
+      "Eigene Abzeichen-Medaillen: Profil-Abzeichen sind jetzt selbst gezeichnete Medaillen (Bronze→Silber→Gold→Legendär) statt Emojis"
+    ]
+  },
   {
     "version": "1.75",
     "date": "04.07.2026",
