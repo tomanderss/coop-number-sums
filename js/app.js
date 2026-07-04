@@ -25,6 +25,7 @@ import {
 import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx, badgeIcon } from './shopitems.js';
 import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup } from './badgeart.js';
+import { icon as customIcon, hasIcon } from './icons.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -1697,6 +1698,9 @@ function myBadge() { const id = shopEquippedId('badge'); return id && id !== 'no
 // Fremd-IDs ⇒ '' (nichts). Wird per v-html gerendert; Defs liegen einmal im DOM.
 function badgeSvg(id, ribbon = false) { return hasBadgeMedal(id) ? badgeMedalMarkup(id, { ribbon, size: ribbon ? 96 : 40 }) : ''; }
 function badgeDefs() { return badgeDefsMarkup(); }
+// Custom-Icon (SVG-String) für ein UI-Glyph — Emoji-Ersatz, per v-html gerendert.
+// Unbekannte Namen ⇒ '' (nie rohen Fremdtext rendern). Größe/Farbe via CSS (.ico).
+function ic(name) { return customIcon(name); }
 // Eigener eindeutiger Account-Username (nur eingeloggt) — wird im Coop mitgesendet.
 function myUsername() { return state.account.status === 'in' && state.account.username ? state.account.username : ''; }
 // Anzeige „Anzeigename (username)" – nur wenn ein (abweichender) Account-Username bekannt ist.
@@ -4389,7 +4393,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon, applySkinPreset,
-      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, hasBadgeMedal,
+      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, hasBadgeMedal, ic,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4422,12 +4426,12 @@ const App = {
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
-      <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')">☕<span class="home-donate-heart" aria-hidden="true">❤</span></a>
-      <span v-if="state.streak.currentStreak>0" class="home-streak-badge">🔥{{ state.streak.currentStreak }}</span>
+      <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span><span class="home-donate-heart ico-wrap" aria-hidden="true" v-html="ic('heart')"></span></a>
+      <span v-if="state.streak.currentStreak>0" class="home-streak-badge"><span class="ico-lead" v-html="ic('flame')"></span>{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
-        <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')">👫<span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span><span v-if="anyFriendOnline()" class="friends-online-dot"></span></button>
-        <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')">🛒</button>
-        <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
+        <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')"><span class="ico-wrap" v-html="ic('users')"></span><span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span><span v-if="anyFriendOnline()" class="friends-online-dot"></span></button>
+        <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')"><span class="ico-wrap" v-html="ic('cart')"></span></button>
+        <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </div>
       <div class="brand">
         <img class="brand-logo" src="./icons/icon-192.png" alt="" />
@@ -4474,7 +4478,7 @@ const App = {
       <header class="topbar">
         <button class="icon-btn" @click="goBack()">‹</button>
         <h2>{{ t('setup.title') }}</h2>
-        <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
+        <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
       <div class="setup-body">
         <div class="setup-label">{{ t('common.difficulty') }}</div>
@@ -4677,7 +4681,7 @@ const App = {
           <span>{{ t('hint.socratic.'+state.hintNudge.reason, { rem: state.hintNudge.rem }) }}</span>
         </div>
         <button class="btn btn-ghost btn-sm" @click="revealHintNudge">{{ t('hint.reveal') }}</button>
-        <button class="hint-dismiss" @click="dismissHintNudge" :aria-label="t('hint.dismiss')" :title="t('hint.dismiss')">✕</button>
+        <button class="hint-dismiss" @click="dismissHintNudge" :aria-label="t('hint.dismiss')" :title="t('hint.dismiss')"><span class="ico-wrap" v-html="ic('close')"></span></button>
       </div>
 
       <!-- Coop-Lobby: Rätsel ist da, Zeit läuft erst nach "Starten" -->
@@ -4831,7 +4835,7 @@ const App = {
 
     <!-- ══ STATS ══ -->
     <section v-else-if="state.screen==='stats'" class="screen stats">
-      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('stats.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
+      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('stats.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button></header>
       <div class="stats-body">
         <button class="btn btn-ghost shop-entry-btn" @click="openShop">
           <span class="btn-ic">🛒</span>
@@ -4909,7 +4913,7 @@ const App = {
 
     <!-- ══ ACHIEVEMENTS ══ -->
     <section v-else-if="state.screen==='achievements'" class="screen achievements">
-      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('achievements.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
+      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('achievements.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button></header>
       <div class="achievements-body">
         <div class="achievements-progress">
           <span class="achievements-progress-label">{{ t('achievements.progress', { unlocked: achievementsUnlockedCount, total: ACHIEVEMENTS.length }) }}</span>
@@ -4929,7 +4933,7 @@ const App = {
 
     <!-- ══ VERLAUF ══ -->
     <section v-else-if="state.screen==='history'" class="screen history">
-      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('history.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button></header>
+      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('history.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button></header>
       <div class="history-body">
         <div v-if="!state.puzzleHistory.length" class="empty">{{ t('history.empty') }}</div>
         <div v-for="h in state.puzzleHistory" :key="h.ts" class="history-row">
@@ -4956,7 +4960,7 @@ const App = {
       <header class="topbar">
         <button class="icon-btn" @click="goBack()">‹</button>
         <h2>{{ t('coop.title') }}</h2>
-        <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')">⚙️</button>
+        <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
 
       <!-- Namens-Gate: bevor irgendetwas anderes möglich ist, Name + eigene Farbe festlegen
@@ -5015,7 +5019,7 @@ const App = {
           <div v-if="state.coop.invitePickerOpen" class="invite-picker">
             <div class="invite-picker-head">
               <span>{{ t('coop.inviteFriends') }}</span>
-              <button class="icon-btn" @click="closeInvitePicker" :aria-label="t('common.close')">✕</button>
+              <button class="icon-btn" @click="closeInvitePicker" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
             </div>
             <p v-if="!state.friends.list.length" class="set-hint">{{ t('friends.empty') }}</p>
             <div v-for="fr in friendsSorted()" :key="fr.uid" class="invite-row">
@@ -5049,7 +5053,7 @@ const App = {
                   <button type="button" class="team-arrow-btn team-swap-btn" :disabled="state.coop.role!=='host'"
                           @click="assignTeam(p.id, p.team==='A' ? 'B' : 'A')"
                           :aria-label="t('team.moveTo',{team:t('team.label'+(p.team==='A'?'B':'A'))})">{{ p.team==='A' ? '▶' : '◀' }}</button>
-                  <button type="button" class="team-arrow-btn team-unassign-btn" :disabled="state.coop.role!=='host'" @click="assignTeam(p.id,null)" :aria-label="t('team.unassign')">✕</button>
+                  <button type="button" class="team-arrow-btn team-unassign-btn" :disabled="state.coop.role!=='host'" @click="assignTeam(p.id,null)" :aria-label="t('team.unassign')"><span class="ico-wrap" v-html="ic('close')"></span></button>
                 </template>
               </div>
               <div class="team-slot team-slot-b">
@@ -5131,7 +5135,7 @@ const App = {
         <!-- Zurück: aus einer Kategorie erst zur Kategorien-Übersicht, dann raus. -->
         <button class="icon-btn" @click="state.shopCategory ? closeShopCategory() : closeShop()">‹</button>
         <h2>{{ state.shopCategory ? shopCategoryTitle(state.shopCategory) : t('shop.title') }}</h2>
-        <span class="coin-chip coin-chip-static">💰 {{ state.wallet.balance || 0 }}</span>
+        <span class="coin-chip coin-chip-static"><span class="ico-lead" v-html="ic('coin')"></span>{{ state.wallet.balance || 0 }}</span>
       </header>
 
       <!-- Kategorie: 🎉 Sieganimationen (kaufen/aktivieren/Vorschau) -->
@@ -5269,7 +5273,7 @@ const App = {
         <!-- 🎮 Spiel -->
         <div class="admin-acc">
           <button class="admin-acc-head" @click="toggleSettingsCard('spiel')">
-            <span>🎮 {{ t('settings.tabGame') }}</span>
+            <span><span class="ico-lead" v-html="ic('controller')"></span>{{ t('settings.tabGame') }}</span>
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='spiel' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='spiel'" class="admin-acc-body">
@@ -5291,7 +5295,7 @@ const App = {
         <!-- 🌓 Darstellung (Theme, Sprache, Barrierefreiheit) -->
         <div class="admin-acc">
           <button class="admin-acc-head" @click="toggleSettingsCard('darstellung')">
-            <span>🌓 {{ t('settings.secAppearance') }}</span>
+            <span><span class="ico-lead" v-html="ic('theme')"></span>{{ t('settings.secAppearance') }}</span>
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='darstellung' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='darstellung'" class="admin-acc-body">
@@ -5336,7 +5340,7 @@ const App = {
         <!-- 🎨 Farbe & Anpassung (eigene Farbe + dynamischer Skin) -->
         <div class="admin-acc">
           <button class="admin-acc-head" @click="toggleSettingsCard('farbe')">
-            <span>🎨 {{ t('settings.secColors') }}</span>
+            <span><span class="ico-lead" v-html="ic('palette')"></span>{{ t('settings.secColors') }}</span>
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='farbe' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='farbe'" class="admin-acc-body">
@@ -5428,7 +5432,7 @@ const App = {
         <!-- 🔊 Ton (Musik + Aktions-Sounds) -->
         <div class="admin-acc">
           <button class="admin-acc-head" @click="toggleSettingsCard('ton')">
-            <span>🔊 {{ t('settings.tabSound') }}</span>
+            <span><span class="ico-lead" v-html="ic('sound')"></span>{{ t('settings.tabSound') }}</span>
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='ton' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='ton'" class="admin-acc-body">
@@ -5488,7 +5492,7 @@ const App = {
         <!-- 👤 Konto (Profil/Anzeigename + optionaler Account + Cloud-Sync) -->
         <div class="admin-acc">
           <button class="admin-acc-head" @click="toggleSettingsCard('konto')">
-            <span>👤 {{ t('settings.tabAccount') }}<span v-if="state.account.status==='in'" class="admin-acc-count">{{ state.account.username }}</span></span>
+            <span><span class="ico-lead" v-html="ic('user')"></span>{{ t('settings.tabAccount') }}<span v-if="state.account.status==='in'" class="admin-acc-count">{{ state.account.username }}</span></span>
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='konto' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='konto'" class="admin-acc-body">
@@ -5596,7 +5600,7 @@ const App = {
         <!-- 💾 Daten & Sicherung (Export/Import, Recht, Löschen) — bewusst zuletzt -->
         <div class="admin-acc">
           <button class="admin-acc-head" @click="toggleSettingsCard('daten')">
-            <span>💾 {{ t('settings.tabData') }}</span>
+            <span><span class="ico-lead" v-html="ic('save')"></span>{{ t('settings.tabData') }}</span>
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='daten' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='daten'" class="admin-acc-body">
@@ -5636,7 +5640,7 @@ const App = {
       <div class="modal admin-console-modal">
         <header class="friends-head">
           <h3>👑 {{ t('admin.consoleTitle') }}</h3>
-          <button class="icon-btn" @click="closeAdminConsole" :aria-label="t('common.close')">✕</button>
+          <button class="icon-btn" @click="closeAdminConsole" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
         </header>
         <div class="admin-console-toolbar">
           <input class="text-input" v-model="state.account.adminFilter" :placeholder="t('admin.filterPlaceholder')" autocapitalize="none" />
@@ -5683,7 +5687,7 @@ const App = {
             </span>
             <small class="admin-uid">{{ state.account.adminEditUser.uid }}</small>
           </div>
-          <button class="icon-btn" @click="closeAdminEdit" :aria-label="t('common.close')">✕</button>
+          <button class="icon-btn" @click="closeAdminEdit" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
         </header>
 
         <!-- Kennzahlen-Chips (live aus dem frischen Snapshot, inkl. ungespeicherter Werte).
@@ -5750,7 +5754,7 @@ const App = {
                 <div class="admin-item-chips">
                   <span v-for="(v, id) in state.account.adminEditUser.inventory" :key="id" class="admin-item-chip">
                     {{ adminItemLabel(id) }}
-                    <button class="admin-item-x" :disabled="state.account.adminBusy" @click="adminRevokeItemId(id)" :aria-label="t('admin.revokeSkin')">✕</button>
+                    <button class="admin-item-x" :disabled="state.account.adminBusy" @click="adminRevokeItemId(id)" :aria-label="t('admin.revokeSkin')"><span class="ico-wrap" v-html="ic('close')"></span></button>
                   </span>
                   <span v-if="!state.account.adminEditUser.itemCount" class="set-hint">—</span>
                 </div>
@@ -5831,7 +5835,7 @@ const App = {
           <h3>👫 {{ t('friends.title') }}</h3>
           <span class="friends-head-actions">
             <button class="icon-btn" @click="openAddFriend" :aria-label="t('friends.addTitle')" :title="t('friends.addTitle')">＋</button>
-            <button class="icon-btn" @click="closeFriends" :aria-label="t('common.close')">✕</button>
+            <button class="icon-btn" @click="closeFriends" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
           </span>
         </header>
         <div class="friends-tabs">
