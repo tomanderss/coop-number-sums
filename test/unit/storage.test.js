@@ -20,6 +20,7 @@ const {
   loadStreak, recordStreakResult, loadAchievements, unlockAchievements,
   loadRace, recordRaceWin, recordRaceLoss,
   loadInventory, inventoryHas, grantInventory, revokeInventory, mergeInventory,
+  reconcileInventoryFromCloud, applyCloudWallet,
   loadWallet, grantCurrency, spendCurrency, loadProfile, saveProfile,
   collectExportData,
 } = await import('../../js/storage.js');
@@ -454,6 +455,54 @@ describe('storage.inventory', () => {
     assert.ok(localTs > 1);
     assert.equal(inv.otherSkin.acquiredAt, 50);
     assert.equal(inv.otherSkin.source, 'gift');
+  });
+});
+
+describe('storage.reconcileInventoryFromCloud', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('cloud gifts appear immediately, self-unlocks survive missing from cloud', () => {
+    grantInventory('winfx_stars', 'shop');           // lokaler Kauf, noch nicht hochgesynct
+    const inv = reconcileInventoryFromCloud({ winfx_dragon: { acquiredAt: 5, source: 'gift' } });
+    assert.equal(inventoryHas('winfx_dragon'), true);  // Geschenk sofort da
+    assert.equal(inventoryHas('winfx_stars'), true);   // Kauf bleibt erhalten
+    assert.equal(inv.winfx_dragon.source, 'gift');
+  });
+
+  test('admin revoke removes gift-sourced items that vanished from cloud', () => {
+    grantInventory('winfx_dragon', 'gift');
+    grantInventory('dynamicColor', 'code');
+    reconcileInventoryFromCloud({});                  // Cloud: alles entzogen
+    assert.equal(inventoryHas('winfx_dragon'), false); // Geschenk weg
+    assert.equal(inventoryHas('dynamicColor'), true);  // Selbst-Unlock bleibt
+  });
+
+  test('keeps the earlier acquiredAt when both sides own an item', () => {
+    grantInventory('winfx_stars', 'shop');
+    const inv = reconcileInventoryFromCloud({ winfx_stars: { acquiredAt: 3, source: 'sync' } });
+    assert.equal(inv.winfx_stars.acquiredAt, 3);
+  });
+
+  test('tolerates null/garbage cloud values', () => {
+    grantInventory('winfx_stars', 'shop');
+    assert.equal(reconcileInventoryFromCloud(null).winfx_stars.source, 'shop');
+    assert.equal(inventoryHas('winfx_stars'), true);
+  });
+});
+
+describe('storage.applyCloudWallet', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('applies a valid cloud wallet (floored, non-negative)', () => {
+    const w = applyCloudWallet({ balance: 123.9, updatedAt: 99 });
+    assert.equal(w.balance, 123);
+    assert.equal(loadWallet().updatedAt, 99);
+  });
+
+  test('ignores invalid payloads and keeps the local wallet', () => {
+    grantCurrency(50);
+    assert.equal(applyCloudWallet(null).balance, 50);
+    assert.equal(applyCloudWallet({ balance: 'x' }).balance, 50);
   });
 });
 

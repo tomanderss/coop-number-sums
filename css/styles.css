@@ -1815,6 +1815,10 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   background: var(--bg3); color: var(--text2); font-size: .78rem; display: flex; align-items: center; justify-content: center;
 }
 .shop-fx-preview:active { background: var(--accent); color: #fff; }
+/* ▶ in den Einstellungen: neben dem Picker statt absolut in der Karte */
+.set-fx-row { display: flex; align-items: center; gap: 8px; }
+.set-fx-row .text-input { flex: 1; min-width: 0; }
+.set-fx-preview { position: static; flex: none; }
 .shop-buy-btn { min-width: 84px; }
 .shop-fx-state.on { font-size: .78rem; font-weight: 800; color: var(--accent); padding: 6px 0 2px; }
 /* Kategorien-Karte in der Shop-Übersicht (antippbar, mit Besitz-Zähler) */
