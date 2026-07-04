@@ -1951,6 +1951,21 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 99px;
   background: var(--bg3); font-weight: 800; font-size: 1.05rem;
 }
+
+/* ── Selbstgezeichnete Abzeichen-Medaillen (SVG statt Emoji) ──────────────────
+   Die gemeinsamen Verläufe/Symbole liegen unsichtbar im DOM (badge-defs-holder);
+   jede Medaille ist ein eigenständiges <svg>, per v-html eingesetzt. Größen rein
+   über CSS (überschreiben die width/height-Attribute des SVG). */
+.badge-defs-holder { position: absolute; width: 0; height: 0; overflow: hidden; }
+/* Inline neben einem Namen (Home-Chip, Coop-Roster, Freunde, Bestenliste). */
+.badge-medal-inline { display: inline-flex; vertical-align: -0.3em; margin-right: 0.3em; flex: none; }
+.badge-medal-inline svg { width: 1.5em; height: 1.5em; display: block; }
+/* In einer Shop-Karte (mittelgroß, ohne Band). */
+.badge-medal-card { display: inline-flex; }
+.badge-medal-card svg { width: 46px; height: 46px; display: block; }
+/* Große Vorschau-Medaille am Halsband (Shop-Sticky-Demo). */
+.badge-medal-lg { display: inline-flex; }
+.badge-medal-lg svg { height: 58px; width: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
 .shop-fx-preview.prevon { background: var(--accent); color: #fff; }
 .admin-grant-all { margin-top: 8px; width: 100%; }
 .shop-card.fx.fxactive { box-shadow: 0 0 0 2px var(--accent), 0 2px 8px var(--shadow); }
