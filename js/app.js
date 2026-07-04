@@ -628,6 +628,13 @@ function shopDemoSkin() {
 }
 // Badge-Demo: eigener Name + Vorschau-/ausgerüstetes Abzeichen als Chip.
 function shopDemoBadgeName() { return myUsername() || state.settings.coopName || '🙂'; }
+// Anzeige-Elemente der Gratis-Standard-Karte („Klassisch"): dieselbe Vorschau
+// wie auf den Kauf-Karten — Original-Cage-Farben bzw. die eingebaute Farbwelt.
+function shopFreeDots(cat) {
+  if (cat === 'palette') return [0, 3, 6, 9, 12, 15].map((i) => { const c = REGION_COLORS[i]; return `hsl(${c.h} ${c.s}% ${c.l}%)`; });
+  if (cat === 'theme') return isDarkTheme() ? ['#0b1020', '#151b2e', '#4f7dff', '#e8ebf5'] : ['#eef2f9', '#ffffff', '#4f7dff', '#1c2333'];
+  return null;
+}
 function buyShopItem(it) {
   if (ownsShop(it)) return;
   // Skin-Vorlagen setzen den exklusiven dynamischen Skin voraus — ohne ihn
@@ -3469,6 +3476,7 @@ function adminEnumOptions(row) {
   });
 }
 function adminItemLabel(id) {
+  if (id === 'ALL') return t('admin.allItems'); // Sammel-Geschenk „Alles freischalten"
   const key = `admin.dict.o.item.${id}`; const s = t(key);
   if (s !== key) return s;
   // Sieganimationen: Shop-Namen wiederverwenden statt eigener Dict-Einträge.
@@ -3608,6 +3616,20 @@ function adminToggleRole() {
 function adminSetBalance() { const uid = adminEditUid(); const n = parseInt(state.account.adminBalance || '0', 10); if (uid) adminAction(Account.adminSetCurrency, uid, n).then((ok) => ok && adminAfterBalance(uid, Math.max(0, Math.floor(n || 0)))); }
 function adminChangeUsername() { const uid = adminEditUid(); const n = state.account.adminUsername.trim(); if (uid && n) adminAction(Account.adminSetUsername, uid, n); }
 function adminGrantAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminGrantItem, uid, id).then((ok) => ok && adminAfterItem(uid, id, true)); }
+// „Alles freischalten": alle bekannten Items (Sieganimationen, Shop-Artikel,
+// Skin, Founder), die der Nutzer noch NICHT besitzt, in einem Schwung schenken.
+function adminGrantAllItems() {
+  const uid = adminEditUid(); if (!uid) return;
+  const owned = (state.account.adminEditUser && state.account.adminEditUser.inventory) || {};
+  const ids = adminItemOptions().filter((id) => !owned[id]);
+  if (!ids.length) { showToast(t('admin.done'), 'success', 1800); return; }
+  adminAction(Account.adminGrantItems, uid, ids).then((ok) => {
+    if (!ok) return;
+    for (const id of ids) adminMirrorSelfItem(uid, id, true);
+    adminNotifyUser(uid, { kind: 'gift', item: 'ALL' });
+    log('account', 'Admin: Alles freigeschaltet', { uid, count: ids.length });
+  });
+}
 // Einzelnes Item direkt aus der Besitz-Chip-Liste entziehen (✕ am Chip).
 function adminRevokeItemId(id) { const uid = adminEditUid(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminAfterItem(uid, id, false)); }
 function adminRevokeAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminAfterItem(uid, id, false)); }
@@ -4242,7 +4264,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon, applySkinPreset,
-      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName,
+      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -5029,6 +5051,9 @@ const App = {
           <div v-if="SHOP_CATS[state.shopCategory].free" class="shop-card fx" :class="{ fxactive: shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free }">
             <span class="shop-card-ic">✔️</span>
             <button class="shop-fx-preview" :class="{ prevon: state.shopPreview && state.shopPreview.id === SHOP_CATS[state.shopCategory].free }" @click="shopPreviewFree(state.shopCategory)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
+            <span v-if="state.shopCategory === 'font'" class="font-demo">123</span>
+            <span v-if="state.shopCategory === 'frame'" class="frame-demo"></span>
+            <span v-if="shopFreeDots(state.shopCategory)" class="shop-pal-dots"><i v-for="(c, di) in shopFreeDots(state.shopCategory)" :key="di" :style="{ background: c }"></i></span>
             <span class="shop-card-name">{{ t('shop.free.' + state.shopCategory) }}</span>
             <span v-if="shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopFree(state.shopCategory)">{{ t('shop.activate') }}</button>
@@ -5609,6 +5634,7 @@ const App = {
                   </select>
                   <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem">🎁</button>
                 </div>
+                <button class="btn btn-primary btn-sm admin-grant-all" :disabled="state.account.adminBusy" @click="adminGrantAllItems">🎁 {{ t('admin.grantAll') }}</button>
               </div>
             </div>
 

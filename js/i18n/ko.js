@@ -329,6 +329,7 @@ export default {
     loadUsers: '모든 사용자 불러오기',
     openConsole: '사용자 관리',
     choose: '– 선택 –',
+    grantAll: '모두 해제', allItems: '컴플리트 패키지(모든 아이템)',
     'accountActions': '계정 작업',
     'inventory': '인벤토리',
     'dataHint': '변경 사항은 사용자의 다음 앱 시작 시 적용됩니다.',

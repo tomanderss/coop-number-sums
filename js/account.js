@@ -752,6 +752,21 @@ export async function adminGrantItem(uid, itemId) {
     return { ok: true };
   } catch (e) { return { ok: false, err: errKey(e) }; }
 }
+// „Alles freischalten": alle übergebenen Items in EINEM update() schenken —
+// atomar statt N Einzel-Requests; der Aufrufer filtert bereits Besessenes
+// heraus (ein erneutes Schreiben würde nur acquiredAt überstempeln).
+export async function adminGrantItems(uid, itemIds) {
+  try {
+    const ids = (itemIds || []).filter(Boolean);
+    if (!ids.length) return { ok: true };
+    const fb = await ensureFirebase();
+    const upd = {};
+    for (const id of ids) upd[id] = { acquiredAt: fb.serverTimestamp(), source: 'gift' };
+    await fb.update(userRef(fb, uid, 'inventory'), upd);
+    log('account', 'Admin: Items gesammelt vergeben', { uid, count: ids.length });
+    return { ok: true };
+  } catch (e) { return { ok: false, err: errKey(e) }; }
+}
 export async function adminRevokeItem(uid, itemId) {
   try {
     const fb = await ensureFirebase();

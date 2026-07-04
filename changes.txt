@@ -1,0 +1,2 @@
+Shop: Auch „Klassisch"-Gratis-Karten zeigen Farbpunkte/Demo und haben die ▶-Vorschau.
+Admin-Inventar: neuer Button „Alles freischalten" schenkt alle Artikel auf einmal.
