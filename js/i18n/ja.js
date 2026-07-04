@@ -436,6 +436,7 @@ export default {
     winFxTitle: '勝利アニメーション', winFxHint: '勝利の瞬間を彩るアニメーションを購入 — ▶でプレビュー、いつでも切り替え可能。',
     preview: 'プレビュー', activate: '使う', active: '使用中',
     apply: '適用', applied: 'プリセットを適用しました！', needsSkin: '限定ダイナミックスキンが必要です（バージョン1.0報酬または解除コード）。',
+    demoHint: 'カードの▶をタップするとライブプレビューできます。', previewTheme: 'テーマのプレビュー — 4秒後に元に戻ります。',
     bought: '購入しました！🎉', notEnough: 'コインが足りません', activated: '設定しました',
     effect: { confetti: '紙吹雪', balloons: 'バルーンパーティー', stars: '星のシャワー', bubbles: 'シャボン玉', petals: '桜吹雪', snow: '雪の魔法', sparklers: '線香花火', fireworks: '打ち上げ花火', coins: 'コインの雨', rainbow: '虹の波', wave: '大波', matrix: 'マトリックスの雨', disco: 'ディスコ', arcade: 'レトロアーケード', galaxy: '銀河の渦', blackhole: 'ブラックホール', chain: '連鎖爆発', dragon: 'ドラゴンの飛行', rocket: 'ロケット発射', shatter: 'ダイヤの欠片', phoenix: 'フェニックス', jackpot: 'ジャックポット', unicorn: 'ユニコーン', meteor: 'メテオストーム', gewitter: '雷雨', portal: '次元ポータル', feuertornado: '炎の竜巻', synthgrid: 'シンセウェイブの太陽' },
     title: 'ショップ',

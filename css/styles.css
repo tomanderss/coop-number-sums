@@ -1810,6 +1810,25 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .shop-sec-title { font-weight: 900; font-size: 1.02rem; margin: 6px 0 0; }
 .shop-sec-hint { color: var(--text2); font-size: .84rem; margin: 0 0 4px; }
 .shop-lock-hint { color: var(--warn, #e6a23c); font-weight: 600; }
+/* Live-Demo im Shop (Vorschau für Brett-Kategorien + Badge-Chip) */
+.shop-demo-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 4px 0 10px; }
+.board.shop-demo {
+  display: grid; grid-template-columns: repeat(4, 46px); gap: 8px; justify-content: center;
+  width: auto; padding: 14px; border-radius: 14px; background: var(--bg2, rgba(128,128,128,.08));
+  box-shadow: 0 2px 8px var(--shadow, rgba(0,0,0,.15));
+}
+.board.shop-demo:has(.coop-mark) { grid-template-columns: repeat(2, 52px); }
+.shop-demo .cell {
+  position: relative; width: 46px; height: 46px; border-radius: 10px; background: var(--bg3);
+  display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem;
+}
+.shop-demo .cell.kept, .shop-demo .cell.removed { width: 52px; height: 52px; }
+.shop-demo-hint { color: var(--text2); font-size: .76rem; }
+.shop-demo-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 99px;
+  background: var(--bg3); font-weight: 800; font-size: 1.05rem;
+}
+.shop-fx-preview.prevon { background: var(--accent); color: #fff; }
 .shop-card.fx.fxactive { box-shadow: 0 0 0 2px var(--accent), 0 2px 8px var(--shadow); }
 .shop-fx-preview {
   position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%;

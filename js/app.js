@@ -213,6 +213,7 @@ const state = reactive({
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
+  shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
   adminNotice: null,             // aktuell angezeigte Admin-Benachrichtigung {id, kind, item|amount, from} (Modal)
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
 });
@@ -281,11 +282,12 @@ function isDarkTheme() {
   if (m === 'light') return false;
   try { return window.matchMedia('(prefers-color-scheme: dark)').matches; } catch (_) { return true; }
 }
-function applyTheme() {
+function applyTheme(previewThemeId) {
   // Ausgerüstetes Shop-Theme (komplette Farbwelt) hat Vorrang: es bestimmt die
   // Grundwelt (data-theme steuert Farbblind-Overrides & Co.) und liefert die
   // Browser-Chrome-Farbe. Ohne Theme gilt das eingebaute Hell/Dunkel (themeMode).
-  const themeIt = shopItemById(shopEquippedId('theme'));
+  // previewThemeId: temporäre Shop-Vorschau ohne Setting-Änderung (s. shopPreviewIt).
+  const themeIt = shopItemById(previewThemeId !== undefined ? previewThemeId : shopEquippedId('theme'));
   const dark = themeIt ? themeIt.data.base === 'dark' : isDarkTheme();
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   if (themeIt) document.documentElement.setAttribute('data-apptheme', themeIt.id);
@@ -510,8 +512,8 @@ function openShop(category) {
 }
 function closeShop() { const b = shopReturn || 'home'; shopReturn = null; state.shopCategory = null; navigate(b); }
 // Kategorie öffnen/schließen — Zurück in der Kategorie führt zur Übersicht, nicht raus.
-function openShopCategory(cat) { state.shopCategory = cat; }
-function closeShopCategory() { state.shopCategory = null; }
+function openShopCategory(cat) { state.shopCategory = cat; state.shopPreview = null; }
+function closeShopCategory() { state.shopCategory = null; state.shopPreview = null; }
 // ── Sieganimationen: erste echte Shop-Kategorie (Katalog: js/wineffects.js) ────
 function ownsWinFx(id) { return ownsEffect(state.inventory, id); }
 function winFxActive(id) { return resolveActiveEffect(state.settings.winEffect, state.inventory) === id; }
@@ -567,6 +569,65 @@ function equipShopFree(cat) {
   setSetting(SHOP_CATS[cat].settingKey, SHOP_CATS[cat].free);
   showToast(t('shop.activated'), 'success', 1800);
 }
+// ── Item-Vorschau im Shop: JEDES Item vorher ansehen (auch ohne Kauf) ─────────
+// Brett-Kategorien (palette/font/frame/skinpreset) rendern ein Live-Demo-Brett
+// über den Karten; ▶ wählt das Vorschau-Item (Toggle), ohne Auswahl zeigt das
+// Demo den ausgerüsteten Zustand. Badges → Namens-Chip; Sound → Hör-Demo;
+// Theme → echte App-Optik wechselt für 4 s (danach zurück zum Ausgerüsteten).
+function shopPreviewIt(it) {
+  if (it.cat === 'sfx') { previewSfxPack(it); return; }
+  if (it.cat === 'theme') { previewThemeTemp(it.id); return; }
+  const cur = state.shopPreview;
+  state.shopPreview = (cur && cur.id === it.id) ? null : { cat: it.cat, id: it.id };
+}
+// ▶ auf der Gratis-Standard-Karte: Vorschau des eingebauten Defaults.
+function shopPreviewFree(cat) {
+  if (cat === 'sfx') { previewSfxPack({ id: SHOP_CATS.sfx.free }); return; }
+  if (cat === 'theme') { previewThemeTemp(SHOP_CATS.theme.free); return; }
+  const cur = state.shopPreview;
+  const id = SHOP_CATS[cat].free;
+  state.shopPreview = (cur && cur.id === id) ? null : { cat, id };
+}
+let themePreviewTimer = 0;
+function previewThemeTemp(id) {
+  applyTheme(id); // rein optisch, kein Setting — nach 4 s zurück zum Ausgerüsteten
+  log('game', 'Theme-Vorschau', { id });
+  showToast(t('shop.previewTheme'), 'info', 3600);
+  clearTimeout(themePreviewTimer);
+  themePreviewTimer = setTimeout(() => applyTheme(), 4000);
+}
+// Vorschau-Item einer Kategorie (▶-Auswahl), sonst der ausgerüstete Zustand.
+function shopDemoId(cat) {
+  if (state.shopPreview && state.shopPreview.cat === cat) return state.shopPreview.id;
+  return cat === 'skinpreset' ? null : shopEquippedId(cat);
+}
+function shopDemoActive(it) { return !!(state.shopPreview && state.shopPreview.id === it.id); }
+// Demo-Brett: 4 Cage-Farben in der Vorschau-Palette (classic = unverändert).
+function shopDemoCells() {
+  const it = shopItemById(shopDemoId('palette'));
+  return [0, 2, 5, 9].map((i) => {
+    const c = applyPaletteFx(REGION_COLORS[i], it ? it.fx : null);
+    return `hsl(${c.h} ${c.s}% ${c.l}%)`;
+  });
+}
+// Klassen fürs Demo-Brett (Zahlen-Stil/Rahmen); Gratis-Standard = keine Klasse.
+function shopDemoClass(cat) {
+  const id = shopDemoId(cat);
+  if (!id || id === SHOP_CATS[cat].free) return '';
+  return (cat === 'font' ? 'font-' : 'frame-') + id;
+}
+// Skin-Demo: Vorschau-Preset als Pseudo-Einstellungen rendern, sonst die
+// aktuellen Skin-Einstellungen des Nutzers (wie in Einstellungen ▸ Farbe).
+function shopDemoSkin() {
+  const it = shopItemById(shopDemoId('skinpreset'));
+  const s = it ? {
+    skinStyle: it.data.style, skinColor1: it.data.c[0] || '', skinColor2: it.data.c[1] || '', skinColor3: it.data.c[2] || '',
+    skinSpeed: it.data.speed, skinGlow: it.data.glow, skinThickness: it.data.thickness, skinApplyTo: 'both', skinDirection: 'cw',
+  } : state.settings;
+  return { vars: buildSkinVars(s), classes: buildSkinClasses(s, true) };
+}
+// Badge-Demo: eigener Name + Vorschau-/ausgerüstetes Abzeichen als Chip.
+function shopDemoBadgeName() { return myUsername() || state.settings.coopName || '🙂'; }
 function buyShopItem(it) {
   if (ownsShop(it)) return;
   // Skin-Vorlagen setzen den exklusiven dynamischen Skin voraus — ohne ihn
@@ -4181,6 +4242,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon, applySkinPreset,
+      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4939,17 +5001,41 @@ const App = {
       <div v-if="state.shopCategory && state.shopCategory !== 'winfx'" class="shop-body">
         <p class="shop-sec-hint">{{ t('shop.catHint.' + state.shopCategory) }}</p>
         <p v-if="state.shopCategory === 'skinpreset' && !skinUnlocked" class="shop-sec-hint shop-lock-hint">🔒 {{ t('shop.needsSkin') }}</p>
+
+        <!-- Live-Demo: Brett-Kategorien zeigen das per ▶ gewählte Item sofort -->
+        <div v-if="['palette','font','frame','skinpreset'].includes(state.shopCategory)" class="shop-demo-wrap">
+          <div class="board shop-demo" :class="[shopDemoClass('font') && state.shopCategory==='font' ? shopDemoClass('font') : '', shopDemoClass('frame') && state.shopCategory==='frame' ? shopDemoClass('frame') : '', state.shopCategory==='skinpreset' ? shopDemoSkin().classes : '']" :style="state.shopCategory==='skinpreset' ? shopDemoSkin().vars : null">
+            <template v-if="state.shopCategory==='palette'">
+              <div v-for="(c, i) in shopDemoCells()" :key="i" class="cell" :style="{ background: c }"><span class="cnum">{{ [3,8,5,9][i] }}</span></div>
+            </template>
+            <template v-else-if="state.shopCategory==='skinpreset'">
+              <div class="cell kept coop-mark" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">5</span></div>
+              <div class="cell removed coop-mark-removed" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">3</span></div>
+            </template>
+            <template v-else>
+              <div v-for="(n, i) in [3,8,5,9]" :key="i" class="cell"><span class="cnum">{{ n }}</span></div>
+            </template>
+          </div>
+          <small class="shop-demo-hint">{{ t('shop.demoHint') }}</small>
+        </div>
+        <!-- Badge-Demo: eigener Name mit dem Vorschau-Abzeichen -->
+        <div v-if="state.shopCategory==='badge'" class="shop-demo-wrap">
+          <span class="shop-demo-chip">{{ shopDemoBadgeName() }} <b v-if="badgeIcon(shopDemoId('badge'))">{{ badgeIcon(shopDemoId('badge')) }}</b></span>
+          <small class="shop-demo-hint">{{ t('shop.demoHint') }}</small>
+        </div>
+
         <div class="shop-grid">
           <!-- Gratis-Standard (entfällt bei Anwenden-Kategorien wie Skin-Vorlagen) -->
           <div v-if="SHOP_CATS[state.shopCategory].free" class="shop-card fx" :class="{ fxactive: shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free }">
             <span class="shop-card-ic">✔️</span>
+            <button class="shop-fx-preview" :class="{ prevon: state.shopPreview && state.shopPreview.id === SHOP_CATS[state.shopCategory].free }" @click="shopPreviewFree(state.shopCategory)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             <span class="shop-card-name">{{ t('shop.free.' + state.shopCategory) }}</span>
             <span v-if="shopEquippedId(state.shopCategory) === SHOP_CATS[state.shopCategory].free" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopFree(state.shopCategory)">{{ t('shop.activate') }}</button>
           </div>
           <div v-for="it in shopCatItems(state.shopCategory)" :key="it.id" class="shop-card fx" :class="{ owned: ownsShop(it), fxactive: shopEquippedId(state.shopCategory) === it.id }">
             <span class="shop-card-ic">{{ it.icon }}</span>
-            <button v-if="it.cat === 'sfx'" class="shop-fx-preview" @click="previewSfxPack(it)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
+            <button class="shop-fx-preview" :class="{ prevon: shopDemoActive(it) }" @click="shopPreviewIt(it)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             <span v-if="it.cat === 'font'" class="font-demo" :class="'font-' + it.id">123</span>
             <span v-if="it.cat === 'frame'" class="frame-demo" :class="'frame-' + it.id"></span>
             <span v-if="shopPreviewDots(it)" class="shop-pal-dots"><i v-for="(c, di) in shopPreviewDots(it)" :key="di" :style="{ background: c }"></i></span>
