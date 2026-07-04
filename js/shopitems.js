@@ -64,6 +64,20 @@ export const SFX_ITEMS = [
 ];
 SHOP_CATALOG.push(...SFX_ITEMS);
 
+// 🔢 Zahlen-Stile: Typo/Effekte für die Ziffern auf dem Brett (Zellwerte,
+// Kopfsummen, Cage-Chips). Reine System-Font-Stacks + CSS-Text-Effekte
+// (.board.font-<id>, styles.css) — kein Font-Download, kein Build-Schritt.
+export const FONT_ITEMS = [
+  { id: 'mono',     cat: 'font', icon: '⌨️', tier: 1 },
+  { id: 'serif',    cat: 'font', icon: '📜', tier: 1 },
+  { id: 'hand',     cat: 'font', icon: '✍️', tier: 2 },
+  { id: 'graviert', cat: 'font', icon: '🪨', tier: 2 },
+  { id: 'neonfont', cat: 'font', icon: '💫', tier: 3 },
+  { id: 'umriss',   cat: 'font', icon: '⭕', tier: 3 },
+  { id: 'gold',     cat: 'font', icon: '🥇', tier: 4 },
+];
+SHOP_CATALOG.push(...FONT_ITEMS);
+
 export function shopItemById(id) { return SHOP_CATALOG.find((i) => i.id === id) || null; }
 export function catItems(cat) { return SHOP_CATALOG.filter((i) => i.cat === cat); }
 export function shopItemPrice(idOrItem) {
