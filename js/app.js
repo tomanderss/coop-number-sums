@@ -22,7 +22,7 @@ import {
   setDataRev, setSyncedRev,
 } from './storage.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
-import { SHOP_CATS, SHOP_CATALOG, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
+import { SHOP_CATS, SHOP_CATALOG, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx, badgeIcon } from './shopitems.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -493,7 +493,6 @@ function coinFor(d, coopish) {
 const SHOP_ITEMS = [
   { id: 'skinPresets', icon: '🎨' },
   { id: 'coopColors', icon: '✨' },
-  { id: 'profileBadges', icon: '🏅' },
   { id: 'moreSoon', icon: '➕' },
 ];
 // Shop öffnen/schließen (eigener Screen; Coins oben, WIP-Kaufkarten).
@@ -615,6 +614,7 @@ function shopCategoryTitle(cat) {
   if (cat === 'sfx') return '🎵 ' + t('shop.item.soundPacks');
   if (cat === 'font') return '🔢 ' + t('shop.item.numberFonts');
   if (cat === 'frame') return '🖼️ ' + t('shop.item.boardFrames');
+  if (cat === 'badge') return '🏅 ' + t('shop.item.profileBadges');
   return t('shop.title');
 }
 
@@ -1478,7 +1478,7 @@ function handleCoopMsg(msg) {
   } else if (msg.type === Coop.MSG.IDENTITY) {
     // Nur der Host wertet Identitäts-Meldungen aus und verteilt die Liste neu —
     // er entscheidet (Konfliktauflösung), welche Farbe ein Mitspieler tatsächlich bekommt.
-    hostRegisterPlayer(msg.author, msg.name, msg.color, msg.username);
+    hostRegisterPlayer(msg.author, msg.name, msg.color, msg.username, msg.badge);
   } else if (msg.type === Coop.MSG.ROSTER) {
     const prevHostId = state.coop.hostId;
     state.coop.players = msg.players;
@@ -1589,13 +1589,16 @@ function pickAvailableColor(requested, others) {
   const hue = Math.round((others.length * 137.508) % 360);
   return `hsl(${hue} 75% 55%)`;
 }
-function upsertPlayer(id, name, requestedColor, username) {
+function upsertPlayer(id, name, requestedColor, username, badge) {
   const others = state.coop.players.filter(p => p.id !== id);
   const color = pickAvailableColor(requestedColor, others);
   const existing = state.coop.players.find(p => p.id === id);
-  state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color, username: (username || existing?.username || '').trim(), team: existing?.team ?? null, ready: existing?.ready ?? false }];
+  state.coop.players = [...others, { id, name: (name || '').trim() || t('common.defaultPlayerName'), color, username: (username || existing?.username || '').trim(), badge: badge ?? existing?.badge ?? null, team: existing?.team ?? null, ready: existing?.ready ?? false }];
   updateConnectedFlag();
 }
+// Ausgerüstetes Profil-Badge (Katalog-ID) oder null — wird mit IDENTITY/Präsenz/
+// Bestzeit mitgesendet; Fremd-Clients rendern nur bekannte IDs (badgeIcon).
+function myBadge() { const id = shopEquippedId('badge'); return id && id !== 'none' ? id : null; }
 // Eigener eindeutiger Account-Username (nur eingeloggt) — wird im Coop mitgesendet.
 function myUsername() { return state.account.status === 'in' && state.account.username ? state.account.username : ''; }
 // Anzeige „Anzeigename (username)" – nur wenn ein (abweichender) Account-Username bekannt ist.
@@ -1658,10 +1661,10 @@ function broadcastRoster() {
 // App-Version): ohne Aufnahme bliebe connected=false und unsere Züge würden nie
 // mehr gesendet. Toast nur beim ERSTEN Auftauchen; mitten im Spiel als
 // „ist wieder da" statt „ist der Lobby beigetreten".
-function hostRegisterPlayer(id, name, color, username) {
+function hostRegisterPlayer(id, name, color, username, badge) {
   if (state.coop.role !== 'host' || !id || id === state.coop.myId) return;
   const known = state.coop.players.some(p => p.id === id);
-  upsertPlayer(id, name, color, username);
+  upsertPlayer(id, name, color, username, badge);
   broadcastRoster();
   if (!known) {
     const label = playerLabel({ name, username }) || t('common.defaultPlayerName');
@@ -1826,7 +1829,7 @@ function handleCoopConnection(online, isReconnect, currentHostId) {
     state.coop.hostId = currentHostId;
     log('coop', 'Host-Rolle wurde während Abwesenheit übernommen – jetzt Gast', { newHost: currentHostId });
   }
-  Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor, username: myUsername() });
+  Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor, username: myUsername(), badge: myBadge() });
   if (state.coop.role === 'host') broadcastRoster();
 }
 
@@ -1851,7 +1854,7 @@ function startHosting() {
     onOpen(id) {
       state.coop.myId = id;
       state.coop.hostId = id;
-      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor, myUsername());
+      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor, myUsername(), myBadge());
     },
     onError(e) {
       state.coop.waitingForGuest = false;
@@ -2076,8 +2079,8 @@ function startJoining() {
       // melden — coopSend() blockt hier noch (state.coop.connected wird erst nach
       // der ersten ROSTER-Antwort true), daher direkt über die Transportschicht senden.
       state.coop.myId = id;
-      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor, myUsername());
-      Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor, username: myUsername() });
+      upsertPlayer(id, state.settings.coopName, state.settings.coopMyColor, myUsername(), myBadge());
+      Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor, username: myUsername(), badge: myBadge() });
     },
     onError(e) {
       state.coop.waitingForGuest = false;
@@ -2250,7 +2253,7 @@ function win(remote) {
     // Neue Solo-Bestzeit (nur perfekte Solo-Siege) in die globale Bestenliste
     // schreiben — Coop/Wettkampf/Training zählen dort bewusst nicht mit.
     if (newHighscore && !isCoopish && state.account.status === 'in') {
-      Account.publishBestTime(state.puzzle.difficulty, state.elapsed, state.account.username);
+      Account.publishBestTime(state.puzzle.difficulty, state.elapsed, state.account.username, myBadge());
     }
   }
   if (!state.isTrainingGame) applyStreakAfterGame();
@@ -2482,7 +2485,7 @@ function attemptCoopRejoin(sess) {
       // Informiert einen ggf. noch aktiven Host über die eigene Rückkehr --
       // identisch zum normalen Beitritts-Pfad (confirmCoopIdentity()), löst
       // beim Host upsertPlayer()+broadcastRoster() aus (handleCoopMsg/IDENTITY).
-      Coop.send({ type: Coop.MSG.IDENTITY, name: sess.name, color: sess.color, username: myUsername() });
+      Coop.send({ type: Coop.MSG.IDENTITY, name: sess.name, color: sess.color, username: myUsername(), badge: myBadge() });
       showToast(t('coop.reconnected'), 'success', 2000);
     },
     onError() {
@@ -3595,7 +3598,7 @@ function currentGameInfo() {
 }
 function pushPresence() {
   if (state.account.status !== 'in') return;
-  Account.publishPresence(currentGameInfo());
+  Account.publishPresence(currentGameInfo(), myBadge());
 }
 
 // ─── Dynamischer Skin: Freischaltung ──────────────────────────────────────────
@@ -4084,7 +4087,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
-      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass,
+      SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4379,7 +4382,7 @@ const App = {
           <div class="coop-roster" v-if="nonHostPlayers().length">
             <span v-for="p in nonHostPlayers()" :key="p.id" class="player-chip" :class="{ 'ready-chip': p.ready }"
                   :style="{ background: p.color, color: chipTextColor(p.color) }">
-              {{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+              <template v-if="badgeIcon(p.badge)">{{ badgeIcon(p.badge) }} </template>{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
               {{ p.ready ? '✅' : '⏳' }}
             </span>
           </div>
@@ -4891,6 +4894,11 @@ const App = {
             <span class="shop-card-ic">🖼️</span>
             <span class="shop-card-name">{{ t('shop.item.boardFrames') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('frame') + 1 }}/{{ shopCatItems('frame').length + 1 }} ›</span>
+          </button>
+          <button class="shop-card shop-cat" @click="openShopCategory('badge')">
+            <span class="shop-card-ic">🏅</span>
+            <span class="shop-card-name">{{ t('shop.item.profileBadges') }}</span>
+            <span class="shop-cat-count">{{ shopOwnedCount('badge') + 1 }}/{{ shopCatItems('badge').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('theme')">
             <span class="shop-card-ic">🖌️</span>
@@ -5508,7 +5516,7 @@ const App = {
           <div v-for="fr in friendsSorted()" :key="fr.uid" class="friends-row">
             <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
             <span class="friends-info">
-              <span class="friends-name">{{ fr.username || fr.uid }}</span>
+              <span class="friends-name"><template v-if="badgeIcon(friendPresence(fr.uid)?.badge)">{{ badgeIcon(friendPresence(fr.uid)?.badge) }} </template>{{ fr.username || fr.uid }}</span>
               <small class="friends-activity">{{ friendActivityText(fr.uid) }}</small>
               <span v-if="friendInGame(fr.uid)" class="friends-progress"><span class="friends-progress-fill" :style="{ width: (friendPresence(fr.uid).game.pct||0) + '%' }"></span></span>
             </span>
@@ -5526,7 +5534,7 @@ const App = {
           <div v-else class="lb-list">
             <div v-for="(e,i) in state.leaderboard.entries" :key="e.uid" class="lb-row" :class="{ me: e.uid===state.account.uid }">
               <span class="lb-rank">{{ i+1 }}</span>
-              <span class="lb-name">{{ e.username || e.uid }}</span>
+              <span class="lb-name"><template v-if="badgeIcon(e.badge)">{{ badgeIcon(e.badge) }} </template>{{ e.username || e.uid }}</span>
               <span class="lb-time">{{ fmtTime(e.timeMs) }}</span>
             </div>
           </div>
