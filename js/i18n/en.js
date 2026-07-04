@@ -430,9 +430,9 @@ export default {
   },
   notice: { gift: '{from} gifted you "{item}"!', revoke: '{from} removed "{item}" from you.', currency: '{from} set your balance to {n} 💰.' },
   shop: {
-    catHint: { palette: 'Recolor your board cages — color distinguishability is always preserved.', theme: 'Complete color worlds for the whole app — from OLED black to sakura.' },
-    free: { palette: 'Classic', theme: 'Default (light/dark)' },
-    it: { kaffee: 'Coffee House', oled: 'OLED Night', tiefsee: 'Deep Sea', wald: 'Night Forest', sakura: 'Sakura', nebula: 'Nebula', sunset: 'Sunset', cyberpunk: 'Cyberpunk', pastell: 'Pastel Dream', vintage: 'Vintage', daemmerung: 'Dusk', neon: 'Neon Glow', arktis: 'Arctic', spiegel: 'Mirror World', cyber: 'Cyber Grid', karneval: 'Carnival' },
+    catHint: { palette: 'Recolor your board cages — color distinguishability is always preserved.', theme: 'Complete color worlds for the whole app — from OLED black to sakura.' , sfx: 'New sound worlds for all game sounds — tap ▶ to listen.'},
+    free: { palette: 'Classic', theme: 'Default (light/dark)' , sfx: 'Default'},
+    it: { zen: 'Zen Garden', arcade: '8-bit Arcade', kristall: 'Crystal Bells', kosmos: 'Cosmos', synthwave: 'Synthwave', kaffee: 'Coffee House', oled: 'OLED Night', tiefsee: 'Deep Sea', wald: 'Night Forest', sakura: 'Sakura', nebula: 'Nebula', sunset: 'Sunset', cyberpunk: 'Cyberpunk', pastell: 'Pastel Dream', vintage: 'Vintage', daemmerung: 'Dusk', neon: 'Neon Glow', arktis: 'Arctic', spiegel: 'Mirror World', cyber: 'Cyber Grid', karneval: 'Carnival' },
     winFxTitle: 'Win animations', winFxHint: 'Buy new animations for your victory moment — preview with ▶, switch owned ones anytime.',
     preview: 'Preview', activate: 'Activate', active: 'Active',
     bought: 'Purchased! 🎉', notEnough: 'Not enough coins', activated: 'Activated',

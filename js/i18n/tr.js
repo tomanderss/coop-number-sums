@@ -430,9 +430,9 @@ export default {
   },
   notice: { gift: '{from} sana "{item}" hediye etti!', revoke: '{from} senden "{item}" aldı.', currency: '{from} bakiyeni {n} 💰 yaptı.' },
   shop: {
-    catHint: { palette: 'Tahtandaki kafesleri yeniden renklendir — renk ayırt edilebilirliği her zaman korunur.', theme: 'Tüm uygulama için eksiksiz renk dünyaları — OLED siyahından sakuraya.' },
-    free: { palette: 'Klasik', theme: 'Standart (açık/koyu)' },
-    it: { kaffee: 'Kahvehane', oled: 'OLED Gecesi', tiefsee: 'Derin deniz', wald: 'Gece ormanı', sakura: 'Sakura', nebula: 'Bulutsu', sunset: 'Gün batımı', cyberpunk: 'Siberpunk', pastell: 'Pastel rüya', vintage: 'Vintage', daemmerung: 'Alacakaranlık', neon: 'Neon ışıltı', arktis: 'Arktik', spiegel: 'Ayna dünyası', cyber: 'Siber ızgara', karneval: 'Karnaval' },
+    catHint: { palette: 'Tahtandaki kafesleri yeniden renklendir — renk ayırt edilebilirliği her zaman korunur.', theme: 'Tüm uygulama için eksiksiz renk dünyaları — OLED siyahından sakuraya.' , sfx: 'Tüm oyun sesleri için yeni ses dünyaları — dinlemek için ▶ dokun.'},
+    free: { palette: 'Klasik', theme: 'Standart (açık/koyu)' , sfx: 'Standart'},
+    it: { zen: 'Zen bahçesi', arcade: '8-bit atari', kristall: 'Kristal çanlar', kosmos: 'Kozmos', synthwave: 'Synthwave', kaffee: 'Kahvehane', oled: 'OLED Gecesi', tiefsee: 'Derin deniz', wald: 'Gece ormanı', sakura: 'Sakura', nebula: 'Bulutsu', sunset: 'Gün batımı', cyberpunk: 'Siberpunk', pastell: 'Pastel rüya', vintage: 'Vintage', daemmerung: 'Alacakaranlık', neon: 'Neon ışıltı', arktis: 'Arktik', spiegel: 'Ayna dünyası', cyber: 'Siber ızgara', karneval: 'Karnaval' },
     winFxTitle: 'Zafer animasyonları', winFxHint: 'Zafer anın için animasyonlar satın al — ▶ ile önizle, istediğin zaman değiştir.',
     preview: 'Önizleme', activate: 'Etkinleştir', active: 'Etkin',
     bought: 'Satın alındı! 🎉', notEnough: 'Yeterli para yok', activated: 'Etkinleştirildi',

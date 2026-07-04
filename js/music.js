@@ -213,32 +213,55 @@ function sfxReady() {
   try { if (ctx.state === 'suspended') ctx.resume(); } catch {}
   return !!sfxBus;
 }
-// Eine kurze Stimme auf dem SFX-Bus: Sinus (+ optional Oktav-Oberton), Tiefpass,
-// Hüllkurve, optionales Glissando (für Tropfen/Pop). when relativ zu ctx.currentTime.
+// ─── Klangfarben-Pakete (Shop-Kategorie 'sfx') ───────────────────────────────
+// Ein Paket färbt ALLE UI-Sounds um, ohne ihre Melodik/Timing-Identität zu
+// ändern: Wellenform, Tonlage (pitch-Faktor), Filter-/Hüllkurven-Skalierung,
+// optional Schimmer-Oberton (3×), Sub-Oktave und ein verstimmter Zwilling
+// („wide", Chorus-Breite für Synthwave). Rein parametrisch — keine Audiodateien.
+export const SFX_PACKS = {
+  standard:  { type: 'sine',     pitch: 1,   lpMul: 1,    attackMul: 1,   durMul: 1,    shimmer: 0,    sub: 0,   wide: 0 },
+  zen:       { type: 'sine',     pitch: 0.5, lpMul: 0.6,  attackMul: 2.4, durMul: 1.6,  shimmer: 0,    sub: 0.2, wide: 0 },
+  arcade:    { type: 'square',   pitch: 1,   lpMul: 0.9,  attackMul: 0.35, durMul: 0.55, shimmer: 0,   sub: 0,   wide: 0 },
+  kristall:  { type: 'triangle', pitch: 2,   lpMul: 1.8,  attackMul: 0.6, durMul: 1.35, shimmer: 0.22, sub: 0,   wide: 0 },
+  kosmos:    { type: 'sine',     pitch: 1.5, lpMul: 1.2,  attackMul: 1.6, durMul: 1.5,  shimmer: 0.12, sub: 0.25, wide: 6, vibrato: true },
+  synthwave: { type: 'sawtooth', pitch: 0.5, lpMul: 0.7,  attackMul: 1.1, durMul: 1.25, shimmer: 0,    sub: 0.3, wide: 10 },
+};
+let sfxPackId = 'standard';
+export function setSfxPack(id) { sfxPackId = SFX_PACKS[id] ? id : 'standard'; }
+export function currentSfxPack() { return sfxPackId; }
+
+// Eine kurze Stimme auf dem SFX-Bus: Wellenform/Färbung aus dem aktiven Paket,
+// Tiefpass, Hüllkurve, optionales Glissando. when relativ zu ctx.currentTime.
 function sfxVoice(freq, dt, dur, peak, { lp = 3000, attack = 0.008, glideTo = 0, glideTime = 0.06, partial2 = 0 } = {}) {
+  const P = SFX_PACKS[sfxPackId] || SFX_PACKS.standard;
+  freq *= P.pitch; if (glideTo) glideTo *= P.pitch;
+  lp = Math.min(12000, lp * P.lpMul); attack *= P.attackMul; dur *= P.durMul;
+  if (P.type === 'square' || P.type === 'sawtooth') peak *= 0.55; // harte Wellen sind lauter — angleichen
   const when = ctx.currentTime + dt;
-  const osc = ctx.createOscillator(); osc.type = 'sine';
-  osc.frequency.setValueAtTime(freq, when);
-  if (glideTo) { try { osc.frequency.exponentialRampToValueAtTime(glideTo, when + glideTime); } catch {} }
-  const lpf = ctx.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = lp;
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(peak, when + attack);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
-  osc.connect(lpf).connect(g); g.connect(sfxBus);
-  osc.start(when); osc.stop(when + dur + 0.05);
-  osc.onended = () => { try { osc.disconnect(); lpf.disconnect(); g.disconnect(); } catch {} };
-  if (partial2 > 0) {
-    const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.setValueAtTime(freq * 2, when);
-    if (glideTo) { try { o2.frequency.exponentialRampToValueAtTime(glideTo * 2, when + glideTime); } catch {} }
-    const g2 = ctx.createGain();
-    g2.gain.setValueAtTime(0.0001, when);
-    g2.gain.exponentialRampToValueAtTime(peak * partial2, when + attack);
-    g2.gain.exponentialRampToValueAtTime(0.0001, when + dur * 0.85);
-    o2.connect(g2); g2.connect(sfxBus);
-    o2.start(when); o2.stop(when + dur + 0.05);
-    o2.onended = () => { try { o2.disconnect(); g2.disconnect(); } catch {} };
-  }
+  const mk = (fr, pk, detuneCents, durX = dur) => {
+    const osc = ctx.createOscillator(); osc.type = P.type;
+    osc.frequency.setValueAtTime(fr, when);
+    if (detuneCents) osc.detune.value = detuneCents;
+    if (glideTo) { try { osc.frequency.exponentialRampToValueAtTime(glideTo * (fr / freq), when + glideTime); } catch {} }
+    if (P.vibrato) {
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 5.2;
+      const lg = ctx.createGain(); lg.gain.value = 9; // ±9 Cent Schwebung
+      lfo.connect(lg).connect(osc.detune); lfo.start(when); lfo.stop(when + durX + 0.05);
+    }
+    const lpf = ctx.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = lp;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(pk, when + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + durX);
+    osc.connect(lpf).connect(g); g.connect(sfxBus);
+    osc.start(when); osc.stop(when + durX + 0.05);
+    osc.onended = () => { try { osc.disconnect(); lpf.disconnect(); g.disconnect(); } catch {} };
+  };
+  mk(freq, peak, 0);
+  if (partial2 > 0) mk(freq * 2, peak * partial2, 0, dur * 0.85); // Oktav-Oberton wie bisher
+  if (P.wide) mk(freq, peak * 0.6, P.wide);          // verstimmter Zwilling (Chorus-Breite)
+  if (P.sub) mk(freq / 2, peak * P.sub, 0);          // Sub-Oktave (Wärme/Wucht)
+  if (P.shimmer) mk(freq * 3, peak * P.shimmer, 0);  // Glas-Schimmer
 }
 // Kurzer gefilterter Rauschimpuls (Anschlag-„plip" beim Wassertropfen).
 function sfxNoise(dt, dur, peak, lp) {
