@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.62';
-export const BUILD_HASH = '187aa5a';
+export const BUILD      = '1.63';
+export const BUILD_HASH = '2cb0a1f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.63",
+    "date": "04.07.2026",
+    "changes": [
+      "Neue Shop-Kategorie „Brett-Rahmen\": 7 dekorative Rahmen (Holz, Gold-Barock, Eiskristall, Neon-Puls, Feuerring, Regenbogen-Lauf, Galaxie-Ring mit kreisenden Lichtern)."
+    ]
+  },
   {
     "version": "1.62",
     "date": "04.07.2026",
