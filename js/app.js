@@ -23,7 +23,7 @@ import {
   setDataRev, setSyncedRev,
 } from './storage.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
-import { SHOP_CATS, SHOP_CATALOG, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx, badgeIcon } from './shopitems.js';
+import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx, badgeIcon } from './shopitems.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -637,9 +637,6 @@ function shopFreeDots(cat) {
 }
 function buyShopItem(it) {
   if (ownsShop(it)) return;
-  // Skin-Vorlagen setzen den exklusiven dynamischen Skin voraus — ohne ihn
-  // wäre der Kauf nutzlos (die Vorlage schreibt nur dessen Einstellungen).
-  if (it.cat === 'skinpreset' && !state.inventory[SKIN_ID]) { showToast(t('shop.needsSkin'), 'error', 3200); return; }
   const price = shopItemPrice(it);
   const r = spendCurrency(price, 'shop:' + it.id);
   if (!r.ok) { showToast(t('shop.notEnough'), 'error', 2600); return; }
@@ -651,11 +648,12 @@ function buyShopItem(it) {
   showToast(t('shop.bought'), 'success', 2400);
   if (state.account.status === 'in') Account.scheduleSyncUp();
 }
-// 🎨 Skin-Vorlage anwenden: schreibt die Einstellungen des dynamischen Skins
-// (Stil/Farben/Tempo/Glow/Dicke) und schaltet ihn ein — danach im Skin-Editor
-// frei weiter-anpassbar (deshalb kein „ausgerüstet"-Zustand, nur „Anwenden").
+// 🎨 Skin-Vorlage anwenden: schreibt die Skin-Einstellungen (Stil/Farben/
+// Tempo/Glow/Dicke) und schaltet den Skin ein. Frei kaufbar/anwendbar OHNE
+// den exklusiven dynamischen Skin — der schaltet nur zusätzlich den freien
+// Skin-EDITOR frei (Vorlagen-Besitz aktiviert das Rendering, s. skinActive).
 function applySkinPreset(it) {
-  if (!ownsShop(it) || !state.inventory[SKIN_ID]) return;
+  if (!ownsShop(it)) return;
   const d = it.data || {};
   setSetting('skinStyle', d.style || 'gradient');
   setSetting('skinColor1', (d.c && d.c[0]) || '');
@@ -3234,6 +3232,7 @@ async function refreshAccount() {
         startLobbyInviteWatch(); // eingehende Lobby-Einladungen + Ablehnungen beobachten
         startNoticeWatch();      // Admin-Benachrichtigungen (Geschenk/Entzug/Guthaben) empfangen
         startGiftWatch();        // Inventar/Wallet live: Geschenke ohne Neustart nutzbar
+        syncBestTimesToLeaderboard(); // vorhandene Bestzeiten in die Bestenliste heben
         startRoleWatch();        // Admin-Status live halten (ohne Neustart/Navigation)
       }
       else state.account.status = 'anon';
@@ -3251,6 +3250,21 @@ async function startNoticeWatch() {
     arr.sort((a, b) => (a.ts || 0) - (b.ts || 0));
     state.adminNotice = arr[0] || null;
   });
+}
+// Vorhandene Solo-Bestzeiten in die globale Bestenliste heben. Nötig, weil
+// publishBestTime sonst nur bei einer NEUEN Bestzeit feuert — wer seine
+// Bestzeiten VOR Einführung der Bestenliste (oder vor dem Login) erzielt hat,
+// tauchte dort nie auf. Idempotent: publishBestTime schreibt nur, wenn der
+// Cloud-Eintrag fehlt oder langsamer ist.
+function syncBestTimesToLeaderboard() {
+  try {
+    const stats = loadStats();
+    let n = 0;
+    for (const [diff, d] of Object.entries(stats.byDifficulty || {})) {
+      if (d && d.bestTimeMs > 0) { Account.publishBestTime(diff, d.bestTimeMs, state.account.username, myBadge()); n++; }
+    }
+    if (n) log('account', 'Bestzeiten-Sync zur Bestenliste angestoßen', { count: n });
+  } catch (e) { log('account', 'Bestzeiten-Sync fehlgeschlagen', e); }
 }
 // Inventar + Wallet live aus der Cloud übernehmen: Admin-Geschenke/-Entzüge und
 // Guthaben-Änderungen sind damit SOFORT nutzbar (kein App-Neustart nötig) — auch
@@ -4306,7 +4320,10 @@ const App = {
 
     // ── Dynamischer Skin (Cosmetic 'dynamicColor') ──
     const skinUnlocked = computed(() => !!state.inventory[SKIN_ID]);
-    const skinActive = computed(() => skinUnlocked.value && state.settings.skinEnabled);
+    // Mindestens eine gekaufte Skin-Vorlage aktiviert das Skin-Rendering auch
+    // OHNE den exklusiven Skin (der schaltet nur den freien Editor frei).
+    const skinPresetOwned = computed(() => SKINPRESET_ITEMS.some((p) => ownsShopItem(state.inventory, p)));
+    const skinActive = computed(() => (skinUnlocked.value || skinPresetOwned.value) && state.settings.skinEnabled);
     const skinVars = computed(() => skinActive.value ? buildSkinVars(state.settings) : {});
     const skinBoardClasses = computed(() => buildSkinClasses(state.settings, skinActive.value));
     // Editor-Vorschau: IMMER aktiv (unabhängig vom Master-Schalter), damit man die
@@ -4357,7 +4374,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, SHOP_ITEMS,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, badgeIcon, applySkinPreset,
-      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems,
+      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -4371,7 +4388,7 @@ const App = {
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw, dismissAdminNotice, adminNoticeText,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, anyFriendOnline, friendActivityText,
-      skinUnlocked, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
+      skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
@@ -4397,6 +4414,8 @@ const App = {
       <div class="brand">
         <img class="brand-logo" src="./icons/icon-192.png" alt="" />
         <h1 class="brand-title">Coop<br>Number Sums</h1>
+        <!-- Eigenes Profil-Badge auch auf Home (nur wenn eins ausgerüstet ist) -->
+        <span v-if="myBadge()" class="home-profile-chip">{{ shopDemoBadgeName() }} <b>{{ badgeIcon(myBadge()) }}</b></span>
       </div>
 
       <div class="home-actions">
@@ -5115,7 +5134,6 @@ const App = {
            Kaufkarten mit kategoriespezifischer Vorschau. -->
       <div v-if="state.shopCategory && state.shopCategory !== 'winfx'" class="shop-body">
         <p class="shop-sec-hint">{{ t('shop.catHint.' + state.shopCategory) }}</p>
-        <p v-if="state.shopCategory === 'skinpreset' && !skinUnlocked" class="shop-sec-hint shop-lock-hint">🔒 {{ t('shop.needsSkin') }}</p>
 
         <!-- Live-Demo: Brett-Kategorien zeigen das per ▶ gewählte Item sofort -->
         <div v-if="['palette','font','frame','skinpreset'].includes(state.shopCategory)" class="shop-demo-wrap">
@@ -5158,7 +5176,7 @@ const App = {
             <span v-if="it.cat === 'frame'" class="frame-demo" :class="'frame-' + it.id"></span>
             <span v-if="shopPreviewDots(it)" class="shop-pal-dots"><i v-for="(c, di) in shopPreviewDots(it)" :key="di" :style="{ background: c }"></i></span>
             <span class="shop-card-name">{{ t('shop.it.' + it.id) }}</span>
-            <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it) || (it.cat === 'skinpreset' && !skinUnlocked)" @click="buyShopItem(it)">💰 {{ shopItemPrice(it) }}</button>
+            <button v-if="!ownsShop(it)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < shopItemPrice(it)" @click="buyShopItem(it)">💰 {{ shopItemPrice(it) }}</button>
             <button v-else-if="it.cat === 'skinpreset'" class="btn btn-ghost btn-sm shop-buy-btn" @click="applySkinPreset(it)">{{ t('shop.apply') }}</button>
             <span v-else-if="shopEquippedId(state.shopCategory) === it.id" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopItem(it)">{{ t('shop.activate') }}</button>
@@ -5321,7 +5339,9 @@ const App = {
 
           <!-- Dynamischer Skin (1.0): Code-Einlösung immer sichtbar; Editor nur, wenn freigeschaltet -->
           <div class="set-group-title skin-editor">{{ t('skin.title') }}</div>
-          <template v-if="skinUnlocked">
+          <!-- Vorschau + An/Aus: für Besitzer des exklusiven Skins ODER einer
+               gekauften Skin-Vorlage. Der freie EDITOR darunter bleibt exklusiv. -->
+          <template v-if="skinUnlocked || skinPresetOwned">
             <div class="skin-preview-wrap">
               <div class="board skin-preview" :class="skinPreviewClasses" :style="skinPreviewVars">
                 <div class="cell kept coop-mark" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">5</span></div>
@@ -5331,6 +5351,9 @@ const App = {
             <div class="set-row" @click="toggleSetting('skinEnabled')">
               <span>{{ t('skin.enabled') }}</span><span class="switch" :class="{on:state.settings.skinEnabled}"><i></i></span>
             </div>
+            <small v-if="!skinUnlocked" class="set-hint">{{ t('skin.presetOnlyHint') }} <button class="btn-link" @click="openShop('skinpreset')">{{ t('shop.title') }} ›</button></small>
+          </template>
+          <template v-if="skinUnlocked">
             <div class="set-row col">
               <span class="set-row-label">{{ t('skin.style') }}</span>
               <div class="seg">
