@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.69';
-export const BUILD_HASH = 'e23424f';
+export const BUILD      = '1.70';
+export const BUILD_HASH = '7e15593';
 
 export const CHANGELOG = [
+  {
+    "version": "1.70",
+    "date": "04.07.2026",
+    "changes": [
+      "Sieganimationen 2.0: Alle Animationen sind jetzt mehrphasig und deutlich spektakulärer — platzende Ballons, aufsteigende Feuerwerksraketen, Münzvulkane, Disco-Lichtkegel, marschierende Invader, Drachen-Feueratem, wachsender Kristall, Doppel-Regenbogen mit Komet u.v.m."
+    ]
+  },
   {
     "version": "1.69",
     "date": "04.07.2026",
