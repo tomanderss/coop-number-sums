@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.79';
-export const BUILD_HASH = '4d33026';
+export const BUILD      = '1.80';
+export const BUILD_HASH = 'ab5b649';
 
 export const CHANGELOG = [
+  {
+    "version": "1.80",
+    "date": "04.07.2026",
+    "changes": [
+      "Streak-Anzeige überlappt nicht mehr das Freunde-Symbol (sitzt jetzt in der sicheren Mittelzone zwischen den Kopfleisten-Buttons)",
+      "Sieganimationen neu: Drache, Einhorn und Phönix als detailliert gezeichnete SVG-Kreaturen (Flügelschlag/Galopp/wehender Schweif); alle Emoji-Partikel durch eigene SVG-Formen ersetzt"
+    ]
+  },
   {
     "version": "1.79",
     "date": "04.07.2026",
