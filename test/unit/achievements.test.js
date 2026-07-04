@@ -1,8 +1,15 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { ACHIEVEMENTS, evaluate } from '../../js/achievements.js';
+import { hasIcon } from '../../js/icons.js';
 
 describe('achievements.evaluate', () => {
+
+  test('every achievement has a drawn custom icon (no emoji)', () => {
+    for (const a of ACHIEVEMENTS) {
+      assert.ok(a.icon && hasIcon(a.icon), `achievement '${a.id}' needs a drawn icon, got '${a.icon}'`);
+    }
+  });
   test('unlocks firstWin on a won game with no other ids previously unlocked', () => {
     const newly = evaluate({ outcome: 'won' }, []);
     assert.ok(newly.includes('firstWin'));

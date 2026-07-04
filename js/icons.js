@@ -182,6 +182,15 @@ filled('storm', '<path d="M7 13a3.5 3.5 0 0 1-.4-7A5 5 0 0 1 16.5 7 3.3 3.3 0 0 
 stroke('portal', '<ellipse cx="12" cy="12" rx="6" ry="8.5"/><ellipse cx="12" cy="12" rx="3.4" ry="5.5"/><ellipse cx="12" cy="12" rx="1.2" ry="2.5"/>');
 stroke('tornado', '<path d="M4 5h16M6 8.5h13M9 12h9M11 15h5M13 18h1.5"/><path d="M18 8.5c-3 1.5-3 3-1 3.5"/>');
 
+// ── Erfolge (Achievements) ───────────────────────────────────────────────────
+filled('ribbon', '<circle cx="12" cy="9" r="5" fill="#e7405a" stroke="#b02a40" stroke-width="1"/><circle cx="12" cy="9" r="2" fill="#fff4cf"/><path d="M9 13l-2 8 3-2 2 2 2-2 3 2-2-8" fill="#c0473f" stroke="#8a2f2a" stroke-width="1" stroke-linejoin="round"/>');
+stroke('broom', '<path d="M18 4l-6 6"/><path d="M5 19l7-7 3 3-2.5 4.5c-2.5.5-5 .5-7.5-.5z"/><path d="M8 15.5l2 2M11 13l2 2"/>');
+stroke('brain', '<path d="M11 4.5A2.2 2.2 0 0 0 7.2 6 2.3 2.3 0 0 0 5 8.3a2.3 2.3 0 0 0 .4 4A2.3 2.3 0 0 0 8 16.4c.4 1.5 1.6 2.2 3 1.8V4.6A2 2 0 0 0 11 4.5zM13 4.5A2.2 2.2 0 0 1 16.8 6 2.3 2.3 0 0 1 19 8.3a2.3 2.3 0 0 1-.4 4A2.3 2.3 0 0 1 16 16.4c-.4 1.5-1.6 2.2-3 1.8V4.6A2 2 0 0 1 13 4.5z"/>');
+filled('skull', '<path d="M12 3a8 8 0 0 0-8 8c0 3 1.5 4.5 3 5.5V19a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.5c1.5-1 3-2.5 3-5.5a8 8 0 0 0-8-8z" fill="#e8eaed" stroke="#a8adb5" stroke-width="1" stroke-linejoin="round"/><circle cx="9" cy="11" r="2" fill="#3a3f47"/><circle cx="15" cy="11" r="2" fill="#3a3f47"/><path d="M12 14l-1 2.5h2z" fill="#3a3f47"/><path d="M9 20v-2M12 20v-2.5M15 20v-2" stroke="#a8adb5" stroke-width="1"/>');
+stroke('calendar', '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9.5h16M8 3v4M16 3v4M8 13h.01M12 13h.01M16 13h.01M8 16.5h.01M12 16.5h.01"/>');
+filled('shield', '<path d="M12 3l7 2.5v5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5v-5z" fill="#5a8fd9" stroke="#2a6bb0" stroke-width="1" stroke-linejoin="round"/><path d="M9 12l2 2 4-4.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>');
+stroke('runner', '<circle cx="15" cy="4.6" r="2"/><path d="M15 7l-2.5 4L9 10.5M15 7l1.5 4 3 1.5M12.5 11l-.5 4.5-3 4M12 15.5l2.5 4.5"/>');
+
 // Öffentliches Set aller Namen (für Tests).
 export const ICON_NAMES = Object.keys(PATHS);
 

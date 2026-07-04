@@ -18,7 +18,7 @@ test.describe('achievements', () => {
     await openAchievements(page);
     await expect(page.locator('.achievement-row')).not.toHaveCount(0);
     await expect(page.locator('.achievement-row.unlocked')).toHaveCount(0);
-    await expect(page.locator('.achievement-icon').first()).toHaveText('🔒');
+    await expect(page.locator('.achievement-icon.locked .ico-lock').first()).toBeVisible();
   });
 
   test('winning a puzzle unlocks firstWin and shows a toast', async ({ page }) => {

@@ -4984,7 +4984,7 @@ const App = {
           <div class="progress-bar"><span class="progress-bar-fill" :style="{ width: (achievementsUnlockedCount / ACHIEVEMENTS.length * 100) + '%' }"></span></div>
         </div>
         <div v-for="a in ACHIEVEMENTS" :key="a.id" class="achievement-row" :class="{ unlocked: !!state.achievements[a.id] }">
-          <span class="achievement-icon">{{ state.achievements[a.id] ? a.icon : '🔒' }}</span>
+          <span class="achievement-icon" :class="{ locked: !state.achievements[a.id] }" v-html="state.achievements[a.id] ? ic(a.icon) : ic('lock')"></span>
           <div class="achievement-text">
             <div class="achievement-name">{{ t('achievements.'+a.id+'.title') }}</div>
             <div class="achievement-desc">{{ t('achievements.'+a.id+'.desc') }}</div>
