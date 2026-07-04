@@ -6,6 +6,7 @@ import {
   shopItemById, catItems, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx,
 } from '../../js/shopitems.js';
 import { REGION_COLORS } from '../../js/config.js';
+import { hasIcon } from '../../js/icons.js';
 
 describe('shopitems.catalog', () => {
   test('ids are unique, categories known, tiers priced', () => {
@@ -16,6 +17,13 @@ describe('shopitems.catalog', () => {
       assert.ok(SHOP_CATS[it.cat], `unknown cat for ${it.id}`);
       assert.ok(SHOP_TIER_PRICES[it.tier] > 0, `unpriced tier for ${it.id}`);
       assert.ok(it.icon, `missing icon for ${it.id}`);
+      assert.ok(hasIcon(it.icon), `icon '${it.icon}' for ${it.id} must be a drawn custom glyph (no emoji)`);
+    }
+  });
+
+  test('every shop category has a drawn custom icon (no emoji)', () => {
+    for (const [cat, meta] of Object.entries(SHOP_CATS)) {
+      assert.ok(meta.icon && hasIcon(meta.icon), `category '${cat}' needs a drawn icon, got '${meta.icon}'`);
     }
   });
 

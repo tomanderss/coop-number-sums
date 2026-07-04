@@ -3664,10 +3664,10 @@ function adminItemLabel(id) {
   const key = `admin.dict.o.item.${id}`; const s = t(key);
   if (s !== key) return s;
   // Sieganimationen: Shop-Namen wiederverwenden statt eigener Dict-Einträge.
-  if (id.startsWith('winfx_')) { const k2 = `shop.effect.${id.slice(6)}`; const s2 = t(k2); if (s2 !== k2) return `🎉 ${s2}`; }
+  if (id.startsWith('winfx_')) { const k2 = `shop.effect.${id.slice(6)}`; const s2 = t(k2); if (s2 !== k2) return s2; }
   // Generische Shop-Artikel: Kategorie-Präfix abtrennen, Shop-Namen nutzen.
   const us = id.indexOf('_');
-  if (us > 0 && SHOP_CATS[id.slice(0, us)]) { const k3 = `shop.it.${id.slice(us + 1)}`; const s3 = t(k3); if (s3 !== k3) return `${SHOP_CATS[id.slice(0, us)].icon} ${s3}`; }
+  if (us > 0 && SHOP_CATS[id.slice(0, us)]) { const k3 = `shop.it.${id.slice(us + 1)}`; const s3 = t(k3); if (s3 !== k3) return s3; }
   return id;
 }
 // Epoch-Millisekunden als lesbares Datum unter dem Zahlenfeld anzeigen.
@@ -5208,7 +5208,7 @@ const App = {
         <div class="shop-grid">
           <div v-for="e in WIN_EFFECTS" :key="e.id" class="shop-card fx" :class="{ owned: ownsWinFx(e.id), fxactive: winFxActive(e.id) }">
             <button class="shop-fx-preview" @click="previewWinFx(e.id)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
-            <span class="shop-card-ic">{{ e.icon }}</span>
+            <span class="shop-card-ic" v-html="ic(e.icon)"></span>
             <span class="shop-card-name">{{ t('shop.effect.'+e.id) }}</span>
             <button v-if="!ownsWinFx(e.id)" class="btn btn-primary btn-sm shop-buy-btn" :disabled="(state.wallet.balance||0) < effectPrice(e.id)" @click="buyWinFx(e.id)">💰 {{ effectPrice(e.id) }}</button>
             <span v-else-if="winFxActive(e.id)" class="shop-fx-state on">✓ {{ t('shop.active') }}</span>
@@ -5252,7 +5252,7 @@ const App = {
             <button v-else class="btn btn-ghost btn-sm shop-buy-btn" @click="equipShopFree(state.shopCategory)">{{ t('shop.activate') }}</button>
           </div>
           <div v-for="it in shopCatItems(state.shopCategory)" :key="it.id" class="shop-card fx" :class="{ owned: ownsShop(it), fxactive: shopEquippedId(state.shopCategory) === it.id }">
-            <span class="shop-card-ic">{{ it.icon }}</span>
+            <span class="shop-card-ic" v-html="ic(it.icon)"></span>
             <button class="shop-fx-preview" :class="{ prevon: shopDemoActive(it) }" @click="shopPreviewIt(it)" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             <span v-if="it.cat === 'font'" class="font-demo" :class="'font-' + it.id">123</span>
             <span v-if="it.cat === 'frame'" class="frame-demo" :class="'frame-' + it.id"></span>
@@ -5271,37 +5271,37 @@ const App = {
         <p class="shop-intro">{{ t('shop.intro') }}</p>
         <div class="shop-grid">
           <button class="shop-card shop-cat" @click="openShopCategory('winfx')">
-            <span class="shop-card-ic">🎉</span>
+            <span class="shop-card-ic" v-html="ic('party')"></span>
             <span class="shop-card-name">{{ t('shop.winFxTitle') }}</span>
             <span class="shop-cat-count">{{ ownedWinFx().length }}/{{ WIN_EFFECTS.length }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('palette')">
-            <span class="shop-card-ic">🌈</span>
+            <span class="shop-card-ic" v-html="ic('rainbow')"></span>
             <span class="shop-card-name">{{ t('shop.item.boardPalettes') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('palette') + 1 }}/{{ shopCatItems('palette').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('sfx')">
-            <span class="shop-card-ic">🎵</span>
+            <span class="shop-card-ic" v-html="ic('music')"></span>
             <span class="shop-card-name">{{ t('shop.item.soundPacks') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('sfx') + 1 }}/{{ shopCatItems('sfx').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('font')">
-            <span class="shop-card-ic">🔢</span>
+            <span class="shop-card-ic" v-html="ic('digits')"></span>
             <span class="shop-card-name">{{ t('shop.item.numberFonts') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('font') + 1 }}/{{ shopCatItems('font').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('frame')">
-            <span class="shop-card-ic">🖼️</span>
+            <span class="shop-card-ic" v-html="ic('frame')"></span>
             <span class="shop-card-name">{{ t('shop.item.boardFrames') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('frame') + 1 }}/{{ shopCatItems('frame').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('theme')">
-            <span class="shop-card-ic">🖌️</span>
+            <span class="shop-card-ic" v-html="ic('palette')"></span>
             <span class="shop-card-name">{{ t('shop.item.appThemes') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('theme') + 1 }}/{{ shopCatItems('theme').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('skinpreset')">
-            <span class="shop-card-ic">🎨</span>
+            <span class="shop-card-ic" v-html="ic('brush')"></span>
             <span class="shop-card-name">{{ t('shop.item.skinPresets') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('skinpreset') }}/{{ shopCatItems('skinpreset').length }} ›</span>
           </button>
@@ -5376,7 +5376,7 @@ const App = {
             <span class="set-row-label">🎉 {{ t('settings.winEffect') }}</span>
             <div class="set-fx-row">
               <select class="text-input" :value="state.settings.winEffect || 'confetti'" @change="activateWinFx($event.target.value)">
-                <option v-for="e in ownedWinFx()" :key="e.id" :value="e.id">{{ e.icon }} {{ t('shop.effect.'+e.id) }}</option>
+                <option v-for="e in ownedWinFx()" :key="e.id" :value="e.id">{{ t('shop.effect.'+e.id) }}</option>
               </select>
               <button class="shop-fx-preview set-fx-preview" @click="previewWinFx(state.settings.winEffect || 'confetti')" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             </div>

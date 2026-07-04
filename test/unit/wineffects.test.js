@@ -5,6 +5,7 @@ import {
   WIN_EFFECTS, CONFETTI_ID, TIER_PRICES,
   effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect,
 } from '../../js/wineffects.js';
+import { hasIcon } from '../../js/icons.js';
 
 describe('wineffects.catalog', () => {
   test('contains confetti plus the 27 purchasable effects', () => {
@@ -20,6 +21,7 @@ describe('wineffects.catalog', () => {
       assert.ok(!ids.has(e.id), `duplicate id ${e.id}`);
       ids.add(e.id);
       assert.ok(e.icon && e.icon.length > 0, `missing icon for ${e.id}`);
+      assert.ok(hasIcon(e.icon), `icon '${e.icon}' for ${e.id} must be a drawn custom glyph (no emoji)`);
       assert.ok(e.tier in TIER_PRICES, `invalid tier for ${e.id}`);
     }
   });
