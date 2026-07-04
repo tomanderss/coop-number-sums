@@ -4,6 +4,7 @@ import {
   LIVES, HINTS, MAX_VAL, DIFFICULTIES, DIFF_BY_ID,
   REGION_COLORS, COOP_COLORS, DEFAULT_SETTINGS, DEFAULT_GAME_OPTIONS,
   regionColorDist, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, COIN_BASE,
+  coinStreakBonus, COIN_STREAK_STEP,
 } from '../../js/config.js';
 
 describe('config constants', () => {
@@ -163,6 +164,37 @@ describe('config.coinReward', () => {
     assert.equal(coinMultiplier({ coop: true }), 2);
     assert.equal(coinMultiplier({ perfect: true, bestTime: true }), 4);
     assert.equal(coinMultiplier({ coop: true, perfect: true, bestTime: true }), 8);
+  });
+
+  test('streak adds +5% per day ADDITIVELY on top of the multiplicative bonuses', () => {
+    assert.equal(COIN_STREAK_STEP, 0.05);
+    // reine Streak-Bonus-Funktion (additiver Anteil)
+    assert.equal(coinStreakBonus(0), 0);
+    assert.equal(coinStreakBonus(5), 0.25);
+    assert.equal(coinStreakBonus(10), 0.5);
+    assert.equal(coinStreakBonus(20), 1);
+    // additiv: keine aktiven Boni ⇒ 1 + 0.25 = 1.25
+    assert.equal(coinMultiplier({ streak: 5 }), 1.25);
+    assert.equal(coinMultiplier({ streak: 10 }), 1.5);
+    assert.equal(coinMultiplier({ streak: 20 }), 2);
+    // additiv OBEN DRAUF: ×2 (Bestzeit) + Streak 5 ⇒ 2.25, NICHT 2.5
+    assert.equal(coinMultiplier({ bestTime: true, streak: 5 }), 2.25);
+    assert.equal(coinMultiplier({ coop: true, perfect: true, streak: 10 }), 4.5);
+    // kein Cap, wächst weiter
+    assert.equal(coinMultiplier({ streak: 40 }), 3);
+  });
+
+  test('streak never lowers the reward and defaults to no bonus', () => {
+    for (let i = 0; i < DIFFICULTIES.length; i++) {
+      const base = coinReward(i);
+      assert.equal(coinReward(i, { streak: 0 }), base);
+      assert.equal(coinReward(i, { streak: -3 }), base); // negativ ⇒ kein Malus
+      assert.ok(coinReward(i, { streak: 10 }) >= base);
+      // Streak 20 verdoppelt den reinen Basiswert (×1 + 1.0)
+      assert.equal(coinReward(i, { streak: 20 }), Math.round(base * 2));
+    }
+    // gebrochene Streak-Zahl wird abgerundet
+    assert.equal(coinStreakBonus(5.9), 0.25);
   });
 
   test('out-of-range difficulty index yields 0', () => {

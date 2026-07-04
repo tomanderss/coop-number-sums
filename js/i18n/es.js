@@ -460,9 +460,10 @@ export default {
     },
   },
   wallet: {
-    rewardHint: 'Monedas por una victoria en este nivel (coop/competición el doble, perfecto el doble).',
+    rewardHint: 'Monedas por una victoria en este nivel (coop/competición el doble, perfecto el doble, + bonus de racha).',
     coins: 'Monedas',
     total: 'total: {n}',
+    streakBonus: 'Racha de {days} días: +{pct}% monedas',
   },
   sync: {
     mismatchBadge: 'Discrepancia de versión',
@@ -491,6 +492,7 @@ export default {
     bestLine: 'Mejor marca anterior: {best} días',
     recordBadge: '🏆 ¡Nueva mejor racha!',
     recordPraise: '¡Genial! Es tu racha más larga hasta ahora. 🎉',
+    coinBonus: '+{pct}% monedas por victoria gracias a tu racha',
     continue: 'Continuar',
   },
   training: {

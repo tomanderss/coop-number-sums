@@ -460,9 +460,10 @@ export default {
     },
   },
   wallet: {
-    rewardHint: 'Monete per una vittoria a questo livello (coop/competizione doppie, perfetto doppio).',
+    rewardHint: 'Monete per una vittoria a questo livello (coop/competizione doppie, perfetto doppio, + bonus serie).',
     coins: 'Monete',
     total: 'totale: {n}',
+    streakBonus: 'Serie di {days} giorni: +{pct}% monete',
   },
   sync: {
     mismatchBadge: 'Conflitto di versione',
@@ -491,6 +492,7 @@ export default {
     bestLine: 'Record precedente: {best} giorni',
     recordBadge: '🏆 Nuovo record di serie!',
     recordPraise: 'Ottimo! È la tua serie più lunga di sempre. 🎉',
+    coinBonus: '+{pct}% monete a vittoria grazie alla tua serie',
     continue: 'Continua',
   },
   training: {

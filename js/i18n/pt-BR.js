@@ -460,9 +460,10 @@ export default {
     },
   },
   wallet: {
-    rewardHint: 'Moedas por uma vitória neste nível (coop/competição em dobro, impecável em dobro).',
+    rewardHint: 'Moedas por uma vitória neste nível (coop/competição em dobro, impecável em dobro, + bônus de sequência).',
     coins: 'Moedas',
     total: 'total: {n}',
+    streakBonus: 'Sequência de {days} dias: +{pct}% de moedas',
   },
   sync: {
     mismatchBadge: 'Conflito de versão',
@@ -491,6 +492,7 @@ export default {
     bestLine: 'Melhor marca anterior: {best} dias',
     recordBadge: '🏆 Novo recorde de sequência!',
     recordPraise: 'Mandou bem! É a sua maior sequência até agora. 🎉',
+    coinBonus: '+{pct}% de moedas por vitória graças à sua sequência',
     continue: 'Continuar',
   },
   training: {

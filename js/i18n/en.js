@@ -460,9 +460,10 @@ export default {
     },
   },
   wallet: {
-    rewardHint: 'Coins for a win at this level (coop/competition double, flawless double).',
+    rewardHint: 'Coins for a win at this level (coop/competition double, flawless double, + streak bonus).',
     coins: 'Coins',
     total: 'total: {n}',
+    streakBonus: '{days}-day streak: +{pct}% coins',
   },
   sync: {
     mismatchBadge: 'Version mismatch',
@@ -491,6 +492,7 @@ export default {
     bestLine: 'Previous best: {best} days',
     recordBadge: '🏆 New best streak!',
     recordPraise: "Awesome! That's your longest streak ever. 🎉",
+    coinBonus: '+{pct}% coins per win from your streak',
     continue: 'Continue',
   },
   training: {
