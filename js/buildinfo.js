@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.83';
-export const BUILD_HASH = 'eb7854f';
+export const BUILD      = '1.84';
+export const BUILD_HASH = 'da36f70';
 
 export const CHANGELOG = [
+  {
+    "version": "1.84",
+    "date": "04.07.2026",
+    "changes": [
+      "Wettkampf: neuer „Jeder gegen jeden\"-Modus (3–4 Spieler, jeder auf eigenem Gitter mit gleichem Rätsel, erster Fertiger gewinnt)"
+    ]
+  },
   {
     "version": "1.83",
     "date": "04.07.2026",
