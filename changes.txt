@@ -1,2 +1,0 @@
-Geschenke & Guthaben vom Admin sind jetzt sofort nutzbar — ohne App-Neustart (Live-Abgleich des Inventars).
-Sieganimation: ▶-Vorschau-Knopf direkt in den Einstellungen.
