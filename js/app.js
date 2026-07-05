@@ -22,7 +22,7 @@ import {
   loadWallet, grantCurrency, spendCurrency, loadWalletLog,
   setDataRev, setSyncedRev,
 } from './storage.js';
-import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
+import { WIN_EFFECTS, CONFETTI_ID, effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
 import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup } from './badgeart.js';
 import { winShapeDefs, winShape, dragonMarkup, unicornMarkup, phoenixMarkup } from './winshapes.js';
@@ -567,7 +567,14 @@ function shopItemDisplayName(id) {
 
 // ── Sieganimationen: erste echte Shop-Kategorie (Katalog: js/wineffects.js) ────
 function ownsWinFx(id) { return ownsEffect(state.inventory, id); }
-function winFxActive(id) { return resolveActiveEffect(state.settings.winEffect, state.inventory) === id; }
+// EINE Quelle der Wahrheit für "welche Animation ist aktiv": dieselbe Auflösung
+// wie im Shop (resolveActiveEffect). Der Settings-Picker MUSS diesen Wert nutzen
+// (statt roh state.settings.winEffect), sonst können Einstellungen und Shop
+// auseinanderlaufen, falls die gespeicherte Wahl (noch) nicht besessen ist —
+// dann fällt der Shop auf Confetti zurück, das Settings-Dropdown zeigte aber den
+// nicht-besessenen Rohwert. So sind beide garantiert verknüpft.
+function activeWinFxId() { return resolveActiveEffect(state.settings.winEffect, state.inventory); }
+function winFxActive(id) { return activeWinFxId() === id; }
 // Liste der eigenen (kaufbaren + gekauften) Effekte für den Settings-Picker.
 function ownedWinFx() { return WIN_EFFECTS.filter(e => ownsWinFx(e.id)); }
 function buyWinFx(id) {
@@ -2482,12 +2489,13 @@ function win(remote) {
   log('game', `Gewonnen`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
   updateMusic();
-  if (state.settings.sfxWin) Music.sfxWin();
   if (remote) {
     state.elapsed = remote.timeMs;
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
+  // Der Sieg-Sound läuft jetzt in launchWinFx() — an die Animation + deren Stufe
+  // gekoppelt (vorher separates, kurzes Music.sfxWin() ohne Bezug zur Animation).
   launchWinFx((state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0);
   // Streak ZUERST buchen (vor der Münz-Belohnung), damit der heutige Sieg bereits
   // in der Streak steckt und der Streak-Münz-Multiplikator (+5% je Streak-Tag)
@@ -3129,6 +3137,9 @@ function launchWinFx(perfect, forceId) {
   const [durNormal, durPerfect] = WINFX_DURATION[id] || [4200, 5600];
   state.winFx = { id, pieces: gen(!!perfect).map(p => markRaw(p)), seq: (state.winFx?.seq || 0) + 1 };
   const mySeq = state.winFx.seq;
+  // Sound zur Animation: an den Effekt gekoppelt und mit dessen Stufe grandioser
+  // (perfekte Siege eine Stufe höher). Läuft damit auch in der Shop-Vorschau.
+  if (state.settings.sfxWin) Music.sfxWinFx(Math.min(4, (effectById(id)?.tier || 0) + (perfect ? 1 : 0)));
   setTimeout(() => { if (state.winFx && state.winFx.seq === mySeq) state.winFx = null; }, perfect ? durPerfect : durNormal);
 }
 // Stil-Bindung eines Partikels (nur einmal beim Erzeugen ausgewertet; die
@@ -4584,7 +4595,7 @@ const App = {
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
       openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
-      WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle, winShape, winShapeDefs,
+      WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, activeWinFxId, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle, winShape, winShapeDefs,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -5528,10 +5539,10 @@ const App = {
           <div class="set-row col">
             <span class="set-row-label"><span class="ei" v-html="ic('party')"></span> {{ t('settings.winEffect') }}</span>
             <div class="set-fx-row">
-              <select class="text-input" :value="state.settings.winEffect || 'confetti'" @change="activateWinFx($event.target.value)">
+              <select class="text-input" :value="activeWinFxId()" @change="activateWinFx($event.target.value)">
                 <option v-for="e in ownedWinFx()" :key="e.id" :value="e.id">{{ t('shop.effect.'+e.id) }}</option>
               </select>
-              <button class="shop-fx-preview set-fx-preview" @click="previewWinFx(state.settings.winEffect || 'confetti')" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
+              <button class="shop-fx-preview set-fx-preview" @click="previewWinFx(activeWinFxId())" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
             </div>
             <small class="set-hint">{{ t('settings.winEffectHint') }} <button class="btn-link" @click="openShop('winfx')">{{ t('shop.title') }} ›</button></small>
           </div>
