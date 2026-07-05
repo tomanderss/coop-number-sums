@@ -338,6 +338,8 @@ export default {
     openConsole: 'Gerenciar usuários',
     choose: '– escolher –',
     grantAll: 'Desbloquear tudo', allItems: 'o pacote completo (todos os itens)',
+    nothingToGrant: 'Nada para desbloquear — já possui tudo.',
+    pendingItems: 'Pendente: +{grant} / −{revoke} (aplicado ao salvar)',
     'accountActions': 'Ações da conta',
     'inventory': 'Inventário',
     'dataHint': 'As alterações entram em vigor no próximo início do app do usuário.',

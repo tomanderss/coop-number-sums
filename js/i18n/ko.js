@@ -338,6 +338,8 @@ export default {
     openConsole: '사용자 관리',
     choose: '– 선택 –',
     grantAll: '모두 해제', allItems: '컴플리트 패키지(모든 아이템)',
+    nothingToGrant: '잠금 해제할 항목이 없습니다 — 이미 모두 보유 중입니다.',
+    pendingItems: '대기 중: +{grant} / −{revoke} (저장 시 적용)',
     'accountActions': '계정 작업',
     'inventory': '인벤토리',
     'dataHint': '변경 사항은 사용자의 다음 앱 시작 시 적용됩니다.',

@@ -205,6 +205,7 @@ const state = reactive({
     adminData: null,          // geladener Snapshot (Quelle für die Sektions-Felder)
     adminDataLoading: false,
     adminDataDirty: {},       // pfad -> neuer Wert (ungespeicherte Änderungen)
+    adminInvPending: {},      // itemId -> 'grant' | 'revoke' — GESTAGTE Inventar-Änderungen (erst bei „Speichern" gesendet)
     adminDataSection: null,   // aktuell aufgeklappte Sektion ('wallet' | 'stats' | …)
     adminJsonPath: null, adminJsonDraft: '', adminJsonError: null,  // JSON-Untereditor
   },
@@ -3670,11 +3671,11 @@ function openAdminEdit(u) {
   a.adminEmail = u.email || '';
   a.adminBalance = String(u.balance ?? 0);
   a.adminItem = ''; a.adminFieldKey = ''; a.adminFieldVal = '';
-  a.adminData = null; a.adminDataDirty = {}; a.adminDataSection = null;
+  a.adminData = null; a.adminDataDirty = {}; a.adminInvPending = {}; a.adminDataSection = null;
   a.adminJsonPath = null; a.adminJsonDraft = ''; a.adminJsonError = null;
   adminReloadData();  // frischen /data-Snapshot für den Daten-Editor laden
 }
-function closeAdminEdit() { state.account.adminEditUser = null; state.account.adminDataDirty = {}; state.account.adminJsonPath = null; }
+function closeAdminEdit() { state.account.adminEditUser = null; state.account.adminDataDirty = {}; state.account.adminInvPending = {}; state.account.adminJsonPath = null; }
 
 // ─── Admin-Daten-Editor: JEDES Feld des Nutzer-Snapshots einsehbar/setzbar ─────
 // Sektionen mit Icon + i18n-Label; bekannte zuerst in sinnvoller Reihenfolge,
@@ -3819,16 +3820,83 @@ function adminInputField(row, ev) {
   adminMarkDirty(row.path, v);
 }
 function adminToggleField(row) { adminMarkDirty(row.path, !adminFieldValue(row)); }
-function adminDirtyCount() { return Object.keys(state.account.adminDataDirty).length; }
-function adminDiscardData() { state.account.adminDataDirty = {}; }
+function adminDirtyCount() { return Object.keys(state.account.adminDataDirty).length + Object.keys(state.account.adminInvPending).length; }
+function adminDiscardData() { state.account.adminDataDirty = {}; state.account.adminInvPending = {}; }
+// ─── Inventar-Staging (Admin-Gift) ────────────────────────────────────────────
+// Grants/Revokes werden NICHT sofort gesendet, sondern gesammelt und erst beim
+// „Speichern" (adminSaveData) an die Cloud geschickt — analog zum Daten-Editor.
+// So löst z.B. „Alles freischalten" nichts aus, bevor final bestätigt wird.
+function adminStageItem(id, action) {
+  if (!id) return;
+  const a = state.account;
+  const owned = !!(a.adminEditUser && a.adminEditUser.inventory && a.adminEditUser.inventory[id]);
+  const pend = { ...a.adminInvPending };
+  // Staging, das den bereits vorhandenen Zustand wiederherstellt, ist ein No-op
+  // (z.B. ein Revoke eines ohnehin nicht besessenen Items) → Eintrag entfernen.
+  if ((action === 'grant' && owned) || (action === 'revoke' && !owned)) delete pend[id];
+  else pend[id] = action;
+  a.adminInvPending = pend;
+}
+function adminUnstageItem(id) { const pend = { ...state.account.adminInvPending }; delete pend[id]; state.account.adminInvPending = pend; }
+// Effektiver Besitz-Zustand FÜR DIE ANZEIGE inkl. gestagter Änderungen:
+// besessen ⊕ pending. Liefert die Item-ids, die nach dem Speichern besessen wären.
+function adminEffectiveInventoryIds() {
+  const a = state.account;
+  const owned = (a.adminEditUser && a.adminEditUser.inventory) || {};
+  const ids = new Set(Object.keys(owned));
+  for (const [id, act] of Object.entries(a.adminInvPending)) {
+    if (act === 'grant') ids.add(id); else ids.delete(id);
+  }
+  return [...ids];
+}
+function adminItemPendingState(id) { return state.account.adminInvPending[id] || null; }
+// Kurzer Hinweis auf ungespeicherte Inventar-Änderungen (erst beim Speichern gesendet).
+function adminPendingSummary() {
+  const pend = state.account.adminInvPending;
+  const g = Object.values(pend).filter((v) => v === 'grant').length;
+  const r = Object.values(pend).filter((v) => v === 'revoke').length;
+  if (!g && !r) return '';
+  return t('admin.pendingItems', { grant: g, revoke: r });
+}
+// Chip-Liste fürs Inventar inkl. Staging: besessene Items (evtl. als Revoke
+// markiert) + vorgemerkte Grants (noch nicht besessen). `pending` steuert die Optik.
+function adminInventoryDisplay() {
+  const a = state.account;
+  const owned = (a.adminEditUser && a.adminEditUser.inventory) || {};
+  const ids = new Set(Object.keys(owned));
+  for (const [id, act] of Object.entries(a.adminInvPending)) if (act === 'grant') ids.add(id);
+  return [...ids].sort().map((id) => ({ id, label: adminItemLabel(id), pending: adminItemPendingState(id) }));
+}
 async function adminSaveData() {
   const a = state.account; const uid = adminEditUid();
   if (!uid || !adminDirtyCount()) return;
   a.adminBusy = true; a.adminError = null;
   try {
-    const r = await Account.adminSetUserData(uid, a.adminDataDirty);
-    if (!r.ok) { a.adminError = accErr(r.err); return; }
-    a.adminDataDirty = {};
+    // 1) /data-Snapshot-Änderungen (falls vorhanden) senden.
+    if (Object.keys(a.adminDataDirty).length) {
+      const r = await Account.adminSetUserData(uid, a.adminDataDirty);
+      if (!r.ok) { a.adminError = accErr(r.err); return; }
+      a.adminDataDirty = {};
+    }
+    // 2) Gestagte Inventar-Änderungen (Grants/Revokes) JETZT anwenden — vorher
+    // löste jeder Klick sofort aus; jetzt erst hier beim „Speichern".
+    const pend = a.adminInvPending;
+    const grants = Object.keys(pend).filter((id) => pend[id] === 'grant');
+    const revokes = Object.keys(pend).filter((id) => pend[id] === 'revoke');
+    if (grants.length) {
+      const r = await Account.adminGrantItems(uid, grants);
+      if (!r.ok) { a.adminError = accErr(r.err); return; }
+      for (const id of grants) adminMirrorSelfItem(uid, id, true);
+      adminNotifyUser(uid, { kind: 'gift', item: grants.length > 1 ? 'ALL' : grants[0] });
+      log('account', 'Admin: Items freigeschaltet (gestaged)', { uid, count: grants.length });
+    }
+    for (const id of revokes) {
+      const r = await Account.adminRevokeItem(uid, id);
+      if (!r.ok) { a.adminError = accErr(r.err); return; }
+      adminMirrorSelfItem(uid, id, false);
+      adminNotifyUser(uid, { kind: 'revoke', item: id });
+    }
+    a.adminInvPending = {};
     await adminReloadData();   // frischer Stand ins Formular…
     // SELBST-Bearbeitung: sofort auf DIESEM Gerät übernehmen. Ohne das bliebe
     // lokal der alte Stand — und der eigene Auto-Sync würde die Cloud-Änderung
@@ -3923,32 +3991,35 @@ function adminMirrorSelfBalance(uid, n) {
   else if (n < cur) spendCurrency(cur - n, 'admin');
   state.wallet = loadWallet();
 }
-function adminGrantSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminGrantItem, uid, 'dynamicColor').then((ok) => ok && adminAfterItem(uid, 'dynamicColor', true)); }
-function adminRevokeSkin() { const uid = adminEditUid(); if (uid) adminAction(Account.adminRevokeItem, uid, 'dynamicColor').then((ok) => ok && adminAfterItem(uid, 'dynamicColor', false)); }
+// Grant/Revoke werden jetzt GESTAGT (erst bei „Speichern" gesendet, s.
+// adminSaveData) statt sofort geschrieben.
+function adminGrantSkin() { adminStageItem('dynamicColor', 'grant'); }
+function adminRevokeSkin() { adminStageItem('dynamicColor', 'revoke'); }
 function adminToggleRole() {
   const u = state.account.adminEditUser; if (!u) return;
   adminAction(Account.adminSetRole, u.uid, u.role === 'admin' ? 'user' : 'admin');
 }
 function adminSetBalance() { const uid = adminEditUid(); const n = parseInt(state.account.adminBalance || '0', 10); if (uid) adminAction(Account.adminSetCurrency, uid, n).then((ok) => ok && adminAfterBalance(uid, Math.max(0, Math.floor(n || 0)))); }
 function adminChangeUsername() { const uid = adminEditUid(); const n = state.account.adminUsername.trim(); if (uid && n) adminAction(Account.adminSetUsername, uid, n); }
-function adminGrantAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminGrantItem, uid, id).then((ok) => ok && adminAfterItem(uid, id, true)); }
-// „Alles freischalten": alle bekannten Items (Sieganimationen, Shop-Artikel,
-// Skin, Founder), die der Nutzer noch NICHT besitzt, in einem Schwung schenken.
+// Auswahl aus dem Dropdown STAGEN (nicht sofort senden); danach die Auswahl leeren.
+function adminGrantAnyItem() { const id = state.account.adminItem.trim(); if (id) { adminStageItem(id, 'grant'); state.account.adminItem = ''; } }
+// „Alles freischalten": alle bekannten Items (Sieganimationen, Shop-Artikel, Skin,
+// Founder), die der Nutzer nach aktuellem Staging noch NICHT besitzt, als Grant
+// vormerken — wird ebenfalls erst beim „Speichern" gesendet.
 function adminGrantAllItems() {
-  const uid = adminEditUid(); if (!uid) return;
-  const owned = (state.account.adminEditUser && state.account.adminEditUser.inventory) || {};
-  const ids = adminItemOptions().filter((id) => !owned[id]);
-  if (!ids.length) { showToast(t('admin.done'), 'success', 1800); return; }
-  adminAction(Account.adminGrantItems, uid, ids).then((ok) => {
-    if (!ok) return;
-    for (const id of ids) adminMirrorSelfItem(uid, id, true);
-    adminNotifyUser(uid, { kind: 'gift', item: 'ALL' });
-    log('account', 'Admin: Alles freigeschaltet', { uid, count: ids.length });
-  });
+  const have = new Set(adminEffectiveInventoryIds());
+  const ids = adminItemOptions().filter((id) => !have.has(id));
+  if (!ids.length) { showToast(t('admin.nothingToGrant'), 'success', 1800); return; }
+  for (const id of ids) adminStageItem(id, 'grant');
 }
-// Einzelnes Item direkt aus der Besitz-Chip-Liste entziehen (✕ am Chip).
-function adminRevokeItemId(id) { const uid = adminEditUid(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminAfterItem(uid, id, false)); }
-function adminRevokeAnyItem() { const uid = adminEditUid(); const id = state.account.adminItem.trim(); if (uid && id) adminAction(Account.adminRevokeItem, uid, id).then((ok) => ok && adminAfterItem(uid, id, false)); }
+// ✕ an einem Chip toggelt den Staging-Zustand: gestagten Grant/Revoke zurücknehmen,
+// sonst (besessenes Item) einen Revoke vormerken. Nichts wird sofort gesendet.
+function adminRevokeItemId(id) {
+  if (!id) return;
+  if (state.account.adminInvPending[id]) adminUnstageItem(id); // gestagte Änderung rückgängig
+  else adminStageItem(id, 'revoke');
+}
+function adminRevokeAnyItem() { const id = state.account.adminItem.trim(); if (id) { adminStageItem(id, 'revoke'); state.account.adminItem = ''; } }
 function adminSetField() { const uid = adminEditUid(); const k = state.account.adminFieldKey.trim(); if (uid && k) adminAction(Account.adminSetProfileField, uid, k, state.account.adminFieldVal); }
 async function adminResetPw() {
   const a = state.account; const email = (a.adminEmail || (a.adminEditUser && a.adminEditUser.email) || '').trim();
@@ -4603,7 +4674,7 @@ const App = {
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       openAdminConsole, closeAdminConsole, adminFmtDate, adminItemOptions, adminFieldOptions, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, openAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
-      openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId,
+      openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId, adminInventoryDisplay, adminPendingSummary,
       adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw, dismissAdminNotice, adminNoticeText,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
@@ -5970,20 +6041,21 @@ const App = {
               </button>
               <div v-if="state.account.adminDataSection==='_inventory'" class="admin-acc-body">
                 <div class="admin-item-chips">
-                  <span v-for="(v, id) in state.account.adminEditUser.inventory" :key="id" class="admin-item-chip">
-                    {{ adminItemLabel(id) }}
-                    <button class="admin-item-x" :disabled="state.account.adminBusy" @click="adminRevokeItemId(id)" :aria-label="t('admin.revokeSkin')"><span class="ico-wrap" v-html="ic('close')"></span></button>
+                  <span v-for="it in adminInventoryDisplay()" :key="it.id" class="admin-item-chip" :class="{ 'chip-pending-add': it.pending==='grant', 'chip-pending-remove': it.pending==='revoke' }">
+                    {{ it.label }}
+                    <button class="admin-item-x" :disabled="state.account.adminBusy" @click="adminRevokeItemId(it.id)" :aria-label="t('admin.revokeSkin')"><span class="ico-wrap" v-html="ic('close')"></span></button>
                   </span>
-                  <span v-if="!state.account.adminEditUser.itemCount" class="set-hint">—</span>
+                  <span v-if="!adminInventoryDisplay().length" class="set-hint">—</span>
                 </div>
                 <div class="admin-field-row">
                   <select class="text-input admin-select" v-model="state.account.adminItem">
                     <option value="" disabled>{{ t('admin.choose') }}</option>
                     <option v-for="id in adminItemOptions()" :key="id" :value="id">{{ adminItemLabel(id) }}</option>
                   </select>
-                  <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem"><span class="ei" v-html="ic('gift')"></span></button>
+                  <button class="btn btn-gift btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem"><span class="ei" v-html="ic('gift')"></span></button>
                 </div>
-                <button class="btn btn-primary btn-sm admin-grant-all" :disabled="state.account.adminBusy" @click="adminGrantAllItems"><span class="ei" v-html="ic('gift')"></span> {{ t('admin.grantAll') }}</button>
+                <button class="btn btn-gift btn-sm admin-grant-all" :disabled="state.account.adminBusy" @click="adminGrantAllItems"><span class="ei" v-html="ic('gift')"></span> {{ t('admin.grantAll') }}</button>
+                <p v-if="adminPendingSummary()" class="set-hint admin-pending-hint">{{ adminPendingSummary() }}</p>
               </div>
             </div>
 

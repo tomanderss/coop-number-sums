@@ -1892,6 +1892,14 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   width: 20px; height: 20px; border-radius: 50%; background: var(--bg3); color: var(--text3);
   font-size: .68rem; font-weight: 800; display: flex; align-items: center; justify-content: center;
 }
+/* Gestagte Inventar-Änderungen: grün = wird geschenkt, rot durchgestrichen = wird entzogen. */
+.admin-item-chip.chip-pending-add { background: var(--good-soft); box-shadow: inset 0 0 0 1.5px var(--good); }
+.admin-item-chip.chip-pending-remove { background: var(--bad-soft); text-decoration: line-through; opacity: .8; }
+.admin-pending-hint { margin-top: 6px; font-weight: 700; }
+/* Schenken-Button farbig hinterlegt (gold/warm), damit die Gift-Aktion heraussticht. */
+.btn-gift { background: linear-gradient(135deg, #f0b429, #de911d); color: #4a2f00; font-weight: 800; }
+:root[data-theme="dark"] .btn-gift { color: #2a1c00; }
+.btn-gift:disabled { opacity: .5; }
 .admin-save-bar { display: flex; gap: 8px; align-items: center; }
 .admin-save-bar .admin-save-btn { flex: 1 1 auto; }
 .admin-json-title { font-family: monospace; font-size: .85rem; word-break: break-all; }

@@ -338,6 +338,8 @@ export default {
     openConsole: 'Gestisci utenti',
     choose: '– scegli –',
     grantAll: 'Sblocca tutto', allItems: 'il pacchetto completo (tutti gli articoli)',
+    nothingToGrant: 'Niente da sbloccare: ha già tutto.',
+    pendingItems: 'In sospeso: +{grant} / −{revoke} (applicato al salvataggio)',
     'accountActions': 'Azioni account',
     'inventory': 'Inventario',
     'dataHint': 'Le modifiche hanno effetto al prossimo avvio dell\'app dell\'utente.',
