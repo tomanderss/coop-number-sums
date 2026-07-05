@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.92';
-export const BUILD_HASH = '42cfd65';
+export const BUILD      = '1.93';
+export const BUILD_HASH = 'f6972c6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.93",
+    "date": "05.07.2026",
+    "changes": [
+      "Admin: Wenn man sich selbst Guthaben gibt, erscheint das jetzt im Geldverlauf UND man bekommt eine Benachrichtigung (vorher beides nicht)"
+    ]
+  },
   {
     "version": "1.92",
     "date": "05.07.2026",
