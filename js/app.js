@@ -199,6 +199,8 @@ const state = reactive({
     adminConsoleOpen: false,  // Vollbild-Admin-Konsole (Nutzer-Tabelle) offen?
     adminUsers: [], adminFilter: '', adminEditUser: null, adminBusy: false, adminError: null,
     adminBalance: '', adminUsername: '', adminItem: '', adminFieldKey: '', adminFieldVal: '', adminEmail: '',
+    adminBalanceMode: 'donate', // 'donate' (+) | 'subtract' (−) | 'target' (=) — Guthaben-Änderungsmodus
+    adminBalanceAmount: '',     // Eingabe-Menge für den gewählten Modus
     adminNotify: true,        // Haken „Nutzer benachrichtigen" bei Geschenk/Entzug/Guthaben (nicht bei Selbst-Aktionen)
     pwNew1: '', pwNew2: '', pwFormOpen: false,  // „Passwort ändern“-Formular (neues Passwort 2×)
     // Daten-Editor im Bearbeiten-Modal (frischer /users/{uid}/data-Snapshot)
@@ -3691,6 +3693,7 @@ function openAdminEdit(u) {
   a.adminUsername = u.username || '';
   a.adminEmail = u.email || '';
   a.adminBalance = String(u.balance ?? 0);
+  a.adminBalanceMode = 'donate'; a.adminBalanceAmount = '';
   a.adminItem = ''; a.adminFieldKey = ''; a.adminFieldVal = '';
   a.adminData = null; a.adminDataDirty = {}; a.adminInvPending = {}; a.adminDataSection = null;
   a.adminJsonPath = null; a.adminJsonDraft = ''; a.adminJsonError = null;
@@ -3871,6 +3874,34 @@ function adminEffectiveInventoryIds() {
   return [...ids];
 }
 function adminItemPendingState(id) { return state.account.adminInvPending[id] || null; }
+// ─── Guthaben ändern: spenden (+) / abziehen (−) / Zielwert (=) ────────────────
+// Statt das Guthaben fix zu setzen, kann der Admin eine Menge spenden/abziehen
+// oder einen Zielwert vorgeben; die Differenz wird berechnet und angezeigt. Die
+// Änderung wird — wie alles im Modal — als wallet/balance in adminDataDirty
+// GESTAGT und erst beim „Speichern" gesendet. Der Empfänger sieht die Differenz
+// dann im Geldverlauf (applyCloudWallet bucht sie beim Sync, s. storage.js).
+function adminBalanceCurrent() {
+  // Aktueller (ggf. bereits gestagter) Stand — konsistent mit den Kopf-Chips.
+  const v = adminChipValue('wallet/balance', (state.account.adminEditUser && state.account.adminEditUser.balance) ?? 0);
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+function adminBalanceTarget() {
+  const cur = adminBalanceCurrent();
+  const amt = Math.max(0, Math.floor(parseInt(state.account.adminBalanceAmount, 10) || 0));
+  const mode = state.account.adminBalanceMode;
+  if (mode === 'donate') return cur + amt;
+  if (mode === 'subtract') return Math.max(0, cur - amt);
+  return amt; // 'target'
+}
+function adminBalanceDelta() { return adminBalanceTarget() - adminBalanceCurrent(); }
+function adminSetBalanceMode(m) { state.account.adminBalanceMode = m; }
+// Vormerken: den berechneten Zielwert als wallet/balance stagen (Speichern sendet).
+function adminApplyBalanceChange() {
+  if (!state.account.adminBalanceAmount) return;
+  adminMarkDirty('wallet/balance', adminBalanceTarget());
+  state.account.adminBalanceAmount = '';
+}
 // Kurzer Hinweis auf ungespeicherte Inventar-Änderungen (erst beim Speichern gesendet).
 function adminPendingSummary() {
   const pend = state.account.adminInvPending;
@@ -4696,6 +4727,7 @@ const App = {
       openAdminConsole, closeAdminConsole, adminFmtDate, adminItemOptions, adminFieldOptions, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
       adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, openAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
       openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId, adminInventoryDisplay, adminPendingSummary,
+      adminBalanceCurrent, adminBalanceTarget, adminBalanceDelta, adminSetBalanceMode, adminApplyBalanceChange,
       adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw, dismissAdminNotice, adminNoticeText,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
@@ -6094,6 +6126,19 @@ const App = {
                   <span class="admin-acc-chev" :class="{ open: state.account.adminDataSection===sec.key }">▾</span>
                 </button>
                 <div v-if="state.account.adminDataSection===sec.key" class="admin-acc-body">
+                  <!-- Guthaben: spenden (+) / abziehen (−) / Zielwert (=) statt Fix-Setzen.
+                       Der berechnete Zielwert wird als wallet/balance gestaged (Speichern
+                       sendet); der Empfänger sieht die Differenz im Geldverlauf. -->
+                  <div v-if="sec.key==='wallet'" class="admin-balance-ctl">
+                    <div class="admin-balance-modes">
+                      <button v-for="m in ['donate','subtract','target']" :key="m" class="admin-bmode" :class="{ active: state.account.adminBalanceMode===m }" @click="adminSetBalanceMode(m)">{{ t('admin.balMode.'+m) }}</button>
+                    </div>
+                    <div class="admin-field-row">
+                      <input class="text-input" type="number" inputmode="numeric" min="0" v-model="state.account.adminBalanceAmount" :placeholder="t('admin.balAmount')" />
+                      <button class="btn btn-gift btn-sm" :disabled="!state.account.adminBalanceAmount" @click="adminApplyBalanceChange"><span class="ei" v-html="ic('coin')"></span> {{ t('admin.balApply') }}</button>
+                    </div>
+                    <p v-if="state.account.adminBalanceAmount" class="set-hint admin-bal-preview">{{ t('admin.balPreview', { cur: adminBalanceCurrent(), next: adminBalanceTarget(), delta: (adminBalanceDelta()>=0?'+':'') + adminBalanceDelta() }) }}</p>
+                  </div>
                   <div v-for="row in adminFieldRows(sec.key)" :key="row.path" class="admin-field-block" :class="{ dirty: row.path in state.account.adminDataDirty }">
                     <div class="admin-row">
                       <span class="admin-row-label">{{ adminRowLabel(row) }}</span>
