@@ -316,6 +316,7 @@ function applyTheme(previewThemeId) {
 }
 // Ausgerüstetes Sound-Paket beim Start scharf schalten (music.js hält es im Modul).
 function applySfxPack() { Music.setSfxPack(shopEquippedId('sfx')); }
+function applyMusicPack() { Music.setMusicPack(shopEquippedId('music')); }
 function applyLocale() {
   if (!state.settings.language) state.settings.language = detectLocale();
   setLocale(state.settings.language);
@@ -623,6 +624,22 @@ function previewSfxPack(it) {
   setTimeout(() => Music.sfxWin(), 760);
   setTimeout(() => Music.setSfxPack(shopEquippedId('sfx')), 2600);
 }
+// Hör-Vorschau eines Musik-Pakets: Paket setzen + Musik kurz anspielen, danach
+// das ausgerüstete Paket wiederherstellen. Läuft die Musik schon, wechselt nur
+// die Klangwelt; sonst wird sie für die Vorschau kurz gestartet und wieder
+// gestoppt (State/Settings bleiben unberührt).
+let musicPreviewTimer = null;
+function previewMusicPack(it) {
+  Music.setMusicPack(it.id);
+  const wasPlaying = Music.isPlaying();
+  if (!wasPlaying) Music.play(state.settings.musicVolume ?? 0.6);
+  clearTimeout(musicPreviewTimer);
+  musicPreviewTimer = setTimeout(() => {
+    Music.setMusicPack(shopEquippedId('music'));
+    if (!wasPlaying) Music.stop();
+    else updateMusic();
+  }, 5200);
+}
 function equipShopFree(cat) {
   if (!SHOP_CATS[cat].settingKey) return;
   setSetting(SHOP_CATS[cat].settingKey, SHOP_CATS[cat].free);
@@ -635,6 +652,7 @@ function equipShopFree(cat) {
 // Theme → echte App-Optik wechselt für 4 s (danach zurück zum Ausgerüsteten).
 function shopPreviewIt(it) {
   if (it.cat === 'sfx') { previewSfxPack(it); return; }
+  if (it.cat === 'music') { previewMusicPack(it); return; }
   if (it.cat === 'theme') { previewThemeTemp(it.id); return; }
   const cur = state.shopPreview;
   state.shopPreview = (cur && cur.id === it.id) ? null : { cat: it.cat, id: it.id };
@@ -642,6 +660,7 @@ function shopPreviewIt(it) {
 // ▶ auf der Gratis-Standard-Karte: Vorschau des eingebauten Defaults.
 function shopPreviewFree(cat) {
   if (cat === 'sfx') { previewSfxPack({ id: SHOP_CATS.sfx.free }); return; }
+  if (cat === 'music') { previewMusicPack({ id: SHOP_CATS.music.free }); return; }
   if (cat === 'theme') { previewThemeTemp(SHOP_CATS.theme.free); return; }
   const cur = state.shopPreview;
   const id = SHOP_CATS[cat].free;
@@ -762,6 +781,7 @@ function shopCategoryTitle(cat) {
   if (cat === 'palette') return t('shop.item.boardPalettes');
   if (cat === 'theme') return t('shop.item.appThemes');
   if (cat === 'sfx') return t('shop.item.soundPacks');
+  if (cat === 'music') return t('shop.item.musicPacks');
   if (cat === 'font') return t('shop.item.numberFonts');
   if (cat === 'frame') return t('shop.item.boardFrames');
   if (cat === 'skinpreset') return t('shop.item.skinPresets');
@@ -3184,6 +3204,7 @@ function setSetting(key, val) {
   if (key === 'language') applyLocale();
   if (key === 'themeMode' || key === 'appTheme') applyTheme();
   if (key === 'sfxPack') Music.setSfxPack(shopEquippedId('sfx'));
+  if (key === 'musicPack') { Music.setMusicPack(shopEquippedId('music')); updateMusic(); }
   if (key === 'musicVolume') { Music.setVolume(val); updateMusic(); }
 }
 watch(() => state.settings, (s) => { saveSettings(s); if (state.account.status === 'in') Account.scheduleSyncUp(); }, { deep: true });
@@ -3198,7 +3219,7 @@ function doImport(ev) {
   reader.onload = () => {
     try {
       importFromFile(reader.result);
-      state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applySfxPack(); applyLocale(); refreshResume();
+      state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applySfxPack(); applyMusicPack(); applyLocale(); refreshResume();
       showToast(t('toast.importSuccess'), 'success');
     } catch { showToast(t('toast.importFailed'), 'error'); }
   };
@@ -3213,7 +3234,7 @@ function resetStats() {
 function doDeleteAllData() {
   ask(t('settings.deleteAllConfirmTitle'), t('settings.deleteAllConfirmMsg'), () => {
     deleteAllData();
-    state.settings = loadSettings(); state.stats = loadStats(); state.streak = loadStreak(); state.puzzleHistory = loadHistory(); applyTheme(); applySfxPack(); applyLocale(); refreshResume();
+    state.settings = loadSettings(); state.stats = loadStats(); state.streak = loadStreak(); state.puzzleHistory = loadHistory(); applyTheme(); applySfxPack(); applyMusicPack(); applyLocale(); refreshResume();
     showToast(t('settings.deleteAllDone'), 'success');
   });
 }
@@ -3911,7 +3932,7 @@ async function adminSaveData() {
       setDataRev(rev); setSyncedRev(rev);
       state.settings = loadSettings(); state.stats = loadStats(); state.streak = loadStreak();
       state.wallet = loadWallet(); state.inventory = loadInventory(); state.puzzleHistory = loadHistory();
-      applyTheme(); applySfxPack(); applyLocale(); refreshResume();
+      applyTheme(); applySfxPack(); applyMusicPack(); applyLocale(); refreshResume();
       log('account', 'Admin: eigene Daten lokal übernommen');
     }
     await adminLoadUsers();    // …und Tabelle (Guthaben etc.) auffrischen
@@ -4389,7 +4410,7 @@ function init() {
     localStorage.setItem('cns_last_start', String(now));
   } catch (_) {}
   applyTheme();
-  applySfxPack();
+  applySfxPack(); applyMusicPack();
   // Bei themeMode 'auto' Systemwechsel (hell/dunkel) live übernehmen — ohne Neustart.
   try {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -5519,6 +5540,11 @@ const App = {
             <span class="shop-card-ic" v-html="ic('music')"></span>
             <span class="shop-card-name">{{ t('shop.item.soundPacks') }}</span>
             <span class="shop-cat-count">{{ shopOwnedCount('sfx') + 1 }}/{{ shopCatItems('sfx').length + 1 }} ›</span>
+          </button>
+          <button class="shop-card shop-cat" @click="openShopCategory('music')">
+            <span class="shop-card-ic" v-html="ic('music')"></span>
+            <span class="shop-card-name">{{ t('shop.item.musicPacks') }}</span>
+            <span class="shop-cat-count">{{ shopOwnedCount('music') + 1 }}/{{ shopCatItems('music').length + 1 }} ›</span>
           </button>
           <button class="shop-card shop-cat" @click="openShopCategory('font')">
             <span class="shop-card-ic" v-html="ic('digits')"></span>
