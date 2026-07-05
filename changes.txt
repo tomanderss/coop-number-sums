@@ -1,0 +1,1 @@
+Neue Schwierigkeitsauswahl: ein Slider von schwach nach stark mit smooth morphendem Hintergrund, großem Stufen-Icon, Maßen und Zeiten

@@ -37,6 +37,8 @@ export default {
   setup: {
     title: 'Nouvelle partie',
     start: "C'est parti !",
+    step: 'Niveau',
+    reward: 'Récompense',
   },
   game: {
     loading: 'Création du puzzle…',

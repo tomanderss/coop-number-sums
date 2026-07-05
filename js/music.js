@@ -235,7 +235,11 @@ function ensureContext() {
 // Geste an; sfxReady() resümiert ihn best effort.
 function sfxReady() {
   ensureContext();
-  try { if (ctx.state === 'suspended') ctx.resume(); } catch {}
+  // resume() liefert ein Promise, das bei geschlossenem Kontext (z.B. iOS unter
+  // Speicherdruck) REJECTED — das synchrone try/catch fängt das NICHT, es würde
+  // sonst als unbehandelte Rejection im On-Device-Fehlerprotokoll landen. Daher
+  // zusätzlich .catch() am Promise.
+  try { if (ctx.state === 'suspended') ctx.resume().catch(() => {}); } catch {}
   return !!sfxBus;
 }
 // ─── Klangfarben-Pakete (Shop-Kategorie 'sfx') ───────────────────────────────

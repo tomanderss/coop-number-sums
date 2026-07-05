@@ -27,16 +27,13 @@ export async function gotoSettingsSection(page, label) {
   await page.locator('.screen.settings .admin-acc-head', { hasText: label }).click();
 }
 
-// DIFFICULTIES (config.js) is ordered sehrleicht..mashallah, so its option
-// cards render in that same order -- pick by position rather than by label
-// text, since the visible label is translated.
-const DIFFICULTY_INDEX = { sehrleicht: 0, leicht: 1, mittel: 2, schwer: 3, extrem: 4, mashallah: 5 };
-
 export async function startNewGame(page, difficulty = 'sehrleicht') {
   await page.locator('.home-actions .btn-primary').click();
   await page.waitForSelector('.screen.setup');
-  await page.locator('.option-grid .opt-card').nth(DIFFICULTY_INDEX[difficulty]).click();
-  await page.locator('.btn-start').click();
+  // Solo-Setup ist ein Slider (keine Karten mehr): Schwierigkeit direkt über den
+  // Debug-Hook wählen, dann starten. (Coop/Race/Team behalten das Kartenraster.)
+  await page.evaluate((id) => { window.__cns.state.sel.difficulty = id; }, difficulty);
+  await page.locator('.diff-start').click();
   await page.waitForSelector('.screen.game');
   await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 }

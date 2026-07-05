@@ -37,6 +37,8 @@ export default {
   setup: {
     title: '新しいゲーム',
     start: 'スタート！',
+    step: 'レベル',
+    reward: '報酬',
   },
   game: {
     loading: 'パズルを作成中…',
