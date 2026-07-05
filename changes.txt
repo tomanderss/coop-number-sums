@@ -1,1 +1,0 @@
-Siegesanimation ist jetzt komplett sichtbar: Rendering-Bug behoben (Animation wurde fälschlich im Toast-<transition> verschluckt), läuft über allen Overlays, und die Ergebnis-Karte erscheint mit kurzem Vorlauf
