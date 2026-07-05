@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.86';
-export const BUILD_HASH = 'b3d20f0';
+export const BUILD      = '1.87';
+export const BUILD_HASH = 'b1377f3';
 
 export const CHANGELOG = [
+  {
+    "version": "1.87",
+    "date": "05.07.2026",
+    "changes": [
+      "Geldverlauf: Guthaben-Chip im Shop öffnet jetzt die Transaktionshistorie (Siege, Käufe, Admin-Geschenke)"
+    ]
+  },
   {
     "version": "1.86",
     "date": "04.07.2026",
