@@ -1,1 +1,0 @@
-Cloud-Sync: Bei Spielstart, Pause, Sieg, Niederlage und beim Schließen der App wird jetzt SOFORT synchronisiert (statt erst nach bis zu 30 s) – fertige Spiele mit Belohnung gehen beim schnellen Schließen nicht mehr verloren
