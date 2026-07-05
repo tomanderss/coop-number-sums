@@ -1,1 +1,0 @@
-Admin: Wenn man sich selbst Guthaben gibt, erscheint das jetzt im Geldverlauf UND man bekommt eine Benachrichtigung (vorher beides nicht)
