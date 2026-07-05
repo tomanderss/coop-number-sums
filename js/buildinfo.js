@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.90';
-export const BUILD_HASH = 'dbe6fb9';
+export const BUILD      = '1.91';
+export const BUILD_HASH = '0b626af';
 
 export const CHANGELOG = [
+  {
+    "version": "1.91",
+    "date": "05.07.2026",
+    "changes": [
+      "Admin: Guthaben spenden (+), abziehen (−) oder Zielwert (=) statt fixem Setzen – mit Live-Anzeige der Differenz; die Buchung erscheint im Geldverlauf des Nutzers"
+    ]
+  },
   {
     "version": "1.90",
     "date": "05.07.2026",
