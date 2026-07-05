@@ -444,7 +444,7 @@ export default {
     lbLoading: "Sıralama yükleniyor …", lbEmpty: "Henüz süre yok — ilk sen ol!",
     err: { invalidUsername: 'Geçersiz kullanıcı adı.', userNotFound: 'Bu kullanıcı adına sahip kullanıcı bulunamadı.', alreadyFriends: 'Zaten arkadaşsınız.', selfFriend: 'Kendini ekleyemezsin.', notSignedIn: 'Lütfen önce giriş yap.' },
   },
-  notice: { gift: '{from} sana "{item}" hediye etti!', revoke: '{from} senden "{item}" aldı.', currency: '{from} bakiyeni {n} yaptı.' },
+  notice: { gift: '{from} sana "{item}" hediye etti!', revoke: '{from} senden "{item}" aldı.', currency: '{from} bakiyeni {n} yaptı.', currencySelf: 'Bakiyen {n} jeton değişti.', giftSelf: '"{item}" ögesini kendine tanımladın.', revokeSelf: '"{item}" ögesini kendinden aldın.' },
   shop: {
     catHint: { palette: 'Tahtandaki kafesleri yeniden renklendir — renk ayırt edilebilirliği her zaman korunur.', theme: 'Tüm uygulama için eksiksiz renk dünyaları — OLED siyahından sakuraya.' , sfx: 'Tüm oyun sesleri için yeni ses dünyaları — dinlemek için ▶ dokun.', font: 'Tahtadaki sayılar için yeni yazı stilleri ve efektler.', frame: 'Tahtanın çevresine dekoratif çerçeveler — ahşaptan dönen ışıklı galaksi halkasına.', badge: 'Adının yanında bir rozet — coop\'ta, arkadaş listesinde ve lider tablosunda görünür.', skinpreset: 'Seçilmiş skin tasarımları — herkes satın alıp uygulayabilir. Özel dinamik skin ayrıca serbest skin düzenleyicisini açar.', music: 'Arka plan müziği için yeni ses dünyaları — dinlemek için ▶ dokun.' },
     free: { palette: 'Klasik', theme: 'Standart (açık/koyu)' , sfx: 'Standart', font: 'Klasik', frame: 'Çerçevesiz', badge: 'Rozetsiz', music: 'Zen (varsayılan)'},

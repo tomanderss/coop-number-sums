@@ -444,7 +444,7 @@ export default {
     lbLoading: "Carregando ranking …", lbEmpty: "Ainda sem tempos — seja o primeiro!",
     err: { invalidUsername: 'Nome de usuário inválido.', userNotFound: 'Nenhum usuário encontrado com esse nome.', alreadyFriends: 'Vocês já são amigos.', selfFriend: 'Você não pode adicionar a si mesmo.', notSignedIn: 'Faça login primeiro.' },
   },
-  notice: { gift: '{from} te presenteou com "{item}"!', revoke: '{from} removeu "{item}" de você.', currency: '{from} definiu seu saldo em {n} .' },
+  notice: { gift: '{from} te presenteou com "{item}"!', revoke: '{from} removeu "{item}" de você.', currency: '{from} definiu seu saldo em {n} .', currencySelf: 'Seu saldo mudou em {n} moedas.', giftSelf: 'Você desbloqueou “{item}” para si.', revokeSelf: 'Você removeu “{item}” de si.' },
   shop: {
     catHint: { palette: 'Recolora as gaiolas do tabuleiro — as cores continuam sempre distinguíveis.', theme: 'Mundos de cores completos para o app inteiro — do preto OLED ao sakura.' , sfx: 'Novos mundos sonoros para todos os sons do jogo — toque ▶ para ouvir.', font: 'Novas fontes e efeitos para os números do tabuleiro.', frame: 'Molduras decorativas ao redor do tabuleiro — da madeira ao anel galáctico com luzes em órbita.', badge: 'Um emblema ao lado do seu nome — visível no coop, na lista de amigos e no ranking.', skinpreset: 'Designs de skin selecionados — compráveis e aplicáveis por todos. A skin dinâmica exclusiva desbloqueia também o editor livre.', music: 'Novos climas para a música de fundo — toque em ▶ para ouvir.' },
     free: { palette: 'Clássico', theme: 'Padrão (claro/escuro)' , sfx: 'Padrão', font: 'Clássico', frame: 'Sem moldura', badge: 'Sem emblema', music: 'Zen (padrão)'},

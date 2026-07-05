@@ -444,7 +444,7 @@ export default {
     lbLoading: "Loading leaderboard …", lbEmpty: "No times yet — be the first!",
     err: { invalidUsername: 'Invalid username.', userNotFound: 'No user found with that username.', alreadyFriends: 'You are already friends.', selfFriend: 'You can’t add yourself.', notSignedIn: 'Please sign in first.' },
   },
-  notice: { gift: '{from} gifted you "{item}"!', revoke: '{from} removed "{item}" from you.', currency: '{from} set your balance to {n} .' },
+  notice: { gift: '{from} gifted you "{item}"!', revoke: '{from} removed "{item}" from you.', currency: '{from} set your balance to {n} .', currencySelf: 'Your balance changed by {n} coins.', giftSelf: 'You unlocked “{item}” for yourself.', revokeSelf: 'You removed “{item}” from yourself.' },
   shop: {
     catHint: { palette: 'Recolor your board cages — color distinguishability is always preserved.', theme: 'Complete color worlds for the whole app — from OLED black to sakura.' , sfx: 'New sound worlds for all game sounds — tap ▶ to listen.', font: 'New typefaces and effects for the numbers on the board.', frame: 'Decorative frames around the board — from wood to a galaxy ring with orbiting lights.', badge: 'A badge next to your name — visible to co-op partners, in the friends list and on the leaderboard.', skinpreset: 'Curated circle-skin designs — purchasable and applicable by everyone. The exclusive dynamic skin additionally unlocks the free skin editor.', music: 'New soundscapes for the background music — tap ▶ to listen.' },
     free: { palette: 'Classic', theme: 'Default (light/dark)' , sfx: 'Default', font: 'Classic', frame: 'No frame', badge: 'No badge', music: 'Zen (default)'},

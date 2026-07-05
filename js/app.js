@@ -19,7 +19,7 @@ import {
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, saveProfile, loadInventory, grantInventory, revokeInventory,
   reconcileInventoryFromCloud, applyCloudWallet,
-  loadWallet, grantCurrency, spendCurrency, loadWalletLog,
+  loadWallet, grantCurrency, spendCurrency, loadWalletLog, noteWalletTransaction,
   setDataRev, setSyncedRev,
 } from './storage.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
@@ -3523,12 +3523,18 @@ async function startGiftWatch() {
 function dismissAdminNotice() {
   const n = state.adminNotice;
   if (!n) return;
-  Account.clearNotice(n.id);
+  if (!n.self) Account.clearNotice(n.id); // lokale Selbst-Notiz hat keinen Cloud-Eintrag
   state.adminNotice = null; // onValue liefert danach ggf. die nächste
 }
 function adminNoticeText(n) {
   if (!n) return '';
   const from = n.from || 'Admin';
+  // Selbstgabe: eigener Text (kein „{from} hat dir …"); Betrag mit Vorzeichen.
+  if (n.self) {
+    if (n.kind === 'currency') { const a = n.amount ?? 0; return t('notice.currencySelf', { n: (a >= 0 ? '+' : '') + a }); }
+    const it = adminItemLabel(n.item || '');
+    return t(n.kind === 'revoke' ? 'notice.revokeSelf' : 'notice.giftSelf', { item: it });
+  }
   if (n.kind === 'currency') return t('notice.currency', { from, n: n.amount ?? 0 });
   const item = adminItemLabel(n.item || '');
   return t(n.kind === 'revoke' ? 'notice.revoke' : 'notice.gift', { from, item });
@@ -3925,6 +3931,13 @@ async function adminSaveData() {
   const a = state.account; const uid = adminEditUid();
   if (!uid || !adminDirtyCount()) return;
   a.adminBusy = true; a.adminError = null;
+  // Selbst-Bearbeitung des eigenen Guthabens: vorherigen Stand + ob überhaupt eine
+  // Guthaben-Änderung gestaged ist merken, um die Differenz danach im EIGENEN
+  // Geldverlauf zu buchen (der Snapshot-Import unten setzt den Saldo, protokolliert
+  // ihn aber nicht — Ursache dafür, dass Selbstgaben nicht im Verlauf auftauchten).
+  const isSelfEdit = uid === state.account.uid;
+  const selfPrevBalance = isSelfEdit ? (loadWallet().balance || 0) : 0;
+  const selfBalanceStaged = isSelfEdit && ('wallet/balance' in a.adminDataDirty);
   try {
     // 1) /data-Snapshot-Änderungen (falls vorhanden) senden.
     if (Object.keys(a.adminDataDirty).length) {
@@ -3967,6 +3980,16 @@ async function adminSaveData() {
       state.wallet = loadWallet(); state.inventory = loadInventory(); state.puzzleHistory = loadHistory();
       applyTheme(); applySfxPack(); applyMusicPack(); applyLocale(); refreshResume();
       log('account', 'Admin: eigene Daten lokal übernommen');
+      // Eigene Guthaben-Änderung nachträglich im Geldverlauf buchen (Saldo ist
+      // durch den Import schon korrekt) + lokale Benachrichtigung zeigen.
+      if (selfBalanceStaged) {
+        const delta = (loadWallet().balance || 0) - selfPrevBalance;
+        if (delta) {
+          noteWalletTransaction(delta, 'admin');
+          adminNotifyUser(uid, { kind: 'currency', amount: delta });
+          log('account', 'Admin: Selbst-Guthaben gebucht', { delta });
+        }
+      }
     }
     await adminLoadUsers();    // …und Tabelle (Guthaben etc.) auffrischen
     const fresh = a.adminUsers.find(u => u.uid === uid);
@@ -4022,8 +4045,18 @@ function adminEditUid() { return state.account.adminEditUser && state.account.ad
 // Fremde Nutzer über die Änderung benachrichtigen (persistente RTDB-Notiz;
 // kommt auch offline an — beim nächsten App-Start). Nur wenn der Haken an ist.
 function adminNotifyUser(uid, notice) {
-  if (!uid || uid === state.account.uid || !state.account.adminNotify) return;
+  if (!uid || !state.account.adminNotify) return;
+  // Selbst-Aktion: es gibt keinen fremden Empfänger — die Benachrichtigung lokal
+  // anzeigen (statt sie zu verschlucken), damit man auch bei Selbstgabe Feedback
+  // bekommt. Fremde Nutzer bekommen die persistente RTDB-Notiz wie bisher.
+  if (uid === state.account.uid) { showSelfAdminNotice(notice); return; }
   Account.sendAdminNotice(uid, { ...notice, from: state.account.username || 'Admin' });
+}
+// Lokale Admin-Benachrichtigung (Selbstgabe): nutzt dasselbe Notice-Modal wie
+// eine empfangene Gabe, aber ohne Cloud-Umweg. `self:true` steuert den Text +
+// verhindert das Cloud-Löschen beim Schließen (es gibt keinen Cloud-Eintrag).
+function showSelfAdminNotice(notice) {
+  state.adminNotice = { ...notice, self: true, id: 'self-' + Date.now() };
 }
 function adminAfterItem(uid, id, granted) {
   adminMirrorSelfItem(uid, id, granted);

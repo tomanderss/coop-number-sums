@@ -444,7 +444,7 @@ export default {
     lbLoading: "Chargement du classement …", lbEmpty: "Pas encore de temps — sois le premier !",
     err: { invalidUsername: 'Nom d’utilisateur invalide.', userNotFound: 'Aucun utilisateur trouvé avec ce nom.', alreadyFriends: 'Vous êtes déjà amis.', selfFriend: 'Tu ne peux pas t’ajouter toi-même.', notSignedIn: 'Connecte-toi d’abord.' },
   },
-  notice: { gift: '{from} t\'a offert « {item} » !', revoke: '{from} t\'a retiré « {item} ».', currency: '{from} a fixé ton solde à {n} .' },
+  notice: { gift: '{from} t\'a offert « {item} » !', revoke: '{from} t\'a retiré « {item} ».', currency: '{from} a fixé ton solde à {n} .', currencySelf: 'Ton solde a changé de {n} pièces.', giftSelf: 'Tu t’es débloqué « {item} ».', revokeSelf: 'Tu t’es retiré « {item} ».' },
   shop: {
     catHint: { palette: 'Recolore les cages du plateau — les couleurs restent toujours bien distinctes.', theme: 'Des univers de couleurs complets pour toute l\'app — du noir OLED au sakura.' , sfx: 'De nouveaux univers sonores pour tous les sons du jeu — appuie sur ▶ pour écouter.', font: 'Nouvelles typographies et effets pour les chiffres du plateau.', frame: 'Des cadres décoratifs autour du plateau — du bois à l\'anneau galactique aux lumières en orbite.', badge: 'Un badge à côté de ton nom — visible en coop, dans la liste d\'amis et au classement.', skinpreset: 'Designs de skin soignés — achetables et applicables par tous. Le skin dynamique exclusif débloque en plus l\'éditeur libre.', music: 'De nouvelles ambiances pour la musique de fond — appuie sur ▶ pour écouter.' },
     free: { palette: 'Classique', theme: 'Standard (clair/sombre)' , sfx: 'Standard', font: 'Classique', frame: 'Sans cadre', badge: 'Sans badge', music: 'Zen (par défaut)'},
