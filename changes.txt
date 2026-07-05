@@ -1,0 +1,1 @@
+Schwierigkeits-Slider reagiert flott: Regler und Füllung ziehen nicht mehr hinterher, der Hintergrund morpht weiterhin smooth
