@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.100';
-export const BUILD_HASH = '6ce6f41';
+export const BUILD      = '1.101';
+export const BUILD_HASH = '8d423f1';
 
 export const CHANGELOG = [
+  {
+    "version": "1.101",
+    "date": "05.07.2026",
+    "changes": [
+      "Solo-Setup-Hintergrund flart jetzt an den Rändern weich aus (kein hartes Rechteck mehr)"
+    ]
+  },
   {
     "version": "1.100",
     "date": "05.07.2026",
