@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.88';
-export const BUILD_HASH = '5155abd';
+export const BUILD      = '1.89';
+export const BUILD_HASH = '6d349c3';
 
 export const CHANGELOG = [
+  {
+    "version": "1.89",
+    "date": "05.07.2026",
+    "changes": [
+      "Admin: Geschenke/Entzüge (auch „Alles freischalten\") werden jetzt gesammelt und erst beim Speichern gesendet – vorher, mit Vorschau-Chips",
+      "Admin: Schenken-Buttons farbig hervorgehoben"
+    ]
+  },
   {
     "version": "1.88",
     "date": "05.07.2026",
