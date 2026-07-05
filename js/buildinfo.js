@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.91';
-export const BUILD_HASH = '0b626af';
+export const BUILD      = '1.92';
+export const BUILD_HASH = '42cfd65';
 
 export const CHANGELOG = [
+  {
+    "version": "1.92",
+    "date": "05.07.2026",
+    "changes": [
+      "Siegesanimationen: Einhorn, Drache, Phönix, Rakete und Disco fliegen jetzt als eigene SVG-Grafik statt als Emoji (kein Emoji mehr in den Effekten)",
+      "Offline-Zwischenspeicher (Service Worker) enthält jetzt alle App-Module – Updates greifen zuverlässiger, keine hängenden Alt-Versionen mehr"
+    ]
+  },
   {
     "version": "1.91",
     "date": "05.07.2026",
