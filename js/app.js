@@ -617,6 +617,25 @@ function equipShopItem(it) {
   setSetting(SHOP_CATS[it.cat].settingKey, it.id);
   showToast(t('shop.activated'), 'success', 1800);
 }
+// ── Ausrüsten direkt in den Einstellungen ─────────────────────────────────────
+// „Alles Erworbene ausrüstbar": je Shop-Kategorie ein Auswahl-Picker (Gratis-
+// Standard + besessene Items). Wird pro Kategorie nur gezeigt, wenn man dort
+// mindestens ein Item besitzt (sonst ist ohnehin nur der Standard aktiv).
+// skinpreset ist ausgenommen (wird ANGEWENDET, nicht ausgerüstet — s. Skin-Editor).
+function settingsVisualCats() { return ['theme', 'palette', 'font', 'frame'].filter((c) => shopOwnedCount(c) > 0); }
+function settingsSoundCats() { return ['sfx', 'music'].filter((c) => shopOwnedCount(c) > 0); }
+function settingsCatOptions(cat) {
+  const meta = SHOP_CATS[cat];
+  const opts = [{ id: meta.free, name: t('shop.free.' + cat) }];
+  for (const it of catItems(cat)) if (ownsShop(it)) opts.push({ id: it.id, name: shopItemDisplayName(it.id) });
+  return opts;
+}
+function equipCatFromSettings(cat, id) {
+  const meta = SHOP_CATS[cat];
+  if (id === meta.free) { equipShopFree(cat); return; }
+  const it = shopItemById(id);
+  if (it && it.cat === cat) equipShopItem(it);
+}
 // Hör-Vorschau eines Sound-Pakets: Paket kurz aktivieren, kleine Demo-Sequenz
 // spielen, danach das ausgerüstete Paket wiederherstellen (auch ohne Kauf).
 function previewSfxPack(it) {
@@ -4751,6 +4770,7 @@ const App = {
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
       openWalletLog, closeWalletLog, walletReasonLabel,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
+      settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
       openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, activeWinFxId, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle, winShape, winShapeDefs,
@@ -5711,6 +5731,14 @@ const App = {
             <small class="set-hint">{{ t('settings.winEffectHint') }} <button class="btn-link" @click="openShop('winfx')">{{ t('shop.title') }} ›</button></small>
           </div>
 
+          <!-- Alle erworbenen Optik-Cosmetics ausrüsten (Theme/Palette/Font/Rahmen) -->
+          <div class="set-row col" v-for="cat in settingsVisualCats()" :key="cat">
+            <span class="set-row-label"><span class="ei" v-html="ic(SHOP_CATS[cat].icon)"></span> {{ shopCategoryTitle(cat) }}</span>
+            <select class="text-input" :value="shopEquippedId(cat)" @change="equipCatFromSettings(cat, $event.target.value)">
+              <option v-for="o in settingsCatOptions(cat)" :key="o.id" :value="o.id">{{ o.name }}</option>
+            </select>
+          </div>
+
           <div class="set-group-title">{{ t('settings.a11y') }}</div>
           <div class="set-row" @click="toggleSetting('colorBlindMode')">
             <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
@@ -5818,6 +5846,16 @@ const App = {
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='ton' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='ton'" class="admin-acc-body">
+          <!-- Erworbene Sound-/Musik-Pakete ausrüsten (mit ▶ Hör-Vorschau) -->
+          <div class="set-row col" v-for="cat in settingsSoundCats()" :key="cat">
+            <span class="set-row-label"><span class="ei" v-html="ic(SHOP_CATS[cat].icon)"></span> {{ shopCategoryTitle(cat) }}</span>
+            <div class="set-fx-row">
+              <select class="text-input" :value="shopEquippedId(cat)" @change="equipCatFromSettings(cat, $event.target.value)">
+                <option v-for="o in settingsCatOptions(cat)" :key="o.id" :value="o.id">{{ o.name }}</option>
+              </select>
+              <button class="shop-fx-preview set-fx-preview" @click="shopPreviewIt({ cat, id: shopEquippedId(cat) })" :aria-label="t('shop.preview')" :title="t('shop.preview')">▶</button>
+            </div>
+          </div>
           <div class="set-row col">
             <span class="set-row-label">{{ t('settings.musicVolume') }}</span>
             <input type="range" class="set-range" min="0" max="1" step="0.01" :value="state.settings.musicVolume"
