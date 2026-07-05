@@ -1091,7 +1091,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    jedes Teilchen schon VOR dem ersten Frame auf eine eigene Compositor-Ebene
    (sonst Initial-Ruckler). Statische filter (hue-rotate/brightness) sind ok —
    sie werden einmal gerastert, NICHT pro Frame animiert. */
-.winfx { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; contain: layout style paint; }
+/* z-index über ALLEN Overlays/Modals (Ergebnis-Karte 50, Toast 80, Modal-BG 90,
+   Lade-Overlay 95): die Sieganimation ist die oberste, transiente Feier-Ebene und
+   soll KOMPLETT sichtbar sein — auch über Ergebnis-Karte und Streak-Modal. Sie ist
+   pointer-events:none, blockiert also keine Buttons darunter. */
+.winfx { position: fixed; inset: 0; pointer-events: none; z-index: 120; overflow: hidden; contain: layout style paint; }
 .winfx i { position: absolute; will-change: transform, opacity; font-style: normal; line-height: 1; }
 .winfx i.sv { background: none !important; }
 /* SVG-Partikel füllen ihre Box (Größe kommt aus winFxStyle). */
