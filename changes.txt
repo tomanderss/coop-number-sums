@@ -1,0 +1,1 @@
+Admin: Guthaben spenden (+), abziehen (−) oder Zielwert (=) statt fixem Setzen – mit Live-Anzeige der Differenz; die Buchung erscheint im Geldverlauf des Nutzers
