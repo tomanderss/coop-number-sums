@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.94';
-export const BUILD_HASH = '96db425';
+export const BUILD      = '1.95';
+export const BUILD_HASH = '13d5d6c';
 
 export const CHANGELOG = [
+  {
+    "version": "1.95",
+    "date": "05.07.2026",
+    "changes": [
+      "Cloud-Sync: Bei Spielstart, Pause, Sieg, Niederlage und beim Schließen der App wird jetzt SOFORT synchronisiert (statt erst nach bis zu 30 s) – fertige Spiele mit Belohnung gehen beim schnellen Schließen nicht mehr verloren"
+    ]
+  },
   {
     "version": "1.94",
     "date": "05.07.2026",
