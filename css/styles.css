@@ -2138,10 +2138,13 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .shop-lock-hint { color: var(--warn, #e6a23c); font-weight: 600; }
 /* Live-Demo im Shop (Vorschau für Brett-Kategorien + Badge-Chip).
    sticky: bleibt beim Scrollen durch die Karten oben sichtbar — die Auswahl
-   scrollt „hinter" die Vorschau (deckender Hintergrund + z-index nötig). */
+   scrollt „hinter" die Vorschau (deckender Hintergrund + z-index nötig).
+   z-index MUSS über den Rahmen-Deko-Pseudos der Karten liegen (die Frame-
+   ::before/::after haben z-index:6, s.u.) — sonst blenden hochgescrollte
+   Rahmen-Vorschauen trotz deckendem Hintergrund ÜBER die Zahlen-Vorschau. */
 .shop-demo-wrap {
   display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 4px 0 10px;
-  position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 6px 0 8px;
+  position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 6px 0 8px;
   box-shadow: 0 10px 12px -10px var(--shadow, rgba(0, 0, 0, .35));
 }
 .board.shop-demo {
