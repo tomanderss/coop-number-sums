@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.98';
-export const BUILD_HASH = '3fc8782';
+export const BUILD      = '1.99';
+export const BUILD_HASH = 'faab94d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.99",
+    "date": "05.07.2026",
+    "changes": [
+      "Slider-Schwierigkeitsauswahl jetzt in ALLEN Modi: Coop-, 1v1- und 2v2-Lobby zeigen denselben Slider (als morphende Karte) statt Kartenraster"
+    ]
+  },
   {
     "version": "1.98",
     "date": "05.07.2026",
