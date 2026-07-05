@@ -22,6 +22,7 @@ const KEYS = {
   // js/account.js). Bewusst dieselbe Form wie der spätere RTDB-Knoten.
   INVENTORY: 'cns_inventory',   // { itemId: { acquiredAt, source } } — Besitz von Cosmetics (z.B. Skin 'dynamicColor')
   WALLET: 'cns_wallet',         // { balance, updatedAt } — In-Game-Währung (nicht auszahlbar)
+  WALLET_LOG: 'cns_wallet_log', // [{ ts, amount(±), reason, balance }] — Geldverlauf (FIFO, rein lokal/UI)
   PROFILE: 'cns_profile',       // { displayName, username, role, accountId, createdAt } — lokales Profil (role für Admin)
   DATA_REV: 'cns_data_rev',     // Zeitstempel der letzten lokalen Nutzdaten-Änderung (für Cloud-Konfliktcheck)
   SYNCED_REV: 'cns_synced_rev', // DATA_REV beim letzten erfolgreichen Sync (Basislinie für decideSync)
@@ -372,11 +373,30 @@ export function reconcileInventoryFromCloud(cloud) {
 const EMPTY_WALLET = { balance: 0, updatedAt: 0 };
 export function loadWallet() { return { ...EMPTY_WALLET, ...load(KEYS.WALLET, {}) }; }
 function saveWallet(w) { save(KEYS.WALLET, w); }
+
+// ─── Geldverlauf (Transaktionshistorie) ───────────────────────────────────────
+// Rein lokal/UI (kein USER_DATA_KEY → wird nicht in den Cloud-Konfliktcheck
+// gezogen; die maßgebliche Größe bleibt der Kontostand selbst). FIFO-begrenzt,
+// damit localStorage nicht unbegrenzt wächst — analog zum Debug-Log.
+const WALLET_LOG_MAX = 60;
+export function loadWalletLog() { const l = load(KEYS.WALLET_LOG, []); return Array.isArray(l) ? l : []; }
+export function clearWalletLog() { save(KEYS.WALLET_LOG, []); }
+// amount ist VORZEICHENBEHAFTET (+ = Einnahme, − = Ausgabe). Neueste Einträge
+// stehen vorne. balance = Kontostand NACH der Buchung.
+function pushWalletLog(amount, reason, balance) {
+  if (!amount) return; // 0-Buchungen (z.B. Cloud-Sync ohne Änderung) nicht protokollieren
+  const l = loadWalletLog();
+  l.unshift({ ts: Date.now(), amount, reason, balance });
+  if (l.length > WALLET_LOG_MAX) l.length = WALLET_LOG_MAX;
+  save(KEYS.WALLET_LOG, l);
+}
+
 export function grantCurrency(amount, reason = 'earn') {
   const n = Math.max(0, Math.floor(amount || 0));
   const w = loadWallet();
   w.balance += n; w.updatedAt = Date.now();
   saveWallet(w);
+  pushWalletLog(n, reason, w.balance);
   log('storage', 'Währung gutgeschrieben', { amount: n, reason, balance: w.balance });
   return w;
 }
@@ -387,6 +407,7 @@ export function spendCurrency(amount, reason = 'spend') {
   if (w.balance < n) return { ok: false, balance: w.balance };
   w.balance -= n; w.updatedAt = Date.now();
   saveWallet(w);
+  pushWalletLog(-n, reason, w.balance);
   log('storage', 'Währung ausgegeben', { amount: n, reason, balance: w.balance });
   return { ok: true, balance: w.balance };
 }
@@ -394,8 +415,13 @@ export function spendCurrency(amount, reason = 'spend') {
 // als der lokale Stand — lokale Käufe zwischen zwei Sync-ups gewinnen sonst.
 export function applyCloudWallet(w) {
   if (w && typeof w.balance === 'number') {
-    saveWallet({ balance: Math.max(0, Math.floor(w.balance)), updatedAt: w.updatedAt || Date.now() });
-    log('storage', 'Cloud-Guthaben übernommen', { balance: w.balance });
+    const prev = loadWallet().balance;
+    const next = Math.max(0, Math.floor(w.balance));
+    saveWallet({ balance: next, updatedAt: w.updatedAt || Date.now() });
+    // Differenz zum vorherigen lokalen Stand als Transaktion buchen — so taucht
+    // ein Admin-Geschenk (oder -Entzug) von Guthaben im Geldverlauf auf.
+    if (next !== prev) pushWalletLog(next - prev, next > prev ? 'gift' : 'adminRevoke', next);
+    log('storage', 'Cloud-Guthaben übernommen', { balance: next, delta: next - prev });
   }
   return loadWallet();
 }

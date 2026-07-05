@@ -483,6 +483,18 @@ export default {
     coins: 'Coins',
     total: 'total: {n}',
     streakBonus: '{days}-day streak: +{pct}% coins',
+    historyTitle: 'Coin history',
+    historyEmpty: 'No transactions yet. Win games or buy in the shop to fill your history.',
+    reason: {
+      win: 'Win reward',
+      purchase: 'Purchase: {item}',
+      gift: 'Admin gift',
+      adminRevoke: 'Admin adjustment',
+      admin: 'Admin adjustment',
+      spend: 'Spending',
+      earn: 'Credit',
+      other: 'Transaction',
+    },
   },
   sync: {
     mismatchBadge: 'Version mismatch',

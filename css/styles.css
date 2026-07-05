@@ -1982,6 +1982,22 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 }
 :root[data-theme="dark"] .coin-chip { color: #ffd970; background: hsl(45 55% 20% / .9); }
 .coin-chip-static { box-shadow: none; }
+.coin-chip-btn { border: none; cursor: pointer; font: inherit; font-size: .82rem; font-weight: 800; }
+.coin-chip-btn:active { transform: scale(.96); }
+
+/* Geldverlauf-Modal (Transaktionshistorie) */
+.modal-wallet-log { max-width: min(94vw, 440px); }
+.wallet-log-balance { text-align: center; color: var(--text3); font-weight: 700; font-size: .82rem; margin-top: -6px; }
+.wallet-log-empty { text-align: center; }
+.wallet-log { display: flex; flex-direction: column; gap: 2px; max-height: 56vh; overflow-y: auto; overscroll-behavior: contain; }
+.wl-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--bg3); }
+.wl-row:last-child { border-bottom: none; }
+.wl-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wl-reason { font-weight: 700; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wl-date { color: var(--text3); font-size: .72rem; }
+.wl-amount { display: inline-flex; align-items: center; gap: 3px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wl-row.plus .wl-amount { color: var(--good, #2ba84a); }
+.wl-row.minus .wl-amount { color: var(--text2); }
 .home-shop-btn { font-size: 1.05rem; }
 /* Shop-Einstieg über den Statistiken */
 .shop-entry-btn { display: flex; align-items: center; gap: 12px; text-align: left; }
