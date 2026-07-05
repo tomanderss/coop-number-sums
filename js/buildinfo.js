@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.89';
-export const BUILD_HASH = '6d349c3';
+export const BUILD      = '1.90';
+export const BUILD_HASH = 'dbe6fb9';
 
 export const CHANGELOG = [
+  {
+    "version": "1.90",
+    "date": "05.07.2026",
+    "changes": [
+      "Neue Shop-Kategorie „Musik-Pakete\": kaufbare Hintergrundmusik-Stile (Lo-Fi, Klassik, Chiptune, Synth-Nacht) neben dem Zen-Standard – mit Hör-Vorschau (▶)"
+    ]
+  },
   {
     "version": "1.89",
     "date": "05.07.2026",
