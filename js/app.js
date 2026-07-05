@@ -484,6 +484,8 @@ function pauseGame(broadcast = true, remoteElapsed) {
     if (state.race.active) Coop.send({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
     else if (state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
   }
+  persistGame();          // aktuellen Stand lokal sichern …
+  syncCloudNow('pause');  // … und beim Pausieren sofort in die Cloud
 }
 function resumeFromPause(broadcast = true) {
   if (!state.paused) return;
@@ -851,6 +853,7 @@ function startCoopGame(startTime) {
   log('coop', 'Coop-Timer gestartet', { startTime, localNow: Date.now(), serverNow: gameNow(), skewMs: gameNow() - Date.now() });
   startTimer();
   updateMusic();
+  syncCloudNow('coopStart'); // Runden-Start: Stand sofort in die Cloud
 }
 function startCoopRound() {
   if (!state.coop.awaitingStart) return;
@@ -978,6 +981,7 @@ function finishNewGame(puzzle) {
     coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
   } else {
     startTimer();
+    syncCloudNow('gameStart'); // Solo-Start: frisches Spiel sofort in die Cloud
   }
 }
 // In einer aktiven Coop-Session (als Host) wird das neue Rätsel an den Partner
@@ -2582,7 +2586,7 @@ function win(remote) {
     state.lastCoinMult = Math.round(coinMultiplier(bonus) * 100) / 100;
     state.lastStreakUsed = streakDays;
     log('game', 'Münz-Belohnung', { coins, mult: state.lastCoinMult, streakDays, coop: isCoopish, perfect, bestTime: newHighscore });
-    if (state.account.status === 'in') Account.scheduleSyncUp();
+    // (Cloud-Sync erfolgt gebündelt am Ende von win() als sofortiges syncCloudNow.)
     // Neue Solo-Bestzeit (nur perfekte Solo-Siege) in die globale Bestenliste
     // schreiben — Coop/Wettkampf/Training zählen dort bewusst nicht mit.
     if (newHighscore && !isCoopish && state.account.status === 'in') {
@@ -2604,9 +2608,10 @@ function win(remote) {
     checkAchievements();
   }
   persistGame();
-  // Cloud-Sync nach jedem Sieg (der Münz-/Stats-Block oben stößt ihn bereits an;
-  // hier zur Sicherheit auch für Coop/Team, die den Block überspringen).
-  if (state.account.status === 'in') Account.scheduleSyncUp();
+  // SOFORTIGE Cloud-Sicherung bei Spielende (nicht entprellt): so ist der Sieg
+  // inkl. Belohnung/gelöschtem Fortsetzen-Stand sofort in der Cloud, auch wenn
+  // die App direkt danach geschlossen wird.
+  syncCloudNow('win');
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
@@ -2646,7 +2651,7 @@ function lose(remote) {
     checkAchievements();
   }
   persistGame();
-  if (state.account.status === 'in') Account.scheduleSyncUp();  // nach jedem Spiel (auch Niederlage) sichern
+  syncCloudNow('lose');  // sofortige Sicherung bei Spielende (auch Niederlage)
   if (state.coop.active && !remote) {
     coopSend({ type: Coop.MSG.STATUS, status: 'lost', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
   }
@@ -3431,6 +3436,18 @@ function refreshAccountFromLocal() {
   else { state.account.status = 'anon'; state.account.uid = null; }
 }
 // Sofort ALLE Daten in die Cloud sichern (mit sichtbarem Status). No-op ohne Login.
+// Sofortige (NICHT entprellte) Cloud-Sicherung bei Hauptevents: Spielstart,
+// Pause, Sieg, Niederlage, App-Verstecken/Schließen. `scheduleSyncUp()` wartet bis
+// zu 30 s (SYNC_MIN_GAP) — wurde die App vorher geschlossen, ging der Upload
+// verloren und ein FERTIGES Spiel tauchte danach wieder als „Fortsetzen" auf
+// (Belohnung/Abschluss nicht in der Cloud). Diese Events sind selten (kein
+// Per-Zug-Sync!) → kein Speicher-/Socket-Churn wie beim früheren Dauer-Entpreller;
+// der damalige iOS-Absturz kam von den Animationen, nicht von der Sync-Rate.
+function syncCloudNow(reason) {
+  if (state.account.status !== 'in') return;
+  log('account', 'Getriggerte Cloud-Sync', { reason });
+  doSyncNow();
+}
 async function doSyncNow() {
   if (state.account.status !== 'in') return;
   state.account.syncState = 'syncing';
@@ -4521,7 +4538,7 @@ function init() {
     // Verbindung/den Speicher im konzentrationskritischen Moment; der lokale
     // Autosave sichert den Fortschritt ohnehin). Gesichert wird stattdessen bei
     // Spielende, beim Wechsel ins Menü und beim Verstecken/Schließen der App.
-    setInterval(() => { if (state.account.status === 'in' && !gameSessionActive()) doSyncNow(); }, 60000);
+    setInterval(() => { if (state.account.status === 'in' && !gameSessionActive()) doSyncNow(); }, 30000);
   }
   // Präsenz für Freunde alle 20 s auffrischen, solange ein Spiel läuft (Fortschritt/%).
   setInterval(() => { if (state.account.status === 'in' && gameSessionActive()) pushPresence(); }, 20000);
@@ -4554,12 +4571,13 @@ function init() {
   // damit das OS nichts mehr glitchen kann. Zurück im Vordergrund sofort wieder
   // starten (und falls iOS das blockt, beim ersten Tap, s.o.).
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) Music.suspendForBackground();
+    if (document.hidden) { Music.suspendForBackground(); persistGame(); syncCloudNow('hide'); }
     else updateMusic();
   });
   // pagehide/pageshow zusätzlich: feuert auf iOS-PWA beim Backgrounding oft
-  // zuverlässiger/früher als visibilitychange.
-  window.addEventListener('pagehide', () => Music.suspendForBackground());
+  // zuverlässiger/früher als visibilitychange. Auch hier sofort sichern, damit
+  // ein fertiges/laufendes Spiel beim Schließen zuverlässig in der Cloud landet.
+  window.addEventListener('pagehide', () => { Music.suspendForBackground(); persistGame(); syncCloudNow('pagehide'); });
   window.addEventListener('pageshow', () => updateMusic());
   window.addEventListener('blur', () => { if (document.hidden) Music.suspendForBackground(); });
 
