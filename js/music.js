@@ -36,7 +36,29 @@ const PROGRESSION = [
   { name: 'F',  tones: [-7, -3, 0] },   // F  A  C
   { name: 'G',  tones: [-5, -1, 2] },   // G  B  D
 ];
-const CHORD_SECONDS = 9; // wie lange ein Akkord steht
+const CHORD_SECONDS = 9; // wie lange ein Akkord steht (Zen-Standard; je Musik-Paket überschrieben)
+
+// ─── Musik-Pakete (Shop-Kategorie 'music') ───────────────────────────────────
+// Ein Paket ändert die KLANGWELT der Hintergrundmusik (Wellenformen/Filter der
+// Pad-/Melodie-Stimmen, Akkord-Standdauer, Melodie-Tempo, Drone-Pegel) — Tonart
+// (C-Dur), Akkordfolge und Leitmotiv bleiben, damit die Identität erhalten
+// bleibt. Rein parametrisch, keine Audiodateien (wie die UI-Sound-Pakete).
+// `tempo` > 1 = langsamer/ruhiger, < 1 = treibender. padCut/bellCut = Tiefpass-
+// Bereich (Hz) für Pad bzw. Melodie.
+export const MUSIC_PACKS = {
+  zen:        { padWave: 'triangle', bellWave: 'triangle', padCut: [650, 1050],  bellCut: [800, 1300],  chordSec: 9,  tempo: 1,    droneMul: 1 },
+  lofi:       { padWave: 'sine',     bellWave: 'sine',     padCut: [420, 760],   bellCut: [520, 900],   chordSec: 11, tempo: 1.3,  droneMul: 1.15 },
+  klassik:    { padWave: 'triangle', bellWave: 'sine',     padCut: [750, 1250],  bellCut: [950, 1550],  chordSec: 8,  tempo: 1.05, droneMul: 0.9 },
+  chiptune:   { padWave: 'square',   bellWave: 'square',   padCut: [900, 1500],  bellCut: [1400, 2200], chordSec: 6,  tempo: 0.7,  droneMul: 0.7 },
+  synthnacht: { padWave: 'sawtooth', bellWave: 'triangle', padCut: [800, 1400],  bellCut: [1100, 1900], chordSec: 7,  tempo: 0.85, droneMul: 1 },
+};
+let musicPackId = 'zen';
+export function currentMusicPack() { return musicPackId; }
+// Paketwechsel greift sanft: laufende Stimmen klingen aus, die nächsten Pad-/
+// Melodie-Durchläufe nutzen automatisch die neuen Parameter (kein harter Neustart
+// → keine Klick-Artefakte).
+export function setMusicPack(id) { musicPackId = MUSIC_PACKS[id] ? id : 'zen'; }
+const mp = () => MUSIC_PACKS[musicPackId] || MUSIC_PACKS.zen;
 
 // Festes Leitmotiv (feste Tonhöhen, C-Dur-Pentatonik) — der wiedererkennbare
 // "Hook". Wird NICHT je Akkord transponiert, damit es immer gleich klingt.
@@ -105,7 +127,8 @@ function voice(freq, when, dur, peak, { type = 'sine', cutoff = 1000, detune = 0
 // Oktave höher -> deutlich weniger schrill), mit tiefem Tiefpass für einen
 // gedämpften Holz-/Koto-artigen Klang.
 function bell(semi, when, dur, peak) {
-  voice(midi(semi), when, dur, peak, { type: 'triangle', cutoff: rand(800, 1300), detune: rand(-4, 4) });
+  const P = mp();
+  voice(midi(semi), when, dur, peak, { type: P.bellWave, cutoff: rand(P.bellCut[0], P.bellCut[1]), detune: rand(-4, 4) });
 }
 
 // Konstanter Tonika-Drone (C + G), sehr leise, mit langsamem LFO — Grundton der
@@ -113,7 +136,7 @@ function bell(semi, when, dur, peak) {
 function startDrone() {
   [midi(-12), midi(-5)].forEach((freq, i) => {
     const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
-    const g = ctx.createGain(); g.gain.value = i === 0 ? 0.13 : 0.08;
+    const g = ctx.createGain(); g.gain.value = (i === 0 ? 0.13 : 0.08) * mp().droneMul;
     const lfo = ctx.createOscillator(); lfo.frequency.value = rand(0.03, 0.07);
     const lfoG = ctx.createGain(); lfoG.gain.value = 0.04;
     lfo.connect(lfoG).connect(g.gain);
@@ -128,12 +151,13 @@ function padLoop() {
   if (!running || document.hidden) return; // im Hintergrund nichts planen (sonst Noten-Schwall)
   const chord = PROGRESSION[chordIdx % PROGRESSION.length];
   const now = ctx.currentTime;
+  const P = mp();
   chord.tones.forEach((semi, i) => {
-    voice(midi(semi), now + 0.05 + i * 0.08, CHORD_SECONDS + 1.5, rand(0.13, 0.18),
-      { type: 'triangle', cutoff: rand(650, 1050), detune: rand(-5, 5) });
+    voice(midi(semi), now + 0.05 + i * 0.08, P.chordSec + 1.5, rand(0.13, 0.18),
+      { type: P.padWave, cutoff: rand(P.padCut[0], P.padCut[1]), detune: rand(-5, 5) });
   });
   chordIdx++;
-  padTimer = setTimeout(padLoop, CHORD_SECONDS * 1000);
+  padTimer = setTimeout(padLoop, P.chordSec * 1000);
 }
 
 // Melodie: spielt mal das feste Leitmotiv (Wiedererkennung), meist eine der vielen
@@ -143,27 +167,28 @@ function padLoop() {
 function melodyLoop() {
   if (!running || document.hidden) return; // im Hintergrund nichts planen (sonst Noten-Schwall)
   const now = ctx.currentTime;
+  const T = mp().tempo; // Pakettempo: >1 gedehnter/ruhiger, <1 treibender
   const r = Math.random();
   if (r < 0.16) {
     // Leitmotiv – der wiedererkennbare Hook, jetzt seltener (mehr Varianz).
-    MOTIF.forEach((semi, i) => bell(semi, now + 0.1 + i * 0.42, rand(2.2, 3.2), rand(0.14, 0.2)));
-    melodyTimer = setTimeout(melodyLoop, rand(8000, 12000));
+    MOTIF.forEach((semi, i) => bell(semi, now + 0.1 + i * 0.42 * T, rand(2.2, 3.2), rand(0.14, 0.2)));
+    melodyTimer = setTimeout(melodyLoop, rand(8000, 12000) * T);
   } else if (r < 0.82) {
     // Eine der vielen festen Phrasen, mit variabler Phrasierung (Tempo/Legato/Timing).
     const phrase = pick(PHRASES);
-    const step = rand(0.34, 0.6);                     // Grundtempo variiert
+    const step = rand(0.34, 0.6) * T;                 // Grundtempo variiert (× Pakettempo)
     const legato = Math.random() < 0.5 ? 1.6 : 0.95;  // mal gebunden, mal perlend
     let t = now + 0.1;
     phrase.forEach((semi) => {
       bell(semi, t, rand(1.8, 3.0) * legato, rand(0.12, 0.18));
       t += step * rand(0.85, 1.2);
     });
-    melodyTimer = setTimeout(melodyLoop, (t - now) * 1000 + rand(2500, 6000));
+    melodyTimer = setTimeout(melodyLoop, (t - now) * 1000 + rand(2500, 6000) * T);
   } else {
     // Sparsame Einzeltöne / kurze Geste – Raum zum Atmen.
     const n = 1 + ((Math.random() * 2) | 0);
-    for (let i = 0; i < n; i++) bell(pick(FILL), now + 0.1 + i * rand(0.4, 0.9), rand(2.5, 4), rand(0.11, 0.16));
-    melodyTimer = setTimeout(melodyLoop, rand(4000, 8000));
+    for (let i = 0; i < n; i++) bell(pick(FILL), now + 0.1 + i * rand(0.4, 0.9) * T, rand(2.5, 4), rand(0.11, 0.16));
+    melodyTimer = setTimeout(melodyLoop, rand(4000, 8000) * T);
   }
 }
 

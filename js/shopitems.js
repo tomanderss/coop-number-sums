@@ -16,6 +16,7 @@ export const SHOP_CATS = {
   font:       { icon: 'digits', settingKey: 'numberFont',   free: 'classic' },
   skinpreset: { icon: 'brush', settingKey: null,           free: null },
   sfx:        { icon: 'music', settingKey: 'sfxPack',      free: 'standard' },
+  music:      { icon: 'music', settingKey: 'musicPack',   free: 'zen' },
 };
 
 // ─── Katalog ──────────────────────────────────────────────────────────────────
@@ -62,6 +63,17 @@ export const SFX_ITEMS = [
   { id: 'synthwave', cat: 'sfx', icon: 'sunset', tier: 4 },
 ];
 SHOP_CATALOG.push(...SFX_ITEMS);
+
+// 🎶 Musik-Pakete: Klangwelt der prozeduralen Hintergrundmusik (js/music.js
+// MUSIC_PACKS — Wellenformen/Filter, Akkord-Standdauer, Melodie-Tempo, Drone).
+// Der Gratis-Standard 'zen' ist die bisherige Zen-Musik (nicht im Katalog).
+export const MUSIC_ITEMS = [
+  { id: 'lofi',       cat: 'music', icon: 'radio', tier: 1 },
+  { id: 'klassik',    cat: 'music', icon: 'bell', tier: 2 },
+  { id: 'chiptune',   cat: 'music', icon: 'invader', tier: 2 },
+  { id: 'synthnacht', cat: 'music', icon: 'planet', tier: 3 },
+];
+SHOP_CATALOG.push(...MUSIC_ITEMS);
 
 // 🔢 Zahlen-Stile: Typo/Effekte für die Ziffern auf dem Brett (Zellwerte,
 // Kopfsummen, Cage-Chips). Reine System-Font-Stacks + CSS-Text-Effekte

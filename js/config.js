@@ -261,6 +261,7 @@ export const DEFAULT_SETTINGS = {
   boardFrame: 'none',       // ausgerüsteter Brett-Rahmen (Shop-Kategorie 'frame', .board.frame-<id>)
   numberFont: 'classic',    // ausgerüsteter Zahlen-Stil (Shop-Kategorie 'font', .board.font-<id>)
   sfxPack: 'standard',      // ausgerüstetes Sound-Paket (Shop-Kategorie 'sfx', js/music.js SFX_PACKS)
+  musicPack: 'zen',         // ausgerüstetes Musik-Paket (Shop-Kategorie 'music', js/music.js MUSIC_PACKS)
   boardPalette: 'classic',  // ausgerüstete Brett-Palette (js/shopitems.js, Kategorie 'palette');
                             // 'classic' = eingebaute REGION_COLORS, Käufe transformieren sie (HSL).
   winEffect: 'confetti',    // aktive Sieganimation (js/wineffects.js); alles außer
