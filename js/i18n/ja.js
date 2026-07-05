@@ -338,6 +338,8 @@ export default {
     openConsole: 'ユーザー管理',
     choose: '– 選択 –',
     grantAll: 'すべて解放', allItems: 'コンプリートパック（全アイテム）',
+    nothingToGrant: 'アンロックできるものはありません（すでに全部所持）。',
+    pendingItems: '保留中: +{grant} / −{revoke}（保存時に適用）',
     'accountActions': 'アカウント操作',
     'inventory': 'インベントリ',
     'dataHint': '変更はユーザーの次回アプリ起動時に反映されます。',

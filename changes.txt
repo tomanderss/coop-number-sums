@@ -1,0 +1,2 @@
+Admin: Geschenke/Entzüge (auch „Alles freischalten") werden jetzt gesammelt und erst beim Speichern gesendet – vorher, mit Vorschau-Chips
+Admin: Schenken-Buttons farbig hervorgehoben

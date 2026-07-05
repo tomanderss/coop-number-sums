@@ -338,6 +338,8 @@ export default {
     openConsole: 'Nutzer verwalten',
     choose: '– auswählen –',
     grantAll: 'Alles freischalten', allItems: 'das Komplett-Paket (alle Artikel)',
+    nothingToGrant: 'Nichts mehr zum Freischalten – besitzt schon alles.',
+    pendingItems: 'Ausstehend: +{grant} / −{revoke} (erst beim Speichern gesendet)',
     // ── Klartext-Wörterbuch für den Daten-Editor (nur de; andere Sprachen
     // fallen per t()-Fallback auf Deutsch zurück — reine Admin-Texte).
     // f: Feld-Label (l) + Beschreibung (d), Schlüssel = Pfad im Snapshot

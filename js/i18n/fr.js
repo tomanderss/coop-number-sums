@@ -338,6 +338,8 @@ export default {
     openConsole: 'Gérer les utilisateurs',
     choose: '– choisir –',
     grantAll: 'Tout débloquer', allItems: 'le pack complet (tous les articles)',
+    nothingToGrant: 'Rien à débloquer — possède déjà tout.',
+    pendingItems: 'En attente : +{grant} / −{revoke} (appliqué à l\u2019enregistrement)',
     'accountActions': 'Actions du compte',
     'inventory': 'Inventaire',
     'dataHint': 'Les modifications prennent effet au prochain démarrage de l\'app de l\'utilisateur.',

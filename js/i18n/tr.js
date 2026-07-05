@@ -338,6 +338,8 @@ export default {
     openConsole: 'Kullanıcıları yönet',
     choose: '– seçin –',
     grantAll: 'Tümünün kilidini aç', allItems: 'komple paket (tüm ögeler)',
+    nothingToGrant: 'Kilidi açılacak bir şey yok — zaten hepsi var.',
+    pendingItems: 'Bekliyor: +{grant} / −{revoke} (kaydedince uygulanır)',
     'accountActions': 'Hesap işlemleri',
     'inventory': 'Envanter',
     'dataHint': 'Değişiklikler, kullanıcının uygulamayı bir sonraki açışında geçerli olur.',
