@@ -1,1 +1,0 @@
-Geldverlauf: Guthaben-Chip im Shop öffnet jetzt die Transaktionshistorie (Siege, Käufe, Admin-Geschenke)
