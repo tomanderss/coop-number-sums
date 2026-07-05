@@ -1,2 +1,0 @@
-Siegesanimationen: Einhorn, Drache, Phönix, Rakete und Disco fliegen jetzt als eigene SVG-Grafik statt als Emoji (kein Emoji mehr in den Effekten)
-Offline-Zwischenspeicher (Service Worker) enthält jetzt alle App-Module – Updates greifen zuverlässiger, keine hängenden Alt-Versionen mehr
