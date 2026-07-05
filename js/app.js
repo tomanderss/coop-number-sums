@@ -4716,6 +4716,9 @@ const App = {
   components: { DifficultySlider },
   setup() {
     const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
+    // Coop/Race/Team: zeigt der Coop-Screen gerade die Host-Schwierigkeitsauswahl?
+    // Dann bekommt die Section den Vollflächen-Slider-Look (setup-slider) wie Solo.
+    const isCoopDiffView = computed(() => state.coop.identityConfirmed && state.coop.role === 'host' && !state.coop.waitingForGuest);
     // Gegner-Lebensanzeige im Wettkampf: dieselbe Herzen-Optik wie die eigene
     // (state.maxLives ist symmetrisch, da beide Seiten dieselbe Schwierigkeit/
     // Einstellung spielen) -- Fehler des Gegners zählen 1:1 wie eigene Fehler.
@@ -4910,7 +4913,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
-      diffVars,
+      diffVars, isCoopDiffView,
       openWalletLog, closeWalletLog, walletReasonLabel,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
@@ -5498,8 +5501,9 @@ const App = {
     </section>
 
     <!-- ══ COOP ══ -->
-    <section v-else-if="state.screen==='coop'" class="screen coop-screen">
-      <header class="topbar">
+    <section v-else-if="state.screen==='coop'" class="screen coop-screen" :class="{ 'setup-slider': isCoopDiffView }" :style="isCoopDiffView ? diffVars(state.coop.lobbyDiffId) : null">
+      <div v-if="isCoopDiffView" class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
+      <header class="topbar setup-top">
         <button class="icon-btn" @click="goBack()">‹</button>
         <h2>{{ t('coop.title') }}</h2>
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
@@ -5531,20 +5535,24 @@ const App = {
         </button>
       </div>
 
-      <!-- Host: Code festlegen + Schwierigkeit → warte auf Gast -->
-      <div v-else-if="state.coop.role === 'host'" class="coop-body">
-        <template v-if="!state.coop.waitingForGuest">
-          <div class="coop-code-label">{{ t('coop.setCode') }}</div>
-          <input class="coop-input" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
+      <!-- Host: Code + Schwierigkeit — identischer Vollflächen-Slider wie Solo,
+           Raumcode INNERHALB des Screens integriert (setup-slider auf der Section). -->
+      <template v-else-if="state.coop.role === 'host' && !state.coop.waitingForGuest">
+        <div class="setup-coderow">
+          <label for="coopcode">{{ t('coop.setCode') }}</label>
+          <input id="coopcode" class="setup-codeinput" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
                  :placeholder="t('common.codePlaceholder')" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
-          <div class="setup-label">{{ t('common.difficulty') }}</div>
-          <div class="diff-card" :style="diffVars(state.coop.lobbyDiffId)">
-            <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
-            <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true"></difficulty-slider>
-          </div>
-          <button class="btn btn-primary" @click="startHosting">{{ t('coop.startHosting') }}</button>
-        </template>
-        <template v-else>
+        </div>
+        <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true"></difficulty-slider>
+        <div class="setup-startrow">
+          <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
+          <button class="btn btn-primary btn-start diff-start" @click="startHosting">{{ t('coop.startHosting') }}</button>
+        </div>
+      </template>
+
+      <!-- Host: warten auf Gast -->
+      <div v-else-if="state.coop.role === 'host'" class="coop-body">
+        <template v-if="true">
           <div class="coop-code-label">{{ t('coop.yourCode') }}</div>
           <div class="coop-code">{{ state.coop.code }}</div>
           <p class="coop-subtext">{{ t('coop.shareCode') }}</p>

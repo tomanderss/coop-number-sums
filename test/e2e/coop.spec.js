@@ -33,11 +33,11 @@ test.describe('coop', () => {
     await page.locator('.coop-body .btn-primary').click();
 
     await page.locator('.coop-body .btn-primary').click(); // "Host" option
-    await expect(page.locator('.coop-code-label')).toBeVisible();
+    await expect(page.locator('.setup-codeinput')).toBeVisible();
 
-    await page.locator('.coop-input').fill('123456');
-    await expect(page.locator('.diff-card .diff-track')).toBeVisible(); // Slider-Auswahl (Default 'mittel')
-    await page.locator('.coop-body .btn-primary').click(); // "start hosting"
+    await page.locator('.setup-codeinput').fill('123456');
+    await expect(page.locator('.diff-track')).toBeVisible(); // Slider-Auswahl (Default 'mittel')
+    await page.locator('.diff-start').click(); // "start hosting"
 
     await expect(page.locator('.coop-code')).toHaveText('123456');
     await expect(page.locator('.coop-waiting')).toBeVisible();
@@ -49,9 +49,9 @@ test.describe('coop', () => {
     await page.locator('.coop-body .btn-primary').click();
 
     await page.locator('.coop-body .btn-primary').click(); // "Host" option
-    await page.locator('.coop-input').fill('123456');
-    await expect(page.locator('.diff-card .diff-track')).toBeVisible(); // Slider-Auswahl (Default 'mittel')
-    await page.locator('.coop-body .btn-primary').click(); // "start hosting"
+    await page.locator('.setup-codeinput').fill('123456');
+    await expect(page.locator('.diff-track')).toBeVisible(); // Slider-Auswahl (Default 'mittel')
+    await page.locator('.diff-start').click(); // "start hosting"
 
     await expect(page.locator('.coop-body .btn-primary')).toBeDisabled();
 
@@ -104,7 +104,7 @@ test.describe('coop', () => {
     await page.locator('.coop-body .btn-primary').click();
     await page.locator('.coop-body .btn-primary').click(); // "Host" option
 
-    await page.locator('.coop-body .btn-ghost').click(); // cancel
+    await page.locator('.screen.coop-screen .topbar .icon-btn').first().click(); // cancel via topbar back
     await expect(page.locator('.coop-body .coop-tagline')).toBeVisible();
     await expect(page.locator('.coop-body .btn-primary')).toBeVisible();
     await expect(page.locator('.coop-body .btn-ghost')).toBeVisible();
@@ -165,19 +165,19 @@ test.describe('coop', () => {
     await page.locator('.coop-body .text-input').fill('Tom');
     await page.locator('.coop-body .btn-primary').click();
     await page.locator('.coop-body .btn-primary').click(); // "Host"
-    await page.locator('.coop-input').fill('123456');
-    await expect(page.locator('.diff-card .diff-track')).toBeVisible(); // Slider-Auswahl (Default 'mittel')
-    await page.locator('.coop-body .btn-primary').click(); // "start hosting"
+    await page.locator('.setup-codeinput').fill('123456');
+    await expect(page.locator('.diff-track')).toBeVisible(); // Slider-Auswahl (Default 'mittel')
+    await page.locator('.diff-start').click(); // "start hosting"
     await expect(page.locator('.coop-waiting')).toBeVisible();
 
     const back = () => page.locator('.screen.coop-screen .topbar .icon-btn').first().click();
     // Warten → Host-Einrichtung (Code + Schwierigkeit, Verbindung abgebaut)
     await back();
     await expect(page.locator('.coop-waiting')).toBeHidden();
-    await expect(page.locator('.coop-input')).toBeVisible();
+    await expect(page.locator('.setup-codeinput')).toBeVisible();
     // Host-Einrichtung → Rollenwahl
     await back();
-    await expect(page.locator('.coop-input')).toBeHidden();
+    await expect(page.locator('.setup-codeinput')).toBeHidden();
     await expect(page.locator('.coop-body .btn-primary')).toBeVisible();
     // Rollenwahl → Namens-Gate
     await back();

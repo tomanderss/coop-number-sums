@@ -432,28 +432,41 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    :style aus config.js (accent/accentD/heat) je Stufe gesetzt werden. Nur
    transform/opacity/registrierte-Props animiert (GPU; Lehre aus dem iOS-Skin-
    Crash) — bewusst KEINE teuren Dauer-Repaints. */
-.screen.setup.setup-slider { position: relative; isolation: isolate; overflow: hidden;
+/* Gilt für Solo-Setup UND die Coop/Race/Team-Host-Auswahl (beide bekommen die
+   Klasse .setup-slider) — überall IDENTISCHER Vollflächen-Look. */
+.setup-slider { position: relative; isolation: isolate; overflow: hidden;
   /* --morphT = weicher Farb-/Hintergrund-Morph (darf „nachziehen", DAS ist smooth).
      --snapT  = Bedienelemente (Thumb/Fill) folgen dem Finger FLOTT, damit der Slider
      sich nicht laggy anfühlt — vorher liefen auch Thumb/Fill über die lange Morph-Zeit. */
   --morphT: 460ms cubic-bezier(.4,0,.2,1);
   --snapT: 120ms cubic-bezier(.2,.7,.3,1);
+  --apphalf: 270px; /* halbe App-Breite (max-width 540) — für den full-bleed Hintergrund */
   transition: --dacc var(--morphT), --dacc-d var(--morphT), --dheat var(--morphT); }
 /* Morphender Verlauf: Leitfarbe über das Theme-Grund (--bg) gemischt, Intensität
-   steigt mit der Hitze. So passt sich der Effekt an JEDES App-Theme (hell/dunkel/
-   Kaffee/OLED/…) an, statt eine feste Farbwelt zu erzwingen. */
-.setup-slider::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+   steigt mit der Hitze. FULL-BLEED: position:fixed füllt den GESAMTEN Screen bis an
+   alle Ränder (kein dunkler App-Padding-„Bilderrahmen" mehr); horizontal auf die
+   zentrierte App-Breite geklemmt, damit es am Desktop nicht über die 540px läuft.
+   Fixed wird — wie schon .winfx — NICHT vom App-Padding/-overflow beschnitten. */
+.setup-slider::before { content: ""; position: fixed; z-index: 0; pointer-events: none;
+  top: 0; bottom: 0; left: max(0px, calc(50% - var(--apphalf))); right: max(0px, calc(50% - var(--apphalf)));
   background:
-    radial-gradient(120% 80% at 16% 4%,  color-mix(in oklab, var(--dacc) calc(26% + var(--dheat)*24%), transparent), transparent 60%),
-    radial-gradient(120% 92% at 88% 12%, color-mix(in oklab, var(--dacc-d) calc(20% + var(--dheat)*22%), transparent), transparent 64%),
-    radial-gradient(160% 130% at 50% 122%, color-mix(in oklab, var(--dacc) 16%, transparent) 0%, color-mix(in oklab, transparent, #000 calc(var(--dheat)*10%)) 62%);
-  /* Ränder ausfaden statt hart-eckig abschneiden: eine weiche Radial-Maske lässt
-     die Farbwelt zu allen Seiten „ausflaren" (in den App-Hintergrund übergehen)
-     statt an einer sichtbaren Rechteckkante zu enden. */
-  -webkit-mask: radial-gradient(135% 118% at 50% 34%, #000 55%, rgba(0,0,0,.35) 82%, transparent 100%);
-          mask: radial-gradient(135% 118% at 50% 34%, #000 55%, rgba(0,0,0,.35) 82%, transparent 100%); }
-/* Driftende Lichthöfe in der Stufenfarbe — ambient, dezent. */
-.setup-aura { position: absolute; inset: -20% -25% 0 -25%; z-index: 0; pointer-events: none;
+    radial-gradient(120% 70% at 16% 2%,  color-mix(in oklab, var(--dacc) calc(26% + var(--dheat)*24%), transparent), transparent 60%),
+    radial-gradient(120% 82% at 88% 8%,  color-mix(in oklab, var(--dacc-d) calc(20% + var(--dheat)*22%), transparent), transparent 64%),
+    radial-gradient(150% 120% at 50% 118%, color-mix(in oklab, var(--dacc) 16%, transparent) 0%, color-mix(in oklab, transparent, #000 calc(var(--dheat)*10%)) 64%);
+  /* Vignette: die Farbwelt blendet zu ALLEN vier Rändern (links/rechts/oben/unten)
+     weich in den App-Hintergrund aus — zwei sich schneidende Achsen-Verläufe geben
+     auch auf dem hohen Hochformat-Screen eine gleichmäßige Kante ringsum. */
+  -webkit-mask:
+    linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent),
+    linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-composite: source-in;
+  mask:
+    linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent),
+    linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+  mask-composite: intersect; }
+/* Driftende Lichthöfe in der Stufenfarbe — ambient, dezent. Ebenfalls full-bleed. */
+.setup-aura { position: fixed; z-index: 0; pointer-events: none;
+  top: 0; bottom: 0; left: max(0px, calc(50% - var(--apphalf))); right: max(0px, calc(50% - var(--apphalf)));
   filter: blur(42px); opacity: calc(.32 + var(--dheat)*.34); }
 .setup-aura b { position: absolute; width: 44%; aspect-ratio: 1; border-radius: 50%;
   background: radial-gradient(circle, color-mix(in oklab, var(--dacc) 70%, transparent), transparent 70%); }
@@ -465,11 +478,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes aura3 { 50% { transform: translate(16px, -20px) scale(1.14); } }
 /* Inhalt über die Deko heben */
 .setup-slider .setup-top,
+.setup-slider .setup-coderow,
 .setup-slider .diff-picker,
 .setup-slider .setup-startrow { position: relative; z-index: 1; }
-/* Solo: die Slider-Komponente füllt die Section (Medaillon zentriert, Regler unten). */
+/* Die Slider-Komponente füllt die Section (Medaillon zentriert, Regler unten). */
 .setup-slider .diff-picker { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .setup-startrow { flex: 0 0 auto; display: flex; flex-direction: column; }
+
+/* Coop/Race/Team: Raumcode INNERHALB des Vollflächen-Screens (kompakte Zeile über
+   dem Slider) statt als separater Block außerhalb. */
+.setup-coderow { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 4px; }
+.setup-coderow label { font-size: .66rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: color-mix(in oklab, var(--dacc) 55%, var(--text2)); }
+.setup-coderow .setup-codeinput { width: min(240px, 80%); text-align: center; letter-spacing: .3em; font-weight: 800; font-size: 1.3rem; font-variant-numeric: tabular-nums;
+  padding: 10px 14px; border-radius: 14px; color: var(--text);
+  background: color-mix(in oklab, var(--dacc) 12%, var(--bg2));
+  border: 1px solid color-mix(in oklab, var(--dacc) 45%, transparent); }
+.setup-coderow .setup-codeinput::placeholder { color: var(--text3); letter-spacing: .1em; font-size: .95rem; }
 
 .setup-hero { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; }
 .diff-medallion { position: relative; width: 130px; height: 130px; display: grid; place-items: center; flex: 0 0 auto; }
@@ -534,9 +558,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transition: background var(--morphT), box-shadow var(--morphT), transform .1s; }
 .diff-start:active { transform: translateY(2px) scale(.99); }
 
-/* ── Coop/Race/Team-Lobby: dieselbe <difficulty-slider>-Komponente, aber als
-   kompakte morphende KARTE (statt vollflächig wie im Solo-Setup). Eigene
-   --morphT/--snapT + eigener ::before-Morph, damit die Karte für sich morpht. ── */
+/* Kompakte morphende Karte — NUR noch für den sekundären Rematch-Schwierigkeits-
+   picker in der Race-Lobby (inline zwischen Roster/Buttons); der Haupt-Setup-Screen
+   (Solo + Coop/Race/Team-Host) nutzt den Vollflächen-Slider oben. */
 .diff-card { position: relative; isolation: isolate; overflow: hidden; border-radius: 18px;
   --morphT: 460ms cubic-bezier(.4,0,.2,1); --snapT: 120ms cubic-bezier(.2,.7,.3,1);
   transition: --dacc var(--morphT), --dacc-d var(--morphT), --dheat var(--morphT);
@@ -547,9 +571,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background:
     radial-gradient(120% 80% at 16% 4%,  color-mix(in oklab, var(--dacc) calc(24% + var(--dheat)*24%), transparent), transparent 62%),
     radial-gradient(120% 92% at 90% 10%, color-mix(in oklab, var(--dacc-d) calc(18% + var(--dheat)*22%), transparent), transparent 66%); }
-.diff-card .setup-aura { inset: -30% -20% -10% -20%; opacity: calc(.2 + var(--dheat)*.3); }
+.diff-card .setup-aura { position: absolute; inset: -30% -20% -10% -20%; opacity: calc(.2 + var(--dheat)*.3); }
 .diff-card .diff-picker { position: relative; z-index: 1; display: flex; flex-direction: column; }
-/* In der Karte kompakter: Hero stapelt (nicht flex:1), kleineres Medaillon. */
 .diff-card .setup-hero { flex: 0 0 auto; gap: 8px; }
 .diff-card .diff-medallion { width: 92px; height: 92px; }
 .diff-card .dm-disc { width: 72px; height: 72px; }
