@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.87';
-export const BUILD_HASH = 'b1377f3';
+export const BUILD      = '1.88';
+export const BUILD_HASH = '5155abd';
 
 export const CHANGELOG = [
+  {
+    "version": "1.88",
+    "date": "05.07.2026",
+    "changes": [
+      "Siegesanimationen machen jetzt Sound – eine Fanfare, die zum Effekt passt und mit dessen Stufe grandioser wird (auch in der Shop-Vorschau)",
+      "Siegesanimation: Auswahl in Einstellungen und Shop sind jetzt garantiert synchron (gleiche aktive Anzeige)"
+    ]
+  },
   {
     "version": "1.87",
     "date": "05.07.2026",
