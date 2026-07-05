@@ -334,6 +334,30 @@ export function sfxWin() {
   [-5, -1, 2].forEach((s, i) => sfxVoice(midi(s), 0, 0.5, i ? 0.22 : 0.28, { lp: 1700, attack: 0.01, partial2: 0.1 }));
   [0, 4, 7, 12].forEach((s, i) => sfxVoice(midi(s), 0.34, 1.4, i ? 0.26 : 0.32, { lp: 2600, attack: 0.01, partial2: 0.18 }));
 }
+// Sieganimations-Fanfare — an die aktive Animation gekoppelt (launchWinFx in
+// app.js) und mit deren Stufe (0–4) grandioser: Basis-Fanfare + je Stufe mehr
+// Glanz/Bass/Aufstiegslauf. So „macht" die Siegesanimation selbst Sound (auch in
+// der Shop-Vorschau), passend zum Spektakel. Rein prozedural (keine Audiodateien).
+export function sfxWinFx(tier = 0) {
+  if (!sfxReady()) return;
+  // Basis: warme G-Dur → C-Dur-Fanfare (wie sfxWin).
+  [-5, -1, 2].forEach((s, i) => sfxVoice(midi(s), 0, 0.5, i ? 0.2 : 0.26, { lp: 1700, attack: 0.01, partial2: 0.1 }));
+  [0, 4, 7, 12].forEach((s, i) => sfxVoice(midi(s), 0.32, 1.4, i ? 0.24 : 0.3, { lp: 2600, attack: 0.01, partial2: 0.18 }));
+  if (tier >= 2) {
+    // Glitzer-Arpeggio aufwärts (C5-E5-G5-C6).
+    [12, 16, 19, 24].forEach((s, i) => sfxVoice(midi(s), 0.6 + i * 0.11, 0.5, 0.2, { lp: 3200, attack: 0.005, partial2: 0.2 }));
+  }
+  if (tier >= 3) {
+    // Tiefer Power-Bass + weiches Beckenrauschen für den großen Auftritt.
+    sfxVoice(midi(-12), 0.3, 1.8, 0.4, { lp: 500, attack: 0.02 });
+    sfxNoise(0.3, 0.5, 0.14, 9000);
+  }
+  if (tier >= 4) {
+    // Legendär: zweiter, höherer Aufstiegslauf + finaler Glockenschlag.
+    [19, 24, 28, 31].forEach((s, i) => sfxVoice(midi(s), 1.1 + i * 0.1, 0.6, 0.18, { lp: 4000, attack: 0.004, partial2: 0.25 }));
+    sfxVoice(midi(36), 1.7, 1.6, 0.2, { lp: 5000, attack: 0.006, partial2: 0.3 });
+  }
+}
 // Verloren — sanfter, dunkler Moll-Fall G4 -> Eb4 -> C4 (traurig/dramatisch).
 export function sfxLose() {
   if (!sfxReady()) return;
