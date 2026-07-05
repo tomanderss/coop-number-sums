@@ -37,6 +37,8 @@ export default {
   setup: {
     title: '새 게임',
     start: '시작하기!',
+    step: '레벨',
+    reward: '보상',
   },
   game: {
     loading: '퍼즐 생성 중…',

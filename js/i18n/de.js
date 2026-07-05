@@ -37,6 +37,8 @@ export default {
   setup: {
     title: 'Neues Spiel',
     start: "Los geht's!",
+    step: 'Stufe',
+    reward: 'Belohnung',
   },
   game: {
     loading: 'Rätsel wird erstellt…',

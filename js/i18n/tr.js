@@ -37,6 +37,8 @@ export default {
   setup: {
     title: 'Yeni oyun',
     start: 'Hadi başlayalım!',
+    step: 'Seviye',
+    reward: 'Ödül',
   },
   game: {
     loading: 'Bulmaca oluşturuluyor…',

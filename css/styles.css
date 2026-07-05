@@ -35,6 +35,16 @@
   --bad: #D55E00; --bad-soft: rgba(213,94,0,.14);
 }
 
+/* ═══ Slider-Schwierigkeitsauswahl: registrierte Morph-Variablen ═══════════════
+   --dacc/--dacc-d = Leitfarbe der Stufe, --dheat = „Hitze" 0..1 (schwach→stark).
+   Als @property registriert, damit sie beim Stufenwechsel WEICH interpolieren
+   (nur registrierte Custom Properties sind animierbar) — alles, was via
+   color-mix/var() darauf aufbaut, rechnet dann pro Frame neu. Eigener Namespace,
+   NICHT das app-weite Marken-Token --accent. */
+@property --dacc   { syntax: '<color>';  inherits: true; initial-value: #3fb27f; }
+@property --dacc-d { syntax: '<color>';  inherits: true; initial-value: #2a7d59; }
+@property --dheat  { syntax: '<number>'; inherits: true; initial-value: 0; }
+
 /* ═══ Kaufbare App-Themes (Shop-Kategorie 'theme', js/shopitems.js) ═══════════
    Komplette Farbwelten via :root[data-apptheme="<id>"]. Sie stehen NACH den
    Basis-Themes (gewinnen per Reihenfolge bei gleicher Spezifität); die
@@ -415,6 +425,116 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .opt-chips .chip-label { margin-left: 0; font-size: .56rem; text-transform: uppercase; letter-spacing: .3px; }
 .btn-start { margin-top: 2px; font-size: 1.05rem; padding: 12px; }
+
+/* ═══ SLIDER-SCHWIERIGKEITSAUSWAHL ════════════════════════════════════════════
+   Ein Slider (schwach→stark) statt Kartenwand. Der Hintergrund morpht smooth
+   über die registrierten --dacc/--dacc-d/--dheat (s. @property oben), die per
+   :style aus config.js (accent/accentD/heat) je Stufe gesetzt werden. Nur
+   transform/opacity/registrierte-Props animiert (GPU; Lehre aus dem iOS-Skin-
+   Crash) — bewusst KEINE teuren Dauer-Repaints. */
+.screen.setup.setup-slider { position: relative; isolation: isolate; overflow: hidden;
+  --morphT: 620ms cubic-bezier(.4,0,.2,1);
+  transition: --dacc var(--morphT), --dacc-d var(--morphT), --dheat var(--morphT); }
+/* Morphender Verlauf: Leitfarbe über das Theme-Grund (--bg) gemischt, Intensität
+   steigt mit der Hitze. So passt sich der Effekt an JEDES App-Theme (hell/dunkel/
+   Kaffee/OLED/…) an, statt eine feste Farbwelt zu erzwingen. */
+.setup-slider::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 16% 4%,  color-mix(in oklab, var(--dacc) calc(26% + var(--dheat)*24%), transparent), transparent 60%),
+    radial-gradient(120% 92% at 88% 12%, color-mix(in oklab, var(--dacc-d) calc(20% + var(--dheat)*22%), transparent), transparent 64%),
+    radial-gradient(160% 130% at 50% 122%, color-mix(in oklab, var(--dacc) 16%, transparent) 0%, color-mix(in oklab, transparent, #000 calc(var(--dheat)*10%)) 62%); }
+/* Driftende Lichthöfe in der Stufenfarbe — ambient, dezent. */
+.setup-aura { position: absolute; inset: -20% -25% 0 -25%; z-index: 0; pointer-events: none;
+  filter: blur(42px); opacity: calc(.32 + var(--dheat)*.34); }
+.setup-aura b { position: absolute; width: 44%; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--dacc) 70%, transparent), transparent 70%); }
+.setup-aura b:nth-child(1) { left: 4%;   top: 8%;  animation: aura1 14s ease-in-out infinite; }
+.setup-aura b:nth-child(2) { right: -4%; top: 26%; width: 52%; background: radial-gradient(circle, color-mix(in oklab, var(--dacc-d) 65%, transparent), transparent 70%); animation: aura2 18s ease-in-out infinite; }
+.setup-aura b:nth-child(3) { left: 18%;  bottom: 2%; width: 56%; animation: aura3 22s ease-in-out infinite; }
+@keyframes aura1 { 50% { transform: translate(20px, 24px) scale(1.12); } }
+@keyframes aura2 { 50% { transform: translate(-24px, 16px) scale(1.08); } }
+@keyframes aura3 { 50% { transform: translate(16px, -20px) scale(1.14); } }
+/* Inhalt über die Deko heben */
+.setup-slider .setup-top,
+.setup-slider .setup-hero,
+.setup-slider .setup-controls { position: relative; z-index: 1; }
+
+.setup-hero { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; }
+.diff-medallion { position: relative; width: 130px; height: 130px; display: grid; place-items: center; flex: 0 0 auto; }
+.dm-ring { position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from -90deg, var(--dacc), var(--dacc-d), var(--dacc));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+  filter: drop-shadow(0 0 13px color-mix(in oklab, var(--dacc) 58%, transparent));
+  animation: dmspin 9s linear infinite; }
+@keyframes dmspin { to { transform: rotate(360deg); } }
+.dm-disc { width: 102px; height: 102px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 32% 28%, color-mix(in oklab, var(--dacc) 24%, var(--card)), color-mix(in oklab, var(--card), #000 22%));
+  box-shadow: inset 0 2px 12px rgba(0,0,0,.32); animation: dmpop .5s cubic-bezier(.2,1.5,.4,1); }
+.dm-ic { width: 60px; height: 60px; display: grid; place-items: center; filter: drop-shadow(0 3px 5px rgba(0,0,0,.32)); }
+.dm-ic svg { width: 60px; height: 60px; }
+@keyframes dmpop { 0% { transform: scale(.6) rotate(-14deg); opacity: .2; } 60% { transform: scale(1.06) rotate(3deg); } 100% { transform: none; } }
+
+.diff-eyebrow { font-size: .68rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  color: color-mix(in oklab, var(--dacc) 60%, var(--text2)); }
+.diff-name { font-size: 2.2rem; font-weight: 900; letter-spacing: -.02em; line-height: 1; margin: 0; text-wrap: balance;
+  color: var(--text); text-shadow: 0 2px 20px color-mix(in oklab, var(--dacc) 40%, transparent);
+  animation: diffNameIn .5s cubic-bezier(.2,.9,.3,1); }
+@keyframes diffNameIn { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.diff-dim { display: inline-flex; align-items: center; padding: 5px 13px; border-radius: 999px;
+  font-weight: 800; font-variant-numeric: tabular-nums; font-size: .92rem; color: var(--text);
+  background: color-mix(in oklab, var(--dacc) 20%, transparent);
+  border: 1px solid color-mix(in oklab, var(--dacc) 42%, transparent); }
+
+.diff-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin-top: 2px; }
+.ds-tile { background: var(--bg2); border: 1px solid var(--grid); border-radius: 14px; padding: 10px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; box-shadow: 0 2px 8px var(--shadow); }
+.ds-k { font-size: .56rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); }
+.ds-v { font-size: 1.12rem; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--text);
+  display: inline-flex; align-items: center; gap: 4px; line-height: 1.1; }
+.ds-v .ei { display: inline-flex; }
+.ds-v .ei svg { width: 15px; height: 15px; }
+.ds-coins .ds-v { color: color-mix(in oklab, var(--dacc) 55%, var(--text)); }
+
+.setup-controls { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
+.diff-slabel { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.diff-slabel span { font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text2); }
+.diff-slabel b { font-variant-numeric: tabular-nums; font-weight: 900; color: color-mix(in oklab, var(--dacc) 58%, var(--text)); }
+.diff-track { position: relative; height: 34px; touch-action: none; cursor: pointer; user-select: none; }
+.diff-track:focus-visible { outline: 2px solid var(--dacc); outline-offset: 6px; border-radius: 12px; }
+.dt-inner { position: absolute; left: 16px; right: 16px; top: 0; bottom: 0; }
+.dt-rail { position: absolute; left: 0; right: 0; top: 50%; height: 6px; transform: translateY(-50%); border-radius: 999px;
+  background: color-mix(in oklab, var(--text) 16%, transparent); overflow: hidden; }
+.dt-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px;
+  background: linear-gradient(90deg, #3fb27f, var(--dacc)); transition: width var(--morphT); }
+.dt-tick { position: absolute; top: 50%; width: 9px; height: 9px; transform: translate(-50%, -50%); border-radius: 50%;
+  background: var(--bg); box-shadow: 0 0 0 2px color-mix(in oklab, var(--text) 22%, transparent);
+  transition: transform .18s, box-shadow .18s, left var(--morphT); }
+.dt-tick.on { box-shadow: 0 0 0 2px var(--tk, #fff); }
+.dt-tick.cur { transform: translate(-50%, -50%) scale(1.5); }
+.dt-thumb { position: absolute; top: 50%; width: 28px; height: 28px; transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--dacc) 66%);
+  box-shadow: 0 2px 10px rgba(0,0,0,.4), 0 0 0 5px color-mix(in oklab, var(--dacc) 30%, transparent);
+  transition: left var(--morphT), box-shadow var(--morphT); }
+.diff-start { margin-top: 12px; width: 100%; border: none; color: #fff; font-weight: 900;
+  background: linear-gradient(135deg, var(--dacc), var(--dacc-d));
+  box-shadow: 0 10px 24px color-mix(in oklab, var(--dacc) 38%, transparent);
+  transition: background var(--morphT), box-shadow var(--morphT), transform .1s; }
+.diff-start:active { transform: translateY(2px) scale(.99); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-ring, .setup-aura b { animation: none !important; }
+  .dm-disc, .diff-name { animation: none !important; }
+  .setup-slider, .dt-thumb, .dt-fill, .dt-tick, .diff-start { transition-duration: 200ms !important; }
+}
+/* Kürzere Telefone: Medaillon + Schrift etwas kompakter, damit ohne Scrollen alles passt. */
+@media (max-height: 720px) {
+  .diff-medallion { width: 104px; height: 104px; }
+  .dm-disc { width: 82px; height: 82px; } .dm-ic, .dm-ic svg { width: 48px; height: 48px; }
+  .diff-name { font-size: 1.9rem; }
+  .setup-hero { gap: 9px; }
+}
+
 /* Coop-/Wettkampf-Host-Auswahl: Code-Eingabe, Schwierigkeitsraster und der
    „Hosten"-Button teilen sich einen Screen. Die Karten sehen identisch zum
    Solo-Setup aus (gestapelt: Emoji + Name, Maße, zwei Zeit-Chips ⌀ + Bestzeit) —

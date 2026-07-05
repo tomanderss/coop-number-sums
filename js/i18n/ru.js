@@ -37,6 +37,8 @@ export default {
   setup: {
     title: 'Новая игра',
     start: 'Начали!',
+    step: 'Уровень',
+    reward: 'Награда',
   },
   game: {
     loading: 'Создание головоломки…',
