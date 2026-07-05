@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.99';
-export const BUILD_HASH = 'faab94d';
+export const BUILD      = '1.100';
+export const BUILD_HASH = '6ce6f41';
 
 export const CHANGELOG = [
+  {
+    "version": "1.100",
+    "date": "05.07.2026",
+    "changes": [
+      "Siegesanimation ist jetzt komplett sichtbar: Rendering-Bug behoben (Animation wurde fälschlich im Toast-<transition> verschluckt), läuft über allen Overlays, und die Ergebnis-Karte erscheint mit kurzem Vorlauf"
+    ]
+  },
   {
     "version": "1.99",
     "date": "05.07.2026",
