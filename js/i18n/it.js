@@ -444,7 +444,7 @@ export default {
     lbLoading: "Caricamento classifica …", lbEmpty: "Ancora nessun tempo: sii il primo!",
     err: { invalidUsername: 'Nome utente non valido.', userNotFound: 'Nessun utente trovato con questo nome.', alreadyFriends: 'Siete già amici.', selfFriend: 'Non puoi aggiungere te stesso.', notSignedIn: 'Accedi prima.' },
   },
-  notice: { gift: '{from} ti ha regalato "{item}"!', revoke: '{from} ti ha tolto "{item}".', currency: '{from} ha impostato il tuo saldo a {n} .' },
+  notice: { gift: '{from} ti ha regalato "{item}"!', revoke: '{from} ti ha tolto "{item}".', currency: '{from} ha impostato il tuo saldo a {n} .', currencySelf: 'Il tuo saldo è cambiato di {n} monete.', giftSelf: 'Ti sei sbloccato “{item}”.', revokeSelf: 'Ti sei rimosso “{item}”.' },
   shop: {
     catHint: { palette: 'Ricolora le gabbie del tabellone — la distinguibilità dei colori è sempre garantita.', theme: 'Mondi di colore completi per tutta l\'app — dal nero OLED al sakura.' , sfx: 'Nuovi mondi sonori per tutti i suoni di gioco — tocca ▶ per ascoltare.', font: 'Nuovi caratteri ed effetti per i numeri sul tabellone.', frame: 'Cornici decorative attorno al tabellone — dal legno a un anello galattico con luci orbitanti.', badge: 'Un distintivo accanto al tuo nome — visibile in coop, nella lista amici e in classifica.', skinpreset: 'Design di skin curati — acquistabili e applicabili da tutti. La skin dinamica esclusiva sblocca in più l\'editor libero.', music: 'Nuove atmosfere per la musica di sottofondo — tocca ▶ per ascoltare.' },
     free: { palette: 'Classico', theme: 'Standard (chiaro/scuro)' , sfx: 'Standard', font: 'Classico', frame: 'Senza cornice', badge: 'Nessun badge', music: 'Zen (predefinito)'},

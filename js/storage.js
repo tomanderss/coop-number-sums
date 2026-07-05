@@ -390,6 +390,13 @@ function pushWalletLog(amount, reason, balance) {
   if (l.length > WALLET_LOG_MAX) l.length = WALLET_LOG_MAX;
   save(KEYS.WALLET_LOG, l);
 }
+// Reine Protokoll-Buchung OHNE Saldo-Änderung: für Fälle, in denen der Kontostand
+// bereits anderweitig gesetzt wurde (z.B. Admin-Selbstbearbeitung via Snapshot-
+// Import) und die Änderung nur noch im Geldverlauf erscheinen soll. `amount` ist
+// vorzeichenbehaftet; die Buchung nutzt den AKTUELLEN Kontostand.
+export function noteWalletTransaction(amount, reason = 'admin') {
+  pushWalletLog(Math.round(amount || 0), reason, loadWallet().balance);
+}
 
 export function grantCurrency(amount, reason = 'earn') {
   const n = Math.max(0, Math.floor(amount || 0));

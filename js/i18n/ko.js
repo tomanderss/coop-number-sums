@@ -444,7 +444,7 @@ export default {
     lbLoading: "순위표 불러오는 중 …", lbEmpty: "아직 기록이 없어요 — 첫 주자가 되어보세요!",
     err: { invalidUsername: '유효하지 않은 사용자 이름입니다.', userNotFound: '해당 사용자 이름을 찾을 수 없습니다.', alreadyFriends: '이미 친구입니다.', selfFriend: '자신을 추가할 수 없습니다.', notSignedIn: '먼저 로그인하세요.' },
   },
-  notice: { gift: '{from} 님이 "{item}" 을(를) 선물했어요!', revoke: '{from} 님이 "{item}" 을(를) 회수했어요.', currency: '{from} 님이 잔액을 {n} 로 설정했어요.' },
+  notice: { gift: '{from} 님이 "{item}" 을(를) 선물했어요!', revoke: '{from} 님이 "{item}" 을(를) 회수했어요.', currency: '{from} 님이 잔액을 {n} 로 설정했어요.', currencySelf: '잔액이 {n} 코인만큼 변경되었습니다.', giftSelf: '「{item}」을(를) 자신에게 지급했습니다.', revokeSelf: '「{item}」을(를) 자신에게서 회수했습니다.' },
   shop: {
     catHint: { palette: '보드 케이지 색을 바꿔보세요 — 색 구분은 항상 유지됩니다.', theme: '앱 전체의 색상 세계를 통째로 바꾸세요 — OLED 블랙부터 벚꽃까지.' , sfx: '모든 게임 사운드에 새로운 음색을 — ▶ 로 미리 들어보세요.', font: '보드 숫자에 새로운 서체와 효과를.', frame: '보드를 두르는 장식 프레임 — 나무부터 빛이 도는 은하 링까지.', badge: '이름 옆에 붙는 배지 — 협동, 친구 목록, 리더보드에서 보여요.', skinpreset: '엄선된 스킨 디자인 — 누구나 구매하고 적용할 수 있습니다. 독점 다이내믹 스킨은 자유 편집기를 추가로 해제합니다.', music: '배경 음악을 위한 새로운 사운드 — ▶를 눌러 들어보세요.' },
     free: { palette: '클래식', theme: '기본 (라이트/다크)' , sfx: '기본', font: '클래식', frame: '프레임 없음', badge: '배지 없음', music: '젠(기본)'},

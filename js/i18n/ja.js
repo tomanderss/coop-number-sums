@@ -444,7 +444,7 @@ export default {
     lbLoading: "ランキングを読み込み中 …", lbEmpty: "まだ記録がありません。最初の一人になろう！",
     err: { invalidUsername: 'ユーザー名が無効です。', userNotFound: 'そのユーザー名のユーザーが見つかりません。', alreadyFriends: 'すでにフレンドです。', selfFriend: '自分自身は追加できません。', notSignedIn: '先にサインインしてください。' },
   },
-  notice: { gift: '{from} さんから「{item}」が贈られました！', revoke: '{from} さんが「{item}」を取り消しました。', currency: '{from} さんが残高を {n} に設定しました。' },
+  notice: { gift: '{from} さんから「{item}」が贈られました！', revoke: '{from} さんが「{item}」を取り消しました。', currency: '{from} さんが残高を {n} に設定しました。', currencySelf: '残高が{n}コイン変更されました。', giftSelf: '「{item}」を自分に付与しました。', revokeSelf: '「{item}」を自分から削除しました。' },
   shop: {
     catHint: { palette: '盤面のケージを塗り替え — 色の見分けやすさは常に保たれます。', theme: 'アプリ全体の配色をまるごと変える — OLEDブラックから桜まで。' , sfx: 'すべての効果音に新しい音色を — ▶ で試聴できます。', font: '盤面の数字に新しい書体とエフェクトを。', frame: '盤面を飾るフレーム — 木製からオービットライト付き銀河リングまで。', badge: '名前の横に表示されるバッジ — 協力プレイ、フレンドリスト、ランキングで見えます。', skinpreset: '厳選されたスキンデザイン。誰でも購入・適用できます。限定ダイナミックスキンはさらに自由編集エディタを解放します。', music: 'BGMの新しい音世界 — ▶で試聴できます。' },
     free: { palette: 'クラシック', theme: '標準（ライト/ダーク）' , sfx: '標準', font: 'クラシック', frame: 'フレームなし', badge: 'バッジなし', music: '禅（標準）'},
