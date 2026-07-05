@@ -1,1 +1,0 @@
-Coop/Wettkampf: Spielzeit läuft jetzt geräteübergreifend synchron (keine falsche/negative Zeit mehr beim Start aus der Lobby)

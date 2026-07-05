@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.85';
-export const BUILD_HASH = '51c4cde';
+export const BUILD      = '1.86';
+export const BUILD_HASH = 'b3d20f0';
 
 export const CHANGELOG = [
+  {
+    "version": "1.86",
+    "date": "04.07.2026",
+    "changes": [
+      "Coop/Wettkampf: Spielzeit läuft jetzt geräteübergreifend synchron (keine falsche/negative Zeit mehr beim Start aus der Lobby)"
+    ]
+  },
   {
     "version": "1.85",
     "date": "04.07.2026",
