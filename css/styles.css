@@ -1066,11 +1066,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .fx-matrix i { top: -110vh; color: #29ff6a; text-shadow: 0 0 6px rgba(41, 255, 106, .8); white-space: pre; font-family: monospace; font-weight: 700; animation: fxMatrix linear forwards; }
 @keyframes fxMatrix { to { transform: translateY(240vh); opacity: .85; } }
 
-/* 🪩 Disco: Kugel senkt sich (::before), Lichtflecken wandern */
-.fx-disco::before { content: '🪩'; position: absolute; left: 50%; top: -14%; font-size: 64px; transform: translateX(-50%); animation: fxBallDrop 1s ease-out forwards, fxBallSpin 2.4s linear 1s infinite; will-change: transform; }
+/* Disco: SVG-Kugel senkt sich + dreht (.cr), Lichtflecken wandern */
 @keyframes fxBallDrop { to { transform: translateX(-50%) translateY(26vh); } }
 @keyframes fxBallSpin { 50% { transform: translateX(-50%) translateY(26vh) rotate(12deg); } 100% { transform: translateX(-50%) translateY(26vh) rotate(0); } }
-.fx-disco i { border-radius: 50%; background: hsl(var(--hue, 0) 90% 60% / .30); animation: fxSpot ease-in-out forwards; opacity: 0; }
+.fx-disco i.cr { left: 50%; top: -16%; transform: translateX(-50%); animation: fxBallDrop 1s ease-out forwards, fxBallSpin 2.4s linear 1s infinite; }
+.fx-disco i:not(.cr) { border-radius: 50%; background: hsl(var(--hue, 0) 90% 60% / .30); animation: fxSpot ease-in-out forwards; opacity: 0; }
 @keyframes fxSpot { 0% { transform: translate(0,0) scale(.6); opacity: 0; } 25% { opacity: 1; } to { transform: translate(var(--dx, 60px), var(--dy, 40px)) scale(1.3); opacity: 0; } }
 
 /* 👾 Arcade: harte Pixel-Blöcke fallen ruckartig (steps()) */
@@ -1110,20 +1110,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .fx-chain i.sv { animation: fxPop ease-out forwards; transform: scale(0); opacity: 0; }
 @keyframes fxPop { 0% { transform: scale(.2); opacity: 1; } 60% { transform: scale(1.25); opacity: 1; } to { transform: scale(.9); opacity: 0; } }
 
-/* 🐉 Drache: fliegt in Sinuswelle übers Brett (::before), Funken-Spur folgt */
-.fx-dragon::before { content: '🐉'; position: absolute; left: -14%; top: 24%; font-size: 74px; transform: scaleX(-1); animation: fxFly 2.6s ease-in-out forwards; will-change: transform; }
-@keyframes fxFly {
-  25% { transform: scaleX(-1) translate(-32vw, 9vh) rotate(8deg); }
-  50% { transform: scaleX(-1) translate(-64vw, -4vh) rotate(-6deg); }
-  75% { transform: scaleX(-1) translate(-96vw, 8vh) rotate(6deg); }
-  to  { transform: scaleX(-1) translate(-128vw, 0) rotate(0); }
-}
-.fx-dragon i { border-radius: 50%; background: hsl(var(--hue, 30) 100% 60%); box-shadow: 0 0 8px 2px hsl(var(--hue, 30) 100% 55% / .7); animation: fxEmber ease-out forwards; opacity: 0; }
+/* Drache: SVG-Kreatur (.cr) fliegt in Sinuswelle übers Brett, Funken-Spur folgt */
+.fx-dragon i:not(.cr) { border-radius: 50%; background: hsl(var(--hue, 30) 100% 60%); box-shadow: 0 0 8px 2px hsl(var(--hue, 30) 100% 55% / .7); animation: fxEmber ease-out forwards; opacity: 0; }
 @keyframes fxEmber { 0% { transform: translate(0,0) scale(1.2); opacity: 1; } to { transform: translate(0, 60px) scale(.2); opacity: 0; } }
 
-/* 🚀 Rakete: hebt mittig ab (::before), Rauch unten (k1), Sterne ziehen vorbei (k2) */
-.fx-rocket::before { content: '🚀'; position: absolute; left: 50%; bottom: -12%; font-size: 64px; transform: translateX(-50%) rotate(-45deg); animation: fxLaunch 2.6s cubic-bezier(.45, 0, .8, .4) forwards; will-change: transform; }
-@keyframes fxLaunch { 15% { transform: translate(-50%, -4vh) rotate(-45deg); } to { transform: translate(-50%, -135vh) rotate(-45deg); } }
+/* Rakete: SVG-Rakete (.cr) hebt mittig ab, Rauch unten (k1), Sterne ziehen vorbei (k2) */
+.fx-rocket i.cr { left: 50%; bottom: -12%; top: auto; transform: translateX(-50%); animation: fxRocketFly 2.6s cubic-bezier(.45, 0, .8, .4) forwards; }
+@keyframes fxRocketFly { 15% { transform: translate(-50%, -4vh); } to { transform: translate(-50%, -135vh); } }
 .fx-rocket i.k1 { bottom: -6vh; top: auto; animation: fxSmoke ease-out forwards; opacity: 0; }
 @keyframes fxSmoke { 0% { transform: translateY(0) scale(.5); opacity: .9; } to { transform: translateY(-22vh) scale(1.7); opacity: 0; } }
 .fx-rocket i.k2 { top: -4vh; color: #fff; animation: fxStarPass linear forwards; opacity: 0; }
@@ -1138,10 +1131,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 @keyframes fxFlash { 0% { opacity: 1; } to { opacity: 0; } }
 
-/* 🔥 Phönix: Flammenmeer steigt, Vogel-Silhouette gleitet hoch (::before) */
-.fx-phoenix::before { content: '🦅'; position: absolute; left: 50%; bottom: -14%; font-size: 78px; transform: translateX(-50%); filter: sepia(1) saturate(6) hue-rotate(-28deg) brightness(1.15) drop-shadow(0 0 14px rgba(255, 120, 20, .8)); animation: fxPhoenixRise 3s ease-out forwards; will-change: transform; }
-@keyframes fxPhoenixRise { 40% { transform: translate(-50%, -52vh) scale(1.15); } to { transform: translate(-50%, -120vh) scale(1.25); } }
-.fx-phoenix i { top: 105vh; animation: fxFlame ease-out forwards; }
+/* Phönix: Flammenmeer steigt, SVG-Vogel (.cr) gleitet hoch */
+.fx-phoenix i:not(.cr) { top: 105vh; animation: fxFlame ease-out forwards; }
 @keyframes fxFlame { 0% { transform: translateY(0) scale(.8); opacity: 1; } to { transform: translateY(-70vh) scale(1.3); opacity: 0; } }
 
 /* 🎰 Jackpot: Lichterkranz pulsiert am Rand (::before), Münzschauer + 777 (k1) */
@@ -1155,16 +1146,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .fx-jackpot i.k1 { animation: fxSeven cubic-bezier(.2, 1.4, .4, 1) forwards; transform: translateY(-30vh) scale(.3); opacity: 0; }
 @keyframes fxSeven { 0% { transform: translateY(-30vh) scale(.4); opacity: 0; } 60% { opacity: 1; } to { transform: translateY(0) scale(1); opacity: 1; } }
 
-/* 🦄 Einhorn: galoppiert übers Brett (::before), Regenbogenspur + Funkeln (k1) */
-.fx-unicorn::before { content: '🦄'; position: absolute; left: -14%; top: 48%; font-size: 70px; transform: scaleX(-1); animation: fxGallop 2.8s ease-in-out forwards; will-change: transform; }
-@keyframes fxGallop {
-  20% { transform: scaleX(-1) translate(-26vw, -7vh) rotate(-5deg); }
-  40% { transform: scaleX(-1) translate(-52vw, -13vh) rotate(4deg); }
-  60% { transform: scaleX(-1) translate(-78vw, -9vh) rotate(-5deg); }
-  80% { transform: scaleX(-1) translate(-104vw, -2vh) rotate(4deg); }
-  to  { transform: scaleX(-1) translate(-130vw, 0) rotate(0); }
-}
-.fx-unicorn i:not(.k1) { border-radius: 50%; background: hsl(var(--hue, 0) 95% 62%); box-shadow: 0 0 8px hsl(var(--hue, 0) 95% 60% / .7); animation: fxTrail ease-out forwards; opacity: 0; }
+/* Einhorn: SVG-Einhorn (.cr) galoppiert übers Brett, Regenbogenspur + Funkeln (k1) */
+.fx-unicorn i:not(.k1):not(.cr) { border-radius: 50%; background: hsl(var(--hue, 0) 95% 62%); box-shadow: 0 0 8px hsl(var(--hue, 0) 95% 60% / .7); animation: fxTrail ease-out forwards; opacity: 0; }
 @keyframes fxTrail { 0% { transform: translateY(0) scale(1); opacity: .95; } to { transform: translateY(26px) scale(.3); opacity: 0; } }
 .fx-unicorn i.k1 { animation: fxTwinkle ease-in-out forwards; opacity: 0; }
 @keyframes fxTwinkle { 0% { transform: scale(.4); opacity: 0; } 40% { transform: scale(1.2); opacity: 1; } to { transform: scale(.5); opacity: 0; } }
