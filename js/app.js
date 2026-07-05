@@ -25,7 +25,7 @@ import {
 import { WIN_EFFECTS, CONFETTI_ID, effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
 import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup } from './badgeart.js';
-import { winShapeDefs, winShape, dragonMarkup, unicornMarkup, phoenixMarkup } from './winshapes.js';
+import { winShapeDefs, winShape, dragonMarkup, unicornMarkup, phoenixMarkup, rocketMarkup, discoMarkup } from './winshapes.js';
 import { icon as customIcon, hasIcon } from './icons.js';
 import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge } from './prestige.js';
 import * as Account from './account.js';
@@ -2991,6 +2991,7 @@ const PIECE_GENERATORS = {
     for (let i = 0; i < 4; i++) out.push({ id: 500 + i, left: 50, top: 27, delay: i * 0.1, dur: R(2.6, 3.4), size: 0, ang: -39 + i * 26, hue: Math.floor(R(0, 360)), kind: 1 });
     for (let i = 0; i < 5; i++) out.push({ id: 600 + i, left: 0, top: 0, delay: 0.6 + i * 0.7, dur: 0.18, size: 0, kind: 2 });
     for (let i = 0; i < (perfect ? 14 : 8); i++) out.push({ id: 700 + i, shape: 'note', left: R(5, 95), delay: R(0.3, 2.4), dur: R(1.4, 2.2), size: R(16, 28), kind: 3 });
+    out.push({ id: 'cr', creature: discoMarkup(), size: 96, delay: 0, dur: 3 }); // SVG-Discokugel (Emoji-Ersatz)
     return out;
   },
   arcade(perfect) {
@@ -3051,6 +3052,7 @@ const PIECE_GENERATORS = {
     for (let i = 0; i < (perfect ? 56 : 34); i++) out.push({ id: 100 + i, shape: 'sparkle', left: R(0, 100), delay: R(0, 2), dur: R(0.5, 1.4), size: R(8, 16), kind: 2 });
     out.push({ id: 800, left: 50, top: 45, delay: 1.15, dur: 0.9, size: 90, hue: 35, kind: 3 });
     out.push({ id: 801, shape: 'satellite', left: 50, top: 24, delay: 1.6, dur: 2.4, size: 26, ang: 0, rad: 90, kind: 4 });
+    out.push({ id: 'cr', creature: rocketMarkup(), size: 70, delay: 0, dur: 2.6 }); // SVG-Rakete (Emoji-Ersatz)
     return out;
   },
   shatter(perfect) {

@@ -61,6 +61,43 @@ export const WIN_SHAPE_NAMES = Object.keys(SHAPES);
 export function dragonMarkup() { return `<svg viewBox="-125 -80 240 150">${dragonSvg()}</svg>`; }
 export function unicornMarkup() { return `<svg viewBox="-65 -72 130 116">${unicornSvg()}</svg>`; }
 export function phoenixMarkup() { return `<svg viewBox="-42 -56 84 150">${phoenixSvg()}</svg>`; }
+// Rakete (zeigt nach oben) + Discokugel — SVG-Helden als Emoji-Ersatz für die
+// gleichnamigen Sieganimationen (rein deterministisch, kein Zufall/DOM).
+export function rocketMarkup() { return `<svg viewBox="-26 -42 52 92">${rocketSvg()}</svg>`; }
+export function discoMarkup() { return `<svg viewBox="-24 -30 48 60">${discoSvg()}</svg>`; }
+function rocketSvg() {
+  return '<g>' +
+    // Antriebsflamme
+    '<path d="M-6 26 C-3 40 3 40 6 26 C3 33 -3 33 -6 26 Z" fill="#ffbf3a"/>' +
+    '<path d="M-3.4 26 C-2 35 2 35 3.4 26 C2 31 -2 31 -3.4 26 Z" fill="#ff6a1a"/>' +
+    // Flossen
+    '<path d="M-8 10 L-17 24 L-8 21 Z" fill="#e5483d"/>' +
+    '<path d="M8 10 L17 24 L8 21 Z" fill="#e5483d"/>' +
+    // Rumpf
+    '<path d="M0 -40 C10 -22 12 2 8 24 L-8 24 C-12 2 -10 -22 0 -40 Z" fill="#eef1f6" stroke="#b9c2d0" stroke-width="1.6"/>' +
+    // Nasenkegel
+    '<path d="M0 -40 C6 -31 8 -22 8 -15 L-8 -15 C-8 -22 -6 -31 0 -40 Z" fill="#e5483d"/>' +
+    // Bullauge
+    '<circle cx="0" cy="-4" r="5.2" fill="#8fd0ff" stroke="#3a7bd5" stroke-width="1.8"/>' +
+    '<circle cx="-1.6" cy="-5.6" r="1.6" fill="#eaf6ff" opacity=".8"/>' +
+  '</g>';
+}
+function discoSvg() {
+  let facets = '';
+  for (let y = -16; y <= 16; y += 4) {
+    for (let x = -16; x <= 16; x += 4.5) {
+      if (Math.hypot(x, y) > 16.5) continue;
+      const shade = 42 + ((Math.round(x) + Math.round(y)) % 5) * 9;
+      facets += `<rect x="${(x - 2).toFixed(1)}" y="${(y - 1.6).toFixed(1)}" width="4" height="3.2" rx="0.6" fill="hsl(206 26% ${shade}%)"/>`;
+    }
+  }
+  return '<g>' +
+    '<line x1="0" y1="-30" x2="0" y2="-18" stroke="#9aa3b2" stroke-width="1.6"/>' +
+    '<circle cx="0" cy="0" r="18" fill="#4f5967"/>' +
+    facets +
+    '<circle cx="-6" cy="-6" r="4" fill="#ffffff" opacity=".5"/>' +
+  '</g>';
+}
 export function dragonSvg() {
   return '<g class="wf-dragon">' +
     // Fern-Flügel (hinter dem Körper)
