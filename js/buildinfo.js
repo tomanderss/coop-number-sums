@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.93';
-export const BUILD_HASH = 'f6972c6';
+export const BUILD      = '1.94';
+export const BUILD_HASH = '96db425';
 
 export const CHANGELOG = [
+  {
+    "version": "1.94",
+    "date": "05.07.2026",
+    "changes": [
+      "Einstellungen: Alle erworbenen Cosmetics (App-Theme, Brett-Palette, Ziffern-Stil, Rahmen, Sound-Paket, Musik-Paket) lassen sich jetzt direkt in den Einstellungen ausrüsten – nicht nur im Shop"
+    ]
+  },
   {
     "version": "1.93",
     "date": "05.07.2026",
