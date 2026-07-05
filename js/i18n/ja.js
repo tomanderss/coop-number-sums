@@ -483,6 +483,18 @@ export default {
     coins: 'コイン',
     total: '合計: {n}',
     streakBonus: '{days}日連続: コイン+{pct}%',
+    historyTitle: 'コイン履歴',
+    historyEmpty: 'まだ取引がありません。ゲームに勝つかショップで購入すると履歴に表示されます。',
+    reason: {
+      win: '勝利報酬',
+      purchase: '購入: {item}',
+      gift: '管理者ギフト',
+      adminRevoke: '管理者による調整',
+      admin: '管理者による調整',
+      spend: '支出',
+      earn: '入金',
+      other: '取引',
+    },
   },
   sync: {
     mismatchBadge: 'バージョンの不一致',

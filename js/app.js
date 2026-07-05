@@ -19,7 +19,7 @@ import {
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, saveProfile, loadInventory, grantInventory, revokeInventory,
   reconcileInventoryFromCloud, applyCloudWallet,
-  loadWallet, grantCurrency, spendCurrency,
+  loadWallet, grantCurrency, spendCurrency, loadWalletLog,
   setDataRev, setSyncedRev,
 } from './storage.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
@@ -229,6 +229,8 @@ const state = reactive({
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
+  walletLogOpen: false,          // Geldverlauf-Modal offen? (Transaktionshistorie)
+  walletLog: [],                 // gecachte Transaktionsliste (neueste zuerst), s. openWalletLog
   adminNotice: null,             // aktuell angezeigte Admin-Benachrichtigung {id, kind, item|amount, from} (Modal)
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
 });
@@ -535,6 +537,34 @@ function closeShop() { const b = shopReturn || 'home'; shopReturn = null; state.
 // Kategorie öffnen/schließen — Zurück in der Kategorie führt zur Übersicht, nicht raus.
 function openShopCategory(cat) { state.shopCategory = cat; state.shopPreview = null; }
 function closeShopCategory() { state.shopCategory = null; state.shopPreview = null; }
+
+// ── Geldverlauf (Transaktionshistorie) ────────────────────────────────────────
+// Lädt die persistierte Liste (neueste zuerst) frisch beim Öffnen — so ist sie
+// nach zwischenzeitlichen Käufen/Siegen/Geschenken aktuell.
+function openWalletLog() { state.walletLog = loadWalletLog(); state.walletLogOpen = true; }
+function closeWalletLog() { state.walletLogOpen = false; }
+// Lesbarer Text zur maschinellen `reason`-Kennung einer Buchung. 'shop:<id>' und
+// 'winfx:<id>'/'winfx_<id>' referenzieren ein gekauftes Item → dessen Namen zeigen.
+function walletReasonLabel(reason) {
+  if (!reason) return t('wallet.reason.other');
+  const shopMatch = /^shop:(.+)$/.exec(reason);
+  if (shopMatch) {
+    const name = shopItemDisplayName(shopMatch[1]);
+    return t('wallet.reason.purchase', { item: name || shopMatch[1] });
+  }
+  const key = 'wallet.reason.' + reason;
+  const s = t(key);
+  return s === key ? reason : s;
+}
+// Item-Anzeigename zur rohen Item-Kennung aus einem 'shop:<id>'-reason. Der Kauf
+// speichert die ROHE Item-id (Sieganimation wie 'stars' oder generischer
+// Shop-Artikel wie eine Paletten-id) — beide Namensräume der Reihe nach probieren.
+function shopItemDisplayName(id) {
+  const eff = t('shop.effect.' + id); if (eff !== 'shop.effect.' + id) return eff;
+  const it = t('shop.it.' + id); if (it !== 'shop.it.' + id) return it;
+  return id;
+}
+
 // ── Sieganimationen: erste echte Shop-Kategorie (Katalog: js/wineffects.js) ────
 function ownsWinFx(id) { return ownsEffect(state.inventory, id); }
 function winFxActive(id) { return resolveActiveEffect(state.settings.winEffect, state.inventory) === id; }
@@ -4550,6 +4580,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
+      openWalletLog, closeWalletLog, walletReasonLabel,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
       openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
@@ -5320,7 +5351,8 @@ const App = {
         <!-- Zurück: aus einer Kategorie erst zur Kategorien-Übersicht, dann raus. -->
         <button class="icon-btn" @click="state.shopCategory ? closeShopCategory() : closeShop()">‹</button>
         <h2>{{ state.shopCategory ? shopCategoryTitle(state.shopCategory) : t('shop.title') }}</h2>
-        <span class="coin-chip coin-chip-static"><span class="ico-lead" v-html="ic('coin')"></span>{{ state.wallet.balance || 0 }}</span>
+        <!-- Guthaben-Chip öffnet den Geldverlauf (Transaktionshistorie). -->
+        <button class="coin-chip coin-chip-btn" @click="openWalletLog" :aria-label="t('wallet.historyTitle')" :title="t('wallet.historyTitle')"><span class="ico-lead" v-html="ic('coin')"></span>{{ state.wallet.balance || 0 }}</button>
       </header>
 
       <!-- Kategorie: 🎉 Sieganimationen (kaufen/aktivieren/Vorschau) -->
@@ -6132,6 +6164,25 @@ const App = {
           </div>
         </div>
         <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>
+      </div>
+    </div>
+
+    <!-- Geldverlauf: Transaktionshistorie (Einnahmen/Ausgaben/Geschenke). -->
+    <div v-if="state.walletLogOpen" class="modal-bg" @click.self="closeWalletLog">
+      <div class="modal modal-wallet-log">
+        <h3><span class="ei" v-html="ic('coin')"></span> {{ t('wallet.historyTitle') }}</h3>
+        <div class="wallet-log-balance">{{ t('wallet.total', { n: state.wallet.balance || 0 }) }}</div>
+        <p v-if="!state.walletLog.length" class="set-hint wallet-log-empty">{{ t('wallet.historyEmpty') }}</p>
+        <div v-else class="wallet-log">
+          <div v-for="(e,i) in state.walletLog" :key="i" class="wl-row" :class="e.amount >= 0 ? 'plus' : 'minus'">
+            <div class="wl-main">
+              <span class="wl-reason">{{ walletReasonLabel(e.reason) }}</span>
+              <span class="wl-date">{{ adminFmtDate(e.ts) }}</span>
+            </div>
+            <span class="wl-amount"><span class="ei" v-html="ic('coin')"></span> {{ e.amount >= 0 ? '+' : '' }}{{ e.amount }}</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" @click="closeWalletLog">{{ t('common.close') }}</button>
       </div>
     </div>
 

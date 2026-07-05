@@ -483,6 +483,18 @@ export default {
     coins: 'Monedas',
     total: 'total: {n}',
     streakBonus: 'Racha de {days} días: +{pct}% monedas',
+    historyTitle: 'Historial de monedas',
+    historyEmpty: 'Aún no hay movimientos. Gana partidas o compra en la tienda para llenar tu historial.',
+    reason: {
+      win: 'Recompensa por victoria',
+      purchase: 'Compra: {item}',
+      gift: 'Regalo de administrador',
+      adminRevoke: 'Ajuste de administrador',
+      admin: 'Ajuste de administrador',
+      spend: 'Gasto',
+      earn: 'Abono',
+      other: 'Movimiento',
+    },
   },
   sync: {
     mismatchBadge: 'Discrepancia de versión',

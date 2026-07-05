@@ -483,6 +483,18 @@ export default {
     coins: '코인',
     total: '합계: {n}',
     streakBonus: '{days}일 연속: 코인 +{pct}%',
+    historyTitle: '코인 내역',
+    historyEmpty: '아직 거래가 없습니다. 게임에서 이기거나 상점에서 구매하면 내역이 채워집니다.',
+    reason: {
+      win: '승리 보상',
+      purchase: '구매: {item}',
+      gift: '관리자 선물',
+      adminRevoke: '관리자 조정',
+      admin: '관리자 조정',
+      spend: '지출',
+      earn: '적립',
+      other: '거래',
+    },
   },
   sync: {
     mismatchBadge: '버전 불일치',

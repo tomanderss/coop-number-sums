@@ -574,6 +574,18 @@ export default {
     coins: 'Münzen',
     total: 'gesamt: {n}',
     streakBonus: '{days}-Tage-Streak: +{pct}% Münzen',
+    historyTitle: 'Geldverlauf',
+    historyEmpty: 'Noch keine Buchungen. Gewinne Spiele oder kaufe im Shop, um deinen Verlauf zu füllen.',
+    reason: {
+      win: 'Sieg-Belohnung',
+      purchase: 'Kauf: {item}',
+      gift: 'Admin-Geschenk',
+      adminRevoke: 'Admin-Korrektur',
+      admin: 'Admin-Anpassung',
+      spend: 'Ausgabe',
+      earn: 'Gutschrift',
+      other: 'Buchung',
+    },
   },
   sync: {
     mismatchBadge: 'Versions-Mismatch',

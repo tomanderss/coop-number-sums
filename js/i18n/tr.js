@@ -483,6 +483,18 @@ export default {
     coins: 'Jeton',
     total: 'toplam: {n}',
     streakBonus: '{days} günlük seri: +%{pct} jeton',
+    historyTitle: 'Jeton geçmişi',
+    historyEmpty: 'Henüz işlem yok. Oyun kazan veya mağazadan satın alarak geçmişini doldur.',
+    reason: {
+      win: 'Zafer ödülü',
+      purchase: 'Satın alma: {item}',
+      gift: 'Yönetici hediyesi',
+      adminRevoke: 'Yönetici düzeltmesi',
+      admin: 'Yönetici düzeltmesi',
+      spend: 'Harcama',
+      earn: 'Alacak',
+      other: 'İşlem',
+    },
   },
   sync: {
     mismatchBadge: 'Sürüm uyuşmazlığı',

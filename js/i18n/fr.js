@@ -483,6 +483,18 @@ export default {
     coins: 'Pièces',
     total: 'total : {n}',
     streakBonus: 'Série de {days} jours : +{pct}% de pièces',
+    historyTitle: 'Historique des pièces',
+    historyEmpty: 'Aucune transaction pour l\u2019instant. Gagne des parties ou achète dans la boutique pour remplir ton historique.',
+    reason: {
+      win: 'Récompense de victoire',
+      purchase: 'Achat : {item}',
+      gift: 'Cadeau administrateur',
+      adminRevoke: 'Ajustement administrateur',
+      admin: 'Ajustement administrateur',
+      spend: 'Dépense',
+      earn: 'Crédit',
+      other: 'Transaction',
+    },
   },
   sync: {
     mismatchBadge: 'Conflit de version',
