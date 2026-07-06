@@ -271,6 +271,8 @@ export const DEFAULT_SETTINGS = {
   winEffect: 'confetti',    // aktive Sieganimation (js/wineffects.js); alles außer
                             // 'confetti' muss im Inventar liegen (Shop-Kauf/Gift),
                             // sonst Fallback auf Confetti (resolveActiveEffect).
+  masterCelebrated: false,  // wurde die einmalige „Großmeister"-Feier (alle 12
+                            // Prestige-Kategorien auf Legendär) schon gezeigt?
   // Prozedurale Zen-Hintergrundmusik (js/music.js), pro Bereich schaltbar.
   // Default an; Lautstärke 0..1. "competition" deckt Race (1v1) UND Team (2v2) ab.
   // musicMenu = Menüs/Statistik/Verlauf usw. (alle Nicht-Spiel-Screens). Sind

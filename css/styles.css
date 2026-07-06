@@ -281,6 +281,77 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .home-profile-chip:active { transform: translateY(1px); }
 
+/* ── Master-Badge „Großmeister": glühende Profil-Zelle + dynamische Prisma-Schrift ──
+   Nur transform/opacity/background-position animiert (Compositor, iOS-sicher). */
+@keyframes bmm-sheen { to { background-position: 280% 0; } }
+@keyframes bmm-spin  { to { transform: rotate(360deg); } }
+@keyframes bmm-glow  { 0%,100% { opacity:.5; } 50% { opacity:.9; } }
+.hpc-name { font-weight: 800; }
+.home-profile-chip.master {
+  position: relative; color: #fff; border: 2px solid transparent;
+  background:
+    linear-gradient(#0b0d16,#0b0d16) padding-box,
+    conic-gradient(from 0deg,#ffe89a,#5ff0ab,#6ff0ff,#b98cff,#ff8fd0,#ffe89a) border-box;
+  box-shadow: 0 0 16px rgba(150,120,255,.4);
+}
+.home-profile-chip.master::before {
+  content:""; position:absolute; inset:-3px; border-radius:inherit; z-index:-1;
+  background: conic-gradient(from 0deg,#ffe89a,#5ff0ab,#6ff0ff,#b98cff,#ff8fd0,#ffe89a);
+  filter: blur(7px); opacity:.55; animation: bmm-glow 3s ease-in-out infinite;
+}
+.home-profile-chip.master .hpc-name {
+  background: linear-gradient(100deg,#ffe89a,#5ff0ab,#6ff0ff,#b98cff,#ff8fd0,#ffe89a);
+  background-size: 280% 100%; -webkit-background-clip: text; background-clip: text;
+  color: transparent; font-weight: 900; letter-spacing: .02em;
+  animation: bmm-sheen 5s linear infinite;
+}
+/* Strahlenkranz der Master-Medaille rotiert NUR in Home-Chip/Prestige/Feier (je 1 Instanz) */
+.home-profile-chip .bmm-halo,
+.prestige-master .bmm-halo,
+.master-unlock-modal .bmm-halo { transform-box: fill-box; transform-origin: center; animation: bmm-spin 26s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .home-profile-chip.master::before, .home-profile-chip.master .hpc-name,
+  .bmm-halo, .pm-title, .master-unlock-name { animation: none !important; }
+}
+
+/* Prestige-Screen: Krönungs-Karte „Großmeister" ganz oben */
+.prestige-master {
+  display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 16px; margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(120,90,255,.14), rgba(95,240,171,.08));
+  border: 1px solid rgba(150,120,255,.35); position: relative;
+}
+.prestige-master-medal .bmm { width: 84px; height: 84px; }
+.prestige-master:not(.unlocked) { opacity: .9; }
+.prestige-master:not(.unlocked) .bmm { filter: grayscale(.65) brightness(.8); }
+.prestige-master-medal { flex: none; }
+.prestige-master-info { flex: 1; min-width: 0; }
+.prestige-master-nm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pm-title {
+  font-size: 1.18rem; font-weight: 900; letter-spacing: .02em;
+  background: linear-gradient(100deg,#ffe89a,#5ff0ab,#6ff0ff,#b98cff,#ff8fd0,#ffe89a);
+  background-size: 280% 100%; -webkit-background-clip: text; background-clip: text;
+  color: transparent; animation: bmm-sheen 6s linear infinite;
+}
+.prestige-master-tag { font-size: .64rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #d9c7ff; background: rgba(185,140,255,.18); padding: 2px 8px; border-radius: 99px; }
+.prestige-master-desc { color: var(--text2); font-size: .82rem; margin: 5px 0 8px; }
+.prestige-master-prog { font-size: .78rem; font-weight: 700; color: var(--text2); margin-top: 5px; }
+.prestige-master-btn { margin-top: 10px; }
+
+/* „Großmeister freigeschaltet"-Feier (Modal liegt unter der winfx-Animation, z90<120) */
+.master-unlock-modal {
+  text-align: center; align-items: center; gap: 10px; max-width: 360px;
+  background: radial-gradient(320px 220px at 50% 18%, rgba(120,90,255,.22), var(--bg2));
+}
+.master-unlock-medal { animation: pop .55s cubic-bezier(.2,1.4,.5,1); }
+.master-unlock-title { font-size: .78rem; letter-spacing: .24em; text-transform: uppercase; font-weight: 800; color: var(--text3); }
+.master-unlock-name {
+  font-size: 1.85rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; line-height: 1.1;
+  background: linear-gradient(100deg,#ffe89a,#5ff0ab,#6ff0ff,#b98cff,#ff8fd0,#ffe89a);
+  background-size: 280% 100%; -webkit-background-clip: text; background-clip: text;
+  color: transparent; animation: bmm-sheen 5s linear infinite;
+}
+.master-unlock-msg { color: var(--text2); font-size: .9rem; }
+
 /* ── Prestige-Screen (verdiente Abzeichen) ──────────────────────────────────── */
 .prestige-modal { max-width: 560px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; }
 .prestige-intro { margin: 0 0 10px; }

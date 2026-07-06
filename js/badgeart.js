@@ -86,6 +86,10 @@ export function badgeDefsMarkup() {
     '<linearGradient id="bm-irid" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6ff0ff"/><stop offset="0.5" stop-color="#b98cff"/><stop offset="1" stop-color="#ff8fd0"/></linearGradient>' +
     '<radialGradient id="bm-field-em" cx="46%" cy="38%" r="66%"><stop offset="0" stop-color="#5ff0ab"/><stop offset="55%" stop-color="#1f9e63"/><stop offset="100%" stop-color="#0a4d30"/></radialGradient>' +
     '<linearGradient id="bm-mot-em" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d6ffe9"/><stop offset="1" stop-color="#158a54"/></linearGradient>' +
+    // Master „Großmeister": irisierender Prisma-Rand + Obsidian-Scheibe + Gold-Feld
+    '<linearGradient id="bmm-irid" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe89a"/><stop offset="0.3" stop-color="#5ff0ab"/><stop offset="0.55" stop-color="#6ff0ff"/><stop offset="0.78" stop-color="#b98cff"/><stop offset="1" stop-color="#ff8fd0"/></linearGradient>' +
+    '<radialGradient id="bmm-disc" cx="42%" cy="30%" r="80%"><stop offset="0" stop-color="#2a2e44"/><stop offset="55%" stop-color="#12141f"/><stop offset="100%" stop-color="#06070c"/></radialGradient>' +
+    '<radialGradient id="bmm-field" cx="46%" cy="36%" r="70%"><stop offset="0" stop-color="#fff3c8"/><stop offset="45%" stop-color="#ffd76a"/><stop offset="100%" stop-color="#8a5a12"/></radialGradient>' +
     // symbole
     '<symbol id="bm-halo" viewBox="-80 -80 160 160"><g>' +
       [0,30,60,90,120,150,180,210,240,270,300,330].map(a => `<path d="M0 -76 L4.6 -52 L-4.6 -52 Z" transform="rotate(${a})"/>`).join('') +
@@ -166,3 +170,41 @@ export function badgeMedalMarkup(id, opts = {}) {
 
 // Ist die ID ein zeichenbares eigenes Abzeichen? (für Templates)
 export function hasBadgeMedal(id) { return !!(id && MOTIFS[id]); }
+
+// Master-Badge „Großmeister": Prisma-Medaillon mit ZWÖLFSTERN (12 Zacken = die 12
+// gemeisterten Prestige-Kategorien), Obsidian-Scheibe, Gold-Feld, 12 Rand-Gems
+// und Strahlenkranz. Reine String-Erzeugung. Die Klasse `bmm-halo` am Strahlen-
+// kranz erlaubt der CSS eine (nur in Home/Prestige aktive) Rotation. size = px.
+export function masterMedalMarkup(opts = {}) {
+  const size = opts.size || 64;
+  const cx = 36, cy = 36;
+  const star = (pts, ro, ri) => {
+    let d = ''; const step = Math.PI / pts;
+    for (let i = 0; i < pts * 2; i++) {
+      const r = i % 2 ? ri : ro; const a = -Math.PI / 2 + i * step;
+      d += (i ? 'L' : 'M') + (cx + Math.cos(a) * r).toFixed(1) + ' ' + (cy + Math.sin(a) * r).toFixed(1);
+    }
+    return d + 'Z';
+  };
+  const rays = Array.from({ length: 24 }, (_, i) => `<path d="M36 36 L34.7 2 L37.3 2 Z" transform="rotate(${i * 15} 36 36)"/>`).join('');
+  const gemCols = ['#ffe89a', '#5ff0ab', '#6ff0ff', '#b98cff', '#ff8fd0', '#8ef0ff', '#ffd76a', '#c6ff9a', '#ff9a6a', '#9aa8ff', '#ff6ab0', '#6affc6'];
+  const gems = Array.from({ length: 12 }, (_, i) => {
+    const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+    return `<circle cx="${(36 + Math.cos(a) * 26.5).toFixed(1)}" cy="${(36 + Math.sin(a) * 26.5).toFixed(1)}" r="1.7" fill="${gemCols[i]}" stroke="#0a0b11" stroke-width=".5"/>`;
+  }).join('');
+  return `<svg class="bmm" viewBox="0 0 72 72" width="${size}" height="${size}" role="img" aria-label="Großmeister">`
+    + `<g class="bmm-halo" fill="url(#bmm-irid)" opacity=".5">${rays}</g>`
+    + `<circle cx="36" cy="36" r="34" fill="url(#bmm-irid)"/>`
+    + `<circle cx="36" cy="36" r="34" fill="none" stroke="#06070c" stroke-width=".8" stroke-dasharray="1 1.7" opacity=".5"/>`
+    + `<circle cx="36" cy="36" r="30" fill="url(#bmm-disc)"/>`
+    + `<circle cx="36" cy="36" r="30" fill="none" stroke="url(#bmm-irid)" stroke-opacity=".55" stroke-width=".8"/>`
+    + gems
+    + `<circle cx="36" cy="36" r="22" fill="url(#bmm-field)"/>`
+    + `<circle cx="36" cy="36" r="22" fill="none" stroke="#6e4a10" stroke-opacity=".5" stroke-width=".9"/>`
+    + `<g stroke="#ffffff" stroke-opacity=".22" stroke-width=".5" fill="none"><path d="M36 36 L36 14 M36 36 L55 25 M36 36 L55 47 M36 36 L36 58 M36 36 L17 47 M36 36 L17 25"/></g>`
+    + `<path d="${star(12, 17, 7.5)}" fill="url(#bmm-field)" stroke="#9a6a12" stroke-width=".9" stroke-linejoin="round" filter="url(#bm-emb)"/>`
+    + `<circle cx="36" cy="36" r="4.6" fill="url(#bmm-irid)" stroke="#9a6a12" stroke-width=".6"/>`
+    + `<circle cx="36" cy="36" r="1.9" fill="#fffbe9"/>`
+    + `<ellipse cx="30" cy="26" rx="12" ry="5.5" fill="url(#bm-spec)" opacity=".45"/>`
+    + `</svg>`;
+}

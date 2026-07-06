@@ -3,8 +3,21 @@ import assert from 'node:assert/strict';
 import {
   PRESTIGE, allPrestige, categoryProgress, tierForValue,
   isUnlocked, encodeBadge, decodeBadge, prestigeBySym, isPrestigeSym,
+  MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge,
 } from '../../js/prestige.js';
-import { hasBadgeMedal } from '../../js/badgeart.js';
+import { hasBadgeMedal, masterMedalMarkup } from '../../js/badgeart.js';
+
+// Kontext, der ALLE 12 Kategorien auf Stufe 4 (Legendär) bringt.
+function fullyMasteredCtx() {
+  const diffs = Array.from({ length: 9 }, (_, i) => 'd' + i);
+  const bd = {}; diffs.forEach(id => { bd[id] = { won: 200, coopWon: 20, bestTimeMs: 30000 }; });
+  return {
+    stats: { won: 1000, coopWon: 200, perfectWins: 200, coopPerfectWins: 90, played: 800, coopPlayed: 300, byDifficulty: bd },
+    streak: { bestStreak: 40 },
+    race: { '1v1': { racesWon: 120 }, '2v2': { racesWon: 120 } },
+    difficulties: diffs,
+  };
+}
 
 describe('prestige', () => {
   test('exactly 12 categories, each with a drawable medal symbol and 4 ascending thresholds', () => {
@@ -99,5 +112,36 @@ describe('prestige', () => {
     assert.ok(isPrestigeSym('krone'));
     assert.ok(!isPrestigeSym('confetti'));
     assert.ok(!isPrestigeSym(''));
+  });
+
+  test('master badge unlocks only when ALL categories are at tier 4', () => {
+    const empty = { stats: {}, streak: {}, race: {}, difficulties: [] };
+    assert.equal(masterProgress(empty).maxed, 0);
+    assert.equal(masterProgress(empty).unlocked, false);
+    assert.equal(hasMasterBadge(empty), false);
+
+    const full = fullyMasteredCtx();
+    const mp = masterProgress(full);
+    assert.equal(mp.total, PRESTIGE.length);
+    assert.equal(mp.maxed, PRESTIGE.length);
+    assert.equal(mp.unlocked, true);
+    assert.equal(hasMasterBadge(full), true);
+    // Alle Kategorien wirklich auf Stufe 4?
+    assert.ok(allPrestige(full).every(p => p.tier === 4));
+
+    // Eine Kategorie knapp unter Legendär ⇒ Master bleibt gesperrt.
+    const oneShort = fullyMasteredCtx();
+    oneShort.streak = { bestStreak: 29 }; // flamme t4 = 30
+    assert.equal(hasMasterBadge(oneShort), false);
+    assert.equal(masterProgress(oneShort).maxed, PRESTIGE.length - 1);
+  });
+
+  test('isMasterBadge + masterMedalMarkup', () => {
+    assert.ok(isMasterBadge(MASTER_BADGE));
+    assert.ok(!isMasterBadge('drache-4'));
+    assert.ok(!isMasterBadge('none'));
+    const svg = masterMedalMarkup({ size: 40 });
+    assert.match(svg, /^<svg/);
+    assert.match(svg, /bmm-halo/);
   });
 });

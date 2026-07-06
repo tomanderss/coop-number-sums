@@ -96,6 +96,20 @@ export function isUnlocked(sym, tier, ctx) {
   return tierForValue(cat.metric(ctx) || 0, cat.thresholds) >= tier;
 }
 
+// ── Master-Badge „Großmeister" ────────────────────────────────────────────────
+// Das Krönungs-Abzeichen: freigeschaltet, wenn ALLE Kategorien Stufe 4 (Legendär)
+// erreicht haben — „das Spiel durchgespielt". Eigene ID (kein sym-tier-Format),
+// eigene Medaille (badgeart.js masterMedalMarkup).
+export const MASTER_BADGE = 'grossmeister';
+export function isMasterBadge(id) { return id === MASTER_BADGE; }
+// { maxed, total, unlocked } — wie viele Kategorien schon auf Stufe 4 sind.
+export function masterProgress(ctx) {
+  const all = allPrestige(ctx);
+  const maxed = all.reduce((n, p) => n + (p.tier >= 4 ? 1 : 0), 0);
+  return { maxed, total: all.length, unlocked: all.length > 0 && maxed >= all.length };
+}
+export function hasMasterBadge(ctx) { return masterProgress(ctx).unlocked; }
+
 // ── Kodierung des ausgerüsteten Abzeichens: "sym-tier" (z.B. "drache-3") ──────
 // Rückwärtskompatibel: eine nackte Symbol-ID (alt, aus dem Shop) wird als Stufe
 // aus dem alten Katalog interpretiert bzw. auf Stufe 1 abgebildet.

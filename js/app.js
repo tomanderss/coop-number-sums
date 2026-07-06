@@ -24,10 +24,10 @@ import {
 } from './storage.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
-import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup } from './badgeart.js';
+import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup, masterMedalMarkup } from './badgeart.js';
 import { winShapeDefs, winShape, dragonMarkup, unicornMarkup, phoenixMarkup, rocketMarkup, discoMarkup } from './winshapes.js';
 import { icon as customIcon, hasIcon } from './icons.js';
-import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge } from './prestige.js';
+import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge, MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge } from './prestige.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -231,6 +231,7 @@ const state = reactive({
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
+  masterUnlock: false,           // Feier-Screen „Großmeister freigeschaltet" offen?
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
   walletLogOpen: false,          // Geldverlauf-Modal offen? (Transaktionshistorie)
@@ -1882,7 +1883,7 @@ function upsertPlayer(id, name, requestedColor, username, badge) {
 // Fremd-Clients dekodieren (decodeBadge akzeptiert auch das alte Nur-Symbol-
 // Format aus der gekauften Ära → als Stufe 1). Prestige-System: nicht mehr
 // gekauft, sondern verdient (s. prestige.js / Prestige-Screen).
-function myBadge() { const id = state.settings.profileBadge; return id && id !== 'none' && decodeBadge(id) ? id : null; }
+function myBadge() { const id = state.settings.profileBadge; if (isMasterBadge(id)) return id; return id && id !== 'none' && decodeBadge(id) ? id : null; }
 // Prestige-Kontext für alle Kategorie-Berechnungen (aus den lokalen Statistiken).
 function prestigeCtx() {
   return { stats: state.stats, streak: state.streak, race: state.raceStats,
@@ -1892,11 +1893,12 @@ function prestigeCtx() {
 // ("sym-tier"). Überall gerendert (Home-Chip, Coop-Roster, Freunde, Bestenliste,
 // Prestige-Screen). ribbon=true = große Medaille am Halsband. Unbekannt ⇒ ''.
 function badgeSvg(id, ribbon = false) {
+  if (isMasterBadge(id)) return masterMedalMarkup({ size: ribbon ? 96 : 40 });
   const b = decodeBadge(id);
   return b ? badgeMedalMarkup(b.sym, { tier: b.tier, ribbon, size: ribbon ? 96 : 40 }) : '';
 }
 // Ist die (kodierte) Badge-ID darstellbar? (für v-if in Templates)
-function badgeShown(id) { return !!decodeBadge(id); }
+function badgeShown(id) { return isMasterBadge(id) || !!decodeBadge(id); }
 function badgeDefs() { return badgeDefsMarkup(); }
 
 // ─── Prestige-Screen (verdiente Abzeichen) ────────────────────────────────────
@@ -1930,6 +1932,31 @@ function afterBadgeChange() {
   if (state.account.status === 'in') { Account.publishPresence(currentGameInfo(), myBadge()); Account.scheduleSyncUp(); }
 }
 function prestigeTierName(tier) { return tier ? t('prestige.tier.t' + tier) : t('prestige.locked'); }
+// ── Master-Badge „Großmeister" ────────────────────────────────────────────────
+function masterInfo() { return masterProgress(prestigeCtx()); }
+function isMasterEquipped() { return isMasterBadge(state.settings.profileBadge); }
+function equipMaster() {
+  if (!hasMasterBadge(prestigeCtx())) return;
+  setSetting('profileBadge', MASTER_BADGE);
+  log('app', 'Großmeister ausgerüstet');
+  afterBadgeChange();
+}
+// Einmalige Feier, sobald ALLE 12 Kategorien auf Legendär stehen. masterCelebrated
+// (Settings, cloud-synct) verhindert Wiederholung; Alt-Spieler, die schon alles
+// gemeistert haben, bekommen die Feier beim ersten Start nach dem Update EINMAL.
+function checkMasterUnlock() {
+  if (state.settings.masterCelebrated) return;
+  if (!hasMasterBadge(prestigeCtx())) return;
+  setSetting('masterCelebrated', true);
+  state.masterUnlock = true;
+  log('app', 'Großmeister freigeschaltet — alle 12 Kategorien auf Legendär');
+  try { launchWinFx(true); } catch (_) {}   // große Feier-Animation (inkl. Fanfare)
+}
+function dismissMasterUnlock() {
+  state.masterUnlock = false;
+  // Direkt ausrüsten, damit der Nutzer sein neues Abzeichen sofort trägt.
+  if (!isMasterEquipped()) equipMaster();
+}
 // Custom-Icon (SVG-String) für ein UI-Glyph — Emoji-Ersatz, per v-html gerendert.
 // Unbekannte Namen ⇒ '' (nie rohen Fremdtext rendern). Größe/Farbe via CSS (.ico).
 function ic(name) { return customIcon(name); }
@@ -2656,6 +2683,7 @@ function win(remote) {
         timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
       });
       checkAchievements();
+      checkMasterUnlock();   // ggf. „Großmeister" freischalten (alle 12 auf Legendär)
     }
     persistGame();
     // SOFORTIGE Cloud-Sicherung bei Spielende (nicht entprellt): so ist der Sieg
@@ -2700,6 +2728,7 @@ function lose(remote) {
       timeMs: state.elapsed, outcome: 'lost', coop: state.coop.active,
     });
     checkAchievements();
+    checkMasterUnlock();   // z.B. „Ausdauer" kann auch durch eine Niederlage voll werden
   }
   persistGame();
   syncCloudNow('lose');  // sofortige Sicherung bei Spielende (auch Niederlage)
@@ -4698,6 +4727,9 @@ function init() {
   setInterval(() => { if (state.account.status === 'in' && gameSessionActive()) pushPresence(); }, 20000);
   maybeShowWhatsNew();
   maybeUnlockV1Skin();  // 1.0-Feier-Skin beim Versionssprung (vor dismissWhatsNew, das die Version speichert)
+  // Alt-Spieler, die bereits ALLE 12 Kategorien gemeistert haben, bekommen die
+  // Großmeister-Feier EINMAL beim ersten Start nach dem Update (nur auf Home).
+  setTimeout(() => { if (state.screen === 'home') checkMasterUnlock(); }, 1200);
   if (state.streak.justLost) state.streakLostNotice = true;
   window.addEventListener('resize', computeCellSize);
   window.addEventListener('resize', scheduleScrollLockUpdate);
@@ -5050,6 +5082,7 @@ const App = {
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
       openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
+      masterInfo, isMasterEquipped, equipMaster, dismissMasterUnlock, MASTER_BADGE,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, activeWinFxId, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle, winShape, winShapeDefs,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
@@ -5097,8 +5130,8 @@ const App = {
         <h1 class="brand-title">Coop<br>Number Sums</h1>
         <!-- Profil-Chip: öffnet den Prestige-Screen. Zeigt das ausgerüstete
              verdiente Abzeichen (oder eine Einladung, eins zu verdienen). -->
-        <button class="home-profile-chip" @click="openPrestige">
-          <template v-if="myBadge()">{{ shopDemoBadgeName() }} <b class="badge-medal-inline" v-html="badgeSvg(myBadge())"></b></template>
+        <button class="home-profile-chip" :class="{ master: isMasterEquipped() }" @click="openPrestige">
+          <template v-if="myBadge()"><span class="hpc-name">{{ shopDemoBadgeName() }}</span> <b class="badge-medal-inline" v-html="badgeSvg(myBadge())"></b></template>
           <template v-else><span class="ico-wrap" v-html="ic('medal')"></span> {{ t('prestige.title') }}</template>
         </button>
       </div>
@@ -6780,6 +6813,19 @@ const App = {
           <button class="icon-btn" @click="closePrestige" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
         </header>
         <p class="set-hint prestige-intro">{{ t('prestige.intro') }}</p>
+        <!-- Krönung: „Großmeister" — freigeschaltet, wenn ALLE 12 Kategorien Legendär sind -->
+        <div class="prestige-master" :class="{ unlocked: masterInfo().unlocked }">
+          <div class="prestige-master-medal" v-html="badgeSvg(MASTER_BADGE, true)"></div>
+          <div class="prestige-master-info">
+            <div class="prestige-master-nm"><b class="pm-title">{{ t('prestige.master.title') }}</b><span class="prestige-master-tag">{{ t('prestige.master.tag') }}</span></div>
+            <p class="prestige-master-desc">{{ t('prestige.master.desc') }}</p>
+            <div class="prestige-bar" :class="{ done: masterInfo().unlocked }"><i :style="{ width: Math.round(masterInfo().maxed/masterInfo().total*100)+'%' }"></i></div>
+            <div class="prestige-master-prog">{{ t('prestige.master.progress', { n: masterInfo().maxed, total: masterInfo().total }) }}</div>
+            <button v-if="masterInfo().unlocked" class="btn btn-sm prestige-master-btn" :class="{ 'btn-ghost': isMasterEquipped(), 'btn-primary': !isMasterEquipped() }" @click="isMasterEquipped() ? unequipBadge() : equipMaster()">
+              {{ isMasterEquipped() ? t('prestige.unequip') : t('prestige.master.equip') }}
+            </button>
+          </div>
+        </div>
         <div class="prestige-list">
           <div v-for="p in prestigeList()" :key="p.sym" class="prestige-cat" :class="{ locked: p.tier===0 }">
             <div class="prestige-lead">
@@ -6805,6 +6851,17 @@ const App = {
           </div>
         </div>
         <button v-if="myBadge()" class="btn btn-ghost prestige-unequip" @click="unequipBadge">{{ t('prestige.unequip') }}</button>
+      </div>
+    </div>
+
+    <!-- „Großmeister" freigeschaltet — einmalige Krönungs-Feier (alle 12 Kategorien Legendär) -->
+    <div v-if="state.masterUnlock" class="modal-bg master-unlock-bg">
+      <div class="modal master-unlock-modal">
+        <div class="master-unlock-medal" v-html="badgeSvg(MASTER_BADGE, true)"></div>
+        <div class="master-unlock-title">{{ t('prestige.master.unlockTitle') }}</div>
+        <div class="master-unlock-name">{{ t('prestige.master.title') }}</div>
+        <p class="master-unlock-msg">{{ t('prestige.master.unlockMsg') }}</p>
+        <button class="btn btn-primary" @click="dismissMasterUnlock">{{ t('prestige.master.equipWear') }}</button>
       </div>
     </div>
 
