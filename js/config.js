@@ -286,6 +286,9 @@ export const DEFAULT_SETTINGS = {
   musicCompetition: true,
   musicTraining: true,
   musicVolume: 0.6,
+  muteAll: false,           // „Alles stummschalten": globaler Ein-Klick-Schalter (Home-Menü),
+                            // legt Musik + ALLE UI-Sounds zentral (music.js makeup-Gain) still —
+                            // unabhängig von den Einzel-Schaltern und der Master-Lautstärke.
   // UI-Aktions-Sounds (js/music.js sfx*), je Aktion einzeln schaltbar. Default an.
   // sfxComplete = Käfig/Reihe/Spalte fertig (mit Stufung bei mehreren gleichzeitig),
   // sfxKeep = korrektes Einkreisen, sfxRemove = Löschen, sfxError = Fehler,

@@ -225,6 +225,8 @@ export default {
     tabData: 'Données',
     secAppearance: "Affichage",
     secColors: "Couleur et personnalisation",
+    muteAllOn: 'Tout couper',
+    muteAllOff: 'Réactiver le son',
     secDesktop: "Bureau",
     desktop: {
       toolKey: 'Touche : changer d’outil',

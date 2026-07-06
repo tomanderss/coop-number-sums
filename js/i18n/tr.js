@@ -225,6 +225,8 @@ export default {
     tabData: 'Veriler',
     secAppearance: "Görünüm",
     secColors: "Renk ve özelleştirme",
+    muteAllOn: 'Tüm sesleri kapat',
+    muteAllOff: 'Sesi aç',
     secDesktop: "Masaüstü",
     desktop: {
       toolKey: 'Tuş: araç değiştir',

@@ -225,6 +225,8 @@ export default {
     tabData: 'データ',
     secAppearance: "表示",
     secColors: "色とカスタマイズ",
+    muteAllOn: 'すべてミュート',
+    muteAllOff: 'ミュート解除',
     secDesktop: "デスクトップ",
     desktop: {
       toolKey: 'キー: ツールを切り替え',

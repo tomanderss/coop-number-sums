@@ -225,6 +225,8 @@ export default {
     tabData: 'Datos',
     secAppearance: "Apariencia",
     secColors: "Color y personalización",
+    muteAllOn: 'Silenciar todo',
+    muteAllOff: 'Activar sonido',
     secDesktop: "Escritorio",
     desktop: {
       toolKey: 'Tecla: cambiar herramienta',

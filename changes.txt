@@ -1,0 +1,1 @@
+Neuer „Alles stummschalten"-Knopf oben im Menü — legt Musik und alle Sounds mit einem Tipp still (Master-Lautstärke bleibt erhalten)

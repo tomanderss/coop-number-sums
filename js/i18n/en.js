@@ -225,6 +225,8 @@ export default {
     tabData: 'Data',
     secAppearance: "Appearance",
     secColors: "Color & customization",
+    muteAllOn: 'Mute all sounds',
+    muteAllOff: 'Unmute sounds',
     secDesktop: "Desktop",
     desktop: {
       toolKey: 'Key: switch tool',
