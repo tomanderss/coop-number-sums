@@ -4279,9 +4279,14 @@ function setFriendsTab(tab) {
 let leaderboardUnwatch = null;
 async function startLeaderboardWatch() {
   stopLeaderboardWatch();
-  state.leaderboard.loading = true;
-  state.leaderboard.entries = [];
-  leaderboardUnwatch = await Account.watchLeaderboard(state.leaderboard.diff, (entries) => {
+  // Alte Einträge stehen lassen, bis die neuen ankommen — verhindert das
+  // Leer-/Lade-Flackern beim Schwierigkeit-Wechsel. Nur beim ERSTEN Laden
+  // (noch keine Einträge) zeigen wir den Lade-Hinweis.
+  state.leaderboard.loading = !state.leaderboard.entries.length;
+  const forDiff = state.leaderboard.diff;
+  leaderboardUnwatch = await Account.watchLeaderboard(forDiff, (entries) => {
+    // Nur anwenden, wenn die Antwort noch zur aktuell gewählten Schwierigkeit passt.
+    if (state.leaderboard.diff !== forDiff) return;
     state.leaderboard.entries = entries;
     state.leaderboard.loading = false;
   });
@@ -4292,6 +4297,7 @@ function stopLeaderboardWatch() {
 }
 function selectLeaderboardDiff(id) {
   if (state.leaderboard.diff === id) return;
+  log('app', 'Bestenliste: Schwierigkeit gewechselt', { diff: id });
   state.leaderboard.diff = id;
   if (state.friends.tab === 'leaderboard') startLeaderboardWatch();
 }
@@ -6551,13 +6557,15 @@ const App = {
           <div class="lb-diff-chips">
             <button v-for="d in DIFFICULTIES" :key="d.id" class="lb-diff-chip" :class="{ active: state.leaderboard.diff===d.id }" @click="selectLeaderboardDiff(d.id)"><span class="ei" v-html="ic(d.emoji)"></span></button>
           </div>
-          <p v-if="state.leaderboard.loading" class="set-hint">{{ t('friends.lbLoading') }}</p>
-          <p v-else-if="!state.leaderboard.entries.length" class="set-hint">{{ t('friends.lbEmpty') }}</p>
-          <div v-else class="lb-list">
-            <div v-for="(e,i) in state.leaderboard.entries" :key="e.uid" class="lb-row" :class="{ me: e.uid===state.account.uid }">
-              <span class="lb-rank">{{ i+1 }}</span>
-              <span class="lb-name"><span v-if="badgeShown(e.badge)" class="badge-medal-inline" v-html="badgeSvg(e.badge)"></span>{{ e.username || e.uid }}</span>
-              <span class="lb-time">{{ fmtTime(e.timeMs) }}</span>
+          <div class="lb-scroll">
+            <p v-if="state.leaderboard.loading" class="set-hint lb-state">{{ t('friends.lbLoading') }}</p>
+            <p v-else-if="!state.leaderboard.entries.length" class="set-hint lb-state">{{ t('friends.lbEmpty') }}</p>
+            <div v-else class="lb-list">
+              <div v-for="(e,i) in state.leaderboard.entries" :key="e.uid" class="lb-row" :class="{ me: e.uid===state.account.uid }">
+                <span class="lb-rank">{{ i+1 }}</span>
+                <span class="lb-name"><span v-if="badgeShown(e.badge)" class="badge-medal-inline" v-html="badgeSvg(e.badge)"></span>{{ e.username || e.uid }}</span>
+                <span class="lb-time">{{ fmtTime(e.timeMs) }}</span>
+              </div>
             </div>
           </div>
         </div>
