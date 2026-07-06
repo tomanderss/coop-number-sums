@@ -488,6 +488,16 @@ export default {
     tier: { t1: 'Bronze', t2: 'Silver', t3: 'Gold', t4: 'Legendary' },
     cat: { soloMaster: 'Solo Master', teamSpirit: 'Team Spirit', duelist: 'Duelist', teamDuel: 'Team Duel', streak: 'Streak', flawless: 'Flawless', perfectTeam: 'Perfect Team', thinker: 'Thinker', endurance: 'Endurance', recordHunter: 'Record Hunter', topClass: 'Top Class', explorer: 'Explorer' },
     metric: { soloMaster: 'solo wins', teamSpirit: 'coop wins', duelist: '1v1 wins', teamDuel: '2v2 wins', streak: 'longest daily streak', flawless: 'flawless wins', perfectTeam: 'perfect coop wins', thinker: 'puzzles solved', endurance: 'games played', recordHunter: 'levels with a record', topClass: 'wins on hardest level', explorer: 'levels with a win' },
+    master: {
+      title: 'Grandmaster',
+      tag: 'Coronation',
+      desc: 'The ultimate badge — unlocked when ALL 12 badges reach Legendary. Proof that you have mastered Number Sums.',
+      progress: '{n} / {total} categories at Legendary',
+      equip: 'Equip',
+      equipWear: 'Wear with pride',
+      unlockTitle: 'Unlocked!',
+      unlockMsg: 'You have brought all 12 prestige badges to the highest tier. You have mastered the game — wear the Grandmaster with pride.',
+    },
   },
   wallet: {
     rewardHint: 'Монеты за победу на этом уровне (кооп/соревнование вдвое, без ошибок вдвое, + бонус серии).',
