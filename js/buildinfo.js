@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.108';
-export const BUILD_HASH = '77eccad';
+export const BUILD      = '1.109';
+export const BUILD_HASH = '2be2eaf';
 
 export const CHANGELOG = [
+  {
+    "version": "1.109",
+    "date": "06.07.2026",
+    "changes": [
+      "Desktop: frei belegbare Taste (Standard Tab) schaltet im Spiel zwischen Einkreisen und Radiergummi um — neuer Einstellungs-Abschnitt „Desktop“; Tab kapert nicht mehr den Browser-Fokus",
+      "Prestige: Großmeister-Karte kompakter und im Scrollbereich — die Abzeichen-Liste lässt sich wieder normal durchscrollen"
+    ]
+  },
   {
     "version": "1.108",
     "date": "06.07.2026",
