@@ -1,3 +1,0 @@
-Desktop: Spielfeld nutzt jetzt die volle Fensterbreite (nicht mehr auf den Mobil-Rahmen geklemmt) — größer per Default, beim Zoomen erst am Fensterrand beschnitten
-Siegesanimation + Ergebnis-Dialog erscheinen jetzt sofort und ruckelfrei; die Animation liegt sichtbar über dem Dialog
-Admin-Panel: alle Datenfelder in Klartext-Deutsch — keine rohen Datenbank-Schlüssel mehr (Cosmetic-Einstellungen, Rolle, Profilfeld-Auswahl, JSON-Titel)
