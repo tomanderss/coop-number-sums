@@ -428,13 +428,28 @@ function musicEnabledForMode(mode) {
 // solange sie schon läuft -> kein Neustart beim Wechsel Menü<->Spiel).
 // Aufgerufen an allen Übergängen (navigate, Start, Pause, Sieg/Niederlage,
 // Settings) sowie bei der ersten Nutzergeste (AudioContext-Freischaltung).
+// true, solange eine ▶-Sound/Musik-Vorschau (Shop/Einstellungen) läuft — dann
+// steuert die Vorschau die Wiedergabe selbst und updateMusic() greift NICHT ein
+// (sonst würgt ein zwischenzeitlicher Aufruf die Vorschau ab oder stummt sie).
+let soundPreviewActive = false;
+// Shop-Untermenü „Klänge" (sfx) oder „Musik" (music): dort soll ALLES still sein
+// (keine Menü-Musik, keine beiläufigen UI-Sounds) — nur die ▶-Vorschau macht Ton.
+function inSoundShop() {
+  return state.screen === 'shop' && (state.shopCategory === 'sfx' || state.shopCategory === 'music');
+}
 function updateMusic() {
   // „Alles stummschalten": Musik komplett aus (spart auch CPU) — die UI-Sounds
   // sind zusätzlich über den zentralen makeup-Gain (Music.setMuted) still.
   if (state.settings.muteAll) { Music.stop(); return; }
+  // Läuft gerade eine Vorschau, die Wiedergabe NICHT anfassen; nur sicherstellen,
+  // dass die UI-Sounds hörbar sind (die Vorschau räumt selbst wieder auf).
+  if (soundPreviewActive) { Music.setSfxMuted(false); return; }
   const inActiveGame = state.screen === 'game' && state.status === 'playing'
     && !state.paused && !state.coop.awaitingStart;
-  const shouldPlay = inActiveGame ? musicEnabledForMode(currentMusicMode()) : state.settings.musicMenu;
+  // Im Sound-Untermenü des Shops: Menü-Musik aus + beiläufige UI-Sounds stumm.
+  const soundShop = inSoundShop();
+  Music.setSfxMuted(soundShop);
+  const shouldPlay = inActiveGame ? musicEnabledForMode(currentMusicMode()) : (state.settings.musicMenu && !soundShop);
   if (shouldPlay) Music.play(state.settings.musicVolume);
   else Music.stop();
 }
@@ -566,14 +581,19 @@ function openShop(category) {
   // Click-EVENT als „Kategorie" und der Kategorie-Zweig rendert mit Unsinn.
   const valid = category === 'winfx' || !!SHOP_CATS[category];
   state.shopCategory = valid ? category : null;
-  if (state.screen === 'shop') return;
+  if (state.screen === 'shop') { updateMusic(); return; }
   shopReturn = state.screen;
-  navigate('shop');
+  navigate('shop'); // ruft updateMusic() → Sound-Untermenü ggf. sofort still
 }
 function closeShop() { const b = shopReturn || 'home'; shopReturn = null; state.shopCategory = null; navigate(b); }
 // Kategorie öffnen/schließen — Zurück in der Kategorie führt zur Übersicht, nicht raus.
-function openShopCategory(cat) { state.shopCategory = cat; state.shopPreview = null; }
-function closeShopCategory() { state.shopCategory = null; state.shopPreview = null; }
+// updateMusic() nach jedem Kategoriewechsel, damit das Sound-Untermenü (sfx/music)
+// die Menü-Musik + UI-Sounds sofort stummt bzw. beim Verlassen wieder freigibt.
+function openShopCategory(cat) {
+  state.shopCategory = cat; state.shopPreview = null; updateMusic();
+  if (cat === 'sfx' || cat === 'music') log('app', 'Shop-Sound-Untermenü: Ton isoliert (nur Vorschau)', { cat });
+}
+function closeShopCategory() { state.shopCategory = null; state.shopPreview = null; updateMusic(); }
 
 // ── Geldverlauf (Transaktionshistorie) ────────────────────────────────────────
 // Lädt die persistierte Liste (neueste zuerst) frisch beim Öffnen — so ist sie
@@ -671,27 +691,39 @@ function equipCatFromSettings(cat, id) {
 }
 // Hör-Vorschau eines Sound-Pakets: Paket kurz aktivieren, kleine Demo-Sequenz
 // spielen, danach das ausgerüstete Paket wiederherstellen (auch ohne Kauf).
+// soundPreviewActive + setSfxMuted(false) sorgen dafür, dass die Vorschau AUCH im
+// Sound-Untermenü (wo UI-Sounds sonst stumm sind) hörbar ist; nach der Demo wird
+// per updateMusic() der Ausgangszustand (Untermenü wieder still) hergestellt.
+let sfxPreviewTimer = null;
 function previewSfxPack(it) {
+  soundPreviewActive = true;
+  Music.setSfxMuted(false);
   Music.setSfxPack(it.id);
   Music.sfxKeep();
   setTimeout(() => Music.sfxComplete(2), 320);
   setTimeout(() => Music.sfxWin(), 760);
-  setTimeout(() => Music.setSfxPack(shopEquippedId('sfx')), 2600);
+  clearTimeout(sfxPreviewTimer);
+  sfxPreviewTimer = setTimeout(() => {
+    Music.setSfxPack(shopEquippedId('sfx'));
+    soundPreviewActive = false;
+    updateMusic();
+  }, 2600);
 }
 // Hör-Vorschau eines Musik-Pakets: Paket setzen + Musik kurz anspielen, danach
-// das ausgerüstete Paket wiederherstellen. Läuft die Musik schon, wechselt nur
-// die Klangwelt; sonst wird sie für die Vorschau kurz gestartet und wieder
-// gestoppt (State/Settings bleiben unberührt).
+// das ausgerüstete Paket wiederherstellen. soundPreviewActive schützt die Vorschau
+// davor, von einem zwischenzeitlichen updateMusic() gestoppt zu werden; am Ende
+// stellt updateMusic() den Ausgangszustand her (Menü-Musik an, außer im Sound-
+// Untermenü — dort bleibt es still). State/Settings bleiben unberührt.
 let musicPreviewTimer = null;
 function previewMusicPack(it) {
+  soundPreviewActive = true;
   Music.setMusicPack(it.id);
-  const wasPlaying = Music.isPlaying();
-  if (!wasPlaying) Music.play(state.settings.musicVolume ?? 0.6);
+  if (!Music.isPlaying()) Music.play(state.settings.musicVolume ?? 0.6);
   clearTimeout(musicPreviewTimer);
   musicPreviewTimer = setTimeout(() => {
     Music.setMusicPack(shopEquippedId('music'));
-    if (!wasPlaying) Music.stop();
-    else updateMusic();
+    soundPreviewActive = false;
+    updateMusic();
   }, 5200);
 }
 function equipShopFree(cat) {
