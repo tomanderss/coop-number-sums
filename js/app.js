@@ -230,8 +230,6 @@ const state = reactive({
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
-  resultHold: false,             // kurzer Vorlauf nach dem Sieg: Ergebnis-Karte wird erst NACH dem
-                                 // Auftakt der Sieganimation eingeblendet, damit man die Animation komplett sieht
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
@@ -2558,9 +2556,17 @@ function applyStreakAfterGame() {
   }
 }
 
-// Vorlauf (ms), bevor die Ergebnis-Karte nach einem Sieg erscheint — Zeit für den
-// Auftakt der Sieganimation auf dem freien Brett.
-const WIN_RESULT_HOLD_MS = 1100;
+// Führt cb NACH dem nächsten gepainteten Frame aus (zwei rAF = ein sicher
+// gerenderter Frame dazwischen). So kann der Browser erst die Sieganimation +
+// den Dialog painten, bevor schwere, den Main-Thread blockierende Arbeit läuft.
+// Fallback (kein rAF, z.B. Tests): kurzer Timeout.
+function afterPaint(cb) {
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => requestAnimationFrame(cb));
+  } else {
+    setTimeout(cb, 32);
+  }
+}
 function win(remote) {
   if (state.status === 'won') return;
   state.status = 'won';
@@ -2572,88 +2578,96 @@ function win(remote) {
     state.mistakes = remote.mistakes;
     state.hintsUsed = remote.hintsUsed;
   }
-  // Der Sieg-Sound läuft jetzt in launchWinFx() — an die Animation + deren Stufe
-  // gekoppelt (vorher separates, kurzes Music.sfxWin() ohne Bezug zur Animation).
+  // Sieganimation + Sieg-Sound SOFORT starten (Sound läuft in launchWinFx, an die
+  // Animation/Stufe gekoppelt). Der Ergebnis-Dialog erscheint ebenfalls sofort —
+  // KEIN Vorlauf mehr; die Animation liegt per z-index ohnehin ÜBER dem Dialog.
   launchWinFx((state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0);
-  // Ergebnis-Karte erst nach kurzem Vorlauf einblenden, damit der Auftakt der
-  // Sieganimation auf dem gelösten Brett frei sichtbar ist (die Animation läuft
-  // via z-index ohnehin ÜBER der Karte weiter). Selbstheilend per Timeout.
-  state.resultHold = true;
-  setTimeout(() => { state.resultHold = false; }, WIN_RESULT_HOLD_MS);
-  // Streak ZUERST buchen (vor der Münz-Belohnung), damit der heutige Sieg bereits
-  // in der Streak steckt und der Streak-Münz-Multiplikator (+5% je Streak-Tag)
-  // ihn mitzählt — z.B. 5er-Streak ⇒ +25%.
-  if (!state.isTrainingGame) applyStreakAfterGame();
-  // Trainingsrätsel (geführter Lernmodus, keine echte eigene Leistung)
-  // fließen bewusst nicht in die nach Schwierigkeit gebucketeten Streaks/
-  // Bestzeiten ein.
-  if (state.isTrainingGame || state.isRaceGame) {
-    state.wouldHaveBeenBest = false;
-    state.newHighscore = false;
-    state.lastCoinReward = 0;  // Training/Race geben keine Münzen (keine gebucketete Leistung)
-  } else {
-    // Vergleich VOR recordResult() einfangen, da der Aufruf bestTimeMs/coopBestTimeMs
-    // bei einem tatsächlichen Highscore sofort überschreibt.
-    const prevBest = state.coop.active
-      ? state.stats.byDifficulty[state.puzzle.difficulty]?.coopBestTimeMs
-      : state.stats.byDifficulty[state.puzzle.difficulty]?.bestTimeMs;
-    const disqualified = state.mistakes > 0 || state.hintsUsed > 0;
-    state.wouldHaveBeenBest = disqualified && (prevBest == null || state.elapsed < prevBest);
-    const { stats, newHighscore } = recordResult({
-      difficulty: state.puzzle.difficulty, outcome: 'won',
-      timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
-      coop: state.coop.active,
-    });
-    state.stats = stats;
-    state.newHighscore = newHighscore;
-    // Münzen pro Sieg, abhängig von der Schwierigkeit — In-Game-Währung fürs
-    // Shop-/Marktplatz-System; erscheint als „+X 💰" auf dem Sieg-Screen. Drei
-    // Boni stapeln multiplikativ (kein Cap): Coop/Wettkampf ×2, makelloser Sieg
-    // ×2, neue Bestzeit ×2 → bis ×8.
-    const dIdx = DIFFICULTIES.findIndex(d => d.id === state.puzzle.difficulty);
-    const perfect = state.mistakes === 0 && state.hintsUsed === 0;
-    const isCoopish = state.coop.active || state.isRaceGame || state.team.active;
-    // Streak-Bonus (+5% je Streak-Tag, additiv) fließt in den Gesamt-Multiplikator
-    // ein — applyStreakAfterGame() lief oben bereits, state.streak ist aktuell.
-    const streakDays = state.streak.currentStreak || 0;
-    const bonus = { coop: isCoopish, perfect, bestTime: newHighscore, streak: streakDays };
-    const coins = coinReward(dIdx, bonus);
-    state.wallet = grantCurrency(coins, 'win');
-    state.lastCoinReward = coins;
-    state.lastCoinMult = Math.round(coinMultiplier(bonus) * 100) / 100;
-    state.lastStreakUsed = streakDays;
-    log('game', 'Münz-Belohnung', { coins, mult: state.lastCoinMult, streakDays, coop: isCoopish, perfect, bestTime: newHighscore });
-    // (Cloud-Sync erfolgt gebündelt am Ende von win() als sofortiges syncCloudNow.)
-    // Neue Solo-Bestzeit (nur perfekte Solo-Siege) in die globale Bestenliste
-    // schreiben — Coop/Wettkampf/Training zählen dort bewusst nicht mit.
-    if (newHighscore && !isCoopish && state.account.status === 'in') {
-      Account.publishBestTime(state.puzzle.difficulty, state.elapsed, state.account.username, myBadge());
+  // Anzeige-Werte auf sichere Defaults, damit der sofort sichtbare Dialog keine
+  // Werte des Vorspiels zeigt — die echten folgen unten (Münzen zählen von 0 hoch).
+  state.lastCoinReward = 0;
+  state.newHighscore = false;
+  state.wouldHaveBeenBest = false;
+  // Die gesamte (teils schwere) Buchhaltung — Streak, Statistik/Bestzeit, Münzen,
+  // Verlauf, Achievements, Speichern, Cloud-Sync und Coop/Team/Race-Broadcasts —
+  // läuft ERST NACH dem ersten gepainteten Frame. Vorher blockierte sie den
+  // Main-Thread, BEVOR der Browser Animation + Dialog painten konnte → der
+  // Auftakt ruckelte und „verschluckte" die erste Sekunde der Animation.
+  afterPaint(() => {
+    // Streak ZUERST buchen (vor der Münz-Belohnung), damit der heutige Sieg bereits
+    // in der Streak steckt und der Streak-Münz-Multiplikator (+5% je Streak-Tag)
+    // ihn mitzählt — z.B. 5er-Streak ⇒ +25%.
+    if (!state.isTrainingGame) applyStreakAfterGame();
+    // Trainingsrätsel (geführter Lernmodus, keine echte eigene Leistung)
+    // fließen bewusst nicht in die nach Schwierigkeit gebucketeten Streaks/
+    // Bestzeiten ein.
+    if (state.isTrainingGame || state.isRaceGame) {
+      state.wouldHaveBeenBest = false;
+      state.newHighscore = false;
+      state.lastCoinReward = 0;  // Training/Race geben keine Münzen (keine gebucketete Leistung)
+    } else {
+      // Vergleich VOR recordResult() einfangen, da der Aufruf bestTimeMs/coopBestTimeMs
+      // bei einem tatsächlichen Highscore sofort überschreibt.
+      const prevBest = state.coop.active
+        ? state.stats.byDifficulty[state.puzzle.difficulty]?.coopBestTimeMs
+        : state.stats.byDifficulty[state.puzzle.difficulty]?.bestTimeMs;
+      const disqualified = state.mistakes > 0 || state.hintsUsed > 0;
+      state.wouldHaveBeenBest = disqualified && (prevBest == null || state.elapsed < prevBest);
+      const { stats, newHighscore } = recordResult({
+        difficulty: state.puzzle.difficulty, outcome: 'won',
+        timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+        coop: state.coop.active,
+      });
+      state.stats = stats;
+      state.newHighscore = newHighscore;
+      // Münzen pro Sieg, abhängig von der Schwierigkeit — In-Game-Währung fürs
+      // Shop-/Marktplatz-System; erscheint als „+X 💰" auf dem Sieg-Screen. Drei
+      // Boni stapeln multiplikativ (kein Cap): Coop/Wettkampf ×2, makelloser Sieg
+      // ×2, neue Bestzeit ×2 → bis ×8.
+      const dIdx = DIFFICULTIES.findIndex(d => d.id === state.puzzle.difficulty);
+      const perfect = state.mistakes === 0 && state.hintsUsed === 0;
+      const isCoopish = state.coop.active || state.isRaceGame || state.team.active;
+      // Streak-Bonus (+5% je Streak-Tag, additiv) fließt in den Gesamt-Multiplikator
+      // ein — applyStreakAfterGame() lief oben bereits, state.streak ist aktuell.
+      const streakDays = state.streak.currentStreak || 0;
+      const bonus = { coop: isCoopish, perfect, bestTime: newHighscore, streak: streakDays };
+      const coins = coinReward(dIdx, bonus);
+      state.wallet = grantCurrency(coins, 'win');
+      state.lastCoinReward = coins;
+      state.lastCoinMult = Math.round(coinMultiplier(bonus) * 100) / 100;
+      state.lastStreakUsed = streakDays;
+      log('game', 'Münz-Belohnung', { coins, mult: state.lastCoinMult, streakDays, coop: isCoopish, perfect, bestTime: newHighscore });
+      // (Cloud-Sync erfolgt gebündelt am Ende als sofortiges syncCloudNow.)
+      // Neue Solo-Bestzeit (nur perfekte Solo-Siege) in die globale Bestenliste
+      // schreiben — Coop/Wettkampf/Training zählen dort bewusst nicht mit.
+      if (newHighscore && !isCoopish && state.account.status === 'in') {
+        Account.publishBestTime(state.puzzle.difficulty, state.elapsed, state.account.username, myBadge());
+      }
     }
-  }
-  if (!state.isTrainingGame) applyStreakAfterGame();
-  if (state.isRaceGame) state.raceStats = recordRaceWin(state.race.ffa ? 'ffa' : '1v1', state.elapsed);
-  if (state.team.active) state.raceStats = recordRaceWin('2v2', state.elapsed);
-  // Trainingsrätsel landen bewusst nicht im Verlauf/in den Achievements (siehe
-  // oben) -- sie werden beliebig oft wiederholt und sollen den Ringpuffer bzw.
-  // "perfektes Spiel"-artige Erfolge nicht verwässern.
-  if (!state.isTrainingGame) {
-    state.puzzleHistory = recordHistory({
-      difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
-      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
-      timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
-    });
-    checkAchievements();
-  }
-  persistGame();
-  // SOFORTIGE Cloud-Sicherung bei Spielende (nicht entprellt): so ist der Sieg
-  // inkl. Belohnung/gelöschtem Fortsetzen-Stand sofort in der Cloud, auch wenn
-  // die App direkt danach geschlossen wird.
-  syncCloudNow('win');
-  if (state.coop.active && !remote) {
-    coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
-  }
-  if (state.team.active && !remote) broadcastTeamDone('won');
-  if (state.race.active && !remote) broadcastRaceDone('won');
+    if (!state.isTrainingGame) applyStreakAfterGame();
+    if (state.isRaceGame) state.raceStats = recordRaceWin(state.race.ffa ? 'ffa' : '1v1', state.elapsed);
+    if (state.team.active) state.raceStats = recordRaceWin('2v2', state.elapsed);
+    // Trainingsrätsel landen bewusst nicht im Verlauf/in den Achievements (siehe
+    // oben) -- sie werden beliebig oft wiederholt und sollen den Ringpuffer bzw.
+    // "perfektes Spiel"-artige Erfolge nicht verwässern.
+    if (!state.isTrainingGame) {
+      state.puzzleHistory = recordHistory({
+        difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
+        seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+        timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
+      });
+      checkAchievements();
+    }
+    persistGame();
+    // SOFORTIGE Cloud-Sicherung bei Spielende (nicht entprellt): so ist der Sieg
+    // inkl. Belohnung/gelöschtem Fortsetzen-Stand sofort in der Cloud, auch wenn
+    // die App direkt danach geschlossen wird.
+    syncCloudNow('win');
+    if (state.coop.active && !remote) {
+      coopSend({ type: Coop.MSG.STATUS, status: 'won', timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
+    }
+    if (state.team.active && !remote) broadcastTeamDone('won');
+    if (state.race.active && !remote) broadcastRaceDone('won');
+  });
 }
 
 function lose(remote) {
@@ -5385,7 +5399,7 @@ const App = {
       </div>
 
       <!-- Gewonnen / Verloren -->
-      <div v-if="state.status==='won' && !state.resultHold" class="overlay">
+      <div v-if="state.status==='won'" class="overlay">
         <div class="result-card win" :class="{ perfect: state.perfectWin }">
           <div class="result-emoji"><span class="ei" v-html="ic('party')"></span></div>
           <h2>{{ winTitle }}</h2>
