@@ -339,6 +339,8 @@ export default {
     loadUsers: 'Load all users',
     openConsole: 'Manage users',
     choose: '– choose –',
+    giftPick: 'Choose a gift', giftTitle: 'What to gift?', giftSpecial: 'Special',
+    giftFounder: 'Founder badge', giftOwned: 'already owned', giftDone: 'Done',
     grantAll: 'Unlock everything', allItems: 'the complete bundle (all items)',
     nothingToGrant: 'Nothing left to unlock — already owns everything.',
     pendingItems: 'Pending: +{grant} / −{revoke} (applied on save)',
