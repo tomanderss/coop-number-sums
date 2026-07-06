@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.104';
-export const BUILD_HASH = 'f7683fe';
+export const BUILD      = '1.105';
+export const BUILD_HASH = 'ae61b79';
 
 export const CHANGELOG = [
+  {
+    "version": "1.105",
+    "date": "06.07.2026",
+    "changes": [
+      "Admin-Panel: Inventar zeigt jetzt „besessen / möglich\" (z.B. 4 / 81)",
+      "Admin „Alles freischalten\": neu freigeschaltete Artikel (auch Musik-/Sound-Pakete) greifen sofort ohne Neustart"
+    ]
+  },
   {
     "version": "1.104",
     "date": "06.07.2026",

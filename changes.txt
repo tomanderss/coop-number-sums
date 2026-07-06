@@ -1,2 +1,0 @@
-Admin-Panel: Inventar zeigt jetzt „besessen / möglich" (z.B. 4 / 81)
-Admin „Alles freischalten": neu freigeschaltete Artikel (auch Musik-/Sound-Pakete) greifen sofort ohne Neustart
