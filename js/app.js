@@ -1140,6 +1140,13 @@ function loadPuzzleIntoState(puzzle, saved) {
 // groß werden. Vor dem ersten Render (DOM noch nicht da) greift ein grober
 // Fallback über window.innerWidth/-Height, den der nextTick-Aufruf in
 // loadPuzzleIntoState() danach durch die echte Messung ersetzt.
+// Desktop = Maus-Zeiger + breites Fenster. Muss zur gleichnamigen CSS-Media-
+// Query (.app.app-game-Breite) passen, damit JS-Zellgröße und CSS-Breite
+// dieselbe Fläche annehmen.
+function desktopBoard() {
+  try { return window.matchMedia && window.matchMedia('(min-width: 720px) and (pointer: fine)').matches; }
+  catch (_) { return false; }
+}
 function computeCellSize() {
   if (!state.puzzle) return;
   const cols = state.puzzle.cols;
@@ -1162,7 +1169,13 @@ function computeCellSize() {
   const idealW = Math.floor(availW / (cols + 1)); // +1 für Kopfspalte
   const idealH = Math.floor(availH / (rows + 1)); // +1 für Kopfzeile
   const ideal = Math.min(idealW, idealH);
-  const base = Math.max(26, Math.min(56, ideal));
+  // Am Handy deckelt die Auto-Einpassung die Zellgröße bei 56px (sonst wirken
+  // die Zellen bei kleinen Brettern auf hohen Displays riesig). Am DESKTOP
+  // (Maus + breites Fenster) darf das Brett dagegen den ganzen verfügbaren
+  // Platz nutzen — dort ist .app.app-game breiter (s. styles.css), also greift
+  // ein höherer Deckel, damit das Feld standardmäßig groß ist und beim Zoomen
+  // erst am Fensterrand (statt am schmalen Mobil-Rahmen) beschnitten wird.
+  const base = Math.max(26, Math.min(desktopBoard() ? 128 : 56, ideal));
   state.cellPx = Math.round(base * state.zoom);
 }
 function setZoom(delta) {

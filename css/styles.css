@@ -159,6 +159,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
      Icons im Querformat (inset-top dort oft 0) direkt am Rand. */
   padding: calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 14px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 14px);
 }
+/* Desktop (Maus + breites Fenster): NUR der Spiel-Screen wird aus der Mobil-
+   Breite (540px) befreit, damit das Spielfeld den vorhandenen Platz nutzt und
+   beim Zoomen erst am Fensterrand — statt am schmalen unsichtbaren Rahmen —
+   beschnitten wird. Alle übrigen Screens bleiben bewusst schmal/zentriert.
+   Muss zur desktopBoard()-Media-Query in app.js passen. */
+@media (min-width: 720px) and (pointer: fine) {
+  .app.app-game { max-width: min(96vw, 1200px); }
+}
 /* Jeder Screen bekommt seine eigene Scroll-Box (statt die ganze Seite wachsen zu
    lassen) — sonst könnte z.B. ein gezoomtes Spielfeld die fixe Werkzeugleiste
    nach unten aus dem sichtbaren Bereich schieben. */

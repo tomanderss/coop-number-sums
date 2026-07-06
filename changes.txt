@@ -1,0 +1,1 @@
+Desktop: Spielfeld nutzt jetzt die volle Fensterbreite (nicht mehr auf den Mobil-Rahmen geklemmt) — größer per Default, beim Zoomen erst am Fensterrand beschnitten
