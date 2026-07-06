@@ -339,6 +339,8 @@ export default {
     loadUsers: 'Alle Nutzer laden',
     openConsole: 'Nutzer verwalten',
     choose: '– auswählen –',
+    giftPick: 'Geschenk auswählen', giftTitle: 'Was verschenken?', giftSpecial: 'Besonderes',
+    giftFounder: 'Gründer-Abzeichen', giftOwned: 'hat es schon', giftDone: 'Fertig',
     grantAll: 'Alles freischalten', allItems: 'das Komplett-Paket (alle Artikel)',
     nothingToGrant: 'Nichts mehr zum Freischalten – besitzt schon alles.',
     pendingItems: 'Ausstehend: +{grant} / −{revoke} (erst beim Speichern gesendet)',

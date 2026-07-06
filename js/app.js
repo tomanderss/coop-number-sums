@@ -208,6 +208,7 @@ const state = reactive({
     adminDataLoading: false,
     adminDataDirty: {},       // pfad -> neuer Wert (ungespeicherte Änderungen)
     adminInvPending: {},      // itemId -> 'grant' | 'revoke' — GESTAGTE Inventar-Änderungen (erst bei „Speichern" gesendet)
+    adminGiftPickerOpen: false, // kategorisierter Geschenk-Auswahl-Screen (wie Shop) offen?
     adminDataSection: null,   // aktuell aufgeklappte Sektion ('wallet' | 'stats' | …)
     adminJsonPath: null, adminJsonDraft: '', adminJsonError: null,  // JSON-Untereditor
   },
@@ -3740,6 +3741,51 @@ function adminItemOptions() {
   for (const u of state.account.adminUsers) Object.keys(u.inventory || {}).forEach((k) => ids.add(k));
   return [...ids].sort();
 }
+// Verschenkbare Artikel NACH KATEGORIE gruppiert — für den Shop-artigen
+// Geschenk-Auswahl-Screen (statt einer rohen Dropdown-Liste aus IDs). Jede
+// Kategorie: { key, title (übersetzt), icon, items:[{id (Inventar-Key), label, icon}] }.
+function adminGiftCategories() {
+  const cats = [];
+  // 1) Sieganimationen (alle außer Confetti)
+  cats.push({
+    key: 'winfx', title: t('shop.winFxTitle'), icon: 'party',
+    items: WIN_EFFECTS.filter((e) => e.id !== CONFETTI_ID)
+      .map((e) => ({ id: winEffectInvKey(e.id), label: adminItemLabel(winEffectInvKey(e.id)), icon: e.icon || 'party' })),
+  });
+  // 2) Shop-Kategorien (Paletten/Themes/Rahmen/Schriften/Skin-Presets/Sounds/Musik)
+  for (const cat of Object.keys(SHOP_CATS)) {
+    const items = shopCatItems(cat).map((it) => ({ id: shopInvKey(it), label: adminItemLabel(shopInvKey(it)), icon: it.icon || SHOP_CATS[cat].icon }));
+    if (items.length) cats.push({ key: cat, title: shopCategoryTitle(cat), icon: SHOP_CATS[cat].icon, items });
+  }
+  // 3) Besonderes: dynamischer Skin + Gründer-Abzeichen
+  cats.push({
+    key: 'special', title: t('admin.giftSpecial'), icon: 'star',
+    items: [
+      { id: SKIN_ID, label: adminItemLabel(SKIN_ID), icon: 'brush' },
+      { id: FOUNDER_ID, label: adminItemLabel(FOUNDER_ID), icon: 'crown' },
+    ],
+  });
+  return cats;
+}
+function openAdminGiftPicker() { state.account.adminGiftPickerOpen = true; }
+function closeAdminGiftPicker() { state.account.adminGiftPickerOpen = false; }
+// Zustand eines Artikels im Picker: 'owned' (hat der Nutzer schon) | 'grant'
+// (gestaged zu verschenken) | null. Revokes laufen weiter über die Chip-Xe.
+function adminGiftItemState(id) {
+  const a = state.account;
+  if (a.adminInvPending[id] === 'grant') return 'grant';
+  const inv = (a.adminEditUser && a.adminEditUser.inventory) || {};
+  return inv[id] ? 'owned' : null;
+}
+// Klick im Picker: nicht-besessene Artikel als Geschenk vor-/abwählen.
+function adminToggleGiftItem(id) {
+  if (adminGiftItemState(id) === 'owned') return; // besitzt er schon → nichts tun
+  if (state.account.adminInvPending[id] === 'grant') adminUnstageItem(id);
+  else adminStageItem(id, 'grant');
+}
+function adminGiftPendingCount() {
+  return Object.values(state.account.adminInvPending).filter((v) => v === 'grant').length;
+}
 function adminFieldOptions() {
   const keys = new Set(['displayName', 'email']);
   for (const u of state.account.adminUsers) Object.keys(u.profile || {}).forEach((k) => keys.add(k));
@@ -3885,6 +3931,7 @@ function adminEnumOptions(row) {
 }
 function adminItemLabel(id) {
   if (id === 'ALL') return t('admin.allItems'); // Sammel-Geschenk „Alles freischalten"
+  if (id === FOUNDER_ID) return t('admin.giftFounder'); // Gründer-Abzeichen (kein Shop-/Dict-Eintrag)
   const key = `admin.dict.o.item.${id}`; const s = t(key);
   if (s !== key) return s;
   // Sieganimationen: Shop-Namen wiederverwenden statt eigener Dict-Einträge.
@@ -4942,6 +4989,7 @@ const App = {
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       openAdminConsole, closeAdminConsole, adminFmtDate, adminItemOptions, adminFieldOptions, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
+      adminGiftCategories, openAdminGiftPicker, closeAdminGiftPicker, adminToggleGiftItem, adminGiftItemState, adminGiftPendingCount,
       adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, openAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
       openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId, adminInventoryDisplay, adminPendingSummary,
       adminBalanceCurrent, adminBalanceTarget, adminBalanceDelta, adminSetBalanceMode, adminApplyBalanceChange,
@@ -6325,13 +6373,7 @@ const App = {
                   </span>
                   <span v-if="!adminInventoryDisplay().length" class="set-hint">—</span>
                 </div>
-                <div class="admin-field-row">
-                  <select class="text-input admin-select" v-model="state.account.adminItem">
-                    <option value="" disabled>{{ t('admin.choose') }}</option>
-                    <option v-for="id in adminItemOptions()" :key="id" :value="id">{{ adminItemLabel(id) }}</option>
-                  </select>
-                  <button class="btn btn-gift btn-sm" :disabled="state.account.adminBusy || !state.account.adminItem" @click="adminGrantAnyItem"><span class="ei" v-html="ic('gift')"></span></button>
-                </div>
+                <button class="btn btn-gift btn-sm admin-gift-open" :disabled="state.account.adminBusy" @click="openAdminGiftPicker"><span class="ei" v-html="ic('gift')"></span> {{ t('admin.giftPick') }}</button>
                 <button class="btn btn-gift btn-sm admin-grant-all" :disabled="state.account.adminBusy" @click="adminGrantAllItems"><span class="ei" v-html="ic('gift')"></span> {{ t('admin.grantAll') }}</button>
                 <p v-if="adminPendingSummary()" class="set-hint admin-pending-hint">{{ adminPendingSummary() }}</p>
               </div>
@@ -6392,6 +6434,38 @@ const App = {
           </div>
           <button v-else class="btn btn-primary" @click="closeAdminEdit">{{ t('admin.done') }}</button>
         </template>
+      </div>
+    </div>
+
+    <!-- Geschenk-Auswahl: kategorisierter Popup-Screen (wie der Shop) statt roher
+         Dropdown-Liste. Antippen wählt einen Artikel zum Verschenken vor (grüner
+         Haken); besessene Artikel sind markiert/deaktiviert. „Fertig" schließt,
+         die Vorauswahl landet als Chip im Editor und wird per „Speichern" gesendet. -->
+    <div v-if="state.account.adminGiftPickerOpen" class="modal-bg admin-gift-bg" @click.self="closeAdminGiftPicker">
+      <div class="modal admin-gift-modal">
+        <header class="admin-gift-head">
+          <h3><span class="ei" v-html="ic('gift')"></span> {{ t('admin.giftTitle') }}</h3>
+          <button class="icon-btn" @click="closeAdminGiftPicker" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
+        </header>
+        <div class="admin-gift-scroll">
+          <button class="btn btn-gift btn-sm admin-grant-all" :disabled="state.account.adminBusy" @click="adminGrantAllItems"><span class="ei" v-html="ic('gift')"></span> {{ t('admin.grantAll') }}</button>
+          <div v-for="cat in adminGiftCategories()" :key="cat.key" class="admin-gift-cat">
+            <div class="admin-gift-cat-head"><span class="ei" v-html="ic(cat.icon)"></span> {{ cat.title }}</div>
+            <div class="admin-gift-grid">
+              <button v-for="it in cat.items" :key="it.id" type="button" class="admin-gift-item"
+                      :class="{ owned: adminGiftItemState(it.id)==='owned', staged: adminGiftItemState(it.id)==='grant' }"
+                      :disabled="adminGiftItemState(it.id)==='owned'" @click="adminToggleGiftItem(it.id)">
+                <span class="agi-ic" v-html="ic(it.icon)"></span>
+                <span class="agi-label">{{ it.label }}</span>
+                <span v-if="adminGiftItemState(it.id)==='owned'" class="agi-state">{{ t('admin.giftOwned') }}</span>
+                <span v-else-if="adminGiftItemState(it.id)==='grant'" class="agi-check" v-html="ic('check')"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <footer class="admin-gift-foot">
+          <button class="btn btn-primary" @click="closeAdminGiftPicker">{{ t('admin.giftDone') }}<template v-if="adminGiftPendingCount()"> ({{ adminGiftPendingCount() }})</template></button>
+        </footer>
       </div>
     </div>
 

@@ -339,6 +339,8 @@ export default {
     loadUsers: 'Загрузить всех пользователей',
     openConsole: 'Управление пользователями',
     choose: '– выбрать –',
+    giftPick: 'Выбрать подарок', giftTitle: 'Что подарить?', giftSpecial: 'Особое',
+    giftFounder: 'Значок основателя', giftOwned: 'уже есть', giftDone: 'Готово',
     grantAll: 'Открыть всё', allItems: 'полный набор (все предметы)',
     nothingToGrant: 'Нечего разблокировать — уже есть всё.',
     pendingItems: 'Ожидает: +{grant} / −{revoke} (применяется при сохранении)',
