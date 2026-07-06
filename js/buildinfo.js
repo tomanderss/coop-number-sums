@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.101';
-export const BUILD_HASH = '8d423f1';
+export const BUILD      = '1.102';
+export const BUILD_HASH = 'c0674e4';
 
 export const CHANGELOG = [
+  {
+    "version": "1.102",
+    "date": "05.07.2026",
+    "changes": [
+      "Schwierigkeitsauswahl: Hintergrund füllt jetzt den ganzen Screen (full-bleed, kein dunkler Rahmen) und blendet zu allen vier Rändern weich aus; Coop/1v1/2v2 sehen identisch wie Solo aus, der Raumcode ist in den Screen integriert"
+    ]
+  },
   {
     "version": "1.101",
     "date": "05.07.2026",
