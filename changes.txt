@@ -1,1 +1,0 @@
-Slider-Schwierigkeitsauswahl jetzt in ALLEN Modi: Coop-, 1v1- und 2v2-Lobby zeigen denselben Slider (als morphende Karte) statt Kartenraster
