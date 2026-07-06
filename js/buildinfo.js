@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.107';
-export const BUILD_HASH = '037e89e';
+export const BUILD      = '1.108';
+export const BUILD_HASH = '77eccad';
 
 export const CHANGELOG = [
+  {
+    "version": "1.108",
+    "date": "06.07.2026",
+    "changes": [
+      "Neues Krönungs-Abzeichen „Großmeister\": freigeschaltet, wenn alle 12 Prestige-Abzeichen auf Legendär stehen — mit glühender Profil-Zelle, dynamischer Prisma-Schrift und Freischalt-Feier"
+    ]
+  },
   {
     "version": "1.107",
     "date": "06.07.2026",
