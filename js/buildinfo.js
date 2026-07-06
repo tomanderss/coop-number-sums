@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.95';
-export const BUILD_HASH = '13d5d6c';
+export const BUILD      = '1.96';
+export const BUILD_HASH = '79c776b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.96",
+    "date": "05.07.2026",
+    "changes": [
+      "Neue Schwierigkeitsauswahl: ein Slider von schwach nach stark mit smooth morphendem Hintergrund, großem Stufen-Icon, Maßen und Zeiten"
+    ]
+  },
   {
     "version": "1.95",
     "date": "05.07.2026",
