@@ -1,1 +1,0 @@
-Spielstart/Fortsetzen: das Brett wird jetzt IMMER sofort vollständig eingepasst — auch die größten Bretter (14×14) auf schmalen Handys, keine abgeschnittene Zeile/Spalte mehr
