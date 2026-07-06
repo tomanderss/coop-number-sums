@@ -1,1 +1,0 @@
-Im Shop-Untermenü „Klänge" und „Musik" pausieren jetzt Hintergrundmusik und alle UI-Sounds — nur die ▶-Vorschau erzeugt dort Ton, damit nichts interferiert
