@@ -3983,6 +3983,21 @@ function adminItemLabel(id) {
   if (us > 0 && SHOP_CATS[id.slice(0, us)]) { const k3 = `shop.it.${id.slice(us + 1)}`; const s3 = t(k3); if (s3 !== k3) return s3; }
   return id;
 }
+// Klartext-Label eines Profilfelds (Auswahl im „Profilfeld setzen“-Dropdown) —
+// dieselbe Klartext-Dict wie der Daten-Editor; Unbekanntes bleibt als lesbarer
+// Schlüssel (nie leer, aber auch nie ein roher DB-Key, wenn eine Übersetzung existiert).
+function adminProfileFieldLabel(k) {
+  const key = `admin.dict.f.profile/${k}.l`; const s = t(key);
+  return s === key ? k : s;
+}
+// Klartext-Titel für den JSON-Untereditor: ganze Sektion → Sektions-Klarname,
+// Feld-Pfad → Feld-Klarname, sonst der rohe Pfad.
+function adminPathLabel(path) {
+  if (!path) return '';
+  const secK = 'admin.sec.' + path; const secV = t(secK); if (secV !== secK) return secV;
+  const fK = `admin.dict.f.${path}.l`; const fV = t(fK); if (fV !== fK) return fV;
+  return path;
+}
 // Epoch-Millisekunden als lesbares Datum unter dem Zahlenfeld anzeigen.
 function adminRowTimestamp(row) {
   const v = adminFieldValue(row);
@@ -5046,7 +5061,7 @@ const App = {
       adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, openAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
       openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId, adminInventoryDisplay, adminPendingSummary,
       adminBalanceCurrent, adminBalanceTarget, adminBalanceDelta, adminSetBalanceMode, adminApplyBalanceChange,
-      adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
+      adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminProfileFieldLabel, adminPathLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw, dismissAdminNotice, adminNoticeText,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, anyFriendOnline, friendActivityText,
@@ -6369,7 +6384,7 @@ const App = {
 
         <!-- JSON-Untereditor (tiefe Strukturen) ersetzt den Inhalt, solange offen -->
         <template v-if="state.account.adminJsonPath">
-          <b class="admin-json-title">{ } {{ state.account.adminJsonPath }}</b>
+          <b class="admin-json-title">{ } {{ adminPathLabel(state.account.adminJsonPath) }}</b>
           <textarea class="text-input admin-json-area" v-model="state.account.adminJsonDraft" spellcheck="false" autocapitalize="none"></textarea>
           <p v-if="state.account.adminJsonError" class="coop-error">{{ state.account.adminJsonError }}</p>
           <div class="admin-field-row">
@@ -6404,7 +6419,7 @@ const App = {
                 <div class="admin-field-row">
                   <select class="text-input admin-select" v-model="state.account.adminFieldKey">
                     <option value="" disabled>{{ t('admin.profileField') }}: {{ t('admin.choose') }}</option>
-                    <option v-for="k in adminFieldOptions()" :key="k" :value="k">{{ k }}</option>
+                    <option v-for="k in adminFieldOptions()" :key="k" :value="k">{{ adminProfileFieldLabel(k) }}</option>
                   </select>
                   <input class="text-input" v-model="state.account.adminFieldVal" :placeholder="t('admin.fieldValue')" />
                   <button class="btn btn-ghost btn-sm" :disabled="state.account.adminBusy || !state.account.adminFieldKey" @click="adminSetField">{{ t('account.save') }}</button>
