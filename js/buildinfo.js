@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.113';
-export const BUILD_HASH = '6d30be6';
+export const BUILD      = '1.114';
+export const BUILD_HASH = '43d0b53';
 
 export const CHANGELOG = [
+  {
+    "version": "1.114",
+    "date": "06.07.2026",
+    "changes": [
+      "Der „Alles stummschalten\"-Schalter sitzt jetzt in den Einstellungen (Ton) statt auf dem Startbildschirm"
+    ]
+  },
   {
     "version": "1.113",
     "date": "06.07.2026",
