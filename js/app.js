@@ -81,6 +81,7 @@ const state = reactive({
                               // erst ein zweiter Tipp auf den Hinweis-Knopf löst die Zelle wirklich auf.
   bestTimeNotice: null,       // Text der kurzen Top-Banner-Meldung "Bestzeit nicht mehr möglich"
   tool: 'pen',               // pen | eraser
+  desktopKeyCapture: false,  // Einstellungen ▸ Desktop: wartet gerade auf einen Tastendruck zum Belegen?
   startTime: 0,
   elapsed: 0,
   history: [],               // Undo-Stack
@@ -4752,6 +4753,9 @@ function init() {
   const unlockAudio = () => updateMusic();
   window.addEventListener('pointerdown', unlockAudio);
   window.addEventListener('keydown', unlockAudio);
+  // Desktop-Werkzeugtaste (z.B. Tab) — capture:true, damit wir Tab abfangen,
+  // BEVOR der Browser den Fokus verschiebt.
+  window.addEventListener('keydown', onDesktopKeydown, true);
   window.addEventListener('touchstart', unlockAudio, { passive: true });
   // App im Hintergrund: AudioContext KOMPLETT schließen (suspendForBackground),
   // damit das OS nichts mehr glitchen kann. Zurück im Vordergrund sofort wieder
@@ -5086,6 +5090,7 @@ const App = {
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, activeWinFxId, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle, winShape, winShapeDefs,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
+      desktopKeyLabel, startDesktopKeyCapture, cancelDesktopKeyCapture, clearDesktopToolKey,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -5984,6 +5989,27 @@ const App = {
             <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
           </div>
           <small class="set-hint">{{ t('settings.coopRemovedOutlineHint') }}</small>
+          </div>
+        </div>
+
+        <!-- 🖥️ Desktop (Tastatur-Kürzel) -->
+        <div class="admin-acc">
+          <button class="admin-acc-head" @click="toggleSettingsCard('desktop')">
+            <span><span class="ico-lead" v-html="ic('keyboard')"></span>{{ t('settings.secDesktop') }}</span>
+            <span class="admin-acc-chev" :class="{ open: state.settingsTab==='desktop' }">▾</span>
+          </button>
+          <div v-if="state.settingsTab==='desktop'" class="admin-acc-body">
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('settings.desktop.toolKey') }}</span>
+              <div class="desktop-key-row">
+                <button class="btn btn-ghost btn-sm desktop-key-cap" :class="{ capturing: state.desktopKeyCapture }" @click="startDesktopKeyCapture">
+                  {{ state.desktopKeyCapture ? t('settings.desktop.press') : desktopKeyLabel(state.settings.desktopToolKey) }}
+                </button>
+                <button v-if="state.desktopKeyCapture" class="btn-link" @click="cancelDesktopKeyCapture">{{ t('common.cancel') }}</button>
+                <button v-else-if="state.settings.desktopToolKey" class="btn-link" @click="clearDesktopToolKey">{{ t('settings.desktop.off') }}</button>
+              </div>
+              <small class="set-hint">{{ t('settings.desktop.hint') }}</small>
+            </div>
           </div>
         </div>
 
@@ -6901,6 +6927,46 @@ function toggleTool() {
   state.tool = state.tool === 'pen' ? 'eraser' : 'pen';
   state.settings.confirmTool = state.tool;
   if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
+}
+
+// ─── Desktop-Tastenkürzel (Werkzeug wechseln) ─────────────────────────────────
+// Eine frei belegbare Taste (Standard „Tab") schaltet WÄHREND einer Partie
+// zwischen Einkreisen und Radiergummi um — praktisch am Desktop, ohne die Maus
+// zum Werkzeug-Button zu bewegen. WICHTIG: keydown wird preventDefault()et, damit
+// z.B. Tab nicht den Browser-Fokus verschiebt, sondern im Spiel greift.
+function normKey(k) { return typeof k === 'string' && k.length === 1 ? k.toLowerCase() : k; }
+// Menschenlesbares Label einer Taste (für die Anzeige in den Einstellungen).
+function desktopKeyLabel(k) {
+  if (!k) return t('settings.desktop.off');
+  if (k === ' ' || k === 'Spacebar') return t('settings.desktop.keySpace');
+  if (k.length === 1) return k.toUpperCase();
+  return k; // Tab, Enter, ArrowLeft, …
+}
+function startDesktopKeyCapture() { state.desktopKeyCapture = true; }
+function cancelDesktopKeyCapture() { state.desktopKeyCapture = false; }
+function clearDesktopToolKey() { setSetting('desktopToolKey', ''); state.desktopKeyCapture = false; }
+// Ist gerade eine „echte" laufende Partie (nicht Pause/Ende/Lobby)?
+function inActiveRound() {
+  return state.screen === 'game' && state.status === 'playing' && !state.paused && !state.coop.awaitingStart;
+}
+// Globaler keydown: erst Belegungs-Modus, sonst Werkzeug-Umschalt-Taste.
+function onDesktopKeydown(e) {
+  // Belegen: nächster Tastendruck wird die neue Taste (Escape bricht ab).
+  if (state.desktopKeyCapture) {
+    e.preventDefault();
+    if (e.key !== 'Escape') { setSetting('desktopToolKey', normKey(e.key)); log('app', 'Desktop-Werkzeugtaste belegt', { key: e.key }); }
+    state.desktopKeyCapture = false;
+    return;
+  }
+  const bind = state.settings.desktopToolKey;
+  if (!bind || !inActiveRound()) return;
+  // Nicht in Textfeldern (Chat/Username/Code) kapern.
+  const el = e.target;
+  const tag = (el && el.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+  if (normKey(e.key) !== bind) return;
+  e.preventDefault();
+  toggleTool();
 }
 
 // Liefert, welche Seiten dieser Zelle zum ÄUSSEREN Rand einer gerade fertig

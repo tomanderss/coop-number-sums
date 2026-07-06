@@ -1,0 +1,1 @@
+Desktop: frei belegbare Taste (Standard Tab) schaltet im Spiel zwischen Einkreisen und Radiergummi um — neuer Einstellungs-Abschnitt „Desktop"; Tab kapert nicht mehr den Browser-Fokus

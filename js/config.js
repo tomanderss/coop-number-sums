@@ -248,6 +248,9 @@ export const DEFAULT_SETTINGS = {
   // storage.loadSettings() auf die entsprechende explizite Wahl.
   themeMode: 'auto',
   confirmTool: 'pen',        // Standard-Werkzeug: 'pen' (einkreisen) | 'eraser'
+  desktopToolKey: 'Tab',     // Desktop-Taste zum Umschalten Einkreisen/Radiergummi im Spiel
+                             // (frei belegbar; '' = aus). keydown wird preventDefault()et,
+                             // damit z.B. Tab NICHT den Browser-Fokus verschiebt.
   eraseStyle: 'hide',        // gelöschte Zahl: 'hide' (verschwindet) | 'strike' (durchgestrichen)
   coopName: '',              // eigener Anzeigename im Coop-Modus
   coopMyColor: '#3b82f6',    // eigene Spielerfarbe -- gilt für die eigenen Markierungen in JEDEM
