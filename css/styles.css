@@ -446,7 +446,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background:
     radial-gradient(120% 80% at 16% 4%,  color-mix(in oklab, var(--dacc) calc(26% + var(--dheat)*24%), transparent), transparent 60%),
     radial-gradient(120% 92% at 88% 12%, color-mix(in oklab, var(--dacc-d) calc(20% + var(--dheat)*22%), transparent), transparent 64%),
-    radial-gradient(160% 130% at 50% 122%, color-mix(in oklab, var(--dacc) 16%, transparent) 0%, color-mix(in oklab, transparent, #000 calc(var(--dheat)*10%)) 62%); }
+    radial-gradient(160% 130% at 50% 122%, color-mix(in oklab, var(--dacc) 16%, transparent) 0%, color-mix(in oklab, transparent, #000 calc(var(--dheat)*10%)) 62%);
+  /* Ränder ausfaden statt hart-eckig abschneiden: eine weiche Radial-Maske lässt
+     die Farbwelt zu allen Seiten „ausflaren" (in den App-Hintergrund übergehen)
+     statt an einer sichtbaren Rechteckkante zu enden. */
+  -webkit-mask: radial-gradient(135% 118% at 50% 34%, #000 55%, rgba(0,0,0,.35) 82%, transparent 100%);
+          mask: radial-gradient(135% 118% at 50% 34%, #000 55%, rgba(0,0,0,.35) 82%, transparent 100%); }
 /* Driftende Lichthöfe in der Stufenfarbe — ambient, dezent. */
 .setup-aura { position: absolute; inset: -20% -25% 0 -25%; z-index: 0; pointer-events: none;
   filter: blur(42px); opacity: calc(.32 + var(--dheat)*.34); }
