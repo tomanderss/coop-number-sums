@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.102';
-export const BUILD_HASH = 'c0674e4';
+export const BUILD      = '1.103';
+export const BUILD_HASH = '66dbb91';
 
 export const CHANGELOG = [
+  {
+    "version": "1.103",
+    "date": "05.07.2026",
+    "changes": [
+      "Admin: Gold-Geschenke an andere Nutzer erscheinen jetzt auch in deren Geldverlauf und lösen bei ihnen eine Benachrichtigung aus",
+      "Admin-Panel: fehlende E-Mail-Adressen werden beim Start automatisch nachgetragen und immer angezeigt"
+    ]
+  },
   {
     "version": "1.102",
     "date": "05.07.2026",
