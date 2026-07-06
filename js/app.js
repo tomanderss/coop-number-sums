@@ -1,5 +1,5 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
-import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw } from './vue.esm-browser.prod.js';
+import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP } from './config.js';
 import { generatePuzzle } from './generator.js';
@@ -92,7 +92,6 @@ const state = reactive({
 
   // Auswahl im Setup
   sel: { ...DEFAULT_GAME_OPTIONS },
-  setupCoin: 0,               // aktuell im Slider-Setup angezeigte Belohnung (Count-up-animiert)
 
   // Coop-Modus
   coop: {
@@ -385,8 +384,6 @@ function navigate(screen) {
   // ohne App-Neustart sichtbar wird. Der refreshAccount-Aufruf persistiert die
   // Rolle zudem lokal (siehe dort), sodass sie danach sofort verfügbar ist.
   if (screen === 'home' && state.account.status === 'in') maybeRefreshRole();
-  // Slider-Setup: Münzanzeige auf die aktuell gewählte Stufe initialisieren.
-  if (screen === 'setup') initSetupScreen();
   // Ein während des Spiels aufgeschobenes Neuladen (Update/Cloud-Übernahme) jetzt
   // nachholen, sobald wir sicher zurück im Menü sind — nie mitten im Spiel.
   if (screen === 'home') nextTick(flushPendingReload);
@@ -526,67 +523,17 @@ function coinFor(d, coopish) {
   return coinReward(DIFFICULTIES.indexOf(d), { coop: !!coopish });
 }
 
-// ─── SLIDER-SCHWIERIGKEITSAUSWAHL (Setup-Screen) ──────────────────────────────
-// Die Auswahl läuft über EINEN Slider statt eine Kartenwand: aktuell gewählte
-// Schwierigkeit = state.sel.difficulty; Index/Prozent daraus abgeleitet. Der
-// Hintergrund morpht smooth über registrierte CSS-Variablen (--accent/--accent-d/
-// --heat, siehe styles.css @property) — hier nur die Werte reingereicht.
-function selDiff() { return DIFF_BY_ID[state.sel.difficulty] || DIFFICULTIES[0]; }
-function selDiffIdx() { const i = DIFFICULTIES.findIndex(d => d.id === state.sel.difficulty); return i < 0 ? 0 : i; }
-// Setzt die Schwierigkeit per Index (geklemmt) und animiert die Münzanzeige.
-function setDiffIdx(i) {
-  i = Math.max(0, Math.min(DIFFICULTIES.length - 1, i));
-  const id = DIFFICULTIES[i].id;
-  if (id === state.sel.difficulty) return;
-  state.sel.difficulty = id;
-  animateSetupCoin(coinFor(DIFFICULTIES[i], false));
-  if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
-}
-// Morph-Variablen für den Setup-Hintergrund (an :style gebunden).
-function setupVars() {
-  const d = selDiff();
-  // Eigene Namespaces (--dacc*), NICHT das app-weite Marken-Token --accent überschreiben.
+// ─── SLIDER-SCHWIERIGKEITSAUSWAHL ─────────────────────────────────────────────
+// Die Auswahl läuft über EINEN Slider statt eine Kartenwand — in ALLEN Modi
+// (Solo-Setup + Coop/Race/Team-Lobby). Die gemeinsame Optik/Logik steckt in der
+// wiederverwendbaren Vue-Komponente <difficulty-slider> (s. DifficultySlider
+// weiter unten). Hier nur die Morph-Variablen für den Hintergrund einer Stufe:
+// der Container (Solo-Section bzw. Coop-Karte) setzt sie via :style, die
+// registrierten @property-Vars (--dacc/--dacc-d/--dheat, styles.css) vererben in
+// die Komponente und morphen den Verlauf smooth. NICHT das app-weite --accent.
+function diffVars(id) {
+  const d = DIFF_BY_ID[id] || DIFFICULTIES[0];
   return { '--dacc': d.accent, '--dacc-d': d.accentD, '--dheat': String(d.heat) };
-}
-// Slider-Füllstand in Prozent (Thumb-/Fill-Position).
-function diffPct() {
-  const n = DIFFICULTIES.length;
-  return n > 1 ? (selDiffIdx() / (n - 1)) * 100 : 0;
-}
-// Beim Betreten des Setup-Screens Münzanzeige ohne Animation auf den Startwert.
-function initSetupScreen() { state.setupCoin = coinFor(selDiff(), false); }
-// Sanftes Hochzählen der Münzanzeige beim Stufenwechsel (ease-out).
-let setupCoinRaf = 0;
-function animateSetupCoin(to) {
-  cancelAnimationFrame(setupCoinRaf);
-  const from = state.setupCoin || 0, t0 = performance.now(), dur = 420;
-  const step = now => {
-    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
-    state.setupCoin = Math.round(from + (to - from) * e);
-    if (p < 1) setupCoinRaf = requestAnimationFrame(step);
-  };
-  setupCoinRaf = requestAnimationFrame(step);
-}
-// Slider-Interaktion: Index aus der Zeiger-X-Position im Track (mit 6px-Rand).
-let setupSliderDragging = false;
-function sliderIdxFromX(clientX, el) {
-  const r = el.getBoundingClientRect(), pad = 16, span = Math.max(1, r.width - pad * 2);
-  const p = Math.max(0, Math.min(1, (clientX - r.left - pad) / span));
-  return Math.round(p * (DIFFICULTIES.length - 1));
-}
-function setupSliderDown(e) {
-  setupSliderDragging = true;
-  try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
-  setDiffIdx(sliderIdxFromX(e.clientX, e.currentTarget));
-}
-function setupSliderMove(e) { if (setupSliderDragging) setDiffIdx(sliderIdxFromX(e.clientX, e.currentTarget)); }
-function setupSliderUp() { setupSliderDragging = false; }
-function setupSliderKey(e) {
-  const k = e.key;
-  if (k === 'ArrowRight' || k === 'ArrowUp') { setDiffIdx(selDiffIdx() + 1); e.preventDefault(); }
-  else if (k === 'ArrowLeft' || k === 'ArrowDown') { setDiffIdx(selDiffIdx() - 1); e.preventDefault(); }
-  else if (k === 'Home') { setDiffIdx(0); e.preventDefault(); }
-  else if (k === 'End') { setDiffIdx(DIFFICULTIES.length - 1); e.preventDefault(); }
 }
 // Streak-Münz-Bonus in Prozent (für die Anzeige, z.B. Streak 5 ⇒ 25).
 function streakBonusPct(streak) {
@@ -4653,9 +4600,110 @@ function init() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  KOMPONENTE: Slider-Schwierigkeitsauswahl (wiederverwendbar in ALLEN Modi)
+// ════════════════════════════════════════════════════════════════════════════
+// v-model = Schwierigkeits-ID; `coop` schaltet Münz-/Zeitanzeige auf Mehrspieler
+// (Coop-Münzen ×2, Lobby-Zeiten). Der morphende Hintergrund liegt am umgebenden
+// Container (setzt --dacc via diffVars); die Komponente erbt die Vars und rendert
+// nur den Inhalt (Medaillon, Name, Maße, Stats, Regler). Eigene Münz-Count-up-
+// Animation je Instanz. Reagiert flott (styles.css --snapT), morpht smooth.
+const DifficultySlider = {
+  props: {
+    modelValue: { type: String, required: true },
+    coop: { type: Boolean, default: false },
+  },
+  emits: ['update:modelValue'],
+  setup(props, { emit }) {
+    const coin = ref(0);
+    const list = DIFFICULTIES;
+    let raf = 0, dragging = false;
+    const curDiff = () => DIFF_BY_ID[props.modelValue] || list[0];
+    const idxOf = () => { const i = list.findIndex(d => d.id === props.modelValue); return i < 0 ? 0 : i; };
+    const pct = () => list.length > 1 ? (idxOf() / (list.length - 1)) * 100 : 0;
+    const coinVal = (id) => coinReward(list.findIndex(d => d.id === id), { coop: props.coop });
+    // Zeiten modusgerecht: Coop/Race/Team → Lobby-Zeiten, Solo → Solo-Zeiten.
+    const avgFor = (id) => props.coop ? lobbyAvgTimeFor(id) : avgTimeFor(id);
+    const bestFor = (id) => {
+      if (props.coop) return lobbyBestTimeMs(id);
+      const s = state.stats.byDifficulty[id];
+      return s && s.bestTimeMs != null ? s.bestTimeMs : null;
+    };
+    function animCoin(to) {
+      cancelAnimationFrame(raf);
+      const from = coin.value || 0, t0 = performance.now(), dur = 420;
+      const step = now => { const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3); coin.value = Math.round(from + (to - from) * e); if (p < 1) raf = requestAnimationFrame(step); };
+      raf = requestAnimationFrame(step);
+    }
+    function setIdx(i) {
+      i = Math.max(0, Math.min(list.length - 1, i));
+      const id = list[i].id;
+      if (id === props.modelValue) return;
+      emit('update:modelValue', id);
+      if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
+    }
+    function idxFromX(clientX, el) {
+      const r = el.getBoundingClientRect(), pad = 16, span = Math.max(1, r.width - pad * 2);
+      const p = Math.max(0, Math.min(1, (clientX - r.left - pad) / span));
+      return Math.round(p * (list.length - 1));
+    }
+    function down(e) { dragging = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setIdx(idxFromX(e.clientX, e.currentTarget)); }
+    function move(e) { if (dragging) setIdx(idxFromX(e.clientX, e.currentTarget)); }
+    function up() { dragging = false; }
+    function key(e) {
+      const k = e.key;
+      if (k === 'ArrowRight' || k === 'ArrowUp') { setIdx(idxOf() + 1); e.preventDefault(); }
+      else if (k === 'ArrowLeft' || k === 'ArrowDown') { setIdx(idxOf() - 1); e.preventDefault(); }
+      else if (k === 'Home') { setIdx(0); e.preventDefault(); }
+      else if (k === 'End') { setIdx(list.length - 1); e.preventDefault(); }
+    }
+    watch(() => props.modelValue, (nv) => animCoin(coinVal(nv)));
+    onMounted(() => { coin.value = coinVal(props.modelValue); });
+    return { t, ic, fmtTime, DIFFICULTIES: list, coin, curDiff, idxOf, pct, avgFor, bestFor, down, move, up, key };
+  },
+  template: `
+  <div class="diff-picker">
+    <div class="setup-hero">
+      <div class="diff-medallion">
+        <div class="dm-ring"></div>
+        <div class="dm-disc" :key="modelValue"><span class="dm-ic" v-html="ic(curDiff().emoji)"></span></div>
+      </div>
+      <div class="diff-eyebrow">{{ t('setup.step') }} {{ idxOf()+1 }} / {{ DIFFICULTIES.length }}</div>
+      <h3 class="diff-name" :key="'n-'+modelValue">{{ t('difficulty.'+modelValue) }}</h3>
+      <div class="diff-dim">{{ curDiff().dim.r }} × {{ curDiff().dim.c }}</div>
+      <div class="diff-stats">
+        <div class="ds-tile ds-coins">
+          <div class="ds-k">{{ t('setup.reward') }}</div>
+          <div class="ds-v"><span class="ei" v-html="ic('coin')"></span> {{ coin||0 }}</div>
+        </div>
+        <div class="ds-tile">
+          <div class="ds-k">{{ t('stats.avgTimeLabel') }}</div>
+          <div class="ds-v">{{ avgFor(modelValue)!=null ? fmtTime(avgFor(modelValue)) : '–:––' }}</div>
+        </div>
+        <div class="ds-tile">
+          <div class="ds-k">{{ t('stats.bestTimeLabel') }}</div>
+          <div class="ds-v">{{ bestFor(modelValue)!=null ? fmtTime(bestFor(modelValue)) : '–:––' }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="setup-controls">
+      <div class="diff-slabel"><span>{{ t('common.difficulty') }}</span><b>{{ idxOf()+1 }} / {{ DIFFICULTIES.length }}</b></div>
+      <div class="diff-track" tabindex="0" role="slider" :aria-valuemin="1" :aria-valuemax="DIFFICULTIES.length" :aria-valuenow="idxOf()+1" :aria-label="t('common.difficulty')" :aria-valuetext="t('difficulty.'+modelValue)"
+           @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @keydown="key">
+        <div class="dt-inner">
+          <div class="dt-rail"><div class="dt-fill" :style="{width: pct()+'%'}"></div></div>
+          <i v-for="(d,i) in DIFFICULTIES" :key="d.id" class="dt-tick" :class="{on:i<=idxOf(), cur:i===idxOf()}" :style="{left: (DIFFICULTIES.length>1 ? i/(DIFFICULTIES.length-1)*100 : 0)+'%', '--tk': d.accent}"></i>
+          <div class="dt-thumb" :style="{left: pct()+'%'}"></div>
+        </div>
+      </div>
+    </div>
+  </div>`,
+};
+
+// ════════════════════════════════════════════════════════════════════════════
 //  KOMPONENTE / TEMPLATE
 // ════════════════════════════════════════════════════════════════════════════
 const App = {
+  components: { DifficultySlider },
   setup() {
     const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
     // Gegner-Lebensanzeige im Wettkampf: dieselbe Herzen-Optik wie die eigene
@@ -4852,7 +4900,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
-      selDiff, selDiffIdx, setDiffIdx, setupVars, diffPct, setupSliderDown, setupSliderMove, setupSliderUp, setupSliderKey,
+      diffVars,
       openWalletLog, closeWalletLog, walletReasonLabel,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
@@ -4944,7 +4992,7 @@ const App = {
     </section>
 
     <!-- ══ SETUP (Slider-Schwierigkeitsauswahl mit morphendem Hintergrund) ══ -->
-    <section v-else-if="state.screen==='setup'" class="screen setup setup-slider" :style="setupVars()">
+    <section v-else-if="state.screen==='setup'" class="screen setup setup-slider" :style="diffVars(state.sel.difficulty)">
       <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
       <header class="topbar setup-top">
         <button class="icon-btn" @click="goBack()">‹</button>
@@ -4952,41 +5000,9 @@ const App = {
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
 
-      <div class="setup-hero">
-        <div class="diff-medallion">
-          <div class="dm-ring"></div>
-          <div class="dm-disc" :key="state.sel.difficulty"><span class="dm-ic" v-html="ic(selDiff().emoji)"></span></div>
-        </div>
-        <div class="diff-eyebrow">{{ t('setup.step') }} {{ selDiffIdx()+1 }} / {{ DIFFICULTIES.length }}</div>
-        <h3 class="diff-name" :key="'n-'+state.sel.difficulty">{{ t('difficulty.'+state.sel.difficulty) }}</h3>
-        <div class="diff-dim">{{ selDiff().dim.r }} × {{ selDiff().dim.c }}</div>
+      <difficulty-slider v-model="state.sel.difficulty"></difficulty-slider>
 
-        <div class="diff-stats">
-          <div class="ds-tile ds-coins">
-            <div class="ds-k">{{ t('setup.reward') }}</div>
-            <div class="ds-v"><span class="ei" v-html="ic('coin')"></span> {{ state.setupCoin||0 }}</div>
-          </div>
-          <div class="ds-tile">
-            <div class="ds-k">{{ t('stats.avgTimeLabel') }}</div>
-            <div class="ds-v">{{ avgTimeFor(state.sel.difficulty)!=null ? fmtTime(avgTimeFor(state.sel.difficulty)) : '–:––' }}</div>
-          </div>
-          <div class="ds-tile">
-            <div class="ds-k">{{ t('stats.bestTimeLabel') }}</div>
-            <div class="ds-v">{{ state.stats.byDifficulty[state.sel.difficulty]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[state.sel.difficulty].bestTimeMs) : '–:––' }}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="setup-controls">
-        <div class="diff-slabel"><span>{{ t('common.difficulty') }}</span><b>{{ selDiffIdx()+1 }} / {{ DIFFICULTIES.length }}</b></div>
-        <div class="diff-track" tabindex="0" role="slider" :aria-valuemin="1" :aria-valuemax="DIFFICULTIES.length" :aria-valuenow="selDiffIdx()+1" :aria-label="t('common.difficulty')" :aria-valuetext="t('difficulty.'+state.sel.difficulty)"
-             @pointerdown="setupSliderDown" @pointermove="setupSliderMove" @pointerup="setupSliderUp" @pointercancel="setupSliderUp" @keydown="setupSliderKey">
-          <div class="dt-inner">
-            <div class="dt-rail"><div class="dt-fill" :style="{width: diffPct()+'%'}"></div></div>
-            <i v-for="(d,i) in DIFFICULTIES" :key="d.id" class="dt-tick" :class="{on:i<=selDiffIdx(), cur:i===selDiffIdx()}" :style="{left: (DIFFICULTIES.length>1 ? i/(DIFFICULTIES.length-1)*100 : 0)+'%', '--tk': d.accent}"></i>
-            <div class="dt-thumb" :style="{left: diffPct()+'%'}"></div>
-          </div>
-        </div>
+      <div class="setup-startrow">
         <button class="btn btn-primary btn-start diff-start" @click="newGame(state.sel.difficulty)">
           {{ t('setup.start') }}
         </button>
@@ -5512,17 +5528,9 @@ const App = {
           <input class="coop-input" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
                  :placeholder="t('common.codePlaceholder')" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
           <div class="setup-label">{{ t('common.difficulty') }}</div>
-          <div class="option-grid">
-            <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
-                    :class="{active: state.coop.lobbyDiffId===d.id}"
-                    @click="state.coop.lobbyDiffId=d.id">
-              <span class="opt-head"><span class="opt-emoji" v-html="ic(d.emoji)"></span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
-              <span class="opt-dimrow"><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span><span class="opt-coins" :title="t('wallet.rewardHint')"><span class="ei" v-html="ic('coin')"></span> {{ coinFor(d, true) }}</span></span>
-              <span class="opt-chips">
-                <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-                <span class="chip best-time-chip" :class="{ 'coop-chip': !lobbyIsCompetition() }"><span class="ei" v-html="ic('trophy')"></span> {{ lobbyBestTimeMs(d.id)!=null ? fmtTime(lobbyBestTimeMs(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
-              </span>
-            </button>
+          <div class="diff-card" :style="diffVars(state.coop.lobbyDiffId)">
+            <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
+            <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true"></difficulty-slider>
           </div>
           <button class="btn btn-primary" @click="startHosting">{{ t('coop.startHosting') }}</button>
         </template>
@@ -5593,17 +5601,9 @@ const App = {
                zweites Grid hier würde nur unnötig Platz verbrauchen/scrollen. -->
           <template v-if="state.coop.raceMode && state.race.rematchPending">
             <div class="setup-label">{{ t('common.difficulty') }}</div>
-            <div class="option-grid">
-              <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card"
-                      :class="{active: state.coop.lobbyDiffId===d.id}"
-                      @click="state.coop.lobbyDiffId=d.id">
-                <span class="opt-coins" :title="t('wallet.rewardHint')"><span class="ei" v-html="ic('coin')"></span> {{ coinFor(d, true) }}</span>
-                <span class="opt-head"><span class="opt-emoji" v-html="ic(d.emoji)"></span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span>
-                <span class="opt-chips">
-                  <span class="chip" :class="{ 'coop-chip': !lobbyIsCompetition() }">⌀ {{ lobbyAvgTimeFor(d.id)!=null ? fmtTime(lobbyAvgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-                  <span class="chip best-time-chip" :class="{ 'coop-chip': !lobbyIsCompetition() }"><span class="ei" v-html="ic('trophy')"></span> {{ lobbyBestTimeMs(d.id)!=null ? fmtTime(lobbyBestTimeMs(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
-                </span>
-              </button>
+            <div class="diff-card" :style="diffVars(state.coop.lobbyDiffId)">
+              <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
+              <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true"></difficulty-slider>
             </div>
           </template>
           <p class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: (state.coop.raceMode && !state.coop.ffaMode) ? 2 : COOP_MAX_PLAYERS }) }}</p>
