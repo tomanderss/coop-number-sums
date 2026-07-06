@@ -23,8 +23,11 @@
 
 let ctx = null, master = null, reverb = null, analyser = null;
 let sfxBus = null, sfxReverb = null; // eigener Bus für UI-Sounds (unabhängig von der Musik)
+let makeup = null;                   // gemeinsamer Ausgangs-Gain (Musik + SFX) — zentraler „Alles stumm"-Punkt
 let droneVoices = [], padTimer = null, melodyTimer = null;
 let running = false, curVolume = 0.5, chordIdx = 0;
+let allMuted = false;                // globaler „Alles stummschalten"-Schalter (setMuted)
+const MAKEUP_LEVEL = 0.65;
 
 const C4 = 261.6255653;
 const midi = (semi) => C4 * Math.pow(2, semi / 12); // Halbtöne relativ zu C4
@@ -210,7 +213,7 @@ function ensureContext() {
   // Leichte Makeup-Verstärkung (Stimmen-Peaks sind bewusst klein); der
   // WaveShaper dahinter fängt Spitzen weich ab -> lauter Grundpegel ohne harte,
   // schrille Übersteuerung und ohne Suspend-Artefakte (anders als ein Kompressor).
-  const makeup = ctx.createGain(); makeup.gain.value = 0.65;
+  makeup = ctx.createGain(); makeup.gain.value = allMuted ? 0 : MAKEUP_LEVEL;
   const shaper = ctx.createWaveShaper();
   shaper.curve = softClipCurve(); shaper.oversample = '2x';
   analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
@@ -397,6 +400,21 @@ export function sfxLose() {
 
 export function isPlaying() { return running; }
 
+// „Alles stummschalten": setzt den gemeinsamen Ausgangs-Gain (Musik UND UI-Sounds
+// laufen beide durch `makeup`) auf 0 — ein zentraler Punkt, unabhängig von den
+// Einzel-Schaltern und der Master-Lautstärke. Persistiert im Flag, sodass er auch
+// nach einem (Neu-)Aufbau des AudioContext (ensureContext) wieder greift.
+export function setMuted(v) {
+  allMuted = !!v;
+  if (makeup && ctx) {
+    try {
+      makeup.gain.cancelScheduledValues(ctx.currentTime);
+      makeup.gain.linearRampToValueAtTime(allMuted ? 0 : MAKEUP_LEVEL, ctx.currentTime + 0.08);
+    } catch { makeup.gain.value = allMuted ? 0 : MAKEUP_LEVEL; }
+  }
+}
+export function isMuted() { return allMuted; }
+
 export function setVolume(v) {
   curVolume = Math.max(0, Math.min(1, v));
   if (master && ctx) {
@@ -418,7 +436,7 @@ export async function play(volume) {
     if (padTimer) { clearTimeout(padTimer); padTimer = null; }
     if (melodyTimer) { clearTimeout(melodyTimer); melodyTimer = null; }
     const stuck = ctx;
-    ctx = null; master = null; reverb = null; analyser = null; sfxBus = null; sfxReverb = null; droneVoices = []; running = false;
+    ctx = null; master = null; reverb = null; analyser = null; sfxBus = null; sfxReverb = null; makeup = null; droneVoices = []; running = false;
     try { stuck.close(); } catch {}
   }
   ensureContext();

@@ -225,6 +225,8 @@ export default {
     tabData: 'Данные',
     secAppearance: "Отображение",
     secColors: "Цвет и оформление",
+    muteAllOn: 'Выключить все звуки',
+    muteAllOff: 'Включить звук',
     secDesktop: "Десктоп",
     desktop: {
       toolKey: 'Клавиша: смена инструмента',

@@ -425,11 +425,21 @@ function musicEnabledForMode(mode) {
 // Aufgerufen an allen Übergängen (navigate, Start, Pause, Sieg/Niederlage,
 // Settings) sowie bei der ersten Nutzergeste (AudioContext-Freischaltung).
 function updateMusic() {
+  // „Alles stummschalten": Musik komplett aus (spart auch CPU) — die UI-Sounds
+  // sind zusätzlich über den zentralen makeup-Gain (Music.setMuted) still.
+  if (state.settings.muteAll) { Music.stop(); return; }
   const inActiveGame = state.screen === 'game' && state.status === 'playing'
     && !state.paused && !state.coop.awaitingStart;
   const shouldPlay = inActiveGame ? musicEnabledForMode(currentMusicMode()) : state.settings.musicMenu;
   if (shouldPlay) Music.play(state.settings.musicVolume);
   else Music.stop();
+}
+// Ein-Klick „Alles stumm" (Home-Menü) — zusätzlich zur Master-Lautstärke.
+function toggleMuteAll() {
+  setSetting('muteAll', !state.settings.muteAll);
+  Music.setMuted(state.settings.muteAll);
+  updateMusic();
+  log('app', 'Alles-Stumm umgeschaltet', { muted: state.settings.muteAll });
 }
 
 // overflow-y:auto auf .screen ist nötig, damit lange Inhalte (z.B. Stats,
@@ -4769,6 +4779,7 @@ function init() {
   } catch (_) {}
   applyTheme();
   applySfxPack(); applyMusicPack();
+  Music.setMuted(state.settings.muteAll);  // „Alles stumm"-Zustand vom letzten Mal übernehmen
   // Bei themeMode 'auto' Systemwechsel (hell/dunkel) live übernehmen — ohne Neustart.
   try {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -5163,7 +5174,7 @@ const App = {
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       desktopKeyLabel, startDesktopKeyCapture, cancelDesktopKeyCapture, clearDesktopToolKey,
-      isMultiplayer, sendChat, openChat, closeChat, toggleChat,
+      isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -5199,6 +5210,7 @@ const App = {
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span><span class="home-donate-heart ico-wrap" aria-hidden="true" v-html="ic('heart')"></span></a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge"><span class="ico-lead" v-html="ic('flame')"></span>{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
+        <button class="icon-btn home-mute-btn" :class="{ muted: state.settings.muteAll }" @click="toggleMuteAll" :aria-label="t(state.settings.muteAll ? 'settings.muteAllOff' : 'settings.muteAllOn')" :title="t(state.settings.muteAll ? 'settings.muteAllOff' : 'settings.muteAllOn')"><span class="ico-wrap" v-html="ic(state.settings.muteAll ? 'mute' : 'sound')"></span></button>
         <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')"><span class="ico-wrap" v-html="ic('users')"></span><span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span><span v-if="anyFriendOnline()" class="friends-online-dot"></span></button>
         <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')"><span class="ico-wrap" v-html="ic('cart')"></span></button>
         <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>

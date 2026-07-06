@@ -225,6 +225,8 @@ export default {
     tabData: 'Daten',
     secAppearance: "Darstellung",
     secColors: "Farbe & Anpassung",
+    muteAllOn: 'Alles stummschalten',
+    muteAllOff: 'Ton wieder anschalten',
     secDesktop: "Desktop",
     desktop: {
       toolKey: 'Taste: Werkzeug wechseln',
@@ -421,6 +423,7 @@ export default {
         'settings/musicCompetition': { l: 'Musik: Wettkampf', d: 'Hintergrundmusik in 1v1- und Team-Partien.' },
         'settings/musicTraining': { l: 'Musik: Training', d: 'Hintergrundmusik im Trainingsmodus.' },
         'settings/musicVolume': { l: 'Musik-Lautstärke', d: 'Von 0 (stumm) bis 1 (volle Lautstärke).' },
+        'settings/muteAll': { l: 'Alles stumm', d: 'Globaler „Alles stummschalten"-Schalter (Home-Menü): legt Musik UND alle UI-Sounds still, unabhängig von den Einzel-Schaltern.' },
         'settings/sfxComplete': { l: 'Sound: Struktur fertig', d: 'Klang, wenn Käfig/Reihe/Spalte gelöst wird.' },
         'settings/sfxKeep': { l: 'Sound: Einkreisen', d: 'Klang beim korrekten Einkreisen einer Zahl.' },
         'settings/sfxRemove': { l: 'Sound: Löschen', d: 'Klang beim Löschen einer Zahl.' },

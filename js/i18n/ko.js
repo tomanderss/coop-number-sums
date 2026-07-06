@@ -225,6 +225,8 @@ export default {
     tabData: '데이터',
     secAppearance: "화면",
     secColors: "색상 및 커스터마이즈",
+    muteAllOn: '모두 음소거',
+    muteAllOff: '음소거 해제',
     secDesktop: "데스크톱",
     desktop: {
       toolKey: '키: 도구 전환',
