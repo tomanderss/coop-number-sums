@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.96';
-export const BUILD_HASH = '79c776b';
+export const BUILD      = '1.97';
+export const BUILD_HASH = 'fba36bd';
 
 export const CHANGELOG = [
+  {
+    "version": "1.97",
+    "date": "05.07.2026",
+    "changes": [
+      "Shop-Vorschau bleibt beim Scrollen deckend: hochgescrollte Rahmen blenden nicht mehr über die Zahlen-Vorschau"
+    ]
+  },
   {
     "version": "1.96",
     "date": "05.07.2026",

@@ -1,1 +1,0 @@
-Shop-Vorschau bleibt beim Scrollen deckend: hochgescrollte Rahmen blenden nicht mehr über die Zahlen-Vorschau
