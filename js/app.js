@@ -3997,12 +3997,28 @@ async function adminSaveData() {
   const isSelfEdit = uid === state.account.uid;
   const selfPrevBalance = isSelfEdit ? (loadWallet().balance || 0) : 0;
   const selfBalanceStaged = isSelfEdit && ('wallet/balance' in a.adminDataDirty);
+  // Guthaben-Änderung an einen ANDEREN Nutzer: Vorher-Stand + Zielwert festhalten,
+  // um danach eine Benachrichtigung mit der Differenz zu senden.
+  const walletStaged = 'wallet/balance' in a.adminDataDirty;
+  const otherPrevBalance = (!isSelfEdit && a.adminEditUser) ? (a.adminEditUser.balance || 0) : 0;
+  const walletTarget = walletStaged ? (Number(a.adminDataDirty['wallet/balance']) || 0) : 0;
+  // updatedAt MITSCHREIBEN, sobald sich der Saldo ändert — sonst greift die
+  // watchGifts-Gate (Cloud.updatedAt > lokal.updatedAt) beim Empfänger nicht →
+  // keine Live-Übernahme und KEIN Eintrag im Geldverlauf (applyCloudWallet).
+  if (walletStaged) a.adminDataDirty['wallet/updatedAt'] = Date.now();
   try {
     // 1) /data-Snapshot-Änderungen (falls vorhanden) senden.
     if (Object.keys(a.adminDataDirty).length) {
       const r = await Account.adminSetUserData(uid, a.adminDataDirty);
       if (!r.ok) { a.adminError = accErr(r.err); return; }
       a.adminDataDirty = {};
+    }
+    // Fremd-Empfänger über die Guthaben-Änderung benachrichtigen (Selbstgabe wird
+    // weiter unten separat behandelt). Der Geldverlauf des Empfängers wird bei IHM
+    // via applyCloudWallet (watchGifts, dank updatedAt-Bump) gebucht.
+    if (!isSelfEdit && walletStaged) {
+      const delta = walletTarget - otherPrevBalance;
+      if (delta) adminNotifyUser(uid, { kind: 'currency', amount: delta });
     }
     // 2) Gestagte Inventar-Änderungen (Grants/Revokes) JETZT anwenden — vorher
     // löste jeder Klick sofort aus; jetzt erst hier beim „Speichern".

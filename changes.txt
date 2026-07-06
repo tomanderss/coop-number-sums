@@ -1,0 +1,2 @@
+Admin: Gold-Geschenke an andere Nutzer erscheinen jetzt auch in deren Geldverlauf und lösen bei ihnen eine Benachrichtigung aus
+Admin-Panel: fehlende E-Mail-Adressen werden beim Start automatisch nachgetragen und immer angezeigt

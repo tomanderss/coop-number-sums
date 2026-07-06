@@ -18,7 +18,7 @@ import { ensureFirebase } from './firebase.js';
 import { log } from './debuglog.js';
 import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
-  loadWallet, loadProfile, saveProfile,
+  loadWallet, loadProfile, saveProfile, noteWalletTransaction,
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
 } from './storage.js';
 
@@ -103,6 +103,15 @@ export async function authState() {
     const u = currentUser(fb);
     if (u && !u.isAnonymous) {
       const prof = (await fb.get(userRef(fb, u.uid, 'profile'))).val() || {};
+      // E-Mail-Backfill: profile.email fehlt bei Alt-Accounts (aus der Zeit vor dem
+      // Email-Feld) oder per Console angelegten Nutzern. Beim Start nachtragen bzw.
+      // aktualisieren, damit der Admin die E-Mail IMMER sieht. Nur der Owner darf
+      // sein eigenes profile/email schreiben (Rules) — fire-and-forget.
+      if (u.email && prof.email !== u.email) {
+        fb.set(userRef(fb, u.uid, 'profile/email'), u.email)
+          .then(() => log('account', 'profile.email nachgetragen', { uid: u.uid }))
+          .catch(() => {});
+      }
       return { signedIn: true, uid: u.uid, email: u.email, username: prof.username || u.displayName || '', role: prof.role || 'user' };
     }
     return { signedIn: false, uid: u ? u.uid : null, anonymous: true };
@@ -593,10 +602,19 @@ async function uploadLocal(fb, uid) {
 // Cloud → lokal (nur bei 'takeCloud' oder Nutzerwahl „Cloud behalten"). Überschreibt
 // die lokalen Nutzdaten bewusst mit dem Cloud-Snapshot; Inventar bleibt vereinigt.
 async function applyCloud(fb, uid, snap) {
+  // Guthaben-Diff VOR dem Überschreiben festhalten, um eine per Admin geschenkte/
+  // entzogene Summe im Geldverlauf zu buchen, wenn der Empfänger beim Gift OFFLINE
+  // war (dann greift die Live-Buchung via applyCloudWallet/watchGifts nicht). Der
+  // Import setzt den Saldo, protokolliert ihn aber nicht — daher hier nachziehen.
+  const prevBalance = loadWallet().balance || 0;
   if (snap) {
     const localInv = loadInventory();
     importFromFile(JSON.stringify(snap));
     mergeInventory(localInv);                 // eigene Unlocks nicht verlieren
+    const newBalance = loadWallet().balance || 0;
+    // Diff-basiert ⇒ inhärent doppelbuchungssicher: hat watchGifts/applyCloudWallet
+    // die Änderung schon gebucht (Saldo bereits neu), ist der Diff hier 0.
+    if (newBalance !== prevBalance) noteWalletTransaction(newBalance - prevBalance, newBalance > prevBalance ? 'gift' : 'adminRevoke');
   }
   await mergeCloudInventory(fb, uid);
   // WICHTIG: syncedRev muss GENAU dem entsprechen, was decideSync beim nächsten
