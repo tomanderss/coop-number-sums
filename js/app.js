@@ -233,6 +233,7 @@ const state = reactive({
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   masterUnlock: false,           // Feier-Screen „Großmeister freigeschaltet" offen?
+  chat: { open: false, messages: [], unread: 0, draft: '' },  // Multiplayer-Textchat (ephemer, in-memory)
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
   walletLogOpen: false,          // Geldverlauf-Modal offen? (Transaktionshistorie)
@@ -1099,6 +1100,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.trainingStep = null;
   state.trainingDone = false;
   state.paused = false;
+  resetChat();  // Chat ist pro Partie frisch (ephemer)
   state.puzzle = puzzle;
   state.cellMeta = buildCellMeta(puzzle);
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
@@ -1714,6 +1716,49 @@ function flushCoopOutbox() {
   }
 }
 
+// ─── Multiplayer-Chat ─────────────────────────────────────────────────────────
+// Läuft über die room-weiten Events (Coop.send) — erreicht in ALLEN Modi
+// (Coop, Race/1v1, FFA, Team) alle im Raum. Nachrichten sind ephemer (nur
+// in-memory), werden pro Partie geleert. Der Absender empfängt sein eigenes
+// Event NICHT zurück (coop.js filtert author===uid), daher lokal einfügen.
+const CHAT_MAX = 120;      // Ringpuffer-Länge
+const CHAT_TEXT_MAX = 300; // max. Zeichen je Nachricht
+function isMultiplayer() { return !!(state.coop.active || state.race.active || state.team.active); }
+function chatSenderName() { return myUsername() || state.settings.coopName || t('chat.anon'); }
+function pushChatMessage(m) {
+  const msgs = state.chat.messages;
+  msgs.push(m);
+  if (msgs.length > CHAT_MAX) msgs.splice(0, msgs.length - CHAT_MAX);
+  if (!state.chat.open && !m.self) state.chat.unread = Math.min(99, state.chat.unread + 1);
+  if (state.chat.open) nextTick(scrollChatToEnd);
+}
+function receiveChat(msg) {
+  const text = String(msg.text || '').slice(0, CHAT_TEXT_MAX);
+  if (!text) return;
+  pushChatMessage({ uid: msg.author || null, name: String(msg.name || t('chat.anon')).slice(0, 40), color: msg.color || null, badge: msg.badge || null, text, self: false, ts: Date.now() });
+  if (state.settings.sfxHint) Music.sfxHint();  // dezenter Ton für neue Nachricht
+  log('coop', 'Chat empfangen', { len: text.length });
+}
+function sendChat() {
+  const text = String(state.chat.draft || '').trim().slice(0, CHAT_TEXT_MAX);
+  if (!text || !isMultiplayer()) return;
+  const name = chatSenderName();
+  const color = state.settings.coopMyColor;
+  const badge = myBadge();
+  Coop.send({ type: Coop.MSG.CHAT, name, color, badge, text });  // room-weit (auch im Team-Modus an alle 4)
+  pushChatMessage({ uid: state.coop.myId, name, color, badge, text, self: true, ts: Date.now() });
+  state.chat.draft = '';
+  log('coop', 'Chat gesendet', { len: text.length });
+}
+function scrollChatToEnd() {
+  const el = document.querySelector('.chat-msgs');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+function openChat() { state.chat.open = true; state.chat.unread = 0; nextTick(() => { scrollChatToEnd(); document.querySelector('.chat-input')?.focus(); }); }
+function closeChat() { state.chat.open = false; }
+function toggleChat() { state.chat.open ? closeChat() : openChat(); }
+function resetChat() { state.chat.messages = []; state.chat.unread = 0; state.chat.open = false; state.chat.draft = ''; }
+
 function handleCoopMsg(msg) {
   if (msg.type === Coop.MSG.MOVE) {
     setMark(msg.r, msg.c, msg.mark, false, msg.from);
@@ -1847,6 +1892,8 @@ function handleCoopMsg(msg) {
       if (state.race.winner === 'me') win(remote);
       else lose(remote);
     }
+  } else if (msg.type === Coop.MSG.CHAT) {
+    receiveChat(msg);
   }
 }
 
@@ -5116,6 +5163,7 @@ const App = {
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       desktopKeyLabel, startDesktopKeyCapture, cancelDesktopKeyCapture, clearDesktopToolKey,
+      isMultiplayer, sendChat, openChat, closeChat, toggleChat,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -5233,6 +5281,10 @@ const App = {
           <div class="hud-item timer"><span class="timer-icon"><span class="ei" v-html="ic('clock')"></span></span><span>{{ fmtTime(state.elapsed) }}</span></div>
         </div>
         <div class="top-actions">
+          <button class="icon-btn chat-btn" v-if="isMultiplayer()" @click="toggleChat" :aria-label="t('chat.title')" :title="t('chat.title')">
+            <span class="ico-wrap" v-html="ic('chat')"></span>
+            <span v-if="state.chat.unread" class="chat-unread">{{ state.chat.unread }}</span>
+          </button>
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing' && !state.coop.awaitingStart" @click="pauseGame" :title="t('game.pauseTitle')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
           </button>
@@ -6913,6 +6965,30 @@ const App = {
         <div class="master-unlock-name">{{ t('prestige.master.title') }}</div>
         <p class="master-unlock-msg">{{ t('prestige.master.unlockMsg') }}</p>
         <button class="btn btn-primary" @click="dismissMasterUnlock">{{ t('prestige.master.equipWear') }}</button>
+      </div>
+    </div>
+
+    <!-- ══ Multiplayer-Chat (Coop / Race / FFA / Team) ══ -->
+    <div v-if="state.chat.open" class="modal-bg chat-bg" @click.self="closeChat">
+      <div class="modal chat-modal">
+        <header class="chat-head">
+          <h3><span class="ico-wrap" v-html="ic('chat')"></span> {{ t('chat.title') }}</h3>
+          <button class="icon-btn" @click="closeChat" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
+        </header>
+        <div class="chat-msgs">
+          <p v-if="!state.chat.messages.length" class="set-hint chat-empty">{{ t('chat.empty') }}</p>
+          <div v-for="(m,i) in state.chat.messages" :key="i" class="chat-msg" :class="{ mine: m.self }">
+            <div v-if="!m.self" class="chat-sender">
+              <span v-if="badgeShown(m.badge)" class="badge-medal-inline chat-badge" v-html="badgeSvg(m.badge)"></span>
+              <span class="chat-name" :style="m.color ? { color: m.color } : null">{{ m.name }}</span>
+            </div>
+            <div class="chat-bubble">{{ m.text }}</div>
+          </div>
+        </div>
+        <form class="chat-input-row" @submit.prevent="sendChat">
+          <input class="text-input chat-input" v-model="state.chat.draft" :maxlength="300" :placeholder="t('chat.placeholder')" autocomplete="off" />
+          <button type="submit" class="btn btn-primary chat-send" :disabled="!state.chat.draft.trim()" :aria-label="t('chat.send')" :title="t('chat.send')"><span class="ico-wrap" v-html="ic('send')"></span></button>
+        </form>
       </div>
     </div>
 

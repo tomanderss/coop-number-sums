@@ -184,6 +184,13 @@ export default {
     weWonByOpponentLives: '상대 팀이 모든 생명을 잃었습니다 — 자동으로 승리합니다! ({myTeam}팀: {myPct}% vs. {oppTeam}팀: {oppPct}%)',
     weLostByLives: '우리 팀이 모든 생명을 잃었습니다 — 매치가 종료되었습니다. ({myTeam}팀: {myPct}% vs. {oppTeam}팀: {oppPct}%)',
   },
+  chat: {
+    title: '채팅',
+    placeholder: '메시지 입력 …',
+    send: '보내기',
+    empty: '아직 메시지가 없습니다. 인사해 보세요!',
+    anon: '플레이어',
+  },
   race: {
     startMatch: '대결 시작',
     waitingForOpponent: '상대를 기다리는 중…',

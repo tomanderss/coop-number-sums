@@ -184,6 +184,13 @@ export default {
     weWonByOpponentLives: 'Team {oppTeam} hat alle Leben verloren — ihr gewinnt automatisch! (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
     weLostByLives: 'Euer Team (Team {myTeam}) hat alle Leben verloren — das Match ist für euch vorbei. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
   },
+  chat: {
+    title: 'Chat',
+    placeholder: 'Nachricht schreiben …',
+    send: 'Senden',
+    empty: 'Noch keine Nachrichten. Schreib etwas!',
+    anon: 'Spieler',
+  },
   race: {
     startMatch: 'Wettkampf starten',
     waitingForOpponent: 'Warte auf den Gegner…',

@@ -184,6 +184,13 @@ export default {
     weWonByOpponentLives: 'Takım {oppTeam} tüm canlarını kaybetti — otomatik olarak kazandınız! (Takım {myTeam}: %{myPct} - Takım {oppTeam}: %{oppPct})',
     weLostByLives: 'Takımınız (Takım {myTeam}) tüm canlarını kaybetti — maç sizin için bitti. (Takım {myTeam}: %{myPct} - Takım {oppTeam}: %{oppPct})',
   },
+  chat: {
+    title: 'Sohbet',
+    placeholder: 'Mesaj yaz …',
+    send: 'Gönder',
+    empty: 'Henüz mesaj yok. Selam ver!',
+    anon: 'Oyuncu',
+  },
   race: {
     startMatch: 'Düelloyu başlat',
     waitingForOpponent: 'Rakip bekleniyor…',

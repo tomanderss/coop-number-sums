@@ -352,6 +352,41 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .master-unlock-msg { color: var(--text2); font-size: .9rem; }
 
+/* ── Multiplayer-Chat ───────────────────────────────────────────────────────── */
+.chat-btn { position: relative; }
+.chat-unread {
+  position: absolute; top: -3px; right: -3px; min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 99px; background: var(--accent); color: #fff; font-size: .66rem; font-weight: 900;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--bg);
+}
+/* Als Sheet unten andocken, damit die Tastatur die Eingabe nicht verdeckt. */
+.chat-bg { align-items: flex-end; }
+.chat-modal {
+  width: 100%; max-width: 480px; max-height: 78vh; max-height: 78dvh;
+  display: flex; flex-direction: column; gap: 10px; padding: 16px; text-align: left;
+}
+.chat-head { display: flex; align-items: center; justify-content: space-between; }
+.chat-head h3 { margin: 0; display: flex; align-items: center; gap: 8px; }
+.chat-msgs {
+  flex: 1 1 auto; min-height: 38vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; gap: 8px; padding: 4px 2px;
+}
+.chat-empty { text-align: center; margin: auto 0; }
+.chat-msg { display: flex; flex-direction: column; gap: 2px; max-width: 82%; align-self: flex-start; }
+.chat-msg.mine { align-self: flex-end; align-items: flex-end; }
+.chat-sender { display: flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 800; padding-left: 4px; }
+.chat-badge { transform: scale(.8); }
+.chat-name { color: var(--text2); }
+.chat-bubble {
+  background: var(--bg2); border-radius: 14px; border-top-left-radius: 4px; padding: 8px 12px;
+  font-weight: 600; line-height: 1.35; word-break: break-word; white-space: pre-wrap;
+}
+.chat-msg.mine .chat-bubble { background: var(--accent); color: #fff; border-top-left-radius: 14px; border-top-right-radius: 4px; }
+.chat-input-row { display: flex; gap: 8px; align-items: center; }
+.chat-input { flex: 1 1 auto; }
+.chat-send { flex: none; padding: 10px 14px; }
+.chat-send:disabled { opacity: .5; }
+
 /* ── Prestige-Screen (verdiente Abzeichen) ──────────────────────────────────── */
 .prestige-modal { max-width: 560px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; }
 .prestige-intro { margin: 0 0 10px; }

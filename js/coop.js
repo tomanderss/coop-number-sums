@@ -398,4 +398,5 @@ export const MSG = {
   IDENTITY: 'identity', ROSTER: 'roster', MISTAKE: 'mistake', START: 'start', READY: 'ready', UNREADY: 'unready',
   TEAM_START: 'teamStart', TEAM_DONE: 'teamDone',
   RACE_START: 'raceStart', RACE_DONE: 'raceDone',
+  CHAT: 'chat',
 };
