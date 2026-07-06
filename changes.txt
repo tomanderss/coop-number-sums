@@ -1,0 +1,1 @@
+Solo-Spielstand wird nie mehr von einem Coop-/Wettkampf-Spiel überschrieben (stabile Slot-Zuordnung statt flackernder Flags)
