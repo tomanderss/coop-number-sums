@@ -591,6 +591,15 @@ export async function deleteAccount() {
 async function mergeCloudInventory(fb, uid) {
   try { const cloud = (await fb.get(userRef(fb, uid, 'inventory'))).val(); if (cloud) mergeInventory(cloud); } catch (_) {}
 }
+// Öffentlich: das VOLLSTÄNDIGE Cloud-Union-Inventar (alle Geschenke) ins lokale
+// Inventar vereinigen und zurückgeben. Nötig nach einer Admin-Selbstbearbeitung:
+// der `data`-Snapshot enthält nur die zuletzt vom Nutzer HOCHGELADENE Inventar-
+// Kopie — Items, die im Union-Knoten liegen (z.B. gerade freigeschaltet), aber
+// noch nie synchronisiert wurden, fehlten sonst lokal bis zum nächsten Neustart.
+export async function syncInventoryFromCloud(uid) {
+  try { const fb = await ensureFirebase(); await mergeCloudInventory(fb, uid); } catch (_) {}
+  return loadInventory();
+}
 // Lokal → Cloud. Danach ist die Basislinie (syncedRev) = aktuelle lokale Revision,
 // d.h. lokal == Cloud == syncedRev (kein Konflikt beim nächsten Start).
 async function uploadLocal(fb, uid) {

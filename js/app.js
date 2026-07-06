@@ -3767,6 +3767,21 @@ function adminGiftCategories() {
   });
   return cats;
 }
+// Gesamtzahl der freischaltbaren Artikel (für die „besessen / möglich"-Anzeige):
+// alle Sieganimationen außer Confetti + kompletter Shop-Katalog + Skin + Founder.
+function adminGiftTotal() {
+  return WIN_EFFECTS.filter((e) => e.id !== CONFETTI_ID).length + SHOP_CATALOG.length + 2;
+}
+// Wie viele der freischaltbaren Katalog-Artikel besitzt der Nutzer? (Zähler, damit
+// „X / Y" konsistent aus DERSELBEN Menge kommt und nie größer als das Total wird.)
+function adminOwnedOfTotal(u) {
+  const inv = (u && u.inventory) || {};
+  let n = 0;
+  for (const e of WIN_EFFECTS) if (e.id !== CONFETTI_ID && inv[winEffectInvKey(e.id)]) n++;
+  for (const it of SHOP_CATALOG) if (inv[shopInvKey(it)]) n++;
+  if (inv[SKIN_ID]) n++; if (inv[FOUNDER_ID]) n++;
+  return n;
+}
 function openAdminGiftPicker() { state.account.adminGiftPickerOpen = true; }
 function closeAdminGiftPicker() { state.account.adminGiftPickerOpen = false; }
 // Zustand eines Artikels im Picker: 'owned' (hat der Nutzer schon) | 'grant'
@@ -4098,6 +4113,11 @@ async function adminSaveData() {
       importFromFile(JSON.stringify(a.adminData));
       const rev = a.adminData.rev || 0;
       setDataRev(rev); setSyncedRev(rev);
+      // Das VOLLE Union-Inventar aus der Cloud nachziehen: der `data`-Snapshot hat nur
+      // die zuletzt hochgeladene Inventar-Kopie — gerade freigeschaltete Items (auch
+      // via „Alles freischalten"), die schon im Union-Knoten liegen, aber nie
+      // synchronisiert wurden, fehlten sonst lokal bis zum Neustart.
+      await Account.syncInventoryFromCloud(uid);
       state.settings = loadSettings(); state.stats = loadStats(); state.streak = loadStreak();
       state.wallet = loadWallet(); state.inventory = loadInventory(); state.puzzleHistory = loadHistory();
       applyTheme(); applySfxPack(); applyMusicPack(); applyLocale(); refreshResume();
@@ -4989,7 +5009,7 @@ const App = {
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
       openAdminConsole, closeAdminConsole, adminFmtDate, adminItemOptions, adminFieldOptions, adminLoadUsers, filteredAdminUsers, openAdminEdit, closeAdminEdit, adminGrantSkin, adminRevokeSkin, adminToggleRole,
-      adminGiftCategories, openAdminGiftPicker, closeAdminGiftPicker, adminToggleGiftItem, adminGiftItemState, adminGiftPendingCount,
+      adminGiftCategories, openAdminGiftPicker, closeAdminGiftPicker, adminToggleGiftItem, adminGiftItemState, adminGiftPendingCount, adminGiftTotal, adminOwnedOfTotal,
       adminDataSections, adminSectionLabel, adminFieldRows, toggleAdminSection, openAdminSection, adminFieldValue, adminInputField, adminToggleField, adminDirtyCount, adminSaveData, adminDiscardData, adminReloadData,
       openAdminJson, closeAdminJson, saveAdminJson, adminChipValue, adminRevokeItemId, adminInventoryDisplay, adminPendingSummary,
       adminBalanceCurrent, adminBalanceTarget, adminBalanceDelta, adminSetBalanceMode, adminApplyBalanceChange,
@@ -6362,7 +6382,7 @@ const App = {
             <!-- 🎒 Inventar (autoritativer Union-Knoten, nicht der Snapshot) -->
             <div class="admin-acc">
               <button class="admin-acc-head" @click="toggleAdminSection('_inventory')">
-                <span><span class="ei" v-html="ic('backpack')"></span> {{ t('admin.inventory') }} <small class="admin-acc-count">{{ state.account.adminEditUser.itemCount || 0 }}</small></span>
+                <span><span class="ei" v-html="ic('backpack')"></span> {{ t('admin.inventory') }} <small class="admin-acc-count">{{ adminOwnedOfTotal(state.account.adminEditUser) }} / {{ adminGiftTotal() }}</small></span>
                 <span class="admin-acc-chev" :class="{ open: state.account.adminDataSection==='_inventory' }">▾</span>
               </button>
               <div v-if="state.account.adminDataSection==='_inventory'" class="admin-acc-body">
