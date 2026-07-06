@@ -227,6 +227,7 @@ export default {
     secColors: "Couleur et personnalisation",
     muteAllOn: 'Tout couper',
     muteAllOff: 'Réactiver le son',
+    muteAll: 'Tout couper',
     secDesktop: "Bureau",
     desktop: {
       toolKey: 'Touche : changer d’outil',

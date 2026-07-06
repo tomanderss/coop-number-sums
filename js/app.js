@@ -5259,7 +5259,6 @@ const App = {
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span><span class="home-donate-heart ico-wrap" aria-hidden="true" v-html="ic('heart')"></span></a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge"><span class="ico-lead" v-html="ic('flame')"></span>{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
-        <button class="icon-btn home-mute-btn" :class="{ muted: state.settings.muteAll }" @click="toggleMuteAll" :aria-label="t(state.settings.muteAll ? 'settings.muteAllOff' : 'settings.muteAllOn')" :title="t(state.settings.muteAll ? 'settings.muteAllOff' : 'settings.muteAllOn')"><span class="ico-wrap" v-html="ic(state.settings.muteAll ? 'mute' : 'sound')"></span></button>
         <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')"><span class="ico-wrap" v-html="ic('users')"></span><span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span><span v-if="anyFriendOnline()" class="friends-online-dot"></span></button>
         <button class="icon-btn home-shop-btn" @click="openShop" :aria-label="t('shop.title')" :title="t('shop.title')"><span class="ico-wrap" v-html="ic('cart')"></span></button>
         <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
@@ -6303,6 +6302,12 @@ const App = {
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='ton' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='ton'" class="admin-acc-body">
+          <!-- „Alles stummschalten": Ein-Schalter, der Musik UND alle UI-Sounds
+               still legt (zusätzlich zur Master-Lautstärke). Nutzt toggleMuteAll
+               (nicht toggleSetting), weil zusätzlich Music.setMuted greifen muss. -->
+          <div class="set-row" @click="toggleMuteAll">
+            <span>{{ t('settings.muteAll') }}</span><span class="switch" :class="{on:state.settings.muteAll}"><i></i></span>
+          </div>
           <!-- Erworbene Sound-/Musik-Pakete ausrüsten (mit ▶ Hör-Vorschau) -->
           <div class="set-row col" v-for="cat in settingsSoundCats()" :key="cat">
             <span class="set-row-label"><span class="ei" v-html="ic(SHOP_CATS[cat].icon)"></span> {{ shopCategoryTitle(cat) }}</span>

@@ -227,6 +227,7 @@ export default {
     secColors: "색상 및 커스터마이즈",
     muteAllOn: '모두 음소거',
     muteAllOff: '음소거 해제',
+    muteAll: '모두 음소거',
     secDesktop: "데스크톱",
     desktop: {
       toolKey: '키: 도구 전환',
