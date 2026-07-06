@@ -229,6 +229,8 @@ const state = reactive({
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
+  resultHold: false,             // kurzer Vorlauf nach dem Sieg: Ergebnis-Karte wird erst NACH dem
+                                 // Auftakt der Sieganimation eingeblendet, damit man die Animation komplett sieht
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
@@ -2542,6 +2544,9 @@ function applyStreakAfterGame() {
   }
 }
 
+// Vorlauf (ms), bevor die Ergebnis-Karte nach einem Sieg erscheint — Zeit für den
+// Auftakt der Sieganimation auf dem freien Brett.
+const WIN_RESULT_HOLD_MS = 1100;
 function win(remote) {
   if (state.status === 'won') return;
   state.status = 'won';
@@ -2556,6 +2561,11 @@ function win(remote) {
   // Der Sieg-Sound läuft jetzt in launchWinFx() — an die Animation + deren Stufe
   // gekoppelt (vorher separates, kurzes Music.sfxWin() ohne Bezug zur Animation).
   launchWinFx((state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0);
+  // Ergebnis-Karte erst nach kurzem Vorlauf einblenden, damit der Auftakt der
+  // Sieganimation auf dem gelösten Brett frei sichtbar ist (die Animation läuft
+  // via z-index ohnehin ÜBER der Karte weiter). Selbstheilend per Timeout.
+  state.resultHold = true;
+  setTimeout(() => { state.resultHold = false; }, WIN_RESULT_HOLD_MS);
   // Streak ZUERST buchen (vor der Münz-Belohnung), damit der heutige Sieg bereits
   // in der Streak steckt und der Streak-Münz-Multiplikator (+5% je Streak-Tag)
   // ihn mitzählt — z.B. 5er-Streak ⇒ +25%.
@@ -5269,7 +5279,7 @@ const App = {
       </div>
 
       <!-- Gewonnen / Verloren -->
-      <div v-if="state.status==='won'" class="overlay">
+      <div v-if="state.status==='won' && !state.resultHold" class="overlay">
         <div class="result-card win" :class="{ perfect: state.perfectWin }">
           <div class="result-emoji"><span class="ei" v-html="ic('party')"></span></div>
           <h2>{{ winTitle }}</h2>
@@ -6151,14 +6161,17 @@ const App = {
     <!-- ══ TOAST ══ -->
     <transition name="toast">
       <div v-if="state.toast" class="toast" :class="state.toast.type">{{ state.toast.msg }}</div>
+    </transition>
 
     <!-- Sieganimation: global (fixed Overlay), damit die Shop-Vorschau auf jedem
-         Screen funktioniert — nicht nur im Spiel. -->
+         Screen funktioniert — nicht nur im Spiel. MUSS ein eigenständiges Element
+         sein (NICHT im <transition> des Toasts): eine Vue-<transition> rendert nur
+         EIN Kind — mit-verschachtelt wurde die komplette Sieganimation verschluckt
+         (sie war praktisch nie im DOM). -->
     <div v-if="state.winFx" class="winfx" :class="['fx-' + state.winFx.id, { perfect: state.perfectWin }]" :key="state.winFx.seq">
       <i v-for="p in state.winFx.pieces" :key="p.id" :class="[p.creature ? 'cr' : '', p.shape ? 'sv' : '', p.txt ? 'tx' : '', p.kind ? 'k' + p.kind : '', p.corner != null ? 'c' + p.corner : '', p.band != null ? 'b' + p.band : '']" :style="winFxStyle(p)" v-html="p.creature || (p.shape ? winShape(p.shape, p.hue) : (p.txt || ''))"></i>
       <b v-if="state.winFx.id==='arcade'" class="winfx-label">YOU WIN</b>
     </div>
-    </transition>
     <!-- Top-Banner statt Toast: verdeckt nie das Spielfeld, sitzt am oberen Rand. -->
     <transition name="toast">
       <div v-if="state.bestTimeNotice" class="best-time-banner"><span class="ei" v-html="ic('clock')"></span> {{ state.bestTimeNotice }}</div>
