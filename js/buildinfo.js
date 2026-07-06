@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.110';
-export const BUILD_HASH = 'f71bdae';
+export const BUILD      = '1.111';
+export const BUILD_HASH = '050f542';
 
 export const CHANGELOG = [
+  {
+    "version": "1.111",
+    "date": "06.07.2026",
+    "changes": [
+      "Chat in allen Multiplayer-Modi (Coop, 1v1, Jeder-gegen-Jeden, Team) — Chat-Button in der Spielleiste mit Ungelesen-Zähler"
+    ]
+  },
   {
     "version": "1.110",
     "date": "06.07.2026",
