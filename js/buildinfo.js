@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.103';
-export const BUILD_HASH = '66dbb91';
+export const BUILD      = '1.104';
+export const BUILD_HASH = 'f7683fe';
 
 export const CHANGELOG = [
+  {
+    "version": "1.104",
+    "date": "06.07.2026",
+    "changes": [
+      "Admin-Panel: Geschenk-Auswahl ist jetzt ein kategorisierter Popup-Screen (wie der Shop) mit klaren deutschen Namen statt einer rohen Dropdown-Liste"
+    ]
+  },
   {
     "version": "1.103",
     "date": "05.07.2026",
