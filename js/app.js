@@ -6839,20 +6839,20 @@ const App = {
           <button class="icon-btn" @click="closePrestige" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
         </header>
         <p class="set-hint prestige-intro">{{ t('prestige.intro') }}</p>
-        <!-- Krönung: „Großmeister" — freigeschaltet, wenn ALLE 12 Kategorien Legendär sind -->
-        <div class="prestige-master" :class="{ unlocked: masterInfo().unlocked }">
-          <div class="prestige-master-medal" v-html="badgeSvg(MASTER_BADGE, true)"></div>
-          <div class="prestige-master-info">
-            <div class="prestige-master-nm"><b class="pm-title">{{ t('prestige.master.title') }}</b><span class="prestige-master-tag">{{ t('prestige.master.tag') }}</span></div>
-            <p class="prestige-master-desc">{{ t('prestige.master.desc') }}</p>
-            <div class="prestige-bar" :class="{ done: masterInfo().unlocked }"><i :style="{ width: Math.round(masterInfo().maxed/masterInfo().total*100)+'%' }"></i></div>
-            <div class="prestige-master-prog">{{ t('prestige.master.progress', { n: masterInfo().maxed, total: masterInfo().total }) }}</div>
-            <button v-if="masterInfo().unlocked" class="btn btn-sm prestige-master-btn" :class="{ 'btn-ghost': isMasterEquipped(), 'btn-primary': !isMasterEquipped() }" @click="isMasterEquipped() ? unequipBadge() : equipMaster()">
-              {{ isMasterEquipped() ? t('prestige.unequip') : t('prestige.master.equip') }}
-            </button>
-          </div>
-        </div>
         <div class="prestige-list">
+          <!-- Krönung: „Großmeister" — freigeschaltet, wenn ALLE 12 Kategorien Legendär sind.
+               Liegt IM Scrollbereich (erstes Element), damit es die Liste nicht verkürzt. -->
+          <div class="prestige-master" :class="{ unlocked: masterInfo().unlocked }">
+            <div class="prestige-master-medal" v-html="badgeSvg(MASTER_BADGE, true)"></div>
+            <div class="prestige-master-info">
+              <div class="prestige-master-nm"><b class="pm-title">{{ t('prestige.master.title') }}</b><span class="prestige-master-tag">{{ t('prestige.master.tag') }}</span></div>
+              <div class="prestige-bar" :class="{ done: masterInfo().unlocked }"><i :style="{ width: Math.round(masterInfo().maxed/masterInfo().total*100)+'%' }"></i></div>
+              <div class="prestige-master-prog">{{ t('prestige.master.progress', { n: masterInfo().maxed, total: masterInfo().total }) }}</div>
+              <button v-if="masterInfo().unlocked" class="btn btn-sm prestige-master-btn" :class="{ 'btn-ghost': isMasterEquipped(), 'btn-primary': !isMasterEquipped() }" @click="isMasterEquipped() ? unequipBadge() : equipMaster()">
+                {{ isMasterEquipped() ? t('prestige.unequip') : t('prestige.master.equip') }}
+              </button>
+            </div>
+          </div>
           <div v-for="p in prestigeList()" :key="p.sym" class="prestige-cat" :class="{ locked: p.tier===0 }">
             <div class="prestige-lead">
               <div class="badge-medal-card prestige-cat-medal" :class="{ dim: p.tier===0 }" v-html="badgeSvg(p.sym + '-' + Math.max(1,p.tier))"></div>

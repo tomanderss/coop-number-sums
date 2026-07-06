@@ -316,11 +316,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* Prestige-Screen: Krönungs-Karte „Großmeister" ganz oben */
 .prestige-master {
-  display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 16px; margin-bottom: 12px;
+  display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 14px; flex: none;
   background: linear-gradient(135deg, rgba(120,90,255,.14), rgba(95,240,171,.08));
   border: 1px solid rgba(150,120,255,.35); position: relative;
 }
-.prestige-master-medal .bmm { width: 84px; height: 84px; }
+.prestige-master-medal .bmm { width: 60px; height: 60px; }
 .prestige-master:not(.unlocked) { opacity: .9; }
 .prestige-master:not(.unlocked) .bmm { filter: grayscale(.65) brightness(.8); }
 .prestige-master-medal { flex: none; }
