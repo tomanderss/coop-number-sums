@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.109';
-export const BUILD_HASH = '2be2eaf';
+export const BUILD      = '1.110';
+export const BUILD_HASH = 'f71bdae';
 
 export const CHANGELOG = [
+  {
+    "version": "1.110",
+    "date": "06.07.2026",
+    "changes": [
+      "Spielstart/Fortsetzen: das Brett wird jetzt IMMER sofort vollständig eingepasst — auch die größten Bretter (14×14) auf schmalen Handys, keine abgeschnittene Zeile/Spalte mehr"
+    ]
+  },
   {
     "version": "1.109",
     "date": "06.07.2026",
