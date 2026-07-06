@@ -2160,10 +2160,16 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .friends-leaderboard-placeholder { align-items: center; text-align: center; padding: 24px 12px; gap: 6px; }
 .friends-lb-icon { font-size: 2.6rem; }
 .friends-lb-title { font-weight: 800; font-size: 1.02rem; }
-/* Bestenliste: Schwierigkeits-Chips + Rangliste */
-.lb-diff-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+/* Bestenliste: Kopf/Chips fix, nur die Rangliste darunter scrollt — so springt
+   beim Schwierigkeit-Wechsel nichts (kein Flackern/Verschieben der Buttons). */
+.friends-leaderboard { overflow: visible; max-height: none; flex: 1 1 auto; min-height: 0; gap: 10px; }
+.lb-diff-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; flex: 0 0 auto; }
 .lb-diff-chip { font-size: 1.15rem; line-height: 1; padding: 5px 8px; border-radius: 10px; background: var(--bg2); border: 2px solid transparent; }
 .lb-diff-chip.active { border-color: var(--accent); background: var(--accent-soft); }
+/* Scrollbereich: feste Untergrenze (kein Höhen-Sprung bei wenigen Einträgen),
+   wächst mit und scrollt intern bei vielen Einträgen. */
+.lb-scroll { flex: 1 1 auto; min-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.lb-scroll .lb-state { margin: 0; }
 .lb-list { display: flex; flex-direction: column; gap: 4px; }
 .lb-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; background: var(--bg2); border-radius: 10px; font-weight: 700; }
 .lb-row.me { background: var(--accent-soft); border: 1px solid var(--accent); }
