@@ -2330,8 +2330,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .wl-row.plus .wl-amount { color: var(--good, #2ba84a); }
 .wl-row.minus .wl-amount { color: var(--text2); }
 .home-shop-btn { font-size: 1.05rem; }
-/* „Alles stumm"-Knopf oben im Menü: aktiv (stumm) = Akzentfarbe + gefüllt */
-.home-mute-btn.muted { color: #fff; background: var(--accent); }
 /* Shop-Einstieg über den Statistiken */
 .shop-entry-btn { display: flex; align-items: center; gap: 12px; text-align: left; }
 .shop-entry-btn .btn-tx { display: flex; flex-direction: column; flex: 1; }

@@ -227,6 +227,7 @@ export default {
     secColors: "Цвет и оформление",
     muteAllOn: 'Выключить все звуки',
     muteAllOff: 'Включить звук',
+    muteAll: 'Выключить все звуки',
     secDesktop: "Десктоп",
     desktop: {
       toolKey: 'Клавиша: смена инструмента',

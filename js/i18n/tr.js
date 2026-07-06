@@ -227,6 +227,7 @@ export default {
     secColors: "Renk ve özelleştirme",
     muteAllOn: 'Tüm sesleri kapat',
     muteAllOff: 'Sesi aç',
+    muteAll: 'Tüm sesleri kapat',
     secDesktop: "Masaüstü",
     desktop: {
       toolKey: 'Tuş: araç değiştir',

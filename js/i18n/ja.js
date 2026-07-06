@@ -227,6 +227,7 @@ export default {
     secColors: "色とカスタマイズ",
     muteAllOn: 'すべてミュート',
     muteAllOff: 'ミュート解除',
+    muteAll: 'すべてミュート',
     secDesktop: "デスクトップ",
     desktop: {
       toolKey: 'キー: ツールを切り替え',

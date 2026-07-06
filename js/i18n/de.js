@@ -227,6 +227,7 @@ export default {
     secColors: "Farbe & Anpassung",
     muteAllOn: 'Alles stummschalten',
     muteAllOff: 'Ton wieder anschalten',
+    muteAll: 'Alles stummschalten',
     secDesktop: "Desktop",
     desktop: {
       toolKey: 'Taste: Werkzeug wechseln',

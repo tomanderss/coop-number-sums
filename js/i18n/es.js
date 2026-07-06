@@ -227,6 +227,7 @@ export default {
     secColors: "Color y personalización",
     muteAllOn: 'Silenciar todo',
     muteAllOff: 'Activar sonido',
+    muteAll: 'Silenciar todo',
     secDesktop: "Escritorio",
     desktop: {
       toolKey: 'Tecla: cambiar herramienta',
