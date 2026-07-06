@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.97';
-export const BUILD_HASH = 'fba36bd';
+export const BUILD      = '1.98';
+export const BUILD_HASH = '3fc8782';
 
 export const CHANGELOG = [
+  {
+    "version": "1.98",
+    "date": "05.07.2026",
+    "changes": [
+      "Schwierigkeits-Slider reagiert flott: Regler und Füllung ziehen nicht mehr hinterher, der Hintergrund morpht weiterhin smooth"
+    ]
+  },
   {
     "version": "1.97",
     "date": "05.07.2026",
