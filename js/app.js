@@ -73,6 +73,10 @@ const state = reactive({
   hintsUsed: 0,
   mistakes: 0,
   status: 'idle',            // idle | playing | won | lost
+  saveSlot: 'solo',          // STABILE Speicher-Slot-Kennung ('solo'|'coop'|'race'), beim Laden gesetzt.
+                             // persistGame()/quitToHome() entscheiden hierüber — NICHT über die transienten
+                             // Flags coop.active/team.active, die bei Rejoin/Rollenwechsel kurz flackern können.
+                             // So wird der Solo-Slot NIE von einem Coop-/Team-Spiel überschrieben.
   newHighscore: false,        // true, wenn beim letzten Sieg eine neue Bestzeit erzielt wurde
   wouldHaveBeenBest: false,   // true, wenn die Zeit ohne Fehler/Hinweise eine neue Bestzeit gewesen wäre
   hintWarnShown: false,       // true, sobald die einmalige Hinweis-Warnung dieser Partie bestätigt wurde
@@ -1111,6 +1115,11 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.trainingDone = false;
   state.paused = false;
   resetChat();  // Chat ist pro Partie frisch (ephemer)
+  // Speicher-Slot JETZT festnageln (die Aufrufer setzen coop/team/race VOR diesem
+  // Aufruf korrekt) — immun gegen späteres Flackern von coop.active bei Rejoin/
+  // Rollenwechsel. Team läuft (wie Coop) im Coop-Slot; Race wird nie persistiert.
+  state.saveSlot = state.race.active ? 'race' : (state.coop.active || state.team.active) ? 'coop' : 'solo';
+  log('game', 'loadPuzzle: saveSlot festgelegt', { slot: state.saveSlot, coop: state.coop.active, team: state.team.active, race: state.race.active });
   state.puzzle = puzzle;
   state.cellMeta = buildCellMeta(puzzle);
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
@@ -2833,27 +2842,28 @@ function quitToHome() {
   // (siehe state.race-Kommentar) -- ohne state.race.active hier würde
   // quitToHome() ein verlassenes Rennen fälschlich als Solo-Spielstand
   // speichern und später zum Fortsetzen anbieten.
-  const wasCoop = state.coop.active || state.race.active;
+  // Slot über die STABILE state.saveSlot (nicht coop.active) — sonst würde ein
+  // Coop-/Team-Spiel, dessen coop.active gerade flackert, hier als Solo gesichert
+  // und der echte Solo-Stand überschrieben.
+  const slot = state.saveSlot;
   const wasPlaying = state.status === 'playing' && !state.isTrainingGame;
   // Coop-Spielstand und Session sichern BEVOR coopReset()/clearCoopSession()
-  // sie wegräumt — nur wenn das Spiel noch lief (kein Race, kein Training).
-  // So bleibt der "Coop fortsetzen"-Button im Hauptmenü sichtbar und der
-  // Spieler kann per resumeCoopGame() wieder beitreten, solange der Raum offen ist.
-  const coopSnap = wasCoop && wasPlaying && !state.race.active ? activeSnapshot() : null;
+  // sie wegräumt — nur wenn das Spiel noch lief (Race wird nie persistiert).
+  const coopSnap = slot === 'coop' && wasPlaying ? activeSnapshot() : null;
   // lastEventKey VOR coopReset() abgreifen — Coop.leave() setzt ihn zurück.
   const coopSess = coopSnap ? { code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId, lastEventKey: Coop.getLastEventKey() } : null;
   if (state.coop.role) coopReset();
   // Solo- und Coop-Spielstände leben in getrennten Storage-Slots (siehe
   // persistGame()) -- ein Verlassen des einen Modus darf den gespeicherten
-  // Stand des anderen nicht überschreiben/löschen.
-  if (wasCoop) {
-    if (!state.race.active) {
-      if (coopSnap) { saveActiveGameCoop(coopSnap); saveCoopSession(coopSess); }
-      else saveActiveGameCoop(null);
-    }
-  } else {
+  // Stand des anderen nicht überschreiben/löschen. Der Solo-Slot wird NUR bei
+  // slot==='solo' angefasst.
+  if (slot === 'coop') {
+    if (coopSnap) { saveActiveGameCoop(coopSnap); saveCoopSession(coopSess); }
+    else saveActiveGameCoop(null);
+  } else if (slot === 'solo') {
     saveActiveGame(wasPlaying ? activeSnapshot() : null);
   }
+  // 'race'/unbekannt → nichts speichern/löschen (Solo-Slot bleibt unberührt)
   refreshResume();
   navigate('home');
 }
@@ -2876,9 +2886,14 @@ function activeSnapshot() {
   };
 }
 function persistGame() {
+  // Slot-Entscheidung über die STABILE state.saveSlot (beim Laden gesetzt), NICHT
+  // über state.coop.active — dessen kurzes Flackern bei Rejoin/Rollenwechsel führte
+  // sonst dazu, dass ein Coop-/Team-Spiel in den SOLO-Slot geschrieben und der
+  // Solo-Stand überschrieben wurde. Solo-Slot wird AUSSCHLIESSLICH bei saveSlot==='solo'
+  // angefasst.
   // Race-Matches sind strikt live/Wettkampf -- ein Fortsetzen nach Verbindungs-
   // abbruch wäre unfair/sinnlos (siehe state.race-Kommentar), daher nie persistiert.
-  if (state.race.active) return;
+  if (state.saveSlot === 'race' || state.race.active) return;
   // Solo- und Coop-Spielstände leben in getrennten Storage-Slots, sonst
   // überschreibt ein 400ms-Autosave aus dem jeweils anderen Modus den
   // gespeicherten Stand des anderen.
@@ -2895,23 +2910,25 @@ function persistGame() {
   // BEENDETES Spiel ('won'/'lost') räumt den Slot auf.
   if (state.status === 'idle') return;
   if (state.status !== 'playing') {
-    if (state.coop.active) { saveActiveGameCoop(null); clearCoopSession(); }
-    else saveActiveGame(null);
+    if (state.saveSlot === 'coop') { saveActiveGameCoop(null); clearCoopSession(); }
+    else if (state.saveSlot === 'solo') saveActiveGame(null);
+    // unbekannter/kein Slot → nichts anfassen (Solo-Slot bleibt unberührt)
     return;
   }
   const now = Date.now();
   if (now - saveThrottle < 400) return;
   saveThrottle = now;
-  if (state.coop.active) {
+  if (state.saveSlot === 'coop') {
     saveActiveGameCoop(activeSnapshot());
     // lastEventKey = Wiederaufsetzpunkt: der spätere rejoin() hängt den Event-
     // Listener HINTER diesem Key an, statt die komplette Historie (inkl. INIT/
     // START/STATUS) erneut abzuspielen — Snapshot und Key werden im selben
     // Moment gesichert und sind damit konsistent zueinander.
     saveCoopSession({ code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId, lastEventKey: Coop.getLastEventKey() });
-  } else {
+  } else if (state.saveSlot === 'solo') {
     saveActiveGame(activeSnapshot());
   }
+  // unbekannter Slot → NICHTS schreiben (Solo-Slot bleibt garantiert unberührt)
 }
 function refreshResume() {
   const g = loadActiveGame();
@@ -3562,7 +3579,7 @@ function acceptLobbyInvite(inv) {
   // Einladungen erscheinen jetzt auch MITTEN im Spiel: läuft gerade eine
   // Solo-Partie, wird sie vor dem Wechsel in die Lobby gesichert (Fortsetzen-
   // Button wie bei „Zum Menü"), damit kein Fortschritt verloren geht.
-  if (state.status === 'playing' && !state.isTrainingGame && !state.coop.active && !state.race.active && !state.team.active) {
+  if (state.status === 'playing' && !state.isTrainingGame && state.saveSlot === 'solo') {
     saveActiveGame(activeSnapshot());
   }
   Account.acceptLobbyInvite(inv.fromUid, myUsername());
