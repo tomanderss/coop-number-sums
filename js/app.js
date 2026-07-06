@@ -92,6 +92,7 @@ const state = reactive({
 
   // Auswahl im Setup
   sel: { ...DEFAULT_GAME_OPTIONS },
+  setupCoin: 0,               // aktuell im Slider-Setup angezeigte Belohnung (Count-up-animiert)
 
   // Coop-Modus
   coop: {
@@ -384,6 +385,8 @@ function navigate(screen) {
   // ohne App-Neustart sichtbar wird. Der refreshAccount-Aufruf persistiert die
   // Rolle zudem lokal (siehe dort), sodass sie danach sofort verfügbar ist.
   if (screen === 'home' && state.account.status === 'in') maybeRefreshRole();
+  // Slider-Setup: Münzanzeige auf die aktuell gewählte Stufe initialisieren.
+  if (screen === 'setup') initSetupScreen();
   // Ein während des Spiels aufgeschobenes Neuladen (Update/Cloud-Übernahme) jetzt
   // nachholen, sobald wir sicher zurück im Menü sind — nie mitten im Spiel.
   if (screen === 'home') nextTick(flushPendingReload);
@@ -521,6 +524,69 @@ const SETTINGS_SECTIONS = [
 // vor, da er erst beim Sieg feststeht.
 function coinFor(d, coopish) {
   return coinReward(DIFFICULTIES.indexOf(d), { coop: !!coopish });
+}
+
+// ─── SLIDER-SCHWIERIGKEITSAUSWAHL (Setup-Screen) ──────────────────────────────
+// Die Auswahl läuft über EINEN Slider statt eine Kartenwand: aktuell gewählte
+// Schwierigkeit = state.sel.difficulty; Index/Prozent daraus abgeleitet. Der
+// Hintergrund morpht smooth über registrierte CSS-Variablen (--accent/--accent-d/
+// --heat, siehe styles.css @property) — hier nur die Werte reingereicht.
+function selDiff() { return DIFF_BY_ID[state.sel.difficulty] || DIFFICULTIES[0]; }
+function selDiffIdx() { const i = DIFFICULTIES.findIndex(d => d.id === state.sel.difficulty); return i < 0 ? 0 : i; }
+// Setzt die Schwierigkeit per Index (geklemmt) und animiert die Münzanzeige.
+function setDiffIdx(i) {
+  i = Math.max(0, Math.min(DIFFICULTIES.length - 1, i));
+  const id = DIFFICULTIES[i].id;
+  if (id === state.sel.difficulty) return;
+  state.sel.difficulty = id;
+  animateSetupCoin(coinFor(DIFFICULTIES[i], false));
+  if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
+}
+// Morph-Variablen für den Setup-Hintergrund (an :style gebunden).
+function setupVars() {
+  const d = selDiff();
+  // Eigene Namespaces (--dacc*), NICHT das app-weite Marken-Token --accent überschreiben.
+  return { '--dacc': d.accent, '--dacc-d': d.accentD, '--dheat': String(d.heat) };
+}
+// Slider-Füllstand in Prozent (Thumb-/Fill-Position).
+function diffPct() {
+  const n = DIFFICULTIES.length;
+  return n > 1 ? (selDiffIdx() / (n - 1)) * 100 : 0;
+}
+// Beim Betreten des Setup-Screens Münzanzeige ohne Animation auf den Startwert.
+function initSetupScreen() { state.setupCoin = coinFor(selDiff(), false); }
+// Sanftes Hochzählen der Münzanzeige beim Stufenwechsel (ease-out).
+let setupCoinRaf = 0;
+function animateSetupCoin(to) {
+  cancelAnimationFrame(setupCoinRaf);
+  const from = state.setupCoin || 0, t0 = performance.now(), dur = 420;
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    state.setupCoin = Math.round(from + (to - from) * e);
+    if (p < 1) setupCoinRaf = requestAnimationFrame(step);
+  };
+  setupCoinRaf = requestAnimationFrame(step);
+}
+// Slider-Interaktion: Index aus der Zeiger-X-Position im Track (mit 6px-Rand).
+let setupSliderDragging = false;
+function sliderIdxFromX(clientX, el) {
+  const r = el.getBoundingClientRect(), pad = 16, span = Math.max(1, r.width - pad * 2);
+  const p = Math.max(0, Math.min(1, (clientX - r.left - pad) / span));
+  return Math.round(p * (DIFFICULTIES.length - 1));
+}
+function setupSliderDown(e) {
+  setupSliderDragging = true;
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+  setDiffIdx(sliderIdxFromX(e.clientX, e.currentTarget));
+}
+function setupSliderMove(e) { if (setupSliderDragging) setDiffIdx(sliderIdxFromX(e.clientX, e.currentTarget)); }
+function setupSliderUp() { setupSliderDragging = false; }
+function setupSliderKey(e) {
+  const k = e.key;
+  if (k === 'ArrowRight' || k === 'ArrowUp') { setDiffIdx(selDiffIdx() + 1); e.preventDefault(); }
+  else if (k === 'ArrowLeft' || k === 'ArrowDown') { setDiffIdx(selDiffIdx() - 1); e.preventDefault(); }
+  else if (k === 'Home') { setDiffIdx(0); e.preventDefault(); }
+  else if (k === 'End') { setDiffIdx(DIFFICULTIES.length - 1); e.preventDefault(); }
 }
 // Streak-Münz-Bonus in Prozent (für die Anzeige, z.B. Streak 5 ⇒ 25).
 function streakBonusPct(streak) {
@@ -4786,6 +4852,7 @@ const App = {
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
+      selDiff, selDiffIdx, setDiffIdx, setupVars, diffPct, setupSliderDown, setupSliderMove, setupSliderUp, setupSliderKey,
       openWalletLog, closeWalletLog, walletReasonLabel,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
@@ -4876,26 +4943,51 @@ const App = {
       <div class="home-version">v{{ BUILD }}</div>
     </section>
 
-    <!-- ══ SETUP ══ -->
-    <section v-else-if="state.screen==='setup'" class="screen setup">
-      <header class="topbar">
+    <!-- ══ SETUP (Slider-Schwierigkeitsauswahl mit morphendem Hintergrund) ══ -->
+    <section v-else-if="state.screen==='setup'" class="screen setup setup-slider" :style="setupVars()">
+      <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
+      <header class="topbar setup-top">
         <button class="icon-btn" @click="goBack()">‹</button>
         <h2>{{ t('setup.title') }}</h2>
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
-      <div class="setup-body">
-        <div class="setup-label">{{ t('common.difficulty') }}</div>
-        <div class="option-grid">
-          <button v-for="d in DIFFICULTIES" :key="d.id" class="opt-card" :class="{active: state.sel.difficulty===d.id}" @click="state.sel.difficulty=d.id">
-            <span class="opt-head"><span class="opt-emoji" v-html="ic(d.emoji)"></span><span class="opt-name">{{ t('difficulty.'+d.id) }}</span></span>
-            <span class="opt-dimrow"><span class="opt-dim">{{ d.dim.r }}×{{ d.dim.c }}</span><span class="opt-coins" :title="t('wallet.rewardHint')"><span class="ei" v-html="ic('coin')"></span> {{ coinFor(d, false) }}</span></span>
-            <span class="opt-chips">
-              <span class="chip">⌀ {{ avgTimeFor(d.id)!=null ? fmtTime(avgTimeFor(d.id)) : '–:––' }}<span class="chip-label">{{ t('stats.avgTimeLabel') }}</span></span>
-              <span class="chip best-time-chip"><span class="ei" v-html="ic('trophy')"></span> {{ state.stats.byDifficulty[d.id]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[d.id].bestTimeMs) : '–:––' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
-            </span>
-          </button>
+
+      <div class="setup-hero">
+        <div class="diff-medallion">
+          <div class="dm-ring"></div>
+          <div class="dm-disc" :key="state.sel.difficulty"><span class="dm-ic" v-html="ic(selDiff().emoji)"></span></div>
         </div>
-        <button class="btn btn-primary btn-start" @click="newGame(state.sel.difficulty)">
+        <div class="diff-eyebrow">{{ t('setup.step') }} {{ selDiffIdx()+1 }} / {{ DIFFICULTIES.length }}</div>
+        <h3 class="diff-name" :key="'n-'+state.sel.difficulty">{{ t('difficulty.'+state.sel.difficulty) }}</h3>
+        <div class="diff-dim">{{ selDiff().dim.r }} × {{ selDiff().dim.c }}</div>
+
+        <div class="diff-stats">
+          <div class="ds-tile ds-coins">
+            <div class="ds-k">{{ t('setup.reward') }}</div>
+            <div class="ds-v"><span class="ei" v-html="ic('coin')"></span> {{ state.setupCoin||0 }}</div>
+          </div>
+          <div class="ds-tile">
+            <div class="ds-k">{{ t('stats.avgTimeLabel') }}</div>
+            <div class="ds-v">{{ avgTimeFor(state.sel.difficulty)!=null ? fmtTime(avgTimeFor(state.sel.difficulty)) : '–:––' }}</div>
+          </div>
+          <div class="ds-tile">
+            <div class="ds-k">{{ t('stats.bestTimeLabel') }}</div>
+            <div class="ds-v">{{ state.stats.byDifficulty[state.sel.difficulty]?.bestTimeMs!=null ? fmtTime(state.stats.byDifficulty[state.sel.difficulty].bestTimeMs) : '–:––' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setup-controls">
+        <div class="diff-slabel"><span>{{ t('common.difficulty') }}</span><b>{{ selDiffIdx()+1 }} / {{ DIFFICULTIES.length }}</b></div>
+        <div class="diff-track" tabindex="0" role="slider" :aria-valuemin="1" :aria-valuemax="DIFFICULTIES.length" :aria-valuenow="selDiffIdx()+1" :aria-label="t('common.difficulty')" :aria-valuetext="t('difficulty.'+state.sel.difficulty)"
+             @pointerdown="setupSliderDown" @pointermove="setupSliderMove" @pointerup="setupSliderUp" @pointercancel="setupSliderUp" @keydown="setupSliderKey">
+          <div class="dt-inner">
+            <div class="dt-rail"><div class="dt-fill" :style="{width: diffPct()+'%'}"></div></div>
+            <i v-for="(d,i) in DIFFICULTIES" :key="d.id" class="dt-tick" :class="{on:i<=selDiffIdx(), cur:i===selDiffIdx()}" :style="{left: (DIFFICULTIES.length>1 ? i/(DIFFICULTIES.length-1)*100 : 0)+'%', '--tk': d.accent}"></i>
+            <div class="dt-thumb" :style="{left: diffPct()+'%'}"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-start diff-start" @click="newGame(state.sel.difficulty)">
           {{ t('setup.start') }}
         </button>
       </div>

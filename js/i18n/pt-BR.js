@@ -37,6 +37,8 @@ export default {
   setup: {
     title: 'Novo jogo',
     start: 'Vamos lá!',
+    step: 'Nível',
+    reward: 'Recompensa',
   },
   game: {
     loading: 'Criando o quebra-cabeça…',
