@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.111';
-export const BUILD_HASH = '050f542';
+export const BUILD      = '1.112';
+export const BUILD_HASH = '6a4f748';
 
 export const CHANGELOG = [
+  {
+    "version": "1.112",
+    "date": "06.07.2026",
+    "changes": [
+      "Neuer „Alles stummschalten\"-Knopf oben im Menü — legt Musik und alle Sounds mit einem Tipp still (Master-Lautstärke bleibt erhalten)"
+    ]
+  },
   {
     "version": "1.111",
     "date": "06.07.2026",
