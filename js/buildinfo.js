@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.105';
-export const BUILD_HASH = 'ae61b79';
+export const BUILD      = '1.106';
+export const BUILD_HASH = '1de37c0';
 
 export const CHANGELOG = [
+  {
+    "version": "1.106",
+    "date": "06.07.2026",
+    "changes": [
+      "Bestenliste: kein Flackern/Verschieben mehr beim Schwierigkeit-Wechsel — Chips fix, nur die Rangliste scrollt"
+    ]
+  },
   {
     "version": "1.105",
     "date": "06.07.2026",
