@@ -48,7 +48,7 @@ test.describe('team vs team', () => {
 
   test('choosing 2v2 from the race menu starts a team host lobby directly, without a separate toggle', async ({ page }) => {
     await goToCoopHostChoice(page);
-    await page.locator('.coop-input').fill('123456');
+    await page.locator('.setup-codeinput').fill('123456');
     expect(await page.evaluate(() => window.__cns.state.coop.teamMode)).toBe(true);
     await expect(page.locator('.coop-body .set-row')).toHaveCount(0);
   });

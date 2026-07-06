@@ -40,7 +40,7 @@ test.describe('race mode', () => {
 
   test('the team toggle is not offered in a race lobby', async ({ page }) => {
     await goToRaceHostChoice(page);
-    await page.locator('.coop-input').fill('123456');
+    await page.locator('.setup-codeinput').fill('123456');
     await expect(page.locator('.coop-body .set-row')).toHaveCount(0);
   });
 

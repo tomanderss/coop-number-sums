@@ -1,0 +1,1 @@
+Schwierigkeitsauswahl: Hintergrund füllt jetzt den ganzen Screen (full-bleed, kein dunkler Rahmen) und blendet zu allen vier Rändern weich aus; Coop/1v1/2v2 sehen identisch wie Solo aus, der Raumcode ist in den Screen integriert
