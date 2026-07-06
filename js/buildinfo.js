@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.106';
-export const BUILD_HASH = '1de37c0';
+export const BUILD      = '1.107';
+export const BUILD_HASH = '037e89e';
 
 export const CHANGELOG = [
+  {
+    "version": "1.107",
+    "date": "06.07.2026",
+    "changes": [
+      "Desktop: Spielfeld nutzt jetzt die volle Fensterbreite (nicht mehr auf den Mobil-Rahmen geklemmt) — größer per Default, beim Zoomen erst am Fensterrand beschnitten",
+      "Siegesanimation + Ergebnis-Dialog erscheinen jetzt sofort und ruckelfrei; die Animation liegt sichtbar über dem Dialog",
+      "Admin-Panel: alle Datenfelder in Klartext-Deutsch — keine rohen Datenbank-Schlüssel mehr (Cosmetic-Einstellungen, Rolle, Profilfeld-Auswahl, JSON-Titel)"
+    ]
+  },
   {
     "version": "1.106",
     "date": "06.07.2026",
