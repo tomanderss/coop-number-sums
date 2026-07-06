@@ -23,6 +23,7 @@
 
 let ctx = null, master = null, reverb = null, analyser = null;
 let sfxBus = null, sfxReverb = null; // eigener Bus für UI-Sounds (unabhängig von der Musik)
+let sfxMuted = false;                // stummt NUR die UI-Sounds (z.B. im Shop-Sound-Untermenü), Musik bleibt unberührt
 let makeup = null;                   // gemeinsamer Ausgangs-Gain (Musik + SFX) — zentraler „Alles stumm"-Punkt
 let droneVoices = [], padTimer = null, melodyTimer = null;
 let running = false, curVolume = 0.5, chordIdx = 0;
@@ -225,7 +226,7 @@ function ensureContext() {
   // UI-Sound-Bus: eigener Eingang in dieselbe Ausgangskette (Soft-Clip + Analyser),
   // aber NICHT über die Musik-Lautstärke/Fade -> UI-Töne spielen unabhängig davon,
   // ob/wie laut die Hintergrundmusik läuft. Dezenter eigener Hall für „Raum".
-  sfxBus = ctx.createGain(); sfxBus.gain.value = 1.0;
+  sfxBus = ctx.createGain(); sfxBus.gain.value = sfxMuted ? 0 : 1.0; // Zustand überlebt (Neu-)Aufbau des Context
   sfxBus.connect(makeup);
   sfxReverb = buildReverb(2.0, 3.2);
   const sfxWet = ctx.createGain(); sfxWet.gain.value = 0.16;
@@ -414,6 +415,20 @@ export function setMuted(v) {
   }
 }
 export function isMuted() { return allMuted; }
+
+// Stummt AUSSCHLIESSLICH die UI-Sounds (eigener sfxBus), ohne die Musik zu berühren.
+// Genutzt im Shop-Sound-Untermenü: dort sollen beiläufige Tap-/Toggle-Töne schweigen,
+// damit nur die ▶-Vorschau hörbar ist. Zustand im Flag → überlebt Context-Neuaufbau.
+export function setSfxMuted(v) {
+  sfxMuted = !!v;
+  if (sfxBus && ctx) {
+    try {
+      sfxBus.gain.cancelScheduledValues(ctx.currentTime);
+      sfxBus.gain.linearRampToValueAtTime(sfxMuted ? 0 : 1.0, ctx.currentTime + 0.06);
+    } catch { sfxBus.gain.value = sfxMuted ? 0 : 1.0; }
+  }
+}
+export function isSfxMuted() { return sfxMuted; }
 
 export function setVolume(v) {
   curVolume = Math.max(0, Math.min(1, v));
