@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.112';
-export const BUILD_HASH = '6a4f748';
+export const BUILD      = '1.113';
+export const BUILD_HASH = '6d30be6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.113",
+    "date": "06.07.2026",
+    "changes": [
+      "Solo-Spielstand wird nie mehr von einem Coop-/Wettkampf-Spiel überschrieben (stabile Slot-Zuordnung statt flackernder Flags)",
+      "Im Shop-Untermenü „Klänge\" und „Musik\" pausieren jetzt Hintergrundmusik und alle UI-Sounds — nur die ▶-Vorschau erzeugt dort Ton, damit nichts interferiert"
+    ]
+  },
   {
     "version": "1.112",
     "date": "06.07.2026",
