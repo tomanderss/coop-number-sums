@@ -1,2 +1,0 @@
-Desktop: frei belegbare Taste (Standard Tab) schaltet im Spiel zwischen Einkreisen und Radiergummi um — neuer Einstellungs-Abschnitt „Desktop“; Tab kapert nicht mehr den Browser-Fokus
-Prestige: Großmeister-Karte kompakter und im Scrollbereich — die Abzeichen-Liste lässt sich wieder normal durchscrollen
