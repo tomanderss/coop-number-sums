@@ -184,6 +184,13 @@ export default {
     weWonByOpponentLives: 'Команда {oppTeam} потеряла все жизни — вы автоматически выиграли! (Команда {myTeam}: {myPct}% vs. Команда {oppTeam}: {oppPct}%)',
     weLostByLives: 'Ваша команда (Команда {myTeam}) потеряла все жизни — матч завершён для вас. (Команда {myTeam}: {myPct}% vs. Команда {oppTeam}: {oppPct}%)',
   },
+  chat: {
+    title: 'Чат',
+    placeholder: 'Написать сообщение …',
+    send: 'Отправить',
+    empty: 'Пока нет сообщений. Поздоровайтесь!',
+    anon: 'Игрок',
+  },
   race: {
     startMatch: 'Начать дуэль',
     waitingForOpponent: 'Ожидание соперника…',

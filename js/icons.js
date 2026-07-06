@@ -36,6 +36,8 @@ stroke('sound', '<path d="M4 9v6h3.5L13 19V5L7.5 9zM17 9.5a3.5 3.5 0 0 1 0 5M19.
 stroke('mute', '<path d="M4 9v6h3.5L13 19V5L7.5 9zM17 10l4 4M21 10l-4 4"/>');
 stroke('user', '<circle cx="12" cy="8" r="3.6"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>');
 stroke('users', '<circle cx="9" cy="8.5" r="3.1"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 19.5a5.5 5.5 0 0 0-2.2-4.4"/>');
+stroke('chat', '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v8A1.5 1.5 0 0 1 18.5 15H10l-4 4v-4H5.5A1.5 1.5 0 0 1 4 13.5z"/><path d="M8 8h8M8 11h5"/>');
+stroke('send', '<path d="M21 4L3 11l6.5 2.2M21 4l-6 16-3.5-8.5M21 4L9.5 13.2"/>');
 stroke('save', '<path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6"/>');
 stroke('chart', '<path d="M4 20V4M4 20h16M8 20v-6M12 20v-10M16 20v-4"/>');
 stroke('chart-up', '<path d="M4 20V4M4 20h16M7 15l3.5-4 3 2.5L20 7"/>');

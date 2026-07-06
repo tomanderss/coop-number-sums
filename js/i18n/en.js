@@ -184,6 +184,13 @@ export default {
     weWonByOpponentLives: 'The other team ran out of lives — you win by default! (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
     weLostByLives: 'Your team ran out of lives — the match is over for you. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
   },
+  chat: {
+    title: 'Chat',
+    placeholder: 'Write a message …',
+    send: 'Send',
+    empty: 'No messages yet. Say hi!',
+    anon: 'Player',
+  },
   race: {
     startMatch: 'Start match',
     waitingForOpponent: 'Waiting for opponent…',
