@@ -339,6 +339,8 @@ export default {
     loadUsers: 'Carica tutti gli utenti',
     openConsole: 'Gestisci utenti',
     choose: '– scegli –',
+    giftPick: 'Scegli un regalo', giftTitle: 'Cosa regalare?', giftSpecial: 'Speciale',
+    giftFounder: 'Distintivo fondatore', giftOwned: 'già posseduto', giftDone: 'Fatto',
     grantAll: 'Sblocca tutto', allItems: 'il pacchetto completo (tutti gli articoli)',
     nothingToGrant: 'Niente da sbloccare: ha già tutto.',
     pendingItems: 'In sospeso: +{grant} / −{revoke} (applicato al salvataggio)',

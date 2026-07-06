@@ -1,0 +1,1 @@
+Admin-Panel: Geschenk-Auswahl ist jetzt ein kategorisierter Popup-Screen (wie der Shop) mit klaren deutschen Namen statt einer rohen Dropdown-Liste

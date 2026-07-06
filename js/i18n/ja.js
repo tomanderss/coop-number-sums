@@ -339,6 +339,8 @@ export default {
     loadUsers: '全ユーザーを読み込む',
     openConsole: 'ユーザー管理',
     choose: '– 選択 –',
+    giftPick: 'ギフトを選ぶ', giftTitle: '何を贈る？', giftSpecial: '特別',
+    giftFounder: '創設者バッジ', giftOwned: '所持済み', giftDone: '完了',
     grantAll: 'すべて解放', allItems: 'コンプリートパック（全アイテム）',
     nothingToGrant: 'アンロックできるものはありません（すでに全部所持）。',
     pendingItems: '保留中: +{grant} / −{revoke}（保存時に適用）',

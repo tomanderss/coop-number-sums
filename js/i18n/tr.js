@@ -339,6 +339,8 @@ export default {
     loadUsers: 'Tüm kullanıcıları yükle',
     openConsole: 'Kullanıcıları yönet',
     choose: '– seçin –',
+    giftPick: 'Hediye seç', giftTitle: 'Ne hediye edilsin?', giftSpecial: 'Özel',
+    giftFounder: 'Kurucu rozeti', giftOwned: 'zaten var', giftDone: 'Bitti',
     grantAll: 'Tümünün kilidini aç', allItems: 'komple paket (tüm ögeler)',
     nothingToGrant: 'Kilidi açılacak bir şey yok — zaten hepsi var.',
     pendingItems: 'Bekliyor: +{grant} / −{revoke} (kaydedince uygulanır)',

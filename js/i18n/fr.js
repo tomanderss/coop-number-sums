@@ -339,6 +339,8 @@ export default {
     loadUsers: 'Charger tous les utilisateurs',
     openConsole: 'Gérer les utilisateurs',
     choose: '– choisir –',
+    giftPick: 'Choisir un cadeau', giftTitle: 'Offrir quoi ?', giftSpecial: 'Spécial',
+    giftFounder: 'Badge fondateur', giftOwned: 'déjà possédé', giftDone: 'Terminé',
     grantAll: 'Tout débloquer', allItems: 'le pack complet (tous les articles)',
     nothingToGrant: 'Rien à débloquer — possède déjà tout.',
     pendingItems: 'En attente : +{grant} / −{revoke} (appliqué à l\u2019enregistrement)',

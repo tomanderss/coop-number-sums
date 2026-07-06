@@ -339,6 +339,8 @@ export default {
     loadUsers: '모든 사용자 불러오기',
     openConsole: '사용자 관리',
     choose: '– 선택 –',
+    giftPick: '선물 선택', giftTitle: '무엇을 선물할까요?', giftSpecial: '특별',
+    giftFounder: '창립자 배지', giftOwned: '이미 보유', giftDone: '완료',
     grantAll: '모두 해제', allItems: '컴플리트 패키지(모든 아이템)',
     nothingToGrant: '잠금 해제할 항목이 없습니다 — 이미 모두 보유 중입니다.',
     pendingItems: '대기 중: +{grant} / −{revoke} (저장 시 적용)',
