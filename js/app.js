@@ -1129,8 +1129,10 @@ function loadPuzzleIntoState(puzzle, saved) {
   computeCellSize();
   // .board-wrap existiert beim ersten Aufruf (vor dem nächsten Vue-Render) noch
   // nicht im DOM -- der nextTick-Nachschlag korrigiert die Fallback-Schätzung,
-  // sobald die echte Größe (Hoch- oder Querformat) feststeht.
-  nextTick(computeCellSize);
+  // sobald die echte Größe (Hoch- oder Querformat) feststeht. Zusätzlich ab jetzt
+  // per ResizeObserver auf .board-wrap dauerhaft nachziehen (Layout-Settle,
+  // Adressleiste, Rotation) → Brett bleibt immer vollständig eingepasst.
+  nextTick(() => { computeCellSize(); observeBoardWrap(); });
   persistGame();
 }
 
@@ -1175,8 +1177,31 @@ function computeCellSize() {
   // Platz nutzen — dort ist .app.app-game breiter (s. styles.css), also greift
   // ein höherer Deckel, damit das Feld standardmäßig groß ist und beim Zoomen
   // erst am Fensterrand (statt am schmalen Mobil-Rahmen) beschnitten wird.
-  const base = Math.max(26, Math.min(desktopBoard() ? 128 : 56, ideal));
+  // Deckel: Handy 56px (sonst wirken kleine Bretter auf hohen Displays riesig),
+  // Desktop 128px (breite .app.app-game, s. styles.css).
+  const cap = desktopBoard() ? 128 : 56;
+  // KEIN hoher Mindestwert mehr: Beim Öffnen MUSS das ganze Brett passen — lieber
+  // kleine Zellen als eine abgeschnittene Zeile/Spalte. Der frühere 26px-Boden
+  // ließ das größte Brett (14×14 = 15 Einheiten) auf schmalen Handys eine Spalte
+  // aus dem Bild ragen. Nur ein winziger Boden gegen 0 in Extremfällen.
+  const base = Math.max(10, Math.min(cap, ideal));
   state.cellPx = Math.round(base * state.zoom);
+}
+// Beobachtet die tatsächliche Größe von .board-wrap und passt die Zellgröße neu
+// an, sobald sie sich ändert (Layout-Settle nach dem Öffnen, Adressleiste ein-/
+// ausblenden, Rotation, Sidebar). So ist das Brett IMMER sofort vollständig
+// eingepasst — die erste (evtl. noch nicht ausgemessene) Berechnung wird direkt
+// korrigiert, kein Zeilen/Spalten-Overflow beim Start/Fortsetzen.
+let boardResizeObserver = null;
+function observeBoardWrap() {
+  try {
+    if (typeof ResizeObserver !== 'function') return;
+    const wrap = document.querySelector('.board-wrap');
+    if (!wrap) return;
+    if (!boardResizeObserver) boardResizeObserver = new ResizeObserver(() => computeCellSize());
+    else boardResizeObserver.disconnect();
+    boardResizeObserver.observe(wrap);
+  } catch (_) {}
 }
 function setZoom(delta) {
   state.zoom = Math.max(0.7, Math.min(2.2, +(state.zoom + delta).toFixed(2)));
