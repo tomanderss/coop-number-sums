@@ -104,6 +104,10 @@ export function saveActiveGame(g) { if (g) save(KEYS.ACTIVE_GAME, g); else remov
 // lokal, NICHT synct (kein Nutzdaten-Key) — dient nur dem „nie still gelöscht"-Prinzip.
 export function loadActiveGameBackup() { return load(KEYS.ACTIVE_GAME_BACKUP, null); }
 export function saveActiveGameBackup(g) { if (g) localStorage.setItem(KEYS.ACTIVE_GAME_BACKUP, JSON.stringify(g)); else remove(KEYS.ACTIVE_GAME_BACKUP); }
+// Backup der beim Versions-Mismatch UNTERLEGENEN Seite (lokal ODER Cloud) — nie
+// still gelöscht. Rein lokal, NICHT synct (kein Nutzdaten-Key).
+export function saveConflictBackup(data) { try { localStorage.setItem('cns_conflict_backup', JSON.stringify({ ts: Date.now(), data })); } catch (_) {} }
+export function loadConflictBackup() { return load('cns_conflict_backup', null); }
 
 // ─── Multi-Device: stabile Geräte-Kennung + Belohnungs-Idempotenz ─────────────
 // Stabile, zufällige Geräte-ID (einmal erzeugt, dann persistent). PER GERÄT —

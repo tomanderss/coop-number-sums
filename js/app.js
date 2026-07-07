@@ -84,6 +84,7 @@ const state = reactive({
   sessionRev: 0,             // zuletzt für diese gameId bekannte Cloud-Session-rev (Compare-and-Set-Basis).
   sessionReadonly: false,    // true, wenn ein anderes Gerät die Partie übernommen hat → Brett gesperrt bis „Hier weiterspielen".
   deviceNotice: null,        // { kind:'defunct'|'takeover'|'reload' } — Banner/Hinweis für Cross-Device-Ereignisse (null = keins).
+  versionMismatch: null,     // { local:{coins,wins,ts}, cloud:{coins,wins,ts}, busy } — offener Versions-Mismatch-Dialog (offline vs. Cloud), sonst null.
   newHighscore: false,        // true, wenn beim letzten Sieg eine neue Bestzeit erzielt wurde
   wouldHaveBeenBest: false,   // true, wenn die Zeit ohne Fehler/Hinweise eine neue Bestzeit gewesen wäre
   hintWarnShown: false,       // true, sobald die einmalige Hinweis-Warnung dieser Partie bestätigt wurde
@@ -3820,6 +3821,42 @@ async function startSessionWatch() {
 }
 function stopSessionWatch() { if (sessionUnwatch) { try { sessionUnwatch(); } catch (_) {} sessionUnwatch = null; } }
 
+// ─── Versions-Mismatch-Dialog (offline gespielt UND woanders online) ──────────
+// Kurz-Zusammenfassung eines Datensnapshots für die Konflikt-Karten: Guthaben,
+// Gesamtsiege, letzter Änderungszeitpunkt. Rein zur Anzeige.
+function syncSummary(data) {
+  if (!data) return { coins: 0, wins: 0, ts: 0 };
+  const coins = (data.wallet && data.wallet.balance) || 0;
+  let wins = 0;
+  const by = data.stats && data.stats.byDifficulty;
+  if (by) for (const k in by) { wins += (by[k].won || 0) + (by[k].coopWon || 0); }
+  return { coins, wins, ts: data.ts || data.rev || 0 };
+}
+function openVersionMismatch(r) {
+  state.versionMismatch = {
+    local: syncSummary(r.localData),
+    cloud: syncSummary(r.cloud),
+    busy: false,
+  };
+  log('account', 'Versions-Mismatch-Dialog geöffnet', { local: state.versionMismatch.local, cloud: state.versionMismatch.cloud });
+}
+// Nutzerwahl anwenden: 'local' = dieses Gerät behalten, 'cloud' = Cloud behalten.
+// Die unterlegene Seite sichert resolveConflict als Backup. Danach sauber neu laden.
+function resolveVersionMismatch(choice) {
+  if (!state.versionMismatch || state.versionMismatch.busy) return;
+  state.versionMismatch.busy = true;
+  Account.resolveConflict(choice).then((res) => {
+    log('account', 'Versions-Mismatch beantwortet', { choice, ok: res && res.ok });
+    state.versionMismatch = null;
+    safeReload('version-mismatch-' + choice);
+  });
+}
+function fmtMismatchTime(ts) {
+  if (!ts) return '–';
+  try { return new Date(ts).toLocaleString(i18nState.locale || undefined, { dateStyle: 'short', timeStyle: 'short' }); }
+  catch (_) { return '–'; }
+}
+
 // Zeitpunkt der letzten Cloud-Sicherung als Uhrzeit (locale) — '–' wenn noch nie.
 function fmtSyncTime(ts) {
   if (!ts) return '–';
@@ -5024,6 +5061,10 @@ function init() {
     // Abgleich lokal↔Cloud beim Start. Bei echter Divergenz gewinnt IMMER die
     // Cloud (kein Auswahldialog mehr) → sauberes Neuladen nach der Übernahme.
     Account.reconcile().then(r => {
+      // ECHTE Divergenz (offline gespielt UND woanders online): den Versions-
+      // Mismatch-Dialog zeigen statt still „Cloud gewinnt". Erst die Nutzerwahl
+      // (resolveVersionMismatch) wendet an und lädt neu.
+      if (r.decision === 'conflict') { openVersionMismatch(r); return; }
       if (r.decision === 'takeCloud') { safeReload('reconcile-takeCloud'); return; }  // Cloud übernommen → sauber neu laden
       state.inventory = loadInventory();
       state.wallet = loadWallet();
@@ -5411,6 +5452,7 @@ const App = {
       desktopKeyLabel, startDesktopKeyCapture, cancelDesktopKeyCapture, clearDesktopToolKey,
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll,
       reclaimSession, dismissDeviceNotice,
+      resolveVersionMismatch, fmtMismatchTime,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -6711,6 +6753,30 @@ const App = {
         </div>
       </div>
     </transition>
+
+    <!-- ══ VERSIONS-MISMATCH ══ Offline gespielt UND woanders online → Auswahl
+         lokal vs. Cloud (die unterlegene Seite wird als Backup gesichert). -->
+    <div v-if="state.versionMismatch" class="modal-overlay mismatch-overlay">
+      <div class="modal mismatch-modal">
+        <h2 class="mismatch-title"><span class="ei" v-html="ic('warning')"></span> {{ t('mismatch.title') }}</h2>
+        <p class="mismatch-sub">{{ t('mismatch.sub') }}</p>
+        <div class="mismatch-cards">
+          <button class="mismatch-card" :disabled="state.versionMismatch.busy" @click="resolveVersionMismatch('local')">
+            <div class="mc-head">{{ t('mismatch.local') }}</div>
+            <div class="mc-time">{{ fmtMismatchTime(state.versionMismatch.local.ts) }}</div>
+            <div class="mc-stats"><span><span class="ei" v-html="ic('coin')"></span> {{ state.versionMismatch.local.coins }}</span><span><span class="ei" v-html="ic('trophy')"></span> {{ state.versionMismatch.local.wins }}</span></div>
+            <div class="mc-pick">{{ t('mismatch.keepLocal') }}</div>
+          </button>
+          <button class="mismatch-card" :disabled="state.versionMismatch.busy" @click="resolveVersionMismatch('cloud')">
+            <div class="mc-head">{{ t('mismatch.cloud') }}</div>
+            <div class="mc-time">{{ fmtMismatchTime(state.versionMismatch.cloud.ts) }}</div>
+            <div class="mc-stats"><span><span class="ei" v-html="ic('coin')"></span> {{ state.versionMismatch.cloud.coins }}</span><span><span class="ei" v-html="ic('trophy')"></span> {{ state.versionMismatch.cloud.wins }}</span></div>
+            <div class="mc-pick">{{ t('mismatch.keepCloud') }}</div>
+          </button>
+        </div>
+        <p class="mismatch-note">{{ t('mismatch.note') }}</p>
+      </div>
+    </div>
 
     <!-- Sieganimation: global (fixed Overlay), damit die Shop-Vorschau auf jedem
          Screen funktioniert — nicht nur im Spiel. MUSS ein eigenständiges Element

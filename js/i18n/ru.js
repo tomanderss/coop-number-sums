@@ -1,6 +1,8 @@
 // ru.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  mismatch: { title: 'Разные игровые данные', sub: 'На этом устройстве и в облаке прогресс различается. Какой оставить?', local: 'Это устройство', cloud: 'Облако', keepLocal: 'Оставить это устройство', keepCloud: 'Оставить облако', note: 'Другая версия сохраняется как резервная копия и не удаляется.' },
+
   offline: { unavailable: 'Недоступно офлайн', badge: 'Офлайн', chip: 'Офлайн', chipHint: 'Вы офлайн — одиночные головоломки по-прежнему работают.' },
 
   device: {

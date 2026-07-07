@@ -1,6 +1,8 @@
 // ja.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  mismatch: { title: 'ゲームデータが異なります', sub: 'この端末とクラウドで進行状況が異なります。どちらを残しますか？', local: 'この端末', cloud: 'クラウド', keepLocal: 'この端末を残す', keepCloud: 'クラウドを残す', note: 'もう一方はバックアップとして保存され、削除されません。' },
+
   offline: { unavailable: 'オフラインでは利用できません', badge: 'オフライン', chip: 'オフライン', chipHint: 'オフラインです — ソロパズルは引き続きプレイできます。' },
 
   device: {

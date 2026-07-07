@@ -1,6 +1,8 @@
 // ko.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  mismatch: { title: '게임 데이터가 다릅니다', sub: '이 기기와 클라우드의 진행 상황이 다릅니다. 어느 것을 유지하시겠어요?', local: '이 기기', cloud: '클라우드', keepLocal: '이 기기 유지', keepCloud: '클라우드 유지', note: '다른 버전은 백업으로 저장되며 삭제되지 않습니다.' },
+
   offline: { unavailable: '오프라인에서 사용할 수 없음', badge: '오프라인', chip: '오프라인', chipHint: '오프라인 상태입니다 — 솔로 퍼즐은 계속 이용할 수 있습니다.' },
 
   device: {

@@ -1,6 +1,8 @@
 // en.js — English strings (carefully hand-translated, kept in sync with de.js)
 export default {
 
+  mismatch: { title: 'Different game data', sub: 'This device and the cloud have diverging progress. Which do you want to keep?', local: 'This device', cloud: 'Cloud', keepLocal: 'Keep this device', keepCloud: 'Keep cloud', note: 'The other version is saved as a backup and not deleted.' },
+
   offline: { unavailable: 'Not available offline', badge: 'Offline', chip: 'Offline', chipHint: 'You\'re offline — solo puzzles still work.' },
 
   device: {

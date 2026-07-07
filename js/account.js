@@ -20,7 +20,7 @@ import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
-  deviceId,
+  deviceId, saveConflictBackup,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -48,6 +48,14 @@ export function usernameKey(name) { return normalizeUsername(name).replace(/[.$#
 // etwas geändert wurde, werden lokale Daten hochgeladen — die Cloud wird also
 // nie grundlos überschrieben, aber eine lokale Abweichung gegen einen geänderten
 // Cloud-Stand wird zugunsten der Cloud verworfen (kein 'conflict' mehr).
+// ECHTE Divergenz: seit der letzten Basislinie (syncedRev) wurde SOWOHL lokal ALS
+// AUCH in der Cloud (auf einem anderen Gerät) geändert. Genau dieser Fall braucht
+// die Nutzer-Rückfrage (Versions-Mismatch-Dialog) statt „Cloud gewinnt". Erstkontakt
+// (syncedRev == null) ist kein Konflikt. Reine Funktion (unit-testbar).
+export function isDivergent({ localRev, cloudRev, syncedRev }) {
+  if (syncedRev == null) return false;
+  return localRev !== syncedRev && cloudRev !== syncedRev;
+}
 export function decideSync({ cloudExists, localRev, cloudRev, syncedRev, hasLocalData }) {
   if (!cloudExists) return 'uploadLocal';            // Cloud leer → lokale Daten hoch (Erst-Upload)
   if (syncedRev == null) {                           // Erstkontakt dieses Geräts mit diesem Account
@@ -659,12 +667,43 @@ export async function reconcile() {
       syncedRev: syncedRev(),
       hasLocalData: hasLocalData(),
     });
+    // ECHTE Divergenz (lokal UND Cloud seit der Basislinie geändert, z.B. offline
+    // gespielt UND woanders online): NICHT still „Cloud gewinnt", sondern den
+    // Versions-Mismatch-Dialog auslösen (app.js). Erst die Nutzerwahl wendet an.
+    if (decision === 'takeCloud' && hasLocalData()
+        && isDivergent({ localRev: dataRev(), cloudRev: snap ? (snap.rev || 0) : 0, syncedRev: syncedRev() })) {
+      log('account', 'reconcile', { decision: 'conflict' });
+      return { decision: 'conflict', cloud: snap, localData: collectExportData('conflict'), cloudTs: (snap && snap.ts) || 0, localTs: dataRev() };
+    }
     if (decision === 'uploadLocal') { await uploadLocal(fb, u.uid); stampSynced(); }
     else if (decision === 'takeCloud') { await applyCloud(fb, u.uid, snap); stampSynced(); }
     else if (decision === 'inSync') { await mergeCloudInventory(fb, u.uid); }
     log('account', 'reconcile', { decision });
     return { decision };
   } catch (e) { log('account', 'reconcile fehlgeschlagen', e); return { decision: 'error', err: errKey(e) }; }
+}
+
+// Auflösung des Versions-Mismatch nach Nutzerwahl. Die UNTERLEGENE Seite wird
+// IMMER als Backup gesichert (nie still gelöscht). 'local' → lokalen Stand
+// hochladen (Cloud-Stand als Backup); 'cloud' → Cloud übernehmen (lokalen Stand
+// als Backup). Danach lädt app.js sauber neu.
+export async function resolveConflict(choice) {
+  if (!isSignedIn()) return { ok: false, skipped: true };
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { ok: false, skipped: true };
+    const snap = (await fb.get(userRef(fb, u.uid, 'data'))).val();
+    if (choice === 'cloud') {
+      saveConflictBackup({ side: 'local', data: collectExportData('conflict-local') });
+      await applyCloud(fb, u.uid, snap); stampSynced();
+    } else { // 'local'
+      if (snap) saveConflictBackup({ side: 'cloud', data: snap });
+      await uploadLocal(fb, u.uid); stampSynced();
+    }
+    log('account', 'Versions-Mismatch aufgelöst', { choice });
+    return { ok: true };
+  } catch (e) { log('account', 'resolveConflict fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
 
 // ─── Multi-Device: autoritative Aktivspiel-Session (/users/{uid}/session) ───────
