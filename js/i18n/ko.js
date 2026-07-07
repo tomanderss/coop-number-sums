@@ -1,5 +1,11 @@
 // ko.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
+
+  device: {
+    defunct: { title: '다른 기기에서 게임이 종료됨', text: '이 게임은 다른 기기에서 완료되었거나 취소되었습니다. 현재 진행 상황은 모든 기기에서 동일합니다.' },
+    takeover: { title: '다른 기기에서 이어받음', text: '이 게임은 현재 다른 기기에서 계속되고 있습니다. 계속하려면 여기로 가져오세요.', resume: '여기서 계속하기' },
+    reload: { title: '새 버전', text: '최신 버전으로 업데이트 중…' },
+  },
   common: {
     cancel: '취소',
     close: '닫기',

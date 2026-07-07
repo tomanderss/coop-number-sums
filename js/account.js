@@ -20,6 +20,7 @@ import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
+  deviceId,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -664,6 +665,62 @@ export async function reconcile() {
     log('account', 'reconcile', { decision });
     return { decision };
   } catch (e) { log('account', 'reconcile fehlgeschlagen', e); return { decision: 'error', err: errKey(e) }; }
+}
+
+// ─── Multi-Device: autoritative Aktivspiel-Session (/users/{uid}/session) ───────
+// Getrennt vom periodischen Nutzdaten-Sync (data/): die Session ist der geräte-
+// übergreifende Single Source of Truth für die LAUFENDE Partie. Nur für echte
+// (nicht-anonyme) Accounts — anonym = ein Gerät, kein Cross-Device.
+async function sessionCtx() {
+  if (!isSignedIn()) return null;
+  const fb = await ensureFirebase();
+  const u = currentUser(fb);
+  if (!u || u.isAnonymous) return null;
+  return { fb, uid: u.uid };
+}
+// Cloud-Session lesen (roh). null wenn nicht angemeldet/keine.
+export async function readSession() {
+  try {
+    const c = await sessionCtx();
+    if (!c) return null;
+    return (await c.fb.get(userRef(c.fb, c.uid, 'session'))).val() || null;
+  } catch (e) { log('account', 'readSession fehlgeschlagen', e); return null; }
+}
+// Session schreiben per Compare-and-Set (RTDB-Transaktion). baseRev = die für
+// DIESE gameId zuletzt gesehene Cloud-rev. Ein veraltetes Gerät (das eine höhere
+// Fremd-rev derselben Partie nicht kennt) bricht ab → { ok:false, stale:true },
+// statt den neueren Stand zu überschreiben. Fremde/neue gameId (= bewusster Start/
+// Übernahme) schreibt immer und beansprucht die Partie (Auto-Handoff, neuester
+// gewinnt). rev wächst strikt monoton (cur.rev+1); updatedAt = serverTime.
+export async function writeSession({ gameId, status, payload, appBuild, schema, baseRev = 0 }) {
+  try {
+    const c = await sessionCtx();
+    if (!c) return { ok: false, skipped: true };
+    const dev = deviceId();
+    const ref = userRef(c.fb, c.uid, 'session');
+    const res = await c.fb.runTransaction(ref, (cur) => {
+      if (cur && cur.gameId === gameId && (cur.rev || 0) > baseRev && cur.deviceId !== dev) {
+        return undefined; // veraltet für dieselbe Partie → abbrechen
+      }
+      const rev = ((cur && cur.rev) || 0) + 1;
+      return { gameId, rev, status, deviceId: dev, updatedAt: c.fb.serverTimestamp(), appBuild: appBuild || 0, schema: schema || 0, payload: payload ?? null };
+    });
+    if (!res.committed) { log('account', 'writeSession abgebrochen (veraltet)', { gameId, baseRev }); return { ok: false, stale: true }; }
+    const val = res.snapshot.val();
+    return { ok: true, rev: val ? val.rev : null, session: val };
+  } catch (e) { log('account', 'writeSession fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
+}
+// Live-Listener auf die eigene Session — feuert sofort, wenn ein anderes Gerät die
+// Partie startet/pausiert/beendet (Live-Invalidierung). Gibt eine Unsubscribe-Fn zurück.
+export async function watchSession(cb) {
+  try {
+    const c = await sessionCtx();
+    if (!c) return () => {};
+    const ref = userRef(c.fb, c.uid, 'session');
+    // onValue (modular API) liefert die Unsubscribe-Funktion direkt zurück.
+    const unsub = c.fb.onValue(ref, (snap) => { try { cb(snap.val() || null); } catch (_) {} });
+    return () => { try { unsub && unsub(); } catch (_) {} };
+  } catch (e) { log('account', 'watchSession fehlgeschlagen', e); return () => {}; }
 }
 
 // SOFORTIGER Upload ALLER Daten in die Cloud. Liefert { ok, ts } bzw.

@@ -1,5 +1,11 @@
 // en.js — English strings (carefully hand-translated, kept in sync with de.js)
 export default {
+
+  device: {
+    defunct: { title: 'Game finished on another device', text: 'This game was completed or discarded on another device. Your current progress is the same everywhere.' },
+    takeover: { title: 'Taken over on another device', text: 'This game is currently continuing on another device. Bring it back here to keep playing.', resume: 'Continue here' },
+    reload: { title: 'New version', text: 'Updating to the latest version…' },
+  },
   common: {
     cancel: 'Cancel',
     close: 'Close',

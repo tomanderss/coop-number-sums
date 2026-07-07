@@ -21,7 +21,9 @@ import {
   reconcileInventoryFromCloud, applyCloudWallet,
   loadWallet, grantCurrency, spendCurrency, loadWalletLog, noteWalletTransaction,
   setDataRev, setSyncedRev,
+  generateId, deviceId, isGameCompleted, markGameCompleted, loadActiveGameBackup, saveActiveGameBackup,
 } from './storage.js';
+import { decideSessionSync, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
 import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup, masterMedalMarkup } from './badgeart.js';
@@ -77,6 +79,10 @@ const state = reactive({
                              // persistGame()/quitToHome() entscheiden hierüber — NICHT über die transienten
                              // Flags coop.active/team.active, die bei Rejoin/Rollenwechsel kurz flackern können.
                              // So wird der Solo-Slot NIE von einem Coop-/Team-Spiel überschrieben.
+  gameId: null,              // Identität der aktuellen Partie (über Geräte stabil) — für Multi-Device-Session + Belohnungs-Idempotenz.
+  sessionRev: 0,             // zuletzt für diese gameId bekannte Cloud-Session-rev (Compare-and-Set-Basis).
+  sessionReadonly: false,    // true, wenn ein anderes Gerät die Partie übernommen hat → Brett gesperrt bis „Hier weiterspielen".
+  deviceNotice: null,        // { kind:'defunct'|'takeover'|'reload' } — Banner/Hinweis für Cross-Device-Ereignisse (null = keins).
   newHighscore: false,        // true, wenn beim letzten Sieg eine neue Bestzeit erzielt wurde
   wouldHaveBeenBest: false,   // true, wenn die Zeit ohne Fehler/Hinweise eine neue Bestzeit gewesen wäre
   hintWarnShown: false,       // true, sobald die einmalige Hinweis-Warnung dieser Partie bestätigt wurde
@@ -1152,6 +1158,12 @@ function loadPuzzleIntoState(puzzle, saved) {
   // Rollenwechsel. Team läuft (wie Coop) im Coop-Slot; Race wird nie persistiert.
   state.saveSlot = state.race.active ? 'race' : (state.coop.active || state.team.active) ? 'coop' : 'solo';
   log('game', 'loadPuzzle: saveSlot festgelegt', { slot: state.saveSlot, coop: state.coop.active, team: state.team.active, race: state.race.active });
+  // Partie-Identität: beim Fortsetzen die gespeicherte gameId behalten, sonst eine
+  // neue erzeugen (Multi-Device-Session + Belohnungs-Idempotenz). sessionRev-Basis
+  // frisch: ein fortgesetztes Spiel kennt seine Cloud-rev erst nach dem Reconcile.
+  state.gameId = (saved && saved.gameId) || generateId();
+  state.sessionRev = 0;
+  state.sessionReadonly = false;
   state.puzzle = puzzle;
   state.cellMeta = buildCellMeta(puzzle);
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
@@ -1345,6 +1357,9 @@ function onCellPointerCancel() {
 
 function onCellTap(r, c) {
   if (Date.now() < suppressClickUntil) { suppressClickUntil = 0; return; }
+  // Nur-Lese: ein anderes Gerät hat diese Solo-Partie übernommen — Brett gesperrt,
+  // bis der Nutzer im Banner „Hier weiterspielen" wählt (holt den Besitz zurück).
+  if (state.sessionReadonly) return;
   if (state.status !== 'playing' || state.generating || state.paused) return;
   // Solange noch erzwungene Schritte existieren, steuert ausschließlich der
   // "nächster Schritt"-Button -- erst wenn Tier-1-Logik nicht mehr weiterkommt
@@ -2781,12 +2796,18 @@ function win(remote) {
       // ein — applyStreakAfterGame() lief oben bereits, state.streak ist aktuell.
       const streakDays = state.streak.currentStreak || 0;
       const bonus = { coop: isCoopish, perfect, bestTime: newHighscore, streak: streakDays };
-      const coins = coinReward(dIdx, bonus);
-      state.wallet = grantCurrency(coins, 'win');
+      // Belohnungs-Idempotenz: dieselbe Partie (gameId) darf über alle Geräte
+      // hinweg NUR EINMAL Münzen geben — sonst zählt ein Sieg doppelt, wenn er
+      // (offline) auf zwei Geräten beendet wird. Online verhindert der Reconnect-
+      // Reconcile das ohnehin (die Partie ist dann schon „defunct").
+      const alreadyRewarded = !isCoopish && state.gameId && isGameCompleted(state.gameId);
+      const coins = alreadyRewarded ? 0 : coinReward(dIdx, bonus);
+      if (coins) state.wallet = grantCurrency(coins, 'win');
+      if (!isCoopish && state.gameId) markGameCompleted(state.gameId);
       state.lastCoinReward = coins;
       state.lastCoinMult = Math.round(coinMultiplier(bonus) * 100) / 100;
       state.lastStreakUsed = streakDays;
-      log('game', 'Münz-Belohnung', { coins, mult: state.lastCoinMult, streakDays, coop: isCoopish, perfect, bestTime: newHighscore });
+      log('game', 'Münz-Belohnung', { coins, mult: state.lastCoinMult, streakDays, coop: isCoopish, perfect, bestTime: newHighscore, alreadyRewarded });
       // (Cloud-Sync erfolgt gebündelt am Ende als sofortiges syncCloudNow.)
       // Neue Solo-Bestzeit (nur perfekte Solo-Siege) in die globale Bestenliste
       // schreiben — Coop/Wettkampf/Training zählen dort bewusst nicht mit.
@@ -2914,6 +2935,7 @@ function activeSnapshot() {
     hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
     elapsed: state.elapsed, difficulty: state.puzzle.difficulty,
     hintMarks: collectHintMarks(),
+    gameId: state.gameId,   // Partie-Identität mitsichern (Multi-Device-Session/Fortsetzen)
     ts: Date.now(),
   };
 }
@@ -3659,6 +3681,13 @@ function syncCloudNow(reason) {
   if (state.account.status !== 'in') return;
   log('account', 'Getriggerte Cloud-Sync', { reason });
   doSyncNow();
+  // Zusätzlich die autoritative Aktivspiel-Session aktualisieren (nur Solo-Slot;
+  // pushSession filtert selbst). Status aus dem Anlass ableiten.
+  const sessStatus = (reason === 'win' || reason === 'lose') ? SESSION_STATUS.DONE
+    : (reason === 'pause' || reason === 'hide' || reason === 'pagehide') ? SESSION_STATUS.PAUSED
+    : (reason === 'gameStart') ? SESSION_STATUS.PLAYING
+    : (state.status === 'playing' ? SESSION_STATUS.PLAYING : SESSION_STATUS.NONE);
+  if (sessStatus !== SESSION_STATUS.NONE || reason === 'win' || reason === 'lose') pushSession(sessStatus);
 }
 async function doSyncNow() {
   if (state.account.status !== 'in') return;
@@ -3668,6 +3697,126 @@ async function doSyncNow() {
   else if (r.skipped) { state.account.syncState = 'idle'; }
   else { state.account.syncState = 'error'; state.account.syncErrorMsg = r.err ? accErr(r.err) : ''; }
 }
+// ─── Multi-Device: geräteübergreifende Konsistenz des AKTIVEN Solo-Spiels ──────
+// Nur für angemeldete Accounts (anonym/rein lokal = ein Gerät). Die Cloud-Session
+// (/users/{uid}/session) ist die autoritative Quelle der laufenden Partie; hier
+// wird sie geschrieben (Compare-and-Set) und beim Sichtbarwerden/Live-Event
+// abgeglichen — statt heute beim Zurückkehren blind hochzuladen und dabei einen
+// neueren Fremdstand zu überschreiben.
+
+// Aktive Solo-Partie in die Cloud-Session schreiben. status: 'playing'|'paused'|'done'.
+async function pushSession(status) {
+  if (state.account.status !== 'in') return;
+  if (state.saveSlot !== 'solo' || state.isTrainingGame || !state.gameId) return;
+  const active = status !== SESSION_STATUS.DONE && status !== SESSION_STATUS.NONE;
+  const payload = active && state.puzzle ? activeSnapshot() : null;
+  const r = await Account.writeSession({
+    gameId: state.gameId, status, payload,
+    appBuild: BUILD, schema: SESSION_SCHEMA, baseRev: state.sessionRev,
+  });
+  if (r && r.ok) { state.sessionRev = r.rev; }
+  else if (r && r.stale) { log('account', 'pushSession veraltet → reconcile'); reconcileSession(); }
+}
+
+// Solo-Slot leeren, weil die Partie woanders beendet/überholt wurde. Räumt eine
+// laufende In-Memory-Partie sauber ab (kein Rauswurf mitten im Zug: nur der Stand
+// ist weg, wir gehen bewusst ins Menü) und aktualisiert die Fortsetzen-Liste.
+function clearDefunctSolo(showNotice) {
+  saveActiveGame(null);
+  if (state.saveSlot === 'solo' && !state.isTrainingGame && (state.screen === 'game' || state.status === 'playing')) {
+    state.status = 'idle';
+    state.sessionReadonly = false;
+    stopTimer();
+    if (showNotice) state.deviceNotice = { kind: 'defunct' };
+    navigate('home');
+  }
+  refreshResume();
+}
+
+// Cloud-Partie lokal übernehmen. readonly = ein anderes Gerät ist Besitzer → Brett
+// gesperrt bis „Hier weiterspielen". Ist der Spieler gerade in genau dieser Partie,
+// wird das Brett auf den Cloud-Stand nachgezogen; sonst als „Fortsetzen" abgelegt.
+function adoptCloudSession(cloud, readonly) {
+  if (!cloud || !cloud.payload) { state.sessionRev = cloud ? (cloud.rev || 0) : 0; return; }
+  const snap = cloud.payload;
+  saveActiveGame(snap);                 // in den Solo-Slot (Fortsetzen)
+  state.sessionRev = cloud.rev || 0;
+  const inThisGame = state.screen === 'game' && state.saveSlot === 'solo' && state.gameId === cloud.gameId;
+  if (inThisGame && snap.puzzle) {
+    // Live nachziehen: dieselbe Partie ist auf einem anderen Gerät weitergelaufen.
+    loadPuzzleIntoState(snap.puzzle, snap);
+    state.status = 'playing';
+    state.sessionRev = cloud.rev || 0;
+    state.sessionReadonly = !!readonly;
+    if (readonly) { state.deviceNotice = { kind: 'takeover' }; stopTimer(); }
+  }
+  refreshResume();
+}
+
+// Entscheidet & handelt beim Sichtbarwerden/Live-Event: was tun mit der offenen Partie?
+function handleSessionDecision(d, cloud, local) {
+  switch (d.action) {
+    case 'inSync': break;
+    case 'uploadLocal': pushSession(state.paused ? SESSION_STATUS.PAUSED : SESSION_STATUS.PLAYING); break;
+    case 'reloadRequired':
+      // Cloud stammt aus neuerer App-Version → defunctes Spiel räumen, neu laden.
+      clearDefunctSolo(false);
+      state.deviceNotice = { kind: 'reload' };
+      safeReload('session-schema-ahead');
+      break;
+    case 'defunct':
+      if (d.backupLocal) { const g = loadActiveGame(); if (g) saveActiveGameBackup(g); }
+      clearDefunctSolo(true);
+      break;
+    case 'takeCloud': adoptCloudSession(cloud, false); break;
+    case 'takeCloudReadonly': adoptCloudSession(cloud, true); break;
+  }
+}
+
+// Abgleich der Session beim Sichtbarwerden/focus/online/Live-Event. ERSETZT das
+// frühere blinde doSyncNow() beim Zurückkehren (das den veralteten Stand hochlud).
+let reconcileSessionBusy = false;
+async function reconcileSession() {
+  if (state.account.status !== 'in' || reconcileSessionBusy) return;
+  reconcileSessionBusy = true;
+  try {
+    const cloud = await Account.readSession();
+    const inSolo = state.saveSlot === 'solo' && !state.isTrainingGame && !!state.puzzle
+      && (state.status === 'playing' || state.status === 'idle' && state.screen === 'game');
+    const savedTs = (() => { const g = loadActiveGame(); return g && g.ts || 0; })();
+    const local = inSolo
+      ? { gameId: state.gameId, rev: state.sessionRev, status: state.paused ? SESSION_STATUS.PAUSED : SESSION_STATUS.PLAYING, updatedAt: savedTs }
+      : null;
+    const d = decideSessionSync({ local, cloud, selfDevice: deviceId(), knownSchema: SESSION_SCHEMA });
+    log('account', 'reconcileSession', { action: d.action, reason: d.reason, hasLocal: !!local, hasCloud: !!cloud });
+    handleSessionDecision(d, cloud, local);
+  } catch (e) { log('account', 'reconcileSession fehlgeschlagen', e); }
+  finally { reconcileSessionBusy = false; }
+}
+
+// „Hier weiterspielen" aus dem Übernahme-Banner: Besitz zurückholen (rev bumpen),
+// Brett entsperren, Hinweis schließen und Timer wieder laufen lassen.
+function reclaimSession() {
+  state.sessionReadonly = false;
+  state.deviceNotice = null;
+  if (state.screen === 'game' && state.status === 'playing') startTimer();
+  pushSession(SESSION_STATUS.PLAYING);
+}
+function dismissDeviceNotice() { state.deviceNotice = null; }
+
+// Live-Invalidierung: der Watcher feuert, sobald ein anderes Gerät die Session
+// ändert → sofortiger Reconcile (Brett sperren/Stand nachziehen/defunct räumen).
+let sessionUnwatch = null;
+async function startSessionWatch() {
+  if (sessionUnwatch || state.account.status !== 'in') return;
+  sessionUnwatch = await Account.watchSession((cloudSession) => {
+    // Eigene Schreibvorgänge nicht gegen sich selbst reconcilen (deviceId-Filter):
+    if (cloudSession && cloudSession.deviceId === deviceId()) { state.sessionRev = cloudSession.rev || state.sessionRev; return; }
+    reconcileSession();
+  });
+}
+function stopSessionWatch() { if (sessionUnwatch) { try { sessionUnwatch(); } catch (_) {} sessionUnwatch = null; } }
+
 // Zeitpunkt der letzten Cloud-Sicherung als Uhrzeit (locale) — '–' wenn noch nie.
 function fmtSyncTime(ts) {
   if (!ts) return '–';
@@ -4848,6 +4997,11 @@ function init() {
       state.wallet = loadWallet();
       maybeUnlockV1Skin();
       refreshAccountFromLocal();  // lastSync/Status auffrischen
+      // Multi-Device: Aktivspiel-Session live überwachen (Fremd-Änderung → sofortiger
+      // Reconcile) und einmal beim Start abgleichen (z.B. auf einem frischen Gerät
+      // erscheint eine anderswo laufende Partie als „Fortsetzen").
+      startSessionWatch();
+      reconcileSession();
     });
     // …und automatisch alle 60 s weiter sichern, solange die App offen ist.
     // Periodischer Cloud-Sync NICHT während einer laufenden Partie (schont die
@@ -5224,6 +5378,7 @@ const App = {
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       desktopKeyLabel, startDesktopKeyCapture, cancelDesktopKeyCapture, clearDesktopToolKey,
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll,
+      reclaimSession, dismissDeviceNotice,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -6505,6 +6660,22 @@ const App = {
       <div v-if="state.toast" class="toast" :class="state.toast.type">{{ state.toast.msg }}</div>
     </transition>
 
+    <!-- ══ MULTI-DEVICE-HINWEIS ══ Cross-Device-Ereignisse (Partie woanders beendet /
+         auf anderem Gerät übernommen / neue Version). Fixed Banner, immer sichtbar. -->
+    <transition name="toast">
+      <div v-if="state.deviceNotice" class="device-notice" :class="'dn-' + state.deviceNotice.kind">
+        <span class="dn-ico ico-wrap" v-html="ic(state.deviceNotice.kind === 'takeover' ? 'signal' : state.deviceNotice.kind === 'reload' ? 'refresh' : 'cloud')"></span>
+        <div class="dn-body">
+          <div class="dn-title">{{ t('device.' + state.deviceNotice.kind + '.title') }}</div>
+          <div class="dn-text">{{ t('device.' + state.deviceNotice.kind + '.text') }}</div>
+        </div>
+        <div class="dn-actions">
+          <button v-if="state.deviceNotice.kind === 'takeover'" class="btn btn-sm" @click="reclaimSession">{{ t('device.takeover.resume') }}</button>
+          <button class="btn btn-sm btn-ghost" @click="dismissDeviceNotice">{{ t('common.ok') }}</button>
+        </div>
+      </div>
+    </transition>
+
     <!-- Sieganimation: global (fixed Overlay), damit die Shop-Vorschau auf jedem
          Screen funktioniert — nicht nur im Spiel. MUSS ein eigenständiges Element
          sein (NICHT im <transition> des Toasts): eine Vue-<transition> rendert nur
@@ -7250,7 +7421,10 @@ document.addEventListener('visibilitychange', () => {
     // damit der Bildschirm weiter wach bleibt und die Coop-Verbindung hält.
     if (state.screen === 'game') requestWakeLock();
     if (state.coop.active) Coop.ensurePresence({ name: state.settings.coopName, color: state.settings.coopMyColor, role: state.coop.role });
-    if (state.account.status === 'in') doSyncNow();  // beim Zurückkehren frisch sichern (Status sichtbar)
+    // Beim Zurückkehren ZUERST die Aktivspiel-Session abgleichen (statt blind
+    // hochzuladen — das überschrieb sonst einen neueren Fremdstand). Erst danach
+    // die übrigen Nutzdaten sichern (doSyncNow hat einen eigenen Fremd-Schutz).
+    if (state.account.status === 'in') reconcileSession().then(() => doSyncNow());
   }
 });
 

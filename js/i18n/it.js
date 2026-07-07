@@ -1,5 +1,11 @@
 // it.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
+
+  device: {
+    defunct: { title: 'Partita conclusa su un altro dispositivo', text: 'Questa partita è stata completata o annullata su un altro dispositivo. I tuoi progressi attuali sono uguali ovunque.' },
+    takeover: { title: 'Ripresa su un altro dispositivo', text: 'Questa partita continua ora su un altro dispositivo. Riportala qui per continuare a giocare.', resume: 'Continua qui' },
+    reload: { title: 'Nuova versione', text: 'Aggiornamento alla versione più recente…' },
+  },
   common: {
     cancel: 'Annulla',
     close: 'Chiudi',

@@ -1,5 +1,11 @@
 // ja.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
+
+  device: {
+    defunct: { title: '別の端末でゲームが終了しました', text: 'このゲームは別の端末で完了または破棄されました。現在の進行状況はどの端末でも同じです。' },
+    takeover: { title: '別の端末で引き継がれました', text: 'このゲームは現在別の端末で続行中です。ここで続けるには取り戻してください。', resume: 'ここで続ける' },
+    reload: { title: '新しいバージョン', text: '最新バージョンに更新しています…' },
+  },
   common: {
     cancel: 'キャンセル',
     close: '閉じる',

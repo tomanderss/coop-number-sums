@@ -27,12 +27,16 @@ const KEYS = {
   DATA_REV: 'cns_data_rev',     // Zeitstempel der letzten lokalen Nutzdaten-Änderung (für Cloud-Konfliktcheck)
   SYNCED_REV: 'cns_synced_rev', // DATA_REV beim letzten erfolgreichen Sync (Basislinie für decideSync)
   LAST_SYNC: 'cns_last_sync',   // Zeitpunkt der letzten erfolgreichen Cloud-Sicherung (nur UI; NICHT nutzdaten-getrackt)
+  DEVICE_ID: 'cns_device_id',   // stabile Geräte-Kennung (Multi-Device-Handoff); PER GERÄT, wird NIE synct/als Nutzdaten gezählt
+  COMPLETED_GAMES: 'cns_completed_games', // [gameId,…] bereits abgerechnete Partien (Belohnungs-Idempotenz über Geräte), FIFO
+  ACTIVE_GAME_BACKUP: 'cns_active_game_backup', // letzter durch Divergenz verdrängter Solo-Stand (nie still gelöscht)
 };
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
 // Bewusst OHNE SEEN_VERSION/COOP_SESSION/Backups/DATA_REV/SYNCED_REV.
 const USER_DATA_KEYS = new Set([
   'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_stats', 'cns_daily',
   'cns_history', 'cns_achievements', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
+  'cns_completed_games',
 ]);
 // Wie lange „Coop fortsetzen" nach der letzten Sicherung angeboten wird. Der
 // Raum lebt in der RTDB weiter, solange ihn niemand aktiv verlässt (Präsenz-
@@ -96,6 +100,48 @@ export function saveSettings(s) { save(KEYS.SETTINGS, s); }
 // app.js, das je nach state.coop.active in den passenden Slot schreibt.
 export function loadActiveGame() { return load(KEYS.ACTIVE_GAME, null); }
 export function saveActiveGame(g) { if (g) save(KEYS.ACTIVE_GAME, g); else remove(KEYS.ACTIVE_GAME); }
+// Backup des durch echte Cross-Device-Divergenz verdrängten Solo-Stands. Rein
+// lokal, NICHT synct (kein Nutzdaten-Key) — dient nur dem „nie still gelöscht"-Prinzip.
+export function loadActiveGameBackup() { return load(KEYS.ACTIVE_GAME_BACKUP, null); }
+export function saveActiveGameBackup(g) { if (g) localStorage.setItem(KEYS.ACTIVE_GAME_BACKUP, JSON.stringify(g)); else remove(KEYS.ACTIVE_GAME_BACKUP); }
+
+// ─── Multi-Device: stabile Geräte-Kennung + Belohnungs-Idempotenz ─────────────
+// Stabile, zufällige Geräte-ID (einmal erzeugt, dann persistent). PER GERÄT —
+// bewusst KEIN Nutzdaten-Key und NICHT in der Cloud, sonst wären alle Geräte
+// „dasselbe Gerät" und der Handoff-Besitz (deviceId) würde nie wechseln.
+export function deviceId() {
+  let id = load(KEYS.DEVICE_ID, null);
+  if (!id) {
+    id = 'd-' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+    localStorage.setItem(KEYS.DEVICE_ID, JSON.stringify(id));
+  }
+  return id;
+}
+const COMPLETED_GAMES_MAX = 200;
+export function loadCompletedGames() { const a = load(KEYS.COMPLETED_GAMES, []); return Array.isArray(a) ? a : []; }
+export function isGameCompleted(gameId) { return !!gameId && loadCompletedGames().includes(gameId); }
+// Markiert eine Partie als abgerechnet (Sieg/Verlust gebucht). Idempotent, FIFO-
+// gekappt. Nutzdaten-Key ⇒ synct (Union beim Sync), damit alle Geräte wissen,
+// dass gameId X schon gezählt wurde → keine Doppel-Coins bei Beenden auf 2 Geräten.
+export function markGameCompleted(gameId) {
+  if (!gameId) return;
+  const a = loadCompletedGames();
+  if (a.includes(gameId)) return;
+  a.push(gameId);
+  while (a.length > COMPLETED_GAMES_MAX) a.shift();
+  save(KEYS.COMPLETED_GAMES, a);
+}
+// Union-Merge der abgerechneten gameIds aus der Cloud (wie mergeInventory: nie
+// verlieren, nur ergänzen).
+export function mergeCompletedGames(cloudList) {
+  if (!Array.isArray(cloudList) || !cloudList.length) return loadCompletedGames();
+  const set = new Set(loadCompletedGames());
+  for (const id of cloudList) if (id) set.add(id);
+  let a = [...set];
+  if (a.length > COMPLETED_GAMES_MAX) a = a.slice(a.length - COMPLETED_GAMES_MAX);
+  save(KEYS.COMPLETED_GAMES, a);
+  return a;
+}
 export function loadActiveGameCoop() { return load(KEYS.ACTIVE_GAME_COOP, null); }
 export function saveActiveGameCoop(g) { if (g) save(KEYS.ACTIVE_GAME_COOP, g); else remove(KEYS.ACTIVE_GAME_COOP); }
 
@@ -461,6 +507,7 @@ export function collectExportData(type = 'manual') {
     race: load(KEYS.RACE, {}),
     inventory: load(KEYS.INVENTORY, {}),
     wallet: load(KEYS.WALLET, {}),
+    completedGames: load(KEYS.COMPLETED_GAMES, []),  // Belohnungs-Idempotenz (Union-Merge beim Import)
     // Rolle NICHT mitsynchronisieren — sie ist serverseitig autoritativ
     // (/users/{uid}/profile/role) und darf nie über den Datensnapshot reisen.
     profile: (() => { const { role, ...rest } = load(KEYS.PROFILE, {}); return rest; })(),
@@ -496,6 +543,8 @@ export function importFromFile(jsonText) {
   if (data.race) save(KEYS.RACE, data.race);
   if (data.inventory) save(KEYS.INVENTORY, data.inventory);
   if (data.wallet) save(KEYS.WALLET, data.wallet);
+  // Union-Merge (nie schrumpfen): abgerechnete Partien beider Seiten behalten.
+  if (data.completedGames) mergeCompletedGames(data.completedGames);
   if (data.profile) {
     // Die Rolle (Admin) ist SERVERSEITIG autoritativ (/users/{uid}/profile/role)
     // und darf NIE aus einem synchronisierten Datensnapshot überschrieben werden
@@ -527,6 +576,9 @@ export function deleteAllData() {
   remove(KEYS.DATA_REV);
   remove(KEYS.SYNCED_REV);
   remove(KEYS.LAST_SYNC);
+  remove(KEYS.COMPLETED_GAMES);
+  remove(KEYS.ACTIVE_GAME_BACKUP);
+  // DEVICE_ID bewusst behalten: es ist die Geräte-Identität (Handoff), keine Nutzdaten.
   clearLog();
 }
 

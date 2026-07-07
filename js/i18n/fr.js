@@ -1,5 +1,11 @@
 // fr.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
+
+  device: {
+    defunct: { title: 'Partie terminée sur un autre appareil', text: 'Cette partie a été terminée ou abandonnée sur un autre appareil. Ta progression actuelle est identique partout.' },
+    takeover: { title: 'Reprise sur un autre appareil', text: 'Cette partie continue sur un autre appareil. Récupère-la ici pour continuer à jouer.', resume: 'Continuer ici' },
+    reload: { title: 'Nouvelle version', text: 'Mise à jour vers la dernière version…' },
+  },
   common: {
     cancel: 'Annuler',
     close: 'Fermer',
