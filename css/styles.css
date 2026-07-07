@@ -2093,10 +2093,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .swatch-custom::-webkit-color-swatch { border: none; border-radius: 50%; }
 .text-input {
   font-family: inherit; font-size: 1rem; font-weight: 600; width: 100%;
-  background: var(--bg3); color: var(--text); border: 2px solid transparent;
-  border-radius: 12px; padding: 12px 14px; outline: none; transition: border-color .15s;
+  background: var(--bg3); color: var(--text); border: 2px solid var(--grid);
+  border-radius: 12px; padding: 12px 14px; outline: none;
+  transition: border-color .15s, box-shadow .15s;
 }
-.text-input:focus { border-color: var(--accent); }
+/* Sichtbarer Ruhezustand: Rahmen (var(--grid)) hebt das Feld immer vom
+   Hintergrund ab, auch ohne Fokus (sonst wirkten die Konto-Felder „unsichtbar",
+   nur der Platzhaltertext war zu sehen). Fokus zusätzlich mit Akzentring. */
+.text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.text-input::placeholder { color: var(--text3); opacity: 1; }
 
 /* ─── Konto / Account ─── */
 .account-card { background: var(--bg2); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 8px var(--shadow); }
