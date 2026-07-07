@@ -167,6 +167,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @media (min-width: 720px) and (pointer: fine) {
   .app.app-game { max-width: min(96vw, 1200px); }
 }
+/* Tablet / großer Touch-Screen im HOCHFORMAT (z.B. iPad portrait): wie am
+   Desktop wird NUR der Spiel-Screen aus der schmalen Mobil-Breite (540px)
+   befreit, damit das Brett den vorhandenen Platz nutzt statt in der Mitte klein
+   zu bleiben. Auf "pointer: coarse" begrenzt (echte Touch-Tablets), auf
+   "orientation: portrait" begrenzt, damit die spezifischere Querformat+coarse-
+   Regel weiter unten (Zwei-Spalten-Layout) im Querformat gewinnt. */
+@media (min-width: 700px) and (pointer: coarse) and (orientation: portrait) {
+  .app.app-game { max-width: min(94vw, 900px); }
+}
 /* Jeder Screen bekommt seine eigene Scroll-Box (statt die ganze Seite wachsen zu
    lassen) — sonst könnte z.B. ein gezoomtes Spielfeld die fixe Werkzeugleiste
    nach unten aus dem sichtbaren Bereich schieben. */
@@ -985,7 +994,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    werden sie zu echten Grid-Boxen. */
 @media screen and (orientation: landscape) and (pointer: coarse) {
   .app { max-width: 820px; }
-  .app.app-game { max-width: 900px; }
+  /* Großes Touch-Querformat (z.B. iPad landscape): der Spiel-Screen darf breiter
+     werden, damit die Brett-Spalte (1fr neben der 240px-Steuerspalte) mehr Platz
+     bekommt und das Feld größer wird. min(96vw, …) schützt schmalere Geräte
+     (Handy-Querformat bleibt bei ihrer echten Breite, da 96vw < 1100px). */
+  .app.app-game { max-width: min(96vw, 1100px); }
 
   /* Home, Setup, Coop-Lobby: Logo/Buttons/Auswahlkarten verkleinert und (wo
      möglich) nebeneinander statt untereinander angeordnet, damit sie auf der
