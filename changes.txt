@@ -1,0 +1,1 @@
+App startet jetzt zuverlässig offline vom Home-Bildschirm (Flugmodus): App-Shell wird cache-first ausgeliefert, robustes Precaching + atomarer Cache-Swap (kein Aussperren mehr nach misslungenem Update)
