@@ -860,6 +860,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: var(--cell-bg); color: var(--ink); font-weight: 700; font-size: var(--fs);
   border: 1px solid var(--grid); user-select: none; transition: background .12s;
   --rcol: var(--cell-bg);
+  /* Layout-/Style-Containment: bei einem Zug patcht Vue alle Zellen; so muss der
+     Browser Layout/Style nur pro Zelle isoliert neu rechnen (kein Paint-Clipping
+     → keine optische Änderung). Hilft spürbar auf großen Brettern (14×14). */
+  contain: layout style;
 }
 .cell:active { filter: brightness(1.15); }
 .cell:focus-visible { outline: 3px solid var(--accent); outline-offset: -2px; z-index: 4; }

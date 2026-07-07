@@ -1301,6 +1301,20 @@ const cellCorrect = (r, c) => state.puzzle.solution[r][c]
 function rowResolved(r) { const p = state.puzzle; for (let c = 0; c < p.cols; c++) if (!cellCorrect(r, c)) return false; return true; }
 function colResolved(c) { const p = state.puzzle; for (let r = 0; r < p.rows; r++) if (!cellCorrect(r, c)) return false; return true; }
 function regionResolved(i) { const p = state.puzzle; for (const [r, c] of p.regions[i].cells) if (!cellCorrect(r, c)) return false; return true; }
+// ── Render-Performance: aufgelöste Zeilen/Spalten/Käfige EINMAL vorberechnen ──
+// Vorher scannte jede der bis zu 196 Zellen (14×14 „R.I.P.") bei JEDEM Render ihren
+// Käfig/ihre Zeile/Spalte neu (regionResolved/…). Das lief nicht nur pro Zug, sondern
+// bei JEDEM Re-Render (z.B. den vielen Puls-Animationen gegen Spielende) → CPU-Dauerlast,
+// Hitze, zunehmendes Ruckeln. Diese Sets rechnen nur neu, wenn sich state.marks ändert
+// (ein Zug); die Render-Nutzung (cellClasses/Template) ist dann ein O(1)-Set-Lookup.
+const resolvedRowSet = computed(() => { const p = state.puzzle; const s = new Set(); if (p) for (let r = 0; r < p.rows; r++) if (rowResolved(r)) s.add(r); return s; });
+const resolvedColSet = computed(() => { const p = state.puzzle; const s = new Set(); if (p) for (let c = 0; c < p.cols; c++) if (colResolved(c)) s.add(c); return s; });
+const resolvedRegionSet = computed(() => { const p = state.puzzle; const s = new Set(); if (p) for (let i = 0; i < p.regions.length; i++) if (regionResolved(i)) s.add(i); return s; });
+// Render-Helfer (O(1)) — NUR im Template/cellClasses verwenden (Spiellogik nutzt
+// weiter die rohen row/col/regionResolved für die punktuelle Vorher/Nachher-Prüfung).
+function rowResolvedR(r) { return resolvedRowSet.value.has(r); }
+function colResolvedR(c) { return resolvedColSet.value.has(c); }
+function regionResolvedR(i) { return resolvedRegionSet.value.has(i); }
 // aktuelle Summen stimmen (Hilfsanzeige): Summe der eingekreisten == Ziel
 const rowSumMatch = r => rowSum(r) === state.puzzle.rowTargets[r];
 const colSumMatch = c => colSum(c) === state.puzzle.colTargets[c];
@@ -5434,7 +5448,7 @@ const App = {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, navTo, goBack, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
-      rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowSumMatch, colSumMatch,
+      rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
@@ -5682,15 +5696,15 @@ const App = {
         <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
           <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass()]" :style="[gridStyle, skinVars]">
             <div class="corner"></div>
-            <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolved(c-1), pulse: state.justResolved['col-'+(c-1)]}">
-              <template v-if="!colResolved(c-1)">
+            <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
+              <template v-if="!colResolvedR(c-1)">
                 <span class="cur" :class="{match: colSumMatch(c-1)}">{{ colSum(c-1) }}</span>
                 <span class="tgt">{{ state.puzzle.colTargets[c-1] }}</span>
               </template>
             </div>
             <template v-for="r in state.puzzle.rows" :key="'r'+r">
-              <div class="hdr row-hdr" :class="{resolved: rowResolved(r-1), pulse: state.justResolved['row-'+(r-1)]}">
-                <template v-if="!rowResolved(r-1)">
+              <div class="hdr row-hdr" :class="{resolved: rowResolvedR(r-1), pulse: state.justResolved['row-'+(r-1)]}">
+                <template v-if="!rowResolvedR(r-1)">
                   <span class="cur" :class="{match: rowSumMatch(r-1)}">{{ rowSum(r-1) }}</span>
                   <span class="tgt">{{ state.puzzle.rowTargets[r-1] }}</span>
                 </template>
@@ -5707,7 +5721,7 @@ const App = {
                    @pointerleave="onCellPointerCancel"
                    @pointercancel="onCellPointerCancel"
                    @contextmenu.prevent>
-                <span v-if="state.cellMeta[r-1][c-1].chip!=null && !regionResolved(state.cellMeta[r-1][c-1].region)" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
+                <span v-if="state.cellMeta[r-1][c-1].chip!=null && !regionResolvedR(state.cellMeta[r-1][c-1].region)" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
                 <span class="cnum">{{ state.puzzle.values[r-1][c-1] }}</span>
                 <i v-if="state.marks[r-1][c-1]==='removed' && state.cellMeta[r-1][c-1].hintMark" class="hint-dot"></i>
               </div>
@@ -7435,7 +7449,7 @@ function cellClasses(r, c) {
   const m = state.cellMeta[r][c];
   const mk = state.marks[r][c];
   // Cage-Färbung nur solange die Cage NICHT aufgelöst ist (dann verschwindet sie).
-  const colored = m.region >= 0 && !regionResolved(m.region);
+  const colored = m.region >= 0 && !regionResolvedR(m.region);
   const pe = pulseEdges(r, c);
   return {
     kept: mk === 'kept', removed: mk === 'removed',
