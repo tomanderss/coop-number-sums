@@ -13,6 +13,7 @@ const ASSETS = [
   './js/coop.js',
   './js/firebase.js',
   './js/account.js',
+  './js/session.js',
   './js/debuglog.js',
   './js/streak.js',
   './js/achievements.js',
@@ -46,45 +47,77 @@ const ASSETS = [
   './icons/icon-512.png',
   './icons/icon-1024.png',
 ];
+// Der App-Shell-Einstieg. JEDE Navigations-Anfrage (Home-Icon-Start, Reload,
+// start_url) wird offline aus diesem Cache-Eintrag bedient — unabhängig davon,
+// ob die URL './' , './index.html' oder mit Query kam.
+const SHELL = './index.html';
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
-  // Bewusst KEIN self.skipWaiting() hier: bei einem Update soll der neue Worker in
-  // den "waiting"-Zustand gehen und die alte Version weiterlaufen lassen, bis der
-  // Nutzer aktiv aktualisiert (siehe Update-Banner in app.js). Erst-Installationen
-  // haben keinen aktiven Vorgänger und aktivieren dadurch ohnehin sofort.
+// Install: Assets EINZELN cachen (Promise.allSettled) — schlägt eine Datei fehl
+// (kurzer Netz-Hänger, 404), bleibt der Rest im Cache, statt dass ein atomares
+// addAll() den GESAMTEN Cache leer lässt. Kein skipWaiting: der neue Worker geht
+// in "waiting", die App stößt das Update kontrolliert an (kein Reload im Spiel).
+self.addEventListener('install', (e) => {
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.allSettled(ASSETS.map((a) => cache.add(a)));
+  })());
 });
 
 // Die Seite stößt das eigentliche Update an, sobald der Nutzer (nach optionalem
 // Backup) auf "Aktualisieren" tippt.
-self.addEventListener('message', e => {
+self.addEventListener('message', (e) => {
   if (e.data && e.data.type === 'skipWaiting') self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ));
-  self.clients.claim();
+// Activate: ATOMARER SWAP. Alte Caches werden NUR gelöscht, wenn der neue Cache
+// die App-Shell wirklich enthält — sonst würde ein unvollständiges Precache (z.B.
+// Update-Abbruch) den Nutzer offline aussperren. Fehlt die Shell, wird sie
+// nachgeladen und der alte Cache als Fallback behalten.
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    let shell = await cache.match(SHELL);
+    if (!shell) { try { await cache.add(SHELL); shell = await cache.match(SHELL); } catch (_) {} }
+    if (shell) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+    }
+    await self.clients.claim();
+  })());
 });
 
-// Icons ändern sich praktisch nie und werden bei jedem Bildschirmwechsel neu
-// gemountet (v-if im Home-Screen) — Cache-first vermeidet den dadurch sonst
-// merkbaren Netzwerk-Roundtrip pro Navigation.
-self.addEventListener('fetch', e => {
-  if (e.request.url.includes('/icons/')) {
-    e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request)));
-    return;
-  }
+// Cache-first (stale-while-revalidate) für ALLE gleich-origin GET-Anfragen:
+// offline sofort & zuverlässig aus dem Cache, online im Hintergrund aktualisiert.
+// Bewusst NICHT mehr network-first — das ließ den Offline-/Lie-Fi-Start erst in
+// einen Netz-Timeout laufen und hing am exakten Cache-Match des Fallbacks.
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  const network = fetch(request)
+    .then((resp) => { if (resp && resp.ok && resp.type === 'basic') cache.put(request, resp.clone()); return resp; })
+    .catch(() => null);
+  return cached || (await network) || Response.error();
+}
 
-  // Network-first mit Cache-Fallback (frische Inhalte, offline lauffähig)
-  e.respondWith(
-    fetch(e.request)
-      .then(response => {
-        const clone = response.clone();
-        caches.open(CACHE).then(cache => cache.put(e.request, clone));
-        return response;
-      })
-      .catch(() => caches.match(e.request))
-  );
+// Navigations-Anfragen (App-Start/Reload) IMMER aus der gecachten Shell bedienen
+// (cache-first). So startet das Home-Icon im Flugmodus zuverlässig. Frische Shell
+// wird im Hintergrund nachgezogen (greift beim nächsten Start).
+async function handleNavigation(request) {
+  const cache = await caches.open(CACHE);
+  fetch(request).then((resp) => { if (resp && resp.ok && resp.type === 'basic') cache.put(SHELL, resp.clone()); }).catch(() => {});
+  const shell = await cache.match(SHELL);
+  if (shell) return shell;
+  try { return await fetch(request); } catch (_) {
+    return new Response('<!doctype html><meta charset="utf-8"><title>Offline</title><body style="background:#0b1020;color:#e8edf7;font-family:system-ui;padding:2rem">Bitte einmal mit Internet starten – danach läuft die App offline.</body>', { headers: { 'Content-Type': 'text/html; charset=utf-8' }, status: 200 });
+  }
+}
+
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET') return;                     // nur GET cachen
+  let url;
+  try { url = new URL(req.url); } catch (_) { return; }
+  if (url.origin !== self.location.origin) return;      // Fremd-Origin (Firebase) → Browser/SDK
+  if (req.mode === 'navigate') { e.respondWith(handleNavigation(req)); return; }
+  e.respondWith(staleWhileRevalidate(req));
 });
