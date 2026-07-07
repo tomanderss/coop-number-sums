@@ -12,8 +12,26 @@ globalThis.localStorage = new MemoryStorage();
 
 const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
-  isSignedIn, lastSyncAt, decideSync, friendActivityRank, sortFriends, sortLeaderboard,
+  isSignedIn, lastSyncAt, decideSync, isDivergent, friendActivityRank, sortFriends, sortLeaderboard,
 } = await import('../../js/account.js');
+
+describe('account.isDivergent (echter Offline-vs-Cloud-Konflikt)', () => {
+  test('Erstkontakt (syncedRev null) → nie Konflikt', () => {
+    assert.equal(isDivergent({ localRev: 5, cloudRev: 9, syncedRev: null }), false);
+  });
+  test('nur lokal geändert → kein Konflikt', () => {
+    assert.equal(isDivergent({ localRev: 8, cloudRev: 5, syncedRev: 5 }), false);
+  });
+  test('nur Cloud geändert → kein Konflikt', () => {
+    assert.equal(isDivergent({ localRev: 5, cloudRev: 8, syncedRev: 5 }), false);
+  });
+  test('beide seit Basislinie geändert → Konflikt', () => {
+    assert.equal(isDivergent({ localRev: 8, cloudRev: 9, syncedRev: 5 }), true);
+  });
+  test('nichts geändert → kein Konflikt', () => {
+    assert.equal(isDivergent({ localRev: 5, cloudRev: 5, syncedRev: 5 }), false);
+  });
+});
 
 describe('account.sortLeaderboard', () => {
   test('fastest time first; invalid/missing times sink to the end', () => {
