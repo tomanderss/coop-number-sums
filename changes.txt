@@ -1,0 +1,1 @@
+Home: Spiel-Icon lädt beim Wechsel ins Hauptmenü sofort (kein Nachladen mehr)
