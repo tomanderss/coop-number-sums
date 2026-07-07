@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.118';
-export const BUILD_HASH = '97ea6c4';
+export const BUILD      = '1.119';
+export const BUILD_HASH = 'd61ea00';
 
 export const CHANGELOG = [
+  {
+    "version": "1.119",
+    "date": "07.07.2026",
+    "changes": [
+      "Home: Spiel-Icon lädt beim Wechsel ins Hauptmenü sofort (kein Nachladen mehr)"
+    ]
+  },
   {
     "version": "1.118",
     "date": "07.07.2026",
