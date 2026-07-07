@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.115';
-export const BUILD_HASH = '13734ba';
+export const BUILD      = '1.116';
+export const BUILD_HASH = '77bb331';
 
 export const CHANGELOG = [
+  {
+    "version": "1.116",
+    "date": "07.07.2026",
+    "changes": [
+      "App startet jetzt zuverlässig offline vom Home-Bildschirm (Flugmodus): App-Shell wird cache-first ausgeliefert, robustes Precaching + atomarer Cache-Swap (kein Aussperren mehr nach misslungenem Update)",
+      "Offline-Bewusstsein: Home zeigt einen Offline-Hinweis; Coop/Wettkampf/Freunde sind offline sauber deaktiviert (statt in einen Verbindungsfehler zu laufen); bei Rückkehr online wird automatisch abgeglichen",
+      "Versions-Mismatch-Dialog zurück: hast du offline gespielt UND woanders online, fragt die App beim Abgleich, welchen Stand du behalten willst (dieses Gerät oder Cloud) — die andere Version wird als Backup gesichert, nie still überschrieben"
+    ]
+  },
   {
     "version": "1.115",
     "date": "07.07.2026",
