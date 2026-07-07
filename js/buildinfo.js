@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.120';
-export const BUILD_HASH = 'ab4df6e';
+export const BUILD      = '1.121';
+export const BUILD_HASH = 'eb5e446';
 
 export const CHANGELOG = [
+  {
+    "version": "1.121",
+    "date": "07.07.2026",
+    "changes": [
+      "Konto-Anmeldung: E-Mail- und Passwort-Felder haben jetzt einen sichtbaren Rahmen (auch ohne Fokus klar erkennbar)"
+    ]
+  },
   {
     "version": "1.120",
     "date": "07.07.2026",
