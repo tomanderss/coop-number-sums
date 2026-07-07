@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.116';
-export const BUILD_HASH = '77bb331';
+export const BUILD      = '1.117';
+export const BUILD_HASH = '4d91c65';
 
 export const CHANGELOG = [
+  {
+    "version": "1.117",
+    "date": "07.07.2026",
+    "changes": [
+      "Gelöst-Screen zeigt jetzt oben fett die Schwierigkeit + Maße (z.B. „R.I.P. · 14×14\")",
+      "Große Bretter (14×14 „R.I.P.\") ruckeln nicht mehr gegen Spielende: das Brett berechnet aufgelöste Zeilen/Spalten/Käfige nur noch einmal pro Zug statt in jeder Zelle bei jedem Render (deutlich weniger CPU-Last/Hitze)"
+    ]
+  },
   {
     "version": "1.116",
     "date": "07.07.2026",

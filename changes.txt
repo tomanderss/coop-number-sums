@@ -1,2 +1,0 @@
-Gelöst-Screen zeigt jetzt oben fett die Schwierigkeit + Maße (z.B. „R.I.P. · 14×14")
-Große Bretter (14×14 „R.I.P.") ruckeln nicht mehr gegen Spielende: das Brett berechnet aufgelöste Zeilen/Spalten/Käfige nur noch einmal pro Zug statt in jeder Zelle bei jedem Render (deutlich weniger CPU-Last/Hitze)
