@@ -1,0 +1,1 @@
+Geräteübergreifende Konsistenz: ein laufendes Solo-Spiel ist jetzt über alle angemeldeten Geräte synchron — wird es woanders beendet/fortgesetzt, zieht das andere Gerät sofort nach (kein Überschreiben eines neueren Stands, keine Doppel-Belohnung)

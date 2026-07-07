@@ -77,6 +77,9 @@
           "$fromUid": {
             ".write": "auth != null && (auth.uid === $uid || auth.uid === $fromUid)"
           }
+        },
+        "session": {
+          ".validate": "newData.hasChildren(['gameId','rev','deviceId','status'])"
         }
       }
     },

@@ -1807,6 +1807,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .toast { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 80px); left: 50%; transform: translateX(-50%); background: var(--bg3); color: var(--text); padding: 12px 20px; border-radius: 12px; font-weight: 700; box-shadow: 0 8px 24px var(--shadow); z-index: 80; max-width: 90%; text-align: center; }
 .toast.success { background: var(--good); color: #042f1e; }
 .toast.error { background: var(--bad); color: #fff; }
+
+/* Multi-Device-Hinweis-Banner (Partie woanders beendet/übernommen/neue Version). */
+.device-notice { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 16px); z-index: 90; display: flex; align-items: center; gap: 12px; width: min(92%, 460px); background: var(--bg3); color: var(--text); padding: 14px 16px; border-radius: 14px; box-shadow: 0 10px 30px var(--shadow); border: 1px solid var(--line); }
+.device-notice .dn-ico { flex: 0 0 auto; width: 24px; height: 24px; color: var(--accent); }
+.device-notice .dn-body { flex: 1 1 auto; min-width: 0; }
+.device-notice .dn-title { font-weight: 800; font-size: .98rem; }
+.device-notice .dn-text { font-size: .82rem; opacity: .82; margin-top: 2px; }
+.device-notice .dn-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; }
+.device-notice.dn-takeover { border-color: var(--accent); }
 /* Eigenständiger Banner am oberen Rand (statt unten wie .toast) — z.B. für
    "Bestzeit nicht mehr möglich", damit das Spielfeld nie verdeckt wird. */
 .best-time-banner {

@@ -1,5 +1,11 @@
 // de.js — deutsche Strings (Standardsprache, Fallback für fehlende Keys in anderen Sprachen)
 export default {
+
+  device: {
+    defunct: { title: 'Partie auf anderem Gerät beendet', text: 'Dieses Spiel wurde auf einem anderen Gerät abgeschlossen oder verworfen. Dein aktueller Stand ist überall gleich.' },
+    takeover: { title: 'Auf anderem Gerät übernommen', text: 'Diese Partie läuft gerade auf einem anderen Gerät weiter. Zum Weiterspielen hier zurückholen.', resume: 'Hier weiterspielen' },
+    reload: { title: 'Neue Version', text: 'Es wird auf die aktuelle Version aktualisiert…' },
+  },
   common: {
     cancel: 'Abbrechen',
     close: 'Schließen',
