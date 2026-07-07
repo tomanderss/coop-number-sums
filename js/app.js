@@ -1315,9 +1315,29 @@ const resolvedRegionSet = computed(() => { const p = state.puzzle; const s = new
 function rowResolvedR(r) { return resolvedRowSet.value.has(r); }
 function colResolvedR(c) { return resolvedColSet.value.has(c); }
 function regionResolvedR(i) { return resolvedRegionSet.value.has(i); }
-// aktuelle Summen stimmen (Hilfsanzeige): Summe der eingekreisten == Ziel
-const rowSumMatch = r => rowSum(r) === state.puzzle.rowTargets[r];
-const colSumMatch = c => colSum(c) === state.puzzle.colTargets[c];
+// Zeilen-/Spaltensummen ebenfalls EINMAL pro Zug cachen statt in jedem Header-
+// Render (mehrfach: Wert + Match-Klasse) die ganze Zeile/Spalte neu aufzusummieren.
+const rowSums = computed(() => { const p = state.puzzle; if (!p) return []; const a = new Array(p.rows); for (let r = 0; r < p.rows; r++) { let s = 0; for (let c = 0; c < p.cols; c++) if (state.marks[r][c] === 'kept') s += p.values[r][c]; a[r] = s; } return a; });
+const colSums = computed(() => { const p = state.puzzle; if (!p) return []; const a = new Array(p.cols); for (let c = 0; c < p.cols; c++) { let s = 0; for (let r = 0; r < p.rows; r++) if (state.marks[r][c] === 'kept') s += p.values[r][c]; a[c] = s; } return a; });
+function rowSumR(r) { return rowSums.value[r] || 0; }
+function colSumR(c) { return colSums.value[c] || 0; }
+// aktuelle Summen stimmen (Hilfsanzeige): Summe der eingekreisten == Ziel — aus dem Cache.
+const rowSumMatch = r => rowSums.value[r] === state.puzzle.rowTargets[r];
+const colSumMatch = c => colSums.value[c] === state.puzzle.colTargets[c];
+// Regionfarben-Cache: die (statische) Käfig-Basisfarbe × ausgerüstete Palette EINMAL
+// je distinkter Farbe transformieren — vorher lief applyPaletteFx (HSL-Mathe + 2 Shop-
+// Lookups) in cellStyle PRO ZELLE PRO RENDER (×196 auf dem 14×14). m.color ist eine
+// Referenz in REGION_COLORS, daher als Map-Key nutzbar. Neu nur bei Paletten-Wechsel.
+const colorKey = (c) => c.h + '-' + c.s + '-' + c.l;  // stabiler Key (unabhängig von Objekt-Referenz)
+const regionColorVars = computed(() => {
+  const fx = activePaletteFx();
+  const map = new Map();
+  for (const color of REGION_COLORS) {
+    const col = applyPaletteFx(color, fx);
+    map.set(colorKey(color), { '--rc-h': col.h, '--rc-s': col.s + '%', '--rc-l': col.l + '%', '--rc-ink': regionChipInk(col) });
+  }
+  return map;
+});
 
 // Kurzer, smoother Leucht-Puls für eine gerade fertig gewordene Reihe/Spalte/Cage.
 function pulseResolved(kind, idx) {
@@ -5448,7 +5468,7 @@ const App = {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, navTo, goBack, newGame, goNextPuzzle, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
-      rowSum, colSum, regionSum, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
+      rowSum, colSum, regionSum, rowSumR, colSumR, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
@@ -5698,14 +5718,14 @@ const App = {
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
               <template v-if="!colResolvedR(c-1)">
-                <span class="cur" :class="{match: colSumMatch(c-1)}">{{ colSum(c-1) }}</span>
+                <span class="cur" :class="{match: colSumMatch(c-1)}">{{ colSumR(c-1) }}</span>
                 <span class="tgt">{{ state.puzzle.colTargets[c-1] }}</span>
               </template>
             </div>
             <template v-for="r in state.puzzle.rows" :key="'r'+r">
               <div class="hdr row-hdr" :class="{resolved: rowResolvedR(r-1), pulse: state.justResolved['row-'+(r-1)]}">
                 <template v-if="!rowResolvedR(r-1)">
-                  <span class="cur" :class="{match: rowSumMatch(r-1)}">{{ rowSum(r-1) }}</span>
+                  <span class="cur" :class="{match: rowSumMatch(r-1)}">{{ rowSumR(r-1) }}</span>
                   <span class="tgt">{{ state.puzzle.rowTargets[r-1] }}</span>
                 </template>
               </div>
@@ -7483,9 +7503,9 @@ function cellStyle(r, c) {
   const m = state.cellMeta[r][c];
   const st = { fontSize: 'var(--fs)' };
   if (m.color) {
-    // Ausgerüstete Brett-Palette (Shop) auch hier — s. shopitems.js/applyPaletteFx.
-    const col = applyPaletteFx(m.color, activePaletteFx());
-    st['--rc-h'] = col.h; st['--rc-s'] = col.s + '%'; st['--rc-l'] = col.l + '%'; st['--rc-ink'] = regionChipInk(col);
+    // Regionfarbe aus dem Cache (einmal je Palette gerechnet) statt pro Zelle pro Render.
+    const cv = regionColorVars.value.get(colorKey(m.color));
+    if (cv) { st['--rc-h'] = cv['--rc-h']; st['--rc-s'] = cv['--rc-s']; st['--rc-l'] = cv['--rc-l']; st['--rc-ink'] = cv['--rc-ink']; }
   }
   const who = state.markedBy[r][c];
   if (who) { const col = who === LOCAL_PLAYER_ID ? state.settings.coopMyColor : playerColor(who); if (col) st['--markcol'] = col; }
