@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.121';
-export const BUILD_HASH = 'eb5e446';
+export const BUILD      = '1.122';
+export const BUILD_HASH = 'a1d4fe8';
 
 export const CHANGELOG = [
+  {
+    "version": "1.122",
+    "date": "07.07.2026",
+    "changes": [
+      "iPad-Querformat: Werkzeug-Knöpfe (Zurück/Werkzeug-Wechsel/Hinweis) stehen jetzt untereinander mit klarem Abstand statt gedrängt nebeneinander — kein versehentliches Fehltippen mehr; der Werkzeug-Wechsel sitzt ganz unten, am nächsten zum Daumen"
+    ]
+  },
   {
     "version": "1.121",
     "date": "07.07.2026",

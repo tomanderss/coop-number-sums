@@ -1,1 +1,0 @@
-iPad-Querformat: Werkzeug-Knöpfe (Zurück/Werkzeug-Wechsel/Hinweis) stehen jetzt untereinander mit klarem Abstand statt gedrängt nebeneinander — kein versehentliches Fehltippen mehr; der Werkzeug-Wechsel sitzt ganz unten, am nächsten zum Daumen
