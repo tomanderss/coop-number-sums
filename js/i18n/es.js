@@ -1,6 +1,8 @@
 // es.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  offline: { unavailable: 'No disponible sin conexión', badge: 'Sin conexión', chip: 'Sin conexión', chipHint: 'Estás sin conexión: los puzles en solitario siguen funcionando.' },
+
   device: {
     defunct: { title: 'Partida terminada en otro dispositivo', text: 'Esta partida se completó o descartó en otro dispositivo. Tu progreso actual es el mismo en todas partes.' },
     takeover: { title: 'Continuada en otro dispositivo', text: 'Esta partida continúa ahora en otro dispositivo. Recupérala aquí para seguir jugando.', resume: 'Seguir aquí' },

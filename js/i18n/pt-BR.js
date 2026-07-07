@@ -1,6 +1,8 @@
 // pt-BR.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  offline: { unavailable: 'Indisponível offline', badge: 'Offline', chip: 'Offline', chipHint: 'Você está offline — os quebra-cabeças solo continuam funcionando.' },
+
   device: {
     defunct: { title: 'Jogo concluído em outro dispositivo', text: 'Este jogo foi concluído ou descartado em outro dispositivo. Seu progresso atual é o mesmo em todos os lugares.' },
     takeover: { title: 'Assumido em outro dispositivo', text: 'Este jogo continua agora em outro dispositivo. Traga-o de volta aqui para continuar jogando.', resume: 'Continuar aqui' },

@@ -272,6 +272,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 /* Streak-Flamme deutlich größer als der Zähler (auffälliger). */
 .home-streak-badge .ico { width: 1.6em; height: 1.6em; }
+/* Offline-Indikator (Home): dezente Pille oben zentriert, nur wenn kein Netz. */
+.offline-chip {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 4;
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px;
+  border-radius: 13px; background: var(--bg3); color: var(--text2); border: 1px solid var(--line);
+  font-size: .76rem; font-weight: 800; letter-spacing: .2px; box-shadow: 0 4px 14px var(--shadow);
+}
+.offline-chip .ei { width: 1.05em; height: 1.05em; opacity: .85; }
 .brand { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 4px; }
 /* Eigenes Badge auf dem Home-Screen (nur sichtbar, wenn eins ausgerüstet ist) */
 .home-profile-chip {

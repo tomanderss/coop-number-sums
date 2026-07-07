@@ -1,6 +1,8 @@
 // en.js — English strings (carefully hand-translated, kept in sync with de.js)
 export default {
 
+  offline: { unavailable: 'Not available offline', badge: 'Offline', chip: 'Offline', chipHint: 'You\'re offline — solo puzzles still work.' },
+
   device: {
     defunct: { title: 'Game finished on another device', text: 'This game was completed or discarded on another device. Your current progress is the same everywhere.' },
     takeover: { title: 'Taken over on another device', text: 'This game is currently continuing on another device. Bring it back here to keep playing.', resume: 'Continue here' },

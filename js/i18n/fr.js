@@ -1,6 +1,8 @@
 // fr.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  offline: { unavailable: 'Indisponible hors ligne', badge: 'Hors ligne', chip: 'Hors ligne', chipHint: 'Tu es hors ligne — les grilles solo fonctionnent toujours.' },
+
   device: {
     defunct: { title: 'Partie terminée sur un autre appareil', text: 'Cette partie a été terminée ou abandonnée sur un autre appareil. Ta progression actuelle est identique partout.' },
     takeover: { title: 'Reprise sur un autre appareil', text: 'Cette partie continue sur un autre appareil. Récupère-la ici pour continuer à jouer.', resume: 'Continuer ici' },
