@@ -1,1 +1,2 @@
 App startet jetzt zuverlässig offline vom Home-Bildschirm (Flugmodus): App-Shell wird cache-first ausgeliefert, robustes Precaching + atomarer Cache-Swap (kein Aussperren mehr nach misslungenem Update)
+Offline-Bewusstsein: Home zeigt einen Offline-Hinweis; Coop/Wettkampf/Freunde sind offline sauber deaktiviert (statt in einen Verbindungsfehler zu laufen); bei Rückkehr online wird automatisch abgeglichen

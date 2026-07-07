@@ -45,6 +45,7 @@ const LOCAL_PLAYER_ID = 'local';
 // ─── GLOBALER ZUSTAND ─────────────────────────────────────────────────────────
 const state = reactive({
   screen: 'home',            // home | setup | game | settings | stats
+  net: (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'offline' : 'online', // globaler Netz-Status: 'online' | 'offline' | 'reconnecting'
   settings: loadSettings(),
   stats: loadStats(),
   streak: loadStreak(),      // { lastCompletedDate, currentStreak, bestStreak, totalCompleted }
@@ -2257,6 +2258,7 @@ function coopTeardownWaiting() {
 // kann den Namen also immer ändern), wird aber mit dem zuletzt gespeicherten
 // Namen vorbefüllt, damit man ihn im Normalfall nur bestätigen muss.
 function goCoop() {
+  if (!isOnline()) { showToast(t('offline.unavailable'), 'error', 2600); return; }
   coopReset();
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
@@ -2267,6 +2269,7 @@ function goCoop() {
 // mit gesetztem raceMode- oder teamMode-Flag je gewähltem Modus (1v1 oder
 // 2v2), das die Spielerzahl der Lobby entsprechend begrenzt (siehe startJoining()).
 function goRace(mode) {
+  if (!isOnline()) { showToast(t('offline.unavailable'), 'error', 2600); return; }
   coopReset();
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
@@ -4616,6 +4619,7 @@ async function adminResetPw() {
 // ─── Freunde & Präsenz ────────────────────────────────────────────────────────
 let friendsUnwatch = null, presenceUnwatch = null, presenceGameTimer = 0;
 function openFriends() {
+  if (!isOnline()) { showToast(t('offline.unavailable'), 'error', 2600); return; }
   if (state.account.status !== 'in') { openSettings(); state.settingsTab = 'konto'; return; }
   state.friends.open = true; state.friends.tab = 'friends';
   state.friends.addName = ''; state.friends.addError = null; state.friends.addNotice = null;
@@ -4958,8 +4962,36 @@ function initDiagnostics() {
   }
 }
 
+// ── Globaler Netz-Status (Offline-Bewusstsein) ────────────────────────────────
+// Solo/Training laufen komplett lokal; das Netz ist optional (Cloud-Backup,
+// Multiplayer, Bestenliste). state.net spiegelt die Erreichbarkeit, damit die UI
+// netzabhängige Aktionen sauber ausgraut statt in Firebase-Timeouts zu laufen.
+function isOnline() { return state.net !== 'offline'; }
+function setNet(status) {
+  if (state.net === status) return;
+  const wasOffline = state.net === 'offline';
+  state.net = status;
+  log('app', 'Netz-Status geändert', { net: status });
+  if (status === 'online' && wasOffline) onReconnect();
+}
+function onReconnect() {
+  // Zurück online: den aktiven Spielstand + Nutzdaten frisch abgleichen. Die
+  // durable Outbox (ausstehende Cloud-Schreibvorgänge) wird in einem Folge-PR
+  // hier abgespielt; heute reicht der bestehende Reconcile/Sync.
+  if (state.account.status === 'in') { try { reconcileSession(); doSyncNow(); } catch (_) {} }
+}
+function initConnectivity() {
+  const update = () => setNet(navigator.onLine === false ? 'offline' : 'online');
+  window.addEventListener('online', update);
+  window.addEventListener('offline', update);
+  // Beim Sichtbarwerden zusätzlich prüfen (navigator.onLine wird beim Wecken aktualisiert).
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') update(); });
+  update();
+}
+
 function init() {
   initDiagnostics();
+  initConnectivity();
   // Läuft die App STABIL (länger als das Loop-Fenster) ohne Neuladen, gilt eine
   // evtl. Reload-Serie als beendet → Zähler zurücksetzen, damit ein späteres
   // legitimes Update wieder neu laden darf. WICHTIG: Der Reset MUSS länger sein als
@@ -5399,6 +5431,7 @@ const App = {
       openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
+      isOnline,
       t, i18nState, SUPPORTED_LOCALES,
     };
   },
@@ -5411,6 +5444,7 @@ const App = {
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
+      <span v-if="!isOnline()" class="offline-chip" :title="t('offline.chipHint')"><span class="ei" v-html="ic('cloud')"></span> {{ t('offline.chip') }}</span>
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span><span class="home-donate-heart ico-wrap" aria-hidden="true" v-html="ic('heart')"></span></a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge"><span class="ico-lead" v-html="ic('flame')"></span>{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
@@ -5447,12 +5481,14 @@ const App = {
         <button class="btn btn-primary" @click="coopReset(); navTo('setup')">
           <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
-        <button class="btn btn-coop" :disabled="!coopAvailable" @click="goCoop">
+        <button class="btn btn-coop" :disabled="!coopAvailable || !isOnline()" @click="goCoop">
           <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
-          <span v-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
+          <span v-if="!isOnline()" class="badge-soon">{{ t('offline.badge') }}</span>
+          <span v-else-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
         </button>
-        <button class="btn btn-ghost race-btn" :disabled="!coopAvailable" @click="state.modal='raceChoice'">
+        <button class="btn btn-ghost race-btn" :disabled="!coopAvailable || !isOnline()" @click="state.modal='raceChoice'">
           <span class="btn-ic"><span class="ei" v-html="ic('versus')"></span></span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
+          <span v-if="!isOnline()" class="badge-soon">{{ t('offline.badge') }}</span>
         </button>
         <div class="home-grid">
           <button class="btn btn-ghost" @click="navTo('stats')"><span class="btn-ic"><span class="ei" v-html="ic('chart')"></span></span> {{ t('home.stats') }}</button>

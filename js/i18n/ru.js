@@ -1,6 +1,8 @@
 // ru.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  offline: { unavailable: 'Недоступно офлайн', badge: 'Офлайн', chip: 'Офлайн', chipHint: 'Вы офлайн — одиночные головоломки по-прежнему работают.' },
+
   device: {
     defunct: { title: 'Игра завершена на другом устройстве', text: 'Эта игра была завершена или отменена на другом устройстве. Ваш текущий прогресс одинаков везде.' },
     takeover: { title: 'Перехвачено на другом устройстве', text: 'Эта игра сейчас продолжается на другом устройстве. Верните её сюда, чтобы продолжить игру.', resume: 'Продолжить здесь' },

@@ -1,6 +1,8 @@
 // tr.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  offline: { unavailable: 'Çevrimdışı kullanılamaz', badge: 'Çevrimdışı', chip: 'Çevrimdışı', chipHint: 'Çevrimdışısın — tekli bulmacalar çalışmaya devam eder.' },
+
   device: {
     defunct: { title: 'Oyun başka bir cihazda tamamlandı', text: 'Bu oyun başka bir cihazda tamamlandı veya iptal edildi. Mevcut ilerlemen her yerde aynı.' },
     takeover: { title: 'Başka bir cihazda devralındı', text: 'Bu oyun şu anda başka bir cihazda devam ediyor. Oynamaya devam etmek için buraya geri al.', resume: 'Burada devam et' },

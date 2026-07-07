@@ -1,6 +1,8 @@
 // ko.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  offline: { unavailable: '오프라인에서 사용할 수 없음', badge: '오프라인', chip: '오프라인', chipHint: '오프라인 상태입니다 — 솔로 퍼즐은 계속 이용할 수 있습니다.' },
+
   device: {
     defunct: { title: '다른 기기에서 게임이 종료됨', text: '이 게임은 다른 기기에서 완료되었거나 취소되었습니다. 현재 진행 상황은 모든 기기에서 동일합니다.' },
     takeover: { title: '다른 기기에서 이어받음', text: '이 게임은 현재 다른 기기에서 계속되고 있습니다. 계속하려면 여기로 가져오세요.', resume: '여기서 계속하기' },

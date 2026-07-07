@@ -1,6 +1,8 @@
 // ja.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  offline: { unavailable: 'オフラインでは利用できません', badge: 'オフライン', chip: 'オフライン', chipHint: 'オフラインです — ソロパズルは引き続きプレイできます。' },
+
   device: {
     defunct: { title: '別の端末でゲームが終了しました', text: 'このゲームは別の端末で完了または破棄されました。現在の進行状況はどの端末でも同じです。' },
     takeover: { title: '別の端末で引き継がれました', text: 'このゲームは現在別の端末で続行中です。ここで続けるには取り戻してください。', resume: 'ここで続ける' },
