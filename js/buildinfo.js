@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.114';
-export const BUILD_HASH = '43d0b53';
+export const BUILD      = '1.115';
+export const BUILD_HASH = '13734ba';
 
 export const CHANGELOG = [
+  {
+    "version": "1.115",
+    "date": "07.07.2026",
+    "changes": [
+      "Geräteübergreifende Konsistenz: ein laufendes Solo-Spiel ist jetzt über alle angemeldeten Geräte synchron — wird es woanders beendet/fortgesetzt, zieht das andere Gerät sofort nach (kein Überschreiben eines neueren Stands, keine Doppel-Belohnung)"
+    ]
+  },
   {
     "version": "1.114",
     "date": "06.07.2026",
