@@ -1,0 +1,1 @@
+Konto-Anmeldung: E-Mail- und Passwort-Felder haben jetzt einen sichtbaren Rahmen (auch ohne Fokus klar erkennbar)
