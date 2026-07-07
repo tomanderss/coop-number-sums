@@ -1,1 +1,0 @@
-Spielfeld nutzt jetzt auf ALLEN Geräten und in beiden Ausrichtungen den vollen Platz — insbesondere Tablets (iPad) und Querformat zeigen das Brett deutlich größer, ohne dass Zeilen/Spalten abgeschnitten werden

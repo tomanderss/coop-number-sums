@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.119';
-export const BUILD_HASH = 'd61ea00';
+export const BUILD      = '1.120';
+export const BUILD_HASH = 'ab4df6e';
 
 export const CHANGELOG = [
+  {
+    "version": "1.120",
+    "date": "07.07.2026",
+    "changes": [
+      "Spielfeld nutzt jetzt auf ALLEN Geräten und in beiden Ausrichtungen den vollen Platz — insbesondere Tablets (iPad) und Querformat zeigen das Brett deutlich größer, ohne dass Zeilen/Spalten abgeschnitten werden"
+    ]
+  },
   {
     "version": "1.119",
     "date": "07.07.2026",
