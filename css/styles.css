@@ -1162,6 +1162,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .result-emoji { font-size: 3.4rem; }
 .result-card h2 { margin: 0; font-size: 1.5rem; font-weight: 900; }
+/* Gelöste Schwierigkeit + Maße, fett direkt unter dem Titel. */
+.result-diff { margin: -4px 0 2px; font-size: 1.02rem; font-weight: 900; color: var(--accent); letter-spacing: .2px; }
 .result-msg { color: var(--text2); margin: 0; }
 .result-stats { display: flex; justify-content: space-around; margin: 6px 0 10px; }
 .result-stats > div { display: flex; flex-direction: column; }

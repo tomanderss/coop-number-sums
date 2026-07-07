@@ -5826,6 +5826,7 @@ const App = {
         <div class="result-card win" :class="{ perfect: state.perfectWin }">
           <div class="result-emoji"><span class="ei" v-html="ic('party')"></span></div>
           <h2>{{ winTitle }}</h2>
+          <div v-if="state.puzzle" class="result-diff">{{ t('difficulty.' + state.puzzle.difficulty) }} · {{ state.puzzle.rows }}×{{ state.puzzle.cols }}</div>
           <div v-if="state.team.active" class="team-result">
             <p class="result-msg">{{ teamResultMsg }}</p>
           </div>
