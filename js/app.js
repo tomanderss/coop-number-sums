@@ -1238,15 +1238,20 @@ function computeCellSize() {
   const idealW = Math.floor(availW / (cols + 1)); // +1 für Kopfspalte
   const idealH = Math.floor(availH / (rows + 1)); // +1 für Kopfzeile
   const ideal = Math.min(idealW, idealH);
-  // Am Handy deckelt die Auto-Einpassung die Zellgröße bei 56px (sonst wirken
-  // die Zellen bei kleinen Brettern auf hohen Displays riesig). Am DESKTOP
-  // (Maus + breites Fenster) darf das Brett dagegen den ganzen verfügbaren
-  // Platz nutzen — dort ist .app.app-game breiter (s. styles.css), also greift
-  // ein höherer Deckel, damit das Feld standardmäßig groß ist und beim Zoomen
-  // erst am Fensterrand (statt am schmalen Mobil-Rahmen) beschnitten wird.
-  // Deckel: Handy 56px (sonst wirken kleine Bretter auf hohen Displays riesig),
-  // Desktop 128px (breite .app.app-game, s. styles.css).
-  const cap = desktopBoard() ? 128 : 56;
+  // Deckel für die Auto-Einpassung: begrenzt die Zellgröße, damit kleine Bretter
+  // auf großen Displays nicht riesig wirken. Skaliert mit der kürzeren Bildschirm-
+  // kante (= bindende Achse, da das Brett in BEIDE Richtungen passen muss), damit
+  // es auf JEDEM Gerät und in JEDER Ausrichtung so groß wie sinnvoll möglich ist:
+  //  • Desktop (Maus + breites Fenster): 128px — .app.app-game ist dort breit.
+  //  • Tablet / großes Querformat (kurze Kante ≥ 600px, z.B. iPad in beiden
+  //    Ausrichtungen): Deckel wächst mit der kurzen Kante (bis 120px), sonst
+  //    begrenzte der alte 56er-Handy-Deckel das Feld auf iPad/Querformat unnötig.
+  //  • Handy (kurze Kante < 600px, inkl. Handy-Querformat mit niedriger Höhe): 56px.
+  // Die tatsächlich verfügbare Fläche kommt weiterhin aus der .board-wrap-Messung
+  // (availW/availH) — der Deckel ist nur die Obergrenze, kein fixer Wert.
+  const shortSide = Math.min(window.innerWidth || 0, window.innerHeight || 0);
+  const cap = desktopBoard() ? 128
+    : (shortSide >= 600 ? Math.min(120, Math.round(shortSide * 0.14)) : 56);
   // KEIN hoher Mindestwert mehr: Beim Öffnen MUSS das ganze Brett passen — lieber
   // kleine Zellen als eine abgeschnittene Zeile/Spalte. Der frühere 26px-Boden
   // ließ das größte Brett (14×14 = 15 Einheiten) auf schmalen Handys eine Spalte
