@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.117';
-export const BUILD_HASH = '4d91c65';
+export const BUILD      = '1.118';
+export const BUILD_HASH = '97ea6c4';
 
 export const CHANGELOG = [
+  {
+    "version": "1.118",
+    "date": "07.07.2026",
+    "changes": [
+      "Weitere Render-Optimierung: Zeilen-/Spaltensummen und Käfig-Farben werden jetzt ebenfalls nur einmal pro Zug (bzw. je Palette) berechnet statt in jeder Zelle bei jedem Render — gilt für ALLE Brettgrößen, nicht nur 14×14"
+    ]
+  },
   {
     "version": "1.117",
     "date": "07.07.2026",

@@ -1,1 +1,0 @@
-Weitere Render-Optimierung: Zeilen-/Spaltensummen und Käfig-Farben werden jetzt ebenfalls nur einmal pro Zug (bzw. je Palette) berechnet statt in jeder Zelle bei jedem Render — gilt für ALLE Brettgrößen, nicht nur 14×14
