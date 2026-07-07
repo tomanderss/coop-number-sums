@@ -1087,6 +1087,28 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .screen.game.training-mode .training-banner { grid-area: trainbanner; }
 }
 
+/* iPad im Querformat (Touch-Gerät mit genug Höhe): Die Werkzeugleiste sitzt hier
+   in der schmalen 240px-Seitenspalte. Im horizontalen Umbruch standen Zurück,
+   Werkzeug-Wechsel (Einkreisen/Löschen) und Hinweis nur ~8px auseinander — auf
+   einem Touch-Display drückt man da leicht den falschen Knopf. Da die Spalte viel
+   Höhe hat, werden die Knöpfe stattdessen UNTEREINANDER mit klarem Abstand
+   gestapelt. Der Werkzeug-Wechsel (häufigste Aktion) rutscht per order ganz nach
+   UNTEN — dort am nächsten zum Daumen (Seitenspalte ist rechts, unten verankert).
+   Auf min-height:700px begrenzt, damit das Handy-Querformat (niedrige Höhe) sein
+   kompaktes horizontales Layout behält und nicht überläuft. */
+@media screen and (orientation: landscape) and (pointer: coarse) and (min-height: 700px) {
+  .game-sidebar-bottom .toolbar {
+    flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 22px;
+    margin-bottom: 16px;
+  }
+  .game-sidebar-bottom .toolbar .tool-toggle { order: 1; }
+  .game-sidebar-bottom .round-btn,
+  .game-sidebar-bottom .tool-ic,
+  .game-sidebar-bottom .tool-pill { width: 54px; height: 54px; }
+  .game-sidebar-bottom .round-btn svg, .game-sidebar-bottom .tool-ic svg { width: 24px; height: 24px; }
+  .game-sidebar-bottom .tool-pill.pen { transform: translateX(58px); }
+}
+
 /* ─── Toolbar (Stift/Radierer) ─── */
 /* drei Gruppen weit auseinander (Punkt 4), etwas nach oben gezogen (Punkt 3) */
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 8px 0; margin-bottom: 26px; flex: 0 0 auto; }
