@@ -77,12 +77,15 @@ export function tierForValue(value, thresholds) {
 
 // Fortschritt einer Kategorie: aktuelle Stufe, Wert, nächste Schwelle (oder null,
 // wenn schon Legendär), sowie ein 0..1-Fortschritt auf die nächste Stufe.
+// frac = Wert RELATIV ZUR NÄCHSTEN SCHWELLE (value/next, ab 0 gemessen) — so
+// deckt sich der Balken mit der Anzeige „{value}" und „Noch {next−value} bis …".
+// Die frühere Segment-Rechnung (von voriger zu nächster Schwelle) zeigte z.B.
+// bei 8/9 nur 50% (Segment 7→9) und wirkte damit widersinnig.
 export function categoryProgress(cat, ctx) {
   const value = cat.metric(ctx) || 0;
   const tier = tierForValue(value, cat.thresholds);
   const next = tier < 4 ? cat.thresholds[tier] : null;
-  const prev = tier > 0 ? cat.thresholds[tier - 1] : 0;
-  const frac = next == null ? 1 : Math.max(0, Math.min(1, (value - prev) / (next - prev)));
+  const frac = next == null ? 1 : Math.max(0, Math.min(1, value / next));
   return { sym: cat.sym, key: cat.key, value, tier, next, thresholds: cat.thresholds, frac };
 }
 
