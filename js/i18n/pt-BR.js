@@ -678,6 +678,15 @@ export default {
     start: 'Vamos lá',
   },
   update: {
+    check: 'Verificar atualizações',
+    latest: 'Você está atualizado (v{v})',
+    foundTitle: 'Nova versão disponível',
+    foundMsg: 'Uma nova versão está pronta. Reiniciar agora para usá-la? Seu progresso é mantido.',
+    restart: 'Reiniciar agora',
+    later: 'Mais tarde',
+    err: 'Falha ao verificar atualizações — tente novamente mais tarde',
+    offline: 'Você está offline — não é possível verificar atualizações',
+    unsupported: 'Aqui as atualizações chegam pela loja de apps',
     reloadLoop: 'Recarregamento repetido detectado e interrompido. Se persistir, reinicie o app ou saia e entre novamente.',
   },
   difficulty: {

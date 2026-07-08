@@ -678,6 +678,15 @@ export default {
     start: 'Si parte',
   },
   update: {
+    check: 'Cerca aggiornamenti',
+    latest: 'Sei aggiornato (v{v})',
+    foundTitle: 'Nuova versione disponibile',
+    foundMsg: 'Una nuova versione è pronta. Riavviare ora per usarla? La tua partita resta salvata.',
+    restart: 'Riavvia ora',
+    later: 'Più tardi',
+    err: 'Verifica aggiornamenti non riuscita — riprova più tardi',
+    offline: 'Sei offline — impossibile cercare aggiornamenti',
+    unsupported: 'Qui gli aggiornamenti arrivano dallo store',
     reloadLoop: 'Ricaricamenti ripetuti rilevati e interrotti. Se continua, riavvia l’app o esci e rientra.',
   },
   difficulty: {

@@ -678,6 +678,15 @@ export default {
     start: 'Hadi başlayalım',
   },
   update: {
+    check: 'Güncellemeleri denetle',
+    latest: 'Güncelsin (v{v})',
+    foundTitle: 'Yeni sürüm mevcut',
+    foundMsg: 'Yeni bir sürüm hazır. Kullanmak için şimdi yeniden başlatılsın mı? Oyun ilerlemen korunur.',
+    restart: 'Şimdi yeniden başlat',
+    later: 'Daha sonra',
+    err: 'Güncelleme denetimi başarısız — lütfen daha sonra tekrar dene',
+    offline: 'Çevrimdışısın — güncelleme denetlenemiyor',
+    unsupported: 'Burada güncellemeler uygulama mağazası üzerinden gelir',
     reloadLoop: 'Tekrarlanan yeniden yükleme algılandı ve durduruldu. Devam ederse uygulamayı yeniden başlatın veya çıkış yapıp tekrar girin.',
   },
   difficulty: {
