@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.129';
-export const BUILD_HASH = 'cdb05a1';
+export const BUILD      = '1.130';
+export const BUILD_HASH = '6cb1fe1';
 
 export const CHANGELOG = [
+  {
+    "version": "1.130",
+    "date": "08.07.2026",
+    "changes": [
+      "Der „Unterschiedliche Spielstände\"-Dialog beim Start erscheint nur noch, wenn sich wirklich das Guthaben unterscheidet — alle übrigen Fortschritte (Siege, Erfolge, Käufe, Bestzeiten, Serien) werden automatisch verlustfrei zusammengeführt und Kleinigkeiten lösen sich still im Hintergrund"
+    ]
+  },
   {
     "version": "1.129",
     "date": "08.07.2026",
