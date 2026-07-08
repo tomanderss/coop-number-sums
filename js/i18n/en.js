@@ -678,6 +678,15 @@ export default {
     start: "Let's go",
   },
   update: {
+    check: 'Check for updates',
+    latest: 'You are up to date (v{v})',
+    foundTitle: 'New version available',
+    foundMsg: 'A new version is ready. Restart now to use it? Your game progress is kept.',
+    restart: 'Restart now',
+    later: 'Later',
+    err: 'Update check failed — please try again later',
+    offline: 'You are offline — cannot check for updates',
+    unsupported: 'Updates arrive via the app store here',
     reloadLoop: 'Repeated reloading detected and stopped. If it persists, restart the app or sign out and back in.',
   },
   difficulty: {

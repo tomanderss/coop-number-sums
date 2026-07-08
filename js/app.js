@@ -200,6 +200,7 @@ const state = reactive({
   confirm: null,             // { title, msg, onYes }
   showWhatsNew: false,
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
+  updateCheck: 'idle',       // manuelle Update-Prüfung (Klick auf die Version): idle | busy | found (Dialog offen)
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
   settingsTab: '',           // aufgeklappte Einstellungs-Karte ('' = alle zu; spiel | darstellung | farbe | ton | konto | daten). Bewusst NICHT persistiert — Einstellungen starten immer zugeklappt.
   // Optionaler Account (E-Mail+Username+PW, Cloud-Sync). Anonymous-first: ohne
@@ -3710,6 +3711,77 @@ function ask(title, msg, onYes) { state.confirm = { title, msg, onYes }; state.m
 function confirmYes() { const f = state.confirm?.onYes; state.modal = null; state.confirm = null; if (f) f(); }
 function confirmNo() { state.modal = null; state.confirm = null; }
 
+// ─── Manuelle Update-Prüfung (Klick auf die Version im Hauptmenü) ─────────────
+// Es gibt weiterhin KEINEN automatischen Laufzeit-Update-Flow (siehe SW-
+// Registrierung unten): geprüft wird NUR auf explizite Nutzeraktion. Findet
+// reg.update() einen neuen Worker, bleibt der in "waiting" (kein skipWaiting
+// beim install) — der Dialog bietet den Neustart an; SKIP_WAITING (sw.js)
+// aktiviert ihn dann gezielt und safeReload lädt die App neu (auf Home sofort,
+// nie mitten im Spiel).
+let updateReg = null;          // Registration mit wartendem neuen Worker
+async function checkForUpdate() {
+  if (state.updateCheck === 'busy') return;
+  const native = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+  if (native || !('serviceWorker' in navigator)) { showToast(t('update.unsupported'), 'info', 2800); return; }
+  if (!isOnline()) { showToast(t('update.offline'), 'error', 2800); return; }
+  state.updateCheck = 'busy';
+  const t0 = Date.now();
+  log('app', 'Manuelle Update-Prüfung gestartet', { build: BUILD });
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) { state.updateCheck = 'idle'; showToast(t('update.err'), 'error', 2800); return; }
+    if (reg.waiting) {
+      updateReg = reg; state.updateCheck = 'found';
+      log('app', 'Update-Prüfung: neue Version wartete bereits');
+      return;
+    }
+    const found = await waitForUpdateResult(reg);
+    log('app', 'Manuelle Update-Prüfung fertig', { found, tookMs: Date.now() - t0 });
+    if (found) { updateReg = reg; state.updateCheck = 'found'; }
+    else { state.updateCheck = 'idle'; showToast(t('update.latest', { v: BUILD }), 'success', 3200); }
+  } catch (e) {
+    log('error', 'Update-Prüfung fehlgeschlagen', e);
+    state.updateCheck = 'idle';
+    showToast(t('update.err'), 'error', 2800);
+  }
+}
+// reg.update() anstoßen und beobachten, ob ein NEUER Worker fertig installiert
+// wird. true = neue Version wartet; false = Stand ist aktuell. Timeout als
+// Fangnetz für hängende Downloads (langsames Netz) — dann zählt der Ist-Zustand.
+function waitForUpdateResult(reg) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (!done) { done = true; clearTimeout(timer); resolve(v); } };
+    const timer = setTimeout(() => finish(!!reg.waiting), 20000);
+    const watch = (sw) => {
+      if (!sw) return;
+      sw.addEventListener('statechange', () => {
+        if (sw.state === 'installed') finish(true);       // neuer Worker wartet jetzt
+        else if (sw.state === 'redundant') finish(false); // Installation verworfen
+      });
+    };
+    reg.addEventListener('updatefound', () => watch(reg.installing), { once: true });
+    reg.update().then(() => {
+      // update() ist durch: taucht kurz danach kein neuer Worker auf, sind wir aktuell.
+      setTimeout(() => { if (reg.waiting) finish(true); else if (!reg.installing) finish(false); }, 600);
+    }).catch((e) => { log('app', 'reg.update() fehlgeschlagen', e); finish(!!reg.waiting); });
+  });
+}
+// „Jetzt neu starten" aus dem Update-Dialog.
+async function restartForUpdate() {
+  state.updateCheck = 'idle';
+  const reg = updateReg || await navigator.serviceWorker.getRegistration();
+  const w = reg && reg.waiting;
+  log('app', 'Update-Neustart angefordert', { waiting: !!w });
+  if (!w) { safeReload('manual-update'); return; }
+  let reloaded = false;
+  const go = (why) => { if (!reloaded) { reloaded = true; safeReload(why); } };
+  w.addEventListener('statechange', () => { if (w.state === 'activated') go('manual-update'); });
+  w.postMessage({ type: 'SKIP_WAITING' });
+  setTimeout(() => go('manual-update-timeout'), 2500);  // Fangnetz, falls kein statechange kommt
+}
+function dismissUpdateDialog() { state.updateCheck = 'idle'; }
+
 // ─── Optionaler Account (E-Mail+Username+PW, Cloud-Sync) ──────────────────────
 // Spiegelt das lokale Profil ins UI; lädt Firebase NUR, wenn schon eine
 // Account-Session existiert (sonst bleibt die App rein lokal/anonym).
@@ -5503,6 +5575,7 @@ const App = {
       rowSum, colSum, regionSum, rowSumR, colSumR, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
+      checkForUpdate, restartForUpdate, dismissUpdateDialog,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
       diffVars, isCoopDiffView,
@@ -5603,7 +5676,9 @@ const App = {
           <button class="btn btn-ghost" @click="navTo('history')"><span class="btn-ic"><span class="ei" v-html="ic('clock')"></span></span> {{ t('home.history') }}</button>
         </div>
       </div>
-      <div class="home-version">v{{ BUILD }}</div>
+      <button class="home-version" @click="checkForUpdate" :title="t('update.check')" :aria-label="t('update.check')">
+        v{{ BUILD }}<span v-if="state.updateCheck === 'busy'" class="ei uc-spin" v-html="ic('refresh')"></span>
+      </button>
     </section>
 
     <!-- ══ SETUP (Slider-Schwierigkeitsauswahl mit morphendem Hintergrund) ══ -->
@@ -7282,6 +7357,17 @@ const App = {
       </div>
     </div>
 
+    <div v-if="state.updateCheck === 'found'" class="modal-bg" @click.self="dismissUpdateDialog">
+      <div class="modal modal-sm">
+        <h3>{{ t('update.foundTitle') }}</h3>
+        <p class="confirm-msg">{{ t('update.foundMsg') }}</p>
+        <div class="confirm-actions">
+          <button class="btn btn-ghost" @click="dismissUpdateDialog">{{ t('update.later') }}</button>
+          <button class="btn btn-primary" @click="restartForUpdate">{{ t('update.restart') }}</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="state.showWhatsNew" class="modal-bg">
       <div class="modal">
         <div class="whatsnew-badge">{{ t('whatsnew.badge') }}</div>
@@ -7605,13 +7691,14 @@ document.addEventListener('visibilitychange', () => {
 // nativen Capacitor-App gibt es dieses Konzept nicht (Updates laufen über
 // Store-Binaries), daher dort gar nicht erst registrieren.
 //
-// BEWUSST KEIN Laufzeit-Update-Flow: kein zyklisches reg.update(), keine
-// „Update verfügbar"-Erkennung, kein Neustart-/Backup-Dialog. Ein neu
-// deploytes Deployment installiert der Browser im Hintergrund; da sw.js beim
-// install NICHT skipWaiting() ruft, übernimmt der neue Worker erst beim
-// nächsten Kaltstart der App. So wird „nur beim Start wird geladen, was da
-// ist" garantiert — der Nutzer wird nie mitten im Spiel neu geladen, und neue
-// Inhalte zeigen sich beim nächsten Start allein über den „Was ist neu"-Dialog.
+// BEWUSST KEIN AUTOMATISCHER Laufzeit-Update-Flow: kein zyklisches
+// reg.update(), keine ungefragte „Update verfügbar"-Erkennung. Ein neues
+// Deployment installiert der Browser im Hintergrund; da sw.js beim install
+// NICHT skipWaiting() ruft, übernimmt der neue Worker erst beim nächsten
+// Kaltstart — der Nutzer wird nie mitten im Spiel neu geladen. EINZIGE
+// Ausnahme ist die MANUELLE Update-Prüfung (checkForUpdate, Klick auf die
+// Version im Hauptmenü): sie stößt reg.update() explizit an und aktiviert
+// einen wartenden Worker nur nach Bestätigung im Neustart-Dialog.
 if ('serviceWorker' in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')

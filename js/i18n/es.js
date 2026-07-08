@@ -678,6 +678,15 @@ export default {
     start: 'Vamos',
   },
   update: {
+    check: 'Buscar actualizaciones',
+    latest: 'Estás al día (v{v})',
+    foundTitle: 'Nueva versión disponible',
+    foundMsg: 'Hay una nueva versión lista. ¿Reiniciar ahora para usarla? Tu partida se conserva.',
+    restart: 'Reiniciar ahora',
+    later: 'Más tarde',
+    err: 'Error al buscar actualizaciones; inténtalo más tarde',
+    offline: 'Estás sin conexión: no se pueden buscar actualizaciones',
+    unsupported: 'Aquí las actualizaciones llegan por la tienda de apps',
     reloadLoop: 'Se detectó y detuvo una recarga repetida. Si continúa, reinicia la app o cierra y vuelve a iniciar sesión.',
   },
   difficulty: {

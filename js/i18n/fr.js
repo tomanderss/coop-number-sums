@@ -678,6 +678,15 @@ export default {
     start: "C'est parti",
   },
   update: {
+    check: 'Rechercher des mises à jour',
+    latest: 'Vous êtes à jour (v{v})',
+    foundTitle: 'Nouvelle version disponible',
+    foundMsg: 'Une nouvelle version est prête. Redémarrer maintenant pour l’utiliser ? Votre partie est conservée.',
+    restart: 'Redémarrer maintenant',
+    later: 'Plus tard',
+    err: 'Échec de la vérification — réessayez plus tard',
+    offline: 'Vous êtes hors ligne — vérification impossible',
+    unsupported: 'Ici, les mises à jour passent par la boutique d’applications',
     reloadLoop: 'Rechargements répétés détectés et arrêtés. Si cela persiste, redémarre l’app ou déconnecte-toi puis reconnecte-toi.',
   },
   difficulty: {

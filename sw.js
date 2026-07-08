@@ -121,3 +121,12 @@ self.addEventListener('fetch', (e) => {
   if (req.mode === 'navigate') { e.respondWith(handleNavigation(req)); return; }
   e.respondWith(staleWhileRevalidate(req));
 });
+
+// Manueller Update-Neustart: Die App (Klick auf die Version im Hauptmenü)
+// schickt SKIP_WAITING an den WARTENDEN neuen Worker, damit der Nutzer die
+// bereits installierte neue Version explizit aktivieren kann. Es bleibt dabei:
+// KEIN automatisches skipWaiting beim install — ohne Nutzeraktion übernimmt
+// die neue Version weiterhin erst beim nächsten Kaltstart (nie mitten im Spiel).
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});

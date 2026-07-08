@@ -782,6 +782,15 @@ export default {
     start: "Los geht's",
   },
   update: {
+    check: 'Nach Updates suchen',
+    latest: 'Du bist auf dem neuesten Stand (v{v})',
+    foundTitle: 'Neue Version verfügbar',
+    foundMsg: 'Eine neue Version ist bereit. Jetzt neu starten, um sie zu verwenden? Dein Spielstand bleibt erhalten.',
+    restart: 'Jetzt neu starten',
+    later: 'Später',
+    err: 'Update-Prüfung fehlgeschlagen — bitte später erneut versuchen',
+    offline: 'Du bist offline — Update-Prüfung nicht möglich',
+    unsupported: 'Updates kommen hier über den App Store',
     reloadLoop: 'Wiederholtes Neuladen erkannt und gestoppt. Falls das Problem bleibt: App neu starten oder ab-/anmelden.',
   },
   difficulty: {
