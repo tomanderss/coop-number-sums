@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.125';
-export const BUILD_HASH = '93bfeec';
+export const BUILD      = '1.126';
+export const BUILD_HASH = 'ec576eb';
 
 export const CHANGELOG = [
+  {
+    "version": "1.126",
+    "date": "08.07.2026",
+    "changes": [
+      "Symbol-Feinschliff: Der Blitz im VS-Duell-Symbol ist jetzt deutlich größer, und das kleine pulsierende Extra-Herz am Spenden-Button entfällt (das Herz steckt jetzt in der Tasse selbst)"
+    ]
+  },
   {
     "version": "1.125",
     "date": "08.07.2026",
