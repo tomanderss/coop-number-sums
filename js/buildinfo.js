@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.124';
-export const BUILD_HASH = '02cdd68';
+export const BUILD      = '1.125';
+export const BUILD_HASH = '93bfeec';
 
 export const CHANGELOG = [
+  {
+    "version": "1.125",
+    "date": "08.07.2026",
+    "changes": [
+      "Symbol-Feinschliff: Das Herz in der Spenden-Kaffeetasse sitzt jetzt mittig im Tassenkörper (ohne den Rand zu berühren), und das VS-Duell-Symbol zeigt zwei Spieler mit Blitz dazwischen"
+    ]
+  },
   {
     "version": "1.124",
     "date": "08.07.2026",
