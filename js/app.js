@@ -485,15 +485,21 @@ function toggleMuteAll() {
 // pro Screen messen, ob tatsächlich etwas zu scrollen ist, und sonst per Klasse
 // auf overflow:hidden umschalten (siehe .screen.no-overflow in styles.css) --
 // echtes Scrollen bleibt unberührt, nur das sinnlose Wabbeln verschwindet.
-let scrollLockRaf = null;
+let scrollLockTimer = null;
 function updateScreenScrollLock() {
   const el = document.querySelector('.screen');
   if (!el) return;
   el.classList.toggle('no-overflow', el.scrollHeight <= el.clientHeight + 1);
 }
+// GEDROSSELT (250 ms trailing) statt pro Frame: die Messung liest scrollHeight
+// und erzwingt damit ein synchrones Voll-Layout. Der MutationObserver (init)
+// feuert bei JEDER DOM-Änderung — während des Spielens also bei jedem Timer-
+// Tick/Puls; ein Layout pro Frame auf einem 169-Zellen-Brett war auf älteren
+// Geräten ein spürbarer Teil der Spätspiel-Last. Die Klasse ist rein kosmetisch
+// (iOS-Wabbeln), 4 Messungen/s reichen völlig.
 function scheduleScrollLockUpdate() {
-  if (scrollLockRaf) return;
-  scrollLockRaf = requestAnimationFrame(() => { scrollLockRaf = null; updateScreenScrollLock(); });
+  if (scrollLockTimer) return;
+  scrollLockTimer = setTimeout(() => { scrollLockTimer = null; updateScreenScrollLock(); }, 250);
 }
 
 // ─── TIMER ────────────────────────────────────────────────────────────────────
@@ -509,7 +515,17 @@ function startTimer() {
   stopTimer();
   if (state.status !== 'playing' || state.paused || state.coop.awaitingStart) return;
   timerHandle = setInterval(() => {
-    state.elapsed = Math.max(0, gameNow() - state.startTime);
+    // KERN-PERFORMANCEREGEL: state.elapsed ist reaktiv, und die App ist EINE
+    // große Vue-Komponente — jede Änderung rendert das komplette Spiel-Template
+    // inkl. ALLER Zellen neu (cellClasses/cellStyle/Aria ×169 auf 13×13). Der
+    // frühere 250-ms-Takt hieß: 4 Voll-Renders pro Sekunde, dauerhaft, mit
+    // Kosten, die mit der Zahl markierter Zellen WACHSEN — auf älteren Geräten
+    // war der Main-Thread im Spätspiel damit gesättigt (Sekunden Tap-Latenz,
+    // „Pause hängt"). Die Anzeige zeigt ohnehin nur ganze Sekunden: reaktiv
+    // wird deshalb NUR beim Sekundenwechsel geschrieben (1 Render/s statt 4);
+    // die 250-ms-Abtastung bleibt für einen präzisen Sekundenumbruch.
+    const e = Math.max(0, gameNow() - state.startTime);
+    if (Math.floor(e / 1000) !== Math.floor(state.elapsed / 1000)) state.elapsed = e;
   }, 250);
   updateMusic(); // ein aktiv laufendes Rätsel ist genau der Moment für Musik
 }
@@ -1160,6 +1176,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   // zurück) in jedem danach gestarteten "normalen" Spiel sichtbar. startTrainingGame()
   // setzt isTrainingGame direkt NACH diesem Aufruf wieder auf true.
   state.isTrainingGame = false;
+  cellStyleCache = [];   // Style-Referenz-Cache gehört zum alten Brett (s. cellStyle)
   state.trainingStep = null;
   state.trainingDone = false;
   state.paused = false;
@@ -2787,6 +2804,9 @@ function afterPaint(cb) {
 }
 function win(remote) {
   if (state.status === 'won') return;
+  // Exakte Endzeit stempeln: der Timer schreibt elapsed nur noch sekundenweise
+  // (s. startTimer) — für Bestzeiten zählt aber die Millisekunde des Siegzugs.
+  if (!remote && !state.paused && state.startTime) state.elapsed = Math.max(0, gameNow() - state.startTime);
   state.status = 'won';
   log('game', `Gewonnen`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
@@ -2896,6 +2916,7 @@ function win(remote) {
 }
 
 function lose(remote) {
+  if (!remote && !state.paused && state.startTime && state.status === 'playing') state.elapsed = Math.max(0, gameNow() - state.startTime);
   if (state.status === 'lost') return;
   state.status = 'lost';
   log('game', `Verloren`, { remote: !!remote, coop: state.coop.active });
@@ -5876,7 +5897,7 @@ const App = {
         </div>
 
         <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
-          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass()]" :style="[gridStyle, skinVars]">
+          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused }]" :style="[gridStyle, skinVars]">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
               <template v-if="!colResolvedR(c-1)">
@@ -7628,7 +7649,10 @@ function onDesktopKeydown(e) {
 // Liefert, welche Seiten dieser Zelle zum ÄUSSEREN Rand einer gerade fertig
 // gewordenen Reihe/Spalte/Cage gehören (für den Fertig-Puls, Punkt 3: nur die
 // äußersten Ränder der ganzen Struktur leuchten, keine Querstriche dazwischen).
+const NO_PULSE_EDGES = { t: false, b: false, l: false, r: false };
+const anyPulseActive = computed(() => Object.keys(state.justResolved).length > 0);
 function pulseEdges(r, c) {
+  if (!anyPulseActive.value) return NO_PULSE_EDGES;   // Normalfall: kein Puls → 0 Lookups
   const p = state.puzzle;
   let t = false, b = false, l = false, rr = false;
   if (state.justResolved[`row-${r}`]) { t = true; b = true; if (c === 0) l = true; if (c === p.cols - 1) rr = true; }
@@ -7641,11 +7665,23 @@ function pulseEdges(r, c) {
   return { t, b, l, r: rr };
 }
 
-function cellAriaLabel(r, c) {
-  const mk = state.marks[r][c];
-  const status = mk === 'kept' ? t('a11y.cellKept') : mk === 'removed' ? t('a11y.cellRemoved') : t('a11y.cellUnmarked');
-  return t('a11y.cellLabel', { row: r + 1, col: c + 1, value: state.puzzle.values[r][c], status });
-}
+// Aria-Labels je Zelle EINMAL pro Zug/Sprachwechsel berechnen statt ×169 bei
+// JEDEM Render (die t()-Interpolation war ein messbarer Teil des Tick-Renders
+// auf großen Brettern). Computed trackt state.marks + i18n-Locale.
+const cellAriaLabels = computed(() => {
+  const p = state.puzzle; if (!p) return [];
+  const out = new Array(p.rows);
+  for (let r = 0; r < p.rows; r++) {
+    out[r] = new Array(p.cols);
+    for (let c = 0; c < p.cols; c++) {
+      const mk = state.marks[r][c];
+      const status = mk === 'kept' ? t('a11y.cellKept') : mk === 'removed' ? t('a11y.cellRemoved') : t('a11y.cellUnmarked');
+      out[r][c] = t('a11y.cellLabel', { row: r + 1, col: c + 1, value: p.values[r][c], status });
+    }
+  }
+  return out;
+});
+function cellAriaLabel(r, c) { return (cellAriaLabels.value[r] && cellAriaLabels.value[r][c]) || ''; }
 function cellClasses(r, c) {
   const m = state.cellMeta[r][c];
   const mk = state.marks[r][c];
@@ -7680,21 +7716,30 @@ function inHintGroup(r, c) {
   if (n.group.kind === 'region') return state.cellMeta[r][c].region === n.group.ref;
   return false;
 }
+// Style-Objekte je Zelle CACHEN und bei unveränderten Eingaben DIESELBE Referenz
+// zurückgeben: Vue patcht :style nur, wenn sich die Referenz/Werte ändern — bei
+// einem neuen Objekt pro Render setzte es dagegen JEDE CSS-Custom-Property
+// (--rc-*/--markcol) für ALLE ~169 Zellen bei JEDEM Render erneut (setProperty
+// war im Profil ein Top-Posten des Tick-Renders auf großen Brettern).
+let cellStyleCache = [];
 function cellStyle(r, c) {
   const m = state.cellMeta[r][c];
-  const st = { fontSize: 'var(--fs)' };
-  if (m.color) {
-    // Regionfarbe aus dem Cache (einmal je Palette gerechnet) statt pro Zelle pro Render.
-    const cv = regionColorVars.value.get(colorKey(m.color));
-    if (cv) { st['--rc-h'] = cv['--rc-h']; st['--rc-s'] = cv['--rc-s']; st['--rc-l'] = cv['--rc-l']; st['--rc-ink'] = cv['--rc-ink']; }
-  }
+  const cv = m.color ? regionColorVars.value.get(colorKey(m.color)) : null;
   const who = state.markedBy[r][c];
-  if (who) { const col = who === LOCAL_PLAYER_ID ? state.settings.coopMyColor : playerColor(who); if (col) st['--markcol'] = col; }
+  const col = who ? (who === LOCAL_PLAYER_ID ? state.settings.coopMyColor : playerColor(who)) : null;
   const pe = pulseEdges(r, c);
+  const key = `${cv ? cv['--rc-h'] + cv['--rc-s'] + cv['--rc-l'] : ''}|${col || ''}|${pe.t ? 1 : 0}${pe.b ? 1 : 0}${pe.l ? 1 : 0}${pe.r ? 1 : 0}`;
+  const row = cellStyleCache[r] || (cellStyleCache[r] = []);
+  const hit = row[c];
+  if (hit && hit.key === key) return hit.style;
+  const st = { fontSize: 'var(--fs)' };
+  if (cv) { st['--rc-h'] = cv['--rc-h']; st['--rc-s'] = cv['--rc-s']; st['--rc-l'] = cv['--rc-l']; st['--rc-ink'] = cv['--rc-ink']; }
+  if (col) st['--markcol'] = col;
   if (pe.t) st['--pt'] = '3px';
   if (pe.b) st['--pb'] = '3px';
   if (pe.l) st['--pl'] = '3px';
   if (pe.r) st['--pr'] = '3px';
+  row[c] = { key, style: st };
   return st;
 }
 
