@@ -1,1 +1,0 @@
-Laufende Spiele überleben jetzt Updates und Geräte-Sync zuverlässig: Ein Cloud-Abgleich kann einen lokal gespeicherten Spielstand nicht mehr stillschweigend löschen oder durch einen älteren ersetzen (der jüngere Stand gewinnt, verdrängte Stände werden gesichert)

@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.126';
-export const BUILD_HASH = 'ec576eb';
+export const BUILD      = '1.127';
+export const BUILD_HASH = '9bba17a';
 
 export const CHANGELOG = [
+  {
+    "version": "1.127",
+    "date": "08.07.2026",
+    "changes": [
+      "Laufende Spiele überleben jetzt Updates und Geräte-Sync zuverlässig: Ein Cloud-Abgleich kann einen lokal gespeicherten Spielstand nicht mehr stillschweigend löschen oder durch einen älteren ersetzen (der jüngere Stand gewinnt, verdrängte Stände werden gesichert)"
+    ]
+  },
   {
     "version": "1.126",
     "date": "08.07.2026",
