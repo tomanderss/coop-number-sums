@@ -1,1 +1,0 @@
-Einstellungen ▸ Daten: Automatisch angelegte Sicherheitskopien (verdrängter Daten- oder Spielstand) sind jetzt sichtbar und lassen sich per Knopfdruck wieder einspielen — beim Einspielen wird der aktuelle Stand seinerseits als Kopie aufbewahrt
