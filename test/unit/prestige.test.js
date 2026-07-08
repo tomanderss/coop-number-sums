@@ -51,12 +51,23 @@ describe('prestige', () => {
     assert.equal(p.value, 30);
     assert.equal(p.tier, 1);           // 30 ≥ 10, < 50
     assert.equal(p.next, 50);
-    assert.ok(p.frac > 0 && p.frac < 1);
+    // Balken relativ zur NÄCHSTEN Schwelle: 30 von 50 = 60%
+    assert.equal(p.frac, 30 / 50);
     // legendary reached ⇒ next null, frac 1
     const maxed = categoryProgress(cat, { stats: { won: 600 } });
     assert.equal(maxed.tier, 4);
     assert.equal(maxed.next, null);
     assert.equal(maxed.frac, 1);
+  });
+
+  test('frac deckt sich mit der „Noch n"-Anzeige — 8/9 ist fast voll, nicht 50%', () => {
+    const cat = prestigeBySym('alien'); // explorer, [3,5,7,9]
+    const p = categoryProgress(cat, { stats: { byDifficulty: Object.fromEntries(
+      ['a','b','c','d','e','f','g','h'].map(id => [id, { won: 1 }])
+    ) } });
+    assert.equal(p.value, 8);
+    assert.equal(p.next, 9);
+    assert.equal(p.frac, 8 / 9);       // vorher: (8−7)/(9−7) = 50% — der Bug
   });
 
   test('metrics read the right stat sources', () => {
