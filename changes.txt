@@ -1,0 +1,1 @@
+Symbol-Feinschliff: Der Blitz im VS-Duell-Symbol ist jetzt deutlich größer, und das kleine pulsierende Extra-Herz am Spenden-Button entfällt (das Herz steckt jetzt in der Tasse selbst)
