@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.127';
-export const BUILD_HASH = '9bba17a';
+export const BUILD      = '1.128';
+export const BUILD_HASH = '858ced9';
 
 export const CHANGELOG = [
+  {
+    "version": "1.128",
+    "date": "08.07.2026",
+    "changes": [
+      "Tippe im Hauptmenü auf die Versionsnummer, um aktiv nach Updates zu suchen — ist eine neue Version bereit, übernimmst du sie per Dialog sofort mit einem Neustart (dein Spielstand bleibt erhalten)"
+    ]
+  },
   {
     "version": "1.127",
     "date": "08.07.2026",
