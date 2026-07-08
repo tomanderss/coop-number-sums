@@ -13,6 +13,7 @@ globalThis.localStorage = new MemoryStorage();
 const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
   isSignedIn, lastSyncAt, decideSync, isDivergent, friendActivityRank, sortFriends, sortLeaderboard,
+  presenceOnline, PRESENCE_STALE_MS,
 } = await import('../../js/account.js');
 
 describe('account.isDivergent (echter Offline-vs-Cloud-Konflikt)', () => {
@@ -52,18 +53,52 @@ describe('account.sortLeaderboard', () => {
   });
 });
 
+describe('account.presenceOnline (Geister-Status läuft ab)', () => {
+  const now = 30 * 60 * 1000;
+  test('online mit frischem lastActive → online', () => {
+    assert.equal(presenceOnline({ online: true, lastActive: now - 1000 }, now), true);
+  });
+  test('online:true, aber lastActive älter als TTL → offline (hängen gebliebener Knoten)', () => {
+    assert.equal(presenceOnline({ online: true, lastActive: now - PRESENCE_STALE_MS - 1 }, now), false);
+    assert.equal(presenceOnline({ online: true, lastActive: now - PRESENCE_STALE_MS }, now), false);
+  });
+  test('knapp unter der TTL → noch online', () => {
+    assert.equal(presenceOnline({ online: true, lastActive: now - PRESENCE_STALE_MS + 1 }, now), true);
+  });
+  test('ohne (gültigen) lastActive nie online — „ewig online" ist der Fehlerfall', () => {
+    assert.equal(presenceOnline({ online: true }, now), false);
+    assert.equal(presenceOnline({ online: true, lastActive: 0 }, now), false);
+    assert.equal(presenceOnline({ online: true, lastActive: 'kaputt' }, now), false);
+  });
+  test('Serveruhr leicht voraus (lastActive > now) → online', () => {
+    assert.equal(presenceOnline({ online: true, lastActive: now + 3000 }, now), true);
+  });
+  test('offline bleibt offline, auch mit frischem lastActive', () => {
+    assert.equal(presenceOnline({ online: false, lastActive: now }, now), false);
+    assert.equal(presenceOnline(null, now), false);
+  });
+});
+
 describe('account.friendActivityRank', () => {
+  const now = 30 * 60 * 1000;
+  const fresh = now - 1000;
   test('in-game > online > offline/none', () => {
-    assert.equal(friendActivityRank({ online: true, game: { pct: 40 } }), 2);
-    assert.equal(friendActivityRank({ online: true, game: null }), 1);
-    assert.equal(friendActivityRank({ online: false }), 0);
-    assert.equal(friendActivityRank(null), 0);
+    assert.equal(friendActivityRank({ online: true, lastActive: fresh, game: { pct: 40 } }, now), 2);
+    assert.equal(friendActivityRank({ online: true, lastActive: fresh, game: null }, now), 1);
+    assert.equal(friendActivityRank({ online: false, lastActive: fresh }, now), 0);
+    assert.equal(friendActivityRank(null, now), 0);
     // Offline mit veralteter game-Info zählt NICHT als „im Spiel".
-    assert.equal(friendActivityRank({ online: false, game: { pct: 40 } }), 0);
+    assert.equal(friendActivityRank({ online: false, lastActive: fresh, game: { pct: 40 } }, now), 0);
+  });
+  test('abgelaufene Präsenz rangiert wie offline — auch „im Spiel"-Geister', () => {
+    const stale = now - PRESENCE_STALE_MS - 1;
+    assert.equal(friendActivityRank({ online: true, lastActive: stale }, now), 0);
+    assert.equal(friendActivityRank({ online: true, lastActive: stale, game: { pct: 40 } }, now), 0);
   });
 });
 
 describe('account.sortFriends', () => {
+  const now = 30 * 60 * 1000;
   test('sorts by activity desc, then username asc', () => {
     const friends = [
       { uid: 'a', username: 'zoe' },
@@ -71,11 +106,19 @@ describe('account.sortFriends', () => {
       { uid: 'c', username: 'ann' },
     ];
     const presence = {
-      a: { online: false },                    // offline
-      b: { online: true, game: { pct: 10 } },  // in-game
-      c: { online: true, game: null },         // online
+      a: { online: false, lastActive: now - 1000 },                    // offline
+      b: { online: true, lastActive: now - 1000, game: { pct: 10 } },  // in-game
+      c: { online: true, lastActive: now - 1000, game: null },         // online
     };
-    assert.deepEqual(sortFriends(friends, presence).map(f => f.uid), ['b', 'c', 'a']);
+    assert.deepEqual(sortFriends(friends, presence, now).map(f => f.uid), ['b', 'c', 'a']);
+  });
+  test('abgelaufener Geist sortiert wie offline (alphabetisch hinten)', () => {
+    const friends = [{ uid: 'g', username: 'zoe-geist' }, { uid: 'c', username: 'ann' }];
+    const presence = {
+      g: { online: true, lastActive: now - PRESENCE_STALE_MS - 1, game: { pct: 50 } },  // Geist
+      c: { online: true, lastActive: now - 1000, game: null },                          // echt online
+    };
+    assert.deepEqual(sortFriends(friends, presence, now).map(f => f.uid), ['c', 'g']);
   });
   test('stable alphabetical among equal activity', () => {
     const friends = [{ uid: 'x', username: 'carla' }, { uid: 'y', username: 'anna' }];

@@ -1,0 +1,1 @@
+Freundesliste: Hängen gebliebener Online-Status läuft jetzt automatisch ab — ohne Lebenszeichen gilt ein Freund nach 5 Minuten als offline (kein „ewig online" mehr durch verwaiste Browser-Sitzungen)
