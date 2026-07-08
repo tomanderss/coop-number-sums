@@ -1,1 +1,0 @@
-Prestige: Die Fortschrittsbalken zeigen jetzt den Stand relativ zur nächsten Stufen-Schwelle (z.B. 8 von 9 = fast voll) statt einer verwirrenden Segment-Rechnung

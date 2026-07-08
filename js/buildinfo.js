@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.128';
-export const BUILD_HASH = '858ced9';
+export const BUILD      = '1.129';
+export const BUILD_HASH = 'cdb05a1';
 
 export const CHANGELOG = [
+  {
+    "version": "1.129",
+    "date": "08.07.2026",
+    "changes": [
+      "Prestige: Die Fortschrittsbalken zeigen jetzt den Stand relativ zur nächsten Stufen-Schwelle (z.B. 8 von 9 = fast voll) statt einer verwirrenden Segment-Rechnung"
+    ]
+  },
   {
     "version": "1.128",
     "date": "08.07.2026",
