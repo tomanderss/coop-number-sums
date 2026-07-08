@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.131';
-export const BUILD_HASH = '0a4f1c1';
+export const BUILD      = '1.132';
+export const BUILD_HASH = '679d456';
 
 export const CHANGELOG = [
+  {
+    "version": "1.132",
+    "date": "08.07.2026",
+    "changes": [
+      "Große Bretter (z.B. Bismillah) bleiben jetzt auch im Spielendspurt flüssig: Der Spieltimer rendert das Brett nur noch einmal statt viermal pro Sekunde neu, Markierungs-Styles werden gecacht, das Skin-Leuchten liegt nicht mehr auf den rotierenden Ringen (GPU-schonend, die Rotation pausiert in der Pause) und eine Layout-Messung ist gedrosselt — Tippen, Pause und Fortsetzen reagieren auf älteren Geräten wieder sofort"
+    ]
+  },
   {
     "version": "1.131",
     "date": "08.07.2026",
