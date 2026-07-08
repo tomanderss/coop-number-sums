@@ -2055,12 +2055,25 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   animation-name: skinSpinCCW;
 }
 
-/* Einkreis-Ring: Gradient-Fläche, per radialer Maske zum Ring beschnitten. */
+/* Einkreis-Ring: Gradient-Fläche, per radialer Maske zum Ring beschnitten.
+   NIE einen filter auf das ANIMIERTE ::after legen! filter (drop-shadow) auf
+   einem endlos rotierenden Element wird pro Frame und pro Layer neu ausgewertet
+   — gegen Spielende sind auf einem 13×13 ~165 markierte Zellen gleichzeitig
+   animiert, das sättigte den Compositor (iOS: Sekunden Eingabe-Latenz, halb
+   gerenderte Kacheln, hängender Pause-Blur). Der Glow ist rotationsinvariant
+   (runde Ring-Alphamaske, flache --markcol-Farbe) und liegt deshalb als
+   box-shadow auf dem STATISCHEN ::before darunter — einmal gerastert, 0 Kosten. */
 .skin-dynamic.skin-kept .cell.kept.coop-mark:not(.hintmark)::after {
   border: none;
   -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
           mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
-  filter: drop-shadow(0 0 var(--skin-glow) var(--markcol));
+}
+/* Statischer Glow-Ring unter der rotierenden Markierung (außen + innen). */
+.skin-dynamic.skin-kept .cell.kept.coop-mark:not(.hintmark)::before,
+.skin-dynamic.skin-removed .cell.removed.coop-mark-removed::before {
+  content: ''; position: absolute; inset: 11%; border-radius: 50%; z-index: 1; pointer-events: none;
+  box-shadow: 0 0 var(--skin-glow) var(--markcol), inset 0 0 var(--skin-glow) var(--markcol);
+  opacity: .85;
 }
 /* Coop-Gelöscht: ebenfalls runder rotierender Gradient-Ring (rotationsinvariant;
    siehe Kommentar oben — der frühere eckige xor-Masken-Rahmen ließe sich nicht
@@ -2070,8 +2083,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   content: ''; position: absolute; inset: 11%; border-radius: 50%; z-index: 1; pointer-events: none;
   -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
           mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
-  filter: drop-shadow(0 0 var(--skin-glow) var(--markcol));
 }
+/* Pause/Overlay: Rotation anhalten — sonst müsste der backdrop-filter-Blur des
+   Pause-Overlays das darunter weiterlaufende Brett in jedem Frame neu blurren. */
+.board.skin-freeze .cell.kept.coop-mark:not(.hintmark)::after,
+.board.skin-freeze .cell.removed.coop-mark-removed::after { animation-play-state: paused; }
 /* Der Gradient selbst MUSS hier (auf ::after) stehen, NICHT als Custom-Property am
    Brett — sonst würde var(--markcol) schon am Brett (ohne --markcol) ungültig.
    Hier löst es pro Zelle in der jeweiligen Spielerfarbe auf. Leere Editor-Farben
