@@ -1,7 +1,7 @@
 // fr.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
-  mismatch: { title: 'Données de jeu différentes', sub: 'Cet appareil et le cloud ont des progressions divergentes. Laquelle veux-tu garder ?', local: 'Cet appareil', cloud: 'Cloud', keepLocal: 'Garder cet appareil', keepCloud: 'Garder le cloud', note: 'L\'autre version est sauvegardée en secours et n\'est pas supprimée.' },
+  mismatch: { title: 'Données de jeu différentes', sub: 'Votre solde de pièces diffère entre cet appareil et le cloud. Toute la progression (victoires, succès, achats) est fusionnée automatiquement — choisissez seulement quel solde doit s’appliquer.', local: 'Cet appareil', cloud: 'Cloud', keepLocal: 'Garder cet appareil', keepCloud: 'Garder le cloud', note: 'L’autre état est conservé en sauvegarde et jamais supprimé.' },
 
   offline: { unavailable: 'Indisponible hors ligne', badge: 'Hors ligne', chip: 'Hors ligne', chipHint: 'Tu es hors ligne — les grilles solo fonctionnent toujours.' },
 

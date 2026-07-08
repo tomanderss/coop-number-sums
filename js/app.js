@@ -5182,14 +5182,14 @@ function init() {
   refreshAccountFromLocal();
   if (loadProfile().accountId) {
     refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)
-    // Abgleich lokal↔Cloud beim Start. Bei echter Divergenz gewinnt IMMER die
-    // Cloud (kein Auswahldialog mehr) → sauberes Neuladen nach der Übernahme.
+    // Abgleich lokal↔Cloud beim Start. Formale Divergenz wird INHALTLICH
+    // aufgelöst (Account.mergeSnapshots: verlustfreier Merge, Kleinkram folgt
+    // der jüngeren Seite) — der Versions-Mismatch-Dialog erscheint NUR noch,
+    // wenn die Geld-Salden abweichen, und entscheidet auch nur das Guthaben.
     Account.reconcile().then(r => {
-      // ECHTE Divergenz (offline gespielt UND woanders online): den Versions-
-      // Mismatch-Dialog zeigen statt still „Cloud gewinnt". Erst die Nutzerwahl
-      // (resolveVersionMismatch) wendet an und lädt neu.
       if (r.decision === 'conflict') { openVersionMismatch(r); return; }
-      if (r.decision === 'takeCloud') { safeReload('reconcile-takeCloud'); return; }  // Cloud übernommen → sauber neu laden
+      // Cloud übernommen ODER still gemergt → lokale Daten haben sich geändert → sauber neu laden
+      if (r.decision === 'takeCloud' || r.decision === 'merged') { safeReload('reconcile-' + r.decision); return; }
       state.inventory = loadInventory();
       state.wallet = loadWallet();
       maybeUnlockV1Skin();

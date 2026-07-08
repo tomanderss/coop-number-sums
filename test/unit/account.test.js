@@ -13,7 +13,7 @@ globalThis.localStorage = new MemoryStorage();
 const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
   isSignedIn, lastSyncAt, decideSync, isDivergent, friendActivityRank, sortFriends, sortLeaderboard,
-  presenceOnline, PRESENCE_STALE_MS,
+  presenceOnline, PRESENCE_STALE_MS, mergeSnapshots, walletBalanceDiffers,
 } = await import('../../js/account.js');
 
 describe('account.isDivergent (echter Offline-vs-Cloud-Konflikt)', () => {
@@ -238,5 +238,85 @@ describe('account.errKey', () => {
     assert.equal(errKey({ code: 'auth/too-many-requests' }), 'tooMany');
     assert.equal(errKey({ code: 'auth/requires-recent-login' }), 'reauth');
     assert.equal(errKey({}), 'generic');
+  });
+});
+
+describe('account.walletBalanceDiffers (einziges Dialog-Kriterium)', () => {
+  test('gleiche/fehlende Salden → kein Dialog', () => {
+    assert.equal(walletBalanceDiffers({ wallet: { balance: 100 } }, { wallet: { balance: 100 } }), false);
+    assert.equal(walletBalanceDiffers({}, { wallet: { balance: 0 } }), false);
+    assert.equal(walletBalanceDiffers(null, null), false);
+  });
+  test('abweichende Salden → Dialog', () => {
+    assert.equal(walletBalanceDiffers({ wallet: { balance: 100 } }, { wallet: { balance: 250 } }), true);
+    assert.equal(walletBalanceDiffers({}, { wallet: { balance: 50 } }), true);
+  });
+});
+
+describe('account.mergeSnapshots (verlustfreier Merge bei Divergenz)', () => {
+  const local = {
+    ts: 2000, rev: 20,
+    settings: { musicSolo: false },
+    stats: { played: 12, won: 10, byDifficulty: { mittel: { won: 5, bestTimeMs: 90000 } } },
+    daily: { currentStreak: 3, bestStreak: 7, totalCompleted: 30, lastCompletedDate: '2026-07-08', lossNoticeShown: true },
+    history: [{ ts: 5, difficulty: 'mittel', outcome: 'won' }],
+    achievements: { firstWin: 1 },
+    race: { '1v1': { racesWon: 4 } },
+    inventory: { winfx_meteor: { acquiredAt: 1, source: 'buy' } },
+    wallet: { balance: 500, updatedAt: 9 },
+    completedGames: ['g1', 'g2'],
+    profile: { displayName: 'Tom' },
+  };
+  const cloud = {
+    ts: 1000, rev: 10,
+    settings: { musicSolo: true },
+    stats: { played: 11, won: 9, byDifficulty: { mittel: { won: 4, bestTimeMs: 80000 }, schwer: { won: 1 } } },
+    daily: { currentStreak: 5, bestStreak: 6, totalCompleted: 29, lastCompletedDate: '2026-07-07', lossNoticeShown: false },
+    history: [{ ts: 3, difficulty: 'leicht', outcome: 'won' }, { ts: 5, difficulty: 'mittel', outcome: 'won' }],
+    achievements: { tenWins: 2 },
+    race: { '1v1': { racesWon: 3 }, '2v2': { racesWon: 2 } },
+    inventory: { palette_neon: { acquiredAt: 2, source: 'buy' } },
+    wallet: { balance: 500, updatedAt: 4 },
+    completedGames: ['g2', 'g3'],
+    profile: { displayName: 'Tom2' },
+  };
+  const m = mergeSnapshots(local, cloud);
+
+  test('Zähler = Maximum, Bestzeit = Bestwert, fremde Schwierigkeiten bleiben', () => {
+    assert.equal(m.stats.played, 12);
+    assert.equal(m.stats.won, 10);
+    assert.equal(m.stats.byDifficulty.mittel.won, 5);
+    assert.equal(m.stats.byDifficulty.mittel.bestTimeMs, 80000);  // bessere (kleinere) Zeit gewinnt
+    assert.equal(m.stats.byDifficulty.schwer.won, 1);             // nur in der Cloud → bleibt
+  });
+  test('Union für Inventar/Erfolge/abgerechnete Partien — nichts geht verloren', () => {
+    assert.ok(m.inventory.winfx_meteor && m.inventory.palette_neon);
+    assert.ok(m.achievements.firstWin && m.achievements.tenWins);
+    assert.deepEqual([...m.completedGames].sort(), ['g1', 'g2', 'g3']);
+  });
+  test('Streak: Zähler max, Datum das spätere, Flags von der jüngeren Seite', () => {
+    assert.equal(m.daily.currentStreak, 5);
+    assert.equal(m.daily.bestStreak, 7);
+    assert.equal(m.daily.totalCompleted, 30);
+    assert.equal(m.daily.lastCompletedDate, '2026-07-08');
+    assert.equal(m.daily.lossNoticeShown, true);   // lokal ist jünger (ts 2000)
+  });
+  test('Race-Bilanz gemergt (max je Modus, fehlende Modi bleiben)', () => {
+    assert.equal(m.race['1v1'].racesWon, 4);
+    assert.equal(m.race['2v2'].racesWon, 2);
+  });
+  test('Kleinigkeiten (Settings/Profil/Wallet) folgen der jüngeren Seite', () => {
+    assert.equal(m.settings.musicSolo, false);
+    assert.equal(m.profile.displayName, 'Tom');
+    assert.deepEqual(m.wallet, { balance: 500, updatedAt: 9 });
+  });
+  test('Verlauf: Union ohne Duplikate, jüngste zuerst', () => {
+    assert.equal(m.history.length, 2);             // ts-5-Eintrag dedupliziert
+    assert.equal(m.history[0].ts, 5);
+  });
+  test('leere/fehlende Seiten sind harmlos', () => {
+    const only = mergeSnapshots(local, {});
+    assert.equal(only.stats.won, 10);
+    assert.deepEqual(mergeSnapshots({}, {}).completedGames, []);
   });
 });

@@ -1,7 +1,7 @@
 // it.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
-  mismatch: { title: 'Dati di gioco diversi', sub: 'Questo dispositivo e il cloud hanno progressi divergenti. Quale vuoi mantenere?', local: 'Questo dispositivo', cloud: 'Cloud', keepLocal: 'Mantieni questo dispositivo', keepCloud: 'Mantieni il cloud', note: 'L\'altra versione viene salvata come backup e non eliminata.' },
+  mismatch: { title: 'Dati di gioco diversi', sub: 'Il tuo saldo monete differisce tra questo dispositivo e il cloud. Tutti i progressi (vittorie, obiettivi, acquisti) vengono uniti automaticamente — scegli solo quale saldo deve valere.', local: 'Questo dispositivo', cloud: 'Cloud', keepLocal: 'Mantieni questo dispositivo', keepCloud: 'Mantieni il cloud', note: 'L’altro stato viene salvato come backup e non viene eliminato.' },
 
   offline: { unavailable: 'Non disponibile offline', badge: 'Offline', chip: 'Offline', chipHint: 'Sei offline — i puzzle in solitaria funzionano ancora.' },
 

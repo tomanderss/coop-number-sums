@@ -1,7 +1,7 @@
 // pt-BR.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
-  mismatch: { title: 'Dados de jogo diferentes', sub: 'Este dispositivo e a nuvem têm progressos divergentes. Qual você quer manter?', local: 'Este dispositivo', cloud: 'Nuvem', keepLocal: 'Manter este dispositivo', keepCloud: 'Manter a nuvem', note: 'A outra versão é salva como backup e não é excluída.' },
+  mismatch: { title: 'Dados de jogo diferentes', sub: 'Seu saldo de moedas difere entre este aparelho e a nuvem. Todo o progresso (vitórias, conquistas, compras) é mesclado automaticamente — escolha apenas qual saldo deve valer.', local: 'Este dispositivo', cloud: 'Nuvem', keepLocal: 'Manter este dispositivo', keepCloud: 'Manter a nuvem', note: 'O outro estado é guardado como backup e nunca é apagado.' },
 
   offline: { unavailable: 'Indisponível offline', badge: 'Offline', chip: 'Offline', chipHint: 'Você está offline — os quebra-cabeças solo continuam funcionando.' },
 

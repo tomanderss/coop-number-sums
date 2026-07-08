@@ -1,7 +1,7 @@
 // tr.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
-  mismatch: { title: 'Farklı oyun verileri', sub: 'Bu cihaz ile bulut arasında farklı ilerlemeler var. Hangisini tutmak istersin?', local: 'Bu cihaz', cloud: 'Bulut', keepLocal: 'Bu cihazı tut', keepCloud: 'Bulutu tut', note: 'Diğer sürüm yedek olarak saklanır ve silinmez.' },
+  mismatch: { title: 'Farklı oyun verileri', sub: 'Jeton bakiyen bu cihaz ile bulut arasında farklı. Tüm oyun ilerlemesi (galibiyetler, başarımlar, satın almalar) otomatik birleştirilir — yalnızca hangi bakiyenin geçerli olacağını seç.', local: 'Bu cihaz', cloud: 'Bulut', keepLocal: 'Bu cihazı tut', keepCloud: 'Bulutu tut', note: 'Diğer durum yedek olarak saklanır ve silinmez.' },
 
   offline: { unavailable: 'Çevrimdışı kullanılamaz', badge: 'Çevrimdışı', chip: 'Çevrimdışı', chipHint: 'Çevrimdışısın — tekli bulmacalar çalışmaya devam eder.' },
 
