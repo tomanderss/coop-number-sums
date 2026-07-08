@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.123';
-export const BUILD_HASH = '80e6b13';
+export const BUILD      = '1.124';
+export const BUILD_HASH = '02cdd68';
 
 export const CHANGELOG = [
+  {
+    "version": "1.124",
+    "date": "08.07.2026",
+    "changes": [
+      "Neu gezeichnete Symbole: Die Kaffee-Tasse am Spendenlink ist jetzt symmetrisch mit Herz (Ko-fi-Stil) statt verbeult, und das VS-Duell-Symbol ist ein klares diagonales V/S mit Gold-Blitz — beide bleiben auch in Chipgröße gut lesbar"
+    ]
+  },
   {
     "version": "1.123",
     "date": "08.07.2026",
