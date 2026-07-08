@@ -5553,7 +5553,7 @@ const App = {
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
       <span v-if="!isOnline()" class="offline-chip" :title="t('offline.chipHint')"><span class="ei" v-html="ic('cloud')"></span> {{ t('offline.chip') }}</span>
-      <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span><span class="home-donate-heart ico-wrap" aria-hidden="true" v-html="ic('heart')"></span></a>
+      <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span></a>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge"><span class="ico-lead" v-html="ic('flame')"></span>{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
         <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')"><span class="ico-wrap" v-html="ic('users')"></span><span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span><span v-if="anyFriendOnline()" class="friends-online-dot"></span></button>

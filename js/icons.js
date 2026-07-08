@@ -112,7 +112,7 @@ filled('music', '<path d="M9 18V6l10-2v10" fill="none" stroke="currentColor" str
 // Versus (Wettkampf 1v1) — wörtliches „1 gegen 1": zwei Spieler-Köpfe (im Stil
 // der user/users-Icons) mit gefülltem Gold-Blitz dazwischen. Das alte „VS"-
 // Buchstaben-Lockup verschmolz in Chipgröße zum Gestrüpp.
-filled('versus', '<circle cx="5.5" cy="9" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M1.8 18.5a4.2 4.2 0 0 1 7.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18.5" cy="9" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.8 18.5a4.2 4.2 0 0 1 7.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M13 5.5l-2.6 4.7h1.9L11.1 15l3.2-5.2h-1.9z" fill="#f2b529" stroke="#b9821a" stroke-width="1" stroke-linejoin="round"/>');
+filled('versus', '<circle cx="5.5" cy="9" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M1.8 18.5a4.2 4.2 0 0 1 7.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18.5" cy="9" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.8 18.5a4.2 4.2 0 0 1 7.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M13.9 3.2l-4.3 7.8h2.9l-1.7 8.8 5.3-8.6h-3z" fill="#f2b529" stroke="#b9821a" stroke-width="1" stroke-linejoin="round"/>');
 // Controller (Spielmodus).
 filled('controller', '<path d="M8 8h8a5 5 0 0 1 5 5 3 3 0 0 1-5.4 1.8L14.5 14h-5l-1.1.8A3 3 0 0 1 3 13a5 5 0 0 1 5-5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 11v3M5.5 12.5h3M15.5 11.5h.01M17.5 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>');
 // Stern (Skin/Highlight).
