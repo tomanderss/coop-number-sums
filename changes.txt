@@ -1,1 +1,0 @@
-Der „Unterschiedliche Spielstände"-Dialog beim Start erscheint nur noch, wenn sich wirklich das Guthaben unterscheidet — alle übrigen Fortschritte (Siege, Erfolge, Käufe, Bestzeiten, Serien) werden automatisch verlustfrei zusammengeführt und Kleinigkeiten lösen sich still im Hintergrund
