@@ -92,7 +92,7 @@ filled('heart-broken', '<path d="M12 20S3.5 14.5 3.5 8.8A4.3 4.3 0 0 1 12 6.5a4.
 // Kaffee (Spenden) — symmetrische Tasse mit Herz (Ko-fi-Stil), Henkel, Untertasse
 // und mittigem Dampf. Die alte Version hatte eine schräge linke Wand (Boden war
 // schmaler gezeichnet als der Rand) und wirkte dadurch „verbeult".
-filled('coffee', '<path d="M5 8.5h11v4.6a4.9 4.9 0 0 1-4.9 4.9h-1.2A4.9 4.9 0 0 1 5 13.1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9.8h1.9a2.4 2.4 0 0 1 0 4.8h-2.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 21h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.5 15S7.7 13.2 7.7 11.3a1.6 1.6 0 0 1 2.8-1.1 1.6 1.6 0 0 1 2.8 1.1c0 1.9-2.8 3.7-2.8 3.7z" fill="#e7405a"/><path d="M8.7 2.8c-.6.9.6 1.6 0 2.6M12.3 2.8c-.6.9.6 1.6 0 2.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>');
+filled('coffee', '<path d="M5 8.5h11v4.6a4.9 4.9 0 0 1-4.9 4.9h-1.2A4.9 4.9 0 0 1 5 13.1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9.8h1.9a2.4 2.4 0 0 1 0 4.8h-2.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 21h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.5 16.2S7.7 14.4 7.7 12.5a1.6 1.6 0 0 1 2.8-1.1 1.6 1.6 0 0 1 2.8 1.1c0 1.9-2.8 3.7-2.8 3.7z" fill="#e7405a"/><path d="M8.7 2.8c-.6.9.6 1.6 0 2.6M12.3 2.8c-.6.9.6 1.6 0 2.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>');
 // Geschenk.
 filled('gift', '<path d="M4 9h16v3H4zM5 12h14v9H5zM12 9v12M12 9C10 9 8 8 8 6.2 8 5 9 4 12 9c3-5 4-4 4-2.8C16 8 14 9 12 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>');
 // Party-Popper (Sieg/Feier-Chrome — die Animationen selbst kommen separat).
@@ -109,10 +109,10 @@ filled('digits', '<path d="M7 4l-2 1.5M7 4v9M13 6.5a2 2 0 1 1 3.2 1.6L13 13h4M6 
 filled('frame', '<path d="M4 4h16v16H4zM7 7h10v10H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 15l3-3 2 2 3-3.5 2 2.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>');
 // Note (SFX/Musik).
 filled('music', '<path d="M9 18V6l10-2v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/>');
-// Versus (Wettkampf 1v1) — diagonales Duell-Lockup: V oben links, S unten
-// rechts, gefüllter Gold-Blitz als Trenner. Die alte Version stellte V, Blitz
-// und S gleich hoch nebeneinander und verschmolz in Chipgröße zum Gestrüpp.
-filled('versus', '<path d="M2.8 5.2l2.7 7.6 2.7-7.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><path d="M21.2 12.4a2.6 2.6 0 0 0-3.9.7c-.7 1.2.2 2.3 1.6 2.8 1.4.5 2.3 1.6 1.6 2.8a2.6 2.6 0 0 1-3.9.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M14.6 2.6l-4 7.2h2.8l-1.8 7 4.8-7.9h-2.8z" fill="#f2b529" stroke="#b9821a" stroke-width="1" stroke-linejoin="round"/>');
+// Versus (Wettkampf 1v1) — wörtliches „1 gegen 1": zwei Spieler-Köpfe (im Stil
+// der user/users-Icons) mit gefülltem Gold-Blitz dazwischen. Das alte „VS"-
+// Buchstaben-Lockup verschmolz in Chipgröße zum Gestrüpp.
+filled('versus', '<circle cx="5.5" cy="9" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M1.8 18.5a4.2 4.2 0 0 1 7.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18.5" cy="9" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.8 18.5a4.2 4.2 0 0 1 7.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M13 5.5l-2.6 4.7h1.9L11.1 15l3.2-5.2h-1.9z" fill="#f2b529" stroke="#b9821a" stroke-width="1" stroke-linejoin="round"/>');
 // Controller (Spielmodus).
 filled('controller', '<path d="M8 8h8a5 5 0 0 1 5 5 3 3 0 0 1-5.4 1.8L14.5 14h-5l-1.1.8A3 3 0 0 1 3 13a5 5 0 0 1 5-5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 11v3M5.5 12.5h3M15.5 11.5h.01M17.5 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>');
 // Stern (Skin/Highlight).
