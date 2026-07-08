@@ -45,7 +45,7 @@ const USER_DATA_KEYS = new Set([
 // früheren 5 Minuten waren der Hauptgrund, warum der Fortsetzen-Button
 // praktisch nie funktionierte (Klick lief in eine bereits verfallene Session).
 const COOP_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
-const HISTORY_MAX = 20;
+export const HISTORY_MAX = 20;
 
 function load(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }

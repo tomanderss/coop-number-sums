@@ -1,7 +1,7 @@
 // es.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
-  mismatch: { title: 'Datos de juego distintos', sub: 'Este dispositivo y la nube tienen progresos divergentes. ¿Cuál quieres conservar?', local: 'Este dispositivo', cloud: 'Nube', keepLocal: 'Conservar este dispositivo', keepCloud: 'Conservar la nube', note: 'La otra versión se guarda como copia de seguridad y no se elimina.' },
+  mismatch: { title: 'Datos de juego distintos', sub: 'Tu saldo de monedas difiere entre este dispositivo y la nube. Todo el progreso (victorias, logros, compras) se fusiona automáticamente; elige solo qué saldo debe valer.', local: 'Este dispositivo', cloud: 'Nube', keepLocal: 'Conservar este dispositivo', keepCloud: 'Conservar la nube', note: 'El otro estado se guarda como copia de seguridad y no se elimina.' },
 
   offline: { unavailable: 'No disponible sin conexión', badge: 'Sin conexión', chip: 'Sin conexión', chipHint: 'Estás sin conexión: los puzles en solitario siguen funcionando.' },
 

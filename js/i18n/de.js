@@ -1,7 +1,7 @@
 // de.js — deutsche Strings (Standardsprache, Fallback für fehlende Keys in anderen Sprachen)
 export default {
 
-  mismatch: { title: 'Unterschiedliche Spielstände', sub: 'Auf diesem Gerät und in der Cloud gibt es abweichende Fortschritte. Welchen möchtest du behalten?', local: 'Dieses Gerät', cloud: 'Cloud', keepLocal: 'Dieses Gerät behalten', keepCloud: 'Cloud behalten', note: 'Die andere Version wird als Backup gesichert und nicht gelöscht.' },
+  mismatch: { title: 'Unterschiedliche Spielstände', sub: 'Dein Guthaben unterscheidet sich zwischen diesem Gerät und der Cloud. Alle Spielfortschritte (Siege, Erfolge, Käufe) werden automatisch zusammengeführt — wähle nur, welcher Geldstand gelten soll.', local: 'Dieses Gerät', cloud: 'Cloud', keepLocal: 'Dieses Gerät behalten', keepCloud: 'Cloud behalten', note: 'Der jeweils andere Stand wird als Backup gesichert und nicht gelöscht.' },
 
   offline: { unavailable: 'Offline nicht verfügbar', badge: 'Offline', chip: 'Offline', chipHint: 'Du bist offline — Solo-Rätsel funktionieren weiter.' },
 

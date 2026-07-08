@@ -20,7 +20,7 @@ import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
-  deviceId, saveConflictBackup,
+  deviceId, saveConflictBackup, pickActiveGame, HISTORY_MAX,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -55,6 +55,93 @@ export function usernameKey(name) { return normalizeUsername(name).replace(/[.$#
 export function isDivergent({ localRev, cloudRev, syncedRev }) {
   if (syncedRev == null) return false;
   return localRev !== syncedRev && cloudRev !== syncedRev;
+}
+
+// ─── Verlustfreier Snapshot-Merge (rein, unit-testbar) ─────────────────────────
+// Formale Divergenz (beide DATA_REVs seit der Basislinie gebumpt) heißt NICHT
+// echte Daten-Differenz: schon das bloße Öffnen der App auf einem Zweitgerät
+// schreibt Kleinkram (Streak-Tages-Rollover in cns_daily, Settings-Flags,
+// Autosave-Zeitstempel) und bumpte die Revision — der Versions-Mismatch-Dialog
+// erschien dadurch viel zu oft. Divergenz wird jetzt INHALTLICH aufgelöst:
+// alles Mergebare wird verlustfrei zusammengeführt (Union/Maximum/Bestwert),
+// Kleinigkeiten folgen der jüngeren Seite. NUR der Geld-Saldo ist nicht
+// automatisch entscheidbar (er darf durch Käufe legitim sinken — „Maximum
+// gewinnt" würde Käufe faktisch zurückerstatten): weichen die Salden ab, bleibt
+// der Dialog, und die Wahl betrifft NUR noch das Guthaben — alle übrigen
+// Fortschritte beider Seiten sind zu dem Zeitpunkt bereits gemergt.
+const nz = (v) => Number(v) || 0;
+// Unterscheiden sich die Geld-Salden zweier Snapshots? (Das einzige Dialog-Kriterium.)
+export function walletBalanceDiffers(a, b) {
+  return nz(a && a.wallet && a.wallet.balance) !== nz(b && b.wallet && b.wallet.balance);
+}
+// Bestzeit: kleinster vorhandener Wert (null/fehlend = keine Zeit).
+function bestOf(a, b) {
+  const va = a != null ? Number(a) : null, vb = b != null ? Number(b) : null;
+  if (va == null || Number.isNaN(va)) return vb;
+  if (vb == null || Number.isNaN(vb)) return va;
+  return Math.min(va, vb);
+}
+// Zahlen-Bäume (stats/race) rekursiv mergen: Zähler = Maximum (nie Fortschritt
+// verlieren; bewusst KEINE Addition — die würde bei jedem normalen Sync doppeln),
+// *estTimeMs-Felder = Bestwert (kleinste Zeit). Nicht-Zahlen folgen preferA.
+function mergeNumericDeep(a, b) {
+  if (a == null) return b;
+  if (b == null) return a;
+  if (typeof a === 'number' && typeof b === 'number') return Math.max(a, b);
+  if (Array.isArray(a) || Array.isArray(b) || typeof a !== 'object' || typeof b !== 'object') return a;
+  const out = {};
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    out[k] = /esttimems$/i.test(k) ? bestOf(a[k], b[k]) : mergeNumericDeep(a[k], b[k]);
+  }
+  return out;
+}
+// Streak (cns_daily): Zähler = Maximum, letztes Abschlussdatum = das spätere,
+// Anzeige-Flags (lossNoticeShown/justLost) folgen der jüngeren Seite.
+function mergeStreak(a = {}, b = {}, aNewer = true) {
+  const out = aNewer ? { ...b, ...a } : { ...a, ...b };
+  out.currentStreak = Math.max(nz(a.currentStreak), nz(b.currentStreak));
+  out.bestStreak = Math.max(nz(a.bestStreak), nz(b.bestStreak));
+  out.totalCompleted = Math.max(nz(a.totalCompleted), nz(b.totalCompleted));
+  const da = a.lastCompletedDate || '', db = b.lastCompletedDate || '';
+  out.lastCompletedDate = (da > db ? da : db) || null;   // YYYY-MM-DD → lexikografisch
+  return out;
+}
+// Verlauf: Union nach Zeitstempel, jüngste zuerst, auf HISTORY_MAX gekappt.
+function mergeHistory(a = [], b = [], cap = HISTORY_MAX) {
+  const seen = new Set();
+  const all = [...(a || []), ...(b || [])].filter((e) => {
+    const k = e && `${e.ts}|${e.difficulty || ''}|${e.outcome || ''}`;
+    if (!k || seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+  return all.sort((x, y) => nz(y.ts) - nz(x.ts)).slice(0, cap);
+}
+// Verlustfreier Merge zweier Nutzdaten-Snapshots (Form von collectExportData).
+// local gilt bei Kleinigkeiten als bevorzugte Seite, wenn es den jüngeren ts hat.
+// wallet wird bewusst UNGEMERGT von der jüngeren Seite übernommen — bei
+// abweichendem Saldo entscheidet der Dialog (walletBalanceDiffers), nicht diese
+// Funktion; bei gleichem Saldo ist die Wahl egal (updatedAt der jüngeren Seite
+// hält die watchGifts-Gate konsistent).
+export function mergeSnapshots(local = {}, cloud = {}) {
+  const localNewer = nz(local.ts) >= nz(cloud.ts);
+  const newer = localNewer ? local : cloud;
+  return {
+    ts: Math.max(nz(local.ts), nz(cloud.ts)),
+    v: 1, label: 'merge',
+    rev: Math.max(nz(local.rev), nz(cloud.rev)),
+    settings: newer.settings || (localNewer ? cloud.settings : local.settings) || {},
+    activeGame: pickActiveGame(local.activeGame, cloud.activeGame),
+    activeGameCoop: pickActiveGame(local.activeGameCoop, cloud.activeGameCoop),
+    stats: mergeNumericDeep(local.stats || {}, cloud.stats || {}),
+    daily: mergeStreak(local.daily || {}, cloud.daily || {}, localNewer),
+    history: mergeHistory(local.history, cloud.history),
+    achievements: { ...(cloud.achievements || {}), ...(local.achievements || {}) },   // Union
+    race: mergeNumericDeep(local.race || {}, cloud.race || {}),
+    inventory: { ...(cloud.inventory || {}), ...(local.inventory || {}) },            // Union
+    wallet: newer.wallet || (localNewer ? cloud.wallet : local.wallet) || {},
+    completedGames: [...new Set([...(local.completedGames || []), ...(cloud.completedGames || [])])],
+    profile: newer.profile || (localNewer ? cloud.profile : local.profile) || {},
+  };
 }
 export function decideSync({ cloudExists, localRev, cloudRev, syncedRev, hasLocalData }) {
   if (!cloudExists) return 'uploadLocal';            // Cloud leer → lokale Daten hoch (Erst-Upload)
@@ -682,13 +769,26 @@ export async function reconcile() {
       syncedRev: syncedRev(),
       hasLocalData: hasLocalData(),
     });
-    // ECHTE Divergenz (lokal UND Cloud seit der Basislinie geändert, z.B. offline
-    // gespielt UND woanders online): NICHT still „Cloud gewinnt", sondern den
-    // Versions-Mismatch-Dialog auslösen (app.js). Erst die Nutzerwahl wendet an.
+    // ECHTE formale Divergenz (lokal UND Cloud seit der Basislinie geändert):
+    // INHALTLICH auflösen statt formal fragen. Alles Mergebare wird verlustfrei
+    // zusammengeführt (mergeSnapshots) — der Dialog erscheint NUR noch, wenn die
+    // Geld-Salden abweichen (einzige nicht automatisch entscheidbare Größe);
+    // die Nutzerwahl betrifft dann auch nur noch das Guthaben.
     if (decision === 'takeCloud' && hasLocalData()
         && isDivergent({ localRev: dataRev(), cloudRev: snap ? (snap.rev || 0) : 0, syncedRev: syncedRev() })) {
-      log('account', 'reconcile', { decision: 'conflict' });
-      return { decision: 'conflict', cloud: snap, localData: collectExportData('conflict'), cloudTs: (snap && snap.ts) || 0, localTs: dataRev() };
+      const localData = collectExportData('conflict');
+      if (walletBalanceDiffers(localData, snap)) {
+        log('account', 'reconcile', { decision: 'conflict' });
+        return { decision: 'conflict', cloud: snap, localData, cloudTs: (snap && snap.ts) || 0, localTs: dataRev() };
+      }
+      // Gleicher Geldstand → stiller verlustfreier Merge, kein Dialog. Die
+      // Cloud-Seite wird vorher als Backup gesichert (nie still verloren).
+      const t0 = Date.now();
+      saveConflictBackup({ side: 'cloud', data: snap });
+      importFromFile(JSON.stringify(mergeSnapshots(localData, snap)));
+      await uploadLocal(fb, u.uid); stampSynced();
+      log('account', 'reconcile', { decision: 'merged', tookMs: Date.now() - t0 });
+      return { decision: 'merged' };
     }
     if (decision === 'uploadLocal') { await uploadLocal(fb, u.uid); stampSynced(); }
     else if (decision === 'takeCloud') { await applyCloud(fb, u.uid, snap); stampSynced(); }
@@ -698,10 +798,12 @@ export async function reconcile() {
   } catch (e) { log('account', 'reconcile fehlgeschlagen', e); return { decision: 'error', err: errKey(e) }; }
 }
 
-// Auflösung des Versions-Mismatch nach Nutzerwahl. Die UNTERLEGENE Seite wird
-// IMMER als Backup gesichert (nie still gelöscht). 'local' → lokalen Stand
-// hochladen (Cloud-Stand als Backup); 'cloud' → Cloud übernehmen (lokalen Stand
-// als Backup). Danach lädt app.js sauber neu.
+// Auflösung des Versions-Mismatch nach Nutzerwahl. Die Wahl betrifft NUR noch
+// das GUTHABEN ('local' = Saldo dieses Geräts, 'cloud' = Cloud-Saldo) — alle
+// übrigen Fortschritte beider Seiten werden verlustfrei gemergt (mergeSnapshots),
+// niemand verliert mehr Siege/Käufe/Erfolge durch die Wahl. Die unterlegene
+// Seite wird IMMER als Backup gesichert (nie still gelöscht). Danach lädt
+// app.js sauber neu.
 export async function resolveConflict(choice) {
   if (!isSignedIn()) return { ok: false, skipped: true };
   try {
@@ -709,14 +811,13 @@ export async function resolveConflict(choice) {
     const u = currentUser(fb);
     if (!u || u.isAnonymous) return { ok: false, skipped: true };
     const snap = (await fb.get(userRef(fb, u.uid, 'data'))).val();
-    if (choice === 'cloud') {
-      saveConflictBackup({ side: 'local', data: collectExportData('conflict-local') });
-      await applyCloud(fb, u.uid, snap); stampSynced();
-    } else { // 'local'
-      if (snap) saveConflictBackup({ side: 'cloud', data: snap });
-      await uploadLocal(fb, u.uid); stampSynced();
-    }
-    log('account', 'Versions-Mismatch aufgelöst', { choice });
+    const localData = collectExportData('conflict-local');
+    saveConflictBackup(choice === 'cloud' ? { side: 'local', data: localData } : { side: 'cloud', data: snap });
+    const merged = mergeSnapshots(localData, snap || {});
+    merged.wallet = (choice === 'cloud' ? (snap && snap.wallet) : localData.wallet) || {};
+    importFromFile(JSON.stringify(merged));
+    await uploadLocal(fb, u.uid); stampSynced();
+    log('account', 'Versions-Mismatch aufgelöst', { choice, merged: true });
     return { ok: true };
   } catch (e) { log('account', 'resolveConflict fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }

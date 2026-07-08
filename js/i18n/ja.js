@@ -1,7 +1,7 @@
 // ja.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
-  mismatch: { title: 'ゲームデータが異なります', sub: 'この端末とクラウドで進行状況が異なります。どちらを残しますか？', local: 'この端末', cloud: 'クラウド', keepLocal: 'この端末を残す', keepCloud: 'クラウドを残す', note: 'もう一方はバックアップとして保存され、削除されません。' },
+  mismatch: { title: 'ゲームデータが異なります', sub: 'コイン残高がこの端末とクラウドで異なります。ゲームの進行状況（勝利・実績・購入）は自動的に統合されます。適用する残高だけを選んでください。', local: 'この端末', cloud: 'クラウド', keepLocal: 'この端末を残す', keepCloud: 'クラウドを残す', note: 'もう一方の状態はバックアップとして保存され、削除されません。' },
 
   offline: { unavailable: 'オフラインでは利用できません', badge: 'オフライン', chip: 'オフライン', chipHint: 'オフラインです — ソロパズルは引き続きプレイできます。' },
 

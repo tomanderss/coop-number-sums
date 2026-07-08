@@ -1,7 +1,7 @@
 // en.js — English strings (carefully hand-translated, kept in sync with de.js)
 export default {
 
-  mismatch: { title: 'Different game data', sub: 'This device and the cloud have diverging progress. Which do you want to keep?', local: 'This device', cloud: 'Cloud', keepLocal: 'Keep this device', keepCloud: 'Keep cloud', note: 'The other version is saved as a backup and not deleted.' },
+  mismatch: { title: 'Different game data', sub: 'Your coin balance differs between this device and the cloud. All game progress (wins, achievements, purchases) is merged automatically — just choose which balance should apply.', local: 'This device', cloud: 'Cloud', keepLocal: 'Keep this device', keepCloud: 'Keep cloud', note: 'The other state is kept as a backup and never deleted.' },
 
   offline: { unavailable: 'Not available offline', badge: 'Offline', chip: 'Offline', chipHint: 'You\'re offline — solo puzzles still work.' },
 
