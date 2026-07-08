@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.130';
-export const BUILD_HASH = '6cb1fe1';
+export const BUILD      = '1.131';
+export const BUILD_HASH = '0a4f1c1';
 
 export const CHANGELOG = [
+  {
+    "version": "1.131",
+    "date": "08.07.2026",
+    "changes": [
+      "Einstellungen ▸ Daten: Automatisch angelegte Sicherheitskopien (verdrängter Daten- oder Spielstand) sind jetzt sichtbar und lassen sich per Knopfdruck wieder einspielen — beim Einspielen wird der aktuelle Stand seinerseits als Kopie aufbewahrt"
+    ]
+  },
   {
     "version": "1.130",
     "date": "08.07.2026",
