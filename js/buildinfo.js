@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.122';
-export const BUILD_HASH = 'a1d4fe8';
+export const BUILD      = '1.123';
+export const BUILD_HASH = '80e6b13';
 
 export const CHANGELOG = [
+  {
+    "version": "1.123",
+    "date": "08.07.2026",
+    "changes": [
+      "Freundesliste: Hängen gebliebener Online-Status läuft jetzt automatisch ab — ohne Lebenszeichen gilt ein Freund nach 5 Minuten als offline (kein „ewig online\" mehr durch verwaiste Browser-Sitzungen)"
+    ]
+  },
   {
     "version": "1.122",
     "date": "07.07.2026",
