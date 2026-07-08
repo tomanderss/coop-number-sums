@@ -22,7 +22,7 @@ const {
   loadInventory, inventoryHas, grantInventory, revokeInventory, mergeInventory,
   reconcileInventoryFromCloud, applyCloudWallet,
   loadWallet, grantCurrency, spendCurrency, loadProfile, saveProfile,
-  collectExportData,
+  collectExportData, pickActiveGame, loadActiveGameBackup,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
 const { todayDateStr } = await import('../../js/streak.js');
@@ -208,16 +208,18 @@ describe('storage.importFromFile', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });
 
   test('imports settings, stats and active game from a JSON payload', () => {
+    // activeGame wie ein echter Snapshot (mit puzzle) — Stände ohne puzzle sind
+    // nicht fortsetzbar und werden vom konservativen Slot-Merge wie leer behandelt.
     const payload = JSON.stringify({
       ts: Date.now(), v: 1, label: 'manual',
       settings: { darkMode: false },
-      activeGame: { difficulty: 'leicht' },
+      activeGame: { difficulty: 'leicht', puzzle: { rows: 5 }, ts: 1 },
       stats: { played: 5 },
     });
     const data = importFromFile(payload);
     assert.equal(data.settings.darkMode, false);
     assert.equal(loadSettings().darkMode, false);
-    assert.deepEqual(loadActiveGame(), { difficulty: 'leicht' });
+    assert.deepEqual(loadActiveGame(), { difficulty: 'leicht', puzzle: { rows: 5 }, ts: 1 });
     assert.equal(loadStats().played, 5);
   });
 });
@@ -595,5 +597,64 @@ describe('storage.collectExportData', () => {
     assert.equal(loadProfile().displayName, 'Mara');
     // Ein veraltetes 'user' aus dem Snapshot darf die Admin-Rolle NICHT überschreiben.
     assert.equal(loadProfile().role, 'admin');
+  });
+});
+
+describe('storage.pickActiveGame (Import darf laufendes Spiel nie still löschen)', () => {
+  const game = (ts) => ({ puzzle: { rows: 5 }, marks: [], elapsed: 1, ts });
+
+  test('Import ohne Aktivspiel (null) → lokales laufendes Spiel bleibt', () => {
+    const local = game(100);
+    assert.equal(pickActiveGame(local, null), local);
+    assert.equal(pickActiveGame(local, undefined), local);
+  });
+  test('kein lokales Spiel → Import übernehmen (auch null bleibt null)', () => {
+    const imp = game(50);
+    assert.equal(pickActiveGame(null, imp), imp);
+    assert.equal(pickActiveGame(null, null), null);
+  });
+  test('beide vorhanden → der jüngere Stand (ts) gewinnt, bei Gleichstand lokal', () => {
+    const oldG = game(100), newG = game(200);
+    assert.equal(pickActiveGame(oldG, newG), newG);
+    assert.equal(pickActiveGame(newG, oldG), newG);
+    const a = game(100), b = game(100);
+    assert.equal(pickActiveGame(a, b), a);
+  });
+  test('Stand ohne puzzle zählt wie kein Stand', () => {
+    const local = game(100);
+    assert.equal(pickActiveGame(local, { ts: 999 }), local);
+    assert.equal(pickActiveGame({ ts: 999 }, local), local);
+  });
+});
+
+describe('storage.importFromFile bewahrt Aktivspiel-Slots', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+  const game = (ts) => ({ puzzle: { rows: 5 }, marks: [], elapsed: 1, ts });
+
+  test('Cloud-Snapshot mit activeGame:null löscht das lokale Spiel NICHT (Update-Szenario)', () => {
+    saveActiveGame(game(500));
+    importFromFile(JSON.stringify({ activeGame: null, activeGameCoop: null }));
+    assert.ok(loadActiveGame(), 'lokales Solo-Spiel muss den Import überleben');
+    assert.equal(loadActiveGame().ts, 500);
+  });
+  test('jüngeres Cloud-Spiel ersetzt das lokale — verdrängter Stand landet im Backup', () => {
+    saveActiveGame(game(100));
+    importFromFile(JSON.stringify({ activeGame: game(900) }));
+    assert.equal(loadActiveGame().ts, 900);
+    assert.equal(loadActiveGameBackup().ts, 100, 'verdrängter Stand nie still gelöscht');
+  });
+  test('älteres Cloud-Spiel verdrängt das lokale nicht', () => {
+    saveActiveGame(game(900));
+    importFromFile(JSON.stringify({ activeGame: game(100) }));
+    assert.equal(loadActiveGame().ts, 900);
+  });
+  test('Coop-Slot: Import mit null bewahrt lokales Coop-Spiel', () => {
+    saveActiveGameCoop(game(300));
+    importFromFile(JSON.stringify({ activeGameCoop: null }));
+    assert.ok(loadActiveGameCoop());
+  });
+  test('leerer lokaler Slot übernimmt das importierte Spiel weiterhin', () => {
+    importFromFile(JSON.stringify({ activeGame: game(700) }));
+    assert.equal(loadActiveGame().ts, 700);
   });
 });

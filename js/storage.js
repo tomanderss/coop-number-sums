@@ -537,6 +537,21 @@ export async function exportToFile(type = 'manual') {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+// Aktivspiel-Slot konservativ mergen: Ein vorhandenes LOKALES laufendes Spiel
+// darf ein Cloud-/Datei-Import NIE stillschweigend löschen oder durch einen
+// älteren Stand ersetzen. Symptom vorher: „Nach einem Update ist mein Spiel
+// weg" — der Kaltstart-Reconcile (applyCloud → importFromFile) übernahm den
+// Snapshot des zuletzt hochladenden Geräts, und stand dort activeGame:null
+// (z.B. Zweitgerät ohne offene Partie), wurde der lokale Spielstand mit null
+// überschrieben. Regel: der jüngere Stand (ts) gewinnt; fehlt eine Seite,
+// bleibt die vorhandene. Rein (unit-getestet), Seiteneffekte beim Aufrufer.
+export function pickActiveGame(localG, importedG) {
+  const l = localG && localG.puzzle ? localG : null;
+  const i = importedG && importedG.puzzle ? importedG : null;
+  if (!l) return i;
+  if (!i) return l;
+  return (Number(i.ts) || 0) > (Number(l.ts) || 0) ? i : l;
+}
 export function importFromFile(jsonText) {
   const data = JSON.parse(jsonText);
   if (data.settings) save(KEYS.SETTINGS, data.settings);
@@ -557,8 +572,20 @@ export function importFromFile(jsonText) {
     const cur = loadProfile();
     save(KEYS.PROFILE, { ...data.profile, role: cur.role, accountId: cur.accountId });
   }
-  if (data.activeGame !== undefined) saveActiveGame(data.activeGame);
-  if (data.activeGameCoop !== undefined) saveActiveGameCoop(data.activeGameCoop);
+  if (data.activeGame !== undefined) {
+    const local = loadActiveGame();
+    const keep = pickActiveGame(local, data.activeGame);
+    // Wird ein lokaler Stand durch einen jüngeren Import verdrängt: als Backup
+    // sichern (Prinzip „nie still gelöscht", wie beim Session-defunct).
+    if (local && local.puzzle && keep !== local) saveActiveGameBackup(local);
+    if (local && local.puzzle && keep === local && !(data.activeGame && data.activeGame.puzzle)) {
+      log('storage', 'Import ohne Aktivspiel — lokales laufendes Spiel bewahrt');
+    }
+    saveActiveGame(keep);
+  }
+  if (data.activeGameCoop !== undefined) {
+    saveActiveGameCoop(pickActiveGame(loadActiveGameCoop(), data.activeGameCoop));
+  }
   return data;
 }
 
