@@ -237,6 +237,7 @@ const state = reactive({
  addOpen: false, // -Popup „Freund hinzufügen" (im Kopf, statt Inline-Formular)
     addName: '', addBusy: false, addError: null, addNotice: null,
     list: [], requests: [], presence: {},   // presence: { uid: {online, game, lastActive} }
+    now: Date.now(),   // reaktiver Zeit-Tick für die Präsenz-Frische (Heartbeat bumpt ihn)
   },
   leaderboard: {
     diff: 'sehrleicht',        // aktuell angezeigte Schwierigkeit
@@ -4784,14 +4785,19 @@ function removeFriendAsk(fr) {
   });
 }
 // Sortierte Freundesliste (im Spiel > online > offline, dann alphabetisch).
-function friendsSorted() { return Account.sortFriends(state.friends.list, state.friends.presence); }
+// state.friends.now (statt Date.now()) hält die Frische-Prüfung reaktiv: der
+// Heartbeat-Tick unten bumpt es, sodass ein Geister-Status (hängen gebliebenes
+// online:true ohne Lebenszeichen) auch bei offenem Modal live auf offline kippt.
+function friendsSorted() { return Account.sortFriends(state.friends.list, state.friends.presence, state.friends.now); }
 function friendPresence(uid) { return state.friends.presence[uid] || null; }
-// „Im Spiel" nur, wenn ONLINE und eine Partie läuft — eine veraltete game-Info
-// eines offline gegangenen Freundes darf nie als „im Spiel" gezeigt werden.
-function friendOnline(uid) { const p = state.friends.presence[uid]; return !!(p && p.online); }
+// Online nur mit frischem lastActive (Account.presenceOnline) — ein verwaister
+// Browser, dessen onDisconnect verloren ging, zeigte sonst 24/7 „online".
+function friendOnline(uid) { return Account.presenceOnline(state.friends.presence[uid], state.friends.now); }
 // Ist mindestens ein Freund online (egal ob im Spiel)? → grüner Punkt am 👫-Button.
 function anyFriendOnline() { return state.friends.list.some((f) => friendOnline(f.uid)); }
-function friendInGame(uid) { const p = state.friends.presence[uid]; return !!(p && p.online && p.game); }
+// „Im Spiel" nur, wenn ONLINE und eine Partie läuft — eine veraltete game-Info
+// eines offline gegangenen Freundes darf nie als „im Spiel" gezeigt werden.
+function friendInGame(uid) { const p = state.friends.presence[uid]; return friendOnline(uid) && !!(p && p.game); }
 // Relative Zeitangabe („vor 5 Min", „gestern", „vor 3 Tagen") aus einem
 // Epoch-Millisekunden-Zeitstempel — via Intl.RelativeTimeFormat in der UI-Sprache.
 function fmtRelative(ts) {
@@ -4809,8 +4815,9 @@ function fmtRelative(ts) {
 // Menschlicher Aktivitätstext für einen Freund.
 function friendActivityText(uid) {
   const p = state.friends.presence[uid];
-  if (!p || !p.online) {
-    // Offline: wenn bekannt, zeigen, wann der Freund zuletzt aktiv war.
+  if (!friendOnline(uid)) {
+    // Offline (oder abgelaufener Geister-Status): wenn bekannt, zeigen, wann
+    // der Freund WIRKLICH zuletzt aktiv war (lastActive statt online-Flag).
     const rel = p && p.lastActive ? fmtRelative(p.lastActive) : '';
     return rel ? t('friends.offlineSince', { when: rel }) : t('friends.offline');
   }
@@ -5128,8 +5135,22 @@ function init() {
     // Spielende, beim Wechsel ins Menü und beim Verstecken/Schließen der App.
     setInterval(() => { if (state.account.status === 'in' && !gameSessionActive()) doSyncNow(); }, 30000);
   }
-  // Präsenz für Freunde alle 20 s auffrischen, solange ein Spiel läuft (Fortschritt/%).
-  setInterval(() => { if (state.account.status === 'in' && gameSessionActive()) pushPresence(); }, 20000);
+  // Präsenz-Heartbeat: hält das eigene lastActive frisch, damit die Frische-
+  // Prüfung (Account.presenceOnline, TTL PRESENCE_STALE_MS) echte Online-Nutzer
+  // nie fälschlich als offline zeigt — und hängen gebliebene online:true-Knoten
+  // („Geister" verwaister Browser) automatisch ablaufen. Im Spiel alle 20 s
+  // (inkl. Fortschritt-%), im Menü jede Minute; NUR solange die App sichtbar
+  // ist — eine versteckte/verlassene App soll ja gerade als offline enden.
+  // Der Tick bumpt zudem state.friends.now → Geister kippen live auf offline.
+  let presenceBeat = 0;
+  setInterval(() => {
+    presenceBeat++;
+    state.friends.now = Date.now();
+    if (state.account.status !== 'in' || document.hidden) return;
+    if (gameSessionActive()) pushPresence();
+    else if (presenceBeat % 3 === 0) pushPresence();
+  }, 20000);
+  log('account', 'Präsenz-Heartbeat aktiv', { gameMs: 20000, menuMs: 60000, staleMs: Account.PRESENCE_STALE_MS });
   maybeShowWhatsNew();
   maybeUnlockV1Skin();  // 1.0-Feier-Skin beim Versionssprung (vor dismissWhatsNew, das die Version speichert)
   // Alt-Spieler, die bereits ALLE 12 Kategorien gemeistert haben, bekommen die
@@ -7572,7 +7593,11 @@ document.addEventListener('visibilitychange', () => {
     // Beim Zurückkehren ZUERST die Aktivspiel-Session abgleichen (statt blind
     // hochzuladen — das überschrieb sonst einen neueren Fremdstand). Erst danach
     // die übrigen Nutzdaten sichern (doSyncNow hat einen eigenen Fremd-Schutz).
-    if (state.account.status === 'in') reconcileSession().then(() => doSyncNow());
+    // Außerdem sofort die eigene Präsenz auffrischen: der Heartbeat pausierte im
+    // Hintergrund, ohne diesen Push liefe das eigene lastActive kurz nach der
+    // Rückkehr ab und Freunde sähen einen fälschlich-offline-Flacker.
+    state.friends.now = Date.now();
+    if (state.account.status === 'in') { pushPresence(); reconcileSession().then(() => doSyncNow()); }
   }
 });
 

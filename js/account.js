@@ -70,18 +70,33 @@ export function decideSync({ cloudExists, localRev, cloudRev, syncedRev, hasLoca
 }
 
 // ─── Freunde: reine Sortier-/Statuslogik (ohne Firebase — unit-testbar) ────────
+// Ein online:true-Knoten kann hängen bleiben (verwaister Browser hält die
+// RTDB-Verbindung offen bzw. das onDisconnect ging verloren) — so ein „Geist"
+// stünde sonst für immer als online in der Freundesliste. Deshalb zählt online
+// nur mit FRISCHEM lastActive; app.js hält das eigene lastActive per Heartbeat
+// aktuell (siehe pushPresence-Intervall dort).
+export const PRESENCE_STALE_MS = 5 * 60 * 1000;
+// Effektiver Online-Status einer Präsenz (rein): online-Flag UND Lebenszeichen
+// jünger als PRESENCE_STALE_MS. Ohne Zeitstempel nie online („ewig online" ist
+// genau der Fehlerfall). now-lastActive darf negativ sein (Serveruhr voraus).
+export function presenceOnline(presence, now = Date.now()) {
+  if (!presence || !presence.online) return false;
+  const at = Number(presence.lastActive);
+  if (!Number.isFinite(at) || at <= 0) return false;
+  return now - at < PRESENCE_STALE_MS;
+}
 // Präsenz eines Freundes → grober Aktivitätsrang für die Sortierung (im Spiel > online > offline).
-export function friendActivityRank(presence) {
-  if (!presence || !presence.online) return 0;  // offline (auch mit veralteter game-Info)
+export function friendActivityRank(presence, now = Date.now()) {
+  if (!presenceOnline(presence, now)) return 0; // offline/abgelaufen (auch mit veralteter game-Info)
   if (presence.game) return 2;                  // online und gerade in einer Partie
   return 1;                                     // online, aber nicht im Spiel
 }
 // Freundesliste nach Aktivität (absteigend) und dann alphabetisch nach Username sortieren.
-// friends: [{ uid, username }], presenceByUid: { uid: {online,game,...} }
-export function sortFriends(friends, presenceByUid = {}) {
+// friends: [{ uid, username }], presenceByUid: { uid: {online,game,lastActive,...} }
+export function sortFriends(friends, presenceByUid = {}, now = Date.now()) {
   return [...(friends || [])].sort((a, b) => {
-    const ra = friendActivityRank(presenceByUid[a.uid]);
-    const rb = friendActivityRank(presenceByUid[b.uid]);
+    const ra = friendActivityRank(presenceByUid[a.uid], now);
+    const rb = friendActivityRank(presenceByUid[b.uid], now);
     if (ra !== rb) return rb - ra;
     return String(a.username || '').localeCompare(String(b.username || ''));
   });
