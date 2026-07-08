@@ -22,6 +22,7 @@ import {
   loadWallet, grantCurrency, spendCurrency, loadWalletLog, noteWalletTransaction,
   setDataRev, setSyncedRev,
   generateId, deviceId, isGameCompleted, markGameCompleted, loadActiveGameBackup, saveActiveGameBackup,
+  loadConflictBackup, saveConflictBackup, collectExportData,
 } from './storage.js';
 import { decideSessionSync, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
@@ -3524,6 +3525,62 @@ watch(() => state.settings, (s) => { saveSettings(s); if (state.account.status =
 
 // ─── DATEN: EXPORT / IMPORT / BACKUPS ─────────────────────────────────────────
 function doExport() { exportToFile('manual').then(() => showToast(t('toast.backupExported'), 'success')).catch(() => {}); }
+// ─── Sicherheitskopien (automatische Backups) einsehen & einspielen ───────────
+// Die App legt an zwei Stellen automatisch Kopien an, statt still zu löschen:
+// cns_conflict_backup (beim Geräte-Merge/Konfliktdialog verdrängter Daten-Stand)
+// und cns_active_game_backup (verdrängter Solo-Spielstand). Beide sind GERÄTE-
+// LOKAL (nie in der Cloud) — deshalb gehört die Wiederherstellung hierher in
+// die Einstellungen des Nutzers und NICHT ins Admin-Panel (der Admin sieht
+// fremde localStorage-Inhalte prinzipbedingt nicht).
+function safetyBackups() {
+  const out = [];
+  const c = loadConflictBackup();
+  if (c && c.data && c.data.data) {
+    const sum = syncSummary(c.data.data);
+    out.push({
+      kind: 'data', ts: c.ts || 0,
+      label: t(c.data.side === 'cloud' ? 'backups.conflictCloud' : 'backups.conflictLocal'),
+      info: `${fmtRelative(c.ts)} · ${sum.coins} ${t('wallet.coins')} · ${sum.wins} ${t('backups.wins')}`,
+      snap: c.data.data,
+    });
+  }
+  const g = loadActiveGameBackup();
+  if (g && g.puzzle) {
+    out.push({
+      kind: 'game', ts: g.ts || 0,
+      label: t('backups.game'),
+      info: `${fmtRelative(g.ts)} · ${t('difficulty.' + g.difficulty)} · ${fmtTime(g.elapsed || 0)}`,
+      game: g,
+    });
+  }
+  return out;
+}
+// Einspielen TAUSCHT immer: der aktuelle Stand wird selbst zur Sicherheitskopie
+// (Prinzip „nie still gelöscht" auch in Rückrichtung) — man kann also gefahrlos
+// hin- und herwechseln. Daten-Kopie: nach dem Import sauber neu laden; der
+// Startup-Reconcile lädt den eingespielten Stand dann in die Cloud hoch (bzw.
+// merged ihn verlustfrei, falls die Cloud inzwischen weiter ist).
+function restoreSafetyBackup(b) {
+  if (b.kind === 'data') {
+    ask(t('backups.confirmTitle'), t('backups.confirmDataMsg'), () => {
+      const current = collectExportData('backup-swap');
+      importFromFile(JSON.stringify(b.snap));
+      saveConflictBackup({ side: 'local', data: current });
+      log('storage', 'Sicherheitskopie (Daten) eingespielt', { backupTs: b.ts });
+      showToast(t('backups.restored'), 'success');
+      safeReload('backup-restore');
+    });
+  } else {
+    ask(t('backups.confirmTitle'), t('backups.confirmGameMsg'), () => {
+      const cur = loadActiveGame();
+      saveActiveGame(b.game);
+      saveActiveGameBackup(cur && cur.puzzle ? cur : null);
+      refreshResume();
+      log('storage', 'Sicherheitskopie (Spielstand) eingespielt', { backupTs: b.ts });
+      showToast(t('backups.restored'), 'success');
+    });
+  }
+}
 function doExportLog() { exportLogToFile().catch(() => {}); }
 function doImport(ev) {
   const file = ev.target.files && ev.target.files[0];
@@ -5575,7 +5632,7 @@ const App = {
       rowSum, colSum, regionSum, rowSumR, colSumR, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
-      checkForUpdate, restartForUpdate, dismissUpdateDialog,
+      checkForUpdate, restartForUpdate, dismissUpdateDialog, safetyBackups, restoreSafetyBackup,
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
       diffVars, isCoopDiffView,
@@ -6868,6 +6925,14 @@ const App = {
           <a class="btn btn-ghost" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
           <a class="btn btn-ghost" href="./imprint.html" target="_blank" rel="noopener">{{ t('settings.imprint') }}</a>
           <button class="btn btn-danger-ghost" @click="doDeleteAllData">{{ t('settings.deleteAllData') }}</button>
+          <div class="backup-section">
+            <h4 class="backup-title">{{ t('backups.title') }}</h4>
+            <p v-if="!safetyBackups().length" class="backup-empty">{{ t('backups.empty') }}</p>
+            <div v-for="b in safetyBackups()" :key="b.kind" class="backup-row">
+              <div class="backup-info"><b>{{ b.label }}</b><small>{{ b.info }}</small></div>
+              <button class="btn btn-ghost" @click="restoreSafetyBackup(b)">{{ t('backups.restore') }}</button>
+            </div>
+          </div>
           </div>
         </div>
       </div>

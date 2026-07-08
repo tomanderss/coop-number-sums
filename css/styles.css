@@ -452,6 +452,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .home-grid .btn { white-space: nowrap; padding: 10px 10px; font-size: clamp(.74rem, 3.6vw, .95rem); gap: 8px; }
 .home-grid .btn-ic { width: auto; font-size: 1.15rem; }
+/* Sicherheitskopien-Liste (Einstellungen ▸ Daten). */
+.backup-section { margin-top: 14px; border-top: 1px solid var(--line, rgba(128,128,128,.25)); padding-top: 10px; }
+.backup-title { margin: 0 0 6px; font-size: .9rem; }
+.backup-empty { margin: 0; font-size: .82rem; opacity: .7; }
+.backup-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.backup-info { display: flex; flex-direction: column; min-width: 0; }
+.backup-info small { opacity: .75; }
+
 /* Version = Button für die manuelle Update-Prüfung (Klick → checkForUpdate). */
 .home-version { color: var(--text3); font-size: .75rem; margin-top: 6px; background: none; border: none; padding: 2px 8px; font-family: inherit; cursor: pointer; }
 .home-version .ico { width: 12px; height: 12px; vertical-align: -2px; margin-left: 4px; animation: uc-spin 1s linear infinite; }
