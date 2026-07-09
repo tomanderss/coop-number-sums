@@ -1,8 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeRng, generatePuzzle, findHintCell } from '../../js/generator.js';
+import { makeRng, generatePuzzle, findHintCell, remapColorsForMarkVisibility, MARK_VISIBILITY_THRESHOLD } from '../../js/generator.js';
 import { logicalSolve, countSolutions } from '../../js/solver.js';
-import { DIFFICULTIES, REGION_COLORS, regionColorDist } from '../../js/config.js';
+import { DIFFICULTIES, REGION_COLORS, regionColorDist, markOnRegionDist, hexToRgb } from '../../js/config.js';
 
 describe('generator.makeRng', () => {
   test('is deterministic for a given seed', () => {
@@ -223,5 +223,59 @@ describe('generator.findHintCell', () => {
     const hint = findHintCell(puzzle, marks);
     assert.equal(hint.want, 'kept');
     assert.deepEqual([hint.r, hint.c], keptCell);
+  });
+});
+
+describe('generator.remapColorsForMarkVisibility (Cage-Farben meiden die Spielerfarbe)', () => {
+  // Zwei nebeneinanderliegende 1×2-Regionen auf einem 1×4-Brett.
+  const regions = (ci1, ci2) => ([
+    { cells: [[0, 0], [0, 1]], colorIndex: ci1 },
+    { cells: [[0, 2], [0, 3]], colorIndex: ci2 },
+  ]);
+  // Spielerfarbe Pink (#ec4899 aus COOP_COLORS) — konfliktreichste Palettenfarbe finden.
+  const pink = hexToRgb('#ec4899');
+  const pinkIdx = REGION_COLORS.reduce((best, c, i) =>
+    markOnRegionDist(pink, c) < markOnRegionDist(pink, REGION_COLORS[best]) ? i : best, 0);
+
+  test('Palette enthält eine mit Pink kollidierende Farbe (Testvoraussetzung)', () => {
+    assert.ok(markOnRegionDist(pink, REGION_COLORS[pinkIdx]) < MARK_VISIBILITY_THRESHOLD,
+      'keine Palettenfarbe kollidiert mit Pink — Threshold prüfen');
+  });
+  test('kollidierende Cage wird auf eine sichere Farbe umgelenkt', () => {
+    const out = remapColorsForMarkVisibility({
+      regions: regions(pinkIdx, 0), rows: 1, cols: 4,
+      effectiveColors: REGION_COLORS, avoidRgbs: [pink],
+    });
+    assert.notEqual(out[0], pinkIdx, 'Pink-Cage muss umgefärbt werden');
+    assert.ok(markOnRegionDist(pink, REGION_COLORS[out[0]]) >= MARK_VISIBILITY_THRESHOLD, 'Ersatzfarbe muss sicher sein');
+    assert.equal(out[1], 0, 'konfliktfreie Cage bleibt unverändert');
+  });
+  test('Ersatzfarbe unterscheidet sich weiter von der Nachbar-Cage', () => {
+    const out = remapColorsForMarkVisibility({
+      regions: regions(pinkIdx, 0), rows: 1, cols: 4,
+      effectiveColors: REGION_COLORS, avoidRgbs: [pink],
+    });
+    assert.ok(regionColorDist(REGION_COLORS[out[0]], REGION_COLORS[out[1]]) >= 70,
+      'Nachbarn müssen unterscheidbar bleiben');
+  });
+  test('ohne Spielerfarben/Konflikt: identische Zuordnung', () => {
+    assert.deepEqual(remapColorsForMarkVisibility({
+      regions: regions(2, 5), rows: 1, cols: 4,
+      effectiveColors: REGION_COLORS, avoidRgbs: [],
+    }), [2, 5]);
+    const blue = hexToRgb('#3b82f6');
+    const safeIdx = REGION_COLORS.findIndex(c => markOnRegionDist(blue, c) >= MARK_VISIBILITY_THRESHOLD);
+    assert.deepEqual(remapColorsForMarkVisibility({
+      regions: regions(safeIdx, safeIdx), rows: 1, cols: 4,
+      effectiveColors: REGION_COLORS, avoidRgbs: [blue],
+    }), [safeIdx, safeIdx]);
+  });
+  test('kollidieren ALLE Farben (degeneriert), bleibt die Zuordnung unangetastet', () => {
+    const out = remapColorsForMarkVisibility({
+      regions: regions(1, 2), rows: 1, cols: 4,
+      effectiveColors: REGION_COLORS, avoidRgbs: [pink],
+      threshold: 10000,   // absurd hoch → alles „Konflikt" → kein Ausweg → Identität
+    });
+    assert.deepEqual(out, [1, 2]);
   });
 });
