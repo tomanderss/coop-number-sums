@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.143';
-export const BUILD_HASH = 'e7e4e97';
+export const BUILD      = '1.144';
+export const BUILD_HASH = '59358c8';
 
 export const CHANGELOG = [
+  {
+    "version": "1.144",
+    "date": "09.07.2026",
+    "changes": [
+      "Mitspieler-Einladung ins Solo-Spiel noch robuster: Der Host schickt Beitretenden den laufenden Spielstand jetzt aktiv zu – so landet jeder garantiert direkt im Spiel statt in der Lobby, egal wie das Timing liegt"
+    ]
+  },
   {
     "version": "1.143",
     "date": "09.07.2026",
