@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.139';
-export const BUILD_HASH = '4b1acd6';
+export const BUILD      = '1.140';
+export const BUILD_HASH = 'da569d4';
 
 export const CHANGELOG = [
+  {
+    "version": "1.140",
+    "date": "09.07.2026",
+    "changes": [
+      "Coop-Räume stabiler: „Coop fortsetzen\" funktioniert zuverlässig (Raum wird nicht mehr fälschlich gelöscht) und beim Beitritt mit altem Raumcode spielen keine alten Sieganimationen/Lobbys mehr ab — läuft eine Runde, steigt man direkt in sie ein"
+    ]
+  },
   {
     "version": "1.139",
     "date": "09.07.2026",
