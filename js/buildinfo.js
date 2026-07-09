@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.137';
-export const BUILD_HASH = '07b2e6b';
+export const BUILD      = '1.138';
+export const BUILD_HASH = 'df6e416';
 
 export const CHANGELOG = [
+  {
+    "version": "1.138",
+    "date": "09.07.2026",
+    "changes": [
+      "Name und Prestige-Abzeichen sind im Hauptmenü größer, der Name wird jetzt immer angezeigt — und in JEDEM Mehrspieler-Modus erscheint das Prestige-Symbol neben jedem Spielernamen (auch während des laufenden Spiels), ebenfalls größer"
+    ]
+  },
   {
     "version": "1.137",
     "date": "09.07.2026",

@@ -1,1 +1,0 @@
-Name und Prestige-Abzeichen sind im Hauptmenü größer, der Name wird jetzt immer angezeigt — und in JEDEM Mehrspieler-Modus erscheint das Prestige-Symbol neben jedem Spielernamen (auch während des laufenden Spiels), ebenfalls größer
