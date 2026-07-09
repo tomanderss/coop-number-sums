@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.134';
-export const BUILD_HASH = '2b44ede';
+export const BUILD      = '1.135';
+export const BUILD_HASH = '36402e9';
 
 export const CHANGELOG = [
+  {
+    "version": "1.135",
+    "date": "09.07.2026",
+    "changes": [
+      "Neue Prestige-Stufe freischalten wird jetzt groß gefeiert: Nach dem Spiel erscheint eine Ankündigung mit der Medaille — je höher die Stufe, desto spektakulärer (Bronze/Silber schlicht, Gold mit Strahlenkranz, Legendär mit Prisma-Ring und Feier-Animation)"
+    ]
+  },
   {
     "version": "1.134",
     "date": "09.07.2026",
