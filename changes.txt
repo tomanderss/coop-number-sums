@@ -1,0 +1,1 @@
+Spielernamen in der Coop-Ansicht sind jetzt kleiner, dünner und kompakter – sie nehmen deutlich weniger Platz ein

@@ -2052,8 +2052,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Gleiche Schrift wie die Cage-Summen-Chips (.rchip): fett, kompakt, mit der
    jeweiligen Spielerfarbe hinterlegt — so sieht man auf einen Blick, wer da ist. */
 .coop-roster { display: flex; gap: 6px; flex-wrap: wrap; margin: -4px 0 10px; flex: 0 0 auto; }
-.player-chip { font-size: .92rem; font-weight: 800; padding: 5px 13px; border-radius: 999px; line-height: 1.3; display: inline-flex; align-items: center; }
-.player-chip .badge-medal-inline svg, .coop-roster .badge-medal-inline svg { width: 1.7em; height: 1.7em; }
+.player-chip { font-size: .72rem; font-weight: 500; padding: 2px 9px; border-radius: 999px; line-height: 1.2; display: inline-flex; align-items: center; }
+.player-chip .badge-medal-inline svg, .coop-roster .badge-medal-inline svg { width: 1.2em; height: 1.2em; }
 /* Team-Zuweisungs-Chip ist ein echter Button (Lobby-Formation) -- bekommt
    anders als die rein dekorativen .player-chip-Anzeigen eine 44px-Tippfläche. */
 .player-chip.team-chip { min-height: 44px; padding: 4px 14px; }
