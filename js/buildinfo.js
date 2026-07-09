@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.138';
-export const BUILD_HASH = 'df6e416';
+export const BUILD      = '1.139';
+export const BUILD_HASH = '4b1acd6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.139",
+    "date": "09.07.2026",
+    "changes": [
+      "Chat-Verbesserungen: Beim Tippen schiebt sich das Chat-Fenster jetzt über die eingeblendete Tastatur, sodass Eingabefeld und Text sichtbar bleiben — und eine eingehende Nachricht hat einen eigenen Benachrichtigungston (nicht mehr denselben wie der Hinweis-Ton)"
+    ]
+  },
   {
     "version": "1.138",
     "date": "09.07.2026",
