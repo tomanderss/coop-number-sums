@@ -1,1 +1,0 @@
-Mitspieler-Einladung ins Solo-Spiel noch robuster: Der Host schickt Beitretenden den laufenden Spielstand jetzt aktiv zu – so landet jeder garantiert direkt im Spiel statt in der Lobby, egal wie das Timing liegt
