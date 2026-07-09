@@ -618,6 +618,15 @@ export default {
     toNext: 'Noch {n} bis {tier}',
     unequip: 'Abzeichen abnehmen',
     tier: { t1: 'Bronze', t2: 'Silber', t3: 'Gold', t4: 'Legendär' },
+    unlock: {
+      kicker: 'Rang freigeschaltet',
+      cta: 'Weiter',
+      more: '+{n} weitere neue Stufe(n)',
+      msg1: 'Ein erster Rang ist dein — weiter so!',
+      msg2: 'Silber erreicht. Es geht bergauf!',
+      msg3: 'Gold! Eine starke Leistung.',
+      msg4: 'Legendär! Die höchste Stufe dieser Kategorie.',
+    },
     cat: { soloMaster: 'Solo-Meister', teamSpirit: 'Team-Geist', duelist: 'Wettkampf', teamDuel: 'Team-Duell', streak: 'Serie', flawless: 'Makellos', perfectTeam: 'Perfektes Team', thinker: 'Denker', endurance: 'Ausdauer', recordHunter: 'Rekordjäger', topClass: 'Königsklasse', explorer: 'Entdecker' },
     metric: { soloMaster: 'Solo-Siege', teamSpirit: 'Coop-Siege', duelist: '1v1-Siege', teamDuel: '2v2-Siege', streak: 'längste Tages-Streak', flawless: 'perfekte Siege', perfectTeam: 'perfekte Coop-Siege', thinker: 'gelöste Rätsel', endurance: 'gespielte Partien', recordHunter: 'Stufen mit Bestzeit', topClass: 'Siege höchste Stufe', explorer: 'Stufen mit Sieg' },
     master: {

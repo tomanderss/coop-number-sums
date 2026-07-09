@@ -92,6 +92,35 @@ export function categoryProgress(cat, ctx) {
 // Fortschritt ALLER Kategorien (für den Prestige-Screen).
 export function allPrestige(ctx) { return PRESTIGE.map(cat => categoryProgress(cat, ctx)); }
 
+// ── Aufstiegs-Feier: alle aktuell freigeschalteten (Symbol, Stufe) als Codes ──
+// (jede Kategorie schaltet Stufen 1..tier frei). Grundlage für die einmalige
+// Feier eines NEU erreichten Rangs. Rein & unit-getestet.
+export function unlockedTierCodes(ctx) {
+  const out = [];
+  for (const p of allPrestige(ctx)) for (let t = 1; t <= p.tier; t++) out.push(encodeBadge(p.sym, t));
+  return out;
+}
+// Welche freigeschalteten Stufen sind noch NICHT gefeiert worden?
+// celebrated = Array/Set bereits gefeierter Codes. Rückgabe: [{sym,tier,code,key}].
+export function newlyUnlockedTiers(ctx, celebrated) {
+  const set = celebrated instanceof Set ? celebrated : new Set(celebrated || []);
+  const res = [];
+  for (const p of allPrestige(ctx)) {
+    for (let t = 1; t <= p.tier; t++) {
+      const code = encodeBadge(p.sym, t);
+      if (!set.has(code)) res.push({ sym: p.sym, tier: t, code, key: p.key });
+    }
+  }
+  return res;
+}
+// Aus mehreren neuen Aufstiegen den „Aufmacher" wählen: höchste Stufe zuerst,
+// bei Gleichstand die frühere Kategorie in der PRESTIGE-Reihenfolge (stabil).
+export function headlineUnlock(list) {
+  if (!list || !list.length) return null;
+  const order = PRESTIGE.map(p => p.sym);
+  return [...list].sort((a, b) => (b.tier - a.tier) || (order.indexOf(a.sym) - order.indexOf(b.sym)))[0];
+}
+
 // Ist (Symbol, Stufe) freigeschaltet? (Stufe ≤ erreichte Stufe der Kategorie.)
 export function isUnlocked(sym, tier, ctx) {
   const cat = BY_SYM[sym];

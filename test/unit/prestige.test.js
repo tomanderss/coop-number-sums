@@ -4,6 +4,7 @@ import {
   PRESTIGE, allPrestige, categoryProgress, tierForValue,
   isUnlocked, encodeBadge, decodeBadge, prestigeBySym, isPrestigeSym,
   MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge,
+  unlockedTierCodes, newlyUnlockedTiers, headlineUnlock,
 } from '../../js/prestige.js';
 import { hasBadgeMedal, masterMedalMarkup } from '../../js/badgeart.js';
 
@@ -154,5 +155,47 @@ describe('prestige', () => {
     const svg = masterMedalMarkup({ size: 40 });
     assert.match(svg, /^<svg/);
     assert.match(svg, /bmm-halo/);
+  });
+});
+
+describe('prestige.newlyUnlockedTiers / headlineUnlock (Aufstiegs-Feier)', () => {
+  // trophae = soloMaster, thresholds [10,50,150,500]; flamme = streak [3,7,14,30].
+  const ctx = (won, best) => ({ stats: { won }, streak: { bestStreak: best }, race: {}, difficulties: [] });
+
+  test('unlockedTierCodes listet Stufen 1..tier je Kategorie', () => {
+    const codes = unlockedTierCodes(ctx(60, 0));   // soloMaster tier 2 (≥50)
+    assert.ok(codes.includes('trophae-1'));
+    assert.ok(codes.includes('trophae-2'));
+    assert.ok(!codes.includes('trophae-3'));
+  });
+  test('newlyUnlockedTiers: nur noch nicht gefeierte Stufen', () => {
+    const already = unlockedTierCodes(ctx(10, 0));   // soloMaster tier 1
+    const fresh = newlyUnlockedTiers(ctx(60, 0), already);  // jetzt tier 2
+    const codes = fresh.map(f => f.code);
+    assert.ok(codes.includes('trophae-2'), 'neue Stufe 2 muss dabei sein');
+    assert.ok(!codes.includes('trophae-1'), 'bereits gefeierte Stufe 1 nicht mehr');
+    const tro = fresh.find(f => f.code === 'trophae-2');
+    assert.equal(tro.tier, 2);
+    assert.equal(tro.key, 'soloMaster');
+  });
+  test('nichts Neues → leere Liste', () => {
+    const seen = unlockedTierCodes(ctx(60, 0));
+    assert.deepEqual(newlyUnlockedTiers(ctx(60, 0), seen), []);
+  });
+  test('headlineUnlock nimmt die höchste Stufe (mehrere gleichzeitig)', () => {
+    // Frischer Account (nichts gefeiert): soloMaster t1 + streak-Legendär t1..4.
+    const fresh = newlyUnlockedTiers(ctx(10, 30), []);
+    const head = headlineUnlock(fresh);
+    assert.equal(head.tier, 4);       // Legendär gewinnt
+    assert.equal(head.sym, prestigeBySym('flamme').sym);
+  });
+  test('headlineUnlock: leere Liste → null', () => {
+    assert.equal(headlineUnlock([]), null);
+    assert.equal(headlineUnlock(null), null);
+  });
+  test('Set wird als celebrated akzeptiert (nicht nur Array)', () => {
+    const fresh = newlyUnlockedTiers(ctx(60, 0), new Set(['trophae-1']));
+    const codes = fresh.map(f => f.code);
+    assert.ok(codes.includes('trophae-2') && !codes.includes('trophae-1'));
   });
 });

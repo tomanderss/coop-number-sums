@@ -514,6 +514,15 @@ export default {
     toNext: '{n} more to {tier}',
     unequip: 'Remove badge',
     tier: { t1: 'Bronze', t2: 'Silver', t3: 'Gold', t4: 'Legendary' },
+    unlock: {
+      kicker: 'Rang débloqué',
+      cta: 'Continuer',
+      more: '+{n} nouveau(x) palier(s)',
+      msg1: 'Un premier rang est à toi — continue !',
+      msg2: 'Argent atteint. Ça progresse !',
+      msg3: 'Or ! Une belle performance.',
+      msg4: 'Légendaire ! Le palier le plus élevé de cette catégorie.',
+    },
     cat: { soloMaster: 'Solo Master', teamSpirit: 'Team Spirit', duelist: 'Duelist', teamDuel: 'Team Duel', streak: 'Streak', flawless: 'Flawless', perfectTeam: 'Perfect Team', thinker: 'Thinker', endurance: 'Endurance', recordHunter: 'Record Hunter', topClass: 'Top Class', explorer: 'Explorer' },
     metric: { soloMaster: 'solo wins', teamSpirit: 'coop wins', duelist: '1v1 wins', teamDuel: '2v2 wins', streak: 'longest daily streak', flawless: 'flawless wins', perfectTeam: 'perfect coop wins', thinker: 'puzzles solved', endurance: 'games played', recordHunter: 'levels with a record', topClass: 'wins on hardest level', explorer: 'levels with a win' },
     master: {
