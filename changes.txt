@@ -1,0 +1,1 @@
+Chat-Verbesserungen: Beim Tippen schiebt sich das Chat-Fenster jetzt über die eingeblendete Tastatur, sodass Eingabefeld und Text sichtbar bleiben — und eine eingehende Nachricht hat einen eigenen Benachrichtigungston (nicht mehr denselben wie der Hinweis-Ton)
