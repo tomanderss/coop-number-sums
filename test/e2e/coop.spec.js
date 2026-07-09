@@ -303,6 +303,42 @@ test.describe('coop', () => {
     await page.waitForFunction(() => window.__cns.state.elapsed >= 59000);
   });
 
+  // Robustheit: der Host holt Nachzügler mitten im Spiel aktiv ab, indem er den
+  // laufenden Rundenstand als INIT(gameId, running) ERNEUT schickt. Ein bereits
+  // aktiver Spieler, der exakt diese gameId spielt, muss dieses Wiederhol-INIT
+  // IGNORIEREN — sonst würde ihm mitten im Spiel das Brett zurückgesetzt.
+  test('a repeated INIT for the game I am already playing is ignored (no board reset)', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const puzzle = {
+        rows: 4, cols: 4,
+        rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1],
+        values: Array.from({ length: 4 }, () => Array(4).fill(true).map(() => 1)),
+        solution: Array.from({ length: 4 }, () => Array(4).fill(true)),
+        regions: [], difficulty: 'leicht',
+      };
+      window.__cns.handleCoopMsg({ type: 'init', gameId: 'game-XYZ', puzzle, marks: null, markedBy: null, startTime: Date.now() - 5000, running: true });
+    });
+    await page.waitForSelector('.screen.game');
+    // Einen eigenen Zug machen …
+    await page.evaluate(() => window.__cns.onCellTap(2, 2));
+    expect(await page.evaluate(() => window.__cns.state.marks[2][2])).not.toBe('none');
+    const gid = await page.evaluate(() => window.__cns.state.gameId);
+    expect(gid).toBe('game-XYZ');   // Host-gameId übernommen
+    // … dann kommt das Wiederhol-INIT (frische leere marks) für DIESELBE gameId:
+    await page.evaluate(() => {
+      const puzzle = {
+        rows: 4, cols: 4, rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1],
+        values: Array.from({ length: 4 }, () => Array(4).fill(1)),
+        solution: Array.from({ length: 4 }, () => Array(4).fill(true)),
+        regions: [], difficulty: 'leicht',
+      };
+      window.__cns.handleCoopMsg({ type: 'init', gameId: 'game-XYZ', puzzle, marks: null, markedBy: null, startTime: Date.now(), running: true });
+    });
+    // Mein Zug ist NICHT verloren gegangen (Brett nicht neu geladen).
+    expect(await page.evaluate(() => window.__cns.state.marks[2][2])).not.toBe('none');
+  });
+
   // Bildschirme verhalten sich wie ein Stack: Zurück führt Schritt für Schritt
   // zur jeweils vorherigen Ansicht, nicht pauschal nach Home.
   test('back from the host/join choice returns to the name gate, then home', async ({ page }) => {
