@@ -1,1 +1,0 @@
-Coop-Räume stabiler: „Coop fortsetzen" funktioniert zuverlässig (Raum wird nicht mehr fälschlich gelöscht) und beim Beitritt mit altem Raumcode spielen keine alten Sieganimationen/Lobbys mehr ab — läuft eine Runde, steigt man direkt in sie ein
