@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.135';
-export const BUILD_HASH = '36402e9';
+export const BUILD      = '1.136';
+export const BUILD_HASH = 'd02c2a2';
 
 export const CHANGELOG = [
+  {
+    "version": "1.136",
+    "date": "09.07.2026",
+    "changes": [
+      "Neuer „Zufall\"-Knopf im Schwierigkeitsauswahl-Screen: Ein Tipp wählt eine zufällige Schwierigkeit — verfügbar in Solo und allen Mehrspieler-Modi (Coop/Wettkampf/Team), und nach jedem Spiel im Auswahl-Screen erneut nutzbar"
+    ]
+  },
   {
     "version": "1.135",
     "date": "09.07.2026",
