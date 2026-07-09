@@ -45,6 +45,8 @@ export default {
     donate: 'Soutenez-moi',
   },
   setup: {
+    random: 'Hasard',
+    randomTitle: 'Choisir une difficulté au hasard',
     title: 'Nouvelle partie',
     start: "C'est parti !",
     step: 'Niveau',

@@ -1,0 +1,1 @@
+Neuer „Zufall"-Knopf im Schwierigkeitsauswahl-Screen: Ein Tipp wählt eine zufällige Schwierigkeit — verfügbar in Solo und allen Mehrspieler-Modi (Coop/Wettkampf/Team), und nach jedem Spiel im Auswahl-Screen erneut nutzbar

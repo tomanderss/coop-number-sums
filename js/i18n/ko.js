@@ -45,6 +45,8 @@ export default {
     donate: '후원하기',
   },
   setup: {
+    random: '랜덤',
+    randomTitle: '무작위 난이도 선택',
     title: '새 게임',
     start: '시작하기!',
     step: '레벨',

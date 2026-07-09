@@ -45,6 +45,8 @@ export default {
     donate: 'Beni destekle',
   },
   setup: {
+    random: 'Rastgele',
+    randomTitle: 'Rastgele zorluk seç',
     title: 'Yeni oyun',
     start: 'Hadi başlayalım!',
     step: 'Seviye',

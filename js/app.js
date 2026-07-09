@@ -5485,6 +5485,14 @@ const DifficultySlider = {
       emit('update:modelValue', id);
       if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
     }
+    // Zufällige Schwierigkeit wählen (Überraschung). Bewusst IMMER eine ANDERE als
+    // die aktuelle, damit der Klick sichtbar etwas tut; der Slider springt dorthin.
+    function randomize() {
+      if (list.length < 2) return;
+      let i = idxOf();
+      while (i === idxOf()) i = Math.floor(Math.random() * list.length);
+      setIdx(i);
+    }
     function idxFromX(clientX, el) {
       const r = el.getBoundingClientRect(), pad = 16, span = Math.max(1, r.width - pad * 2);
       const p = Math.max(0, Math.min(1, (clientX - r.left - pad) / span));
@@ -5502,7 +5510,7 @@ const DifficultySlider = {
     }
     watch(() => props.modelValue, (nv) => animCoin(coinVal(nv)));
     onMounted(() => { coin.value = coinVal(props.modelValue); });
-    return { t, ic, fmtTime, DIFFICULTIES: list, coin, curDiff, idxOf, pct, avgFor, bestFor, down, move, up, key };
+    return { t, ic, fmtTime, DIFFICULTIES: list, coin, curDiff, idxOf, pct, avgFor, bestFor, down, move, up, key, randomize };
   },
   template: `
   <div class="diff-picker">
@@ -5530,7 +5538,11 @@ const DifficultySlider = {
       </div>
     </div>
     <div class="setup-controls">
-      <div class="diff-slabel"><span>{{ t('common.difficulty') }}</span><b>{{ idxOf()+1 }} / {{ DIFFICULTIES.length }}</b></div>
+      <div class="diff-slabel"><span>{{ t('common.difficulty') }}</span>
+        <button type="button" class="diff-random" @click="randomize" :title="t('setup.randomTitle')" :aria-label="t('setup.randomTitle')">
+          <span class="ei" v-html="ic('dice')"></span> {{ t('setup.random') }}
+        </button>
+        <b>{{ idxOf()+1 }} / {{ DIFFICULTIES.length }}</b></div>
       <div class="diff-track" tabindex="0" role="slider" :aria-valuemin="1" :aria-valuemax="DIFFICULTIES.length" :aria-valuenow="idxOf()+1" :aria-label="t('common.difficulty')" :aria-valuetext="t('difficulty.'+modelValue)"
            @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @keydown="key">
         <div class="dt-inner">

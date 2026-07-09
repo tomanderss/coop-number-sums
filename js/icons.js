@@ -119,6 +119,8 @@ filled('controller', '<path d="M8 8h8a5 5 0 0 1 5 5 3 3 0 0 1-5.4 1.8L14.5 14h-5
 filled('star', '<path d="M12 3l2.5 6 6.5.5-5 4.2 1.6 6.3L12 17l-5.6 3 1.6-6.3-5-4.2 6.5-.5z" fill="#f2b529" stroke="#b9821a" stroke-width="1" stroke-linejoin="round"/>');
 // Punkt „online" (Präsenz).
 filled('dot', '<circle cx="12" cy="12" r="5" fill="currentColor"/>');
+// Würfel (Zufalls-Schwierigkeit) — abgerundetes Quadrat mit 5 Augen.
+filled('dice', '<rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/><circle cx="16" cy="8" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8" cy="16" r="1.6" fill="currentColor"/><circle cx="16" cy="16" r="1.6" fill="currentColor"/>');
 
 // ── Shop-Artikel & -Kategorien (Emoji-Ersatz im Shop) ────────────────────────
 // Kleine, im gleichen Stil gezeichnete Glyphen für jede Palette/Theme/SFX/Font/
