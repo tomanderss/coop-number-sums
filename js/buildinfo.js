@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.132';
-export const BUILD_HASH = '679d456';
+export const BUILD      = '1.133';
+export const BUILD_HASH = '66dc500';
 
 export const CHANGELOG = [
+  {
+    "version": "1.133",
+    "date": "09.07.2026",
+    "changes": [
+      "Geldverlauf ist jetzt geräteübergreifend zuverlässig: Buchungen reisen mit dem Konto mit (inkl. Details wie Schwierigkeit, Modus, Basis und Multiplikator je Sieg) — erspieltes Geld eines anderen Geräts erscheint nie mehr fälschlich als „Admin-Geschenk\", nur echte Geschenke werden noch so gebucht"
+    ]
+  },
   {
     "version": "1.132",
     "date": "08.07.2026",
