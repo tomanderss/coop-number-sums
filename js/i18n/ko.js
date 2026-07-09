@@ -555,7 +555,7 @@ export default {
       earn: '적립',
       other: '거래',
     },
-    detail: { base: '기본 {n}', perfect: '무결점', bestTime: '최고 기록', streak: '연속 +{pct}%' },
+    detail: { base: '기본 {n}', baseLabel: '기본', coopFactor: '멀티플레이', perfect: '무결점', bestTime: '최고 기록 경신', streak: '연속 +{pct}%', streakFactor: '연속 ({days}일)', total: '배수' },
   },
   sync: {
     mismatchBadge: '버전 불일치',

@@ -555,7 +555,7 @@ export default {
       earn: '入金',
       other: '取引',
     },
-    detail: { base: '基本 {n}', perfect: 'ノーミス', bestTime: 'ベストタイム', streak: '連続 +{pct}%' },
+    detail: { base: '基本 {n}', baseLabel: '基本', coopFactor: 'マルチプレイ', perfect: 'ノーミス', bestTime: 'ベスト更新', streak: '連続 +{pct}%', streakFactor: '連続（{days}日）', total: '倍率' },
   },
   sync: {
     mismatchBadge: 'バージョンの不一致',

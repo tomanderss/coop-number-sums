@@ -555,7 +555,7 @@ export default {
       earn: 'Начисление',
       other: 'Операция',
     },
-    detail: { base: 'база {n}', perfect: 'безупречно', bestTime: 'рекорд', streak: '+{pct}% серия' },
+    detail: { base: 'база {n}', baseLabel: 'База', coopFactor: 'Мультиплеер', perfect: 'Безупречно', bestTime: 'Новый рекорд', streak: '+{pct}% серия', streakFactor: 'Серия ({days} дн.)', total: 'Множитель' },
   },
   sync: {
     mismatchBadge: 'Несовпадение версий',

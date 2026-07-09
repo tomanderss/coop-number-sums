@@ -555,7 +555,7 @@ export default {
       earn: 'Alacak',
       other: 'İşlem',
     },
-    detail: { base: 'taban {n}', perfect: 'hatasız', bestTime: 'en iyi süre', streak: '+{pct}% seri' },
+    detail: { base: 'taban {n}', baseLabel: 'Taban', coopFactor: 'Çok oyunculu', perfect: 'Hatasız', bestTime: 'Yeni rekor', streak: '+{pct}% seri', streakFactor: 'Seri ({days} gün)', total: 'Çarpan' },
   },
   sync: {
     mismatchBadge: 'Sürüm uyuşmazlığı',

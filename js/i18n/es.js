@@ -555,7 +555,7 @@ export default {
       earn: 'Abono',
       other: 'Movimiento',
     },
-    detail: { base: 'base {n}', perfect: 'impecable', bestTime: 'mejor tiempo', streak: '+{pct}% racha' },
+    detail: { base: 'base {n}', baseLabel: 'Base', coopFactor: 'Multijugador', perfect: 'Impecable', bestTime: 'Nuevo récord', streak: '+{pct}% racha', streakFactor: 'Racha ({days} días)', total: 'Multiplicador' },
   },
   sync: {
     mismatchBadge: 'Discrepancia de versión',
