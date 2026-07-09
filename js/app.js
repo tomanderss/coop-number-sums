@@ -30,7 +30,7 @@ import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shop
 import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup, masterMedalMarkup } from './badgeart.js';
 import { winShapeDefs, winShape, dragonMarkup, unicornMarkup, phoenixMarkup, rocketMarkup, discoMarkup } from './winshapes.js';
 import { icon as customIcon, hasIcon } from './icons.js';
-import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge, MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge } from './prestige.js';
+import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge, MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge, unlockedTierCodes, newlyUnlockedTiers, headlineUnlock } from './prestige.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -254,6 +254,7 @@ const state = reactive({
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   masterUnlock: false,           // Feier-Screen „Großmeister freigeschaltet" offen?
+  prestigeUnlock: null,          // Feier einer neu erreichten Prestige-Stufe { sym, tier, key, more } | null
   chat: { open: false, messages: [], unread: 0, draft: '' },  // Multiplayer-Textchat (ephemer, in-memory)
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
@@ -2205,6 +2206,37 @@ function dismissMasterUnlock() {
   // Direkt ausrüsten, damit der Nutzer sein neues Abzeichen sofort trägt.
   if (!isMasterEquipped()) equipMaster();
 }
+// ── Prestige-Stufen-Feier ──────────────────────────────────────────────────────
+// Nach jedem (Nicht-Trainings-)Spiel prüfen, ob eine Prestige-KATEGORIE eine neue
+// Stufe erreicht hat, und das groß ankündigen — Intensität skaliert mit der Stufe
+// (Bronze/Silber dezent … Legendär spektakulär mit Feier-Animation). Gefeierte
+// (Symbol,Stufe)-Codes stehen in settings.prestigeCelebrated (cloud-synct) →
+// keine Doppel-Feier über Geräte. Alt-Spieler/Neu-Login: bereits verdiente Stufen
+// werden beim ERSTEN Lauf still als gefeiert markiert (kein Nachhol-Feuerwerk).
+function checkPrestigeUnlocks() {
+  const ctx = prestigeCtx();
+  const celebrated = state.settings.prestigeCelebrated;
+  if (!Array.isArray(celebrated)) { setSetting('prestigeCelebrated', unlockedTierCodes(ctx)); return; }
+  const fresh = newlyUnlockedTiers(ctx, celebrated);
+  if (!fresh.length) return;
+  setSetting('prestigeCelebrated', [...celebrated, ...fresh.map(f => f.code)]);
+  // Großmeister-Feier (alle 12 auf Legendär) hat Vorrang — dann keine zusätzliche
+  // Stufen-Feier für dieselbe Runde (die Tier-4s sind oben aber schon als
+  // gefeiert markiert, poppen also später nicht nach).
+  if (state.masterUnlock) return;
+  const head = headlineUnlock(fresh);
+  state.prestigeUnlock = { sym: head.sym, tier: head.tier, key: head.key, more: fresh.length - 1 };
+  log('app', 'Prestige-Stufe freigeschaltet', { sym: head.sym, tier: head.tier, more: fresh.length - 1 });
+  // Ab Gold (Stufe 3) die große Feier-Animation dazuschalten.
+  if (head.tier >= 3) { try { launchWinFx(true); } catch (_) {} }
+}
+function dismissPrestigeUnlock() {
+  const p = state.prestigeUnlock;
+  state.prestigeUnlock = null;
+  // Frisch erreichte Stufe direkt ausrüsten, wenn noch gar kein Abzeichen getragen wird.
+  if (p && (!state.settings.profileBadge || state.settings.profileBadge === 'none')) equipBadge(p.sym, p.tier);
+}
+function prestigeUnlockName() { return state.prestigeUnlock ? t('prestige.cat.' + state.prestigeUnlock.key) : ''; }
 // Custom-Icon (SVG-String) für ein UI-Glyph — Emoji-Ersatz, per v-html gerendert.
 // Unbekannte Namen ⇒ '' (nie rohen Fremdtext rendern). Größe/Farbe via CSS (.ico).
 function ic(name) { return customIcon(name); }
@@ -2954,6 +2986,7 @@ function win(remote) {
       });
       checkAchievements();
       checkMasterUnlock();   // ggf. „Großmeister" freischalten (alle 12 auf Legendär)
+      checkPrestigeUnlocks(); // ggf. neue Prestige-Stufe(n) feiern
     }
     persistGame();
     // SOFORTIGE Cloud-Sicherung bei Spielende (nicht entprellt): so ist der Sieg
@@ -3000,6 +3033,7 @@ function lose(remote) {
     });
     checkAchievements();
     checkMasterUnlock();   // z.B. „Ausdauer" kann auch durch eine Niederlage voll werden
+    checkPrestigeUnlocks();
   }
   persistGame();
   syncCloudNow('lose');  // sofortige Sicherung bei Spielende (auch Niederlage)
@@ -5720,6 +5754,7 @@ const App = {
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
       openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
+      dismissPrestigeUnlock, prestigeUnlockName,
       masterInfo, isMasterEquipped, equipMaster, dismissMasterUnlock, MASTER_BADGE,
       WIN_EFFECTS, effectPrice, ownsWinFx, winFxActive, activeWinFxId, ownedWinFx, buyWinFx, activateWinFx, previewWinFx, winFxStyle, winShape, winShapeDefs,
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
@@ -7600,6 +7635,20 @@ const App = {
         <div class="master-unlock-name">{{ t('prestige.master.title') }}</div>
         <p class="master-unlock-msg">{{ t('prestige.master.unlockMsg') }}</p>
         <button class="btn btn-primary" @click="dismissMasterUnlock">{{ t('prestige.master.equipWear') }}</button>
+      </div>
+    </div>
+
+    <!-- Prestige-Stufen-Aufstieg: Intensität skaliert mit der Stufe (t1..t4) -->
+    <div v-if="state.prestigeUnlock" class="modal-bg prestige-unlock-bg" @click.self="dismissPrestigeUnlock">
+      <div class="modal prestige-unlock-modal" :class="'pu-t'+state.prestigeUnlock.tier">
+        <div class="pu-rays" aria-hidden="true"></div>
+        <div class="pu-medal" v-html="badgeSvg(state.prestigeUnlock.sym + '-' + state.prestigeUnlock.tier, true)"></div>
+        <div class="pu-kicker">{{ t('prestige.unlock.kicker') }}</div>
+        <div class="pu-name">{{ prestigeUnlockName() }}</div>
+        <div class="pu-tier" :class="'t'+state.prestigeUnlock.tier">{{ t('prestige.tier.t'+state.prestigeUnlock.tier) }}</div>
+        <p class="pu-msg">{{ t('prestige.unlock.msg'+state.prestigeUnlock.tier) }}</p>
+        <p v-if="state.prestigeUnlock.more" class="pu-more">{{ t('prestige.unlock.more', { n: state.prestigeUnlock.more }) }}</p>
+        <button class="btn btn-primary" @click="dismissPrestigeUnlock">{{ t('prestige.unlock.cta') }}</button>
       </div>
     </div>
 

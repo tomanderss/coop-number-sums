@@ -357,6 +357,52 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .master-unlock-msg { color: var(--text2); font-size: .9rem; }
 
+/* ── Prestige-Stufen-Aufstieg (Intensität nach Stufe pu-t1..pu-t4) ──────────── */
+.prestige-unlock-modal {
+  text-align: center; align-items: center; gap: 8px; max-width: 340px; position: relative; overflow: hidden;
+}
+.prestige-unlock-modal .pu-medal { animation: pop .5s cubic-bezier(.2,1.4,.5,1); z-index: 1; }
+.prestige-unlock-modal .pu-medal svg { height: 92px; width: auto; }
+.pu-kicker { font-size: .72rem; letter-spacing: .22em; text-transform: uppercase; font-weight: 800; color: var(--text3); z-index: 1; }
+.pu-name { font-size: 1.5rem; font-weight: 900; line-height: 1.1; z-index: 1; text-wrap: balance; }
+.pu-tier { font-size: .74rem; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; padding: 3px 12px; border-radius: 99px; z-index: 1; }
+.pu-tier.t1 { color: #e7b98a; background: rgba(180,110,50,.18); }
+.pu-tier.t2 { color: #cfd8e6; background: rgba(150,165,190,.18); }
+.pu-tier.t3 { color: #f4c430; background: rgba(220,170,30,.18); }
+.pu-tier.t4 { color: #5ff0ab; background: rgba(30,200,120,.18); }
+.pu-msg { color: var(--text2); font-size: .9rem; z-index: 1; }
+.pu-more { color: var(--text3); font-size: .8rem; z-index: 1; }
+/* Strahlenkranz hinter der Medaille — nur ab Gold sichtbar, rotiert (compositor-only). */
+.pu-rays { position: absolute; left: 50%; top: 74px; width: 340px; height: 340px; margin: -170px 0 0 -170px; z-index: 0; opacity: 0; pointer-events: none; }
+/* Stufen-Intensität: Bronze/Silber schlicht; Gold Glanz + Strahlen; Legendär Prisma. */
+.prestige-unlock-modal.pu-t1 { background: radial-gradient(300px 200px at 50% 16%, rgba(180,110,50,.16), var(--bg2)); }
+.prestige-unlock-modal.pu-t2 { background: radial-gradient(300px 200px at 50% 16%, rgba(150,165,190,.18), var(--bg2)); }
+.prestige-unlock-modal.pu-t3 {
+  background: radial-gradient(320px 220px at 50% 16%, rgba(220,170,30,.24), var(--bg2));
+  box-shadow: 0 0 0 1px rgba(244,196,48,.4), 0 12px 50px rgba(220,170,30,.22);
+}
+.prestige-unlock-modal.pu-t3 .pu-rays {
+  opacity: .5; background: conic-gradient(from 0deg, transparent 0 12deg, rgba(244,196,48,.5) 16deg, transparent 24deg 42deg, rgba(244,196,48,.35) 46deg, transparent 54deg);
+  -webkit-mask: radial-gradient(closest-side, #000 62%, transparent 74%); mask: radial-gradient(closest-side, #000 62%, transparent 74%);
+  animation: pu-spin 20s linear infinite;
+}
+.prestige-unlock-modal.pu-t4 {
+  background: radial-gradient(340px 240px at 50% 16%, rgba(95,240,171,.22), var(--bg2));
+  box-shadow: 0 0 0 1px rgba(95,240,171,.5), 0 16px 60px rgba(95,240,171,.25);
+}
+.prestige-unlock-modal.pu-t4 .pu-name {
+  background: linear-gradient(100deg,#ffe89a,#5ff0ab,#6ff0ff,#b98cff,#ff8fd0,#ffe89a);
+  background-size: 280% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: bmm-sheen 5s linear infinite;
+}
+.prestige-unlock-modal.pu-t4 .pu-rays {
+  opacity: .7; background: conic-gradient(from 0deg, #ffe89a, #5ff0ab, #6ff0ff, #b98cff, #ff8fd0, #ffe89a);
+  -webkit-mask: radial-gradient(closest-side, transparent 58%, #000 66%, #000 72%, transparent 82%); mask: radial-gradient(closest-side, transparent 58%, #000 66%, #000 72%, transparent 82%);
+  animation: pu-spin 14s linear infinite;
+}
+@keyframes pu-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pu-rays, .prestige-unlock-modal.pu-t4 .pu-name { animation: none !important; } }
+
 /* ── Multiplayer-Chat ───────────────────────────────────────────────────────── */
 .chat-btn { position: relative; }
 .chat-unread {

@@ -514,6 +514,15 @@ export default {
     toNext: '{n} more to {tier}',
     unequip: 'Remove badge',
     tier: { t1: 'Bronze', t2: 'Silver', t3: 'Gold', t4: 'Legendary' },
+    unlock: {
+      kicker: 'ランク解放',
+      cta: '続ける',
+      more: 'さらに +{n} 段階',
+      msg1: '最初のランクを獲得 — その調子！',
+      msg2: 'シルバー到達。上り調子！',
+      msg3: 'ゴールド！見事な成果です。',
+      msg4: 'レジェンド！このカテゴリーの最高段階です。',
+    },
     cat: { soloMaster: 'Solo Master', teamSpirit: 'Team Spirit', duelist: 'Duelist', teamDuel: 'Team Duel', streak: 'Streak', flawless: 'Flawless', perfectTeam: 'Perfect Team', thinker: 'Thinker', endurance: 'Endurance', recordHunter: 'Record Hunter', topClass: 'Top Class', explorer: 'Explorer' },
     metric: { soloMaster: 'solo wins', teamSpirit: 'coop wins', duelist: '1v1 wins', teamDuel: '2v2 wins', streak: 'longest daily streak', flawless: 'flawless wins', perfectTeam: 'perfect coop wins', thinker: 'puzzles solved', endurance: 'games played', recordHunter: 'levels with a record', topClass: 'wins on hardest level', explorer: 'levels with a win' },
     master: {

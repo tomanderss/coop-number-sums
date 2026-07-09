@@ -514,6 +514,15 @@ export default {
     toNext: '{n} more to {tier}',
     unequip: 'Remove badge',
     tier: { t1: 'Bronze', t2: 'Silver', t3: 'Gold', t4: 'Legendary' },
+    unlock: {
+      kicker: 'Rütbe açıldı',
+      cta: 'Devam',
+      more: '+{n} yeni kademe daha',
+      msg1: 'İlk rütbe senin — böyle devam!',
+      msg2: 'Gümüşe ulaşıldı. Yükseliyorsun!',
+      msg3: 'Altın! Güçlü bir başarı.',
+      msg4: 'Efsanevi! Bu kategorinin en yüksek kademesi.',
+    },
     cat: { soloMaster: 'Solo Master', teamSpirit: 'Team Spirit', duelist: 'Duelist', teamDuel: 'Team Duel', streak: 'Streak', flawless: 'Flawless', perfectTeam: 'Perfect Team', thinker: 'Thinker', endurance: 'Endurance', recordHunter: 'Record Hunter', topClass: 'Top Class', explorer: 'Explorer' },
     metric: { soloMaster: 'solo wins', teamSpirit: 'coop wins', duelist: '1v1 wins', teamDuel: '2v2 wins', streak: 'longest daily streak', flawless: 'flawless wins', perfectTeam: 'perfect coop wins', thinker: 'puzzles solved', endurance: 'games played', recordHunter: 'levels with a record', topClass: 'wins on hardest level', explorer: 'levels with a win' },
     master: {

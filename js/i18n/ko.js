@@ -514,6 +514,15 @@ export default {
     toNext: '{n} more to {tier}',
     unequip: 'Remove badge',
     tier: { t1: 'Bronze', t2: 'Silver', t3: 'Gold', t4: 'Legendary' },
+    unlock: {
+      kicker: '등급 해제',
+      cta: '계속',
+      more: '+{n}개 등급 추가 달성',
+      msg1: '첫 등급 달성 — 계속 가자!',
+      msg2: '실버 도달. 상승세!',
+      msg3: '골드! 멋진 성과입니다.',
+      msg4: '레전더리! 이 카테고리의 최고 등급입니다.',
+    },
     cat: { soloMaster: 'Solo Master', teamSpirit: 'Team Spirit', duelist: 'Duelist', teamDuel: 'Team Duel', streak: 'Streak', flawless: 'Flawless', perfectTeam: 'Perfect Team', thinker: 'Thinker', endurance: 'Endurance', recordHunter: 'Record Hunter', topClass: 'Top Class', explorer: 'Explorer' },
     metric: { soloMaster: 'solo wins', teamSpirit: 'coop wins', duelist: '1v1 wins', teamDuel: '2v2 wins', streak: 'longest daily streak', flawless: 'flawless wins', perfectTeam: 'perfect coop wins', thinker: 'puzzles solved', endurance: 'games played', recordHunter: 'levels with a record', topClass: 'wins on hardest level', explorer: 'levels with a win' },
     master: {
