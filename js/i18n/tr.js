@@ -544,6 +544,7 @@ export default {
       earn: 'Alacak',
       other: 'İşlem',
     },
+    detail: { base: 'taban {n}', perfect: 'hatasız', bestTime: 'en iyi süre', streak: '+{pct}% seri' },
   },
   sync: {
     mismatchBadge: 'Sürüm uyuşmazlığı',

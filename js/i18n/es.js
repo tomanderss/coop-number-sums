@@ -544,6 +544,7 @@ export default {
       earn: 'Abono',
       other: 'Movimiento',
     },
+    detail: { base: 'base {n}', perfect: 'impecable', bestTime: 'mejor tiempo', streak: '+{pct}% racha' },
   },
   sync: {
     mismatchBadge: 'Discrepancia de versión',

@@ -22,7 +22,7 @@ const KEYS = {
   // js/account.js). Bewusst dieselbe Form wie der spätere RTDB-Knoten.
   INVENTORY: 'cns_inventory',   // { itemId: { acquiredAt, source } } — Besitz von Cosmetics (z.B. Skin 'dynamicColor')
   WALLET: 'cns_wallet',         // { balance, updatedAt } — In-Game-Währung (nicht auszahlbar)
-  WALLET_LOG: 'cns_wallet_log', // [{ ts, amount(±), reason, balance }] — Geldverlauf (FIFO, rein lokal/UI)
+  WALLET_LOG: 'cns_wallet_log', // [{ id, ts, amount(±), reason, meta }] — Geldverlauf (FIFO, SYNCT als Teil des Snapshots, Union-Merge nach id)
   PROFILE: 'cns_profile',       // { displayName, username, role, accountId, createdAt } — lokales Profil (role für Admin)
   DATA_REV: 'cns_data_rev',     // Zeitstempel der letzten lokalen Nutzdaten-Änderung (für Cloud-Konfliktcheck)
   SYNCED_REV: 'cns_synced_rev', // DATA_REV beim letzten erfolgreichen Sync (Basislinie für decideSync)
@@ -36,7 +36,7 @@ const KEYS = {
 const USER_DATA_KEYS = new Set([
   'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_stats', 'cns_daily',
   'cns_history', 'cns_achievements', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
-  'cns_completed_games',
+  'cns_completed_games', 'cns_wallet_log',
 ]);
 // Wie lange „Coop fortsetzen" nach der letzten Sicherung angeboten wird. Der
 // Raum lebt in der RTDB weiter, solange ihn niemand aktiv verlässt (Präsenz-
@@ -428,15 +428,49 @@ function saveWallet(w) { save(KEYS.WALLET, w); }
 // Rein lokal/UI (kein USER_DATA_KEY → wird nicht in den Cloud-Konfliktcheck
 // gezogen; die maßgebliche Größe bleibt der Kontostand selbst). FIFO-begrenzt,
 // damit localStorage nicht unbegrenzt wächst — analog zum Debug-Log.
-const WALLET_LOG_MAX = 60;
+const WALLET_LOG_MAX = 120;
 export function loadWalletLog() { const l = load(KEYS.WALLET_LOG, []); return Array.isArray(l) ? l : []; }
+// Stabiler Vergleichs-Key eines Eintrags: neue Einträge haben eine eindeutige id;
+// Alt-Einträge (vor dem Sync des Verlaufs) werden über ihre Felder identifiziert.
+function walletEntryKey(e) { return e.id || `${e.ts}|${e.amount}|${e.reason || ''}`; }
+// Zwei Geldverläufe verlustfrei vereinigen (Union nach Key, jüngste zuerst,
+// FIFO-gekappt). Rein & unit-getestet — Grundlage dafür, dass die HERKUNFT des
+// Guthabens geräteübergreifend mitreist, statt dass ein fremdes Gerät die
+// Saldo-Differenz fälschlich als „Admin-Geschenk" interpretiert.
+export function mergeWalletLogs(a = [], b = []) {
+  const seen = new Set();
+  const out = [];
+  for (const e of [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])]) {
+    if (!e || typeof e.amount !== 'number') continue;
+    const k = walletEntryKey(e);
+    if (seen.has(k)) continue;
+    seen.add(k); out.push(e);
+  }
+  out.sort((x, y) => (y.ts || 0) - (x.ts || 0));
+  if (out.length > WALLET_LOG_MAX) out.length = WALLET_LOG_MAX;
+  return out;
+}
+// Welcher Teil einer Saldo-Differenz ist durch NEU hinzugekommene (fremde)
+// Verlaufs-Einträge NICHT erklärt? Nur dieser Rest ist eine echte externe
+// Änderung (Admin-Geschenk/-Entzug) — erspieltes Geld eines anderen Geräts
+// bringt seine 'win'-Einträge selbst mit und erklärt sich damit von allein.
+export function unexplainedWalletDelta(prevLog, mergedLog, deltaBalance) {
+  const known = new Set((prevLog || []).map(walletEntryKey));
+  let foreign = 0;
+  for (const e of (mergedLog || [])) if (!known.has(walletEntryKey(e))) foreign += (Number(e.amount) || 0);
+  return Math.round((Number(deltaBalance) || 0) - foreign);
+}
 export function clearWalletLog() { save(KEYS.WALLET_LOG, []); }
 // amount ist VORZEICHENBEHAFTET (+ = Einnahme, − = Ausgabe). Neueste Einträge
 // stehen vorne. balance = Kontostand NACH der Buchung.
-function pushWalletLog(amount, reason, balance) {
+function pushWalletLog(amount, reason, balance, meta = null) {
   if (!amount) return; // 0-Buchungen (z.B. Cloud-Sync ohne Änderung) nicht protokollieren
   const l = loadWalletLog();
-  l.unshift({ ts: Date.now(), amount, reason, balance });
+  // id macht den Eintrag geräteübergreifend eindeutig (Union-Merge beim Sync);
+  // meta trägt die Herkunfts-Details (Schwierigkeit, Modus, Multiplikatoren, gameId).
+  const entry = { id: generateId(), ts: Date.now(), amount, reason, balance };
+  if (meta) entry.meta = meta;
+  l.unshift(entry);
   if (l.length > WALLET_LOG_MAX) l.length = WALLET_LOG_MAX;
   save(KEYS.WALLET_LOG, l);
 }
@@ -444,41 +478,47 @@ function pushWalletLog(amount, reason, balance) {
 // bereits anderweitig gesetzt wurde (z.B. Admin-Selbstbearbeitung via Snapshot-
 // Import) und die Änderung nur noch im Geldverlauf erscheinen soll. `amount` ist
 // vorzeichenbehaftet; die Buchung nutzt den AKTUELLEN Kontostand.
-export function noteWalletTransaction(amount, reason = 'admin') {
-  pushWalletLog(Math.round(amount || 0), reason, loadWallet().balance);
+export function noteWalletTransaction(amount, reason = 'admin', meta = null) {
+  pushWalletLog(Math.round(amount || 0), reason, loadWallet().balance, meta);
 }
 
-export function grantCurrency(amount, reason = 'earn') {
+export function grantCurrency(amount, reason = 'earn', meta = null) {
   const n = Math.max(0, Math.floor(amount || 0));
   const w = loadWallet();
   w.balance += n; w.updatedAt = Date.now();
   saveWallet(w);
-  pushWalletLog(n, reason, w.balance);
+  pushWalletLog(n, reason, w.balance, meta);
   log('storage', 'Währung gutgeschrieben', { amount: n, reason, balance: w.balance });
   return w;
 }
 // Gibt { ok, balance } zurück; lehnt ab (ok:false), wenn das Guthaben nicht reicht.
-export function spendCurrency(amount, reason = 'spend') {
+export function spendCurrency(amount, reason = 'spend', meta = null) {
   const n = Math.max(0, Math.floor(amount || 0));
   const w = loadWallet();
   if (w.balance < n) return { ok: false, balance: w.balance };
   w.balance -= n; w.updatedAt = Date.now();
   saveWallet(w);
-  pushWalletLog(-n, reason, w.balance);
+  pushWalletLog(-n, reason, w.balance, meta);
   log('storage', 'Währung ausgegeben', { amount: n, reason, balance: w.balance });
   return { ok: true, balance: w.balance };
 }
 // Cloud-Wallet übernehmen (watchGifts): nur aufrufen, wenn die Cloud NEUER ist
 // als der lokale Stand — lokale Käufe zwischen zwei Sync-ups gewinnen sonst.
-export function applyCloudWallet(w) {
+export function applyCloudWallet(w, cloudLog = null) {
   if (w && typeof w.balance === 'number') {
+    const prevLog = loadWalletLog();
     const prev = loadWallet().balance;
     const next = Math.max(0, Math.floor(w.balance));
     saveWallet({ balance: next, updatedAt: w.updatedAt || Date.now() });
-    // Differenz zum vorherigen lokalen Stand als Transaktion buchen — so taucht
-    // ein Admin-Geschenk (oder -Entzug) von Guthaben im Geldverlauf auf.
-    if (next !== prev) pushWalletLog(next - prev, next > prev ? 'gift' : 'adminRevoke', next);
-    log('storage', 'Cloud-Guthaben übernommen', { balance: next, delta: next - prev });
+    // Den Cloud-Verlauf ZUERST vereinigen: erspieltes/ausgegebenes Geld eines
+    // anderen Geräts bringt seine Einträge selbst mit. Nur der davon NICHT
+    // erklärte Rest der Saldo-Differenz ist eine echte externe Änderung
+    // (Admin-Geschenk/-Entzug) und wird als solche gebucht — vorher wurde die
+    // KOMPLETTE Differenz pauschal als „Admin-Geschenk" fehletikettiert.
+    if (Array.isArray(cloudLog) && cloudLog.length) save(KEYS.WALLET_LOG, mergeWalletLogs(prevLog, cloudLog));
+    const residual = unexplainedWalletDelta(prevLog, loadWalletLog(), next - prev);
+    if (residual !== 0) pushWalletLog(residual, residual > 0 ? 'gift' : 'adminRevoke', next);
+    log('storage', 'Cloud-Guthaben übernommen', { balance: next, delta: next - prev, residual });
   }
   return loadWallet();
 }
@@ -511,6 +551,7 @@ export function collectExportData(type = 'manual') {
     race: load(KEYS.RACE, {}),
     inventory: load(KEYS.INVENTORY, {}),
     wallet: load(KEYS.WALLET, {}),
+    walletLog: loadWalletLog(),   // Geldverlauf reist mit (Union-Merge beim Import — Herkunft bleibt geräteübergreifend erhalten)
     completedGames: load(KEYS.COMPLETED_GAMES, []),  // Belohnungs-Idempotenz (Union-Merge beim Import)
     // Rolle NICHT mitsynchronisieren — sie ist serverseitig autoritativ
     // (/users/{uid}/profile/role) und darf nie über den Datensnapshot reisen.
@@ -562,6 +603,8 @@ export function importFromFile(jsonText) {
   if (data.race) save(KEYS.RACE, data.race);
   if (data.inventory) save(KEYS.INVENTORY, data.inventory);
   if (data.wallet) save(KEYS.WALLET, data.wallet);
+  // Geldverlauf: Union (nie schrumpfen) — Einträge beider Seiten bleiben erhalten.
+  if (Array.isArray(data.walletLog)) save(KEYS.WALLET_LOG, mergeWalletLogs(loadWalletLog(), data.walletLog));
   // Union-Merge (nie schrumpfen): abgerechnete Partien beider Seiten behalten.
   if (data.completedGames) mergeCompletedGames(data.completedGames);
   if (data.profile) {
@@ -603,6 +646,7 @@ export function deleteAllData() {
   remove(KEYS.RACE);
   remove(KEYS.INVENTORY);
   remove(KEYS.WALLET);
+  remove(KEYS.WALLET_LOG);
   remove(KEYS.PROFILE);
   remove(KEYS.DATA_REV);
   remove(KEYS.SYNCED_REV);

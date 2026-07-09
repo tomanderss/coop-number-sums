@@ -544,6 +544,7 @@ export default {
       earn: '入金',
       other: '取引',
     },
+    detail: { base: '基本 {n}', perfect: 'ノーミス', bestTime: 'ベストタイム', streak: '連続 +{pct}%' },
   },
   sync: {
     mismatchBadge: 'バージョンの不一致',

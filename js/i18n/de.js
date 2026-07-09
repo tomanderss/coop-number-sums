@@ -648,6 +648,7 @@ export default {
       earn: 'Gutschrift',
       other: 'Buchung',
     },
+    detail: { base: 'Basis {n}', perfect: 'makellos', bestTime: 'Bestzeit', streak: '+{pct}% Serie' },
   },
   sync: {
     mismatchBadge: 'Versions-Mismatch',

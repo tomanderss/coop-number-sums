@@ -635,6 +635,23 @@ function openWalletLog() { state.walletLog = loadWalletLog(); state.walletLogOpe
 function closeWalletLog() { state.walletLogOpen = false; }
 // Lesbarer Text zur maschinellen `reason`-Kennung einer Buchung. 'shop:<id>' und
 // 'winfx:<id>'/'winfx_<id>' referenzieren ein gekauftes Item → dessen Namen zeigen.
+// Herkunfts-Detailzeile eines Verlauf-Eintrags (aus meta): Schwierigkeit · Modus
+// · Basis · ×Multiplikator (Gründe). Alt-Einträge ohne meta zeigen nichts.
+function walletEntryDetail(e) {
+  const m = e && e.meta;
+  if (!m) return '';
+  const parts = [];
+  if (m.difficulty && DIFF_BY_ID[m.difficulty]) parts.push(t('difficulty.' + m.difficulty));
+  if (m.mode) parts.push(t('friends.mode.' + m.mode));
+  if (m.base) parts.push(t('wallet.detail.base', { n: m.base }));
+  const boosts = [];
+  if (m.perfect) boosts.push(t('wallet.detail.perfect'));
+  if (m.bestTime) boosts.push(t('wallet.detail.bestTime'));
+  if (m.streakPct) boosts.push(t('wallet.detail.streak', { pct: m.streakPct }));
+  if (m.mult && m.mult !== 1) parts.push('×' + m.mult + (boosts.length ? ' (' + boosts.join(', ') + ')' : ''));
+  else if (boosts.length) parts.push(boosts.join(', '));
+  return parts.join(' · ');
+}
 function walletReasonLabel(reason) {
   if (!reason) return t('wallet.reason.other');
   const shopMatch = /^shop:(.+)$/.exec(reason);
@@ -2874,10 +2891,21 @@ function win(remote) {
       // Reconcile das ohnehin (die Partie ist dann schon „defunct").
       const alreadyRewarded = !isCoopish && state.gameId && isGameCompleted(state.gameId);
       const coins = alreadyRewarded ? 0 : coinReward(dIdx, bonus);
-      if (coins) state.wallet = grantCurrency(coins, 'win');
+      const mult = Math.round(coinMultiplier(bonus) * 100) / 100;
+      // Herkunfts-Details in den Geldverlauf: WOFÜR gab es das Geld (Schwierigkeit,
+      // Modus, Basis, Multiplikator inkl. Gründen, Partie-ID) — geräteübergreifend
+      // nachvollziehbar, da der Verlauf jetzt mitsynct.
+      if (coins) state.wallet = grantCurrency(coins, 'win', {
+        difficulty: state.puzzle.difficulty,
+        mode: state.isRaceGame ? 'race' : state.team.active ? 'team' : state.coop.active ? 'coop' : 'solo',
+        base: coinBaseForIndex(dIdx), mult,
+        perfect, bestTime: newHighscore,
+        streakPct: streakDays ? Math.round(coinStreakBonus(streakDays) * 100) : 0,
+        gameId: state.gameId || null,
+      });
       if (!isCoopish && state.gameId) markGameCompleted(state.gameId);
       state.lastCoinReward = coins;
-      state.lastCoinMult = Math.round(coinMultiplier(bonus) * 100) / 100;
+      state.lastCoinMult = mult;
       state.lastStreakUsed = streakDays;
       log('game', 'Münz-Belohnung', { coins, mult: state.lastCoinMult, streakDays, coop: isCoopish, perfect, bestTime: newHighscore, alreadyRewarded });
       // (Cloud-Sync erfolgt gebündelt am Ende als sofortiges syncCloudNow.)
@@ -4149,7 +4177,8 @@ async function startGiftWatch() {
       if (after !== before) log('account', 'Inventar live abgeglichen', { before, after });
     }
     if (upd.wallet && (upd.wallet.updatedAt || 0) > (loadWallet().updatedAt || 0)) {
-      state.wallet = applyCloudWallet(upd.wallet);
+      state.wallet = applyCloudWallet(upd.wallet, upd.walletLog);
+      state.walletLog = loadWalletLog();   // offenes Verlauf-Modal live aktualisieren
     }
   });
 }
@@ -5657,7 +5686,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
       diffVars, isCoopDiffView,
-      openWalletLog, closeWalletLog, walletReasonLabel,
+      openWalletLog, closeWalletLog, walletReasonLabel, walletEntryDetail,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
@@ -7397,6 +7426,7 @@ const App = {
             <div class="wl-main">
               <span class="wl-reason">{{ walletReasonLabel(e.reason) }}</span>
               <span class="wl-date">{{ adminFmtDate(e.ts) }}</span>
+              <span v-if="walletEntryDetail(e)" class="wl-detail">{{ walletEntryDetail(e) }}</span>
             </div>
             <span class="wl-amount"><span class="ei" v-html="ic('coin')"></span> {{ e.amount >= 0 ? '+' : '' }}{{ e.amount }}</span>
           </div>
