@@ -24,11 +24,21 @@ async function applyAllTrainingSteps(page) {
     const p = window.__cns.state.puzzle;
     return p.rows * p.cols;
   });
+  const applyBtn = page.locator('.training-banner .btn-primary');
+  const playing = () => page.evaluate(() => window.__cns.state.status === 'playing');
   for (let i = 0; i < cellCount + 1; i++) {
-    const stillPlaying = await page.evaluate(() => window.__cns.state.status === 'playing');
-    if (!stillPlaying) break;
-    const applyBtn = page.locator('.training-banner .btn-primary');
-    if (!(await applyBtn.isVisible().catch(() => false))) break;
+    if (!(await playing())) break;
+    // Der Schritt-Button verschwindet unter CI-Last kurz zwischen zwei Schritten,
+    // während der nächste erzwungene Zug berechnet/animiert wird. Früher brach die
+    // Schleife dann sofort ab (isVisible()===false) -> das Rätsel blieb ungelöst,
+    // die Win-Karte erschien nie (der bekannte Flake). Jetzt WARTEN wir, bis der
+    // Button wiederkommt; ist das Spiel derweil gewonnen, greift die playing-Prüfung.
+    try {
+      await applyBtn.waitFor({ state: 'visible', timeout: 5000 });
+    } catch {
+      if (!(await playing())) break;   // gewonnen -> fertig
+      continue;                         // sonst: Button kam noch nicht zurück, erneut versuchen
+    }
     await applyBtn.click();
   }
 }
