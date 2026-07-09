@@ -210,11 +210,19 @@ test.describe('coop', () => {
       state.tool = p.solution[0][0] ? 'pen' : 'eraser'; onCellTap(0, 0);
       state.tool = p.solution[0][1] ? 'pen' : 'eraser'; onCellTap(0, 1);
     });
+    // Der Host lädt real aus dem PAUSENMENÜ ein — der Beitritt muss die Pause
+    // automatisch beenden (der Gast steigt in ein LAUFENDES Spiel ein, nicht
+    // in ein pausiertes Overlay).
+    await page.locator('.game-top .icon-btn').first().click();
+    await expect(page.locator('.pause-overlay')).toBeVisible();
     await page.evaluate(() => {
       window.__cns.state.settings.coopName = 'Tom';
       window.__cns.onSoloInviteRoomOpen('fake-me', '123456');   // Raum steht
       window.__cns.onSoloInviteJoin('fake-guest', { name: 'Mara', color: '#f00' }); // erster Beitritt
     });
+    // Beitritt = „es geht los": Pause automatisch beendet.
+    await expect(page.locator('.pause-overlay')).toBeHidden();
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(false);
 
     const s = await page.evaluate(() => ({
       status: window.__cns.state.soloInvite.status,
@@ -235,6 +243,33 @@ test.describe('coop', () => {
     expect(s.markedBy00).toBe('fake-me');   // eigene Solo-Züge gehören jetzt der Coop-Identität
     expect(s.gameStatus).toBe('playing');   // Spiel lief einfach weiter
     expect(s.soloSlot).toBe(null);          // Solo-Slot geräumt (lebt im Coop-Slot weiter)
+  });
+
+  // Härtester Fall des Nutzer-Reports: der Gast bekommt NUR das INIT (START
+  // fehlt/verloren/aus welchem Grund auch immer). running:true im INIT muss
+  // die Runde trotzdem direkt starten — keine Bereit-Lobby, sofort spielbar.
+  test('an INIT with running:true starts the round immediately, even without a START event', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const puzzle = {
+        rows: 4, cols: 4,
+        rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1],
+        values: Array.from({ length: 4 }, () => Array(4).fill(1)),
+        solution: Array.from({ length: 4 }, () => Array(4).fill(true)),
+        regions: [], difficulty: 'leicht',
+      };
+      window.__cns.handleCoopMsg({ type: 'init', puzzle, marks: null, markedBy: null, startTime: Date.now() - 5000, running: true });
+      // KEIN START-Event — running:true muss allein reichen.
+    });
+    await page.waitForSelector('.screen.game');
+    expect(await page.evaluate(() => window.__cns.state.coop.awaitingStart)).toBe(false);
+    await expect(page.locator('.coop-lobby-overlay')).toBeHidden();
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+    // Ein nachzügelndes START ist ein No-op (kein Timer-Reset/Doppelstart).
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'start', startTime: Date.now() }));
+    // Sofort spielbar:
+    await page.evaluate(() => window.__cns.onCellTap(1, 1));
+    expect(await page.evaluate(() => window.__cns.state.marks[1][1])).not.toBe('none');
   });
 
   test('a converted solo game\'s INIT carries the mid-game state (lives/hints/mistakes) to the joiner', async ({ page }) => {
