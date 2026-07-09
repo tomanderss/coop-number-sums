@@ -5835,8 +5835,9 @@ const App = {
         <!-- Profil-Chip: öffnet den Prestige-Screen. Zeigt das ausgerüstete
              verdiente Abzeichen (oder eine Einladung, eins zu verdienen). -->
         <button class="home-profile-chip" :class="{ master: isMasterEquipped() }" @click="openPrestige">
-          <template v-if="myBadge()"><span class="hpc-name">{{ shopDemoBadgeName() }}</span> <b class="badge-medal-inline" v-html="badgeSvg(myBadge())"></b></template>
-          <template v-else><span class="ico-wrap" v-html="ic('medal')"></span> {{ t('prestige.title') }}</template>
+          <span class="hpc-name">{{ shopDemoBadgeName() }}</span>
+          <b v-if="myBadge()" class="badge-medal-inline hpc-medal" v-html="badgeSvg(myBadge())"></b>
+          <span v-else class="ico-wrap hpc-add" :title="t('prestige.title')" v-html="ic('medal')"></span>
         </button>
       </div>
 
@@ -6009,7 +6010,7 @@ const App = {
         <div v-if="state.coop.active && state.coop.players.length" class="coop-roster">
           <span v-for="p in (state.team.active ? state.coop.players.filter(pl=>pl.team===state.team.myTeam) : state.coop.players)" :key="p.id" class="player-chip"
                 :style="{ background: p.color, color: chipTextColor(p.color) }">
-            {{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+            <span v-if="badgeShown(p.badge)" class="badge-medal-inline" v-html="badgeSvg(p.badge)"></span>{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
           </span>
         </div>
         </div>
@@ -6484,7 +6485,7 @@ const App = {
           <div class="coop-roster" v-if="!state.coop.teamMode && state.coop.players.length">
             <span v-for="p in state.coop.players" :key="p.id" class="player-chip"
                   :style="{ background: p.color, color: chipTextColor(p.color) }">
-              {{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
+              <span v-if="badgeShown(p.badge)" class="badge-medal-inline" v-html="badgeSvg(p.badge)"></span>{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template>
             </span>
           </div>
           <!-- Race-Lobby zeigt die Schwierigkeitsauswahl ein zweites Mal NUR
