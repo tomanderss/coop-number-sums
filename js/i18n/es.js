@@ -45,6 +45,8 @@ export default {
     donate: 'Apóyame',
   },
   setup: {
+    random: 'Azar',
+    randomTitle: 'Elegir dificultad al azar',
     title: 'Nueva partida',
     start: '¡Vamos!',
     step: 'Nivel',

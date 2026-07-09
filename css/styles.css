@@ -712,7 +712,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ds-coins .ds-v { color: color-mix(in oklab, var(--dacc) 55%, var(--text)); }
 
 .setup-controls { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
-.diff-slabel { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.diff-slabel { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.diff-random {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 99px;
+  border: 1px solid color-mix(in oklab, var(--dacc) 42%, transparent);
+  background: color-mix(in oklab, var(--dacc) 14%, transparent);
+  color: color-mix(in oklab, var(--dacc) 66%, var(--text)); font-weight: 800; font-size: .74rem;
+  letter-spacing: .04em; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform .1s, background .15s;
+}
+.diff-random:hover { background: color-mix(in oklab, var(--dacc) 22%, transparent); }
+.diff-random:active { transform: scale(.94); }
+.diff-random .ei { display: inline-flex; }
+.diff-random:active .ei { animation: dice-roll .4s ease; }
+@keyframes dice-roll { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .diff-random:active .ei { animation: none; } }
 .diff-slabel span { font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text2); }
 .diff-slabel b { font-variant-numeric: tabular-nums; font-weight: 900; color: color-mix(in oklab, var(--dacc) 58%, var(--text)); }
 .diff-track { position: relative; height: 34px; touch-action: none; cursor: pointer; user-select: none; }
