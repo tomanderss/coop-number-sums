@@ -207,6 +207,22 @@ export function sortLeaderboard(entries) {
 // ─── Hilfen ───────────────────────────────────────────────────────────────────
 function currentUser(fb) { return fb.auth && fb.auth.currentUser; }
 function userRef(fb, uid, sub) { return fb.ref(fb.db, `users/${uid}${sub ? '/' + sub : ''}`); }
+// Firebase RTDB lehnt Infinity/-Infinity/NaN ab und verwirft dann den GANZEN
+// Schreibvorgang. Ein Solo-Spielstand hält hintsLeft = Infinity (unbegrenzte
+// Hinweise, HINTS in config.js) — landete das ungefiltert im Session-Payload,
+// schlug JEDES writeSession fehl (Multi-Device-Solo-Session synct nie, Log voll
+// „Infinity in property 'hintsLeft'"). Nicht-endliche Zahlen daher zu null
+// bereinigen (Empfänger setzt fehlende Felder auf ihre Defaults).
+function sanitizeForFirebase(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (Array.isArray(v)) return v.map(sanitizeForFirebase);
+  if (v && typeof v === 'object') {
+    const out = {};
+    for (const k in v) out[k] = sanitizeForFirebase(v[k]);
+    return out;
+  }
+  return v;
+}
 function usernameIndexRef(fb, name) { return fb.ref(fb.db, `usernames/${usernameKey(name)}`); }
 
 // Aktueller Auth-Status für die UI (ohne Firebase zu laden, wenn nie verbunden).
@@ -862,7 +878,7 @@ export async function writeSession({ gameId, status, payload, appBuild, schema, 
         return undefined; // veraltet für dieselbe Partie → abbrechen
       }
       const rev = ((cur && cur.rev) || 0) + 1;
-      return { gameId, rev, status, deviceId: dev, updatedAt: c.fb.serverTimestamp(), appBuild: appBuild || 0, schema: schema || 0, payload: payload ?? null };
+      return { gameId, rev, status, deviceId: dev, updatedAt: c.fb.serverTimestamp(), appBuild: appBuild || 0, schema: schema || 0, payload: payload ? sanitizeForFirebase(payload) : null };
     });
     if (!res.committed) { log('account', 'writeSession abgebrochen (veraltet)', { gameId, baseRev }); return { ok: false, stale: true }; }
     const val = res.snapshot.val();

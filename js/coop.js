@@ -382,10 +382,29 @@ export async function ensurePresence({ name, color, role }) {
 }
 
 // ─── Nachrichten ────────────────────────────────────────────────────────────
+// Firebase RTDB lehnt Infinity/-Infinity/NaN ab — und verwirft dann den GESAMTEN
+// Schreibvorgang. Ein Solo-Spiel hält hintsLeft = Infinity (unbegrenzte Hinweise,
+// HINTS in config.js); landete das ungefiltert im INIT der Solo→Coop-Umwandlung,
+// wurde das komplette INIT abgelehnt und der Beitretende bekam NIE ein Spielfeld
+// (nur das nachfolgende, Infinity-freie START kam an → „hängt in der Lobby").
+// Deshalb wird JEDER gesendete Payload hier tief bereinigt: nicht-endliche Zahlen
+// werden zu null (RTDB verwirft den Schlüssel; der Empfänger setzt fehlende Felder
+// auf ihre Defaults, z.B. hintsLeft ?? HINTS = Infinity). serverTimestamp-Sentinel
+// bleibt unberührt, da nur `msg` bereinigt wird.
+export function sanitizeForFirebase(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (Array.isArray(v)) return v.map(sanitizeForFirebase);
+  if (v && typeof v === 'object') {
+    const out = {};
+    for (const k in v) out[k] = sanitizeForFirebase(v[k]);
+    return out;
+  }
+  return v;
+}
 export async function send(msg) {
   if (!fb || !roomCode) return;
   try {
-    await fb.push(fb.ref(fb.db, `rooms/${roomCode}/events`), { ...msg, author: fb.uid, ts: fb.serverTimestamp() });
+    await fb.push(fb.ref(fb.db, `rooms/${roomCode}/events`), { ...sanitizeForFirebase(msg), author: fb.uid, ts: fb.serverTimestamp() });
   } catch (e) {
     log('coop', `Senden von "${msg.type}" fehlgeschlagen`, e);
   }
@@ -404,7 +423,7 @@ export async function send(msg) {
 export async function sendTeamEvent(team, msg) {
   if (!fb || !roomCode) return;
   try {
-    await fb.push(fb.ref(fb.db, `rooms/${roomCode}/teamEvents/${team}`), { ...msg, author: fb.uid, ts: fb.serverTimestamp() });
+    await fb.push(fb.ref(fb.db, `rooms/${roomCode}/teamEvents/${team}`), { ...sanitizeForFirebase(msg), author: fb.uid, ts: fb.serverTimestamp() });
   } catch (e) {
     log('coop', `Senden von Team-Event "${msg.type}" fehlgeschlagen`, e);
   }
