@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.146';
-export const BUILD_HASH = '57be3da';
+export const BUILD      = '1.147';
+export const BUILD_HASH = 'e09e28b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.147",
+    "date": "09.07.2026",
+    "changes": [
+      "Spielernamen in der Coop-Ansicht sind jetzt kleiner, dünner und kompakter – sie nehmen deutlich weniger Platz ein"
+    ]
+  },
   {
     "version": "1.146",
     "date": "09.07.2026",
