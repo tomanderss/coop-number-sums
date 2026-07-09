@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.140';
-export const BUILD_HASH = 'da569d4';
+export const BUILD      = '1.141';
+export const BUILD_HASH = '23f287b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.141",
+    "date": "09.07.2026",
+    "changes": [
+      "Direkteinstieg in laufende Coop-Runden (Beitritt per Code und \"Coop fortsetzen\") per Test dauerhaft abgesichert"
+    ]
+  },
   {
     "version": "1.140",
     "date": "09.07.2026",
