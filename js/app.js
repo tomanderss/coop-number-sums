@@ -1995,14 +1995,23 @@ function handleCoopMsg(msg) {
   } else if (msg.type === Coop.MSG.HINT) {
     applyHintEffect(msg.r, msg.c, msg.mark, false, msg.from);
   } else if (msg.type === Coop.MSG.INIT) {
+    // Ein ERNEUT gesendetes INIT (der Host holt einen mitten in der Runde
+    // Beigetretenen zuverlässig ab, s. broadcastRunningInit) darf eine bereits
+    // laufende EIGENE Partie nicht neu laden: wer schon aktiv exakt diese gameId
+    // spielt, ignoriert das Duplikat (sonst würde ihm mitten im Spiel das Brett
+    // zurückgesetzt). Neue Beitretende (kein Brett / andere gameId / in Lobby)
+    // verarbeiten es normal.
+    if (state.coop.active && state.puzzle && !state.coop.awaitingStart
+        && state.status === 'playing' && msg.gameId && state.gameId === msg.gameId) return;
     // Gäste generieren nichts selbst -- sie bekommen das fertige Rätsel des Hosts
     // und sind damit sofort "fertig" (kein Ladebalken in der Lobby nötig).
     // lives/maxLives/hintsLeft/hintsUsed/mistakes sind optional (rückwärts-
     // kompatibel): eine live zu Coop umgewandelte Solo-Partie (s. Solo → Coop)
     // schickt ihren Zwischenstand mit, damit Beitretende nicht mit vollen
-    // Leben/Hinweisen in eine halb gespielte Runde einsteigen.
+    // Leben/Hinweisen in eine halb gespielte Runde einsteigen. gameId übernehmen,
+    // damit ein späteres Wiederhol-INIT (s.o.) als Duplikat erkannt wird.
     loadPuzzleIntoState(msg.puzzle, {
-      marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime,
+      marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime, gameId: msg.gameId,
       lives: msg.lives, maxLives: msg.maxLives, hintsLeft: msg.hintsLeft, hintsUsed: msg.hintsUsed, mistakes: msg.mistakes,
     });
     state.coop.active = true;
@@ -2011,11 +2020,11 @@ function handleCoopMsg(msg) {
     state.coop.awaitingStart = true;
     state.coop.generating = false;
     navigate('game');
-    // running: die Runde LÄUFT bereits (Solo→Coop-Umwandlung) — sofort starten,
-    // OHNE auf das separate START-Event zu warten. Damit kann der Beitretende
-    // unter keinen Umständen (Event-Reihenfolge, verlorenes START) in der
-    // Bereit-Lobby hängen bleiben; ein danach noch eintreffendes START ist
-    // durch die awaitingStart-Prüfung unten ein No-op.
+    // running: die Runde LÄUFT bereits (Solo→Coop-Umwandlung / Nachzügler in einer
+    // laufenden Coop-Runde) — sofort starten, OHNE auf das separate START-Event zu
+    // warten. Damit kann der Beitretende unter keinen Umständen (Event-Reihenfolge,
+    // verlorenes START) in der Bereit-Lobby hängen bleiben; ein danach noch
+    // eintreffendes START ist durch die awaitingStart-Prüfung unten ein No-op.
     if (msg.running) startCoopGame(msg.startTime);
   } else if (msg.type === Coop.MSG.START) {
     if (state.coop.awaitingStart) startCoopGame(msg.startTime);
@@ -2366,6 +2375,21 @@ function updateConnectedFlag() {
 function broadcastRoster() {
   Coop.send({ type: Coop.MSG.ROSTER, players: state.coop.players, hostId: state.coop.hostId, teamMode: state.coop.teamMode });
 }
+// Sendet den AKTUELLEN, LAUFENDEN Rundenstand als INIT(running:true)+START in den
+// Raum. Damit landet JEDER Beitretende sofort im laufenden Spiel — ohne Umweg über
+// die Bereit-Lobby, unabhängig von Event-Reihenfolge/-Verlust. Genutzt bei der
+// Solo→Coop-Umwandlung UND wenn mitten in einer laufenden Coop-Runde jemand
+// dazukommt (hostRegisterPlayer). Bereits aktive Spieler ignorieren dieses INIT
+// (gleiche gameId + schon am Spielen, s. INIT-Handler) — es lädt niemandem das
+// Brett neu, holt aber Nachzügler zuverlässig ins Spiel.
+function broadcastRunningInit() {
+  Coop.send({
+    type: Coop.MSG.INIT, gameId: state.gameId, running: true,
+    puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime,
+    lives: state.lives, maxLives: state.maxLives, hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+  });
+  Coop.send({ type: Coop.MSG.START, startTime: state.startTime });
+}
 // Host-Pfad: Spieler in den Roster aufnehmen + an alle verteilen. Wird sowohl
 // von IDENTITY-Nachrichten als auch direkt vom players/-onChildAdded gespeist —
 // Letzteres heilt den Fall, dass ein Mitspieler nach stillem Verbindungsabriss
@@ -2378,6 +2402,15 @@ function hostRegisterPlayer(id, name, color, username, badge) {
   const known = state.coop.players.some(p => p.id === id);
   upsertPlayer(id, name, color, username, badge);
   broadcastRoster();
+  // Kommt jemand mitten in eine LAUFENDE Runde (Solo→Coop-Umwandlung oder
+  // Nachzügler in einer normalen Coop-Runde), schickt der Host ihm den aktuellen
+  // Rundenstand aktiv nach → er landet garantiert direkt im Spiel statt in der
+  // Bereit-Lobby (bereits Aktive ignorieren das INIT, s. broadcastRunningInit).
+  // In der Vor-Start-Lobby (awaitingStart) NICHT — dort ist die Bereit-Lobby gewollt.
+  if (state.coop.active && state.status === 'playing' && !state.coop.awaitingStart) {
+    log('coop', 'Neuer Spieler mitten im Spiel – sende laufenden Rundenstand nach', { id });
+    broadcastRunningInit();
+  }
   if (!known) {
     const label = playerLabel({ name, username }) || t('common.defaultPlayerName');
     const midGame = state.coop.active && state.status === 'playing';
@@ -2625,7 +2658,9 @@ function startCoopMatch() {
     log('game', `Puzzle generiert (Coop)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
     loadPuzzleIntoState(puzzle, null);
     state.coop.generating = false;
-    Coop.send({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+    // gameId mitsenden, damit Gäste sie übernehmen und ein späteres Wiederhol-
+    // INIT (Nachzügler-Nachversand, s. broadcastRunningInit) als Duplikat erkennen.
+    Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
   }).catch(e => onLobbyGenFailed(e, 'Coop'));
 }
 // Gemeinsamer Fehlerpfad, falls die Lobby-Generierung (Coop-Host/Race/Team)
@@ -3275,27 +3310,20 @@ function completeSoloConversion() {
   // „Coop fortsetzen"); der Solo-Slot wird geräumt statt einen Zwilling zu halten.
   state.saveSlot = 'coop';
   saveActiveGame(null);
-  // Rundenstand in den Raum legen: Beitretende (auch spätere) rekonstruieren
-  // ihn via Direkteinstieg (INIT ab offener Runde) und spielen sofort mit.
-  // running:true lässt den Beitretenden die Runde DIREKT starten (kein Warten
-  // auf das separate START-Event → keine hängende Bereit-Lobby möglich); das
-  // START-Event bleibt für ältere App-Versionen des Gasts zusätzlich drin.
-  Coop.send({
-    type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime, running: true,
-    lives: state.lives, maxLives: state.maxLives, hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
-  });
-  Coop.send({ type: Coop.MSG.START, startTime });
   state.soloInvite.status = 'converted';
   if (state.modal === 'soloInvite') state.modal = null;
   // Der Host steht beim Einladen praktisch immer im Pausenmenü — der Beitritt
-  // ist das Signal „es geht los": Pause automatisch beenden statt den Gast in
-  // ein pausiertes Spiel (Overlay statt Brett — wirkte wie eine Lobby) zu
-  // setzen. resumeFromPause broadcastet das Resume; ein Gast, der schon
-  // spielt, ignoriert es (paused=false → No-op).
+  // ist das Signal „es geht los": Pause ZUERST beenden (damit state.startTime
+  // final ist und der Gast in ein LAUFENDES, nicht pausiertes Spiel einsteigt).
   if (state.paused) resumeFromPause(true);
+  // Laufenden Rundenstand in den Raum legen (INIT running:true + START) → der
+  // Beitretende landet sofort im Spiel, kein Bereit-Lobby-Umweg (s.
+  // broadcastRunningInit). Der Host holt neue Spieler zusätzlich in
+  // hostRegisterPlayer aktiv nach — doppelt hält besser gegen Timing/Verlust.
+  broadcastRunningInit();
   persistGame();
   refreshResume();
-  log('coop', 'Solo-Partie live zu Coop umgewandelt', { code: state.coop.code, elapsed: elapsedNow });
+  log('coop', 'Solo-Partie live zu Coop umgewandelt', { code: state.coop.code, elapsed: elapsedNow, gameId: state.gameId });
   return true;
 }
 // Einladung zurückziehen/abräumen, solange noch niemand beigetreten ist (nach
