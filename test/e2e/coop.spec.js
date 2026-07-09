@@ -272,6 +272,35 @@ test.describe('coop', () => {
     expect(await page.evaluate(() => window.__cns.state.marks[1][1])).not.toBe('none');
   });
 
+  // Sicherheitsnetz: der Gast bekam ein INIT OHNE running (z.B. alte Host-Version
+  // oder verlorenes running/START) und steht in der Bereit-Lobby. Sobald der
+  // Partner eine echte Spielaktion (MOVE) macht, MUSS der Gast sofort einsteigen
+  // und den Zug anwenden — kein Lobby-Hänger.
+  test('a partner MOVE received while stuck in the ready-lobby auto-starts the round', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const puzzle = {
+        rows: 4, cols: 4,
+        rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1],
+        values: Array.from({ length: 4 }, () => Array(4).fill(1)),
+        solution: Array.from({ length: 4 }, () => Array(4).fill(true)),
+        regions: [], difficulty: 'leicht',
+      };
+      // INIT OHNE running → Gast bleibt (fälschlich) in awaitingStart.
+      window.__cns.handleCoopMsg({ type: 'init', puzzle, marks: null, markedBy: null, startTime: Date.now() - 3000 });
+    });
+    await page.waitForSelector('.screen.game');
+    expect(await page.evaluate(() => window.__cns.state.coop.awaitingStart)).toBe(true); // steckt in der Lobby
+    await expect(page.locator('.coop-lobby-overlay')).toBeVisible();
+
+    // Partner macht einen Zug → Gast steigt automatisch ein.
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'move', r: 0, c: 0, mark: 'keep', from: 'fake-partner' }));
+    expect(await page.evaluate(() => window.__cns.state.coop.awaitingStart)).toBe(false);
+    await expect(page.locator('.coop-lobby-overlay')).toBeHidden();
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+    expect(await page.evaluate(() => window.__cns.state.marks[0][0])).toBe('keep'); // Zug angewandt
+  });
+
   test('a converted solo game\'s INIT carries the mid-game state (lives/hints/mistakes) to the joiner', async ({ page }) => {
     await gotoApp(page);
     await page.evaluate(() => {

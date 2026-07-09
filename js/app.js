@@ -1978,10 +1978,23 @@ function resetChat() { unbindChatViewport(); state.chat.messages = []; state.cha
 // Brett (z.B. direkt nach dem Beitritt, bevor das INIT eintrifft) würden sie
 // ins Leere greifen bzw. Reste eines früheren Spiels manipulieren.
 const COOP_GAME_MSGS = new Set([Coop.MSG.MOVE, Coop.MSG.UNDO, Coop.MSG.CHECK, Coop.MSG.MISTAKE, Coop.MSG.PAUSE, Coop.MSG.HINT, Coop.MSG.STATUS]);
+// Echte Spiel-Aktionen eines Mitspielers (kein STATUS/PAUSE): treffen sie ein,
+// LÄUFT die Runde beim Absender bereits — ein Gast, der noch in der Bereit-Lobby
+// steht, muss dann sofort einsteigen (Sicherheitsnetz gegen jeden Lobby-Hänger,
+// unabhängig von running-Flag/START/Timing).
+const COOP_LIVE_ACTIVITY = new Set([Coop.MSG.MOVE, Coop.MSG.UNDO, Coop.MSG.CHECK, Coop.MSG.MISTAKE, Coop.MSG.HINT]);
 function handleCoopMsg(msg) {
   // Race hält state.coop.active absichtlich false (s. state.race-Kommentar),
   // empfängt aber legitime PAUSE-Events über den Raum → race.active zählt mit.
   if (COOP_GAME_MSGS.has(msg.type) && (!state.puzzle || (!state.coop.active && !state.team.active && !state.race.active))) return;
+  // Sicherheitsnetz: hängt der Gast noch in der Bereit-Lobby (awaitingStart),
+  // kommt aber schon eine echte Spielaktion des Partners, ist die Runde live →
+  // sofort einsteigen, DANN das Event anwenden. Fängt jeden Fall ab, in dem
+  // running/START den Gast nicht rechtzeitig gestartet haben.
+  if (state.coop.awaitingStart && state.puzzle && COOP_LIVE_ACTIVITY.has(msg.type)) {
+    log('coop', 'Spielaktion in der Bereit-Lobby empfangen – steige sofort ein', { type: msg.type });
+    startCoopGame(state.startTime || gameNow());
+  }
   if (msg.type === Coop.MSG.MOVE) {
     setMark(msg.r, msg.c, msg.mark, false, msg.from);
   } else if (msg.type === Coop.MSG.UNDO) {
@@ -2002,7 +2015,11 @@ function handleCoopMsg(msg) {
     // zurückgesetzt). Neue Beitretende (kein Brett / andere gameId / in Lobby)
     // verarbeiten es normal.
     if (state.coop.active && state.puzzle && !state.coop.awaitingStart
-        && state.status === 'playing' && msg.gameId && state.gameId === msg.gameId) return;
+        && state.status === 'playing' && msg.gameId && state.gameId === msg.gameId) {
+      log('coop', 'INIT ignoriert (spiele diese Partie bereits)', { gameId: msg.gameId });
+      return;
+    }
+    log('coop', 'INIT empfangen', { running: !!msg.running, gameId: msg.gameId || null, hasStart: msg.startTime != null });
     // Gäste generieren nichts selbst -- sie bekommen das fertige Rätsel des Hosts
     // und sind damit sofort "fertig" (kein Ladebalken in der Lobby nötig).
     // lives/maxLives/hintsLeft/hintsUsed/mistakes sind optional (rückwärts-
@@ -2025,8 +2042,9 @@ function handleCoopMsg(msg) {
     // warten. Damit kann der Beitretende unter keinen Umständen (Event-Reihenfolge,
     // verlorenes START) in der Bereit-Lobby hängen bleiben; ein danach noch
     // eintreffendes START ist durch die awaitingStart-Prüfung unten ein No-op.
-    if (msg.running) startCoopGame(msg.startTime);
+    if (msg.running) { log('coop', 'INIT running:true → starte Runde sofort'); startCoopGame(msg.startTime); }
   } else if (msg.type === Coop.MSG.START) {
+    log('coop', 'START empfangen', { awaitingStart: state.coop.awaitingStart });
     if (state.coop.awaitingStart) startCoopGame(msg.startTime);
   } else if (msg.type === Coop.MSG.STATUS) {
     // In der Bereit-Lobby kann ein Rundenende unmöglich echt sein — nur ein
@@ -2383,6 +2401,7 @@ function broadcastRoster() {
 // (gleiche gameId + schon am Spielen, s. INIT-Handler) — es lädt niemandem das
 // Brett neu, holt aber Nachzügler zuverlässig ins Spiel.
 function broadcastRunningInit() {
+  log('coop', 'Sende laufenden Rundenstand (INIT running:true + START)', { gameId: state.gameId });
   Coop.send({
     type: Coop.MSG.INIT, gameId: state.gameId, running: true,
     puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime,
