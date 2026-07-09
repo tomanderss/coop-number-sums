@@ -2011,6 +2011,12 @@ function handleCoopMsg(msg) {
     state.coop.awaitingStart = true;
     state.coop.generating = false;
     navigate('game');
+    // running: die Runde LÄUFT bereits (Solo→Coop-Umwandlung) — sofort starten,
+    // OHNE auf das separate START-Event zu warten. Damit kann der Beitretende
+    // unter keinen Umständen (Event-Reihenfolge, verlorenes START) in der
+    // Bereit-Lobby hängen bleiben; ein danach noch eintreffendes START ist
+    // durch die awaitingStart-Prüfung unten ein No-op.
+    if (msg.running) startCoopGame(msg.startTime);
   } else if (msg.type === Coop.MSG.START) {
     if (state.coop.awaitingStart) startCoopGame(msg.startTime);
   } else if (msg.type === Coop.MSG.STATUS) {
@@ -3271,17 +3277,25 @@ function completeSoloConversion() {
   saveActiveGame(null);
   // Rundenstand in den Raum legen: Beitretende (auch spätere) rekonstruieren
   // ihn via Direkteinstieg (INIT ab offener Runde) und spielen sofort mit.
+  // running:true lässt den Beitretenden die Runde DIREKT starten (kein Warten
+  // auf das separate START-Event → keine hängende Bereit-Lobby möglich); das
+  // START-Event bleibt für ältere App-Versionen des Gasts zusätzlich drin.
   Coop.send({
-    type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime,
+    type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime, running: true,
     lives: state.lives, maxLives: state.maxLives, hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
   });
   Coop.send({ type: Coop.MSG.START, startTime });
-  if (state.paused) Coop.send({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
-  persistGame();
-  refreshResume();
   state.soloInvite.status = 'converted';
   if (state.modal === 'soloInvite') state.modal = null;
-  log('coop', 'Solo-Partie live zu Coop umgewandelt', { code: state.coop.code, elapsed: elapsedNow, paused: state.paused });
+  // Der Host steht beim Einladen praktisch immer im Pausenmenü — der Beitritt
+  // ist das Signal „es geht los": Pause automatisch beenden statt den Gast in
+  // ein pausiertes Spiel (Overlay statt Brett — wirkte wie eine Lobby) zu
+  // setzen. resumeFromPause broadcastet das Resume; ein Gast, der schon
+  // spielt, ignoriert es (paused=false → No-op).
+  if (state.paused) resumeFromPause(true);
+  persistGame();
+  refreshResume();
+  log('coop', 'Solo-Partie live zu Coop umgewandelt', { code: state.coop.code, elapsed: elapsedNow });
   return true;
 }
 // Einladung zurückziehen/abräumen, solange noch niemand beigetreten ist (nach
