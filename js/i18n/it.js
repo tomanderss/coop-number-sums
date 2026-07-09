@@ -555,7 +555,7 @@ export default {
       earn: 'Accredito',
       other: 'Transazione',
     },
-    detail: { base: 'base {n}', perfect: 'impeccabile', bestTime: 'record', streak: '+{pct}% serie' },
+    detail: { base: 'base {n}', baseLabel: 'Base', coopFactor: 'Multigiocatore', perfect: 'Impeccabile', bestTime: 'Nuovo record', streak: '+{pct}% serie', streakFactor: 'Serie ({days} giorni)', total: 'Moltiplicatore' },
   },
   sync: {
     mismatchBadge: 'Conflitto di versione',

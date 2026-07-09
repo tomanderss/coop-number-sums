@@ -659,7 +659,7 @@ export default {
       earn: 'Gutschrift',
       other: 'Buchung',
     },
-    detail: { base: 'Basis {n}', perfect: 'makellos', bestTime: 'Bestzeit', streak: '+{pct}% Serie' },
+    detail: { base: 'Basis {n}', baseLabel: 'Basis', coopFactor: 'Mehrspieler', perfect: 'Makellos', bestTime: 'Neue Bestzeit', streak: '+{pct}% Serie', streakFactor: 'Serie ({days} Tage)', total: 'Multiplikator' },
   },
   sync: {
     mismatchBadge: 'Versions-Mismatch',

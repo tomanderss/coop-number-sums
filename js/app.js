@@ -260,6 +260,7 @@ const state = reactive({
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
   walletLogOpen: false,          // Geldverlauf-Modal offen? (Transaktionshistorie)
   walletLog: [],                 // gecachte Transaktionsliste (neueste zuerst), s. openWalletLog
+  walletLogExpanded: -1,         // Index des aufgeklappten Verlauf-Eintrags (Multiplikator-Aufschlüsselung) | -1
   adminNotice: null,             // aktuell angezeigte Admin-Benachrichtigung {id, kind, item|amount, from} (Modal)
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
 });
@@ -638,21 +639,32 @@ function closeWalletLog() { state.walletLogOpen = false; }
 // 'winfx:<id>'/'winfx_<id>' referenzieren ein gekauftes Item → dessen Namen zeigen.
 // Herkunfts-Detailzeile eines Verlauf-Eintrags (aus meta): Schwierigkeit · Modus
 // · Basis · ×Multiplikator (Gründe). Alt-Einträge ohne meta zeigen nichts.
+// Einzeiler-Kontext eines Verlauf-Eintrags: Schwierigkeit · Modus (aus meta).
 function walletEntryDetail(e) {
   const m = e && e.meta;
   if (!m) return '';
   const parts = [];
   if (m.difficulty && DIFF_BY_ID[m.difficulty]) parts.push(t('difficulty.' + m.difficulty));
   if (m.mode) parts.push(t('friends.mode.' + m.mode));
-  if (m.base) parts.push(t('wallet.detail.base', { n: m.base }));
-  const boosts = [];
-  if (m.perfect) boosts.push(t('wallet.detail.perfect'));
-  if (m.bestTime) boosts.push(t('wallet.detail.bestTime'));
-  if (m.streakPct) boosts.push(t('wallet.detail.streak', { pct: m.streakPct }));
-  if (m.mult && m.mult !== 1) parts.push('×' + m.mult + (boosts.length ? ' (' + boosts.join(', ') + ')' : ''));
-  else if (boosts.length) parts.push(boosts.join(', '));
   return parts.join(' · ');
 }
+// Volle Aufschlüsselung EINER Sieg-Belohnung: Basis, jeder Multiplikator-Faktor
+// einzeln (wie der Gesamt-Multiplikator zustande kam) und die Endsumme. Rückgabe:
+// [{ k, v }] Zeilen für die aufklappbare Detailansicht. Leer, wenn keine Meta.
+function walletEntryFactors(e) {
+  const m = e && e.meta;
+  if (!m || m.base == null) return [];
+  const rows = [{ k: t('wallet.detail.baseLabel'), v: String(m.base) }];
+  if (m.coopMult) rows.push({ k: t('wallet.detail.coopFactor'), v: '×2' });
+  if (m.perfect) rows.push({ k: t('wallet.detail.perfect'), v: '×2' });
+  if (m.bestTime) rows.push({ k: t('wallet.detail.bestTime'), v: '×2' });
+  if (m.streakPct) rows.push({ k: t('wallet.detail.streakFactor', { days: m.streakDays || 0 }), v: '+' + m.streakPct + '%' });
+  if (m.mult != null) rows.push({ k: t('wallet.detail.total'), v: '×' + m.mult, total: true });
+  return rows;
+}
+// Ist der Eintrag aufschlüsselbar (Sieg mit Belohnungs-Meta)?
+function walletEntryExpandable(e) { return walletEntryFactors(e).length > 1; }
+function toggleWalletEntry(i) { state.walletLogExpanded = state.walletLogExpanded === i ? -1 : i; }
 function walletReasonLabel(reason) {
   if (!reason) return t('wallet.reason.other');
   const shopMatch = /^shop:(.+)$/.exec(reason);
@@ -2956,7 +2968,8 @@ function win(remote) {
         difficulty: state.puzzle.difficulty,
         mode: state.isRaceGame ? 'race' : state.team.active ? 'team' : state.coop.active ? 'coop' : 'solo',
         base: coinBaseForIndex(dIdx), mult,
-        perfect, bestTime: newHighscore,
+        coopMult: isCoopish, perfect, bestTime: newHighscore,
+        streakDays: streakDays || 0,
         streakPct: streakDays ? Math.round(coinStreakBonus(streakDays) * 100) : 0,
         gameId: state.gameId || null,
       });
@@ -5761,7 +5774,7 @@ const App = {
       quitToHome, setZoom, resetZoom, pauseGame, resumeFromPause, openSettings, closeSettings, startCoopRound,
       openShop, closeShop, openShopCategory, closeShopCategory, coinFor, streakBonusPct,
       diffVars, isCoopDiffView,
-      openWalletLog, closeWalletLog, walletReasonLabel, walletEntryDetail,
+      openWalletLog, closeWalletLog, walletReasonLabel, walletEntryDetail, walletEntryFactors, walletEntryExpandable, toggleWalletEntry,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
       shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
@@ -7498,13 +7511,21 @@ const App = {
         <div class="wallet-log-balance">{{ t('wallet.total', { n: state.wallet.balance || 0 }) }}</div>
         <p v-if="!state.walletLog.length" class="set-hint wallet-log-empty">{{ t('wallet.historyEmpty') }}</p>
         <div v-else class="wallet-log">
-          <div v-for="(e,i) in state.walletLog" :key="i" class="wl-row" :class="e.amount >= 0 ? 'plus' : 'minus'">
-            <div class="wl-main">
-              <span class="wl-reason">{{ walletReasonLabel(e.reason) }}</span>
-              <span class="wl-date">{{ adminFmtDate(e.ts) }}</span>
-              <span v-if="walletEntryDetail(e)" class="wl-detail">{{ walletEntryDetail(e) }}</span>
+          <div v-for="(e,i) in state.walletLog" :key="i" class="wl-item">
+            <div class="wl-row" :class="[e.amount >= 0 ? 'plus' : 'minus', { expandable: walletEntryExpandable(e), open: state.walletLogExpanded===i }]"
+                 @click="walletEntryExpandable(e) && toggleWalletEntry(i)">
+              <div class="wl-main">
+                <span class="wl-reason">{{ walletReasonLabel(e.reason) }}<span v-if="walletEntryExpandable(e)" class="wl-caret">▾</span></span>
+                <span class="wl-date">{{ adminFmtDate(e.ts) }}</span>
+                <span v-if="walletEntryDetail(e)" class="wl-detail">{{ walletEntryDetail(e) }}</span>
+              </div>
+              <span class="wl-amount"><span class="ei" v-html="ic('coin')"></span> {{ e.amount >= 0 ? '+' : '' }}{{ e.amount }}</span>
             </div>
-            <span class="wl-amount"><span class="ei" v-html="ic('coin')"></span> {{ e.amount >= 0 ? '+' : '' }}{{ e.amount }}</span>
+            <div v-if="state.walletLogExpanded===i && walletEntryExpandable(e)" class="wl-breakdown">
+              <div v-for="(f,fi) in walletEntryFactors(e)" :key="fi" class="wl-factor" :class="{ 'wl-factor-total': f.total }">
+                <span class="wl-fk">{{ f.k }}</span><span class="wl-fv">{{ f.v }}</span>
+              </div>
+            </div>
           </div>
         </div>
         <button class="btn btn-primary" @click="closeWalletLog">{{ t('common.close') }}</button>

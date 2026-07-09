@@ -1,1 +1,1 @@
-Neuer „Zufall"-Knopf im Schwierigkeitsauswahl-Screen: Ein Tipp wählt eine zufällige Schwierigkeit — verfügbar in Solo und allen Mehrspieler-Modi (Coop/Wettkampf/Team), und nach jedem Spiel im Auswahl-Screen erneut nutzbar
+Geldverlauf: Eine Sieg-Belohnung zeigt jetzt die Schwierigkeit und den Modus, und beim Antippen klappt die volle Multiplikator-Aufschlüsselung auf — Basis, jeder einzelne Faktor (Mehrspieler ×2, makellos ×2, neue Bestzeit ×2, Serien-Bonus) und der Gesamt-Multiplikator
