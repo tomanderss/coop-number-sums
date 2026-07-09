@@ -138,6 +138,44 @@ test.describe('coop', () => {
     await expect(page.locator('.coop-error')).toBeVisible({ timeout: 20000 });
   });
 
+  // Beitritt in einen Raum mit LAUFENDER Runde: computeJoinAnchor (coop.js) lässt
+  // den Event-Listener exakt ab dem INIT der offenen Runde aufsetzen — der
+  // Beitretende empfängt also INIT + START (+ Züge) als Replay-Burst und muss
+  // DIREKT im laufenden Spiel landen und mitspielen können, ohne in einer
+  // Bereit-Lobby zu hängen ("der Host muss starten — der ist aber ingame").
+  // Simuliert ohne echtes Firebase über den window.__cns-Hook (gleiches Muster
+  // wie training.spec.js): genau die Nachrichtenfolge, die der Anker liefert.
+  test('joining a room with a running round (replayed INIT+START) lands directly in the game, playable', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const puzzle = {
+        rows: 4, cols: 4,
+        rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1],
+        values: Array.from({ length: 4 }, () => Array(4).fill(1)),
+        solution: Array.from({ length: 4 }, () => Array(4).fill(true)),
+        regions: [], difficulty: 'leicht',
+      };
+      // Replay-Burst wie beim Beitritt in eine offene Runde: INIT, dann START
+      // (Startzeit liegt in der Vergangenheit — die Runde läuft schon eine Weile).
+      window.__cns.handleCoopMsg({ type: 'init', puzzle, marks: null, markedBy: null, startTime: Date.now() - 5000 });
+      window.__cns.handleCoopMsg({ type: 'start', startTime: Date.now() - 5000 });
+    });
+    await page.waitForSelector('.screen.game');
+
+    // Kein Hängen in der Bereit-Lobby: Overlay weg, Runde läuft.
+    expect(await page.evaluate(() => window.__cns.state.coop.awaitingStart)).toBe(false);
+    await expect(page.locator('.coop-lobby-overlay')).toBeHidden();
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+
+    // Ein Partner-Zug aus dem Replay kommt an …
+    await page.evaluate(() => { window.__cns.handleCoopMsg({ type: 'move', r: 0, c: 0, mark: 'keep', from: 'fake-partner' }); });
+    expect(await page.evaluate(() => window.__cns.state.marks[0][0])).toBe('keep');
+
+    // … und man kann sofort selbst mitspielen.
+    await page.evaluate(() => window.__cns.onCellTap(1, 1));
+    expect(await page.evaluate(() => window.__cns.state.marks[1][1])).not.toBe('none');
+  });
+
   test('back navigation from the coop screen returns to home', async ({ page }) => {
     await goToCoop(page);
     await page.locator('.screen.coop-screen .topbar .icon-btn').first().click();
