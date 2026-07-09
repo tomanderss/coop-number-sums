@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.141';
-export const BUILD_HASH = '23f287b';
+export const BUILD      = '1.142';
+export const BUILD_HASH = 'f87ebd4';
 
 export const CHANGELOG = [
+  {
+    "version": "1.142",
+    "date": "09.07.2026",
+    "changes": [
+      "Mitspieler mitten im Solo-Spiel einladen: Über das Pausenmenü lässt sich ein Freund per Code oder Freundes-Einladung dazuholen – tritt er bei, wird die laufende Partie nahtlos zum gemeinsamen Coop-Spiel (Spielstand, Leben und Zeit bleiben erhalten)"
+    ]
+  },
   {
     "version": "1.141",
     "date": "09.07.2026",
