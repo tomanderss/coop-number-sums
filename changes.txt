@@ -1,0 +1,1 @@
+Cage-Farben weichen jetzt automatisch deiner Spielerfarbe aus: Eine pinke Cage bei pinker Markierungsfarbe (unsichtbare Einkreis-Ringe) kommt nicht mehr vor — geprüft beim Brett-Laden, bei Farb-/Palettenwechsel und im Mehrspieler für alle Spielerfarben

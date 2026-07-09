@@ -1,8 +1,8 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP } from './config.js';
-import { generatePuzzle } from './generator.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
+import { generatePuzzle, remapColorsForMarkVisibility } from './generator.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
@@ -1022,6 +1022,29 @@ function buildCellMeta(puzzle) {
   return meta;
 }
 
+// Cage-Farben so wählen, dass die eigene(n) Markierungsfarbe(n) darauf sichtbar
+// bleiben — eine pinke Cage macht einen pinken Einkreis-Ring unsichtbar. Läuft
+// beim Brettaufbau, bei Farb-/Palettenwechsel (setSetting) und wenn im Coop
+// neue Spieler(farben) dazukommen. Bewusst clientseitig: jedes Gerät färbt für
+// SEINE Spielerfarbe sicher (das Puzzle selbst bleibt identisch).
+function applyMarkSafeRegionColors() {
+  const p = state.puzzle;
+  if (!p || !p.regions || !state.cellMeta.length) return;
+  const fx = activePaletteFx();
+  const effectiveColors = REGION_COLORS.map((c) => applyPaletteFx(c, fx));
+  const avoid = [state.settings.coopMyColor, ...(state.coop.active ? state.coop.players.map((pl) => pl.color) : [])]
+    .map(hexToRgb).filter(Boolean);
+  const idxs = remapColorsForMarkVisibility({ regions: p.regions, rows: p.rows, cols: p.cols, effectiveColors, avoidRgbs: avoid });
+  let remapped = 0;
+  p.regions.forEach((reg, ri) => {
+    const color = REGION_COLORS[idxs[ri]];
+    if (idxs[ri] !== ((reg.colorIndex || 0) % REGION_COLORS.length)) remapped++;
+    for (const [r, c] of reg.cells) state.cellMeta[r][c].color = color;
+  });
+  cellStyleCache = [];   // gecachte --rc-*-Styles gehören zur alten Färbung
+  if (remapped) log('game', 'Cage-Farben wegen Spielerfarbe umgelenkt', { remapped });
+}
+
 // ─── OFF-THREAD-GENERIERUNG (on-demand) ───────────────────────────────────────
 // Ein Web Worker generiert Rätsel auf Anfrage auf einem eigenen Thread, sodass die
 // (bei großen Feldern spürbare) Generierung den Haupt-Thread/die UI nie blockiert.
@@ -1211,6 +1234,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.sessionReadonly = false;
   state.puzzle = puzzle;
   state.cellMeta = buildCellMeta(puzzle);
+  applyMarkSafeRegionColors();   // Cage-Farben meiden die (lokalen) Spielerfarben
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
   state.marks = saved?.marks || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill('none'));
   state.markedBy = saved?.markedBy || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill(null));
@@ -2095,6 +2119,7 @@ function pickAvailableColor(requested, others) {
   return `hsl(${hue} 75% 55%)`;
 }
 function upsertPlayer(id, name, requestedColor, username, badge) {
+  queueMicrotask(applyMarkSafeRegionColors);   // neue Spielerfarbe → Cage-Sichtbarkeit neu prüfen
   const others = state.coop.players.filter(p => p.id !== id);
   const color = pickAvailableColor(requestedColor, others);
   const existing = state.coop.players.find(p => p.id === id);
@@ -3570,6 +3595,10 @@ function setSetting(key, val) {
   if (key === 'musicPack') { Music.setMusicPack(shopEquippedId('music')); updateMusic(); }
   if (key === 'musicVolume') { Music.setVolume(val); updateMusic(); }
 }
+// Eigene Markierungsfarbe oder Brett-Palette geändert → Cage-Farben neu auf
+// Sichtbarkeit der Markierung prüfen. Als watch statt setSetting-Hook, weil der
+// Custom-Farbwähler per v-model DIREKT in state.settings schreibt (kein setSetting).
+watch(() => [state.settings.coopMyColor, state.settings.boardPalette], () => applyMarkSafeRegionColors());
 watch(() => state.settings, (s) => { saveSettings(s); if (state.account.status === 'in') Account.scheduleSyncUp(); }, { deep: true });
 
 // ─── DATEN: EXPORT / IMPORT / BACKUPS ─────────────────────────────────────────

@@ -11,7 +11,7 @@
 //     lösbar?  → dann ist die Lösung BEWEISBAR eindeutig und ohne Raten lösbar.
 
 import { logicalSolve, KEEP, REMOVE, UNK } from './solver.js';
-import { DIFF_BY_ID, REGION_COLORS, MAX_VAL, regionColorDist } from './config.js';
+import { DIFF_BY_ID, REGION_COLORS, MAX_VAL, regionColorDist, markOnRegionDist } from './config.js';
 
 // ─── Seedbarer Zufall (mulberry32) ────────────────────────────────────────────
 export function makeRng(seed) {
@@ -258,6 +258,61 @@ const COLOR_DIST = REGION_COLORS.map(a => REGION_COLORS.map(b => regionColorDist
 // nutzen (seltenste erlaubte Farbe bevorzugt). "Benachbart" zählt auch
 // diagonal/über Eck (nicht nur orthogonal) — sonst können sich zwei nur an einer
 // Ecke berührende Cages eine zu ähnliche Farbe teilen.
+// ── Markierungs-Sichtbarkeit: Cage-Farben meiden die Spielerfarbe(n) ─────────
+// Ist eine Cage-Farbe der eigenen Spielerfarbe zu ähnlich (pinke Cage + pinke
+// Markierungsfarbe), ist der Einkreis-Ring praktisch unsichtbar. Diese reine
+// Funktion lenkt betroffene Cages nachbarschaftsbewusst (gleiche Greedy-Regeln
+// wie colorRegions) auf sichere Palettenfarben um. Sie läuft CLIENTSEITIG
+// (app.js) mit den EFFEKTIVEN, Paletten-transformierten Farben und den lokalen
+// Spielerfarben — im Coop sieht jedes Gerät also seine eigene sichere Färbung.
+// Rückgabe: colorIndex je Region (unverändert, wo kein Konflikt besteht).
+// Kalibriert an den realen Spielerfarben (COOP_COLORS): die unsichtbar-Fälle
+// (z.B. Pink-Markierung auf Plum-/Magenta-Cage) liegen bei Distanz ~140–157,
+// die nächstbeste klar sichtbare Kombination bei ≳177. 160 bannt je Spieler-
+// farbe nur 1–4 der 18 Palettenfarben — genug Auswahl bleibt immer übrig.
+export const MARK_VISIBILITY_THRESHOLD = 160;
+export function remapColorsForMarkVisibility({ regions, rows, cols, effectiveColors, avoidRgbs, threshold = MARK_VISIBILITY_THRESHOLD }) {
+  const n = effectiveColors.length;
+  const out = regions.map(reg => (reg.colorIndex || 0) % n);
+  const avoid = (avoidRgbs || []).filter(Boolean);
+  if (!avoid.length) return out;
+  const conflict = effectiveColors.map(col => avoid.some(rgb => markOnRegionDist(rgb, col) < threshold));
+  if (!conflict.some(Boolean) || conflict.every(Boolean)) return out;   // nichts zu tun / kein Ausweg
+  // Nachbarschaft (inkl. diagonal, wie colorRegions) aus den Zellen ableiten.
+  const rid = Array.from({ length: rows }, () => new Array(cols).fill(-1));
+  regions.forEach((reg, i) => { for (const [r, c] of reg.cells) rid[r][c] = i; });
+  const adj = Array.from({ length: regions.length }, () => new Set());
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const a = rid[r][c]; if (a < 0) continue;
+    for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+      const rr = r + dr, cc = c + dc;
+      if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) continue;
+      const b = rid[rr][cc];
+      if (b >= 0 && b !== a) { adj[a].add(b); adj[b].add(a); }
+    }
+  }
+  const dist = effectiveColors.map(a => effectiveColors.map(b => regionColorDist(a, b)));
+  const usage = new Array(n).fill(0);
+  for (const ci of out) usage[ci]++;
+  for (let i = 0; i < regions.length; i++) {
+    if (!conflict[out[i]]) continue;
+    const nbCols = [...adj[i]].map(nb => out[nb]);
+    let best = -1, bestU = Infinity;
+    for (let t = SIM_THRESHOLD; best === -1 && t > 0; t -= 20) {
+      for (let col = 0; col < n; col++) {
+        if (conflict[col]) continue;
+        if (nbCols.some(nc => dist[col][nc] < t)) continue;
+        if (usage[col] < bestU) { bestU = usage[col]; best = col; }
+      }
+    }
+    if (best === -1) {  // alle sicheren Farben eng benachbart → wenigst-genutzte sichere
+      for (let col = 0; col < n; col++) if (!conflict[col] && usage[col] < bestU) { bestU = usage[col]; best = col; }
+    }
+    if (best !== -1) { usage[out[i]]--; usage[best]++; out[i] = best; }
+  }
+  return out;
+}
+
 function colorRegions(regions, idGrid, rows, cols) {
   const k = regions.length;
   const adj = Array.from({ length: k }, () => new Set());

@@ -159,6 +159,23 @@ function redmean(A, B) {
   const rm = (A[0] + B[0]) / 2, dr = A[0] - B[0], dg = A[1] - B[1], db = A[2] - B[2];
   return Math.sqrt((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db);
 }
+// Hex-Farbe (#rgb/#rrggbb) → RGB-Tripel (für Spielerfarben-Vergleiche).
+export function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return null;
+  let h = m[1];
+  if (h.length === 3) h = h.split('').map(ch => ch + ch).join('');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+// Sichtbarkeits-Abstand einer OPAKEN Markierungsfarbe (--markcol, Einkreis-Ring)
+// auf der KOMPONIERTEN Cage-Fläche — das schlechtere der beiden Themes zählt
+// (analog regionColorDist). Klein = Ring auf dieser Cage kaum erkennbar.
+export function markOnRegionDist(markRgb, regionColor) {
+  const rc = hslToRgb(regionColor.h, regionColor.s, regionColor.l);
+  const dDark = redmean(markRgb, composite(rc, CELL_BG_DARK, CAGE_ALPHA_DARK));
+  const dLight = redmean(markRgb, composite(rc, CELL_BG_LIGHT, CAGE_ALPHA_LIGHT));
+  return Math.min(dDark, dLight);
+}
 export function regionColorDist(a, b) {
   const ra = hslToRgb(a.h, a.s, a.l), rb = hslToRgb(b.h, b.s, b.l);
   const dDark = redmean(composite(ra, CELL_BG_DARK, CAGE_ALPHA_DARK), composite(rb, CELL_BG_DARK, CAGE_ALPHA_DARK));
