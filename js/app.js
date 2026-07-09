@@ -5835,9 +5835,9 @@ const App = {
         <!-- Profil-Chip: öffnet den Prestige-Screen. Zeigt das ausgerüstete
              verdiente Abzeichen (oder eine Einladung, eins zu verdienen). -->
         <button class="home-profile-chip" :class="{ master: isMasterEquipped() }" @click="openPrestige">
-          <span class="hpc-name">{{ shopDemoBadgeName() }}</span>
           <b v-if="myBadge()" class="badge-medal-inline hpc-medal" v-html="badgeSvg(myBadge())"></b>
           <span v-else class="ico-wrap hpc-add" :title="t('prestige.title')" v-html="ic('medal')"></span>
+          <span class="hpc-name">{{ shopDemoBadgeName() }}</span>
         </button>
       </div>
 
