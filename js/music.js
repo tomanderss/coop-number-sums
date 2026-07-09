@@ -355,6 +355,13 @@ export function sfxUndo() {
   sfxNoise(0, 0.012, 0.22, 6500);
   sfxVoice(midi(-5), 0, 0.24, 0.5, { lp: 650, attack: 0.006, glideTo: midi(-9), glideTime: 0.12 });
 }
+// Neue Chat-Nachricht — freundliches „Blubb-Blubb" (D5 -> A5), bewusst ANDERS als
+// der Hinweis-Ton (sfxHint), damit eine eingehende Nachricht klar erkennbar ist.
+export function sfxChat() {
+  if (!sfxReady()) return;
+  sfxVoice(midi(14), 0, 0.16, 0.34, { lp: 2600, attack: 0.005, partial2: 0.12 });
+  sfxVoice(midi(21), 0.11, 0.30, 0.4, { lp: 3000, attack: 0.005, partial2: 0.18 });
+}
 // Werkzeug-Wechsel (Stift/Radierer) — kurzer, dezenter Zwei-Ton aufwärts (A4 -> D5).
 export function sfxToolSwitch() {
   if (!sfxReady()) return;

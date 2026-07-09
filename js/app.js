@@ -255,7 +255,7 @@ const state = reactive({
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   masterUnlock: false,           // Feier-Screen „Großmeister freigeschaltet" offen?
   prestigeUnlock: null,          // Feier einer neu erreichten Prestige-Stufe { sym, tier, key, more } | null
-  chat: { open: false, messages: [], unread: 0, draft: '' },  // Multiplayer-Textchat (ephemer, in-memory)
+  chat: { open: false, messages: [], unread: 0, draft: '', kb: 0 },  // Multiplayer-Textchat (ephemer; kb = Höhe der eingeblendeten Tastatur px)
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
   walletLogOpen: false,          // Geldverlauf-Modal offen? (Transaktionshistorie)
@@ -1923,7 +1923,7 @@ function receiveChat(msg) {
   const text = String(msg.text || '').slice(0, CHAT_TEXT_MAX);
   if (!text) return;
   pushChatMessage({ uid: msg.author || null, name: String(msg.name || t('chat.anon')).slice(0, 40), color: msg.color || null, badge: msg.badge || null, text, self: false, ts: Date.now() });
-  if (state.settings.sfxHint) Music.sfxHint();  // dezenter Ton für neue Nachricht
+  if (state.settings.sfxHint) Music.sfxChat();  // EIGENER Chat-Ton (nicht der Hinweis-Ton)
   log('coop', 'Chat empfangen', { len: text.length });
 }
 function sendChat() {
@@ -1941,10 +1941,33 @@ function scrollChatToEnd() {
   const el = document.querySelector('.chat-msgs');
   if (el) el.scrollTop = el.scrollHeight;
 }
-function openChat() { state.chat.open = true; state.chat.unread = 0; nextTick(() => { scrollChatToEnd(); document.querySelector('.chat-input')?.focus(); }); }
-function closeChat() { state.chat.open = false; }
+// Beim Tippen im Chat schiebt die eingeblendete Tastatur (Mobile) das Eingabefeld
+// aus dem sichtbaren Bereich. visualViewport meldet die verbleibende Sichthöhe →
+// wir heben das Bottom-Sheet um die Tastaturhöhe an (margin-bottom), sodass Feld
+// UND die letzten Nachrichten sichtbar bleiben. Handler nur aktiv, solange offen.
+let chatVvHandler = null;
+function bindChatViewport() {
+  const vv = window.visualViewport;
+  if (!vv || chatVvHandler) return;
+  const update = () => {
+    const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    if (kb !== state.chat.kb) { state.chat.kb = kb; nextTick(scrollChatToEnd); }
+  };
+  chatVvHandler = update;
+  vv.addEventListener('resize', update);
+  vv.addEventListener('scroll', update);
+  update();
+}
+function unbindChatViewport() {
+  const vv = window.visualViewport;
+  if (vv && chatVvHandler) { vv.removeEventListener('resize', chatVvHandler); vv.removeEventListener('scroll', chatVvHandler); }
+  chatVvHandler = null;
+  state.chat.kb = 0;
+}
+function openChat() { state.chat.open = true; state.chat.unread = 0; bindChatViewport(); nextTick(() => { scrollChatToEnd(); document.querySelector('.chat-input')?.focus(); }); }
+function closeChat() { state.chat.open = false; unbindChatViewport(); }
 function toggleChat() { state.chat.open ? closeChat() : openChat(); }
-function resetChat() { state.chat.messages = []; state.chat.unread = 0; state.chat.open = false; state.chat.draft = ''; }
+function resetChat() { unbindChatViewport(); state.chat.messages = []; state.chat.unread = 0; state.chat.open = false; state.chat.draft = ''; }
 
 function handleCoopMsg(msg) {
   if (msg.type === Coop.MSG.MOVE) {
@@ -7688,7 +7711,7 @@ const App = {
 
     <!-- ══ Multiplayer-Chat (Coop / Race / FFA / Team) ══ -->
     <div v-if="state.chat.open" class="modal-bg chat-bg" @click.self="closeChat">
-      <div class="modal chat-modal">
+      <div class="modal chat-modal" :style="state.chat.kb ? { marginBottom: state.chat.kb + 'px', maxHeight: 'calc(100dvh - ' + (state.chat.kb + 24) + 'px)' } : null">
         <header class="chat-head">
           <h3><span class="ico-wrap" v-html="ic('chat')"></span> {{ t('chat.title') }}</h3>
           <button class="icon-btn" @click="closeChat" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
