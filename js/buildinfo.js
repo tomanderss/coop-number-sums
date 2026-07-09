@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.142';
-export const BUILD_HASH = 'f87ebd4';
+export const BUILD      = '1.143';
+export const BUILD_HASH = 'e7e4e97';
 
 export const CHANGELOG = [
+  {
+    "version": "1.143",
+    "date": "09.07.2026",
+    "changes": [
+      "Mitspieler-Einladung ins Solo-Spiel: Beitretende landen jetzt garantiert direkt im laufenden Spiel (keine Bereit-Lobby mehr) und eine bestehende Pause endet beim Beitritt automatisch"
+    ]
+  },
   {
     "version": "1.142",
     "date": "09.07.2026",
