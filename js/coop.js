@@ -113,7 +113,14 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey)
     onJoin && onJoin(snap.key, snap.val());
   });
   unsubLeave = f.onChildRemoved(playersRef, (snap) => {
-    if (snap.key === f.uid) return;
+    // Der EIGENE Eintrag wurde EXTERN entfernt (z.B. weil der leave() eines
+    // anderen Geräts den Raum fälschlich für leer hielt und komplett löschte,
+    // während wir still abgerissen waren) — wir sind aber nie gegangen:
+    // Anwesenheit (+ ggf. meta) sofort wiederherstellen, sonst spielt man in
+    // einem „Geisterraum" weiter, dem niemand mehr beitreten/fortsetzen kann.
+    // Ein selbst ausgelöstes leave() hängt diesen Listener VOR dem Entfernen
+    // ab, landet also nie hier.
+    if (snap.key === f.uid) { healSelfPresence(f); return; }
     onLeave && onLeave(snap.key);
   });
   unsubEvents = f.onChildAdded(eventsSrc, (snap) => {
@@ -122,6 +129,25 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey)
     if (!msg || msg.author === f.uid) return;
     onMessage && onMessage(msg);
   });
+}
+
+// healSelfPresence(): stellt den eigenen players-Eintrag wieder her, nachdem er
+// EXTERN entfernt wurde (Raum-Löschung durch ein anderes Gerät im „Raum ist
+// leer"-Irrtum, siehe attachListeners/onChildRemoved). War man selbst Host,
+// wird auch das mitgelöschte meta wiederhergestellt — sonst schlägt jeder
+// spätere rejoin() („Coop fortsetzen" des Partners) mit room-gone fehl.
+async function healSelfPresence(f) {
+  if (!myPlayerRef || !selfInfo || !roomCode) return;
+  try {
+    await f.set(myPlayerRef, { ...selfInfo, joinedAt: f.serverTimestamp() });
+    f.onDisconnect(myPlayerRef).remove();
+    if (selfInfo.role === 'host') {
+      const metaRef = f.ref(f.db, `rooms/${roomCode}/meta`);
+      const metaSnap = await f.get(metaRef);
+      if (!metaSnap.exists()) await f.set(metaRef, { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active' });
+    }
+    log('coop', 'Eigene Anwesenheit nach externer Entfernung wiederhergestellt', { role: selfInfo.role });
+  } catch (e) { log('coop', 'Presence-Selbstheilung fehlgeschlagen', e); }
 }
 
 // watchConnection(): überwacht die EIGENE RTDB-Socket-Verbindung über das
@@ -151,6 +177,14 @@ function watchConnection(f, cb) {
           const hostSnap = await f.get(f.ref(f.db, `rooms/${roomCode}/meta/hostId`));
           currentHostId = hostSnap.exists() ? hostSnap.val() : null;
           if (currentHostId) selfInfo.role = currentHostId === f.uid ? 'host' : 'guest';
+          else if (selfInfo.role === 'host') {
+            // meta ging während der Abwesenheit verloren (fälschliche Raum-
+            // Löschung) — als Host wiederherstellen, sonst schlägt jeder spätere
+            // rejoin() („Coop fortsetzen") mit room-gone fehl.
+            currentHostId = f.uid;
+            await f.set(f.ref(f.db, `rooms/${roomCode}/meta`), { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active' });
+            log('coop', 'Fehlendes meta nach Reconnect wiederhergestellt (Host)');
+          }
           await f.set(myPlayerRef, { ...selfInfo, joinedAt: f.serverTimestamp() });
           f.onDisconnect(myPlayerRef).remove();
           log('coop', 'Verbindung wieder online – Anwesenheit neu gesetzt', { role: selfInfo.role });
@@ -181,9 +215,11 @@ export async function hostGame({ code, name, color, onOpen, onError, onJoin, onL
       return;
     }
     roomCode = code;
-    // Stale Events einer früheren Session unter demselben Code dürfen nicht in
-    // die neue Session hineinspielen.
-    await f.remove(f.ref(f.db, `rooms/${code}/events`));
+    // Stale Daten einer früheren Session unter demselben Code dürfen nicht in
+    // die neue Session hineinspielen — den GANZEN Alt-Raum entfernen (nicht nur
+    // events): seit Räume einen letzten Spieler überleben können (keepRoom/
+    // Fortsetzen, s. leave()), lägen sonst auch team-/raceProgress-Reste herum.
+    await f.remove(f.ref(f.db, `rooms/${code}`));
     await f.set(f.ref(f.db, `rooms/${code}/meta`), { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active' });
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
     await f.set(myPlayerRef, { name, color, role: 'host', joinedAt: f.serverTimestamp() });
@@ -200,6 +236,30 @@ export async function hostGame({ code, name, color, onOpen, onError, onJoin, onL
 }
 
 // ─── GAST ─────────────────────────────────────────────────────────────────────
+// computeJoinAnchor(): bestimmt für einen FRISCHEN Beitritt, ab welchem Event-Key
+// die Raum-Historie abgespielt wird (reine Logik, unit-getestet). Früher wurde
+// IMMER die komplette Historie replayed — dadurch spielte ein Beitretender das
+// STATUS („won") einer längst beendeten früheren Runde ab (Sieganimation aus dem
+// Nichts), landete über ein altes INIT in einer hängenden Bereit-Lobby und
+// erschien beim Partner als aktiv, obwohl er nie im Spiel ankam. Jetzt gilt:
+// • Läuft gerade eine Runde (letztes INIT ohne nachfolgendes finales STATUS),
+//   wird exakt AB diesem INIT abgespielt — der Beitretende rekonstruiert den
+//   kompletten Rundenstand (Puzzle, Züge, Leben, Pausen) deterministisch in
+//   Originalreihenfolge und spielt sofort mit.
+// • Ist keine Runde offen (Lobby/Zwischenrunde/Race/Team), wird die Historie
+//   komplett übersprungen; das nächste INIT/START kommt live.
+// events: Array von {key, val} in chronologischer Key-Reihenfolge.
+// Rückgabe: {afterKey} — Key, HINTER dem der Listener aufsetzt (null = von Anfang an).
+export function computeJoinAnchor(events) {
+  let prevKey = null, initAnchor = null, roundOpen = false;
+  for (const { key, val } of events) {
+    if (val && val.type === 'init') { initAnchor = prevKey; roundOpen = true; }
+    else if (val && val.type === 'status' && (val.status === 'won' || val.status === 'lost')) roundOpen = false;
+    prevKey = key;
+  }
+  return { afterKey: roundOpen ? initAnchor : prevKey };
+}
+
 export async function joinGame({ code, name, color, onOpen, onError, onMessage, onClose, onConnection, maxPlayers = COOP_MAX_PLAYERS }) {
   try {
     const f = await ensureDb();
@@ -220,7 +280,19 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
     await f.set(myPlayerRef, { name, color, role: 'guest', joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
     selfInfo = { name, color, role: 'guest' };
-    attachListeners(f, code, { onJoin: null, onLeave: (id) => onClose && onClose(id), onMessage });
+    // Beitritts-Anker bestimmen (siehe computeJoinAnchor): nie wieder die ganze
+    // Historie abspielen. Schlägt die Leseabfrage fehl, wird defensiv ohne Anker
+    // angehängt (altes Verhalten) — besser ein Voll-Replay als gar kein Spielstand.
+    let afterKey = null;
+    try {
+      const evSnap = await withTimeout(f.get(f.ref(f.db, `rooms/${code}/events`)));
+      const events = [];
+      evSnap.forEach((child) => { events.push({ key: child.key, val: child.val() }); });
+      afterKey = computeJoinAnchor(events).afterKey;
+      log('coop', `Beitritts-Anker bestimmt`, { events: events.length, afterKey });
+    } catch (e) { log('coop', 'Event-Anker beim Beitritt nicht lesbar – Voll-Replay als Fallback', e); }
+    lastEventKey = afterKey;
+    attachListeners(f, code, { onJoin: null, onLeave: (id) => onClose && onClose(id), onMessage }, afterKey);
     watchConnection(f, onConnection);
     log('coop', `Raum ${code} beigetreten`, { uid: f.uid });
     onOpen && onOpen(f.uid);
@@ -241,15 +313,28 @@ export async function rejoin({ code, name, color, role, afterEventKey, onOpen, o
     const f = await ensureDb();
     log('coop', `Verbinde erneut mit Raum ${code}…`);
     const metaSnap = await withTimeout(f.get(f.ref(f.db, `rooms/${code}/meta`)));
-    if (!metaSnap.exists()) {
-      log('coop', `Raum ${code} existiert nicht mehr`);
-      onError && onError({ type: 'room-gone' });
-      return;
+    let meta = metaSnap.exists() ? (metaSnap.val() || {}) : null;
+    if (!meta) {
+      // meta fehlt — das heißt NICHT zwingend, dass der Raum weg ist: eine
+      // fälschliche Raum-Löschung (leave() eines Partners, der den Raum für leer
+      // hielt) konnte einen „Torso" hinterlassen, in dem der Partner weiterspielt
+      // (players/events existieren wieder). Solange noch irgendjemand im Raum
+      // ist, wird meta wiederhergestellt statt den Wiedereinstieg zu verweigern.
+      const playersSnap = await withTimeout(f.get(f.ref(f.db, `rooms/${code}/players`)));
+      if (!playersSnap.exists() || playersSnap.size === 0) {
+        log('coop', `Raum ${code} existiert nicht mehr`);
+        onError && onError({ type: 'room-gone' });
+        return;
+      }
+      let firstUid = null;
+      playersSnap.forEach((child) => { if (!firstUid) firstUid = child.key; });
+      meta = { hostId: role === 'host' ? f.uid : (firstUid || f.uid) };
+      await f.set(f.ref(f.db, `rooms/${code}/meta`), { ...meta, createdAt: f.serverTimestamp(), status: 'active' });
+      log('coop', `Raum ${code}: fehlendes meta wiederhergestellt`, { hostId: meta.hostId });
     }
     // Prüfen, ob wir noch der aktuelle Host sind — falls inzwischen ein anderer
     // Spieler die Host-Rolle übernommen hat (meta.hostId wurde von promoteToHost()
     // aktualisiert), treten wir als Gast wieder bei.
-    const meta = metaSnap.val() || {};
     const actualRole = meta.hostId === f.uid ? 'host' : 'guest';
     roomCode = code;
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
@@ -372,7 +457,14 @@ export function listenRaceProgress(onUpdate) {
   unsubRaceProgress = fb.onValue(ref, (snap) => onUpdate && onUpdate(snap.val() || {}));
 }
 
-export async function leave() {
+// keepRoom: true = Raum bewusst NICHT aufräumen, auch wenn er (scheinbar) leer
+// ist — gesetzt, wenn der Verlassende eine wiederaufnehmbare Coop-Session
+// gespeichert hat („Zum Menü" mitten in der Runde, s. quitToHome in app.js).
+// Vorher löschte genau dieser Pfad den Raum, sobald der Partner zufällig gerade
+// still abgerissen war (onDisconnect hatte dessen players-Eintrag entfernt,
+// er spielte aber lokal weiter) — danach schlug „Coop fortsetzen" auf BEIDEN
+// Seiten mit „Raum existiert nicht mehr" fehl.
+export async function leave({ keepRoom = false } = {}) {
   const f = fb, code = roomCode, playerRef = myPlayerRef;
   unsubJoin && unsubJoin(); unsubLeave && unsubLeave(); unsubEvents && unsubEvents();
   unsubTeamEvents && unsubTeamEvents(); unsubTeamProgress && unsubTeamProgress();
@@ -384,10 +476,17 @@ export async function leave() {
   try {
     await f.onDisconnect(playerRef).cancel();
     await f.remove(playerRef);
-    const playersSnap = await f.get(f.ref(f.db, `rooms/${code}/players`));
-    if (!playersSnap.exists() || playersSnap.size === 0) {
-      await f.remove(f.ref(f.db, `rooms/${code}`));
-    }
+    if (keepRoom) { log('coop', `Raum ${code} verlassen – bleibt für Fortsetzen bestehen`); return; }
+    // Aufräumen nur, wenn der Raum WIRKLICH leer ist — serverseitig bestätigt:
+    // runTransaction prüft atomar (Compare-and-Set) gegen den Serverstand und
+    // bricht ab, sobald irgendein Spieler (wieder) eingetragen ist. Der frühere
+    // get()+remove()-Zweizeiler konnte dagegen auf einem veralteten Stand
+    // entscheiden und den Raum unter einem noch aktiven Partner wegziehen.
+    await f.runTransaction(f.ref(f.db, `rooms/${code}`), (room) => {
+      if (room === null) return null;                                        // schon weg
+      if (room.players && Object.keys(room.players).length > 0) return;      // Partner da → abbrechen, Raum behalten
+      return null;                                                           // bestätigt leer → löschen
+    });
   } catch (e) {
     log('coop', `Verlassen von Raum ${code} fehlgeschlagen`, e);
   }

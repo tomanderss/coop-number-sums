@@ -1969,7 +1969,14 @@ function closeChat() { state.chat.open = false; unbindChatViewport(); }
 function toggleChat() { state.chat.open ? closeChat() : openChat(); }
 function resetChat() { unbindChatViewport(); state.chat.messages = []; state.chat.unread = 0; state.chat.open = false; state.chat.draft = ''; }
 
+// Nachrichten, die einen LAUFENDEN Spielzustand voraussetzen — ohne geladenes
+// Brett (z.B. direkt nach dem Beitritt, bevor das INIT eintrifft) würden sie
+// ins Leere greifen bzw. Reste eines früheren Spiels manipulieren.
+const COOP_GAME_MSGS = new Set([Coop.MSG.MOVE, Coop.MSG.UNDO, Coop.MSG.CHECK, Coop.MSG.MISTAKE, Coop.MSG.PAUSE, Coop.MSG.HINT, Coop.MSG.STATUS]);
 function handleCoopMsg(msg) {
+  // Race hält state.coop.active absichtlich false (s. state.race-Kommentar),
+  // empfängt aber legitime PAUSE-Events über den Raum → race.active zählt mit.
+  if (COOP_GAME_MSGS.has(msg.type) && (!state.puzzle || (!state.coop.active && !state.team.active && !state.race.active))) return;
   if (msg.type === Coop.MSG.MOVE) {
     setMark(msg.r, msg.c, msg.mark, false, msg.from);
   } else if (msg.type === Coop.MSG.UNDO) {
@@ -1995,6 +2002,10 @@ function handleCoopMsg(msg) {
   } else if (msg.type === Coop.MSG.START) {
     if (state.coop.awaitingStart) startCoopGame(msg.startTime);
   } else if (msg.type === Coop.MSG.STATUS) {
+    // In der Bereit-Lobby kann ein Rundenende unmöglich echt sein — nur ein
+    // verirrtes/verspätetes Event einer früheren Runde. Ignorieren, sonst
+    // beendet es die noch gar nicht gestartete Runde sofort.
+    if (state.coop.awaitingStart) return;
     const remote = { timeMs: msg.timeMs, mistakes: msg.mistakes, hintsUsed: msg.hintsUsed };
     if (msg.status === 'won') win(remote);
     else if (msg.status === 'lost') lose(remote);
@@ -2107,11 +2118,15 @@ function handleCoopMsg(msg) {
   }
 }
 
-function coopReset() {
+// keepRoom: der Aufrufer hat eine wiederaufnehmbare Coop-Session gesichert
+// (quitToHome mitten in der Runde) — der Raum in der RTDB muss dann für
+// „Coop fortsetzen" bestehen bleiben, selbst wenn er im Moment des Verlassens
+// (scheinbar) leer ist (s. Coop.leave()).
+function coopReset({ keepRoom = false } = {}) {
   coopIntentionalLeave = true;
   coopOutbox = [];
-  Coop.leave();
-  clearCoopSession();
+  Coop.leave({ keepRoom });
+  if (!keepRoom) clearCoopSession();
   // Ausstehende nachgelagerte Fortschritts-Pushs (siehe pushTeamProgress()/
   // pushRaceProgress() oben) dürfen nicht nach dem Verlassen des Raums noch
   // feuern -- der Raum existiert dann ggf. nicht mehr.
@@ -3101,7 +3116,11 @@ function quitToHome() {
   const coopSnap = slot === 'coop' && wasPlaying ? activeSnapshot() : null;
   // lastEventKey VOR coopReset() abgreifen — Coop.leave() setzt ihn zurück.
   const coopSess = coopSnap ? { code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId, lastEventKey: Coop.getLastEventKey() } : null;
-  if (state.coop.role) coopReset();
+  // keepRoom: Wird eine fortsetzbare Session gesichert, darf leave() den Raum
+  // NICHT aufräumen — sonst zeigt „Coop fortsetzen" später ins Leere („Raum
+  // existiert nicht mehr"), z.B. wenn der Partner beim Verlassen zufällig
+  // gerade still abgerissen war und der Raum dadurch leer aussah.
+  if (state.coop.role) coopReset({ keepRoom: !!coopSess });
   // Solo- und Coop-Spielstände leben in getrennten Storage-Slots (siehe
   // persistGame()) -- ein Verlassen des einen Modus darf den gespeicherten
   // Stand des anderen nicht überschreiben/löschen. Der Solo-Slot wird NUR bei
