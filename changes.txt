@@ -1,0 +1,1 @@
+Geldverlauf ist jetzt geräteübergreifend zuverlässig: Buchungen reisen mit dem Konto mit (inkl. Details wie Schwierigkeit, Modus, Basis und Multiplikator je Sieg) — erspieltes Geld eines anderen Geräts erscheint nie mehr fälschlich als „Admin-Geschenk", nur echte Geschenke werden noch so gebucht

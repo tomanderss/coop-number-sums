@@ -544,6 +544,7 @@ export default {
       earn: '적립',
       other: '거래',
     },
+    detail: { base: '기본 {n}', perfect: '무결점', bestTime: '최고 기록', streak: '연속 +{pct}%' },
   },
   sync: {
     mismatchBadge: '버전 불일치',

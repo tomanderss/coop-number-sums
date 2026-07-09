@@ -544,6 +544,7 @@ export default {
       earn: 'Начисление',
       other: 'Операция',
     },
+    detail: { base: 'база {n}', perfect: 'безупречно', bestTime: 'рекорд', streak: '+{pct}% серия' },
   },
   sync: {
     mismatchBadge: 'Несовпадение версий',

@@ -21,6 +21,7 @@ import {
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
   deviceId, saveConflictBackup, pickActiveGame, HISTORY_MAX,
+  loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -139,6 +140,7 @@ export function mergeSnapshots(local = {}, cloud = {}) {
     race: mergeNumericDeep(local.race || {}, cloud.race || {}),
     inventory: { ...(cloud.inventory || {}), ...(local.inventory || {}) },            // Union
     wallet: newer.wallet || (localNewer ? cloud.wallet : local.wallet) || {},
+    walletLog: mergeWalletLogs(local.walletLog, cloud.walletLog),   // Herkunfts-Verlauf beider Seiten vereinigen
     completedGames: [...new Set([...(local.completedGames || []), ...(cloud.completedGames || [])])],
     profile: newer.profile || (localNewer ? cloud.profile : local.profile) || {},
   };
@@ -722,19 +724,21 @@ async function uploadLocal(fb, uid) {
 // Cloud → lokal (nur bei 'takeCloud' oder Nutzerwahl „Cloud behalten"). Überschreibt
 // die lokalen Nutzdaten bewusst mit dem Cloud-Snapshot; Inventar bleibt vereinigt.
 async function applyCloud(fb, uid, snap) {
-  // Guthaben-Diff VOR dem Überschreiben festhalten, um eine per Admin geschenkte/
-  // entzogene Summe im Geldverlauf zu buchen, wenn der Empfänger beim Gift OFFLINE
-  // war (dann greift die Live-Buchung via applyCloudWallet/watchGifts nicht). Der
-  // Import setzt den Saldo, protokolliert ihn aber nicht — daher hier nachziehen.
+  // Guthaben-Diff VOR dem Überschreiben festhalten. NUR der durch den (mit-
+  // importierten, Union-gemergten) Geldverlauf NICHT erklärte Rest wird als
+  // Admin-Geschenk/-Entzug gebucht — erspieltes Geld anderer Geräte bringt
+  // seine eigenen 'win'-Einträge mit und darf nie als Geschenk erscheinen
+  // (so entstand der frühere „3 Admin-Geschenke à 4–8k"-Effekt beim Login).
   const prevBalance = loadWallet().balance || 0;
+  const prevLog = loadWalletLog();
   if (snap) {
     const localInv = loadInventory();
     importFromFile(JSON.stringify(snap));
     mergeInventory(localInv);                 // eigene Unlocks nicht verlieren
     const newBalance = loadWallet().balance || 0;
-    // Diff-basiert ⇒ inhärent doppelbuchungssicher: hat watchGifts/applyCloudWallet
-    // die Änderung schon gebucht (Saldo bereits neu), ist der Diff hier 0.
-    if (newBalance !== prevBalance) noteWalletTransaction(newBalance - prevBalance, newBalance > prevBalance ? 'gift' : 'adminRevoke');
+    // Residual-basiert ⇒ weiterhin doppelbuchungssicher (schon gebuchter Diff = 0).
+    const residual = unexplainedWalletDelta(prevLog, loadWalletLog(), newBalance - prevBalance);
+    if (residual !== 0) noteWalletTransaction(residual, residual > 0 ? 'gift' : 'adminRevoke');
   }
   await mergeCloudInventory(fb, uid);
   // WICHTIG: syncedRev muss GENAU dem entsprechen, was decideSync beim nächsten
@@ -1131,7 +1135,14 @@ export async function watchGifts(cb) {
     const u = currentUser(fb);
     if (!u || u.isAnonymous) return () => {};
     const offInv = fb.onValue(userRef(fb, u.uid, 'inventory'), (snap) => cb({ inventory: snap.val() || {} }));
-    const offWal = fb.onValue(userRef(fb, u.uid, 'data/wallet'), (snap) => cb({ wallet: snap.val() || null }));
+    const offWal = fb.onValue(userRef(fb, u.uid, 'data/wallet'), async (snap) => {
+      // Den Cloud-Geldverlauf MITLIEFERN: so erkennt applyCloudWallet, welcher
+      // Teil der Saldo-Differenz durch normale Buchungen (Sync eines anderen
+      // Geräts) erklärt ist — nur der Rest ist ein echtes Admin-Geschenk.
+      let walletLog = null;
+      try { walletLog = (await fb.get(userRef(fb, u.uid, 'data/walletLog'))).val(); } catch (_) {}
+      cb({ wallet: snap.val() || null, walletLog });
+    });
     return () => { try { offInv(); } catch (_) {} try { offWal(); } catch (_) {} };
   } catch (e) { log('account', 'watchGifts fehlgeschlagen', e); return () => {}; }
 }

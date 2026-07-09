@@ -23,6 +23,7 @@ const {
   reconcileInventoryFromCloud, applyCloudWallet,
   loadWallet, grantCurrency, spendCurrency, loadProfile, saveProfile,
   collectExportData, pickActiveGame, loadActiveGameBackup,
+  loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
 const { todayDateStr } = await import('../../js/streak.js');
@@ -656,5 +657,72 @@ describe('storage.importFromFile bewahrt Aktivspiel-Slots', () => {
   test('leerer lokaler Slot übernimmt das importierte Spiel weiterhin', () => {
     importFromFile(JSON.stringify({ activeGame: game(700) }));
     assert.equal(loadActiveGame().ts, 700);
+  });
+});
+
+describe('storage.walletLog (geräteübergreifende Herkunft des Guthabens)', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+  const entry = (id, amount, reason, ts, meta) => ({ id, ts, amount, reason, ...(meta ? { meta } : {}) });
+
+  test('grantCurrency schreibt Eintrag mit eindeutiger id + meta', () => {
+    grantCurrency(120, 'win', { difficulty: 'mittel', mode: 'solo', mult: 2 });
+    const l = loadWalletLog();
+    assert.equal(l.length, 1);
+    assert.ok(l[0].id, 'id fehlt');
+    assert.equal(l[0].amount, 120);
+    assert.equal(l[0].meta.difficulty, 'mittel');
+  });
+  test('mergeWalletLogs: Union nach id, jüngste zuerst, keine Duplikate', () => {
+    const a = [entry('x', 100, 'win', 300), entry('y', -50, 'shop:frame_gold', 200)];
+    const b = [entry('x', 100, 'win', 300), entry('z', 80, 'win', 400)];
+    const m = mergeWalletLogs(a, b);
+    assert.deepEqual(m.map(e => e.id), ['z', 'x', 'y']);
+  });
+  test('mergeWalletLogs: Alt-Einträge ohne id werden über Felder dedupliziert', () => {
+    const legacy = { ts: 100, amount: 500, reason: 'win' };
+    const m = mergeWalletLogs([legacy], [{ ...legacy }]);
+    assert.equal(m.length, 1);
+  });
+  test('unexplainedWalletDelta: durch fremde Einträge erklärte Differenz ⇒ 0 (kein falsches Geschenk)', () => {
+    const prev = [entry('a', 100, 'win', 100)];
+    const merged = [entry('b', 8000, 'win', 300), entry('c', -2000, 'shop:x', 200), ...prev];
+    // Cloud-Saldo lag 6000 über lokal — exakt durch +8000 Sieg und −2000 Kauf erklärt.
+    assert.equal(unexplainedWalletDelta(prev, merged, 6000), 0);
+  });
+  test('unexplainedWalletDelta: unerklärter Rest bleibt übrig (echtes Admin-Geschenk)', () => {
+    const prev = [];
+    const merged = [entry('b', 1000, 'win', 300)];
+    assert.equal(unexplainedWalletDelta(prev, merged, 3500), 2500);
+  });
+  test('applyCloudWallet bucht NUR den unerklärten Rest als gift', () => {
+    grantCurrency(100, 'win');                     // lokal: 100
+    const cloudLog = [entry('c1', 100, 'win', 1), entry('c2', 900, 'win', 2, { difficulty: 'rip' })];
+    // Hmm: c1 entspricht nicht dem lokalen Eintrag (andere id) — bewusst NUR c2 als fremd rechnen:
+    const local = loadWalletLog();
+    const merged = mergeWalletLogs(local, [entry('c2', 900, 'win', 2)]);
+    assert.equal(unexplainedWalletDelta(local, merged, 900), 0);
+    // Voller Pfad: Cloud-Saldo 1500 = lokal 100 + 900 erspielt (erklärt) + 500 Geschenk (unerklärt)
+    applyCloudWallet({ balance: 1500, updatedAt: Date.now() + 1000 }, [entry('c2', 900, 'win', 2)]);
+    const l = loadWalletLog();
+    assert.equal(loadWallet().balance, 1500);
+    const gift = l.find(e => e.reason === 'gift');
+    assert.ok(gift, 'Geschenk-Eintrag fehlt');
+    assert.equal(gift.amount, 500);
+    assert.ok(l.find(e => e.id === 'c2'), 'fremder win-Eintrag muss übernommen sein');
+  });
+  test('applyCloudWallet ohne unerklärten Rest bucht KEIN Geschenk', () => {
+    grantCurrency(100, 'win');
+    applyCloudWallet({ balance: 1100, updatedAt: Date.now() + 1000 }, [{ id: 'w9', ts: 5, amount: 1000, reason: 'win' }]);
+    assert.equal(loadWallet().balance, 1100);
+    assert.equal(loadWalletLog().filter(e => e.reason === 'gift').length, 0);
+  });
+  test('collectExportData/importFromFile nehmen den Verlauf mit (Union, nie schrumpfen)', () => {
+    grantCurrency(100, 'win');
+    const snap = collectExportData('sync');
+    assert.equal(snap.walletLog.length, 1);
+    globalThis.localStorage.clear();
+    grantCurrency(50, 'win');
+    importFromFile(JSON.stringify(snap));
+    assert.equal(loadWalletLog().length, 2);   // eigener + importierter Eintrag
   });
 });

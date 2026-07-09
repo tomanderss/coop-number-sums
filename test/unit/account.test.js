@@ -289,6 +289,13 @@ describe('account.mergeSnapshots (verlustfreier Merge bei Divergenz)', () => {
     assert.equal(m.stats.byDifficulty.mittel.bestTimeMs, 80000);  // bessere (kleinere) Zeit gewinnt
     assert.equal(m.stats.byDifficulty.schwer.won, 1);             // nur in der Cloud → bleibt
   });
+  test('Geldverlauf: Union nach id — Herkunft beider Seiten bleibt erhalten', () => {
+    const m2 = mergeSnapshots(
+      { ts: 2, walletLog: [{ id: 'a', ts: 10, amount: 100, reason: 'win' }] },
+      { ts: 1, walletLog: [{ id: 'b', ts: 20, amount: 200, reason: 'win' }, { id: 'a', ts: 10, amount: 100, reason: 'win' }] },
+    );
+    assert.deepEqual(m2.walletLog.map(e => e.id), ['b', 'a']);
+  });
   test('Union für Inventar/Erfolge/abgerechnete Partien — nichts geht verloren', () => {
     assert.ok(m.inventory.winfx_meteor && m.inventory.palette_neon);
     assert.ok(m.achievements.firstWin && m.achievements.tenWins);

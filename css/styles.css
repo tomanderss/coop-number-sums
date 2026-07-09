@@ -452,6 +452,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .home-grid .btn { white-space: nowrap; padding: 10px 10px; font-size: clamp(.74rem, 3.6vw, .95rem); gap: 8px; }
 .home-grid .btn-ic { width: auto; font-size: 1.15rem; }
+.wl-detail { display: block; font-size: .72rem; opacity: .7; }
+
 /* Sicherheitskopien-Liste (Einstellungen ▸ Daten). */
 .backup-section { margin-top: 14px; border-top: 1px solid var(--line, rgba(128,128,128,.25)); padding-top: 10px; }
 .backup-title { margin: 0 0 6px; font-size: .9rem; }

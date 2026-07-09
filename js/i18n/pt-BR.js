@@ -544,6 +544,7 @@ export default {
       earn: 'Crédito',
       other: 'Transação',
     },
+    detail: { base: 'base {n}', perfect: 'impecável', bestTime: 'melhor tempo', streak: '+{pct}% sequência' },
   },
   sync: {
     mismatchBadge: 'Conflito de versão',
