@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.136';
-export const BUILD_HASH = 'd02c2a2';
+export const BUILD      = '1.137';
+export const BUILD_HASH = '07b2e6b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.137",
+    "date": "09.07.2026",
+    "changes": [
+      "Geldverlauf: Eine Sieg-Belohnung zeigt jetzt die Schwierigkeit und den Modus, und beim Antippen klappt die volle Multiplikator-Aufschlüsselung auf — Basis, jeder einzelne Faktor (Mehrspieler ×2, makellos ×2, neue Bestzeit ×2, Serien-Bonus) und der Gesamt-Multiplikator"
+    ]
+  },
   {
     "version": "1.136",
     "date": "09.07.2026",
