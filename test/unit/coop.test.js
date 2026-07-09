@@ -10,7 +10,7 @@
 //   altes INIT reaktivierte die Bereit-Lobby.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeJoinAnchor } from '../../js/coop.js';
+import { computeJoinAnchor, sanitizeForFirebase } from '../../js/coop.js';
 
 const ev = (key, type, extra = {}) => ({ key, val: { type, ...extra } });
 
@@ -86,4 +86,35 @@ test('defekte Einträge (val fehlt) werden übersprungen, Keys zählen trotzdem 
     ev('k3', 'move'),
   ];
   assert.equal(computeJoinAnchor(events).afterKey, 'k1');
+});
+
+// Regression (Diagnoseprotokoll v1.145): Ein Solo-Spiel hält hintsLeft = Infinity
+// (HINTS in config.js). Landete das ungefiltert im Solo→Coop-INIT, verwarf
+// Firebase RTDB den GESAMTEN Schreibvorgang (kein Infinity/NaN erlaubt) — das
+// INIT kam nie beim Beitretenden an, nur das folgende START → „hängt in der
+// Lobby". sanitizeForFirebase ersetzt nicht-endliche Zahlen durch null.
+test('sanitizeForFirebase ersetzt Infinity/-Infinity/NaN durch null (verschachtelt)', () => {
+  const init = {
+    type: 'init', gameId: 'g1', running: true,
+    lives: 3, maxLives: 3, hintsLeft: Infinity, hintsUsed: 2, mistakes: 1,
+    startTime: 1700000000000,
+    puzzle: { rows: 2, cols: 2, values: [[1, 2], [3, 4]] },
+    marks: [['keep', 'none'], ['remove', 'none']],
+  };
+  const clean = sanitizeForFirebase(init);
+  assert.equal(clean.hintsLeft, null);       // Infinity → null (RTDB verwirft den Key → Empfänger default HINTS)
+  assert.equal(clean.lives, 3);              // endliche Zahlen bleiben
+  assert.equal(clean.hintsUsed, 2);
+  assert.equal(clean.running, true);         // Nicht-Zahlen unverändert
+  assert.equal(clean.gameId, 'g1');
+  assert.deepEqual(clean.puzzle.values, [[1, 2], [3, 4]]);
+  assert.deepEqual(clean.marks, [['keep', 'none'], ['remove', 'none']]);
+});
+
+test('sanitizeForFirebase behandelt -Infinity und NaN', () => {
+  assert.equal(sanitizeForFirebase(-Infinity), null);
+  assert.equal(sanitizeForFirebase(NaN), null);
+  assert.equal(sanitizeForFirebase(0), 0);
+  assert.equal(sanitizeForFirebase(-5), -5);
+  assert.deepEqual(sanitizeForFirebase([1, Infinity, 3]), [1, null, 3]);
 });
