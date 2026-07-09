@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp } from './helpers.js';
+import { gotoApp, startNewGame } from './helpers.js';
 
 // Coop.isAvailable() only checks for a fetch-capable browser, so the coop
 // button is never disabled in this suite. We deliberately do NOT attempt a
@@ -180,6 +180,92 @@ test.describe('coop', () => {
     await goToCoop(page);
     await page.locator('.screen.coop-screen .topbar .icon-btn').first().click();
     await expect(page.locator('.screen.home')).toBeVisible();
+  });
+
+  // ─── Solo → Coop Live-Umwandlung ────────────────────────────────────────────
+  // Der Host-Pfad (echter Firebase-Raum) wird hier bewusst nicht ausgelöst; die
+  // Tests decken die UI-Sichtbarkeit und die Gast-Seite (INIT mit Zwischenstand)
+  // ab — Letzteres ist exakt das, was ein Beitretender einer umgewandelten
+  // Solo-Partie empfängt.
+  test('the pause menu offers "invite a player" in a solo game, but not in training', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page);
+    await page.locator('.game-top .icon-btn').first().click(); // Pause
+    await expect(page.locator('.pause-overlay')).toBeVisible();
+    // Solo + spielend → Einladen-Knopf sichtbar (canInviteToSolo()).
+    await expect(page.locator('.pause-overlay .btn', { hasText: 'Mitspieler einladen' })).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.soloInvite.status)).toBe('idle');
+  });
+
+  // Host-Seite der Umwandlung, OHNE echtes Firebase: onSoloInviteRoomOpen/
+  // onSoloInviteJoin sind über den localhost-Testhook erreichbar; Coop.send()
+  // ist ohne verbundenen Raum ein sicheres No-op. Geprüft wird der komplette
+  // lokale Zustandsumbau beim ersten Beitritt.
+  test('the first join converts the running solo game to coop (host side)', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page);
+    // Zwei eigene Züge, damit markedBy-Einträge zum Umschreiben existieren.
+    await page.evaluate(() => {
+      const { state, onCellTap } = window.__cns; const p = state.puzzle;
+      state.tool = p.solution[0][0] ? 'pen' : 'eraser'; onCellTap(0, 0);
+      state.tool = p.solution[0][1] ? 'pen' : 'eraser'; onCellTap(0, 1);
+    });
+    await page.evaluate(() => {
+      window.__cns.state.settings.coopName = 'Tom';
+      window.__cns.onSoloInviteRoomOpen('fake-me', '123456');   // Raum steht
+      window.__cns.onSoloInviteJoin('fake-guest', { name: 'Mara', color: '#f00' }); // erster Beitritt
+    });
+
+    const s = await page.evaluate(() => ({
+      status: window.__cns.state.soloInvite.status,
+      coopActive: window.__cns.state.coop.active,
+      role: window.__cns.state.coop.role,
+      myId: window.__cns.state.coop.myId,
+      saveSlot: window.__cns.state.saveSlot,
+      players: window.__cns.state.coop.players.map(p => p.name).sort(),
+      markedBy00: window.__cns.state.markedBy[0][0],
+      gameStatus: window.__cns.state.status,
+      soloSlot: JSON.parse(localStorage.getItem('cns_active_game') || 'null'),
+    }));
+    expect(s.status).toBe('converted');
+    expect(s.coopActive).toBe(true);
+    expect(s.role).toBe('host');
+    expect(s.saveSlot).toBe('coop');
+    expect(s.players).toEqual(['Mara', 'Tom']);
+    expect(s.markedBy00).toBe('fake-me');   // eigene Solo-Züge gehören jetzt der Coop-Identität
+    expect(s.gameStatus).toBe('playing');   // Spiel lief einfach weiter
+    expect(s.soloSlot).toBe(null);          // Solo-Slot geräumt (lebt im Coop-Slot weiter)
+  });
+
+  test('a converted solo game\'s INIT carries the mid-game state (lives/hints/mistakes) to the joiner', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const puzzle = {
+        rows: 4, cols: 4,
+        rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1],
+        values: Array.from({ length: 4 }, () => Array(4).fill(1)),
+        solution: Array.from({ length: 4 }, () => Array(4).fill(true)),
+        regions: [], difficulty: 'leicht',
+      };
+      // Exakt die Events, die completeSoloConversion() in den Raum legt: INIT
+      // mit Zwischenstand (halb gespielte Runde) + START mit vergangener Startzeit.
+      window.__cns.handleCoopMsg({
+        type: 'init', puzzle, marks: null, markedBy: null, startTime: Date.now() - 60000,
+        lives: 1, maxLives: 3, hintsLeft: 0, hintsUsed: 3, mistakes: 2,
+      });
+      window.__cns.handleCoopMsg({ type: 'start', startTime: Date.now() - 60000 });
+    });
+    await page.waitForSelector('.screen.game');
+
+    const s = await page.evaluate(() => ({
+      lives: window.__cns.state.lives, maxLives: window.__cns.state.maxLives,
+      hintsLeft: window.__cns.state.hintsLeft, hintsUsed: window.__cns.state.hintsUsed,
+      mistakes: window.__cns.state.mistakes, status: window.__cns.state.status,
+      awaitingStart: window.__cns.state.coop.awaitingStart,
+    }));
+    expect(s).toEqual({ lives: 1, maxLives: 3, hintsLeft: 0, hintsUsed: 3, mistakes: 2, status: 'playing', awaitingStart: false });
+    // Zeit läuft ab dem übermittelten Startzeitpunkt weiter (≈ 60s, nicht 0).
+    await page.waitForFunction(() => window.__cns.state.elapsed >= 59000);
   });
 
   // Bildschirme verhalten sich wie ein Stack: Zurück führt Schritt für Schritt
