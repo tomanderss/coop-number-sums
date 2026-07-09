@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.133';
-export const BUILD_HASH = '66dc500';
+export const BUILD      = '1.134';
+export const BUILD_HASH = '2b44ede';
 
 export const CHANGELOG = [
+  {
+    "version": "1.134",
+    "date": "09.07.2026",
+    "changes": [
+      "Cage-Farben weichen jetzt automatisch deiner Spielerfarbe aus: Eine pinke Cage bei pinker Markierungsfarbe (unsichtbare Einkreis-Ringe) kommt nicht mehr vor — geprüft beim Brett-Laden, bei Farb-/Palettenwechsel und im Mehrspieler für alle Spielerfarben"
+    ]
+  },
   {
     "version": "1.133",
     "date": "09.07.2026",
