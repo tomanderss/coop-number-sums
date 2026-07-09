@@ -1,1 +1,0 @@
-Kritischer Fix: Mitspieler landen beim Einladen ins Solo-Spiel jetzt wirklich direkt im Spiel – ein „unendlich"-Wert (unbegrenzte Hinweise) hatte zuvor die Spielstand-Übertragung an Firebase komplett scheitern lassen; nebenbei synchronisiert sich auch der Solo-Spielstand geräteübergreifend wieder

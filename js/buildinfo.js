@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.145';
-export const BUILD_HASH = 'ccf1301';
+export const BUILD      = '1.146';
+export const BUILD_HASH = '57be3da';
 
 export const CHANGELOG = [
+  {
+    "version": "1.146",
+    "date": "09.07.2026",
+    "changes": [
+      "Kritischer Fix: Mitspieler landen beim Einladen ins Solo-Spiel jetzt wirklich direkt im Spiel – ein „unendlich\"-Wert (unbegrenzte Hinweise) hatte zuvor die Spielstand-Übertragung an Firebase komplett scheitern lassen; nebenbei synchronisiert sich auch der Solo-Spielstand geräteübergreifend wieder"
+    ]
+  },
   {
     "version": "1.145",
     "date": "09.07.2026",
