@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.144';
-export const BUILD_HASH = '59358c8';
+export const BUILD      = '1.145';
+export const BUILD_HASH = 'ccf1301';
 
 export const CHANGELOG = [
+  {
+    "version": "1.145",
+    "date": "09.07.2026",
+    "changes": [
+      "Solo-Einladung: zusätzliches Sicherheitsnetz – sobald der Partner etwas tut, steigt der Beitretende garantiert ins Spiel ein (kein Lobby-Hänger mehr), plus mehr Diagnose-Infos im Protokoll"
+    ]
+  },
   {
     "version": "1.144",
     "date": "09.07.2026",
