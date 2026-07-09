@@ -247,6 +247,11 @@ const state = reactive({
   },
   lobbyInvites: [],            // eingehende Lobby-Einladungen von Freunden
   pendingLobbyInvite: null,    // aktuell als Banner angezeigte Einladung (Annehmen/Ablehnen)
+  // Solo → Coop Live-Umwandlung (Freund in die LAUFENDE Solo-Partie einladen):
+  // 'idle' = kein Einladungs-Raum · 'connecting' = Raum wird erstellt ·
+  // 'hosting' = Raum offen, warten auf Beitritt (Spiel läuft solange als Solo
+  // weiter) · 'converted' = jemand ist beigetreten, Partie ist jetzt Coop.
+  soloInvite: { status: 'idle', code: '' },
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
@@ -1992,7 +1997,14 @@ function handleCoopMsg(msg) {
   } else if (msg.type === Coop.MSG.INIT) {
     // Gäste generieren nichts selbst -- sie bekommen das fertige Rätsel des Hosts
     // und sind damit sofort "fertig" (kein Ladebalken in der Lobby nötig).
-    loadPuzzleIntoState(msg.puzzle, { marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime });
+    // lives/maxLives/hintsLeft/hintsUsed/mistakes sind optional (rückwärts-
+    // kompatibel): eine live zu Coop umgewandelte Solo-Partie (s. Solo → Coop)
+    // schickt ihren Zwischenstand mit, damit Beitretende nicht mit vollen
+    // Leben/Hinweisen in eine halb gespielte Runde einsteigen.
+    loadPuzzleIntoState(msg.puzzle, {
+      marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime,
+      lives: msg.lives, maxLives: msg.maxLives, hintsLeft: msg.hintsLeft, hintsUsed: msg.hintsUsed, mistakes: msg.mistakes,
+    });
     state.coop.active = true;
     state.coop.connected = true;
     state.coop.waitingForGuest = false;
@@ -2127,6 +2139,9 @@ function coopReset({ keepRoom = false } = {}) {
   coopOutbox = [];
   Coop.leave({ keepRoom });
   if (!keepRoom) clearCoopSession();
+  // Solo-Einladungs-Zustand gehört zur (gerade verlassenen) Coop-Verbindung.
+  soloInviteMyId = null; pendingSoloJoin = null;
+  state.soloInvite = { status: 'idle', code: '' };
   // Ausstehende nachgelagerte Fortschritts-Pushs (siehe pushTeamProgress()/
   // pushRaceProgress() oben) dürfen nicht nach dem Verlassen des Raums noch
   // feuern -- der Raum existiert dann ggf. nicht mehr.
@@ -2928,6 +2943,7 @@ function afterPaint(cb) {
 }
 function win(remote) {
   if (state.status === 'won') return;
+  cancelSoloInvite(); // unbeantwortete Solo-Einladung? Raum abbauen (no-op sonst)
   // Exakte Endzeit stempeln: der Timer schreibt elapsed nur noch sekundenweise
   // (s. startTimer) — für Bestzeiten zählt aber die Millisekunde des Siegzugs.
   if (!remote && !state.paused && state.startTime) state.elapsed = Math.max(0, gameNow() - state.startTime);
@@ -3055,6 +3071,7 @@ function win(remote) {
 function lose(remote) {
   if (!remote && !state.paused && state.startTime && state.status === 'playing') state.elapsed = Math.max(0, gameNow() - state.startTime);
   if (state.status === 'lost') return;
+  cancelSoloInvite(); // unbeantwortete Solo-Einladung? Raum abbauen (no-op sonst)
   state.status = 'lost';
   log('game', `Verloren`, { remote: !!remote, coop: state.coop.active });
   stopTimer();
@@ -3102,6 +3119,9 @@ function lose(remote) {
 // laufender Runde selbst die Host-Rolle und spielt weiter (siehe promoteToHost()/
 // onClose() bzw. onLeave() in startHosting/startJoining).
 function quitToHome() {
+  // Noch unbeantwortete Solo-Einladung? Raum abbauen (nach der Umwandlung ist
+  // die Partie normales Coop und läuft über den coopReset-Pfad darunter).
+  cancelSoloInvite();
   // state.coop.active bleibt während eines Race-Matches absichtlich false
   // (siehe state.race-Kommentar) -- ohne state.race.active hier würde
   // quitToHome() ein verlassenes Rennen fälschlich als Solo-Spielstand
@@ -3134,6 +3154,156 @@ function quitToHome() {
   // 'race'/unbekannt → nichts speichern/löschen (Solo-Slot bleibt unberührt)
   refreshResume();
   navigate('home');
+}
+
+// ─── SOLO → COOP: Freund in die LAUFENDE Solo-Partie einladen ─────────────────
+// Aus dem Pausenmenü heraus wird ein Coop-Raum geöffnet (Code teilbar / Freunde
+// einladbar), das Spiel läuft dabei zunächst UNVERÄNDERT als Solo weiter — erst
+// wenn tatsächlich jemand beitritt, wird die Partie live zu Coop umgewandelt
+// (completeSoloConversion): der komplette Rundenstand (Puzzle, Züge, Leben,
+// Fehler, Hinweise, Zeit, Pausenstand) wird als INIT+START(+PAUSE) in den Raum
+// gelegt, sodass der Beitretende dank Direkteinstieg (computeJoinAnchor,
+// coop.js) sofort im laufenden Spiel landet und mitspielen kann. Tritt niemand
+// bei, bleibt alles Solo (Statistik/Bestzeiten/Münzen unverändert — kein
+// „Coop-Bonus ohne Partner").
+let soloInviteMyId = null;
+function canInviteToSolo() {
+  return state.saveSlot === 'solo' && !state.isTrainingGame && !state.coop.active
+    && !state.race.active && !state.team.active && state.status === 'playing';
+}
+function randomRoomCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
+function inviteToSoloGame(attempt = 0) {
+  if (state.soloInvite.status === 'hosting' || state.soloInvite.status === 'connecting') { state.modal = 'soloInvite'; return; }
+  if (!canInviteToSolo()) return;
+  if (!isOnline()) { showToast(t('offline.unavailable'), 'error', 2600); return; }
+  // Coop-Name sicherstellen (das Namens-Gate des Coop-Menüs wird hier übersprungen).
+  if (!(state.settings.coopName || '').trim()) state.settings.coopName = myUsername() || t('common.defaultPlayerName');
+  const code = randomRoomCode();
+  state.soloInvite = { status: 'connecting', code };
+  state.modal = 'soloInvite';
+  coopIntentionalLeave = false;
+  log('coop', 'Solo-Einladung: erstelle Raum', { code, attempt });
+  Coop.hostGame({
+    code,
+    name: state.settings.coopName,
+    color: state.settings.coopMyColor,
+    onOpen(id) { onSoloInviteRoomOpen(id, code); },
+    onError(e) {
+      if (e && e.type === 'code-taken' && attempt < 3) {
+        // Zufallscode kollidierte — mit frischem Code erneut versuchen.
+        state.soloInvite = { status: 'idle', code: '' };
+        inviteToSoloGame(attempt + 1);
+        return;
+      }
+      log('coop', 'Solo-Einladung: Raum erstellen fehlgeschlagen', e);
+      state.soloInvite = { status: 'idle', code: '' };
+      if (state.modal === 'soloInvite') state.modal = null;
+      showToast(t('coop.errorConnection'), 'error', 3000);
+    },
+    onJoin: onSoloInviteJoin,
+    onLeave(id) {
+      if (state.soloInvite.status !== 'converted') return;
+      const leavingName = playerLabel(state.coop.players.find(p => p.id === id)) || t('common.defaultPlayerName');
+      removePlayer(id);
+      broadcastRoster();
+      if (!coopIntentionalLeave) showToast(t('coop.partnerDisconnected', { name: leavingName }), 'info', 3000);
+    },
+    onMessage: handleCoopMsg,
+    onConnection: handleCoopConnection,
+  });
+}
+// Raum steht (hostGame onOpen): eigene uid merken, Code für Freunde-Einladung
+// spiegeln, ggf. einen extrem schnellen Beitritt nachholen (onJoin feuerte
+// schon, während die eigene uid noch unbekannt war).
+function onSoloInviteRoomOpen(id, code) {
+  soloInviteMyId = id;
+  // Code schon jetzt in coop.code spiegeln: die Freunde-Einladung
+  // (inviteFriendToLobby) und der Beitritts-Link arbeiten darüber.
+  state.coop.code = code;
+  state.soloInvite.status = 'hosting';
+  log('coop', 'Solo-Einladung: Raum offen', { code });
+  if (pendingSoloJoin) { const p = pendingSoloJoin; pendingSoloJoin = null; onSoloInviteJoin(p.id, p.data); }
+}
+// Beitritt in den Einladungs-Raum: erster Beitritt wandelt die Partie um,
+// weitere Beitritte (bis COOP_MAX_PLAYERS) laufen danach wie im normalen Coop.
+let pendingSoloJoin = null;
+function onSoloInviteJoin(id, data) {
+  if (state.soloInvite.status === 'connecting') { pendingSoloJoin = { id, data }; return; }
+  if (state.soloInvite.status !== 'converted' && !completeSoloConversion()) return;
+  if (data && data.name) {
+    const known = state.coop.players.some(p => p.id === id);
+    upsertPlayer(id, data.name, data.color);
+    broadcastRoster();
+    if (!known) showToast(t('soloInvite.joined', { name: data.name }), 'success', 3500);
+  }
+}
+// Vollzieht die eigentliche Umwandlung, sobald der erste Mitspieler beitritt.
+function completeSoloConversion() {
+  if (state.soloInvite.status !== 'hosting' || !soloInviteMyId) return false;
+  // Partie inzwischen beendet/gewechselt → Einladung stattdessen abräumen.
+  if (state.status !== 'playing' || state.saveSlot !== 'solo' || !state.puzzle) { cancelSoloInvite(); return false; }
+  // Solo-Cloud-Session VOR dem Slot-Umzug beenden (pushSession prüft saveSlot).
+  pushSession(SESSION_STATUS.DONE);
+  const myId = soloInviteMyId;
+  // Exakte bisherige Spielzeit auf der ALTEN (lokalen) Uhr ablesen …
+  const elapsedNow = state.paused ? state.elapsed : Math.max(0, Date.now() - state.startTime);
+  state.coop.active = true;
+  state.coop.role = 'host';
+  state.coop.myId = myId;
+  state.coop.hostId = myId;
+  state.coop.awaitingStart = false;
+  state.coop.waitingForGuest = false;
+  state.coop.online = true;
+  state.coop.players = [];
+  upsertPlayer(myId, state.settings.coopName, state.settings.coopMyColor, myUsername(), myBadge());
+  // Bisherige eigene Züge der eigenen Coop-Identität zuordnen (Farbe/Skin der
+  // Markierungen bleiben nach der Umwandlung die eigenen).
+  for (let r = 0; r < state.markedBy.length; r++)
+    for (let c = 0; c < state.markedBy[r].length; c++)
+      if (state.markedBy[r][c] === LOCAL_PLAYER_ID) state.markedBy[r][c] = myId;
+  // … und als serverkorrigierten Startzeitpunkt neu stempeln (gameNow nutzt ab
+  // coop.active die Firebase-Server-Uhr — sonst zeigte der Gast eine falsche Zeit).
+  const startTime = gameNow() - elapsedNow;
+  if (!state.paused) { state.startTime = startTime; state.elapsed = elapsedNow; }
+  // Slot-Umzug: die Partie lebt ab jetzt im Coop-Slot (inkl. Coop-Session für
+  // „Coop fortsetzen"); der Solo-Slot wird geräumt statt einen Zwilling zu halten.
+  state.saveSlot = 'coop';
+  saveActiveGame(null);
+  // Rundenstand in den Raum legen: Beitretende (auch spätere) rekonstruieren
+  // ihn via Direkteinstieg (INIT ab offener Runde) und spielen sofort mit.
+  Coop.send({
+    type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime,
+    lives: state.lives, maxLives: state.maxLives, hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+  });
+  Coop.send({ type: Coop.MSG.START, startTime });
+  if (state.paused) Coop.send({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
+  persistGame();
+  refreshResume();
+  state.soloInvite.status = 'converted';
+  if (state.modal === 'soloInvite') state.modal = null;
+  log('coop', 'Solo-Partie live zu Coop umgewandelt', { code: state.coop.code, elapsed: elapsedNow, paused: state.paused });
+  return true;
+}
+// Einladung zurückziehen/abräumen, solange noch niemand beigetreten ist (nach
+// der Umwandlung ist die Partie normales Coop — Aufräumen übernimmt quitToHome).
+function cancelSoloInvite() {
+  if (state.soloInvite.status !== 'hosting' && state.soloInvite.status !== 'connecting') return;
+  coopIntentionalLeave = true;
+  Coop.leave();
+  soloInviteMyId = null;
+  state.coop.code = '';
+  state.coop.invitedUids = [];
+  state.coop.invitePickerOpen = false;
+  state.soloInvite = { status: 'idle', code: '' };
+  if (state.modal === 'soloInvite') state.modal = null;
+  log('coop', 'Solo-Einladung zurückgezogen/abgeräumt');
+}
+async function shareSoloInviteCode() {
+  const text = t('soloInvite.shareText', { code: state.soloInvite.code });
+  try {
+    if (navigator.share) { await navigator.share({ text }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text); showToast(t('soloInvite.copied'), 'success', 2200); } catch (_) {}
 }
 
 // ─── PERSISTENZ DES LAUFENDEN SPIELS ──────────────────────────────────────────
@@ -5848,6 +6018,7 @@ const App = {
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
+      canInviteToSolo, inviteToSoloGame, cancelSoloInvite, shareSoloInviteCode,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       isOnline,
@@ -6193,6 +6364,14 @@ const App = {
                bleibt pausiert), Anleitung und Aufgeben. So läuft beim Öffnen der
                Einstellungen im Spiel exakt dieselbe Pausenmechanik wie über den
                Pause-Knopf (für alle Coop-Spieler synchron pausiert). -->
+          <!-- Solo → Coop: mitten in der Solo-Partie einen Mitspieler einladen
+               (z.B. wenn man Hilfe braucht) — das Spiel wird beim Beitritt live
+               zum Coop. Nach der Umwandlung (coop.active) verschwindet der Knopf. -->
+          <button v-if="canInviteToSolo() || state.soloInvite.status==='hosting' || state.soloInvite.status==='connecting'"
+                  class="btn btn-ghost" @click="inviteToSoloGame()">
+            <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span>
+            {{ state.soloInvite.status==='hosting' ? t('soloInvite.buttonPending') : t('soloInvite.button') }}
+          </button>
           <button class="btn btn-ghost" @click="openSettings"><span class="btn-ic"><span class="ei" v-html="ic('gear')"></span></span> {{ t('home.settings') }}</button>
           <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic"><span class="ei" v-html="ic('book')"></span></span> {{ t('home.howto') }}</button>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
@@ -7611,6 +7790,45 @@ const App = {
       </div>
     </div>
 
+    <!-- Solo → Coop: Einladungs-Modal (Code teilen / Freunde einladen), während
+         die Solo-Partie weiterläuft. Schließen lässt den Raum offen (Knopf im
+         Pausenmenü zeigt „Warten auf Beitritt"); Zurückziehen baut ihn ab. -->
+    <div v-if="state.modal==='soloInvite'" class="modal-bg" @click.self="state.modal=null">
+      <div class="modal">
+        <h3><span class="ei" v-html="ic('users')"></span> {{ t('soloInvite.title') }}</h3>
+        <template v-if="state.soloInvite.status==='connecting'">
+          <p class="confirm-msg">{{ t('soloInvite.connecting') }}</p>
+          <div class="loading-bar"><span></span></div>
+        </template>
+        <template v-else>
+          <p class="confirm-msg">{{ t('soloInvite.msg') }}</p>
+          <div class="coop-code-label">{{ t('coop.yourCode') }}</div>
+          <div class="coop-code">{{ state.soloInvite.code }}</div>
+          <p class="coop-subtext">{{ t('soloInvite.hint') }}</p>
+          <button class="btn btn-ghost btn-sm" @click="shareSoloInviteCode"><span class="ei" v-html="ic('share')"></span> {{ t('soloInvite.share') }}</button>
+          <button v-if="state.account.status==='in'" class="btn btn-ghost btn-sm" @click="openInvitePicker"><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteFriends') }}</button>
+          <!-- Freunde-Auswahl (identisch zur Coop-Lobby, nutzt denselben Einladungs-Mechanismus) -->
+          <div v-if="state.coop.invitePickerOpen" class="invite-picker">
+            <div class="invite-picker-head">
+              <span>{{ t('coop.inviteFriends') }}</span>
+              <button class="icon-btn" @click="closeInvitePicker" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
+            </div>
+            <p v-if="!state.friends.list.length" class="set-hint">{{ t('friends.empty') }}</p>
+            <div v-for="fr in friendsSorted()" :key="fr.uid" class="invite-row">
+              <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
+              <span class="invite-name">{{ fr.username || fr.uid }}</span>
+              <button v-if="state.coop.invitedUids.includes(fr.uid)" class="btn btn-ghost btn-sm invite-withdraw" @click="withdrawLobbyInvite(fr)">{{ t('coop.inviteWithdraw') }}</button>
+              <button v-else class="btn btn-primary btn-sm" @click="inviteFriendToLobby(fr)">{{ t('coop.invite') }}</button>
+            </div>
+          </div>
+          <div class="confirm-actions">
+            <button class="btn btn-ghost" @click="cancelSoloInvite()">{{ t('soloInvite.cancel') }}</button>
+            <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>
+          </div>
+        </template>
+      </div>
+    </div>
+
     <div v-if="state.updateCheck === 'found'" class="modal-bg" @click.self="dismissUpdateDialog">
       <div class="modal modal-sm">
         <h3>{{ t('update.foundTitle') }}</h3>
@@ -7938,7 +8156,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, cellStyle, cellClasses, Music, launchWinFx, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');
