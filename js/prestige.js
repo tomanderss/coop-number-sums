@@ -13,28 +13,34 @@
 // metric(ctx) liefert den aktuellen Zahlenwert der Kategorie aus dem Kontext
 // { stats, streak, race, difficulties }. thresholds = [t1,t2,t3,t4] (aufsteigend);
 // erreichte Stufe = Anzahl unterschrittener/erreichter Schwellen.
+// Schwellen [Bronze, Silber, Gold, Legendär]. NEU KALIBRIERT an echten
+// Vielspieler-Ständen: die früheren Legendär-Werte (Solo 500, Denker/Ausdauer
+// 1000, Makellos 200) waren selbst für sehr aktive Spieler praktisch
+// unerreichbar. Ziel jetzt: Bronze/Silber schnell, Gold für dedizierte Spieler,
+// Legendär ein forderndes ABER erreichbares Langzeitziel — damit „Großmeister"
+// (alle 12 auf Legendär) real spielbar bleibt statt tausende Partien zu verlangen.
 export const PRESTIGE = [
-  { sym: 'trophae', key: 'soloMaster',  thresholds: [10, 50, 150, 500],
+  { sym: 'trophae', key: 'soloMaster',  thresholds: [10, 40, 80, 180],
     metric: c => c.stats.won || 0 },
-  { sym: 'rakete',  key: 'teamSpirit',  thresholds: [5, 20, 60, 150],
+  { sym: 'rakete',  key: 'teamSpirit',  thresholds: [5, 15, 40, 90],
     metric: c => c.stats.coopWon || 0 },
-  { sym: 'stern',   key: 'duelist',     thresholds: [5, 15, 40, 100],
+  { sym: 'stern',   key: 'duelist',     thresholds: [3, 10, 25, 60],
     metric: c => c.race?.['1v1']?.racesWon || 0 },
-  { sym: 'blitz',   key: 'teamDuel',    thresholds: [5, 15, 40, 100],
+  { sym: 'blitz',   key: 'teamDuel',    thresholds: [3, 10, 25, 60],
     metric: c => c.race?.['2v2']?.racesWon || 0 },
-  { sym: 'flamme',  key: 'streak',      thresholds: [3, 7, 14, 30],
+  { sym: 'flamme',  key: 'streak',      thresholds: [3, 7, 14, 25],
     metric: c => c.streak?.bestStreak || 0 },
-  { sym: 'drache',  key: 'flawless',    thresholds: [5, 25, 75, 200],
+  { sym: 'drache',  key: 'flawless',    thresholds: [5, 20, 50, 120],
     metric: c => (c.stats.perfectWins || 0) + (c.stats.coopPerfectWins || 0) },
-  { sym: 'einhorn', key: 'perfectTeam', thresholds: [3, 10, 30, 80],
+  { sym: 'einhorn', key: 'perfectTeam', thresholds: [3, 8, 20, 50],
     metric: c => c.stats.coopPerfectWins || 0 },
-  { sym: 'gehirn',  key: 'thinker',     thresholds: [25, 100, 300, 1000],
+  { sym: 'gehirn',  key: 'thinker',     thresholds: [20, 70, 150, 350],
     metric: c => (c.stats.won || 0) + (c.stats.coopWon || 0) },
-  { sym: 'klee',    key: 'endurance',   thresholds: [25, 100, 300, 1000],
+  { sym: 'klee',    key: 'endurance',   thresholds: [20, 75, 150, 350],
     metric: c => (c.stats.played || 0) + (c.stats.coopPlayed || 0) },
   { sym: 'diamant', key: 'recordHunter', thresholds: [2, 4, 6, 9],
     metric: c => countBestTimes(c) },
-  { sym: 'krone',   key: 'topClass',    thresholds: [3, 10, 30, 100],
+  { sym: 'krone',   key: 'topClass',    thresholds: [1, 3, 10, 25],
     metric: c => topDifficultyWins(c) },
   { sym: 'alien',   key: 'explorer',    thresholds: [3, 5, 7, 9],
     metric: c => distinctDifficultiesWon(c) },
