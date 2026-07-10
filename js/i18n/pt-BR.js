@@ -45,6 +45,8 @@ export default {
     donate: 'Apoie-me',
   },
   setup: {
+    bigNumbers: 'Números grandes (10–19)',
+    bigNumbersHint: 'Valores das células 10–19 em vez de 1–9 — mesmo jogo, novo desafio mental. Só 6×6–9×9.',
     random: 'Aleatório',
     randomTitle: 'Escolher dificuldade aleatória',
     title: 'Novo jogo',

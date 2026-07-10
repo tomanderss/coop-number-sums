@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
+import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, bigNumbersAllowed, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
 import { generatePuzzle, remapColorsForMarkVisibility } from './generator.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
@@ -1148,9 +1148,11 @@ function newGame(diffId) {
   // großen Feldern flüssig bleibt und der Ladebalken animiert. Ohne Worker fällt
   // generateAsync selbst auf synchrone Generierung zurück.
   state.generating = true;
-  log('game', `Puzzle-Generierung gestartet`, { difficulty: diffId });
+  // Big-Numbers-Modus (Zellwerte 10–19) nur für freigegebene kleine Felder (6×6–9×9).
+  const bigNumbers = !!state.sel.bigNumbers && bigNumbersAllowed(diffId);
+  log('game', `Puzzle-Generierung gestartet`, { difficulty: diffId, bigNumbers });
   const t0 = performance.now();
-  generateAsync({ difficulty: diffId })
+  generateAsync({ difficulty: diffId, bigNumbers })
     .then(puzzle => {
       // tookMs = Wall-Clock bis zum fertigen Rätsel (inkl. Worker) — zeigt auf
       // langsamen Geräten, ob die Generierung die Wartezeit verursacht.
@@ -1162,7 +1164,7 @@ function newGame(diffId) {
       // in generateAsync bereits synchron abgefangen) -- letzter synchroner Versuch.
       log('game', `Puzzle-Generierung fehlgeschlagen, synchroner Versuch`, e);
       try {
-        finishNewGame(generatePuzzle({ difficulty: diffId }));
+        finishNewGame(generatePuzzle({ difficulty: diffId, bigNumbers }));
       } catch (err) {
         log('game', `Synchroner Fallback fehlgeschlagen`, err);
         state.generating = false;
@@ -6084,7 +6086,7 @@ const App = {
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
-      canInviteToSolo, inviteToSoloGame, cancelSoloInvite, shareSoloInviteCode,
+      canInviteToSolo, inviteToSoloGame, cancelSoloInvite, shareSoloInviteCode, bigNumbersAllowed,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       isOnline,
@@ -6165,6 +6167,17 @@ const App = {
       </header>
 
       <difficulty-slider v-model="state.sel.difficulty"></difficulty-slider>
+
+      <!-- „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9 (nur 6×6–9×9). Ein
+           anderer kognitiver Reiz bei identischer Logik/Eindeutigkeit. -->
+      <label v-if="bigNumbersAllowed(state.sel.difficulty)" class="bignum-toggle" :class="{ on: state.sel.bigNumbers }">
+        <span class="bignum-tx">
+          <b>{{ t('setup.bigNumbers') }}</b>
+          <small>{{ t('setup.bigNumbersHint') }}</small>
+        </span>
+        <input type="checkbox" v-model="state.sel.bigNumbers" />
+        <span class="bignum-switch" aria-hidden="true"></span>
+      </label>
 
       <div class="setup-startrow">
         <button class="btn btn-primary btn-start diff-start" @click="newGame(state.sel.difficulty)">
@@ -6295,7 +6308,7 @@ const App = {
         </div>
 
         <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
-          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused }]" :style="[gridStyle, skinVars]">
+          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused, 'big-num': state.puzzle.bigNumbers }]" :style="[gridStyle, skinVars]">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
               <template v-if="!colResolvedR(c-1)">

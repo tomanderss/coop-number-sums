@@ -45,6 +45,8 @@ export default {
     donate: 'Unterstütze mich',
   },
   setup: {
+    bigNumbers: 'Große Zahlen (10–19)',
+    bigNumbersHint: 'Zellwerte 10–19 statt 1–9 – gleicher Rätseltyp, neuer Denkreiz. Nur 6×6–9×9.',
     random: 'Zufall',
     randomTitle: 'Zufällige Schwierigkeit wählen',
     title: 'Neues Spiel',

@@ -351,14 +351,15 @@ function colorRegions(regions, idGrid, rows, cols) {
 }
 
 // ─── Werte vergeben + Zielsummen berechnen ────────────────────────────────────
-// Zellwerte sind immer 1–9 (MAX_VAL), unabhängig von der Feldgröße — auch bei
-// 10×10/11×11. Größere Cages liefern dadurch mehr Teilsummen-Kollisionen; das
-// wird über keepRatio (config.js) und den Solver (Tier-3-Hypothese) kompensiert.
-function assignValues(rng, rows, cols) {
+// Zellwerte standard 1–9 (MAX_VAL). Der optionale „Big Numbers"-Modus nutzt
+// stattdessen 10–19 (minVal/maxVal) — anderer kognitiver Reiz bei identischer
+// Logik/Eindeutigkeit. Der Solver ist wertunabhängig (Teilsummen-Bitsets), und
+// das Foothold-Kriterium (countSingleDigitSums) skaliert sauber mit [minVal,maxVal].
+function assignValues(rng, rows, cols, minVal, maxVal) {
   const values = Array.from({ length: rows }, () => Array(cols).fill(0));
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++)
-      values[r][c] = randInt(rng, 1, MAX_VAL);
+      values[r][c] = randInt(rng, minVal, maxVal);
   return values;
 }
 function computeTargets(rows, cols, mask, values, regions) {
@@ -379,11 +380,16 @@ function computeTargets(rows, cols, mask, values, regions) {
 // ist zwar technisch, aber nicht für einen Menschen zumutbar lösbar. Zusätzlich
 // muss mindestens 1 davon bei den Außensummen UND mindestens 1 bei den Cages
 // liegen ("verteilt über außensummen und cages", nicht alle in einer Kategorie).
-function countSingleDigitSums(rowTargets, colTargets, regions) {
+// Ein „Foothold" ist eine Summe im Einzelwert-Bereich [minVal, maxVal]: bei 1–9
+// die klassischen einstelligen Summen; bei 10–19 („Big Numbers") eine Summe, die
+// EXAKT eine Zelle behalten erzwingt (zwei Zellen wären ≥ 2·minVal > maxVal) —
+// in beiden Fällen der klare logische Einstiegspunkt. Für 1–9 bleibt das Kriterium
+// bitgenau wie zuvor ([1,9]).
+function countSingleDigitSums(rowTargets, colTargets, regions, minVal = 1, maxVal = 9) {
   let outer = 0, cage = 0;
-  for (const t of rowTargets) if (t >= 1 && t <= 9) outer++;
-  for (const t of colTargets) if (t >= 1 && t <= 9) outer++;
-  for (const reg of regions) if (reg.target >= 1 && reg.target <= 9) cage++;
+  for (const t of rowTargets) if (t >= minVal && t <= maxVal) outer++;
+  for (const t of colTargets) if (t >= minVal && t <= maxVal) outer++;
+  for (const reg of regions) if (reg.target >= minVal && reg.target <= maxVal) cage++;
   return { total: outer + cage, outer, cage };
 }
 
@@ -395,6 +401,10 @@ export function generatePuzzle(opts) {
   const rng = makeRng(baseSeed);
 
   const { r: rows, c: cols } = opts.dim || diff.dim;
+  // Big-Numbers-Modus: Zellwerte 10–19 statt 1–9 (gleiche Logik/Eindeutigkeit).
+  const bigNumbers = !!opts.bigNumbers;
+  const minVal = bigNumbers ? 10 : 1;
+  const maxVal = bigNumbers ? 19 : MAX_VAL;
   const totalBudget = diff.genBudget || 2500; // harte Obergrenze, danach Notnagel-Neuversuch (leichteste Stufe)
   let attempts = 0;
 
@@ -411,10 +421,10 @@ export function generatePuzzle(opts) {
         mask[r][c] = true;
       }
     }
-    const values = assignValues(rng, rows, cols);
+    const values = assignValues(rng, rows, cols, minVal, maxVal);
     const { rowTargets, colTargets } = computeTargets(rows, cols, mask, values, regions);
 
-    const sdCounts = countSingleDigitSums(rowTargets, colTargets, regions);
+    const sdCounts = countSingleDigitSums(rowTargets, colTargets, regions, minVal, maxVal);
     if (sdCounts.total < diff.minSingleDigitSums || sdCounts.outer < 1 || sdCounts.cage < 1) continue;
 
     const puzzle = {
@@ -457,7 +467,9 @@ export function generatePuzzle(opts) {
 
     puzzle.maxTier = result.maxTier;
     puzzle.tiers = result.tiers;
-    puzzle.maxVal = MAX_VAL;
+    puzzle.maxVal = maxVal;
+    puzzle.minVal = minVal;
+    puzzle.bigNumbers = bigNumbers;
     puzzle.attempts = attempts;
     return puzzle;
   }
@@ -468,7 +480,7 @@ export function generatePuzzle(opts) {
   // frischer Zufallsfolge erneut versuchen (praktisch nie nötig, totalBudget reicht
   // fast immer; harte Notbremse nach mehreren Runden gegen einen Crash).
   const depth = (opts._depth || 0) + 1;
-  if (depth > 5) return generatePuzzle({ difficulty: 'sehrleicht' });
+  if (depth > 5) return generatePuzzle({ difficulty: 'sehrleicht', bigNumbers });
   return generatePuzzle({ ...opts, seed: undefined, _depth: depth });
 }
 
