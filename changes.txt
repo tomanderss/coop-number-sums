@@ -1,1 +1,0 @@
-Neuer „Große Zahlen"-Modus: Zellwerte 10–19 statt 1–9 als frischer Denkreiz – gleicher Rätseltyp, gleiche Eindeutigkeit, per Umschalter im Setup (für 6×6 bis 9×9)
