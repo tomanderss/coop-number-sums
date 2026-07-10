@@ -75,3 +75,48 @@ test.describe('history', () => {
     await expect(row.locator('.history-outcome .ico-heart-broken')).toBeVisible();
   });
 });
+
+// Regression: ein bereits GELÖSTES Brett landete (über einen veralteten Cloud-
+// Stand/Session) im Fortsetzen-Slot und wurde als „Spiel fortsetzen" angeboten
+// — angetippt lud es ein 100%-Brett, das keine Interaktion mehr zuließ und
+// keinen Sieg auslöste. refreshResume() verwirft solche Stände beim Start.
+test.describe('resume', () => {
+  test('a fully-solved saved game is never offered as resume and is cleared on start', async ({ page }) => {
+    await page.addInitScript(() => {
+      const solved = {
+        puzzle: {
+          rows: 2, cols: 2, rowTargets: [1, 1], colTargets: [1, 1],
+          values: [[1, 1], [1, 1]], solution: [[true, false], [false, true]],
+          regions: [], difficulty: 'leicht', seed: 1,
+        },
+        marks: [['kept', 'removed'], ['removed', 'kept']],
+        markedBy: [[null, null], [null, null]],
+        elapsed: 5000, ts: Date.now(),
+      };
+      localStorage.setItem('cns_active_game', JSON.stringify(solved));
+    });
+    await gotoApp(page);
+    // Kein Fortsetzen-Button, und der gelöste Slot wurde aufgeräumt.
+    await expect(page.locator('.btn-resume')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__cns.state.resumeAvailable)).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('cns_active_game'))).toBeNull();
+  });
+
+  test('an unsolved saved game IS offered as resume', async ({ page }) => {
+    await page.addInitScript(() => {
+      const unsolved = {
+        puzzle: {
+          rows: 2, cols: 2, rowTargets: [1, 1], colTargets: [1, 1],
+          values: [[1, 1], [1, 1]], solution: [[true, false], [false, true]],
+          regions: [], difficulty: 'leicht', seed: 1,
+        },
+        marks: [['none', 'none'], ['none', 'none']],
+        markedBy: [[null, null], [null, null]],
+        elapsed: 5000, ts: Date.now(),
+      };
+      localStorage.setItem('cns_active_game', JSON.stringify(unsolved));
+    });
+    await gotoApp(page);
+    await expect(page.locator('.btn-resume')).toBeVisible();
+  });
+});
