@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.151';
-export const BUILD_HASH = 'dbb64fe';
+export const BUILD      = '1.152';
+export const BUILD_HASH = '918cac2';
 
 export const CHANGELOG = [
+  {
+    "version": "1.152",
+    "date": "10.07.2026",
+    "changes": [
+      "Neue Achievements: „R.I.P.\" (14×14 gewinnen) sowie drei fürs „Große Zahlen\"-Modus (erster Sieg, makelloser Sieg, Sieg auf R.I.P.)"
+    ]
+  },
   {
     "version": "1.151",
     "date": "10.07.2026",
