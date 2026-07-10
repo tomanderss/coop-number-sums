@@ -46,7 +46,7 @@ export default {
   },
   setup: {
     bigNumbers: 'Números grandes (10–19)',
-    bigNumbersHint: 'Valores de celda 10–19 en vez de 1–9: mismo puzle, nuevo reto mental. Solo 6×6–9×9.',
+    bigNumbersHint: 'Valores de celda 10–19 en vez de 1–9: mismo puzle, nuevo reto mental.',
     random: 'Azar',
     randomTitle: 'Elegir dificultad al azar',
     title: 'Nueva partida',

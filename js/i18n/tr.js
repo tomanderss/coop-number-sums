@@ -46,7 +46,7 @@ export default {
   },
   setup: {
     bigNumbers: 'Büyük sayılar (10–19)',
-    bigNumbersHint: 'Hücre değerleri 1–9 yerine 10–19 — aynı bulmaca, yeni zihinsel uyaran. Yalnızca 6×6–9×9.',
+    bigNumbersHint: 'Hücre değerleri 1–9 yerine 10–19 — aynı bulmaca, yeni zihinsel uyaran.',
     random: 'Rastgele',
     randomTitle: 'Rastgele zorluk seç',
     title: 'Yeni oyun',

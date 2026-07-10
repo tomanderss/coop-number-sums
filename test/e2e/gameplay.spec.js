@@ -149,11 +149,11 @@ test.describe('big numbers mode', () => {
     await expect(page.locator('.result-card.win')).toBeVisible({ timeout: 20000 });
   });
 
-  test('the toggle is hidden for large fields (>9×9)', async ({ page }) => {
+  test('the toggle is available for large fields too (all dimensions)', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
     await page.waitForSelector('.screen.setup');
-    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'extrem'; }); // 10×10
-    await expect(page.locator('.bignum-toggle')).toHaveCount(0);
+    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'rip'; }); // 14×14
+    await expect(page.locator('.bignum-toggle')).toBeVisible();
   });
 });
