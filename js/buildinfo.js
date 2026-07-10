@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.148';
-export const BUILD_HASH = '5b11184';
+export const BUILD      = '1.149';
+export const BUILD_HASH = '2ceb793';
 
 export const CHANGELOG = [
+  {
+    "version": "1.149",
+    "date": "10.07.2026",
+    "changes": [
+      "Neuer „Große Zahlen\"-Modus: Zellwerte 10–19 statt 1–9 als frischer Denkreiz – gleicher Rätseltyp, gleiche Eindeutigkeit, per Umschalter im Setup (für 6×6 bis 9×9)"
+    ]
+  },
   {
     "version": "1.148",
     "date": "10.07.2026",
