@@ -53,6 +53,42 @@ describe('generator.generatePuzzle', () => {
     }
   });
 
+  // ── „Big Numbers"-Modus (Zellwerte 10–19) ──────────────────────────────────
+  describe('big numbers mode (values 10..19)', () => {
+    const smallDiffs = ['sehrleicht', 'leicht', 'mittel', 'schwer']; // 6×6–9×9
+
+    test('cell values are within 10..19 and puzzle is flagged', () => {
+      for (const id of smallDiffs) {
+        const p = generatePuzzle({ difficulty: id, seed: 42, bigNumbers: true });
+        assert.equal(p.bigNumbers, true, `${id} flagged`);
+        assert.equal(p.minVal, 10); assert.equal(p.maxVal, 19);
+        for (const row of p.values) for (const v of row) assert.ok(v >= 10 && v <= 19, `${id} value ${v} in range`);
+      }
+    });
+
+    test('stays uniquely and no-guess solvable (tier ≤ 2.5) for 6×6–9×9', () => {
+      for (const id of smallDiffs) {
+        for (const seed of [1, 7, 2024]) {
+          const p = generatePuzzle({ difficulty: id, seed, bigNumbers: true });
+          const res = logicalSolve(p, { allowHypo: false }); // ohne Hypothese = kein Raten
+          assert.equal(res.solved, true, `${id}/${seed} solved without guessing`);
+          assert.equal(res.contradiction, false, `${id}/${seed} no contradiction`);
+          assert.equal(res.tiers.t3, 0, `${id}/${seed} needs no tier-3`);
+          const count = countSolutions(p, 2, 50000);
+          assert.equal(count, 1, `${id}/${seed} exactly one solution`);
+        }
+      }
+    });
+
+    test('classic mode is byte-for-byte unchanged (same seed → same puzzle)', () => {
+      // Reproduzierbarkeit: der Big-Numbers-Zweig darf den klassischen 1–9-Pfad
+      // nicht verändern.
+      const a = generatePuzzle({ difficulty: 'mittel', seed: 555 });
+      const b = generatePuzzle({ difficulty: 'mittel', seed: 555, bigNumbers: false });
+      assert.deepEqual(a.values, b.values);
+    });
+  });
+
   test('regions partition the whole board exactly once', () => {
     const puzzle = generatePuzzle({ difficulty: 'schwer', seed: 5 });
     const seen = new Set();

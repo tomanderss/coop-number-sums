@@ -337,4 +337,12 @@ export const DEFAULT_SETTINGS = {
 // Standard-Spieloption (Start-Screen Vorauswahl)
 export const DEFAULT_GAME_OPTIONS = {
   difficulty: 'mittel',
+  bigNumbers: false,   // „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9 (nur 6×6–9×9)
 };
+
+// „Big Numbers"-Modus (Zellwerte 10–19) ist zunächst nur für kleinere Felder
+// freigegeben (Generierung + Lesbarkeit erprobt): 6×6 bis 9×9.
+export function bigNumbersAllowed(diffId) {
+  const d = DIFF_BY_ID[diffId];
+  return !!d && d.dim.r <= 9 && d.dim.c <= 9;
+}

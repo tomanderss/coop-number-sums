@@ -114,3 +114,46 @@ test.describe('gameplay', () => {
     expect(markedAfterUndo).toBe('none');
   });
 });
+
+// „Big Numbers"-Modus (Zellwerte 10–19): der Umschalter erscheint nur für
+// kleine Felder (6×6–9×9), erzeugt ein Brett mit zweistelligen Werten, und die
+// komplette Spiel-Schleife (generieren → lösen → gewinnen) funktioniert.
+test.describe('big numbers mode', () => {
+  test('toggle generates a 10–19 board and it can be solved to a win', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'sehrleicht'; });
+    // Umschalter sichtbar (6×6 erlaubt) → einschalten.
+    await expect(page.locator('.bignum-toggle')).toBeVisible();
+    await page.locator('.bignum-toggle').click();
+    expect(await page.evaluate(() => window.__cns.state.sel.bigNumbers)).toBe(true);
+
+    await page.locator('.diff-start').click();
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+
+    // Alle Zellwerte im Bereich 10–19, Puzzle als big markiert, Brett trägt die Klasse.
+    const info = await page.evaluate(() => {
+      const p = window.__cns.state.puzzle;
+      let min = 99, max = 0;
+      for (const row of p.values) for (const v of row) { min = Math.min(min, v); max = Math.max(max, v); }
+      return { big: p.bigNumbers, min, max };
+    });
+    expect(info).toEqual({ big: true, min: expect.any(Number), max: expect.any(Number) });
+    expect(info.min).toBeGreaterThanOrEqual(10);
+    expect(info.max).toBeLessThanOrEqual(19);
+    await expect(page.locator('.board.big-num')).toBeVisible();
+
+    await solveActivePuzzle(page);
+    await expect(page.locator('.result-card.win')).toBeVisible({ timeout: 20000 });
+  });
+
+  test('the toggle is hidden for large fields (>9×9)', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'extrem'; }); // 10×10
+    await expect(page.locator('.bignum-toggle')).toHaveCount(0);
+  });
+});

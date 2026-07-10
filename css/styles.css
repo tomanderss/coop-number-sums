@@ -667,6 +667,25 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .setup-slider .diff-picker { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .setup-startrow { flex: 0 0 auto; display: flex; flex-direction: column; }
 
+/* „Big Numbers"-Umschalter (Setup): kompakte Karte mit Schalter, über dem
+   morphenden Hintergrund (z-index 1). */
+.setup-slider .bignum-toggle { position: relative; z-index: 1; }
+.bignum-toggle {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 12px; cursor: pointer;
+  margin: 6px 0 10px; padding: 10px 14px; border-radius: 16px;
+  background: color-mix(in srgb, var(--bg2) 78%, transparent);
+  border: 1.5px solid var(--line); transition: border-color .15s, background .15s;
+}
+.bignum-toggle.on { border-color: var(--accent, #3b82f6); background: color-mix(in srgb, var(--accent, #3b82f6) 14%, var(--bg2)); }
+.bignum-toggle .bignum-tx { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.bignum-toggle .bignum-tx b { font-size: .96rem; font-weight: 800; }
+.bignum-toggle .bignum-tx small { font-size: .76rem; color: var(--text2); line-height: 1.25; }
+.bignum-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.bignum-switch { flex: 0 0 auto; width: 44px; height: 26px; border-radius: 999px; background: var(--grid); position: relative; transition: background .18s; }
+.bignum-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .18s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.bignum-toggle.on .bignum-switch { background: var(--accent, #3b82f6); }
+.bignum-toggle.on .bignum-switch::after { transform: translateX(18px); }
+
 /* Coop/Race/Team: Raumcode INNERHALB des Vollflächen-Screens (kompakte Zeile über
    dem Slider) statt als separater Block außerhalb. */
 .setup-coderow { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 4px; }
@@ -941,6 +960,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .cell:active { filter: brightness(1.15); }
 .cell:focus-visible { outline: 3px solid var(--accent); outline-offset: -2px; z-index: 4; }
 .cell .cnum { position: relative; z-index: 2; transition: opacity .15s; }
+/* „Big Numbers"-Modus: zweistellige Zellwerte (10–19) sollen nicht über den
+   Zellrand laufen — etwas kleiner + enger setzen, damit sie sicher passen. */
+.board.big-num .cnum { font-size: .74em; letter-spacing: -.03em; }
 /* Cages werden eingefärbt (keine Umrandung); die Färbung verschwindet, sobald
    die Cage aufgelöst ist (dann fehlt die .region-Klasse → normaler Hintergrund). */
 .cell.region {
