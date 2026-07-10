@@ -46,14 +46,14 @@ describe('prestige', () => {
   });
 
   test('categoryProgress reports tier, next threshold and a clamped fraction', () => {
-    const cat = prestigeBySym('trophae'); // soloWins, [10,50,150,500]
+    const cat = prestigeBySym('trophae'); // soloWins, [10,40,80,180]
     const ctx = { stats: { won: 30 } };
     const p = categoryProgress(cat, ctx);
     assert.equal(p.value, 30);
-    assert.equal(p.tier, 1);           // 30 ≥ 10, < 50
-    assert.equal(p.next, 50);
-    // Balken relativ zur NÄCHSTEN Schwelle: 30 von 50 = 60%
-    assert.equal(p.frac, 30 / 50);
+    assert.equal(p.tier, 1);           // 30 ≥ 10, < 40
+    assert.equal(p.next, 40);
+    // Balken relativ zur NÄCHSTEN Schwelle: 30 von 40 = 75%
+    assert.equal(p.frac, 30 / 40);
     // legendary reached ⇒ next null, frac 1
     const maxed = categoryProgress(cat, { stats: { won: 600 } });
     assert.equal(maxed.tier, 4);
@@ -143,7 +143,7 @@ describe('prestige', () => {
 
     // Eine Kategorie knapp unter Legendär ⇒ Master bleibt gesperrt.
     const oneShort = fullyMasteredCtx();
-    oneShort.streak = { bestStreak: 29 }; // flamme t4 = 30
+    oneShort.streak = { bestStreak: 24 }; // flamme t4 = 25
     assert.equal(hasMasterBadge(oneShort), false);
     assert.equal(masterProgress(oneShort).maxed, PRESTIGE.length - 1);
   });
