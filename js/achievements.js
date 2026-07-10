@@ -32,6 +32,13 @@ export const ACHIEVEMENTS = [
   { id: 'marathoner', icon: 'runner', check: (ctx) => ctx.totalPlayed >= 100 },
   { id: 'veteran', icon: 'trophy', check: (ctx) => ctx.totalPlayed >= 500 },
   { id: 'historyFull', icon: 'clock', check: (ctx) => ctx.historyLength >= 20 },
+  // Höchste Schwierigkeit (R.I.P. 14×14) — die frühere „hardestWin" deckt nur
+  // Mashallah (11×11) ab; der echte Gipfel bekommt ein eigenes Abzeichen.
+  { id: 'ripWin', icon: 'grave', check: (ctx) => ctx.outcome === 'won' && ctx.difficulty === 'rip' },
+  // „Große Zahlen"-Modus (Zellwerte 10–19).
+  { id: 'bigFirstWin', icon: 'digits', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers },
+  { id: 'bigPerfect', icon: 'digits', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers && ctx.perfect },
+  { id: 'bigRip', icon: 'digits', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers && ctx.difficulty === 'rip' },
 ];
 
 export function evaluate(ctx, unlockedIds) {

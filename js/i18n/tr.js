@@ -662,6 +662,10 @@ export default {
     marathoner: { title: 'Maratoncu', desc: '100 oyun oyna.' },
     veteran: { title: 'Kıdemli', desc: '500 oyun oyna.' },
     historyFull: { title: 'İyi belgelenmiş', desc: 'Geçmişte 20 kayıt topla.' },
+    ripWin: { title: 'R.I.P.', desc: 'R.I.P. zorluğunda (14×14) bir bulmaca çöz.' },
+    bigFirstWin: { title: 'Büyük sayılar', desc: 'Büyük Sayılar modunda (10–19) bir bulmaca kazan.' },
+    bigPerfect: { title: 'Büyük ve kusursuz', desc: 'Hatasız ve ipucusuz bir Büyük Sayılar bulmacası kazan.' },
+    bigRip: { title: 'Sayıların büyük ustası', desc: "R.I.P.'te (14×14) bir Büyük Sayılar bulmacası kazan." },
   },
   history: {
     title: 'Geçmiş',

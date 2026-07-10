@@ -662,6 +662,10 @@ export default {
     marathoner: { title: 'Maratonista', desc: 'Jogue 100 partidas.' },
     veteran: { title: 'Veterano', desc: 'Jogue 500 partidas.' },
     historyFull: { title: 'Bem documentado', desc: 'Acumule 20 entradas no histórico.' },
+    ripWin: { title: 'R.I.P.', desc: 'Resolva um quebra-cabeça na dificuldade R.I.P. (14×14).' },
+    bigFirstWin: { title: 'Números grandes', desc: 'Vença um quebra-cabeça no modo Números grandes (10–19).' },
+    bigPerfect: { title: 'Grande e impecável', desc: 'Vença um quebra-cabeça de Números grandes sem erros e sem dicas.' },
+    bigRip: { title: 'Grão-mestre dos números', desc: 'Vença um quebra-cabeça de Números grandes no R.I.P. (14×14).' },
   },
   history: {
     title: 'Histórico',
