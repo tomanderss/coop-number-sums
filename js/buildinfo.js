@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.149';
-export const BUILD_HASH = '2ceb793';
+export const BUILD      = '1.150';
+export const BUILD_HASH = '73c88e6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.150",
+    "date": "10.07.2026",
+    "changes": [
+      "„Große Zahlen\"-Modus jetzt für ALLE Feldgrößen verfügbar (6×6 bis 14×14), nicht mehr nur die kleinen"
+    ]
+  },
   {
     "version": "1.149",
     "date": "10.07.2026",
