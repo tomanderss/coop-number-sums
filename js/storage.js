@@ -586,9 +586,29 @@ export async function exportToFile(type = 'manual') {
 // (z.B. Zweitgerät ohne offene Partie), wurde der lokale Spielstand mit null
 // überschrieben. Regel: der jüngere Stand (ts) gewinnt; fehlt eine Seite,
 // bleibt die vorhandene. Rein (unit-getestet), Seiteneffekte beim Aufrufer.
+// Ein Spielstand, dessen Brett bereits VOLLSTÄNDIG korrekt gelöst ist, ist
+// faktisch abgeschlossen und darf NICHT als „Fortsetzen" wiederauftauchen
+// (Symptom: fertiges Spiel erscheint fortsetzbar, lädt ein 100%-Brett, das
+// keine Interaktion mehr zulässt — die Win-Erkennung feuert nur auf einen Zug,
+// nicht beim bloßen Laden). Kann entstehen, wenn ein „done"-Upload einmal
+// scheiterte (z.B. der frühere Infinity-Bug) und ein alter „playing"-Cloud-Stand
+// mit gelöstem Brett wieder übernommen wird. Rein, unit-getestet.
+export function snapshotSolved(g) {
+  const p = g && g.puzzle;
+  if (!p || !Array.isArray(p.solution) || !Array.isArray(g.marks)) return false;
+  for (let r = 0; r < p.rows; r++) {
+    const sol = p.solution[r], m = g.marks[r];
+    if (!sol || !m) return false;
+    for (let c = 0; c < p.cols; c++) {
+      if (m[c] !== (sol[c] ? 'kept' : 'removed')) return false;
+    }
+  }
+  return true;
+}
 export function pickActiveGame(localG, importedG) {
-  const l = localG && localG.puzzle ? localG : null;
-  const i = importedG && importedG.puzzle ? importedG : null;
+  // Bereits gelöste Stände wie „nicht vorhanden" behandeln (s. snapshotSolved).
+  const l = localG && localG.puzzle && !snapshotSolved(localG) ? localG : null;
+  const i = importedG && importedG.puzzle && !snapshotSolved(importedG) ? importedG : null;
   if (!l) return i;
   if (!i) return l;
   return (Number(i.ts) || 0) > (Number(l.ts) || 0) ? i : l;

@@ -10,7 +10,7 @@ import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.j
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import * as Music from './music.js';
 import {
-  loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop,
+  loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, snapshotSolved,
   loadStats, recordResult,
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
@@ -3431,9 +3431,14 @@ function persistGame() {
   // unbekannter Slot → NICHTS schreiben (Solo-Slot bleibt garantiert unberührt)
 }
 function refreshResume() {
-  const g = loadActiveGame();
+  let g = loadActiveGame();
+  // Ein bereits VOLLSTÄNDIG gelöstes Brett ist faktisch abgeschlossen und darf
+  // nie als „Fortsetzen" erscheinen (sonst lädt man ein 100%-Brett, das keine
+  // Interaktion mehr zulässt und keinen Sieg mehr auslöst). Slot aufräumen.
+  if (g && g.puzzle && snapshotSolved(g)) { log('storage', 'Gelösten Solo-Stand als abgeschlossen verworfen'); saveActiveGame(null); g = null; }
   state.resumeAvailable = (g && g.puzzle) ? g : null;
-  const gc = loadActiveGameCoop();
+  let gc = loadActiveGameCoop();
+  if (gc && gc.puzzle && snapshotSolved(gc)) { log('storage', 'Gelösten Coop-Stand als abgeschlossen verworfen'); saveActiveGameCoop(null); clearCoopSession(); gc = null; }
   // Coop-Fortsetzen nur anbieten, solange auch das Wiederverbindungs-Token
   // (Coop-Session mit Raumcode/Rolle) noch gültig ist — vorher zeigte der
   // Button ins Leere: der Spielstand-Snapshot hat keine TTL, die Session schon;

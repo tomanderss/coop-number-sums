@@ -22,7 +22,7 @@ const {
   loadInventory, inventoryHas, grantInventory, revokeInventory, mergeInventory,
   reconcileInventoryFromCloud, applyCloudWallet,
   loadWallet, grantCurrency, spendCurrency, loadProfile, saveProfile,
-  collectExportData, pickActiveGame, loadActiveGameBackup,
+  collectExportData, pickActiveGame, snapshotSolved, loadActiveGameBackup,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
@@ -625,6 +625,41 @@ describe('storage.pickActiveGame (Import darf laufendes Spiel nie still löschen
     const local = game(100);
     assert.equal(pickActiveGame(local, { ts: 999 }), local);
     assert.equal(pickActiveGame({ ts: 999 }, local), local);
+  });
+  // Ein bereits gelöster Stand darf nie als „Fortsetzen" gewinnen (Bug: fertiges
+  // Spiel tauchte als fortsetzbar auf, lud ein interaktionsloses 100%-Brett).
+  const solvedGame = (ts) => ({
+    ts, elapsed: 1,
+    puzzle: { rows: 2, cols: 2, solution: [[true, false], [false, true]] },
+    marks: [['kept', 'removed'], ['removed', 'kept']],
+  });
+  test('gelöster Import wird verworfen, lokales laufendes Spiel bleibt', () => {
+    const local = game(100);
+    assert.equal(pickActiveGame(local, solvedGame(999)), local); // trotz jüngerem ts
+  });
+  test('gelöster lokaler Stand wird verworfen zugunsten eines laufenden Imports', () => {
+    const imp = game(50);
+    assert.equal(pickActiveGame(solvedGame(999), imp), imp);
+  });
+  test('beide gelöst → null (nichts fortzusetzen)', () => {
+    assert.equal(pickActiveGame(solvedGame(1), solvedGame(2)), null);
+  });
+});
+
+describe('storage.snapshotSolved', () => {
+  const p = { rows: 2, cols: 2, solution: [[true, false], [false, true]] };
+  test('vollständig korrekt gelöstes Brett → true', () => {
+    assert.equal(snapshotSolved({ puzzle: p, marks: [['kept', 'removed'], ['removed', 'kept']] }), true);
+  });
+  test('ein falscher/offener Zug → false', () => {
+    assert.equal(snapshotSolved({ puzzle: p, marks: [['kept', 'removed'], ['removed', 'none']] }), false);
+    assert.equal(snapshotSolved({ puzzle: p, marks: [['removed', 'removed'], ['removed', 'kept']] }), false);
+  });
+  test('fehlende Daten → false (kein Absturz)', () => {
+    assert.equal(snapshotSolved(null), false);
+    assert.equal(snapshotSolved({}), false);
+    assert.equal(snapshotSolved({ puzzle: p }), false);
+    assert.equal(snapshotSolved({ puzzle: { rows: 2, cols: 2 }, marks: [] }), false);
   });
 });
 
