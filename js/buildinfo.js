@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.147';
-export const BUILD_HASH = 'e09e28b';
+export const BUILD      = '1.148';
+export const BUILD_HASH = '5b11184';
 
 export const CHANGELOG = [
+  {
+    "version": "1.148",
+    "date": "10.07.2026",
+    "changes": [
+      "Fehler behoben: Ein bereits abgeschlossenes (gelöstes) Spiel wird nicht mehr fälschlich als „Spiel fortsetzen\" angeboten – bisher lud es ein festhängendes 100%-Brett"
+    ]
+  },
   {
     "version": "1.147",
     "date": "09.07.2026",
