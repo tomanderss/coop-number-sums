@@ -1,0 +1,1 @@
+„Große Zahlen"-Modus jetzt für ALLE Feldgrößen verfügbar (6×6 bis 14×14), nicht mehr nur die kleinen

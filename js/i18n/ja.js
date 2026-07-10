@@ -46,7 +46,7 @@ export default {
   },
   setup: {
     bigNumbers: '大きな数字（10〜19）',
-    bigNumbersHint: 'マスの数字が1〜9ではなく10〜19に。ルールは同じで新しい刺激。6×6〜9×9のみ。',
+    bigNumbersHint: 'マスの数字が1〜9ではなく10〜19に。ルールは同じで新しい刺激。',
     random: 'ランダム',
     randomTitle: 'ランダムな難易度を選ぶ',
     title: '新しいゲーム',

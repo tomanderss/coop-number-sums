@@ -66,16 +66,19 @@ describe('generator.generatePuzzle', () => {
       }
     });
 
-    test('stays uniquely and no-guess solvable (tier ≤ 2.5) for 6×6–9×9', () => {
-      for (const id of smallDiffs) {
-        for (const seed of [1, 7, 2024]) {
-          const p = generatePuzzle({ difficulty: id, seed, bigNumbers: true });
+    test('stays no-guess solvable (tier ≤ 2.5) & unique for ALL dimensions (6×6–14×14)', () => {
+      for (const diff of DIFFICULTIES) {
+        for (const seed of [1, 2024]) {
+          const p = generatePuzzle({ difficulty: diff.id, seed, bigNumbers: true });
           const res = logicalSolve(p, { allowHypo: false }); // ohne Hypothese = kein Raten
-          assert.equal(res.solved, true, `${id}/${seed} solved without guessing`);
-          assert.equal(res.contradiction, false, `${id}/${seed} no contradiction`);
-          assert.equal(res.tiers.t3, 0, `${id}/${seed} needs no tier-3`);
-          const count = countSolutions(p, 2, 50000);
-          assert.equal(count, 1, `${id}/${seed} exactly one solution`);
+          assert.equal(res.solved, true, `${diff.id}/${seed} solved without guessing`);
+          assert.equal(res.contradiction, false, `${diff.id}/${seed} no contradiction`);
+          assert.equal(res.tiers.t3, 0, `${diff.id}/${seed} needs no tier-3`);
+          // Brute-Force-Gegenprobe nur auf kleineren Feldern (Suchraum explodiert
+          // auf 13×13/14×14, analog zum Klassik-Test oben).
+          if (diff.dim.r * diff.dim.c <= 121) {
+            assert.equal(countSolutions(p, 2, 50000), 1, `${diff.id}/${seed} exactly one solution`);
+          }
         }
       }
     });

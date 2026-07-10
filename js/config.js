@@ -340,9 +340,10 @@ export const DEFAULT_GAME_OPTIONS = {
   bigNumbers: false,   // „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9 (nur 6×6–9×9)
 };
 
-// „Big Numbers"-Modus (Zellwerte 10–19) ist zunächst nur für kleinere Felder
-// freigegeben (Generierung + Lesbarkeit erprobt): 6×6 bis 9×9.
+// „Big Numbers"-Modus (Zellwerte 10–19) ist für ALLE Feldgrößen freigegeben
+// (6×6–14×14): per Spike verifiziert, dass die Generierung überall eindeutig &
+// ratefrei bleibt (Tier ≤ 2.5) und in vertretbarer Zeit läuft (14×14 ~1,3 s Ø,
+// off-thread mit Ladebalken). Nur ein gültiger Schwierigkeits-Id muss vorliegen.
 export function bigNumbersAllowed(diffId) {
-  const d = DIFF_BY_ID[diffId];
-  return !!d && d.dim.r <= 9 && d.dim.c <= 9;
+  return !!DIFF_BY_ID[diffId];
 }

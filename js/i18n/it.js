@@ -46,7 +46,7 @@ export default {
   },
   setup: {
     bigNumbers: 'Numeri grandi (10–19)',
-    bigNumbersHint: 'Valori delle celle 10–19 invece di 1–9: stesso gioco, nuovo stimolo mentale. Solo 6×6–9×9.',
+    bigNumbersHint: 'Valori delle celle 10–19 invece di 1–9: stesso gioco, nuovo stimolo mentale.',
     random: 'Casuale',
     randomTitle: 'Scegli una difficoltà a caso',
     title: 'Nuova partita',

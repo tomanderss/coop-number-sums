@@ -46,7 +46,7 @@ export default {
   },
   setup: {
     bigNumbers: 'Grands nombres (10–19)',
-    bigNumbersHint: 'Valeurs de 10 à 19 au lieu de 1 à 9 — même jeu, nouveau défi mental. 6×6–9×9 uniquement.',
+    bigNumbersHint: 'Valeurs de 10 à 19 au lieu de 1 à 9 — même jeu, nouveau défi mental.',
     random: 'Hasard',
     randomTitle: 'Choisir une difficulté au hasard',
     title: 'Nouvelle partie',

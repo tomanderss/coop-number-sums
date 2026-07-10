@@ -46,7 +46,7 @@ export default {
   },
   setup: {
     bigNumbers: '큰 숫자 (10–19)',
-    bigNumbersHint: '칸 값이 1–9 대신 10–19 — 같은 퍼즐, 새로운 두뇌 자극. 6×6–9×9만 지원.',
+    bigNumbersHint: '칸 값이 1–9 대신 10–19 — 같은 퍼즐, 새로운 두뇌 자극.',
     random: '랜덤',
     randomTitle: '무작위 난이도 선택',
     title: '새 게임',
