@@ -766,6 +766,10 @@ export default {
     marathoner: { title: 'Marathonläufer', desc: 'Spiele 100 Partien.' },
     veteran: { title: 'Urgestein', desc: 'Spiele 500 Partien.' },
     historyFull: { title: 'Gut dokumentiert', desc: 'Sammle 20 Einträge im Verlauf.' },
+    ripWin: { title: 'R.I.P.', desc: 'Löse ein Rätsel der Schwierigkeit R.I.P. (14×14).' },
+    bigFirstWin: { title: 'Große Zahlen', desc: 'Gewinne ein Rätsel im Modus „Große Zahlen“ (10–19).' },
+    bigPerfect: { title: 'Groß & makellos', desc: 'Gewinne ein „Große Zahlen“-Rätsel ohne Fehler und ohne Hinweise.' },
+    bigRip: { title: 'Großmeister der Zahlen', desc: 'Gewinne ein „Große Zahlen“-Rätsel auf R.I.P. (14×14).' },
   },
   history: {
     title: 'Verlauf',

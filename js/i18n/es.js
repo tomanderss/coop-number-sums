@@ -662,6 +662,10 @@ export default {
     marathoner: { title: 'Maratonista', desc: 'Juega 100 partidas.' },
     veteran: { title: 'Veterano', desc: 'Juega 500 partidas.' },
     historyFull: { title: 'Bien documentado', desc: 'Acumula 20 entradas en tu historial.' },
+    ripWin: { title: 'R.I.P.', desc: 'Resuelve un puzle en la dificultad R.I.P. (14×14).' },
+    bigFirstWin: { title: 'Números grandes', desc: 'Gana un puzle en el modo Números grandes (10–19).' },
+    bigPerfect: { title: 'Grande e impecable', desc: 'Gana un puzle de Números grandes sin errores ni pistas.' },
+    bigRip: { title: 'Gran maestro de números', desc: 'Gana un puzle de Números grandes en R.I.P. (14×14).' },
   },
   history: {
     title: 'Historial',

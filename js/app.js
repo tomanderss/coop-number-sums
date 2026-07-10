@@ -2917,6 +2917,7 @@ function checkAchievements() {
     mistakes: state.mistakes || 0,
     hintsUsedGame: state.hintsUsed || 0,
     difficulty: state.puzzle?.difficulty,
+    bigNumbers: !!state.puzzle?.bigNumbers,
     coop: state.coop.active,
     isRace: state.isRaceGame,
     isTeam: state.team.active,

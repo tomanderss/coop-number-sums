@@ -36,4 +36,28 @@ describe('achievements.evaluate', () => {
     assert.ok(newly.includes('perfectWin'));
     assert.ok(newly.includes('tenWins'));
   });
+
+  test('big-numbers achievements only unlock in big-numbers mode', () => {
+    // Klassisch (kein bigNumbers) → keine Big-Zahlen-Abzeichen
+    const classic = evaluate({ outcome: 'won', bigNumbers: false, perfect: true, difficulty: 'rip' }, []);
+    assert.ok(!classic.includes('bigFirstWin'));
+    assert.ok(!classic.includes('bigPerfect'));
+    assert.ok(!classic.includes('bigRip'));
+    assert.ok(classic.includes('ripWin')); // R.I.P.-Sieg zählt aber
+    // Big-Numbers-Sieg → erstes Big-Abzeichen
+    const big = evaluate({ outcome: 'won', bigNumbers: true }, []);
+    assert.ok(big.includes('bigFirstWin'));
+    assert.ok(!big.includes('bigPerfect'));   // nicht perfekt
+    // Perfekter Big-Numbers-Sieg auf R.I.P. → alle drei
+    const bigPerfectRip = evaluate({ outcome: 'won', bigNumbers: true, perfect: true, difficulty: 'rip' }, []);
+    assert.ok(bigPerfectRip.includes('bigFirstWin'));
+    assert.ok(bigPerfectRip.includes('bigPerfect'));
+    assert.ok(bigPerfectRip.includes('bigRip'));
+    assert.ok(bigPerfectRip.includes('ripWin'));
+  });
+
+  test('ripWin only unlocks on the R.I.P. difficulty', () => {
+    assert.ok(!evaluate({ outcome: 'won', difficulty: 'mashallah' }, []).includes('ripWin'));
+    assert.ok(evaluate({ outcome: 'won', difficulty: 'rip' }, []).includes('ripWin'));
+  });
 });

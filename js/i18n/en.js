@@ -662,6 +662,10 @@ export default {
     marathoner: { title: 'Marathoner', desc: 'Play 100 games.' },
     veteran: { title: 'Veteran', desc: 'Play 500 games.' },
     historyFull: { title: 'Well documented', desc: 'Collect 20 entries in your history.' },
+    ripWin: { title: 'R.I.P.', desc: 'Solve a puzzle on the R.I.P. difficulty (14×14).' },
+    bigFirstWin: { title: 'Big numbers', desc: 'Win a puzzle in Big Numbers mode (10–19).' },
+    bigPerfect: { title: 'Big & flawless', desc: 'Win a Big Numbers puzzle with no mistakes and no hints.' },
+    bigRip: { title: 'Big-number grandmaster', desc: 'Win a Big Numbers puzzle on R.I.P. (14×14).' },
   },
   history: {
     title: 'History',

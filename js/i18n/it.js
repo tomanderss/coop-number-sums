@@ -662,6 +662,10 @@ export default {
     marathoner: { title: 'Maratoneta', desc: 'Gioca 100 partite.' },
     veteran: { title: 'Veterano', desc: 'Gioca 500 partite.' },
     historyFull: { title: 'Ben documentato', desc: 'Raccogli 20 voci nella cronologia.' },
+    ripWin: { title: 'R.I.P.', desc: 'Risolvi un puzzle alla difficoltà R.I.P. (14×14).' },
+    bigFirstWin: { title: 'Numeri grandi', desc: 'Vinci un puzzle in modalità Numeri grandi (10–19).' },
+    bigPerfect: { title: 'Grande e impeccabile', desc: 'Vinci un puzzle Numeri grandi senza errori né aiuti.' },
+    bigRip: { title: 'Gran maestro dei numeri', desc: 'Vinci un puzzle Numeri grandi su R.I.P. (14×14).' },
   },
   history: {
     title: 'Cronologia',

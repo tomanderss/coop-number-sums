@@ -662,6 +662,10 @@ export default {
     marathoner: { title: 'マラソンランナー', desc: '100回プレイする。' },
     veteran: { title: 'ベテラン古参', desc: '500回プレイする。' },
     historyFull: { title: '記録魔', desc: '履歴に20件集める。' },
+    ripWin: { title: 'R.I.P.', desc: '難易度R.I.P.（14×14）の問題を解く。' },
+    bigFirstWin: { title: '大きな数字', desc: '「大きな数字」モード（10〜19）で勝利する。' },
+    bigPerfect: { title: '大きく完璧に', desc: '「大きな数字」の問題をミスもヒントもなしで勝利する。' },
+    bigRip: { title: '数字のグランドマスター', desc: 'R.I.P.（14×14）で「大きな数字」の問題に勝利する。' },
   },
   history: {
     title: '履歴',

@@ -662,6 +662,10 @@ export default {
     marathoner: { title: '마라토너', desc: '100게임을 플레이했습니다.' },
     veteran: { title: '베테랑', desc: '500게임을 플레이했습니다.' },
     historyFull: { title: '기록의 달인', desc: '기록에 20개 항목을 모았습니다.' },
+    ripWin: { title: 'R.I.P.', desc: 'R.I.P. 난이도(14×14) 퍼즐을 풉니다.' },
+    bigFirstWin: { title: '큰 숫자', desc: '큰 숫자 모드(10–19)에서 퍼즐을 이깁니다.' },
+    bigPerfect: { title: '크고 완벽하게', desc: '실수와 힌트 없이 큰 숫자 퍼즐을 이깁니다.' },
+    bigRip: { title: '숫자 그랜드마스터', desc: 'R.I.P.(14×14)에서 큰 숫자 퍼즐을 이깁니다.' },
   },
   history: {
     title: '기록',

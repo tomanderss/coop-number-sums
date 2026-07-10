@@ -662,6 +662,10 @@ export default {
     marathoner: { title: 'Marathonien', desc: 'Joue 100 parties.' },
     veteran: { title: 'Vétéran', desc: 'Joue 500 parties.' },
     historyFull: { title: 'Bien documenté', desc: 'Accumule 20 entrées dans ton historique.' },
+    ripWin: { title: 'R.I.P.', desc: 'Résous une grille en difficulté R.I.P. (14×14).' },
+    bigFirstWin: { title: 'Grands nombres', desc: 'Gagne une grille en mode Grands nombres (10–19).' },
+    bigPerfect: { title: 'Grand et parfait', desc: 'Gagne une grille Grands nombres sans erreur ni indice.' },
+    bigRip: { title: 'Grand maître des nombres', desc: 'Gagne une grille Grands nombres en R.I.P. (14×14).' },
   },
   history: {
     title: 'Historique',
