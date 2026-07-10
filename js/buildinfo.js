@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.150';
-export const BUILD_HASH = '73c88e6';
+export const BUILD      = '1.151';
+export const BUILD_HASH = 'dbb64fe';
 
 export const CHANGELOG = [
+  {
+    "version": "1.151",
+    "date": "10.07.2026",
+    "changes": [
+      "Prestige neu ausbalanciert: Die Schwellen (v.a. Legendär) waren selbst für sehr aktive Spieler kaum erreichbar – jetzt sind Gold/Legendär für regelmäßiges Spielen realistisch und „Großmeister\" ein echtes Langzeitziel"
+    ]
+  },
   {
     "version": "1.150",
     "date": "10.07.2026",
