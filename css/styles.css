@@ -364,7 +364,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .prestige-unlock-modal {
   text-align: center; align-items: center; gap: 8px; max-width: 340px; position: relative; overflow: hidden;
 }
-.prestige-unlock-modal .pu-medal { animation: pop .5s cubic-bezier(.2,1.4,.5,1); z-index: 1; }
+.prestige-unlock-modal .pu-medal { animation: pop .5s cubic-bezier(.2,1.4,.5,1); z-index: 1; margin-bottom: 18px; }
 .prestige-unlock-modal .pu-medal svg { height: 92px; width: auto; }
 .pu-kicker { font-size: .72rem; letter-spacing: .22em; text-transform: uppercase; font-weight: 800; color: var(--text3); z-index: 1; }
 .pu-name { font-size: 1.5rem; font-weight: 900; line-height: 1.1; z-index: 1; text-wrap: balance; }
@@ -375,8 +375,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .pu-tier.t4 { color: #5ff0ab; background: rgba(30,200,120,.18); }
 .pu-msg { color: var(--text2); font-size: .9rem; z-index: 1; }
 .pu-more { color: var(--text3); font-size: .8rem; z-index: 1; }
-/* Strahlenkranz hinter der Medaille — nur ab Gold sichtbar, rotiert (compositor-only). */
-.pu-rays { position: absolute; left: 50%; top: 74px; width: 340px; height: 340px; margin: -170px 0 0 -170px; z-index: 0; opacity: 0; pointer-events: none; }
+/* Strahlenkranz hinter der Medaille — nur ab Gold sichtbar, rotiert (compositor-only).
+   Eng um die Medaille (92px) gelegt statt über die halbe Karte: der frühere
+   340px-Ring schnitt quer durch Titel/Stufe/Text und wirkte „verbuggt". */
+.pu-rays { position: absolute; left: 50%; top: 70px; width: 150px; height: 150px; margin: -75px 0 0 -75px; z-index: 0; opacity: 0; pointer-events: none; }
 /* Stufen-Intensität: Bronze/Silber schlicht; Gold Glanz + Strahlen; Legendär Prisma. */
 .prestige-unlock-modal.pu-t1 { background: radial-gradient(300px 200px at 50% 16%, rgba(180,110,50,.16), var(--bg2)); }
 .prestige-unlock-modal.pu-t2 { background: radial-gradient(300px 200px at 50% 16%, rgba(150,165,190,.18), var(--bg2)); }
@@ -1262,7 +1264,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    mit vielen Team-Performance-Zeilen) bleibt die Karte dadurch von oben an
    scrollbar, statt dass align-items:center sie unerreichbar nach oben aus dem
    sichtbaren Bereich zentriert. */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; z-index: 50; animation: fadein .25s; padding: 20px; touch-action: pan-y; overscroll-behavior: contain; overflow-y: auto; }
+/* Safe-area-Padding (wie .modal-bg): sonst rutscht der Kopf einer hohen
+   Ergebnis-Karte unter Statusleiste/Dynamic Island — „Gewinn-Screen oben
+   abgeschnitten". */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; z-index: 50; animation: fadein .25s; padding: calc(env(safe-area-inset-top, 0px) + 20px) calc(env(safe-area-inset-right, 0px) + 20px) calc(env(safe-area-inset-bottom, 0px) + 20px) calc(env(safe-area-inset-left, 0px) + 20px); touch-action: pan-y; overscroll-behavior: contain; overflow-y: auto; }
 .result-card {
   background: var(--bg2); border-radius: 22px; padding: 28px 24px; width: 100%; max-width: 360px;
   text-align: center; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px var(--shadow);
