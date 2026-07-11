@@ -101,6 +101,16 @@
   --bad: #d84a3f; --bad-soft: rgba(216,74,63,.13);
   --warn: #c98a12; --shadow: rgba(120,50,80,.16);
 }
+/* 🌸 Dark Sakura — nächtliches Pflaumen-Dunkel, Kirschblüten-Rosa (dunkel) */
+:root[data-apptheme="darksakura"] {
+  --bg: #170d13; --bg2: #2a1620; --bg3: #3a1f2e; --card: #2a1620; --grid: #4d2c3d;
+  --text: #fbe4ee; --text2: #cfa0b6; --text3: #906b7c;
+  --accent: #ff8fb3; --accent2: #ffabc7; --accent-soft: rgba(255,143,179,.16);
+  --cell-bg: #2a1620; --hdr-bg: #351b28; --ink: #fbe4ee;
+  --good: #5ad19a; --good-soft: rgba(90,209,154,.18);
+  --bad: #ff5c6e; --bad-soft: rgba(255,92,110,.2);
+  --warn: #f5b942; --shadow: rgba(20,6,14,.6);
+}
 /* 🌌 Nebula — Violett-Galaxie, Magenta-Glühen */
 :root[data-apptheme="nebula"] {
   --bg: #0d0a1f; --bg2: #1a1438; --bg3: #261d50; --card: #1a1438; --grid: #3b2f73;
