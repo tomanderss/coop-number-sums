@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.154';
-export const BUILD_HASH = '9c35691';
+export const BUILD      = '1.155';
+export const BUILD_HASH = '3ce4a7d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.155",
+    "date": "11.07.2026",
+    "changes": [
+      "Coop-Beitritt: Schwarzbild-Prävention beim Zurückkehren aus dem Hintergrund (iOS-PWA zeichnet das WebView jetzt zuverlässig neu) und der Beitretende lädt korrekt im Coop-Kontext"
+    ]
+  },
   {
     "version": "1.154",
     "date": "11.07.2026",

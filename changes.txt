@@ -1,1 +1,0 @@
-Coop-Beitritt: Schwarzbild-Prävention beim Zurückkehren aus dem Hintergrund (iOS-PWA zeichnet das WebView jetzt zuverlässig neu) und der Beitretende lädt korrekt im Coop-Kontext
