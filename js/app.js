@@ -2024,6 +2024,15 @@ function handleCoopMsg(msg) {
       return;
     }
     log('coop', 'INIT empfangen', { running: !!msg.running, gameId: msg.gameId || null, hasStart: msg.startTime != null });
+    // Coop-Flags ZUERST setzen (VOR loadPuzzleIntoState): der Beitretende lädt so
+    // im Coop-Kontext — saveSlot='coop' (nicht versehentlich 'solo', was den
+    // Solo-Slot mit einem Coop-Brett überschrieb) und applyMarkSafeRegionColors
+    // rechnet gleich mit den Coop-Spielerfarben statt erst nachträglich per watch.
+    state.coop.active = true;
+    state.coop.connected = true;
+    state.coop.waitingForGuest = false;
+    state.coop.awaitingStart = true;
+    state.coop.generating = false;
     // Gäste generieren nichts selbst -- sie bekommen das fertige Rätsel des Hosts
     // und sind damit sofort "fertig" (kein Ladebalken in der Lobby nötig).
     // lives/maxLives/hintsLeft/hintsUsed/mistakes sind optional (rückwärts-
@@ -2035,11 +2044,6 @@ function handleCoopMsg(msg) {
       marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime, gameId: msg.gameId,
       lives: msg.lives, maxLives: msg.maxLives, hintsLeft: msg.hintsLeft, hintsUsed: msg.hintsUsed, mistakes: msg.mistakes,
     });
-    state.coop.active = true;
-    state.coop.connected = true;
-    state.coop.waitingForGuest = false;
-    state.coop.awaitingStart = true;
-    state.coop.generating = false;
     navigate('game');
     // running: die Runde LÄUFT bereits (Solo→Coop-Umwandlung / Nachzügler in einer
     // laufenden Coop-Runde) — sofort starten, OHNE auf das separate START-Event zu
@@ -8281,12 +8285,39 @@ nextTick(() => {
 // z.B. App aus dem Speicher entfernt) läuft stattdessen über den "Coop
 // fortsetzen"-Button (resumeCoopGame()/Coop.rejoin()) beim nächsten App-Start.
 window.addEventListener('pagehide', () => { persistGame(); if (state.account.status === 'in') Account.syncNow(); });
+// iOS-PWA-Schwarzbild-Prävention: Standalone-PWAs zeigen nach einem Kaltstart /
+// Wiederkehren aus dem Hintergrund (das iOS-System killt die PWA aggressiv —
+// im Diagnoseprotokoll massenhaft `pagehide persisted:false` + Neustarts) oft
+// ein SCHWARZES, nicht neu gezeichnetes WebView, bis irgendetwas den Compositor
+// zum Neuzeichnen zwingt (z.B. eine Scroll-/Style-Änderung). Symptom bei uns:
+// „der Beitretende sieht (nach dem App-Wechsel zum Einladen) alles schwarz".
+// Ein kurzer Opacity-Stups (1 → 0.999 → 1) erzwingt genau dieses Neuzeichnen,
+// OHNE einen Containing-Block für die `position:fixed`-Vollbild-Hintergründe zu
+// erzeugen (das täte `transform`/`filter`, nicht aber `opacity`). Rein additiv,
+// unsichtbar, nur bei Sichtbarwerden (kein Per-Frame-Kosten).
+let repaintNudgeScheduled = false;
+function nudgeRepaint(reason) {
+  if (repaintNudgeScheduled) return;
+  repaintNudgeScheduled = true;
+  requestAnimationFrame(() => {
+    const el = document.querySelector('.app') || document.body;
+    if (el) {
+      el.style.opacity = '0.999';
+      void el.offsetHeight;                       // Reflow erzwingen
+      requestAnimationFrame(() => { el.style.opacity = ''; repaintNudgeScheduled = false; });
+    } else { repaintNudgeScheduled = false; }
+  });
+  log('app', 'Repaint-Stups (iOS-Schwarzbild-Prävention)', { reason });
+}
+window.addEventListener('pageshow', (e) => nudgeRepaint(e && e.persisted ? 'pageshow-bfcache' : 'pageshow'));
+
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     pauseGame();
     persistGame();
     if (state.account.status === 'in') Account.syncNow();  // beim Schließen/Wegwischen sofort in die Cloud sichern
   } else if (document.visibilityState === 'visible') {
+    nudgeRepaint('visible');  // ggf. schwarzes WebView nach Rückkehr neu zeichnen
     // Der Browser löst den Wake Lock beim Verstecken → im Spiel neu anfordern,
     // damit der Bildschirm weiter wach bleibt und die Coop-Verbindung hält.
     if (state.screen === 'game') requestWakeLock();

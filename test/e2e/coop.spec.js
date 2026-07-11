@@ -265,6 +265,11 @@ test.describe('coop', () => {
     expect(await page.evaluate(() => window.__cns.state.coop.awaitingStart)).toBe(false);
     await expect(page.locator('.coop-lobby-overlay')).toBeHidden();
     expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+    // Der Beitretende lädt im COOP-Kontext (Slot 'coop', nicht 'solo') — sonst
+    // überschriebe das Coop-Brett den Solo-Slot (Ordering-Fix: Coop-Flags VOR
+    // loadPuzzleIntoState).
+    expect(await page.evaluate(() => window.__cns.state.saveSlot)).toBe('coop');
+    expect(await page.evaluate(() => window.__cns.state.coop.active)).toBe(true);
     // Ein nachzügelndes START ist ein No-op (kein Timer-Reset/Doppelstart).
     await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'start', startTime: Date.now() }));
     // Sofort spielbar:
