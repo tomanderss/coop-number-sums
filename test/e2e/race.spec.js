@@ -227,3 +227,49 @@ test.describe('race mode', () => {
     expect(await page.evaluate(() => window.__cns.state.paused)).toBe(false);
   });
 });
+
+// „Große Zahlen" (10–19) im Wettkampf: der Host sendet bigNumbers mit dem Seed,
+// jeder Client generiert daraus lokal dasselbe 10–19-Rätsel (rückwärtskompatibel:
+// ohne das Feld bleibt es klassisch 1–9).
+test.describe('race mode · big numbers', () => {
+  test('a RACE_START carrying bigNumbers makes the client generate a 10–19 board', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const s = window.__cns.state.coop;
+      s.role = 'guest'; s.code = '123456'; s.raceMode = true; s.myId = 'me'; s.hostId = 'host';
+      s.players = [{ id: 'host', name: 'Tom', color: '#0a0' }, { id: 'me', name: 'Me', color: '#00f' }];
+      window.__cns.handleCoopMsg({ type: 'raceStart', seed: 12345, difficulty: 'sehrleicht', bigNumbers: true });
+    });
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating);
+    const info = await page.evaluate(() => {
+      const p = window.__cns.state.puzzle; let mn = 99, mx = 0;
+      for (const row of p.values) for (const v of row) { mn = Math.min(mn, v); mx = Math.max(mx, v); }
+      return { big: p.bigNumbers, mn, mx };
+    });
+    expect(info.big).toBe(true);
+    expect(info.mn).toBeGreaterThanOrEqual(10);
+    expect(info.mx).toBeLessThanOrEqual(19);
+    await expect(page.locator('.board.big-num')).toBeVisible();
+  });
+
+  test('a RACE_START without bigNumbers stays classic 1–9', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const s = window.__cns.state.coop;
+      s.role = 'guest'; s.code = '123456'; s.raceMode = true; s.myId = 'me'; s.hostId = 'host';
+      s.players = [{ id: 'host', name: 'Tom', color: '#0a0' }, { id: 'me', name: 'Me', color: '#00f' }];
+      window.__cns.handleCoopMsg({ type: 'raceStart', seed: 999, difficulty: 'sehrleicht' });
+    });
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating);
+    const info = await page.evaluate(() => {
+      const p = window.__cns.state.puzzle; let mx = 0;
+      for (const row of p.values) for (const v of row) mx = Math.max(mx, v);
+      return { big: !!p.bigNumbers, mx };
+    });
+    expect(info.big).toBe(false);
+    expect(info.mx).toBeLessThanOrEqual(9);
+    await expect(page.locator('.board.big-num')).toHaveCount(0);
+  });
+});

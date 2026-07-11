@@ -122,6 +122,8 @@ const state = reactive({
     online: true,              // eigene RTDB-Socket-Verbindung steht (fällt bei stillem Idle-Disconnect auf false, siehe Coop.watchConnection) — Chip zeigt "offline" auch wenn nur die eigene Verbindung abriss
     waitingForGuest: false,    // Host: Raum offen, wartet auf Join / Gast: verbindet
     lobbyDiffId: 'mittel',
+    lobbyBigNumbers: false,    // „Große Zahlen"-Modus (10–19) für die vom Host gestartete Runde
+
     error: null,               // Inline-Fehlermeldung im Lobby-Screen
     myId: null,                // eigene Firebase-uid dieser Session (Host wie Gast)
     hostId: null,               // uid des aktuell amtierenden Hosts (für deterministische Host-Übernahme bei Disconnect)
@@ -2090,7 +2092,7 @@ function handleCoopMsg(msg) {
       if (p) { p.ready = false; broadcastRoster(); }
     }
   } else if (msg.type === Coop.MSG.TEAM_START) {
-    applyTeamStart(msg.seed, msg.difficulty);
+    applyTeamStart(msg.seed, msg.difficulty, !!msg.bigNumbers);
   } else if (msg.type === Coop.MSG.TEAM_DONE) {
     if (!state.team.active || state.team.matchOver) return;
     state.team.matchOver = true;
@@ -2110,7 +2112,7 @@ function handleCoopMsg(msg) {
       else lose(remote);
     }
   } else if (msg.type === Coop.MSG.RACE_START) {
-    applyRaceStart(msg.seed, msg.difficulty);
+    applyRaceStart(msg.seed, msg.difficulty, !!msg.bigNumbers);
   } else if (msg.type === Coop.MSG.RACE_DONE) {
     if (!state.race.active) return;
     if (msg.from === state.coop.myId) return; // eigenes Ergebnis wird lokal in win()/lose() behandelt
@@ -2183,9 +2185,10 @@ function coopReset({ keepRoom = false } = {}) {
   clearTimeout(teamProgressTimer); teamProgressTimer = null;
   clearTimeout(raceProgressTimer); raceProgressTimer = null;
   const keepDiff = state.coop.lobbyDiffId;
+  const keepBig = state.coop.lobbyBigNumbers;
   state.coop.active = false; state.coop.role = null; state.coop.code = '';
   state.coop.connected = false; state.coop.waitingForGuest = false;
-  state.coop.lobbyDiffId = keepDiff; state.coop.error = null;
+  state.coop.lobbyDiffId = keepDiff; state.coop.lobbyBigNumbers = keepBig; state.coop.error = null;
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
   state.coop.generating = false;
   state.coop.teamMode = false;
@@ -2662,6 +2665,7 @@ function canStartCoopMatch() {
 function startCoopMatch() {
   if (!canStartCoopMatch()) return;
   const difficulty = state.coop.lobbyDiffId;
+  const bigNumbers = !!state.coop.lobbyBigNumbers && bigNumbersAllowed(difficulty);
   // Sofort in die "Bereit?"-Lobby wechseln und die Generierung im Hintergrund-
   // Thread starten (kein eingefrorener Haupt-Thread bei großen Feldern). Bis das
   // Rätsel fertig ist, zeigt die Lobby einen laufenden Ladebalken; erst danach
@@ -2673,8 +2677,8 @@ function startCoopMatch() {
   resetReadyFlags();
   navigate('game');
   // Off-thread generieren; bis dahin zeigt die Lobby den laufenden Ladebalken.
-  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty, players: state.coop.players.length });
-  generateAsync({ difficulty }).then(puzzle => {
+  log('game', `Puzzle-Generierung gestartet (Coop)`, { difficulty, bigNumbers, players: state.coop.players.length });
+  generateAsync({ difficulty, bigNumbers }).then(puzzle => {
     if (!state.coop.awaitingStart) return; // Lobby zwischenzeitlich verlassen
     log('game', `Puzzle generiert (Coop)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
     loadPuzzleIntoState(puzzle, null);
@@ -2716,10 +2720,13 @@ function startTeamMatch() {
   resetReadyFlags();
   const seed = Math.floor(Math.random() * 2 ** 31);
   const difficulty = state.coop.lobbyDiffId;
-  applyTeamStart(seed, difficulty);
-  Coop.send({ type: Coop.MSG.TEAM_START, seed, difficulty });
+  const bigNumbers = !!state.coop.lobbyBigNumbers && bigNumbersAllowed(difficulty);
+  applyTeamStart(seed, difficulty, bigNumbers);
+  Coop.send({ type: Coop.MSG.TEAM_START, seed, difficulty, bigNumbers });
 }
-function applyTeamStart(seed, difficulty) {
+// bigNumbers wird mit dem Seed raumweit gesendet, damit BEIDE Teams dasselbe
+// 10–19-Rätsel generieren (rückwärtskompatibel: fehlt das Feld ⇒ klassisch 1–9).
+function applyTeamStart(seed, difficulty, bigNumbers = false) {
   const me = state.coop.players.find(p => p.id === state.coop.myId);
   state.team.myTeam = me?.team || 'A';
   state.team.active = true;
@@ -2742,8 +2749,8 @@ function applyTeamStart(seed, difficulty) {
   Coop.listenTeamEvents(state.team.myTeam, handleCoopMsg);
   Coop.listenTeamProgress(onTeamProgressUpdate);
   navigate('game');
-  log('game', `Puzzle-Generierung gestartet (Team-Match)`, { difficulty, seed, team: state.team.myTeam });
-  generateAsync({ difficulty, seed }).then(puzzle => {
+  log('game', `Puzzle-Generierung gestartet (Team-Match)`, { difficulty, seed, bigNumbers, team: state.team.myTeam });
+  generateAsync({ difficulty, seed, bigNumbers }).then(puzzle => {
     if (!state.coop.awaitingStart) return;
     log('game', `Puzzle generiert (Team-Match)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
     loadPuzzleIntoState(puzzle, null);
@@ -2767,8 +2774,9 @@ function startRaceMatch() {
   resetReadyFlags();
   const seed = Math.floor(Math.random() * 2 ** 31);
   const difficulty = state.coop.lobbyDiffId;
-  applyRaceStart(seed, difficulty);
-  Coop.send({ type: Coop.MSG.RACE_START, seed, difficulty });
+  const bigNumbers = !!state.coop.lobbyBigNumbers && bigNumbersAllowed(difficulty);
+  applyRaceStart(seed, difficulty, bigNumbers);
+  Coop.send({ type: Coop.MSG.RACE_START, seed, difficulty, bigNumbers });
 }
 // state.coop.active bleibt hier BEWUSST false (im Gegensatz zu
 // applyTeamStart()) -- siehe state.race-Kommentar: dadurch sendet coopSend()
@@ -2776,7 +2784,9 @@ function startRaceMatch() {
 // baulich ausgeschlossen statt nur durch Konvention vermieden. Leben/Fehler-
 // anzeige werden über state.isRaceGame separat erzwungen (siehe setMark()/
 // registerMistake()/doCheck()).
-function applyRaceStart(seed, difficulty) {
+// bigNumbers wird mit dem Seed raumweit gesendet, damit alle Renn-Teilnehmer
+// dasselbe 10–19-Rätsel generieren (rückwärtskompatibel: fehlt es ⇒ 1–9).
+function applyRaceStart(seed, difficulty, bigNumbers = false) {
   const others = state.coop.players.filter(p => p.id !== state.coop.myId);
   state.race.ffa = !!state.coop.ffaMode;
   // Alle Gegner (im 1v1 genau einer). Der per-uid-Fortschritt (raceProgress/{uid})
@@ -2813,8 +2823,8 @@ function applyRaceStart(seed, difficulty) {
   // Beide Clients generieren ihr (per Seed identisches) Rätsel lokal im
   // Hintergrund-Thread; Start/Bereit ist bis zur Fertigstellung gesperrt (siehe
   // Team-Match oben).
-  log('game', `Puzzle-Generierung gestartet (Race-Match)`, { difficulty, seed });
-  generateAsync({ difficulty, seed }).then(puzzle => {
+  log('game', `Puzzle-Generierung gestartet (Race-Match)`, { difficulty, seed, bigNumbers });
+  generateAsync({ difficulty, seed, bigNumbers }).then(puzzle => {
     if (!state.coop.awaitingStart) return;
     log('game', `Puzzle generiert (Race-Match)`, { difficulty, rows: puzzle.rows, cols: puzzle.cols });
     loadPuzzleIntoState(puzzle, null);
@@ -6722,6 +6732,16 @@ const App = {
                  :placeholder="t('common.codePlaceholder')" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
         </div>
         <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true"></difficulty-slider>
+        <!-- „Große Zahlen" (10–19) für die Mehrspieler-Runde: gilt für alle
+             Mitspieler (Host generiert/sendet den Modus mit). -->
+        <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="bignum-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
+          <span class="bignum-tx">
+            <b>{{ t('setup.bigNumbers') }}</b>
+            <small>{{ t('setup.bigNumbersHint') }}</small>
+          </span>
+          <input type="checkbox" v-model="state.coop.lobbyBigNumbers" />
+          <span class="bignum-switch" aria-hidden="true"></span>
+        </label>
         <div class="setup-startrow">
           <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
           <button class="btn btn-primary btn-start diff-start" @click="startHosting">{{ t('coop.startHosting') }}</button>
@@ -6801,6 +6821,11 @@ const App = {
               <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
               <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true"></difficulty-slider>
             </div>
+            <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="bignum-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
+              <span class="bignum-tx"><b>{{ t('setup.bigNumbers') }}</b><small>{{ t('setup.bigNumbersHint') }}</small></span>
+              <input type="checkbox" v-model="state.coop.lobbyBigNumbers" />
+              <span class="bignum-switch" aria-hidden="true"></span>
+            </label>
           </template>
           <p class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: (state.coop.raceMode && !state.coop.ffaMode) ? 2 : COOP_MAX_PLAYERS }) }}</p>
           <button v-if="state.coop.teamMode" class="btn btn-primary" :disabled="!canStartTeamMatch()" @click="startTeamMatch">{{ t('team.startMatch') }}</button>
