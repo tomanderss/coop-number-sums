@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.155';
-export const BUILD_HASH = '3ce4a7d';
+export const BUILD      = '1.156';
+export const BUILD_HASH = '3dfe151';
 
 export const CHANGELOG = [
+  {
+    "version": "1.156",
+    "date": "11.07.2026",
+    "changes": [
+      "Neuer Farbstil „Dark Sakura\" im Shop: dunkles Pflaumen-Theme mit Kirschblüten-Rosa-Akzenten"
+    ]
+  },
   {
     "version": "1.155",
     "date": "11.07.2026",
