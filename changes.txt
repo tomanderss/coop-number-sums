@@ -1,1 +1,0 @@
-„Große Zahlen"-Modus jetzt auch in allen Multiplayer-Modi (Coop, Race, 1v1/2v2, Team) — im Host-Setup umschaltbar

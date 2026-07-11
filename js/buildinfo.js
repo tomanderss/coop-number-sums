@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.152';
-export const BUILD_HASH = '918cac2';
+export const BUILD      = '1.153';
+export const BUILD_HASH = 'a6e2d13';
 
 export const CHANGELOG = [
+  {
+    "version": "1.153",
+    "date": "11.07.2026",
+    "changes": [
+      "„Große Zahlen\"-Modus jetzt auch in allen Multiplayer-Modi (Coop, Race, 1v1/2v2, Team) — im Host-Setup umschaltbar"
+    ]
+  },
   {
     "version": "1.152",
     "date": "10.07.2026",
