@@ -47,6 +47,7 @@ export const THEME_ITEMS = [
   { id: 'tiefsee',   cat: 'theme', icon: 'whale', tier: 2, data: { base: 'dark',  top: '#04121c', sw: ['#04121c', '#0a2434', '#2dd4bf', '#dcf3f7'] } },
   { id: 'wald',      cat: 'theme', icon: 'tree', tier: 2, data: { base: 'dark',  top: '#0c1510', sw: ['#0c1510', '#15251a', '#7cc26a', '#e6f2e4'] } },
   { id: 'sakura',    cat: 'theme', icon: 'blossom', tier: 2, data: { base: 'light', top: '#fdf0f4', sw: ['#fdf0f4', '#ffffff', '#d6488a', '#43222f'] } },
+  { id: 'darksakura', cat: 'theme', icon: 'blossom', tier: 2, data: { base: 'dark',  top: '#170d13', sw: ['#170d13', '#2a1620', '#ff8fb3', '#fbe4ee'] } },
   { id: 'nebula',    cat: 'theme', icon: 'galaxy', tier: 3, data: { base: 'dark',  top: '#0d0a1f', sw: ['#0d0a1f', '#1a1438', '#c26bff', '#ece6fb'] } },
   { id: 'sunset',    cat: 'theme', icon: 'sunset', tier: 3, data: { base: 'dark',  top: '#1d0f12', sw: ['#1d0f12', '#301a1c', '#ff8a4c', '#f7e8de'] } },
   { id: 'cyberpunk', cat: 'theme', icon: 'circuit', tier: 4, data: { base: 'dark',  top: '#08080c', sw: ['#08080c', '#12121c', '#f7e733', '#ff2e88'] } },

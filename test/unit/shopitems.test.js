@@ -27,9 +27,9 @@ describe('shopitems.catalog', () => {
     }
   });
 
-  test('theme category has 8 themes with complete data (base/top/sw)', () => {
+  test('theme category has 9 themes with complete data (base/top/sw)', () => {
     const themes = catItems('theme');
-    assert.equal(themes.length, 8);
+    assert.equal(themes.length, 9);
     for (const th of themes) {
       assert.ok(['dark', 'light'].includes(th.data.base), th.id);
       assert.match(th.data.top, /^#[0-9a-f]{6}$/i, th.id);
