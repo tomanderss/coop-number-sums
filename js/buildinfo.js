@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.153';
-export const BUILD_HASH = 'a6e2d13';
+export const BUILD      = '1.154';
+export const BUILD_HASH = '9c35691';
 
 export const CHANGELOG = [
+  {
+    "version": "1.154",
+    "date": "11.07.2026",
+    "changes": [
+      "Prestige-Aufstiegs-Feier: Strahlenkranz sitzt jetzt eng um die Medaille (schnitt vorher quer durch den Text); Gewinn-Screen wird oben nicht mehr von der Statusleiste abgeschnitten"
+    ]
+  },
   {
     "version": "1.153",
     "date": "11.07.2026",
