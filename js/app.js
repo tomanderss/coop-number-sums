@@ -3376,13 +3376,6 @@ function cancelSoloInvite() {
   if (state.modal === 'soloInvite') state.modal = null;
   log('coop', 'Solo-Einladung zurückgezogen/abgeräumt');
 }
-async function shareSoloInviteCode() {
-  const text = t('soloInvite.shareText', { code: state.soloInvite.code });
-  try {
-    if (navigator.share) { await navigator.share({ text }); return; }
-  } catch (e) { if (e && e.name === 'AbortError') return; }
-  try { await navigator.clipboard.writeText(text); showToast(t('soloInvite.copied'), 'success', 2200); } catch (_) {}
-}
 
 // ─── PERSISTENZ DES LAUFENDEN SPIELS ──────────────────────────────────────────
 function collectHintMarks() {
@@ -6101,7 +6094,7 @@ const App = {
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
-      canInviteToSolo, inviteToSoloGame, cancelSoloInvite, shareSoloInviteCode, bigNumbersAllowed,
+      canInviteToSolo, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       isOnline,
@@ -6759,22 +6752,8 @@ const App = {
           <div class="coop-code">{{ state.coop.code }}</div>
           <p class="coop-subtext">{{ t('coop.shareCode') }}</p>
           <button class="btn btn-ghost btn-sm" @click="openInvitePicker"><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteFriends') }}</button>
-          <!-- Freunde-Auswahl zum Einladen in diese Lobby -->
-          <div v-if="state.coop.invitePickerOpen" class="invite-picker">
-            <div class="invite-picker-head">
-              <span>{{ t('coop.inviteFriends') }}</span>
-              <button class="icon-btn" @click="closeInvitePicker" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
-            </div>
-            <p v-if="!state.friends.list.length" class="set-hint">{{ t('friends.empty') }}</p>
-            <div v-for="fr in friendsSorted()" :key="fr.uid" class="invite-row">
-              <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
-              <span class="invite-name">{{ fr.username || fr.uid }}</span>
-              <!-- Offene Einladung → „Zurückziehen" (löscht sie live beim Freund),
-                   danach ist erneutes Einladen sofort wieder möglich. -->
-              <button v-if="state.coop.invitedUids.includes(fr.uid)" class="btn btn-ghost btn-sm invite-withdraw" @click="withdrawLobbyInvite(fr)">{{ t('coop.inviteWithdraw') }}</button>
-              <button v-else class="btn btn-primary btn-sm" @click="inviteFriendToLobby(fr)">{{ t('coop.invite') }}</button>
-            </div>
-          </div>
+          <!-- Die Freunde-Auswahl erscheint als Vollbild-Modal ÜBER allen Screens
+               (siehe .invite-modal weiter unten), nicht mehr inline hier. -->
           <p v-if="state.coop.teamMode" class="coop-subtext">{{ t('team.assignHint') }}</p>
           <button v-if="state.coop.teamMode && state.coop.role==='host'" class="btn btn-ghost btn-sm randomize-teams-btn" :disabled="state.coop.players.length<2" @click="randomizeTeams"><span class="ei" v-html="ic('shuffle')"></span> {{ t('team.randomize') }}</button>
           <div class="team-picker" v-if="state.coop.teamMode && state.coop.players.length">
@@ -7914,27 +7893,38 @@ const App = {
           <div class="coop-code-label">{{ t('coop.yourCode') }}</div>
           <div class="coop-code">{{ state.soloInvite.code }}</div>
           <p class="coop-subtext">{{ t('soloInvite.hint') }}</p>
-          <button class="btn btn-ghost btn-sm" @click="shareSoloInviteCode"><span class="ei" v-html="ic('share')"></span> {{ t('soloInvite.share') }}</button>
           <button v-if="state.account.status==='in'" class="btn btn-ghost btn-sm" @click="openInvitePicker"><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteFriends') }}</button>
-          <!-- Freunde-Auswahl (identisch zur Coop-Lobby, nutzt denselben Einladungs-Mechanismus) -->
-          <div v-if="state.coop.invitePickerOpen" class="invite-picker">
-            <div class="invite-picker-head">
-              <span>{{ t('coop.inviteFriends') }}</span>
-              <button class="icon-btn" @click="closeInvitePicker" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
-            </div>
-            <p v-if="!state.friends.list.length" class="set-hint">{{ t('friends.empty') }}</p>
-            <div v-for="fr in friendsSorted()" :key="fr.uid" class="invite-row">
-              <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
-              <span class="invite-name">{{ fr.username || fr.uid }}</span>
-              <button v-if="state.coop.invitedUids.includes(fr.uid)" class="btn btn-ghost btn-sm invite-withdraw" @click="withdrawLobbyInvite(fr)">{{ t('coop.inviteWithdraw') }}</button>
-              <button v-else class="btn btn-primary btn-sm" @click="inviteFriendToLobby(fr)">{{ t('coop.invite') }}</button>
-            </div>
-          </div>
+          <!-- Die Freunde-Auswahl erscheint als Vollbild-Modal ÜBER diesem Fenster
+               (siehe .invite-modal weiter unten). -->
           <div class="confirm-actions">
             <button class="btn btn-ghost" @click="cancelSoloInvite()">{{ t('soloInvite.cancel') }}</button>
             <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>
           </div>
         </template>
+      </div>
+    </div>
+
+    <!-- Freunde in die Lobby einladen — EIN Vollbild-Modal für ALLE Einstiegspunkte
+         (Coop-/Race-/Team-Lobby-Host, In-Game-Pause-Solo-Einladung). Liegt bewusst
+         NACH dem soloInvite-Modal im DOM, damit es (gleiche z-index-Ebene) darüber
+         stapelt. Die Freundesliste ist hier voll scrollbar statt inline am Button. -->
+    <div v-if="state.coop.invitePickerOpen" class="modal-bg" @click.self="closeInvitePicker">
+      <div class="modal invite-modal">
+        <header class="invite-modal-head">
+          <h3><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteFriends') }}</h3>
+          <button class="icon-btn" @click="closeInvitePicker" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
+        </header>
+        <p v-if="!state.friends.list.length" class="set-hint">{{ t('friends.empty') }}</p>
+        <div v-else class="invite-list">
+          <div v-for="fr in friendsSorted()" :key="fr.uid" class="invite-row">
+            <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
+            <span class="invite-name">{{ fr.username || fr.uid }}</span>
+            <!-- Offene Einladung → „Zurückziehen" (löscht sie live beim Freund). -->
+            <button v-if="state.coop.invitedUids.includes(fr.uid)" class="btn btn-ghost btn-sm invite-withdraw" @click="withdrawLobbyInvite(fr)">{{ t('coop.inviteWithdraw') }}</button>
+            <button v-else class="btn btn-primary btn-sm" @click="inviteFriendToLobby(fr)">{{ t('coop.invite') }}</button>
+          </div>
+        </div>
+        <button class="btn btn-ghost" @click="closeInvitePicker">{{ t('common.close') }}</button>
       </div>
     </div>
 
