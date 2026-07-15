@@ -5757,7 +5757,7 @@ const DifficultySlider = {
     modelValue: { type: String, required: true },
     coop: { type: Boolean, default: false },
   },
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'randomstart'],
   setup(props, { emit }) {
     const coin = ref(0);
     const list = DIFFICULTIES;
@@ -5793,6 +5793,11 @@ const DifficultySlider = {
       let i = idxOf();
       while (i === idxOf()) i = Math.floor(Math.random() * list.length);
       setIdx(i);
+      // Der Zufall-Knopf startet die Runde SOFORT mit der gewürfelten Schwierigkeit
+      // (kein Zwischenschritt „schau, was gewählt wurde"). setIdx() hat modelValue
+      // bereits synchron aktualisiert; der jeweilige Screen wired 'randomstart' an
+      // seine Start-Aktion (Solo newGame / Coop-Host startHosting / Race-Rematch).
+      emit('randomstart', list[i].id);
     }
     function idxFromX(clientX, el) {
       const r = el.getBoundingClientRect(), pad = 16, span = Math.max(1, r.width - pad * 2);
@@ -6174,7 +6179,7 @@ const App = {
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
 
-      <difficulty-slider v-model="state.sel.difficulty"></difficulty-slider>
+      <difficulty-slider v-model="state.sel.difficulty" @randomstart="newGame($event)"></difficulty-slider>
 
       <!-- „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9 (nur 6×6–9×9). Ein
            anderer kognitiver Reiz bei identischer Logik/Eindeutigkeit. -->
@@ -6728,7 +6733,7 @@ const App = {
           <input id="coopcode" class="setup-codeinput" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
                  :placeholder="t('common.codePlaceholder')" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
         </div>
-        <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true"></difficulty-slider>
+        <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true" @randomstart="startHosting()"></difficulty-slider>
         <!-- „Große Zahlen" (10–19) für die Mehrspieler-Runde: gilt für alle
              Mitspieler (Host generiert/sendet den Modus mit). -->
         <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="bignum-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
@@ -6802,7 +6807,7 @@ const App = {
             <div class="setup-label">{{ t('common.difficulty') }}</div>
             <div class="diff-card" :style="diffVars(state.coop.lobbyDiffId)">
               <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
-              <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true"></difficulty-slider>
+              <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true" @randomstart="startRaceMatch()"></difficulty-slider>
             </div>
             <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="bignum-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
               <span class="bignum-tx"><b>{{ t('setup.bigNumbers') }}</b><small>{{ t('setup.bigNumbersHint') }}</small></span>
