@@ -415,4 +415,33 @@ test.describe('coop', () => {
     await back();
     await expect(page.locator('.screen.home')).toBeVisible();
   });
+
+  // Die Freunde-Einladen-Auswahl erscheint als Vollbild-Modal ÜBER dem Screen
+  // (scrollbare komplette Liste) — nicht mehr inline am Button (nur 1-2 Zeilen).
+  test('inviting friends opens a full-screen scrollable modal above the lobby', async ({ page }) => {
+    await goToCoop(page);
+    await page.locator('.coop-body .text-input').fill('Tom');
+    await page.locator('.coop-body .btn-primary').click();
+    await page.locator('.coop-body .btn-primary').click(); // "Host"
+    await page.locator('.setup-codeinput').fill('123456');
+    await page.locator('.diff-start').click();
+    await expect(page.locator('.coop-waiting')).toBeVisible();
+    // Eingeloggten Zustand + Freunde simulieren und die Auswahl öffnen.
+    await page.evaluate(() => {
+      const s = window.__cns.state;
+      s.account.status = 'in';
+      s.friends.list = Array.from({ length: 16 }, (_, i) => ({ uid: 'u' + i, username: 'Freund_' + i }));
+      s.coop.invitePickerOpen = true;
+    });
+    // Als eigenständiges Modal (modal-bg) mit vollständiger, scrollbarer Liste.
+    await expect(page.locator('.modal-bg .invite-modal')).toBeVisible();
+    expect(await page.locator('.invite-modal .invite-row').count()).toBe(16);
+    expect(await page.evaluate(() => {
+      const el = document.querySelector('.invite-list');
+      return !!el && el.scrollHeight > el.clientHeight; // Liste ist wirklich scrollbar
+    })).toBe(true);
+    // X im Kopf schließt das Modal wieder.
+    await page.locator('.invite-modal-head .icon-btn').click();
+    await expect(page.locator('.invite-modal')).toBeHidden();
+  });
 });
