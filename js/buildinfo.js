@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.156';
-export const BUILD_HASH = '3dfe151';
+export const BUILD      = '1.157';
+export const BUILD_HASH = '93175d5';
 
 export const CHANGELOG = [
+  {
+    "version": "1.157",
+    "date": "15.07.2026",
+    "changes": [
+      "Freunde einladen: Die Freundesliste öffnet jetzt als eigenes Pop-up-Fenster über allem (komplett scrollbar) statt als kurze Liste am Button — in allen Lobbys und im Pausenmenü",
+      "„Code teilen\"-Knopf bei der Solo-Einladung entfernt"
+    ]
+  },
   {
     "version": "1.156",
     "date": "11.07.2026",
