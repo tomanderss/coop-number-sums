@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.157';
-export const BUILD_HASH = '93175d5';
+export const BUILD      = '1.158';
+export const BUILD_HASH = '9f3f22f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.158",
+    "date": "15.07.2026",
+    "changes": [
+      "„Zufall\"-Knopf in der Schwierigkeitsauswahl startet die Runde jetzt sofort mit der gewürfelten Schwierigkeit (Solo + alle Multiplayer-Modi) — kein Zwischenschritt mehr"
+    ]
+  },
   {
     "version": "1.157",
     "date": "15.07.2026",
