@@ -1,0 +1,1 @@
+„Zufall"-Knopf in der Schwierigkeitsauswahl startet die Runde jetzt sofort mit der gewürfelten Schwierigkeit (Solo + alle Multiplayer-Modi) — kein Zwischenschritt mehr

@@ -25,6 +25,22 @@ test.describe('gameplay', () => {
     expect(result.markedColor).toBe('#ff00aa');
   });
 
+  // Der „Zufall"-Knopf im Solo-Setup würfelt NICHT nur die Schwierigkeit, sondern
+  // startet die Runde sofort (kein Zwischenschritt „schau, was gewählt wurde").
+  test('the random button starts the game immediately with the rolled difficulty', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'sehrleicht'; });
+    // Zufall drücken → direkt im Spiel, ohne den Start-Knopf zu berühren.
+    await page.locator('.diff-random').click();
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+    // Die gestartete Schwierigkeit ist eine ANDERE als die vorgewählte (immer verschieden).
+    expect(await page.evaluate(() => window.__cns.state.puzzle.difficulty)).not.toBe('sehrleicht');
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+  });
+
   test('solving the puzzle shows the win screen and records a highscore', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
