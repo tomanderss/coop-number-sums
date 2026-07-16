@@ -39,6 +39,11 @@ export const ACHIEVEMENTS = [
   { id: 'bigFirstWin', icon: 'digits', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers },
   { id: 'bigPerfect', icon: 'digits', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers && ctx.perfect },
   { id: 'bigRip', icon: 'digits', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers && ctx.difficulty === 'rip' },
+  // „Endlos-Aufstieg"-Solo-Modus (js/endless.js): Meilensteine am höchsten je
+  // erreichten Level (endlessBest wird nach jedem Lauf gebucht).
+  { id: 'endlessFirst', icon: 'runner', check: (ctx) => (ctx.endlessBest || 0) >= 1 },
+  { id: 'endlessLevel5', icon: 'bolt', check: (ctx) => (ctx.endlessBest || 0) >= 5 },
+  { id: 'endlessLevel8', icon: 'crown', check: (ctx) => (ctx.endlessBest || 0) >= 8 },
 ];
 
 export function evaluate(ctx, unlockedIds) {

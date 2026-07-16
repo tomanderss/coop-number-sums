@@ -1,6 +1,9 @@
 // tr.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  solo: { title: 'Tek Kişilik', classic: 'Klasik', classicHint: 'Tek bulmaca, serbest zorluk', endless: 'Sonsuz Tırmanış', endlessHint: 'Giderek zorlaşır – nereye kadar?' },
+  endless: { badge: 'Sonsuz', best: 'En iyi tur: seviye {n}', cleared: 'Seviye {n} tamamlandı!', lifeGained: '+1 can', overTitle: 'Tur bitti', reached: 'Seviye {n} ulaşıldı', record: 'Yeni rekor!' },
+
   mismatch: { title: 'Farklı oyun verileri', sub: 'Jeton bakiyen bu cihaz ile bulut arasında farklı. Tüm oyun ilerlemesi (galibiyetler, başarımlar, satın almalar) otomatik birleştirilir — yalnızca hangi bakiyenin geçerli olacağını seç.', local: 'Bu cihaz', cloud: 'Bulut', keepLocal: 'Bu cihazı tut', keepCloud: 'Bulutu tut', note: 'Diğer durum yedek olarak saklanır ve silinmez.' },
 
   offline: { unavailable: 'Çevrimdışı kullanılamaz', badge: 'Çevrimdışı', chip: 'Çevrimdışı', chipHint: 'Çevrimdışısın — tekli bulmacalar çalışmaya devam eder.' },
@@ -562,6 +565,7 @@ export default {
     historyEmpty: 'Henüz işlem yok. Oyun kazan veya mağazadan satın alarak geçmişini doldur.',
     reason: {
       win: 'Zafer ödülü',
+      endless: 'Sonsuz Tırmanış',
       purchase: 'Satın alma: {item}',
       gift: 'Yönetici hediyesi',
       adminRevoke: 'Yönetici düzeltmesi',
@@ -666,6 +670,9 @@ export default {
     bigFirstWin: { title: 'Büyük sayılar', desc: 'Büyük Sayılar modunda (10–19) bir bulmaca kazan.' },
     bigPerfect: { title: 'Büyük ve kusursuz', desc: 'Hatasız ve ipucusuz bir Büyük Sayılar bulmacası kazan.' },
     bigRip: { title: 'Sayıların büyük ustası', desc: "R.I.P.'te (14×14) bir Büyük Sayılar bulmacası kazan." },
+    endlessFirst: { title: 'Tırmanışçı', desc: 'Sonsuz Tırmanış’ta ilk seviyeni tamamla.' },
+    endlessLevel5: { title: 'Dağcı', desc: 'Sonsuz Tırmanış’ta 5. seviyeye ulaş.' },
+    endlessLevel8: { title: 'Zirveci', desc: 'Sonsuz Tırmanış’ta 8. seviyeye ulaş.' },
   },
   history: {
     title: 'Geçmiş',

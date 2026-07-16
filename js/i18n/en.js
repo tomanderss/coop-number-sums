@@ -1,6 +1,9 @@
 // en.js — English strings (carefully hand-translated, kept in sync with de.js)
 export default {
 
+  solo: { title: 'Solo', classic: 'Classic', classicHint: 'One puzzle, any difficulty', endless: 'Endless Climb', endlessHint: 'Ever harder – how far can you go?' },
+  endless: { badge: 'Endless', best: 'Best run: level {n}', cleared: 'Level {n} cleared!', lifeGained: '+1 life', overTitle: 'Run over', reached: 'Reached level {n}', record: 'New record!' },
+
   mismatch: { title: 'Different game data', sub: 'Your coin balance differs between this device and the cloud. All game progress (wins, achievements, purchases) is merged automatically — just choose which balance should apply.', local: 'This device', cloud: 'Cloud', keepLocal: 'Keep this device', keepCloud: 'Keep cloud', note: 'The other state is kept as a backup and never deleted.' },
 
   offline: { unavailable: 'Not available offline', badge: 'Offline', chip: 'Offline', chipHint: 'You\'re offline — solo puzzles still work.' },
@@ -562,6 +565,7 @@ export default {
     historyEmpty: 'No transactions yet. Win games or buy in the shop to fill your history.',
     reason: {
       win: 'Win reward',
+      endless: 'Endless Climb',
       purchase: 'Purchase: {item}',
       gift: 'Admin gift',
       adminRevoke: 'Admin adjustment',
@@ -666,6 +670,9 @@ export default {
     bigFirstWin: { title: 'Big numbers', desc: 'Win a puzzle in Big Numbers mode (10–19).' },
     bigPerfect: { title: 'Big & flawless', desc: 'Win a Big Numbers puzzle with no mistakes and no hints.' },
     bigRip: { title: 'Big-number grandmaster', desc: 'Win a Big Numbers puzzle on R.I.P. (14×14).' },
+    endlessFirst: { title: 'Climber', desc: 'Clear your first level in Endless Climb.' },
+    endlessLevel5: { title: 'Ascender', desc: 'Reach level 5 in Endless Climb.' },
+    endlessLevel8: { title: 'Summiteer', desc: 'Reach level 8 in Endless Climb.' },
   },
   history: {
     title: 'History',

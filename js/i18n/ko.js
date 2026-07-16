@@ -1,6 +1,9 @@
 // ko.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  solo: { title: '솔로', classic: '클래식', classicHint: '퍼즐 하나, 자유 난이도', endless: '엔드리스 클라임', endlessHint: '점점 더 어렵게 — 얼마나 갈 수 있나?' },
+  endless: { badge: '엔드리스', best: '최고 기록: 레벨 {n}', cleared: '레벨 {n} 클리어!', lifeGained: '+1 목숨', overTitle: '게임 종료', reached: '레벨 {n} 도달', record: '신기록!' },
+
   mismatch: { title: '게임 데이터가 다릅니다', sub: '코인 잔액이 이 기기와 클라우드에서 다릅니다. 게임 진행(승리, 업적, 구매)은 자동으로 병합됩니다. 적용할 잔액만 선택하세요.', local: '이 기기', cloud: '클라우드', keepLocal: '이 기기 유지', keepCloud: '클라우드 유지', note: '다른 상태는 백업으로 저장되며 삭제되지 않습니다.' },
 
   offline: { unavailable: '오프라인에서 사용할 수 없음', badge: '오프라인', chip: '오프라인', chipHint: '오프라인 상태입니다 — 솔로 퍼즐은 계속 이용할 수 있습니다.' },
@@ -562,6 +565,7 @@ export default {
     historyEmpty: '아직 거래가 없습니다. 게임에서 이기거나 상점에서 구매하면 내역이 채워집니다.',
     reason: {
       win: '승리 보상',
+      endless: '엔드리스 클라임',
       purchase: '구매: {item}',
       gift: '관리자 선물',
       adminRevoke: '관리자 조정',
@@ -666,6 +670,9 @@ export default {
     bigFirstWin: { title: '큰 숫자', desc: '큰 숫자 모드(10–19)에서 퍼즐을 이깁니다.' },
     bigPerfect: { title: '크고 완벽하게', desc: '실수와 힌트 없이 큰 숫자 퍼즐을 이깁니다.' },
     bigRip: { title: '숫자 그랜드마스터', desc: 'R.I.P.(14×14)에서 큰 숫자 퍼즐을 이깁니다.' },
+    endlessFirst: { title: '클라이머', desc: '엔드리스 클라임에서 첫 레벨을 클리어하세요.' },
+    endlessLevel5: { title: '등반가', desc: '엔드리스 클라임에서 레벨 5에 도달하세요.' },
+    endlessLevel8: { title: '정상 정복자', desc: '엔드리스 클라임에서 레벨 8에 도달하세요.' },
   },
   history: {
     title: '기록',

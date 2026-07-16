@@ -1,0 +1,56 @@
+import { test, expect } from '@playwright/test';
+import { gotoApp, solveActivePuzzle } from './helpers.js';
+
+test.describe('endless climb', () => {
+  test('solo menu → endless starts, clearing a level advances, losing shows the summary', async ({ page }) => {
+    await gotoApp(page);
+    // Home → Solo-Auswahl
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.solo-menu');
+    await expect(page.locator('.solo-card-endless')).toBeVisible();
+
+    // Endlos-Aufstieg starten → direkt im Spiel, Level 1
+    await page.locator('.solo-card-endless').click();
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+    expect(await page.evaluate(() => window.__cns.state.endless.active)).toBe(true);
+    expect(await page.evaluate(() => window.__cns.state.endless.level)).toBe(1);
+    await expect(page.locator('.hud-item.endless-lvl')).toBeVisible();
+
+    // Level 1 lösen → Lauf schreitet auf Level 2 fort (kein Sieg-Screen)
+    await solveActivePuzzle(page);
+    await page.waitForFunction(() => window.__cns.state.endless.level === 2 && window.__cns.state.puzzle && !window.__cns.state.generating);
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+
+    // Leben aufbrauchen → Lauf endet, Endlos-Ergebnis-Screen
+    await page.evaluate(() => {
+      const { state, onCellTap } = window.__cns;
+      const p = state.puzzle;
+      let r = -1, c = -1;
+      outer: for (let i = 0; i < p.rows; i++) for (let j = 0; j < p.cols; j++) { if (state.marks[i][j] === 'none') { r = i; c = j; break outer; } }
+      state.tool = p.solution[r][c] ? 'eraser' : 'pen'; // absichtlich falsch
+      for (let k = 0; k < 8; k++) onCellTap(r, c);
+    });
+    await expect(page.locator('.endless-reached')).toBeVisible();
+    expect(await page.evaluate(() => !!window.__cns.state.endlessSummary)).toBe(true);
+    expect(await page.evaluate(() => window.__cns.state.endlessSummary.score)).toBe(1);
+    expect(await page.evaluate(() => window.__cns.state.stats.endlessBest)).toBe(1);
+    // „Neues Spiel" startet einen frischen Lauf.
+    await page.locator('.result-card .btn-primary').click();
+    await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating);
+    expect(await page.evaluate(() => window.__cns.state.endless.active)).toBe(true);
+    expect(await page.evaluate(() => window.__cns.state.endless.level)).toBe(1);
+  });
+
+  test('endless never leaves a solo resume game behind', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .btn-primary').click();
+    await page.locator('.solo-card-endless').click();
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+    // saveSlot ist 'endless' (nicht 'solo') und es liegt kein Solo-Fortsetzen-Stand vor.
+    expect(await page.evaluate(() => window.__cns.state.saveSlot)).toBe('endless');
+    await page.evaluate(() => window.__cns.state.paused = false);
+    await page.evaluate(() => window.__cns.state); // no-op
+    expect(await page.evaluate(() => { const g = localStorage.getItem('cns_active_game'); return g && g !== 'null'; })).toBeFalsy();
+  });
+});

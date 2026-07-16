@@ -17,6 +17,7 @@ const ASSETS = [
   './js/debuglog.js',
   './js/streak.js',
   './js/achievements.js',
+  './js/endless.js',
   './js/prestige.js',
   './js/skins.js',
   './js/training.js',

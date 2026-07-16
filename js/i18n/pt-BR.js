@@ -1,6 +1,9 @@
 // pt-BR.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  solo: { title: 'Solo', classic: 'Clássico', classicHint: 'Um quebra-cabeça, dificuldade livre', endless: 'Subida infinita', endlessHint: 'Cada vez mais difícil – até onde você vai?' },
+  endless: { badge: 'Infinito', best: 'Melhor partida: nível {n}', cleared: 'Nível {n} concluído!', lifeGained: '+1 vida', overTitle: 'Fim da partida', reached: 'Nível {n} alcançado', record: 'Novo recorde!' },
+
   mismatch: { title: 'Dados de jogo diferentes', sub: 'Seu saldo de moedas difere entre este aparelho e a nuvem. Todo o progresso (vitórias, conquistas, compras) é mesclado automaticamente — escolha apenas qual saldo deve valer.', local: 'Este dispositivo', cloud: 'Nuvem', keepLocal: 'Manter este dispositivo', keepCloud: 'Manter a nuvem', note: 'O outro estado é guardado como backup e nunca é apagado.' },
 
   offline: { unavailable: 'Indisponível offline', badge: 'Offline', chip: 'Offline', chipHint: 'Você está offline — os quebra-cabeças solo continuam funcionando.' },
@@ -562,6 +565,7 @@ export default {
     historyEmpty: 'Ainda não há transações. Vença partidas ou compre na loja para preencher seu histórico.',
     reason: {
       win: 'Recompensa de vitória',
+      endless: 'Subida infinita',
       purchase: 'Compra: {item}',
       gift: 'Presente do administrador',
       adminRevoke: 'Ajuste do administrador',
@@ -666,6 +670,9 @@ export default {
     bigFirstWin: { title: 'Números grandes', desc: 'Vença um quebra-cabeça no modo Números grandes (10–19).' },
     bigPerfect: { title: 'Grande e impecável', desc: 'Vença um quebra-cabeça de Números grandes sem erros e sem dicas.' },
     bigRip: { title: 'Grão-mestre dos números', desc: 'Vença um quebra-cabeça de Números grandes no R.I.P. (14×14).' },
+    endlessFirst: { title: 'Escalador', desc: 'Conclua seu primeiro nível na Subida infinita.' },
+    endlessLevel5: { title: 'Alpinista', desc: 'Alcance o nível 5 na Subida infinita.' },
+    endlessLevel8: { title: 'Conquistador', desc: 'Alcance o nível 8 na Subida infinita.' },
   },
   history: {
     title: 'Histórico',

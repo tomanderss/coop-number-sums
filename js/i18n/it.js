@@ -1,6 +1,9 @@
 // it.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  solo: { title: 'Solo', classic: 'Classico', classicHint: 'Un rompicapo, difficoltà libera', endless: 'Scalata infinita', endlessHint: 'Sempre più difficile: fin dove arrivi?' },
+  endless: { badge: 'Infinito', best: 'Miglior partita: livello {n}', cleared: 'Livello {n} superato!', lifeGained: '+1 vita', overTitle: 'Partita finita', reached: 'Livello {n} raggiunto', record: 'Nuovo record!' },
+
   mismatch: { title: 'Dati di gioco diversi', sub: 'Il tuo saldo monete differisce tra questo dispositivo e il cloud. Tutti i progressi (vittorie, obiettivi, acquisti) vengono uniti automaticamente — scegli solo quale saldo deve valere.', local: 'Questo dispositivo', cloud: 'Cloud', keepLocal: 'Mantieni questo dispositivo', keepCloud: 'Mantieni il cloud', note: 'L’altro stato viene salvato come backup e non viene eliminato.' },
 
   offline: { unavailable: 'Non disponibile offline', badge: 'Offline', chip: 'Offline', chipHint: 'Sei offline — i puzzle in solitaria funzionano ancora.' },
@@ -562,6 +565,7 @@ export default {
     historyEmpty: 'Ancora nessuna transazione. Vinci partite o acquista nel negozio per riempire la cronologia.',
     reason: {
       win: 'Ricompensa vittoria',
+      endless: 'Scalata infinita',
       purchase: 'Acquisto: {item}',
       gift: 'Regalo amministratore',
       adminRevoke: 'Correzione amministratore',
@@ -666,6 +670,9 @@ export default {
     bigFirstWin: { title: 'Numeri grandi', desc: 'Vinci un puzzle in modalità Numeri grandi (10–19).' },
     bigPerfect: { title: 'Grande e impeccabile', desc: 'Vinci un puzzle Numeri grandi senza errori né aiuti.' },
     bigRip: { title: 'Gran maestro dei numeri', desc: 'Vinci un puzzle Numeri grandi su R.I.P. (14×14).' },
+    endlessFirst: { title: 'Scalatore', desc: 'Supera il tuo primo livello nella Scalata infinita.' },
+    endlessLevel5: { title: 'Arrampicatore', desc: 'Raggiungi il livello 5 nella Scalata infinita.' },
+    endlessLevel8: { title: 'Conquistatore', desc: 'Raggiungi il livello 8 nella Scalata infinita.' },
   },
   history: {
     title: 'Cronologia',
