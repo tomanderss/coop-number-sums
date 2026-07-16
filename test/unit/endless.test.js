@@ -28,18 +28,21 @@ describe('endless.diffIndex/diffId', () => {
 });
 
 describe('endless.lives', () => {
-  test('grants a life every lifeRefillEvery levels', () => {
-    assert.equal(endlessGrantsLife(3), true);
-    assert.equal(endlessGrantsLife(6), true);
+  test('default config grants NO extra lives (no refill, like coop)', () => {
+    assert.equal(endlessGrantsLife(3), false);
+    assert.equal(endlessGrantsLife(6), false);
     assert.equal(endlessGrantsLife(1), false);
-    assert.equal(endlessGrantsLife(4), false);
-    assert.equal(endlessGrantsLife(0), false);
+    assert.equal(endlessLivesAfter(2, 3), 2);   // kein Refill
+    assert.equal(endlessLivesAfter(3, 6), 3);
+    assert.equal(ENDLESS_CFG.lifeRefillEvery, 0);
+    assert.equal(ENDLESS_CFG.maxLives, 3);
   });
-  test('livesAfter refills but never exceeds maxLives', () => {
-    assert.equal(endlessLivesAfter(2, 3), 3);       // +1 auf Level 3
-    assert.equal(endlessLivesAfter(2, 2), 2);       // kein Refill
-    assert.equal(endlessLivesAfter(ENDLESS_CFG.maxLives, 3), ENDLESS_CFG.maxLives); // gedeckelt
-    assert.equal(endlessLivesAfter(5, 6, { maxLives: 5, lifeRefillEvery: 3 }), 5);
+  test('an explicit refill config still works (mechanism intact)', () => {
+    const cfg = { maxLives: 5, lifeRefillEvery: 3 };
+    assert.equal(endlessGrantsLife(3, cfg), true);
+    assert.equal(endlessGrantsLife(4, cfg), false);
+    assert.equal(endlessLivesAfter(2, 3, cfg), 3);       // +1 auf Level 3
+    assert.equal(endlessLivesAfter(5, 6, cfg), 5);       // auf maxLives gedeckelt
   });
 });
 

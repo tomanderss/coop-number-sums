@@ -8,9 +8,11 @@
 // Hier NUR die reine, DOM-/zustandsfreie Logik (unit-getestet). Das Wiring
 // (Generierung, Brett laden, HUD, Belohnung) liegt in app.js.
 
-// Grundparameter des Laufs. lifeRefillEvery: alle N geschafften Level gibt es ein
-// Extra-Leben (bis maxLives) — hält lange Läufe fair, ohne die Spannung zu nehmen.
-export const ENDLESS_CFG = { startLives: 3, maxLives: 5, startHints: 3, lifeRefillEvery: 3 };
+// Grundparameter des Laufs. 3 Leben, KEIN Extra-Leben/Refill (lifeRefillEvery:0) —
+// identisch zum Coop-Endlos: reine Ausdauer, jeder Fehler zählt. (Die Refill-
+// Mechanik bleibt in endlessGrantsLife/endlessLivesAfter erhalten, ist per Default
+// aber deaktiviert; ein explizites cfg mit lifeRefillEvery>0 aktiviert sie wieder.)
+export const ENDLESS_CFG = { startLives: 3, maxLives: 3, startHints: 3, lifeRefillEvery: 0 };
 
 // Schwierigkeits-INDEX (0-basiert) für ein 1-basiertes Level: klettert genau eine
 // Stufe pro Level und bleibt oben auf der höchsten Stufe stehen.
