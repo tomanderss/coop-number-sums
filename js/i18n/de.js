@@ -1,6 +1,9 @@
 // de.js — deutsche Strings (Standardsprache, Fallback für fehlende Keys in anderen Sprachen)
 export default {
 
+  solo: { title: 'Solo', classic: 'Klassisch', classicHint: 'Ein Rätsel, freie Schwierigkeit', endless: 'Endlos-Aufstieg', endlessHint: 'Immer schwerer – wie weit kommst du?' },
+  endless: { badge: 'Endlos', best: 'Bester Lauf: Level {n}', cleared: 'Level {n} geschafft!', lifeGained: '+1 Leben', overTitle: 'Lauf beendet', reached: 'Level {n} erreicht', record: 'Neuer Rekord!' },
+
   mismatch: { title: 'Unterschiedliche Spielstände', sub: 'Dein Guthaben unterscheidet sich zwischen diesem Gerät und der Cloud. Alle Spielfortschritte (Siege, Erfolge, Käufe) werden automatisch zusammengeführt — wähle nur, welcher Geldstand gelten soll.', local: 'Dieses Gerät', cloud: 'Cloud', keepLocal: 'Dieses Gerät behalten', keepCloud: 'Cloud behalten', note: 'Der jeweils andere Stand wird als Backup gesichert und nicht gelöscht.' },
 
   offline: { unavailable: 'Offline nicht verfügbar', badge: 'Offline', chip: 'Offline', chipHint: 'Du bist offline — Solo-Rätsel funktionieren weiter.' },
@@ -666,6 +669,7 @@ export default {
     historyEmpty: 'Noch keine Buchungen. Gewinne Spiele oder kaufe im Shop, um deinen Verlauf zu füllen.',
     reason: {
       win: 'Sieg-Belohnung',
+      endless: 'Endlos-Aufstieg',
       purchase: 'Kauf: {item}',
       gift: 'Admin-Geschenk',
       adminRevoke: 'Admin-Korrektur',
@@ -770,6 +774,9 @@ export default {
     bigFirstWin: { title: 'Große Zahlen', desc: 'Gewinne ein Rätsel im Modus „Große Zahlen“ (10–19).' },
     bigPerfect: { title: 'Groß & makellos', desc: 'Gewinne ein „Große Zahlen“-Rätsel ohne Fehler und ohne Hinweise.' },
     bigRip: { title: 'Großmeister der Zahlen', desc: 'Gewinne ein „Große Zahlen“-Rätsel auf R.I.P. (14×14).' },
+    endlessFirst: { title: 'Aufsteiger', desc: 'Schaffe dein erstes Level im Endlos-Aufstieg.' },
+    endlessLevel5: { title: 'Kletterer', desc: 'Erreiche Level 5 im Endlos-Aufstieg.' },
+    endlessLevel8: { title: 'Gipfelstürmer', desc: 'Erreiche Level 8 im Endlos-Aufstieg.' },
   },
   history: {
     title: 'Verlauf',

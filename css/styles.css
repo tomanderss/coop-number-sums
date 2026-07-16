@@ -2070,6 +2070,27 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .invite-withdraw { color: var(--bad); background: var(--bad-soft); }
 .coop-waiting { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; }
 .coop-error { background: var(--bad-soft); color: var(--bad); border-radius: 12px; padding: 12px 16px; font-weight: 600; font-size: .9rem; text-align: center; margin: 0; }
+
+/* ── Solo-Auswahl (Klassisch / Endlos-Aufstieg) ─────────────────────────────── */
+.solo-cards { display: flex; flex-direction: column; gap: 14px; margin: auto 0; }
+.solo-card { text-align: left; }
+.solo-card-endless .btn-tx { gap: 2px; }
+.solo-best { color: var(--warn); font-weight: 800; display: inline-flex; align-items: center; gap: 5px; margin-top: 3px; }
+.solo-best .ei svg { width: 1em; height: 1em; }
+
+/* ── Endlos-Aufstieg: HUD-Level-Chip, „geschafft"-Einblendung, Ergebnis ─────── */
+.hud-item.endless-lvl { display: inline-flex; align-items: center; gap: 4px; font-weight: 900; color: var(--accent); }
+.hud-item.endless-lvl .ei svg { width: 1.05em; height: 1.05em; }
+/* „Level geschafft" kurz einblenden (absolut über dem Brett; nur transform/opacity
+   animiert → GPU-Compositor, iOS-sicher). */
+.endless-flash { position: absolute; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.ef-card { background: var(--bg2); border-radius: 18px; padding: 18px 28px; text-align: center; box-shadow: 0 12px 40px var(--shadow); animation: efpop 1.5s ease both; }
+.ef-title { font-size: 1.3rem; font-weight: 900; color: var(--accent); }
+.ef-life { margin-top: 6px; color: var(--bad); font-weight: 800; display: inline-flex; align-items: center; gap: 5px; }
+.ef-life .ei svg { width: 1em; height: 1em; }
+@keyframes efpop { 0% { opacity: 0; transform: scale(.8); } 15% { opacity: 1; transform: scale(1); } 80% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.04); } }
+.endless-reached { font-size: 1.35rem; font-weight: 900; color: var(--accent); }
+.result-card.endless-record { box-shadow: 0 20px 60px var(--shadow), 0 0 0 2px rgba(251,191,36,.55), 0 0 32px rgba(251,191,36,.35); }
 .coop-input {
   font-family: inherit; font-size: 1.6rem; font-weight: 900; letter-spacing: .15em;
   text-align: center; width: 100%; font-variant-numeric: tabular-nums;

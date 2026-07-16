@@ -177,6 +177,10 @@ const EMPTY_STATS = {
   // Bestzeit-Logik unten, da hier jeder perfekte Sieg zählt, nicht nur der
   // schnellste je Schwierigkeit.
   perfectWins: 0, coopPerfectWins: 0,
+  // „Endlos-Aufstieg"-Solo-Modus (js/endless.js): höchstes je erreichtes Level
+  // (Score) + Anzahl Läufe. endlessBest merged geräteübergreifend als MAXIMUM
+  // (mergeNumericDeep), endlessRuns als Maximum (kein exaktes Summieren nötig).
+  endlessBest: 0, endlessRuns: 0,
   // id -> { played, won, lost, sumTimeMs, bestTimeMs,
   //         coopPlayed, coopWon, coopLost, coopSumTimeMs, coopBestTimeMs }
   // Die coop*-Felder zählen ausschließlich Coop-Partien getrennt von den
@@ -233,6 +237,18 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
   }
   saveStats(s);
   return { stats: s, newHighscore };
+}
+
+// „Endlos-Aufstieg" abschließen: Score (erreichtes Level) verbuchen. Bestwert
+// = Maximum, Laufzähler +1. Rückgabe: { stats, newBest }.
+export function recordEndlessRun(score) {
+  const s = loadStats();
+  s.endlessRuns = (s.endlessRuns || 0) + 1;
+  const prev = s.endlessBest || 0;
+  const newBest = score > prev;
+  if (newBest) s.endlessBest = score;
+  saveStats(s);
+  return { stats: s, newBest };
 }
 
 // ─── "Was ist neu"-Tracking ───────────────────────────────────────────────────

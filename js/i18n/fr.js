@@ -1,6 +1,9 @@
 // fr.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  solo: { title: 'Solo', classic: 'Classique', classicHint: 'Une grille, difficulté libre', endless: 'Ascension sans fin', endlessHint: 'Toujours plus dur – jusqu’où irez-vous ?' },
+  endless: { badge: 'Sans fin', best: 'Meilleure partie : niveau {n}', cleared: 'Niveau {n} réussi !', lifeGained: '+1 vie', overTitle: 'Partie terminée', reached: 'Niveau {n} atteint', record: 'Nouveau record !' },
+
   mismatch: { title: 'Données de jeu différentes', sub: 'Votre solde de pièces diffère entre cet appareil et le cloud. Toute la progression (victoires, succès, achats) est fusionnée automatiquement — choisissez seulement quel solde doit s’appliquer.', local: 'Cet appareil', cloud: 'Cloud', keepLocal: 'Garder cet appareil', keepCloud: 'Garder le cloud', note: 'L’autre état est conservé en sauvegarde et jamais supprimé.' },
 
   offline: { unavailable: 'Indisponible hors ligne', badge: 'Hors ligne', chip: 'Hors ligne', chipHint: 'Tu es hors ligne — les grilles solo fonctionnent toujours.' },
@@ -562,6 +565,7 @@ export default {
     historyEmpty: 'Aucune transaction pour l\u2019instant. Gagne des parties ou achète dans la boutique pour remplir ton historique.',
     reason: {
       win: 'Récompense de victoire',
+      endless: 'Ascension sans fin',
       purchase: 'Achat : {item}',
       gift: 'Cadeau administrateur',
       adminRevoke: 'Ajustement administrateur',
@@ -666,6 +670,9 @@ export default {
     bigFirstWin: { title: 'Grands nombres', desc: 'Gagne une grille en mode Grands nombres (10–19).' },
     bigPerfect: { title: 'Grand et parfait', desc: 'Gagne une grille Grands nombres sans erreur ni indice.' },
     bigRip: { title: 'Grand maître des nombres', desc: 'Gagne une grille Grands nombres en R.I.P. (14×14).' },
+    endlessFirst: { title: 'Grimpeur', desc: 'Réussissez votre premier niveau en Ascension sans fin.' },
+    endlessLevel5: { title: 'Alpiniste', desc: 'Atteignez le niveau 5 en Ascension sans fin.' },
+    endlessLevel8: { title: 'Conquérant', desc: 'Atteignez le niveau 8 en Ascension sans fin.' },
   },
   history: {
     title: 'Historique',

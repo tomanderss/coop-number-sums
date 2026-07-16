@@ -1,6 +1,9 @@
 // ja.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  solo: { title: 'ソロ', classic: 'クラシック', classicHint: '1問、好きな難易度で', endless: 'エンドレス・クライム', endlessHint: 'どんどん難しく——どこまで行ける？' },
+  endless: { badge: 'エンドレス', best: '最高記録: レベル{n}', cleared: 'レベル{n}クリア！', lifeGained: '+1 ライフ', overTitle: 'ゲーム終了', reached: 'レベル{n}到達', record: '新記録！' },
+
   mismatch: { title: 'ゲームデータが異なります', sub: 'コイン残高がこの端末とクラウドで異なります。ゲームの進行状況（勝利・実績・購入）は自動的に統合されます。適用する残高だけを選んでください。', local: 'この端末', cloud: 'クラウド', keepLocal: 'この端末を残す', keepCloud: 'クラウドを残す', note: 'もう一方の状態はバックアップとして保存され、削除されません。' },
 
   offline: { unavailable: 'オフラインでは利用できません', badge: 'オフライン', chip: 'オフライン', chipHint: 'オフラインです — ソロパズルは引き続きプレイできます。' },
@@ -562,6 +565,7 @@ export default {
     historyEmpty: 'まだ取引がありません。ゲームに勝つかショップで購入すると履歴に表示されます。',
     reason: {
       win: '勝利報酬',
+      endless: 'エンドレス・クライム',
       purchase: '購入: {item}',
       gift: '管理者ギフト',
       adminRevoke: '管理者による調整',
@@ -666,6 +670,9 @@ export default {
     bigFirstWin: { title: '大きな数字', desc: '「大きな数字」モード（10〜19）で勝利する。' },
     bigPerfect: { title: '大きく完璧に', desc: '「大きな数字」の問題をミスもヒントもなしで勝利する。' },
     bigRip: { title: '数字のグランドマスター', desc: 'R.I.P.（14×14）で「大きな数字」の問題に勝利する。' },
+    endlessFirst: { title: 'クライマー', desc: 'エンドレス・クライムで最初のレベルをクリア。' },
+    endlessLevel5: { title: '登はん者', desc: 'エンドレス・クライムでレベル5に到達。' },
+    endlessLevel8: { title: '登頂者', desc: 'エンドレス・クライムでレベル8に到達。' },
   },
   history: {
     title: '履歴',

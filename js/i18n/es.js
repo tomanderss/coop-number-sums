@@ -1,6 +1,9 @@
 // es.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  solo: { title: 'Solo', classic: 'Clásico', classicHint: 'Un puzle, dificultad libre', endless: 'Ascenso sin fin', endlessHint: 'Cada vez más difícil, ¿hasta dónde llegas?' },
+  endless: { badge: 'Sin fin', best: 'Mejor racha: nivel {n}', cleared: '¡Nivel {n} superado!', lifeGained: '+1 vida', overTitle: 'Fin de la partida', reached: 'Nivel {n} alcanzado', record: '¡Nuevo récord!' },
+
   mismatch: { title: 'Datos de juego distintos', sub: 'Tu saldo de monedas difiere entre este dispositivo y la nube. Todo el progreso (victorias, logros, compras) se fusiona automáticamente; elige solo qué saldo debe valer.', local: 'Este dispositivo', cloud: 'Nube', keepLocal: 'Conservar este dispositivo', keepCloud: 'Conservar la nube', note: 'El otro estado se guarda como copia de seguridad y no se elimina.' },
 
   offline: { unavailable: 'No disponible sin conexión', badge: 'Sin conexión', chip: 'Sin conexión', chipHint: 'Estás sin conexión: los puzles en solitario siguen funcionando.' },
@@ -562,6 +565,7 @@ export default {
     historyEmpty: 'Aún no hay movimientos. Gana partidas o compra en la tienda para llenar tu historial.',
     reason: {
       win: 'Recompensa por victoria',
+      endless: 'Ascenso sin fin',
       purchase: 'Compra: {item}',
       gift: 'Regalo de administrador',
       adminRevoke: 'Ajuste de administrador',
@@ -666,6 +670,9 @@ export default {
     bigFirstWin: { title: 'Números grandes', desc: 'Gana un puzle en el modo Números grandes (10–19).' },
     bigPerfect: { title: 'Grande e impecable', desc: 'Gana un puzle de Números grandes sin errores ni pistas.' },
     bigRip: { title: 'Gran maestro de números', desc: 'Gana un puzle de Números grandes en R.I.P. (14×14).' },
+    endlessFirst: { title: 'Escalador', desc: 'Supera tu primer nivel en Ascenso sin fin.' },
+    endlessLevel5: { title: 'Trepador', desc: 'Alcanza el nivel 5 en Ascenso sin fin.' },
+    endlessLevel8: { title: 'Conquistador', desc: 'Alcanza el nivel 8 en Ascenso sin fin.' },
   },
   history: {
     title: 'Historial',
