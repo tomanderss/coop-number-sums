@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.162';
-export const BUILD_HASH = '3f792bf';
+export const BUILD      = '1.163';
+export const BUILD_HASH = '12a7f78';
 
 export const CHANGELOG = [
+  {
+    "version": "1.163",
+    "date": "16.07.2026",
+    "changes": [
+      "Endlos-Aufstieg: nach jedem Level der normale Abschluss-Screen (Zeit/Fehler/Hinweise, Schwierigkeit·Größe, im Coop die Prozentverteilung) mit „Fortsetzen\"-Knopf – kein versehentliches Weitertippen mehr. Verbrauchte Herzen zeigen im Coop über alle Level hinweg, von wem sie stammen."
+    ]
+  },
   {
     "version": "1.162",
     "date": "16.07.2026",
