@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.159';
-export const BUILD_HASH = 'e7af34b';
+export const BUILD      = '1.160';
+export const BUILD_HASH = '4e44be3';
 
 export const CHANGELOG = [
+  {
+    "version": "1.160",
+    "date": "16.07.2026",
+    "changes": [
+      "Neu: Wochen-Missionen! Rotierende Aufträge (z.B. „5 Spiele gewinnen\", „1× R.I.P.\", „3 Coop-Siege\") mit Fortschrittsanzeige, einlösbaren Münz-Belohnungen und einem eigenen Abzeichen fürs Schaffen aller Wochenaufträge — erreichbar über Solo ▸ Missionen"
+    ]
+  },
   {
     "version": "1.159",
     "date": "16.07.2026",
