@@ -15,6 +15,7 @@ const KEYS = {
   DAILY: 'cns_daily',
   HISTORY: 'cns_history',
   ACHIEVEMENTS: 'cns_achievements',
+  MISSIONS: 'cns_missions', // { weekKey, progress:{id:n}, claimed:{id:true} } — Wochen-Missionen (js/missions.js)
   RACE: 'cns_race',
   // ── Account-/Ökonomie-Fundament (vorwärtskompatibel) ──
   // Lokal-zuerst: für anonyme Nutzer ist localStorage die Quelle der Wahrheit;
@@ -35,7 +36,7 @@ const KEYS = {
 // Bewusst OHNE SEEN_VERSION/COOP_SESSION/Backups/DATA_REV/SYNCED_REV.
 const USER_DATA_KEYS = new Set([
   'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_stats', 'cns_daily',
-  'cns_history', 'cns_achievements', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
+  'cns_history', 'cns_achievements', 'cns_missions', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
   'cns_completed_games', 'cns_wallet_log',
 ]);
 // Wie lange „Coop fortsetzen" nach der letzten Sicherung angeboten wird. Der
@@ -250,6 +251,10 @@ export function recordEndlessRun(score) {
   saveStats(s);
   return { stats: s, newBest };
 }
+
+// ─── Wochen-Missionen (js/missions.js) ────────────────────────────────────────
+export function loadMissions() { return load(KEYS.MISSIONS, { weekKey: null, progress: {}, claimed: {} }); }
+export function saveMissions(s) { save(KEYS.MISSIONS, s); }
 
 // ─── "Was ist neu"-Tracking ───────────────────────────────────────────────────
 export function loadSeenVersion() { return load(KEYS.SEEN_VERSION, null); }
@@ -564,6 +569,7 @@ export function collectExportData(type = 'manual') {
     daily: load(KEYS.DAILY, {}),
     history: load(KEYS.HISTORY, []),
     achievements: load(KEYS.ACHIEVEMENTS, {}),
+    missions: load(KEYS.MISSIONS, {}),
     race: load(KEYS.RACE, {}),
     inventory: load(KEYS.INVENTORY, {}),
     wallet: load(KEYS.WALLET, {}),
@@ -636,6 +642,7 @@ export function importFromFile(jsonText) {
   if (data.daily) save(KEYS.DAILY, data.daily);
   if (data.history) save(KEYS.HISTORY, data.history);
   if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
+  if (data.missions) save(KEYS.MISSIONS, data.missions);
   if (data.race) save(KEYS.RACE, data.race);
   if (data.inventory) save(KEYS.INVENTORY, data.inventory);
   if (data.wallet) save(KEYS.WALLET, data.wallet);
@@ -679,6 +686,7 @@ export function deleteAllData() {
   remove(KEYS.DAILY);
   remove(KEYS.HISTORY);
   remove(KEYS.ACHIEVEMENTS);
+  remove(KEYS.MISSIONS);
   remove(KEYS.RACE);
   remove(KEYS.INVENTORY);
   remove(KEYS.WALLET);

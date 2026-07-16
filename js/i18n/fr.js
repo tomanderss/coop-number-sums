@@ -1,6 +1,23 @@
 // fr.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  missions: {
+    title: 'Missions', hint: 'Défis hebdomadaires pour des pièces bonus', intro: 'De nouveaux défis chaque semaine. Réussissez-les et récupérez la récompense !',
+    claim: 'Récupérer', claimed: '+{n} pièces récupérées !', done: 'Terminé',
+    m: {
+      winAny5: 'Gagnez 5 parties',
+      perfect3: '3 victoires parfaites',
+      coopWin3: '3 victoires en coop',
+      raceWin2: 'Gagnez 2 duels (1c1)',
+      hardWin1: '1 victoire en Difficile ou plus',
+      bigWin2: 'Résolvez 2 grilles Grands Nombres',
+      play8: 'Jouez 8 parties',
+      ripWin1: 'Gagnez 1 R.I.P.',
+      endless3: 'Atteignez le niveau 3 en Ascension sans fin',
+      streak3: 'Tenez une série de 3 jours'
+    },
+  },
+
   solo: { title: 'Solo', classic: 'Classique', classicHint: 'Une grille, difficulté libre', endless: 'Ascension sans fin', endlessHint: 'Toujours plus dur – jusqu’où irez-vous ?' },
   endless: { badge: 'Sans fin', best: 'Meilleure partie : niveau {n}', cleared: 'Niveau {n} réussi !', lifeGained: '+1 vie', overTitle: 'Partie terminée', reached: 'Niveau {n} atteint', record: 'Nouveau record !' },
 
@@ -566,6 +583,7 @@ export default {
     reason: {
       win: 'Récompense de victoire',
       endless: 'Ascension sans fin',
+      mission: 'Récompense de mission',
       purchase: 'Achat : {item}',
       gift: 'Cadeau administrateur',
       adminRevoke: 'Ajustement administrateur',
@@ -673,6 +691,7 @@ export default {
     endlessFirst: { title: 'Grimpeur', desc: 'Réussissez votre premier niveau en Ascension sans fin.' },
     endlessLevel5: { title: 'Alpiniste', desc: 'Atteignez le niveau 5 en Ascension sans fin.' },
     endlessLevel8: { title: 'Conquérant', desc: 'Atteignez le niveau 8 en Ascension sans fin.' },
+    missionsWeek: { title: 'Héros de la semaine', desc: 'Terminez toutes les missions d’une semaine.' },
   },
   history: {
     title: 'Historique',

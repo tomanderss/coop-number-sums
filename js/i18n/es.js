@@ -1,6 +1,23 @@
 // es.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  missions: {
+    title: 'Misiones', hint: 'Retos semanales por monedas extra', intro: 'Nuevos retos cada semana. ¡Complétalos y llévate la recompensa!',
+    claim: 'Reclamar', claimed: '¡+{n} monedas obtenidas!', done: 'Hecho',
+    m: {
+      winAny5: 'Gana 5 partidas',
+      perfect3: '3 victorias impecables',
+      coopWin3: '3 victorias en cooperativo',
+      raceWin2: 'Gana 2 duelos (1vs1)',
+      hardWin1: '1 victoria en Difícil o superior',
+      bigWin2: 'Resuelve 2 puzles de Números Grandes',
+      play8: 'Juega 8 partidas',
+      ripWin1: 'Gana 1 R.I.P.',
+      endless3: 'Alcanza el nivel 3 en Ascenso sin fin',
+      streak3: 'Mantén una racha de 3 días'
+    },
+  },
+
   solo: { title: 'Solo', classic: 'Clásico', classicHint: 'Un puzle, dificultad libre', endless: 'Ascenso sin fin', endlessHint: 'Cada vez más difícil, ¿hasta dónde llegas?' },
   endless: { badge: 'Sin fin', best: 'Mejor racha: nivel {n}', cleared: '¡Nivel {n} superado!', lifeGained: '+1 vida', overTitle: 'Fin de la partida', reached: 'Nivel {n} alcanzado', record: '¡Nuevo récord!' },
 
@@ -566,6 +583,7 @@ export default {
     reason: {
       win: 'Recompensa por victoria',
       endless: 'Ascenso sin fin',
+      mission: 'Recompensa de misión',
       purchase: 'Compra: {item}',
       gift: 'Regalo de administrador',
       adminRevoke: 'Ajuste de administrador',
@@ -673,6 +691,7 @@ export default {
     endlessFirst: { title: 'Escalador', desc: 'Supera tu primer nivel en Ascenso sin fin.' },
     endlessLevel5: { title: 'Trepador', desc: 'Alcanza el nivel 5 en Ascenso sin fin.' },
     endlessLevel8: { title: 'Conquistador', desc: 'Alcanza el nivel 8 en Ascenso sin fin.' },
+    missionsWeek: { title: 'Héroe semanal', desc: 'Completa todas las misiones de una semana.' },
   },
   history: {
     title: 'Historial',

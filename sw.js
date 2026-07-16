@@ -18,6 +18,7 @@ const ASSETS = [
   './js/streak.js',
   './js/achievements.js',
   './js/endless.js',
+  './js/missions.js',
   './js/prestige.js',
   './js/skins.js',
   './js/training.js',

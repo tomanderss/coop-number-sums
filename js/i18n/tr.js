@@ -1,6 +1,23 @@
 // tr.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  missions: {
+    title: 'Görevler', hint: 'Bonus para için haftalık görevler', intro: 'Her hafta yeni görevler. Tamamla ve ödülü kap!',
+    claim: 'Al', claimed: '+{n} para alındı!', done: 'Tamam',
+    m: {
+      winAny5: '5 oyun kazan',
+      perfect3: '3 kusursuz galibiyet',
+      coopWin3: '3 kooperatif galibiyeti',
+      raceWin2: '2 düello (1v1) kazan',
+      hardWin1: 'Zor veya üstünde 1 galibiyet',
+      bigWin2: '2 Büyük Sayılar bulmacası çöz',
+      play8: '8 oyun oyna',
+      ripWin1: '1 R.I.P. kazan',
+      endless3: 'Sonsuz Tırmanış’ta 3. seviyeye ulaş',
+      streak3: '3 günlük seri tut'
+    },
+  },
+
   solo: { title: 'Tek Kişilik', classic: 'Klasik', classicHint: 'Tek bulmaca, serbest zorluk', endless: 'Sonsuz Tırmanış', endlessHint: 'Giderek zorlaşır – nereye kadar?' },
   endless: { badge: 'Sonsuz', best: 'En iyi tur: seviye {n}', cleared: 'Seviye {n} tamamlandı!', lifeGained: '+1 can', overTitle: 'Tur bitti', reached: 'Seviye {n} ulaşıldı', record: 'Yeni rekor!' },
 
@@ -566,6 +583,7 @@ export default {
     reason: {
       win: 'Zafer ödülü',
       endless: 'Sonsuz Tırmanış',
+      mission: 'Görev ödülü',
       purchase: 'Satın alma: {item}',
       gift: 'Yönetici hediyesi',
       adminRevoke: 'Yönetici düzeltmesi',
@@ -673,6 +691,7 @@ export default {
     endlessFirst: { title: 'Tırmanışçı', desc: 'Sonsuz Tırmanış’ta ilk seviyeni tamamla.' },
     endlessLevel5: { title: 'Dağcı', desc: 'Sonsuz Tırmanış’ta 5. seviyeye ulaş.' },
     endlessLevel8: { title: 'Zirveci', desc: 'Sonsuz Tırmanış’ta 8. seviyeye ulaş.' },
+    missionsWeek: { title: 'Haftanın kahramanı', desc: 'Bir haftadaki tüm görevleri tamamla.' },
   },
   history: {
     title: 'Geçmiş',

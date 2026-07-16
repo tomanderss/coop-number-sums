@@ -1,6 +1,23 @@
 // pt-BR.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  missions: {
+    title: 'Missões', hint: 'Desafios semanais por moedas extras', intro: 'Novos desafios toda semana. Complete-os e pegue a recompensa!',
+    claim: 'Resgatar', claimed: '+{n} moedas resgatadas!', done: 'Concluído',
+    m: {
+      winAny5: 'Vença 5 partidas',
+      perfect3: '3 vitórias impecáveis',
+      coopWin3: '3 vitórias no cooperativo',
+      raceWin2: 'Vença 2 duelos (1x1)',
+      hardWin1: '1 vitória no Difícil ou acima',
+      bigWin2: 'Resolva 2 quebra-cabeças de Números Grandes',
+      play8: 'Jogue 8 partidas',
+      ripWin1: 'Vença 1 R.I.P.',
+      endless3: 'Alcance o nível 3 na Subida infinita',
+      streak3: 'Mantenha uma sequência de 3 dias'
+    },
+  },
+
   solo: { title: 'Solo', classic: 'Clássico', classicHint: 'Um quebra-cabeça, dificuldade livre', endless: 'Subida infinita', endlessHint: 'Cada vez mais difícil – até onde você vai?' },
   endless: { badge: 'Infinito', best: 'Melhor partida: nível {n}', cleared: 'Nível {n} concluído!', lifeGained: '+1 vida', overTitle: 'Fim da partida', reached: 'Nível {n} alcançado', record: 'Novo recorde!' },
 
@@ -566,6 +583,7 @@ export default {
     reason: {
       win: 'Recompensa de vitória',
       endless: 'Subida infinita',
+      mission: 'Recompensa de missão',
       purchase: 'Compra: {item}',
       gift: 'Presente do administrador',
       adminRevoke: 'Ajuste do administrador',
@@ -673,6 +691,7 @@ export default {
     endlessFirst: { title: 'Escalador', desc: 'Conclua seu primeiro nível na Subida infinita.' },
     endlessLevel5: { title: 'Alpinista', desc: 'Alcance o nível 5 na Subida infinita.' },
     endlessLevel8: { title: 'Conquistador', desc: 'Alcance o nível 8 na Subida infinita.' },
+    missionsWeek: { title: 'Herói da semana', desc: 'Complete todas as missões de uma semana.' },
   },
   history: {
     title: 'Histórico',
