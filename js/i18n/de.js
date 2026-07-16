@@ -1,6 +1,23 @@
 // de.js — deutsche Strings (Standardsprache, Fallback für fehlende Keys in anderen Sprachen)
 export default {
 
+  missions: {
+    title: 'Missionen', hint: 'Wochen-Aufträge für Bonus-Münzen', intro: 'Neue Aufträge jede Woche. Schließe sie ab und hol dir die Belohnung!',
+    claim: 'Einlösen', claimed: '+{n} Münzen kassiert!', done: 'Erledigt',
+    m: {
+      winAny5: '5 Spiele gewinnen',
+      perfect3: '3 makellose Siege',
+      coopWin3: '3 Coop-Siege',
+      raceWin2: '2 Duelle (1vs1) gewinnen',
+      hardWin1: '1 Sieg auf Schwer oder höher',
+      bigWin2: '2 „Große Zahlen"-Rätsel lösen',
+      play8: '8 Spiele spielen',
+      ripWin1: '1 R.I.P. gewinnen',
+      endless3: 'Endlos-Level 3 erreichen',
+      streak3: '3 Tage Serie halten'
+    },
+  },
+
   solo: { title: 'Solo', classic: 'Klassisch', classicHint: 'Ein Rätsel, freie Schwierigkeit', endless: 'Endlos-Aufstieg', endlessHint: 'Immer schwerer – wie weit kommst du?' },
   endless: { badge: 'Endlos', best: 'Bester Lauf: Level {n}', cleared: 'Level {n} geschafft!', lifeGained: '+1 Leben', overTitle: 'Lauf beendet', reached: 'Level {n} erreicht', record: 'Neuer Rekord!' },
 
@@ -670,6 +687,7 @@ export default {
     reason: {
       win: 'Sieg-Belohnung',
       endless: 'Endlos-Aufstieg',
+      mission: 'Missions-Belohnung',
       purchase: 'Kauf: {item}',
       gift: 'Admin-Geschenk',
       adminRevoke: 'Admin-Korrektur',
@@ -777,6 +795,7 @@ export default {
     endlessFirst: { title: 'Aufsteiger', desc: 'Schaffe dein erstes Level im Endlos-Aufstieg.' },
     endlessLevel5: { title: 'Kletterer', desc: 'Erreiche Level 5 im Endlos-Aufstieg.' },
     endlessLevel8: { title: 'Gipfelstürmer', desc: 'Erreiche Level 8 im Endlos-Aufstieg.' },
+    missionsWeek: { title: 'Wochenheld', desc: 'Schließe alle Wochen-Missionen einer Woche ab.' },
   },
   history: {
     title: 'Verlauf',

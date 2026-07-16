@@ -1,6 +1,23 @@
 // en.js — English strings (carefully hand-translated, kept in sync with de.js)
 export default {
 
+  missions: {
+    title: 'Missions', hint: 'Weekly quests for bonus coins', intro: 'New quests every week. Complete them and grab the reward!',
+    claim: 'Claim', claimed: '+{n} coins claimed!', done: 'Done',
+    m: {
+      winAny5: 'Win 5 games',
+      perfect3: '3 flawless wins',
+      coopWin3: '3 co-op wins',
+      raceWin2: 'Win 2 duels (1v1)',
+      hardWin1: '1 win on Hard or above',
+      bigWin2: 'Solve 2 Big Numbers puzzles',
+      play8: 'Play 8 games',
+      ripWin1: 'Win 1 R.I.P.',
+      endless3: 'Reach endless level 3',
+      streak3: 'Keep a 3-day streak'
+    },
+  },
+
   solo: { title: 'Solo', classic: 'Classic', classicHint: 'One puzzle, any difficulty', endless: 'Endless Climb', endlessHint: 'Ever harder – how far can you go?' },
   endless: { badge: 'Endless', best: 'Best run: level {n}', cleared: 'Level {n} cleared!', lifeGained: '+1 life', overTitle: 'Run over', reached: 'Reached level {n}', record: 'New record!' },
 
@@ -566,6 +583,7 @@ export default {
     reason: {
       win: 'Win reward',
       endless: 'Endless Climb',
+      mission: 'Mission reward',
       purchase: 'Purchase: {item}',
       gift: 'Admin gift',
       adminRevoke: 'Admin adjustment',
@@ -673,6 +691,7 @@ export default {
     endlessFirst: { title: 'Climber', desc: 'Clear your first level in Endless Climb.' },
     endlessLevel5: { title: 'Ascender', desc: 'Reach level 5 in Endless Climb.' },
     endlessLevel8: { title: 'Summiteer', desc: 'Reach level 8 in Endless Climb.' },
+    missionsWeek: { title: 'Quest hero', desc: 'Complete all weekly missions in a single week.' },
   },
   history: {
     title: 'History',

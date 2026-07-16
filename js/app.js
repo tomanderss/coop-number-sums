@@ -16,6 +16,7 @@ import {
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
+  loadMissions, saveMissions,
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, saveProfile, loadInventory, grantInventory, revokeInventory,
   reconcileInventoryFromCloud, applyCloudWallet,
@@ -35,6 +36,7 @@ import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessRunCoins, endlessIsRecord } from './endless.js';
+import { currentWeekKey, weeklyMissions, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
 
 const APP_START = Date.now();
 const splashVersion = document.getElementById('splash-version');
@@ -260,6 +262,10 @@ const state = reactive({
   // Partie als Endlos (analog isTrainingGame/isRaceGame). endlessSummary hält den
   // Ergebnis-Screen nach Laufende.
   endless: { active: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0 },
+  // Wochen-Missionen (js/missions.js): aktive Missionen der Woche + Fortschritt +
+  // Eingelöst-Status. weekKey rotiert wöchentlich (initMissions setzt beim Start/
+  // Wochenwechsel neu). claimNotice = kurzer Feier-Toast beim Einlösen.
+  missions: { weekKey: null, list: [], progress: {}, claimed: {} },
   endlessSummary: null,          // { score, best, coins, newBest } | null (Run-Ende-Screen)
   endlessLevelFlash: null,       // kurze „Level geschafft"-Einblendung { level } | null
   generating: false,
@@ -1273,6 +1279,7 @@ function endlessGameOver() {
   state.endlessSummary = { score, best: stats.endlessBest, coins: granted, newBest };
   if (state.settings.sfxLose) Music.sfxLose();
   log('game', 'Endlos-Lauf beendet', { score, best: stats.endlessBest, coins: granted, newBest });
+  recordMissionEvent({ played: true, endlessScore: score });
   checkAchievements();
   syncCloudNow('endlessEnd');
 }
@@ -1286,12 +1293,57 @@ function endlessAbort() {
   state.stats = stats;
   if (coins > 0) state.wallet = grantCurrency(coins, 'endless', { mode: 'endless', score, aborted: true });
   e.active = false;
+  recordMissionEvent({ played: true, endlessScore: score });
   checkAchievements();
   log('game', 'Endlos-Lauf abgebrochen', { score, coins });
   syncCloudNow('endlessAbort');
 }
 function endlessAgain() { state.endlessSummary = null; startEndless(); }
 function closeEndlessSummary() { state.endlessSummary = null; state.status = 'idle'; navigate('home'); }
+
+// ─── WOCHEN-MISSIONEN (js/missions.js) ────────────────────────────────────────
+// Rotierende Wochen-Aufträge mit Fortschritt + einlösbarer Münz-Belohnung. Der
+// Fortschritt zählt abgeschlossene Partien ALLER Modi und setzt sich pro Woche neu.
+function syncMissionsState(m) {
+  state.missions.weekKey = m.weekKey;
+  state.missions.progress = m.progress;
+  state.missions.claimed = m.claimed;
+  state.missions.list = weeklyMissions(m.weekKey);
+}
+function initMissions() {
+  const wk = currentWeekKey();
+  const stored = loadMissions();
+  const fresh = missionStateFor(stored, wk);              // setzt bei Wochenwechsel zurück
+  if (!stored || stored.weekKey !== wk) saveMissions(fresh);
+  syncMissionsState(fresh);
+  log('app', 'Missionen initialisiert', { weekKey: wk, count: state.missions.list.length });
+}
+// Nach einer abgeschlossenen Partie den Missions-Fortschritt fortschreiben.
+function recordMissionEvent(ctx) {
+  const wk = currentWeekKey();
+  if (state.missions.weekKey !== wk) { const f = missionStateFor(loadMissions(), wk); saveMissions(f); syncMissionsState(f); }
+  const progress = applyMissionEvent(state.missions.list, state.missions.progress, ctx);
+  if (JSON.stringify(progress) === JSON.stringify(state.missions.progress)) return;
+  state.missions.progress = progress;
+  saveMissions({ weekKey: state.missions.weekKey, progress, claimed: state.missions.claimed });
+}
+function missionsClaimable() { return claimableCount(state.missions.list, state.missions.progress, state.missions.claimed); }
+function claimMissionReward(id) {
+  const m = missionById(id);
+  if (!m || !isMissionClaimable(m, state.missions.progress, state.missions.claimed)) return;
+  state.wallet = grantCurrency(m.reward, 'mission', { mission: id, week: state.missions.weekKey });
+  state.missions.claimed = { ...state.missions.claimed, [id]: true };
+  saveMissions({ weekKey: state.missions.weekKey, progress: state.missions.progress, claimed: state.missions.claimed });
+  if (state.settings.sfxWin) Music.sfxWin();
+  showToast(t('missions.claimed', { n: m.reward }), 'success', 2600);
+  log('app', 'Mission eingelöst', { id, reward: m.reward });
+  syncCloudNow('missionClaim');
+}
+function openMissions() { navTo('missions'); }
+function missionProgressVal(m) { return missionValue(m, state.missions.progress); }
+function missionDone(m) { return isMissionComplete(m, state.missions.progress); }
+function missionClaimedUI(m) { return isMissionClaimed(m, state.missions.claimed); }
+function missionClaimableUI(m) { return isMissionClaimable(m, state.missions.progress, state.missions.claimed); }
 
 // Trainingsmodus: Schritt-für-Schritt-Erklärung erzwungener Züge (siehe
 // training.js). Das Rätsel wird GEZIELT so ausgewählt, dass es sich komplett
@@ -3054,6 +3106,7 @@ function checkAchievements() {
     raceWon2v2: state.raceStats['2v2']?.racesWon || 0,
     streak: state.streak.currentStreak,
     endlessBest: state.stats.endlessBest || 0,
+    missionsAllDone: allMissionsComplete(state.missions.list, state.missions.progress),
     historyLength: state.puzzleHistory.length,
     wonAllDifficulties: DIFFICULTIES.every(d => (state.stats.byDifficulty[d.id]?.won || 0) > 0 || (state.stats.byDifficulty[d.id]?.coopWon || 0) > 0),
   };
@@ -3240,6 +3293,14 @@ function win(remote) {
         seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
         timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
       });
+      recordMissionEvent({
+        won: true, played: true,
+        perfect: (state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0,
+        coop: state.coop.active, race: state.isRaceGame || state.team.active,
+        bigNumbers: !!state.puzzle?.bigNumbers, difficulty: state.puzzle?.difficulty,
+        diffIndex: DIFFICULTIES.findIndex(d => d.id === state.puzzle?.difficulty),
+        streak: state.streak.currentStreak || 0,
+      });
       checkAchievements();
       checkMasterUnlock();   // ggf. „Großmeister" freischalten (alle 12 auf Legendär)
       checkPrestigeUnlocks(); // ggf. neue Prestige-Stufe(n) feiern
@@ -3289,6 +3350,10 @@ function lose(remote) {
       difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
       seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
       timeMs: state.elapsed, outcome: 'lost', coop: state.coop.active,
+    });
+    recordMissionEvent({
+      played: true, won: false, difficulty: state.puzzle?.difficulty,
+      diffIndex: DIFFICULTIES.findIndex(d => d.id === state.puzzle?.difficulty),
     });
     checkAchievements();
     checkMasterUnlock();   // z.B. „Ausdauer" kann auch durch eine Niederlage voll werden
@@ -5770,6 +5835,7 @@ function init() {
   } catch (_) {}
   applyLocale();
   refreshResume();
+  initMissions();   // Wochen-Missionen laden / bei Wochenwechsel neu setzen
   refreshAccountFromLocal();
   if (loadProfile().accountId) {
     refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)
@@ -6179,7 +6245,8 @@ const App = {
       generalStats, fmtDuration, whatsNewEntries,
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
-      navigate, navTo, goBack, newGame, goNextPuzzle, startEndless, endlessAgain, closeEndlessSummary, resumeGame, resumeCoopGame, onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
+      navigate, navTo, goBack, newGame, goNextPuzzle, startEndless, endlessAgain, closeEndlessSummary, resumeGame, resumeCoopGame, onCellTap,
+      openMissions, claimMissionReward, missionsClaimable, missionProgressVal, missionDone, missionClaimedUI, missionClaimableUI, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
       rowSum, colSum, regionSum, rowSumR, colSumR, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
@@ -6298,7 +6365,7 @@ const App = {
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
       <div class="solo-cards">
-        <button class="btn btn-primary solo-card" @click="navTo('setup')">
+        <button class="btn btn-primary solo-card solo-card-classic" @click="navTo('setup')">
           <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span>
           <span class="btn-tx"><b>{{ t('solo.classic') }}</b><small>{{ t('solo.classicHint') }}</small></span>
         </button>
@@ -6309,6 +6376,29 @@ const App = {
             <small v-if="state.stats.endlessBest > 0" class="solo-best"><span class="ei" v-html="ic('trophy')"></span> {{ t('endless.best', { n: state.stats.endlessBest }) }}</small>
           </span>
         </button>
+        <button class="btn btn-ghost solo-card solo-card-missions" @click="openMissions()">
+          <span class="btn-ic"><span class="ei" v-html="ic('flag')"></span></span>
+          <span class="btn-tx"><b>{{ t('missions.title') }}</b><small>{{ t('missions.hint') }}</small></span>
+          <span v-if="missionsClaimable() > 0" class="missions-badge">{{ missionsClaimable() }}</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ══ MISSIONEN (Wochen-Aufträge) ══ -->
+    <section v-else-if="state.screen==='missions'" class="screen missions-screen">
+      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('missions.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button></header>
+      <div class="missions-body">
+        <p class="missions-intro">{{ t('missions.intro') }}</p>
+        <div v-for="m in state.missions.list" :key="m.id" class="mission-card" :class="{ done: missionDone(m), claimed: missionClaimedUI(m) }">
+          <div class="mission-ic" v-html="ic(m.icon)"></div>
+          <div class="mission-main">
+            <div class="mission-name">{{ t('missions.m.' + m.id) }}</div>
+            <div class="mission-bar"><div class="mission-bar-fill" :style="{ width: Math.round(missionProgressVal(m) / m.target * 100) + '%' }"></div></div>
+            <div class="mission-sub">{{ missionProgressVal(m) }} / {{ m.target }} · <span class="ei" v-html="ic('coin')"></span> {{ m.reward }}</div>
+          </div>
+          <button v-if="missionClaimableUI(m)" class="btn btn-primary btn-sm mission-claim" @click="claimMissionReward(m.id)">{{ t('missions.claim') }}</button>
+          <span v-else-if="missionClaimedUI(m)" class="mission-check" :title="t('missions.done')"><span class="ei" v-html="ic('check')"></span></span>
+        </div>
       </div>
     </section>
 

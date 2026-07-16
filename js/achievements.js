@@ -44,6 +44,8 @@ export const ACHIEVEMENTS = [
   { id: 'endlessFirst', icon: 'runner', check: (ctx) => (ctx.endlessBest || 0) >= 1 },
   { id: 'endlessLevel5', icon: 'bolt', check: (ctx) => (ctx.endlessBest || 0) >= 5 },
   { id: 'endlessLevel8', icon: 'crown', check: (ctx) => (ctx.endlessBest || 0) >= 8 },
+  // Wochen-Missionen: alle Aufträge einer Woche geschafft (js/missions.js).
+  { id: 'missionsWeek', icon: 'flag', check: (ctx) => !!ctx.missionsAllDone },
 ];
 
 export function evaluate(ctx, unlockedIds) {

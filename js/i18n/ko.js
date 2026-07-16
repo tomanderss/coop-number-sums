@@ -1,6 +1,23 @@
 // ko.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  missions: {
+    title: '미션', hint: '보너스 코인을 위한 주간 과제', intro: '매주 새로운 과제! 완료하고 보상을 받으세요.',
+    claim: '받기', claimed: '+{n} 코인 획득!', done: '완료',
+    m: {
+      winAny5: '5게임 승리',
+      perfect3: '완벽한 승리 3회',
+      coopWin3: '협동 3승',
+      raceWin2: '대결(1대1) 2승',
+      hardWin1: '어려움 이상 1승',
+      bigWin2: '빅 넘버 퍼즐 2개 풀기',
+      play8: '8게임 플레이',
+      ripWin1: 'R.I.P. 1승',
+      endless3: '엔드리스 레벨 3 도달',
+      streak3: '3일 연속 유지'
+    },
+  },
+
   solo: { title: '솔로', classic: '클래식', classicHint: '퍼즐 하나, 자유 난이도', endless: '엔드리스 클라임', endlessHint: '점점 더 어렵게 — 얼마나 갈 수 있나?' },
   endless: { badge: '엔드리스', best: '최고 기록: 레벨 {n}', cleared: '레벨 {n} 클리어!', lifeGained: '+1 목숨', overTitle: '게임 종료', reached: '레벨 {n} 도달', record: '신기록!' },
 
@@ -566,6 +583,7 @@ export default {
     reason: {
       win: '승리 보상',
       endless: '엔드리스 클라임',
+      mission: '미션 보상',
       purchase: '구매: {item}',
       gift: '관리자 선물',
       adminRevoke: '관리자 조정',
@@ -673,6 +691,7 @@ export default {
     endlessFirst: { title: '클라이머', desc: '엔드리스 클라임에서 첫 레벨을 클리어하세요.' },
     endlessLevel5: { title: '등반가', desc: '엔드리스 클라임에서 레벨 5에 도달하세요.' },
     endlessLevel8: { title: '정상 정복자', desc: '엔드리스 클라임에서 레벨 8에 도달하세요.' },
+    missionsWeek: { title: '주간 영웅', desc: '한 주의 모든 미션을 완료하세요.' },
   },
   history: {
     title: '기록',

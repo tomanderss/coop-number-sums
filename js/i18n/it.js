@@ -1,6 +1,23 @@
 // it.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  missions: {
+    title: 'Missioni', hint: 'Sfide settimanali per monete bonus', intro: 'Nuove sfide ogni settimana. Completale e prendi la ricompensa!',
+    claim: 'Riscuoti', claimed: '+{n} monete ottenute!', done: 'Fatto',
+    m: {
+      winAny5: 'Vinci 5 partite',
+      perfect3: '3 vittorie perfette',
+      coopWin3: '3 vittorie in cooperativa',
+      raceWin2: 'Vinci 2 duelli (1vs1)',
+      hardWin1: '1 vittoria a Difficile o oltre',
+      bigWin2: 'Risolvi 2 rompicapi Numeri Grandi',
+      play8: 'Gioca 8 partite',
+      ripWin1: 'Vinci 1 R.I.P.',
+      endless3: 'Raggiungi il livello 3 nella Scalata infinita',
+      streak3: 'Mantieni una serie di 3 giorni'
+    },
+  },
+
   solo: { title: 'Solo', classic: 'Classico', classicHint: 'Un rompicapo, difficoltà libera', endless: 'Scalata infinita', endlessHint: 'Sempre più difficile: fin dove arrivi?' },
   endless: { badge: 'Infinito', best: 'Miglior partita: livello {n}', cleared: 'Livello {n} superato!', lifeGained: '+1 vita', overTitle: 'Partita finita', reached: 'Livello {n} raggiunto', record: 'Nuovo record!' },
 
@@ -566,6 +583,7 @@ export default {
     reason: {
       win: 'Ricompensa vittoria',
       endless: 'Scalata infinita',
+      mission: 'Ricompensa missione',
       purchase: 'Acquisto: {item}',
       gift: 'Regalo amministratore',
       adminRevoke: 'Correzione amministratore',
@@ -673,6 +691,7 @@ export default {
     endlessFirst: { title: 'Scalatore', desc: 'Supera il tuo primo livello nella Scalata infinita.' },
     endlessLevel5: { title: 'Arrampicatore', desc: 'Raggiungi il livello 5 nella Scalata infinita.' },
     endlessLevel8: { title: 'Conquistatore', desc: 'Raggiungi il livello 8 nella Scalata infinita.' },
+    missionsWeek: { title: 'Eroe settimanale', desc: 'Completa tutte le missioni di una settimana.' },
   },
   history: {
     title: 'Cronologia',

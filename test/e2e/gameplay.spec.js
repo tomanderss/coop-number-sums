@@ -31,7 +31,7 @@ test.describe('gameplay', () => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
     await page.waitForSelector('.screen.solo-menu');
-    await page.locator('.solo-card:not(.solo-card-endless)').click();
+    await page.locator('.solo-card-classic').click();
     await page.waitForSelector('.screen.setup');
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'sehrleicht'; });
     // Zufall drücken → direkt im Spiel, ohne den Start-Knopf zu berühren.
@@ -141,7 +141,7 @@ test.describe('big numbers mode', () => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
     await page.waitForSelector('.screen.solo-menu');
-    await page.locator('.solo-card:not(.solo-card-endless)').click();
+    await page.locator('.solo-card-classic').click();
     await page.waitForSelector('.screen.setup');
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'sehrleicht'; });
     // Umschalter sichtbar (6×6 erlaubt) → einschalten.
@@ -173,7 +173,7 @@ test.describe('big numbers mode', () => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
     await page.waitForSelector('.screen.solo-menu');
-    await page.locator('.solo-card:not(.solo-card-endless)').click();
+    await page.locator('.solo-card-classic').click();
     await page.waitForSelector('.screen.setup');
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'rip'; }); // 14×14
     await expect(page.locator('.bignum-toggle')).toBeVisible();

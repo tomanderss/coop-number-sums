@@ -96,6 +96,19 @@ function mergeNumericDeep(a, b) {
   }
   return out;
 }
+// Wochen-Missionen (cns_missions): dieselbe Woche → Fortschritt je Mission =
+// Maximum, „eingelöst" = Vereinigung; verschiedene Wochen → die NEUERE Woche
+// (größerer weekKey) gewinnt komplett (ihr Stand ist für diese Woche maßgeblich).
+export function mergeMissions(a = {}, b = {}) {
+  const ak = a && a.weekKey, bk = b && b.weekKey;
+  if (ak == null) return b || {};
+  if (bk == null) return a || {};
+  if (ak !== bk) return (ak > bk ? a : b);
+  const progress = {};
+  const ap = a.progress || {}, bp = b.progress || {};
+  for (const k of new Set([...Object.keys(ap), ...Object.keys(bp)])) progress[k] = Math.max(nz(ap[k]), nz(bp[k]));
+  return { weekKey: ak, progress, claimed: { ...(b.claimed || {}), ...(a.claimed || {}) } };
+}
 // Streak (cns_daily): Zähler = Maximum, letztes Abschlussdatum = das spätere,
 // Anzeige-Flags (lossNoticeShown/justLost) folgen der jüngeren Seite.
 function mergeStreak(a = {}, b = {}, aNewer = true) {
@@ -137,6 +150,7 @@ export function mergeSnapshots(local = {}, cloud = {}) {
     daily: mergeStreak(local.daily || {}, cloud.daily || {}, localNewer),
     history: mergeHistory(local.history, cloud.history),
     achievements: { ...(cloud.achievements || {}), ...(local.achievements || {}) },   // Union
+    missions: mergeMissions(local.missions, cloud.missions),
     race: mergeNumericDeep(local.race || {}, cloud.race || {}),
     inventory: { ...(cloud.inventory || {}), ...(local.inventory || {}) },            // Union
     wallet: newer.wallet || (localNewer ? cloud.wallet : local.wallet) || {},

@@ -31,7 +31,7 @@ export async function startNewGame(page, difficulty = 'sehrleicht') {
   await page.locator('.home-actions .btn-primary').click();
   // Solo-Auswahl: „Klassisch" führt in den Schwierigkeits-Setup (Endlos = eigener Modus).
   await page.waitForSelector('.screen.solo-menu');
-  await page.locator('.solo-card:not(.solo-card-endless)').click();
+  await page.locator('.solo-card-classic').click();
   await page.waitForSelector('.screen.setup');
   // Solo-Setup ist ein Slider (keine Karten mehr): Schwierigkeit direkt über den
   // Debug-Hook wählen, dann starten. (Coop/Race/Team behalten das Kartenraster.)

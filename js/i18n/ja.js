@@ -1,6 +1,23 @@
 // ja.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  missions: {
+    title: 'ミッション', hint: 'ボーナスコインの週替わり課題', intro: '毎週新しい課題。達成して報酬を受け取ろう！',
+    claim: '受け取る', claimed: '+{n}コイン獲得！', done: '完了',
+    m: {
+      winAny5: '5回勝つ',
+      perfect3: 'ノーミス勝利3回',
+      coopWin3: '協力プレイで3勝',
+      raceWin2: '対戦(1vs1)で2勝',
+      hardWin1: '難しい以上で1勝',
+      bigWin2: 'ビッグナンバーを2問解く',
+      play8: '8回プレイ',
+      ripWin1: 'R.I.P.で1勝',
+      endless3: 'エンドレスでレベル3到達',
+      streak3: '3日連続を維持'
+    },
+  },
+
   solo: { title: 'ソロ', classic: 'クラシック', classicHint: '1問、好きな難易度で', endless: 'エンドレス・クライム', endlessHint: 'どんどん難しく——どこまで行ける？' },
   endless: { badge: 'エンドレス', best: '最高記録: レベル{n}', cleared: 'レベル{n}クリア！', lifeGained: '+1 ライフ', overTitle: 'ゲーム終了', reached: 'レベル{n}到達', record: '新記録！' },
 
@@ -566,6 +583,7 @@ export default {
     reason: {
       win: '勝利報酬',
       endless: 'エンドレス・クライム',
+      mission: 'ミッション報酬',
       purchase: '購入: {item}',
       gift: '管理者ギフト',
       adminRevoke: '管理者による調整',
@@ -673,6 +691,7 @@ export default {
     endlessFirst: { title: 'クライマー', desc: 'エンドレス・クライムで最初のレベルをクリア。' },
     endlessLevel5: { title: '登はん者', desc: 'エンドレス・クライムでレベル5に到達。' },
     endlessLevel8: { title: '登頂者', desc: 'エンドレス・クライムでレベル8に到達。' },
+    missionsWeek: { title: '週間ヒーロー', desc: '1週間のミッションをすべて達成する。' },
   },
   history: {
     title: '履歴',
