@@ -262,7 +262,7 @@ const state = reactive({
   // Level auf gemeinsamem Leben-/Hinweis-Pool. active=true markiert die laufende
   // Partie als Endlos (analog isTrainingGame/isRaceGame). endlessSummary hält den
   // Ergebnis-Screen nach Laufende.
-  endless: { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0 },
+  endless: { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0, lifeLossBy: [] },
   // Wochen-Missionen (js/missions.js): aktive Missionen der Woche + Fortschritt +
   // Eingelöst-Status. weekKey rotiert wöchentlich (initMissions setzt beim Start/
   // Wochenwechsel neu). claimNotice = kurzer Feier-Toast beim Einlösen.
@@ -1246,23 +1246,37 @@ function finishEndlessLevel(puzzle) {
   startTimer();
   requestWakeLock();
 }
-// Level geschafft (aus win()): nächstes, schwereres Level laden; Pool übertragen,
-// alle N Level ein Extra-Leben (Refill). Kurze „geschafft"-Einblendung statt des
-// großen Sieg-Screens (der käme nach JEDEM Level — zu viel).
-function endlessOnSolve() {
-  stopTimer();
-  if (state.settings.sfxWin) Music.sfxWin();
+// Level geschafft (aus win(), Solo UND Coop, idempotent): den NORMALEN Gewinn-Screen
+// zeigen (Zeit/Fehler/Hinweise/Schwierigkeit·Größe, Coop-Prozentverteilung,
+// verlorene Leben) — kein Auto-Weiter. Erst „Fortsetzen" (endlessContinue) lädt das
+// nächste Level. So tippt niemand versehentlich ins nächste Brett. Der Lauf bleibt
+// verbunden (Level/Leben/Hinweise/Herz-Farben wandern mit). KEINE normale
+// Sieg-Buchhaltung (Stats/Münzen/Streak) — die kommt gesammelt am Laufende.
+function endlessLevelSolved(remote) {
+  if (state.status === 'won') return;   // Level-Screen zeigt bereits (idempotent)
   const e = state.endless;
+  if (!remote && !state.paused && state.startTime) state.elapsed = Math.max(0, gameNow() - state.startTime);
+  if (remote) { state.elapsed = remote.timeMs ?? state.elapsed; state.mistakes = remote.mistakes ?? state.mistakes; state.hintsUsed = remote.hintsUsed ?? state.hintsUsed; }
+  state.status = 'won';
+  stopTimer();
   e.score = e.level;                                    // dieses Level ist geschafft
   e.hints = Math.max(0, state.hintsLeft || 0);          // Rest-Hinweise mitnehmen
-  const gainedLife = endlessGrantsLife(e.level);
-  e.lives = endlessLivesAfter(state.lives, e.level);    // Rest-Leben + evtl. Refill
-  e.level++;
-  const cleared = e.score;
-  state.endlessLevelFlash = { level: cleared, gainedLife };
-  setTimeout(() => { if (state.endlessLevelFlash && state.endlessLevelFlash.level === cleared) state.endlessLevelFlash = null; }, 1500);
-  log('game', 'Endlos-Level geschafft', { cleared, nextLevel: e.level, lives: e.lives, gainedLife });
-  loadEndlessLevel();
+  e.lives = Math.max(0, state.lives);                   // Rest-Leben übertragen (kein Refill)
+  if (e.coop) e.lifeLossBy = (state.coop.lifeLossBy || []).slice();  // wer welche Leben verbraucht hat — bewahren
+  state.perfectWin = (state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0;
+  state.newHighscore = false; state.wouldHaveBeenBest = false; state.lastCoinReward = 0; state.lastStreakUsed = 0;
+  launchWinFx(state.perfectWin);
+  updateMusic();
+  log('game', 'Endlos-Level gelöst', { level: e.score, coop: !!e.coop, lives: e.lives });
+}
+// „Fortsetzen" auf dem Endlos-Level-Screen: nächstes (schwereres) Level laden. Solo
+// direkt; Coop nur der Host (generiert + broadcastet), der Gast wartet auf das INIT.
+function endlessContinue() {
+  const e = state.endless;
+  if (e.coop && state.coop.role !== 'host') return;     // Gast wartet auf Host-INIT
+  state.status = 'playing';
+  e.level = e.score + 1;
+  if (e.coop) loadCoopEndlessLevel(); else loadEndlessLevel();
 }
 // Lauf beendet (aus lose(), Leben aufgebraucht): Score verbuchen, Münzen für alle
 // geschafften Level gutschreiben, Ergebnis-Screen zeigen.
@@ -1339,34 +1353,21 @@ function finishCoopEndlessLevel(puzzle) {
   const e = state.endless;
   const gameId = generateId();
   const startTime = gameNow();
+  // Kumulierte Herz-Verluste (wer welches Leben verbraucht hat) über die Level
+  // hinweg BEWAHREN — loadPuzzleIntoState leert lifeLossBy, danach wiederherstellen.
+  const carryLoss = (e.lifeLossBy && e.lifeLossBy.length) ? e.lifeLossBy.slice() : (state.coop.lifeLossBy || []).slice();
   // Rundenstand mit den GETEILTEN Rest-Leben laden (kein Refill).
   loadPuzzleIntoState(puzzle, { lives: e.lives, maxLives: LIVES, gameId, startTime });
+  state.coop.lifeLossBy = carryLoss;
+  e.lifeLossBy = carryLoss;
   state.generating = false;
   e.advancing = false;
-  // Fertiges Level als LAUFENDES INIT an die Gäste (endless-Marker + Level + Leben);
-  // sie steigen sofort ein (running:true), kein Bereit-Lobby-Umweg.
-  coopSend({ type: Coop.MSG.INIT, gameId, running: true, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime, lives: e.lives, maxLives: LIVES, endless: true, endlessLevel: e.level });
+  // Fertiges Level als LAUFENDES INIT an die Gäste (endless-Marker + Level + Leben +
+  // kumulierte Herz-Verluste); sie steigen sofort ein (running:true).
+  coopSend({ type: Coop.MSG.INIT, gameId, running: true, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime, lives: e.lives, maxLives: LIVES, endless: true, endlessLevel: e.level, lifeLossBy: carryLoss.map(x => x || '') });
   coopSend({ type: Coop.MSG.START, startTime });
   startCoopGame(startTime);
   requestWakeLock();
-}
-// Level gemeinsam geschafft (aus win(), host+guest, idempotent). Host generiert das
-// nächste Level und broadcastet es; der Gast wartet auf dieses INIT.
-function endlessCoopOnSolve() {
-  const e = state.endless;
-  if (e.advancing) return;   // dieses Level wird bereits abgeschlossen
-  e.advancing = true;
-  stopTimer();
-  if (state.settings.sfxWin) Music.sfxWin();
-  e.score = e.level;
-  e.lives = Math.max(0, state.lives);   // Rest-Leben übertragen — KEIN Refill
-  const cleared = e.score;
-  state.endlessLevelFlash = { level: cleared, gainedLife: false };
-  setTimeout(() => { if (state.endlessLevelFlash && state.endlessLevelFlash.level === cleared) state.endlessLevelFlash = null; }, 1500);
-  e.level++;
-  log('coop', 'Coop-Endlos-Level geschafft', { cleared, nextLevel: e.level, lives: e.lives, host: state.coop.role === 'host' });
-  if (state.coop.role === 'host') loadCoopEndlessLevel();   // Host zieht das nächste Level auf
-  // Gast: advancing bleibt true bis das nächste INIT vom Host eintrifft.
 }
 // Leben gemeinsam aufgebraucht → Lauf endet für alle (idempotent).
 function endlessCoopGameOver() {
@@ -2304,6 +2305,12 @@ function handleCoopMsg(msg) {
       marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime, gameId: msg.gameId,
       lives: msg.lives, maxLives: msg.maxLives, hintsLeft: msg.hintsLeft, hintsUsed: msg.hintsUsed, mistakes: msg.mistakes,
     });
+    // Coop-Endlos: kumulierte Herz-Verluste (wer welches Leben verbrauchte) vom
+    // Host übernehmen — loadPuzzleIntoState hat lifeLossBy geleert, daher DANACH.
+    if (msg.endless && Array.isArray(msg.lifeLossBy)) {
+      state.coop.lifeLossBy = msg.lifeLossBy.map(x => x || null);
+      state.endless.lifeLossBy = state.coop.lifeLossBy.slice();
+    }
     navigate('game');
     // running: die Runde LÄUFT bereits (Solo→Coop-Umwandlung / Nachzügler in einer
     // laufenden Coop-Runde) — sofort starten, OHNE auf das separate START-Event zu
@@ -3286,13 +3293,11 @@ function afterPaint(cb) {
   }
 }
 function win(remote) {
-  // Endlos-Aufstieg: kein normaler Sieg-Screen/Buchhaltung — Level geschafft,
-  // weiter zum nächsten (schwereren) Level. Coop-Endlos ist remote-agnostisch
-  // (beide Clients erkennen das Lösen über das synchrone Brett) + idempotent.
-  if (state.endless.active) {
-    if (state.endless.coop) { endlessCoopOnSolve(); return; }
-    if (!remote) { endlessOnSolve(); return; }
-  }
+  // Endlos-Aufstieg: Level geschafft → NORMALER Gewinn-Screen (mit „Fortsetzen"),
+  // keine normale Sieg-Buchhaltung. Für Solo UND Coop derselbe Pfad; Coop ist
+  // remote-agnostisch (beide erkennen das Lösen übers synchrone Brett) + idempotent
+  // (Guard auf status==='won').
+  if (state.endless.active) { endlessLevelSolved(remote); return; }
   if (state.status === 'won') return;
   cancelSoloInvite(); // unbeantwortete Solo-Einladung? Raum abbauen (no-op sonst)
   // Exakte Endzeit stempeln: der Timer schreibt elapsed nur noch sekundenweise
@@ -6359,7 +6364,7 @@ const App = {
       generalStats, fmtDuration, whatsNewEntries,
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
-      navigate, navTo, goBack, newGame, goNextPuzzle, startEndless, endlessAgain, closeEndlessSummary, resumeGame, resumeCoopGame, onCellTap,
+      navigate, navTo, goBack, newGame, goNextPuzzle, startEndless, endlessAgain, endlessContinue, closeEndlessSummary, resumeGame, resumeCoopGame, onCellTap,
       openMissions, claimMissionReward, missionsClaimable, missionProgressVal, missionDone, missionClaimedUI, missionClaimableUI, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
       rowSum, colSum, regionSum, rowSumR, colSumR, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
@@ -6820,8 +6825,8 @@ const App = {
       <!-- Gewonnen / Verloren -->
       <div v-if="state.status==='won'" class="overlay">
         <div class="result-card win" :class="{ perfect: state.perfectWin }">
-          <div class="result-emoji"><span class="ei" v-html="ic('party')"></span></div>
-          <h2>{{ winTitle }}</h2>
+          <div class="result-emoji"><span class="ei" v-html="ic(state.endless.active ? 'meteor' : 'party')"></span></div>
+          <h2>{{ state.endless.active ? t('endless.levelDone', { n: state.endless.score }) : winTitle }}</h2>
           <div v-if="state.puzzle" class="result-diff">{{ t('difficulty.' + state.puzzle.difficulty) }} · {{ state.puzzle.rows }}×{{ state.puzzle.cols }}</div>
           <div v-if="state.team.active" class="team-result">
             <p class="result-msg">{{ teamResultMsg }}</p>
@@ -6844,6 +6849,16 @@ const App = {
             <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
             <div><b>{{ state.hintsUsed }}</b><small>{{ t('win.hintsLabel') }}</small></div>
           </div>
+          <!-- Endlos: verbleibende/verlorene Leben (Coop mit farbigem Strich = wer). -->
+          <div v-if="state.endless.active" class="endless-lives-row">
+            <span class="endless-lives-cap">{{ t('endless.livesLabel') }}</span>
+            <div class="hud-item lives">
+              <span v-for="(full,i) in livesArr" :key="i" class="heart" :class="{empty:!full}">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <i v-if="!full && state.coop.active && lifeLossColor(i)" class="heart-strike" :style="{background: lifeLossColor(i)}"></i>
+              </span>
+            </div>
+          </div>
           <div v-if="coopPerformance.length" class="coop-performance">
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>
             <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
@@ -6863,11 +6878,18 @@ const App = {
             <div class="perf-title">{{ t('team.opponentLivesLostPerPlayer') }}</div>
             <span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ playerLabel(pl) }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
           </div>
-          <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
-          <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
-          <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
-          <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
+          <!-- Endlos: „Fortsetzen" (Solo direkt, Coop nur Host; Gast wartet auf Host). -->
+          <template v-if="state.endless.active">
+            <button v-if="!state.endless.coop || state.coop.role==='host'" class="btn btn-primary" @click="endlessContinue">{{ t('endless.continue') }}</button>
+            <p v-else class="result-msg">{{ t('win.waitingForHost') }}</p>
+          </template>
+          <template v-else>
+            <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
+            <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
+            <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
+            <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
+            <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
+          </template>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
@@ -6911,14 +6933,6 @@ const App = {
           <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
           <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
-        </div>
-      </div>
-
-      <!-- Endlos: kurze „Level geschafft"-Einblendung zwischen den Leveln -->
-      <div v-if="state.endlessLevelFlash" class="endless-flash" aria-hidden="true">
-        <div class="ef-card">
-          <div class="ef-title">{{ t('endless.cleared', { n: state.endlessLevelFlash.level }) }}</div>
-          <div v-if="state.endlessLevelFlash.gainedLife" class="ef-life"><span class="ei" v-html="ic('heart')"></span> {{ t('endless.lifeGained') }}</div>
         </div>
       </div>
 

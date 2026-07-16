@@ -21,7 +21,7 @@ export default {
   },
 
   solo: { title: 'Tek Kişilik', classic: 'Klasik', classicHint: 'Tek bulmaca, serbest zorluk', endless: 'Sonsuz Tırmanış', endlessHint: 'Giderek zorlaşır – nereye kadar?' },
-  endless: { badge: 'Sonsuz', best: 'En iyi tur: seviye {n}', cleared: 'Seviye {n} tamamlandı!', lifeGained: '+1 can', overTitle: 'Tur bitti', reached: 'Seviye {n} ulaşıldı', record: 'Yeni rekor!' },
+  endless: { badge: 'Sonsuz', best: 'En iyi tur: seviye {n}', cleared: 'Seviye {n} tamamlandı!', lifeGained: '+1 can', overTitle: 'Tur bitti', reached: 'Seviye {n} ulaşıldı', record: 'Yeni rekor!', levelDone: 'Seviye {n} tamamlandı!', continue: 'Devam', livesLabel: 'Can' },
 
   mismatch: { title: 'Farklı oyun verileri', sub: 'Jeton bakiyen bu cihaz ile bulut arasında farklı. Tüm oyun ilerlemesi (galibiyetler, başarımlar, satın almalar) otomatik birleştirilir — yalnızca hangi bakiyenin geçerli olacağını seç.', local: 'Bu cihaz', cloud: 'Bulut', keepLocal: 'Bu cihazı tut', keepCloud: 'Bulutu tut', note: 'Diğer durum yedek olarak saklanır ve silinmez.' },
 

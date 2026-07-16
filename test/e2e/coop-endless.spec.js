@@ -50,7 +50,7 @@ test.describe('coop endless climb', () => {
     await expect(page.locator('.result-card .btn-primary')).toHaveCount(0);
   });
 
-  test('solving a level makes a non-host wait for the next INIT (no local generation)', async ({ page }) => {
+  test('solving a level shows the win screen and a non-host waits for the host (no Fortsetzen button)', async ({ page }) => {
     await gotoApp(page);
     await asGuest(page);
     await page.evaluate((p) => window.__cns.handleCoopMsg({ type: 'init', gameId: 'lvl1', running: true, puzzle: p, marks: null, markedBy: null, startTime: Date.now() - 1000, lives: 3, maxLives: 3, endless: true, endlessLevel: 1 }), PUZZLE('sehrleicht'));
@@ -61,17 +61,18 @@ test.describe('coop endless climb', () => {
       state.tool = 'pen';
       for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) onCellTap(r, c);
     });
-    // Gast steigt NICHT selbst auf: advancing=true, „Level geschafft"-Einblendung, wartet.
-    expect(await page.evaluate(() => window.__cns.state.endless.advancing)).toBe(true);
+    // NORMALER Gewinn-Screen (status='won') — der Gast wartet auf den Host, kein
+    // „Fortsetzen"-Knopf, kein Ergebnis-Screen (Lauf läuft weiter).
+    await page.waitForFunction(() => window.__cns.state.status === 'won');
+    await expect(page.locator('.result-card.win')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.endless.score)).toBe(1);
-    await expect(page.locator('.endless-flash')).toBeVisible();
-    // Kein Ergebnis-Screen (Lauf läuft weiter), kein Sieg-Screen.
+    await expect(page.locator('.result-card .btn-primary')).toHaveCount(0);
+    await expect(page.locator('.endless-lives-row')).toBeVisible();
     expect(await page.evaluate(() => !!window.__cns.state.endlessSummary)).toBe(false);
-    expect(await page.evaluate(() => window.__cns.state.status)).not.toBe('won');
 
-    // Host schickt Level 2 → Gast steigt ein, advancing zurückgesetzt.
+    // Host schickt Level 2 → Gast steigt ein (status='playing', Level 2).
     await page.evaluate((p) => window.__cns.handleCoopMsg({ type: 'init', gameId: 'lvl2', running: true, puzzle: p, marks: null, markedBy: null, startTime: Date.now(), lives: 3, maxLives: 3, endless: true, endlessLevel: 2 }), PUZZLE('leicht'));
     expect(await page.evaluate(() => window.__cns.state.endless.level)).toBe(2);
-    expect(await page.evaluate(() => window.__cns.state.endless.advancing)).toBe(false);
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
   });
 });
