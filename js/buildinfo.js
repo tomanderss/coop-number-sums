@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.160';
-export const BUILD_HASH = '4e44be3';
+export const BUILD      = '1.161';
+export const BUILD_HASH = '6958d39';
 
 export const CHANGELOG = [
+  {
+    "version": "1.161",
+    "date": "16.07.2026",
+    "changes": [
+      "„Endlos-Aufstieg\" jetzt auch im Coop: gemeinsam immer schwerere Level auf 3 GETEILTEN Leben (kein Nachschub) – wie weit kommt ihr zusammen? Umschalter im Coop-Host-Setup, eigener Coop-Bestwert"
+    ]
+  },
   {
     "version": "1.160",
     "date": "16.07.2026",
