@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.158';
-export const BUILD_HASH = '9f3f22f';
+export const BUILD      = '1.159';
+export const BUILD_HASH = 'e7af34b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.159",
+    "date": "16.07.2026",
+    "changes": [
+      "Neuer Solo-Bereich: „Neues Spiel\" öffnet jetzt eine Auswahl zwischen „Klassisch\" und dem neuen Modus „Endlos-Aufstieg\"",
+      "„Endlos-Aufstieg\": immer schwerere Rätsel hintereinander auf gemeinsamen Leben (alle 3 Level ein Extra-Leben) – wie weit kommst du? Mit Bestwert, Münz-Belohnung und eigenen Abzeichen"
+    ]
+  },
   {
     "version": "1.158",
     "date": "15.07.2026",
