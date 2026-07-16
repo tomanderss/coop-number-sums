@@ -1,0 +1,1 @@
+Endlos-Aufstieg: nach jedem Level der normale Abschluss-Screen (Zeit/Fehler/Hinweise, Schwierigkeit·Größe, im Coop die Prozentverteilung) mit „Fortsetzen"-Knopf – kein versehentliches Weitertippen mehr. Verbrauchte Herzen zeigen im Coop über alle Level hinweg, von wem sie stammen.

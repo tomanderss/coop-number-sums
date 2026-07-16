@@ -17,8 +17,13 @@ test.describe('endless climb', () => {
     expect(await page.evaluate(() => window.__cns.state.endless.level)).toBe(1);
     await expect(page.locator('.hud-item.endless-lvl')).toBeVisible();
 
-    // Level 1 lösen → Lauf schreitet auf Level 2 fort (kein Sieg-Screen)
+    // Level 1 lösen → NORMALER Gewinn-Screen mit „Fortsetzen" (kein Auto-Weiter)
     await solveActivePuzzle(page);
+    await page.waitForFunction(() => window.__cns.state.status === 'won');
+    await expect(page.locator('.result-card.win')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.endless.score)).toBe(1);
+    // „Fortsetzen" lädt erst das nächste (schwerere) Level → Level 2
+    await page.locator('.result-card .btn-primary').click();
     await page.waitForFunction(() => window.__cns.state.endless.level === 2 && window.__cns.state.puzzle && !window.__cns.state.generating);
     expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
 
