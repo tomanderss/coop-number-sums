@@ -1,6 +1,8 @@
 // en.js — English strings (carefully hand-translated, kept in sync with de.js)
 export default {
 
+  coopEndless: { toggle: 'Endless Climb', toggleHint: 'Climb together — 3 shared lives, no refills' },
+
   missions: {
     title: 'Missions', hint: 'Weekly quests for bonus coins', intro: 'New quests every week. Complete them and grab the reward!',
     claim: 'Claim', claimed: '+{n} coins claimed!', done: 'Done',

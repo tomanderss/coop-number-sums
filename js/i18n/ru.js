@@ -1,6 +1,8 @@
 // ru.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  coopEndless: { toggle: 'Бесконечный подъём', toggleHint: 'Поднимайтесь вместе — 3 общие жизни, без пополнения' },
+
   missions: {
     title: 'Задания', hint: 'Еженедельные задания за бонусные монеты', intro: 'Новые задания каждую неделю. Выполняй их и забирай награду!',
     claim: 'Забрать', claimed: '+{n} монет получено!', done: 'Готово',

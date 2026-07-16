@@ -1,6 +1,8 @@
 // it.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  coopEndless: { toggle: 'Scalata infinita', toggleHint: 'Scalate insieme — 3 vite condivise, senza ricariche' },
+
   missions: {
     title: 'Missioni', hint: 'Sfide settimanali per monete bonus', intro: 'Nuove sfide ogni settimana. Completale e prendi la ricompensa!',
     claim: 'Riscuoti', claimed: '+{n} monete ottenute!', done: 'Fatto',

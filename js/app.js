@@ -126,6 +126,7 @@ const state = reactive({
     waitingForGuest: false,    // Host: Raum offen, wartet auf Join / Gast: verbindet
     lobbyDiffId: 'mittel',
     lobbyBigNumbers: false,    // „Große Zahlen"-Modus (10–19) für die vom Host gestartete Runde
+    lobbyEndless: false,       // „Endlos-Aufstieg" (geteilte Leben, kein Refill) für die Coop-Runde
 
     error: null,               // Inline-Fehlermeldung im Lobby-Screen
     myId: null,                // eigene Firebase-uid dieser Session (Host wie Gast)
@@ -261,7 +262,7 @@ const state = reactive({
   // Level auf gemeinsamem Leben-/Hinweis-Pool. active=true markiert die laufende
   // Partie als Endlos (analog isTrainingGame/isRaceGame). endlessSummary hält den
   // Ergebnis-Screen nach Laufende.
-  endless: { active: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0 },
+  endless: { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0 },
   // Wochen-Missionen (js/missions.js): aktive Missionen der Woche + Fortschritt +
   // Eingelöst-Status. weekKey rotiert wöchentlich (initMissions setzt beim Start/
   // Wochenwechsel neu). claimNotice = kurzer Feier-Toast beim Einlösen.
@@ -1209,7 +1210,7 @@ function startEndless() {
   state.endlessSummary = null;
   state.endlessLevelFlash = null;
   state.endless = {
-    active: true, level: 1,
+    active: true, coop: false, advancing: false, level: 1,
     lives: ENDLESS_CFG.startLives, hints: ENDLESS_CFG.startHints,
     score: 0, coins: 0, best: state.stats.endlessBest || 0,
   };
@@ -1299,7 +1300,94 @@ function endlessAbort() {
   syncCloudNow('endlessAbort');
 }
 function endlessAgain() { state.endlessSummary = null; startEndless(); }
-function closeEndlessSummary() { state.endlessSummary = null; state.status = 'idle'; navigate('home'); }
+function closeEndlessSummary() {
+  const wasCoop = !!(state.endlessSummary && state.endlessSummary.coop);
+  state.endlessSummary = null; state.status = 'idle';
+  if (wasCoop) coopReset();   // Coop-Endlos: Raum sauber verlassen
+  navigate('home');
+}
+
+// ─── COOP-ENDLOS-AUFSTIEG (host-autoritativ) ──────────────────────────────────
+// Wie Solo-Endlos, aber gemeinsam auf einem geteilten Brett mit GETEILTEN Leben
+// (Start 3, KEIN Refill). Nur der Host generiert je Level das Puzzle und
+// broadcastet es als laufendes INIT; beide Seiten erkennen das Lösen über das
+// synchrone Brett (afterMove→win) bzw. das Leben-Aus über die MISTAKE-Sync
+// (applyRemoteMistake→lose). Idempotent (advancing/endlessSummary), da win()/lose()
+// auf beiden Clients feuern.
+function startCoopEndless() {
+  if (!canStartCoopMatch()) return;
+  state.coop.active = true;
+  state.coop.waitingForGuest = false;
+  state.coop.awaitingStart = false;   // kein Bereit-Lobby-Umweg im Endlos
+  state.endless = { active: true, coop: true, advancing: false, level: 1, lives: LIVES, hints: HINTS, score: 0, coins: 0, best: state.stats.endlessCoopBest || 0 };
+  navigate('game');
+  log('coop', 'Coop-Endlos gestartet', { players: state.coop.players.length });
+  loadCoopEndlessLevel();
+}
+function loadCoopEndlessLevel() {
+  const e = state.endless;
+  const diffId = endlessDiffId(e.level, DIFFICULTIES.map(d => d.id));
+  state.generating = true;
+  e.advancing = true;
+  const t0 = performance.now();
+  log('coop', 'Coop-Endlos-Level-Generierung', { level: e.level, difficulty: diffId });
+  generateAsync({ difficulty: diffId })
+    .then(puzzle => { log('coop', 'Coop-Endlos-Level generiert', { level: e.level, tookMs: Math.round(performance.now() - t0) }); finishCoopEndlessLevel(puzzle); })
+    .catch(err => { log('coop', 'Coop-Endlos-Generierung fehlgeschlagen', err); onLobbyGenFailed(err, 'Coop-Endlos'); });
+}
+function finishCoopEndlessLevel(puzzle) {
+  const e = state.endless;
+  const gameId = generateId();
+  const startTime = gameNow();
+  // Rundenstand mit den GETEILTEN Rest-Leben laden (kein Refill).
+  loadPuzzleIntoState(puzzle, { lives: e.lives, maxLives: LIVES, gameId, startTime });
+  state.generating = false;
+  e.advancing = false;
+  // Fertiges Level als LAUFENDES INIT an die Gäste (endless-Marker + Level + Leben);
+  // sie steigen sofort ein (running:true), kein Bereit-Lobby-Umweg.
+  coopSend({ type: Coop.MSG.INIT, gameId, running: true, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime, lives: e.lives, maxLives: LIVES, endless: true, endlessLevel: e.level });
+  coopSend({ type: Coop.MSG.START, startTime });
+  startCoopGame(startTime);
+  requestWakeLock();
+}
+// Level gemeinsam geschafft (aus win(), host+guest, idempotent). Host generiert das
+// nächste Level und broadcastet es; der Gast wartet auf dieses INIT.
+function endlessCoopOnSolve() {
+  const e = state.endless;
+  if (e.advancing) return;   // dieses Level wird bereits abgeschlossen
+  e.advancing = true;
+  stopTimer();
+  if (state.settings.sfxWin) Music.sfxWin();
+  e.score = e.level;
+  e.lives = Math.max(0, state.lives);   // Rest-Leben übertragen — KEIN Refill
+  const cleared = e.score;
+  state.endlessLevelFlash = { level: cleared, gainedLife: false };
+  setTimeout(() => { if (state.endlessLevelFlash && state.endlessLevelFlash.level === cleared) state.endlessLevelFlash = null; }, 1500);
+  e.level++;
+  log('coop', 'Coop-Endlos-Level geschafft', { cleared, nextLevel: e.level, lives: e.lives, host: state.coop.role === 'host' });
+  if (state.coop.role === 'host') loadCoopEndlessLevel();   // Host zieht das nächste Level auf
+  // Gast: advancing bleibt true bis das nächste INIT vom Host eintrifft.
+}
+// Leben gemeinsam aufgebraucht → Lauf endet für alle (idempotent).
+function endlessCoopGameOver() {
+  if (state.endlessSummary) return;
+  stopTimer();
+  const e = state.endless;
+  const score = e.score;
+  const coins = endlessRunCoins(score, DIFFICULTIES.length, coinBaseForIndex);
+  const { stats, newBest } = recordEndlessRun(score, { coop: true });
+  state.stats = stats;
+  let granted = 0;
+  if (coins > 0) { state.wallet = grantCurrency(coins, 'endless', { mode: 'endlessCoop', score }); granted = coins; }
+  e.active = false;
+  state.status = 'lost';
+  state.endlessSummary = { score, best: stats.endlessCoopBest, coins: granted, newBest, coop: true };
+  if (state.settings.sfxLose) Music.sfxLose();
+  log('coop', 'Coop-Endlos beendet', { score, best: stats.endlessCoopBest, coins: granted, newBest });
+  recordMissionEvent({ played: true, endlessScore: score });
+  checkAchievements();
+  syncCloudNow('endlessCoopEnd');
+}
 
 // ─── WOCHEN-MISSIONEN (js/missions.js) ────────────────────────────────────────
 // Rotierende Wochen-Aufträge mit Fortschritt + einlösbarer Münz-Belohnung. Der
@@ -2160,6 +2248,9 @@ function handleCoopMsg(msg) {
     startCoopGame(state.startTime || gameNow());
   }
   if (msg.type === Coop.MSG.MOVE) {
+    // Coop-Endlos: zwischen zwei Leveln (advancing) keine verspäteten Züge des
+    // gerade gelösten Bretts mehr anwenden — sie träfen sonst das nächste Level.
+    if (state.endless.active && state.endless.coop && state.endless.advancing) return;
     setMark(msg.r, msg.c, msg.mark, false, msg.from);
   } else if (msg.type === Coop.MSG.UNDO) {
     undo(false);
@@ -2193,6 +2284,15 @@ function handleCoopMsg(msg) {
     state.coop.waitingForGuest = false;
     state.coop.awaitingStart = true;
     state.coop.generating = false;
+    // Coop-Endlos: der endless-Marker im INIT setzt beim Gast den Endlos-Zustand
+    // (Level + geteilte Rest-Leben). Jedes Level kommt als eigenes (running-)INIT
+    // mit frischer gameId, daher nie durch den Duplikat-Guard oben blockiert.
+    // Ohne Marker sicherstellen, dass ein evtl. Alt-Endlos aus ist (normales Coop).
+    if (msg.endless) {
+      state.endless = { active: true, coop: true, advancing: false, level: msg.endlessLevel || 1, lives: msg.lives ?? LIVES, hints: HINTS, score: (msg.endlessLevel || 1) - 1, coins: 0, best: state.stats.endlessCoopBest || 0 };
+    } else if (state.endless.active) {
+      state.endless.active = false;
+    }
     // Gäste generieren nichts selbst -- sie bekommen das fertige Rätsel des Hosts
     // und sind damit sofort "fertig" (kein Ladebalken in der Lobby nötig).
     // lives/maxLives/hintsLeft/hintsUsed/mistakes sind optional (rückwärts-
@@ -2350,9 +2450,12 @@ function coopReset({ keepRoom = false } = {}) {
   clearTimeout(raceProgressTimer); raceProgressTimer = null;
   const keepDiff = state.coop.lobbyDiffId;
   const keepBig = state.coop.lobbyBigNumbers;
+  const keepEndless = state.coop.lobbyEndless;
+  // Ein laufender Coop-Endlos-Lauf wird beim Verlassen der Coop-Session beendet.
+  if (state.endless.active && state.endless.coop) state.endless.active = false;
   state.coop.active = false; state.coop.role = null; state.coop.code = '';
   state.coop.connected = false; state.coop.waitingForGuest = false;
-  state.coop.lobbyDiffId = keepDiff; state.coop.lobbyBigNumbers = keepBig; state.coop.error = null;
+  state.coop.lobbyDiffId = keepDiff; state.coop.lobbyBigNumbers = keepBig; state.coop.lobbyEndless = keepEndless; state.coop.error = null;
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
   state.coop.generating = false;
   state.coop.teamMode = false;
@@ -2828,6 +2931,8 @@ function canStartCoopMatch() {
 }
 function startCoopMatch() {
   if (!canStartCoopMatch()) return;
+  // Coop-Endlos-Aufstieg: eigener Pfad (host-autoritativ, geteilte Leben, kein Refill).
+  if (state.coop.lobbyEndless) { startCoopEndless(); return; }
   const difficulty = state.coop.lobbyDiffId;
   const bigNumbers = !!state.coop.lobbyBigNumbers && bigNumbersAllowed(difficulty);
   // Sofort in die "Bereit?"-Lobby wechseln und die Generierung im Hintergrund-
@@ -3182,8 +3287,12 @@ function afterPaint(cb) {
 }
 function win(remote) {
   // Endlos-Aufstieg: kein normaler Sieg-Screen/Buchhaltung — Level geschafft,
-  // weiter zum nächsten (schwereren) Level (s. endlessOnSolve).
-  if (state.endless.active && !remote) { endlessOnSolve(); return; }
+  // weiter zum nächsten (schwereren) Level. Coop-Endlos ist remote-agnostisch
+  // (beide Clients erkennen das Lösen über das synchrone Brett) + idempotent.
+  if (state.endless.active) {
+    if (state.endless.coop) { endlessCoopOnSolve(); return; }
+    if (!remote) { endlessOnSolve(); return; }
+  }
   if (state.status === 'won') return;
   cancelSoloInvite(); // unbeantwortete Solo-Einladung? Raum abbauen (no-op sonst)
   // Exakte Endzeit stempeln: der Timer schreibt elapsed nur noch sekundenweise
@@ -3320,7 +3429,12 @@ function win(remote) {
 
 function lose(remote) {
   // Endlos-Aufstieg: Leben aufgebraucht → Lauf endet mit Ergebnis-Screen.
-  if (state.endless.active && !remote) { endlessGameOver(); return; }
+  // Coop-Endlos remote-agnostisch (beide Clients erreichen 0 Leben via MISTAKE-Sync)
+  // + idempotent (endlessCoopGameOver guardet auf endlessSummary).
+  if (state.endless.active) {
+    if (state.endless.coop) { endlessCoopGameOver(); return; }
+    if (!remote) { endlessGameOver(); return; }
+  }
   if (!remote && !state.paused && state.startTime && state.status === 'playing') state.elapsed = Math.max(0, gameNow() - state.startTime);
   if (state.status === 'lost') return;
   cancelSoloInvite(); // unbeantwortete Solo-Einladung? Raum abbauen (no-op sonst)
@@ -6817,7 +6931,7 @@ const App = {
           <div v-if="state.endlessSummary.newBest" class="highscore-badge">{{ t('endless.record') }}</div>
           <div v-else class="result-msg">{{ t('endless.best', { n: state.endlessSummary.best }) }}</div>
           <div v-if="state.endlessSummary.coins > 0" class="coin-reward"><span class="ei" v-html="ic('coin')"></span> +{{ state.endlessSummary.coins }} <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
-          <button class="btn btn-primary" @click="endlessAgain">{{ t('common.newGame') }}</button>
+          <button v-if="!state.endlessSummary.coop" class="btn btn-primary" @click="endlessAgain">{{ t('common.newGame') }}</button>
           <button class="btn btn-ghost" @click="closeEndlessSummary">{{ t('common.menu') }}</button>
         </div>
       </div>
@@ -6997,6 +7111,16 @@ const App = {
             <small>{{ t('setup.bigNumbersHint') }}</small>
           </span>
           <input type="checkbox" v-model="state.coop.lobbyBigNumbers" />
+          <span class="bignum-switch" aria-hidden="true"></span>
+        </label>
+        <!-- „Endlos-Aufstieg" gemeinsam: geteilte Leben (3), kein Refill. Nur für
+             reines Coop (nicht Race/Team). Die Schwierigkeit wird dabei ignoriert. -->
+        <label v-if="!state.coop.raceMode && !state.coop.teamMode" class="bignum-toggle" :class="{ on: state.coop.lobbyEndless }">
+          <span class="bignum-tx">
+            <b>{{ t('coopEndless.toggle') }}</b>
+            <small>{{ t('coopEndless.toggleHint') }}</small>
+          </span>
+          <input type="checkbox" v-model="state.coop.lobbyEndless" />
           <span class="bignum-switch" aria-hidden="true"></span>
         </label>
         <div class="setup-startrow">
