@@ -1,6 +1,8 @@
 // pt-BR.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  coopEndless: { toggle: 'Subida infinita', toggleHint: 'Subam juntos — 3 vidas compartilhadas, sem recargas' },
+
   missions: {
     title: 'Missões', hint: 'Desafios semanais por moedas extras', intro: 'Novos desafios toda semana. Complete-os e pegue a recompensa!',
     claim: 'Resgatar', claimed: '+{n} moedas resgatadas!', done: 'Concluído',

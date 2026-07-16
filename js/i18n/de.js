@@ -1,6 +1,8 @@
 // de.js — deutsche Strings (Standardsprache, Fallback für fehlende Keys in anderen Sprachen)
 export default {
 
+  coopEndless: { toggle: 'Endlos-Aufstieg', toggleHint: 'Gemeinsam immer schwerer — 3 geteilte Leben, kein Nachschub' },
+
   missions: {
     title: 'Missionen', hint: 'Wochen-Aufträge für Bonus-Münzen', intro: 'Neue Aufträge jede Woche. Schließe sie ab und hol dir die Belohnung!',
     claim: 'Einlösen', claimed: '+{n} Münzen kassiert!', done: 'Erledigt',

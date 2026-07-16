@@ -181,7 +181,8 @@ const EMPTY_STATS = {
   // „Endlos-Aufstieg"-Solo-Modus (js/endless.js): höchstes je erreichtes Level
   // (Score) + Anzahl Läufe. endlessBest merged geräteübergreifend als MAXIMUM
   // (mergeNumericDeep), endlessRuns als Maximum (kein exaktes Summieren nötig).
-  endlessBest: 0, endlessRuns: 0,
+  // Coop-Endlos getrennt gezählt (anderes Spielgefühl: geteilte Leben, kein Refill).
+  endlessBest: 0, endlessRuns: 0, endlessCoopBest: 0, endlessCoopRuns: 0,
   // id -> { played, won, lost, sumTimeMs, bestTimeMs,
   //         coopPlayed, coopWon, coopLost, coopSumTimeMs, coopBestTimeMs }
   // Die coop*-Felder zählen ausschließlich Coop-Partien getrennt von den
@@ -242,12 +243,14 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
 
 // „Endlos-Aufstieg" abschließen: Score (erreichtes Level) verbuchen. Bestwert
 // = Maximum, Laufzähler +1. Rückgabe: { stats, newBest }.
-export function recordEndlessRun(score) {
+export function recordEndlessRun(score, { coop = false } = {}) {
   const s = loadStats();
-  s.endlessRuns = (s.endlessRuns || 0) + 1;
-  const prev = s.endlessBest || 0;
+  const bestKey = coop ? 'endlessCoopBest' : 'endlessBest';
+  const runsKey = coop ? 'endlessCoopRuns' : 'endlessRuns';
+  s[runsKey] = (s[runsKey] || 0) + 1;
+  const prev = s[bestKey] || 0;
   const newBest = score > prev;
-  if (newBest) s.endlessBest = score;
+  if (newBest) s[bestKey] = score;
   saveStats(s);
   return { stats: s, newBest };
 }

@@ -1,6 +1,8 @@
 // es.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  coopEndless: { toggle: 'Ascenso sin fin', toggleHint: 'Suban juntos — 3 vidas compartidas, sin recargas' },
+
   missions: {
     title: 'Misiones', hint: 'Retos semanales por monedas extra', intro: 'Nuevos retos cada semana. ¡Complétalos y llévate la recompensa!',
     claim: 'Reclamar', claimed: '¡+{n} monedas obtenidas!', done: 'Hecho',
