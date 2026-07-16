@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.161';
-export const BUILD_HASH = '6958d39';
+export const BUILD      = '1.162';
+export const BUILD_HASH = '3f792bf';
 
 export const CHANGELOG = [
+  {
+    "version": "1.162",
+    "date": "16.07.2026",
+    "changes": [
+      "Endlos-Aufstieg (Solo) jetzt wie im Coop: 3 Leben, KEIN Extra-Leben mehr alle 3 Level – reine Ausdauer"
+    ]
+  },
   {
     "version": "1.161",
     "date": "16.07.2026",
