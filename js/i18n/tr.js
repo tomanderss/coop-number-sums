@@ -177,7 +177,7 @@ export default {
     setCode: 'Kod belirle (6 hane)',
     startHosting: 'Ev sahipliği yap',
     yourCode: 'Senin kodun',
-    inviteFriends: "Arkadaş davet et", invite: "Davet et", invited: "Davet edildi", inviteSent: "{name} davet edildi", inviteWithdraw: "Geri çek", inviteWithdrawn: "{name} daveti geri çekildi", inviteDeclined: "{name} reddetti", inviteAccepted: "{name} katıldı", inviteTitle: "Lobi daveti", inviteBody: "{name} seni bir {mode} lobisine davet ediyor.", inviteAccept: "Katıl", inviteDecline: "Reddet", modeCoop: "Koop", modeRace: "Düello (1v1)", modeTeam: "Takım (2v2)", modeFfa: 'Free-for-all',
+    inviteFriends: "Arkadaş davet et", invite: "Davet et", invited: "Davet edildi", inviteSent: "{name} davet edildi", inviteWithdraw: "Geri çek", inviteJoined: "Katıldı", inviteWithdrawn: "{name} daveti geri çekildi", inviteDeclined: "{name} reddetti", inviteAccepted: "{name} katıldı", inviteTitle: "Lobi daveti", inviteBody: "{name} seni bir {mode} lobisine davet ediyor.", inviteAccept: "Katıl", inviteDecline: "Reddet", modeCoop: "Koop", modeRace: "Düello (1v1)", modeTeam: "Takım (2v2)", modeFfa: 'Free-for-all',
     shareCode: 'Bu kodu takım arkadaşınla paylaş',
     waitingForGuest: 'Takım arkadaşı bekleniyor…',
     enterHostCode: 'Ev sahibinin kodunu gir',

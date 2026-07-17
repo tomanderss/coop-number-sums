@@ -5657,6 +5657,15 @@ function anyFriendOnline() { return state.friends.list.some((f) => friendOnline(
 // „Im Spiel" nur, wenn ONLINE und eine Partie läuft — eine veraltete game-Info
 // eines offline gegangenen Freundes darf nie als „im Spiel" gezeigt werden.
 function friendInGame(uid) { const p = state.friends.presence[uid]; return friendOnline(uid) && !!(p && p.game); }
+// Ist dieser Freund bereits DEM eigenen Coop-Raum beigetreten? Match über den
+// (eindeutigen) Account-Benutzernamen gegen die Roster-Einträge (außer mir).
+// Roster-getrieben: tritt er bei, erscheint sein Spieler → „Beigetreten"; verlässt
+// er, verschwindet er → wieder „Einladen". So bleibt der Button ehrlich.
+function friendInRoom(fr) {
+  const u = (fr && fr.username || '').trim().toLowerCase();
+  if (!u) return false;
+  return state.coop.players.some((p) => p.id !== state.coop.myId && (p.username || '').trim().toLowerCase() === u);
+}
 // Relative Zeitangabe („vor 5 Min", „gestern", „vor 3 Tagen") aus einem
 // Epoch-Millisekunden-Zeitstempel — via Intl.RelativeTimeFormat in der UI-Sprache.
 function fmtRelative(ts) {
@@ -6410,7 +6419,7 @@ const App = {
       adminRowLabel, adminRowDesc, adminEnumOptions, adminItemLabel, adminProfileFieldLabel, adminPathLabel, adminRowTimestamp, adminIsDateField, adminMarkDirty,
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw, dismissAdminNotice, adminNoticeText,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
-      friendsSorted, friendPresence, friendOnline, friendInGame, anyFriendOnline, friendActivityText,
+      friendsSorted, friendPresence, friendOnline, friendInGame, friendInRoom, anyFriendOnline, friendActivityText,
       skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL, BRAND_LOGO,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
@@ -8335,8 +8344,10 @@ const App = {
           <div v-for="fr in friendsSorted()" :key="fr.uid" class="invite-row">
             <span class="friends-dot" :class="{ online: friendOnline(fr.uid), ingame: friendInGame(fr.uid) }"></span>
             <span class="invite-name">{{ fr.username || fr.uid }}</span>
+            <!-- Bereits im Raum → „Beigetreten" (fix, nicht erneut einladbar). -->
+            <span v-if="friendInRoom(fr)" class="invite-joined"><span class="ei" v-html="ic('check')"></span> {{ t('coop.inviteJoined') }}</span>
             <!-- Offene Einladung → „Zurückziehen" (löscht sie live beim Freund). -->
-            <button v-if="state.coop.invitedUids.includes(fr.uid)" class="btn btn-ghost btn-sm invite-withdraw" @click="withdrawLobbyInvite(fr)">{{ t('coop.inviteWithdraw') }}</button>
+            <button v-else-if="state.coop.invitedUids.includes(fr.uid)" class="btn btn-ghost btn-sm invite-withdraw" @click="withdrawLobbyInvite(fr)">{{ t('coop.inviteWithdraw') }}</button>
             <button v-else class="btn btn-primary btn-sm" @click="inviteFriendToLobby(fr)">{{ t('coop.invite') }}</button>
           </div>
         </div>

@@ -177,7 +177,7 @@ export default {
     setCode: 'Задать код (6 цифр)',
     startHosting: 'Создать сессию',
     yourCode: 'Твой код',
-    inviteFriends: "Пригласить друзей", invite: "Пригласить", invited: "Приглашён", inviteSent: "{name} приглашён", inviteWithdraw: "Отозвать", inviteWithdrawn: "Приглашение для {name} отозвано", inviteDeclined: "{name} отклонил", inviteAccepted: "{name} присоединился", inviteTitle: "Приглашение в лобби", inviteBody: "{name} приглашает вас в лобби {mode}.", inviteAccept: "Присоединиться", inviteDecline: "Отклонить", modeCoop: "Кооп", modeRace: "Дуэль (1v1)", modeTeam: "Команда (2v2)", modeFfa: 'Free-for-all',
+    inviteFriends: "Пригласить друзей", invite: "Пригласить", invited: "Приглашён", inviteSent: "{name} приглашён", inviteWithdraw: "Отозвать", inviteJoined: "В игре", inviteWithdrawn: "Приглашение для {name} отозвано", inviteDeclined: "{name} отклонил", inviteAccepted: "{name} присоединился", inviteTitle: "Приглашение в лобби", inviteBody: "{name} приглашает вас в лобби {mode}.", inviteAccept: "Присоединиться", inviteDecline: "Отклонить", modeCoop: "Кооп", modeRace: "Дуэль (1v1)", modeTeam: "Команда (2v2)", modeFfa: 'Free-for-all',
     shareCode: 'Передай этот код товарищу по команде',
     waitingForGuest: 'Ожидание товарища по команде…',
     enterHostCode: 'Введите код хоста',
