@@ -1,1 +1,0 @@
-Freunde einladen: Ist ein Freund der Lobby beigetreten, zeigt sein Eintrag jetzt „✓ Beigetreten" (statt wieder „Einladen") – man kann ihn nicht erneut einladen und sieht auf einen Blick, dass er dabei ist.

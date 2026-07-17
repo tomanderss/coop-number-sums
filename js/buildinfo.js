@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.169';
-export const BUILD_HASH = '9711e9d';
+export const BUILD      = '1.170';
+export const BUILD_HASH = '777b192';
 
 export const CHANGELOG = [
+  {
+    "version": "1.170",
+    "date": "17.07.2026",
+    "changes": [
+      "Freunde einladen: Ist ein Freund der Lobby beigetreten, zeigt sein Eintrag jetzt „✓ Beigetreten\" (statt wieder „Einladen\") – man kann ihn nicht erneut einladen und sieht auf einen Blick, dass er dabei ist."
+    ]
+  },
   {
     "version": "1.169",
     "date": "17.07.2026",
