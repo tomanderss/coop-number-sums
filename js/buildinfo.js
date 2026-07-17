@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.168';
-export const BUILD_HASH = '57dc5fa';
+export const BUILD      = '1.169';
+export const BUILD_HASH = '9711e9d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.169",
+    "date": "17.07.2026",
+    "changes": [
+      "Sieg-/Ergebnis-Screen: Bei sehr langen Spielernamen bleibt die Prozentzahl in der Team-Performance jetzt fest am rechten Rand und wird nicht mehr aus der Karte geschoben."
+    ]
+  },
   {
     "version": "1.168",
     "date": "17.07.2026",
