@@ -177,7 +177,7 @@ export default {
     setCode: 'コードを設定（6桁）',
     startHosting: 'ホストする',
     yourCode: 'あなたのコード',
-    inviteFriends: "友達を招待", invite: "招待", invited: "招待済み", inviteSent: "{name} を招待しました", inviteWithdraw: "取り消す", inviteWithdrawn: "{name} への招待を取り消しました", inviteDeclined: "{name} が辞退しました", inviteAccepted: "{name} が参加しました", inviteTitle: "ロビー招待", inviteBody: "{name} が {mode} ロビーに招待しています。", inviteAccept: "参加", inviteDecline: "辞退", modeCoop: "協力", modeRace: "対戦 (1v1)", modeTeam: "チーム (2v2)", modeFfa: 'Free-for-all',
+    inviteFriends: "友達を招待", invite: "招待", invited: "招待済み", inviteSent: "{name} を招待しました", inviteWithdraw: "取り消す", inviteJoined: "参加済み", inviteWithdrawn: "{name} への招待を取り消しました", inviteDeclined: "{name} が辞退しました", inviteAccepted: "{name} が参加しました", inviteTitle: "ロビー招待", inviteBody: "{name} が {mode} ロビーに招待しています。", inviteAccept: "参加", inviteDecline: "辞退", modeCoop: "協力", modeRace: "対戦 (1v1)", modeTeam: "チーム (2v2)", modeFfa: 'Free-for-all',
     shareCode: 'このコードを仲間に伝えてください',
     waitingForGuest: '仲間を待っています…',
     enterHostCode: 'ホストのコードを入力',

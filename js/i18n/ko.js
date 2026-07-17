@@ -177,7 +177,7 @@ export default {
     setCode: '코드 설정 (6자리)',
     startHosting: '호스트하기',
     yourCode: '내 코드',
-    inviteFriends: "친구 초대", invite: "초대", invited: "초대됨", inviteSent: "{name}님을 초대했어요", inviteWithdraw: "취소하기", inviteWithdrawn: "{name} 님 초대를 취소했어요", inviteDeclined: "{name}님이 거절했어요", inviteAccepted: "{name} 님이 참여했어요", inviteTitle: "로비 초대", inviteBody: "{name}님이 {mode} 로비에 초대했어요.", inviteAccept: "참가", inviteDecline: "거절", modeCoop: "협동", modeRace: "대결 (1v1)", modeTeam: "팀 (2v2)", modeFfa: 'Free-for-all',
+    inviteFriends: "친구 초대", invite: "초대", invited: "초대됨", inviteSent: "{name}님을 초대했어요", inviteWithdraw: "취소하기", inviteJoined: "참가함", inviteWithdrawn: "{name} 님 초대를 취소했어요", inviteDeclined: "{name}님이 거절했어요", inviteAccepted: "{name} 님이 참여했어요", inviteTitle: "로비 초대", inviteBody: "{name}님이 {mode} 로비에 초대했어요.", inviteAccept: "참가", inviteDecline: "거절", modeCoop: "협동", modeRace: "대결 (1v1)", modeTeam: "팀 (2v2)", modeFfa: 'Free-for-all',
     shareCode: '이 코드를 동료에게 공유하세요',
     waitingForGuest: '동료를 기다리는 중…',
     enterHostCode: '호스트 코드 입력',
