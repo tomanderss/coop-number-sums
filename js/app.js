@@ -6534,10 +6534,11 @@ const App = {
 
       <!-- „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9 (nur 6×6–9×9). Ein
            anderer kognitiver Reiz bei identischer Logik/Eindeutigkeit. -->
-      <label v-if="bigNumbersAllowed(state.sel.difficulty)" class="bignum-toggle" :class="{ on: state.sel.bigNumbers }">
-        <span class="bignum-tx">
-          <b>{{ t('setup.bigNumbers') }}</b>
-          <small>{{ t('setup.bigNumbersHint') }}</small>
+      <label v-if="bigNumbersAllowed(state.sel.difficulty)" class="mode-toggle" :class="{ on: state.sel.bigNumbers }">
+        <b class="mt-title">{{ t('setup.bigNumbers') }}</b>
+        <span class="mt-info" tabindex="0" role="button" :aria-label="t('setup.bigNumbersHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
+          <span class="ei" v-html="ic('info')"></span>
+          <span class="mt-tip">{{ t('setup.bigNumbersHint') }}</span>
         </span>
         <input type="checkbox" v-model="state.sel.bigNumbers" />
         <span class="bignum-switch" aria-hidden="true"></span>
@@ -7119,20 +7120,22 @@ const App = {
         <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true" @randomstart="startHosting()"></difficulty-slider>
         <!-- „Große Zahlen" (10–19) für die Mehrspieler-Runde: gilt für alle
              Mitspieler (Host generiert/sendet den Modus mit). -->
-        <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="bignum-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
-          <span class="bignum-tx">
-            <b>{{ t('setup.bigNumbers') }}</b>
-            <small>{{ t('setup.bigNumbersHint') }}</small>
+        <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="mode-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
+          <b class="mt-title">{{ t('setup.bigNumbers') }}</b>
+          <span class="mt-info" tabindex="0" role="button" :aria-label="t('setup.bigNumbersHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
+            <span class="ei" v-html="ic('info')"></span>
+            <span class="mt-tip">{{ t('setup.bigNumbersHint') }}</span>
           </span>
           <input type="checkbox" v-model="state.coop.lobbyBigNumbers" />
           <span class="bignum-switch" aria-hidden="true"></span>
         </label>
         <!-- „Endlos-Aufstieg" gemeinsam: geteilte Leben (3), kein Refill. Nur für
              reines Coop (nicht Race/Team). Die Schwierigkeit wird dabei ignoriert. -->
-        <label v-if="!state.coop.raceMode && !state.coop.teamMode" class="bignum-toggle" :class="{ on: state.coop.lobbyEndless }">
-          <span class="bignum-tx">
-            <b>{{ t('coopEndless.toggle') }}</b>
-            <small>{{ t('coopEndless.toggleHint') }}</small>
+        <label v-if="!state.coop.raceMode && !state.coop.teamMode" class="mode-toggle" :class="{ on: state.coop.lobbyEndless }">
+          <b class="mt-title">{{ t('coopEndless.toggle') }}</b>
+          <span class="mt-info" tabindex="0" role="button" :aria-label="t('coopEndless.toggleHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
+            <span class="ei" v-html="ic('info')"></span>
+            <span class="mt-tip">{{ t('coopEndless.toggleHint') }}</span>
           </span>
           <input type="checkbox" v-model="state.coop.lobbyEndless" />
           <span class="bignum-switch" aria-hidden="true"></span>
@@ -7202,8 +7205,12 @@ const App = {
               <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
               <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true" @randomstart="startRaceMatch()"></difficulty-slider>
             </div>
-            <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="bignum-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
-              <span class="bignum-tx"><b>{{ t('setup.bigNumbers') }}</b><small>{{ t('setup.bigNumbersHint') }}</small></span>
+            <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="mode-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
+              <b class="mt-title">{{ t('setup.bigNumbers') }}</b>
+              <span class="mt-info" tabindex="0" role="button" :aria-label="t('setup.bigNumbersHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
+                <span class="ei" v-html="ic('info')"></span>
+                <span class="mt-tip">{{ t('setup.bigNumbersHint') }}</span>
+              </span>
               <input type="checkbox" v-model="state.coop.lobbyBigNumbers" />
               <span class="bignum-switch" aria-hidden="true"></span>
             </label>

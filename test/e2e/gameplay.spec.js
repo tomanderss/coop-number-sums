@@ -145,8 +145,8 @@ test.describe('big numbers mode', () => {
     await page.waitForSelector('.screen.setup');
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'sehrleicht'; });
     // Umschalter sichtbar (6×6 erlaubt) → einschalten.
-    await expect(page.locator('.bignum-toggle')).toBeVisible();
-    await page.locator('.bignum-toggle').click();
+    await expect(page.locator('.mode-toggle')).toBeVisible();
+    await page.locator('.mode-toggle').click();
     expect(await page.evaluate(() => window.__cns.state.sel.bigNumbers)).toBe(true);
 
     await page.locator('.diff-start').click();
@@ -176,6 +176,6 @@ test.describe('big numbers mode', () => {
     await page.locator('.solo-card-classic').click();
     await page.waitForSelector('.screen.setup');
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'rip'; }); // 14×14
-    await expect(page.locator('.bignum-toggle')).toBeVisible();
+    await expect(page.locator('.mode-toggle')).toBeVisible();
   });
 });
