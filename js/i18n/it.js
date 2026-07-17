@@ -277,6 +277,7 @@ export default {
     muteAllOn: 'Disattiva tutti i suoni',
     muteAllOff: 'Riattiva audio',
     muteAll: 'Disattiva tutti i suoni',
+    soundOn: 'Audio',
     secDesktop: "Desktop",
     desktop: {
       toolKey: 'Tasto: cambia strumento',

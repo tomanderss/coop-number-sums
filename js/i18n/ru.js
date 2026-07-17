@@ -277,6 +277,7 @@ export default {
     muteAllOn: 'Выключить все звуки',
     muteAllOff: 'Включить звук',
     muteAll: 'Выключить все звуки',
+    soundOn: 'Звук',
     secDesktop: "Десктоп",
     desktop: {
       toolKey: 'Клавиша: смена инструмента',

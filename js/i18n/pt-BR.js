@@ -277,6 +277,7 @@ export default {
     muteAllOn: 'Silenciar tudo',
     muteAllOff: 'Ativar som',
     muteAll: 'Silenciar tudo',
+    soundOn: 'Som',
     secDesktop: "Desktop",
     desktop: {
       toolKey: 'Tecla: trocar ferramenta',

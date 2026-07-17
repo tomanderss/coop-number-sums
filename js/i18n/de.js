@@ -277,6 +277,7 @@ export default {
     muteAllOn: 'Alles stummschalten',
     muteAllOff: 'Ton wieder anschalten',
     muteAll: 'Alles stummschalten',
+    soundOn: 'Ton',
     secDesktop: "Desktop",
     desktop: {
       toolKey: 'Taste: Werkzeug wechseln',

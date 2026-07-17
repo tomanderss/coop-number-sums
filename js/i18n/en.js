@@ -277,6 +277,7 @@ export default {
     muteAllOn: 'Mute all sounds',
     muteAllOff: 'Unmute sounds',
     muteAll: 'Mute all sounds',
+    soundOn: 'Sound',
     secDesktop: "Desktop",
     desktop: {
       toolKey: 'Key: switch tool',
