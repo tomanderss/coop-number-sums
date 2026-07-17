@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.165';
-export const BUILD_HASH = '9dc54a6';
+export const BUILD      = '1.166';
+export const BUILD_HASH = '83da54d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.166",
+    "date": "17.07.2026",
+    "changes": [
+      "Missionen-Knopf auf dem Startbildschirm sitzt jetzt etwas tiefer (unter der oberen Icon-Leiste), damit sein Zähler und das Leuchten nicht mehr am oberen Rand abgeschnitten werden."
+    ]
+  },
   {
     "version": "1.165",
     "date": "17.07.2026",
