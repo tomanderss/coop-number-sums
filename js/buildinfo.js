@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.166';
-export const BUILD_HASH = '83da54d';
+export const BUILD      = '1.167';
+export const BUILD_HASH = '36ce6a9';
 
 export const CHANGELOG = [
+  {
+    "version": "1.167",
+    "date": "17.07.2026",
+    "changes": [
+      "Ton-Schalter in den Einstellungen umgedreht: statt „Alles stummschalten\" gibt es jetzt einen positiven „Ton\"-Schalter – an bedeutet Ton hörbar, aus bedeutet stumm."
+    ]
+  },
   {
     "version": "1.166",
     "date": "17.07.2026",
