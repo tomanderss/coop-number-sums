@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.167';
-export const BUILD_HASH = '36ce6a9';
+export const BUILD      = '1.168';
+export const BUILD_HASH = '57dc5fa';
 
 export const CHANGELOG = [
+  {
+    "version": "1.168",
+    "date": "17.07.2026",
+    "changes": [
+      "Missionen-Übersicht öffnet sich jetzt als Pop-up-Fenster über dem Startbildschirm statt als eigene Seite – einfach antippen, ansehen, schließen."
+    ]
+  },
   {
     "version": "1.167",
     "date": "17.07.2026",
