@@ -9,17 +9,13 @@ test.describe('home screen', () => {
     await expect(page.locator('.home-version')).toHaveText(/^v\d+\.\d+$/);
   });
 
-  test('navigates through the solo menu to setup and back to home', async ({ page }) => {
+  test('navigates directly to setup and back to home', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
-    // Neu: erst die Solo-Auswahl (Klassisch / Endlos), dann der Schwierigkeits-Setup.
-    await expect(page.locator('.screen.solo-menu')).toBeVisible();
-    await page.locator('.solo-card-classic').click();
+    // „Neues Spiel" führt jetzt DIREKT in den Schwierigkeits-Setup (kein
+    // Solo-Zwischenscreen mehr; Endlos ist ein Toggle im Setup).
     await expect(page.locator('.screen.setup')).toBeVisible();
-    // Zurück Schritt für Schritt: Setup → Solo-Auswahl → Home.
     await page.locator('.screen.setup .topbar .icon-btn').first().click();
-    await expect(page.locator('.screen.solo-menu')).toBeVisible();
-    await page.locator('.screen.solo-menu .topbar .icon-btn').first().click();
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 

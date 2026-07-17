@@ -20,7 +20,7 @@ export default {
     },
   },
 
-  solo: { title: 'Solo', classic: 'Clássico', classicHint: 'Um quebra-cabeça, dificuldade livre', endless: 'Subida infinita', endlessHint: 'Cada vez mais difícil – até onde você vai?' },
+  solo: { title: 'Solo', classic: 'Clássico', classicHint: 'Um quebra-cabeça, dificuldade livre', endless: 'Subida infinita', endlessHint: 'Cada vez mais difícil – até onde você vai?', endlessStart: 'Iniciar infinito' },
   endless: { badge: 'Infinito', best: 'Melhor partida: nível {n}', cleared: 'Nível {n} concluído!', lifeGained: '+1 vida', overTitle: 'Fim da partida', reached: 'Nível {n} alcançado', record: 'Novo recorde!', levelDone: 'Nível {n} concluído!', continue: 'Continuar', livesLabel: 'Vidas' },
 
   mismatch: { title: 'Dados de jogo diferentes', sub: 'Seu saldo de moedas difere entre este aparelho e a nuvem. Todo o progresso (vitórias, conquistas, compras) é mesclado automaticamente — escolha apenas qual saldo deve valer.', local: 'Este dispositivo', cloud: 'Nuvem', keepLocal: 'Manter este dispositivo', keepCloud: 'Manter a nuvem', note: 'O outro estado é guardado como backup e nunca é apagado.' },
@@ -693,6 +693,8 @@ export default {
     endlessFirst: { title: 'Escalador', desc: 'Conclua seu primeiro nível na Subida infinita.' },
     endlessLevel5: { title: 'Alpinista', desc: 'Alcance o nível 5 na Subida infinita.' },
     endlessLevel8: { title: 'Conquistador', desc: 'Alcance o nível 8 na Subida infinita.' },
+    endlessLevel12: { title: 'Escalador de estrelas', desc: 'Alcance o nível 12 na subida infinita.' },
+    endlessCoopFirst: { title: 'Subida em dupla', desc: 'Complete um nível na subida infinita cooperativa.' },
     missionsWeek: { title: 'Herói da semana', desc: 'Complete todas as missões de uma semana.' },
   },
   history: {

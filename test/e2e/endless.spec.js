@@ -2,15 +2,17 @@ import { test, expect } from '@playwright/test';
 import { gotoApp, solveActivePuzzle } from './helpers.js';
 
 test.describe('endless climb', () => {
-  test('solo menu → endless starts, clearing a level advances, losing shows the summary', async ({ page }) => {
+  test('setup endless toggle starts a run, clearing a level advances, losing shows the summary', async ({ page }) => {
     await gotoApp(page);
-    // Home → Solo-Auswahl
+    // Home → Setup (direkt). Endlos-Aufstieg ist ein Toggle im Setup.
     await page.locator('.home-actions .btn-primary').click();
-    await page.waitForSelector('.screen.solo-menu');
-    await expect(page.locator('.solo-card-endless')).toBeVisible();
+    await page.waitForSelector('.screen.setup');
+    // Endlos-Toggle einschalten (letzter .mode-toggle) → starten.
+    await page.evaluate(() => { window.__cns.state.sel.endless = true; });
+    await expect(page.locator('.mode-toggle.on')).toBeVisible();
 
-    // Endlos-Aufstieg starten → direkt im Spiel, Level 1
-    await page.locator('.solo-card-endless').click();
+    // „Endlos starten" → direkt im Spiel, Level 1
+    await page.locator('.diff-start').click();
     await page.waitForSelector('.screen.game');
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
     expect(await page.evaluate(() => window.__cns.state.endless.active)).toBe(true);
@@ -50,7 +52,9 @@ test.describe('endless climb', () => {
   test('endless never leaves a solo resume game behind', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
-    await page.locator('.solo-card-endless').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { window.__cns.state.sel.endless = true; });
+    await page.locator('.diff-start').click();
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
     // saveSlot ist 'endless' (nicht 'solo') und es liegt kein Solo-Fortsetzen-Stand vor.
     expect(await page.evaluate(() => window.__cns.state.saveSlot)).toBe('endless');

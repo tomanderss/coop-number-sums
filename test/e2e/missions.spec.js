@@ -2,12 +2,11 @@ import { test, expect } from '@playwright/test';
 import { gotoApp, startNewGame, solveActivePuzzle, dismissStreakModal } from './helpers.js';
 
 test.describe('weekly missions', () => {
-  test('solo menu → missions screen lists the weekly quests; a completed one can be claimed for coins', async ({ page }) => {
+  test('home missions button → missions screen lists the weekly quests; a completed one can be claimed for coins', async ({ page }) => {
     await gotoApp(page);
-    await page.locator('.home-actions .btn-primary').click();
-    await page.waitForSelector('.screen.solo-menu');
-    await expect(page.locator('.solo-card-missions')).toBeVisible();
-    await page.locator('.solo-card-missions').click();
+    // Missionen öffnen sich jetzt über den runden Knopf oben links auf Home.
+    await expect(page.locator('.home-missions-btn')).toBeVisible();
+    await page.locator('.home-missions-btn').click();
     await page.waitForSelector('.screen.missions-screen');
 
     // Vier Wochen-Missionen werden gelistet.

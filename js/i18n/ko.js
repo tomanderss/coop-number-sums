@@ -20,7 +20,7 @@ export default {
     },
   },
 
-  solo: { title: '솔로', classic: '클래식', classicHint: '퍼즐 하나, 자유 난이도', endless: '엔드리스 클라임', endlessHint: '점점 더 어렵게 — 얼마나 갈 수 있나?' },
+  solo: { title: '솔로', classic: '클래식', classicHint: '퍼즐 하나, 자유 난이도', endless: '엔드리스 클라임', endlessHint: '점점 더 어렵게 — 얼마나 갈 수 있나?', endlessStart: '엔드리스 시작' },
   endless: { badge: '엔드리스', best: '최고 기록: 레벨 {n}', cleared: '레벨 {n} 클리어!', lifeGained: '+1 목숨', overTitle: '게임 종료', reached: '레벨 {n} 도달', record: '신기록!', levelDone: '레벨 {n} 클리어!', continue: '계속', livesLabel: '목숨' },
 
   mismatch: { title: '게임 데이터가 다릅니다', sub: '코인 잔액이 이 기기와 클라우드에서 다릅니다. 게임 진행(승리, 업적, 구매)은 자동으로 병합됩니다. 적용할 잔액만 선택하세요.', local: '이 기기', cloud: '클라우드', keepLocal: '이 기기 유지', keepCloud: '클라우드 유지', note: '다른 상태는 백업으로 저장되며 삭제되지 않습니다.' },
@@ -693,6 +693,8 @@ export default {
     endlessFirst: { title: '클라이머', desc: '엔드리스 클라임에서 첫 레벨을 클리어하세요.' },
     endlessLevel5: { title: '등반가', desc: '엔드리스 클라임에서 레벨 5에 도달하세요.' },
     endlessLevel8: { title: '정상 정복자', desc: '엔드리스 클라임에서 레벨 8에 도달하세요.' },
+    endlessLevel12: { title: '스타 클라이머', desc: '엔드리스 등반에서 레벨 12 도달.' },
+    endlessCoopFirst: { title: '함께 오르기', desc: '협동 엔드리스 등반에서 레벨 클리어.' },
     missionsWeek: { title: '주간 영웅', desc: '한 주의 모든 미션을 완료하세요.' },
   },
   history: {

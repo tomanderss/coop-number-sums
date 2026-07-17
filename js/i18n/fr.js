@@ -20,7 +20,7 @@ export default {
     },
   },
 
-  solo: { title: 'Solo', classic: 'Classique', classicHint: 'Une grille, difficulté libre', endless: 'Ascension sans fin', endlessHint: 'Toujours plus dur – jusqu’où irez-vous ?' },
+  solo: { title: 'Solo', classic: 'Classique', classicHint: 'Une grille, difficulté libre', endless: 'Ascension sans fin', endlessHint: 'Toujours plus dur – jusqu’où irez-vous ?', endlessStart: 'Démarrer sans fin' },
   endless: { badge: 'Sans fin', best: 'Meilleure partie : niveau {n}', cleared: 'Niveau {n} réussi !', lifeGained: '+1 vie', overTitle: 'Partie terminée', reached: 'Niveau {n} atteint', record: 'Nouveau record !', levelDone: 'Niveau {n} réussi !', continue: 'Continuer', livesLabel: 'Vies' },
 
   mismatch: { title: 'Données de jeu différentes', sub: 'Votre solde de pièces diffère entre cet appareil et le cloud. Toute la progression (victoires, succès, achats) est fusionnée automatiquement — choisissez seulement quel solde doit s’appliquer.', local: 'Cet appareil', cloud: 'Cloud', keepLocal: 'Garder cet appareil', keepCloud: 'Garder le cloud', note: 'L’autre état est conservé en sauvegarde et jamais supprimé.' },
@@ -693,6 +693,8 @@ export default {
     endlessFirst: { title: 'Grimpeur', desc: 'Réussissez votre premier niveau en Ascension sans fin.' },
     endlessLevel5: { title: 'Alpiniste', desc: 'Atteignez le niveau 5 en Ascension sans fin.' },
     endlessLevel8: { title: 'Conquérant', desc: 'Atteignez le niveau 8 en Ascension sans fin.' },
+    endlessLevel12: { title: 'Grimpeur stellaire', desc: 'Atteins le niveau 12 en ascension sans fin.' },
+    endlessCoopFirst: { title: 'Ascension à deux', desc: 'Termine un niveau en ascension sans fin coop.' },
     missionsWeek: { title: 'Héros de la semaine', desc: 'Terminez toutes les missions d’une semaine.' },
   },
   history: {

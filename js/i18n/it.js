@@ -20,7 +20,7 @@ export default {
     },
   },
 
-  solo: { title: 'Solo', classic: 'Classico', classicHint: 'Un rompicapo, difficoltà libera', endless: 'Scalata infinita', endlessHint: 'Sempre più difficile: fin dove arrivi?' },
+  solo: { title: 'Solo', classic: 'Classico', classicHint: 'Un rompicapo, difficoltà libera', endless: 'Scalata infinita', endlessHint: 'Sempre più difficile: fin dove arrivi?', endlessStart: 'Avvia infinito' },
   endless: { badge: 'Infinito', best: 'Miglior partita: livello {n}', cleared: 'Livello {n} superato!', lifeGained: '+1 vita', overTitle: 'Partita finita', reached: 'Livello {n} raggiunto', record: 'Nuovo record!', levelDone: 'Livello {n} superato!', continue: 'Continua', livesLabel: 'Vite' },
 
   mismatch: { title: 'Dati di gioco diversi', sub: 'Il tuo saldo monete differisce tra questo dispositivo e il cloud. Tutti i progressi (vittorie, obiettivi, acquisti) vengono uniti automaticamente — scegli solo quale saldo deve valere.', local: 'Questo dispositivo', cloud: 'Cloud', keepLocal: 'Mantieni questo dispositivo', keepCloud: 'Mantieni il cloud', note: 'L’altro stato viene salvato come backup e non viene eliminato.' },
@@ -693,6 +693,8 @@ export default {
     endlessFirst: { title: 'Scalatore', desc: 'Supera il tuo primo livello nella Scalata infinita.' },
     endlessLevel5: { title: 'Arrampicatore', desc: 'Raggiungi il livello 5 nella Scalata infinita.' },
     endlessLevel8: { title: 'Conquistatore', desc: 'Raggiungi il livello 8 nella Scalata infinita.' },
+    endlessLevel12: { title: 'Scalatore di stelle', desc: 'Raggiungi il livello 12 nella scalata infinita.' },
+    endlessCoopFirst: { title: 'Ascesa in coop', desc: 'Supera un livello nella scalata infinita in coop.' },
     missionsWeek: { title: 'Eroe settimanale', desc: 'Completa tutte le missioni di una settimana.' },
   },
   history: {
