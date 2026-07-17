@@ -1,0 +1,1 @@
+Missionen-Knopf auf dem Startbildschirm sitzt jetzt etwas tiefer (unter der oberen Icon-Leiste), damit sein Zähler und das Leuchten nicht mehr am oberen Rand abgeschnitten werden.
