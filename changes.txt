@@ -1,0 +1,1 @@
+Sieg-/Ergebnis-Screen: Bei sehr langen Spielernamen bleibt die Prozentzahl in der Team-Performance jetzt fest am rechten Rand und wird nicht mehr aus der Karte geschoben.
