@@ -1369,9 +1369,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .perf-title { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
 .perf-row { background: var(--bg3); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
 .perf-row.mvp { box-shadow: 0 0 0 2px #fbbf24 inset; }
-.perf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.perf-name { font-weight: 800; font-size: .88rem; }
-.perf-pct { font-weight: 800; font-size: .88rem; color: var(--text2); }
+/* Kopf einer Performance-Karte: Name links (darf umbrechen/schrumpfen), Prozent
+   rechts FIX. min-width:0 + overflow-wrap:anywhere lassen auch einen sehr langen
+   Namen ohne Leerzeichen brechen, statt die Prozentzahl aus der Karte zu schieben. */
+.perf-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.perf-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; font-weight: 800; font-size: .88rem; }
+.perf-pct { flex: 0 0 auto; font-weight: 800; font-size: .88rem; color: var(--text2); }
 .perf-bar { height: 5px; border-radius: 999px; background: var(--bg); overflow: hidden; }
 .perf-bar-fill { height: 100%; border-radius: 999px; }
 .perf-nums { display: flex; flex-wrap: wrap; gap: 8px; font-size: .72rem; color: var(--text2); }
