@@ -1,3 +1,0 @@
-Endlos-Aufstieg ist jetzt ein Schalter direkt im Solo-Schwierigkeitsscreen (neben „Große Zahlen") – der Zwischenscreen (Klassisch/Endlos/Missionen) entfällt, „Neues Spiel" führt direkt in die Auswahl.
-Missionen erreichst du jetzt über den runden Knopf oben links auf dem Startbildschirm; er leuchtet und zeigt einen Zähler, sobald Belohnungen zum Einlösen bereitliegen.
-Neue Erfolge: „Sternenstürmer" (Endlos-Level 12) und „Gemeinsam hoch hinaus" (erster Coop-Endlos-Lauf).
