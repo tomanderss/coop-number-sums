@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.163';
-export const BUILD_HASH = '12a7f78';
+export const BUILD      = '1.164';
+export const BUILD_HASH = '85c0915';
 
 export const CHANGELOG = [
+  {
+    "version": "1.164",
+    "date": "17.07.2026",
+    "changes": [
+      "Auswahl-Screens (Solo + Coop/Wettkampf) überarbeitet: Medaillon & Titel skalieren jetzt relativ mit der Bildschirmgröße (kein Überlappen mehr), und die Modus-Schalter „Große Zahlen\"/„Endlos-Aufstieg\" sind zu winzigen einzeiligen Reglern geschrumpft — die Erklärung erscheint als Tooltip beim Antippen des ⓘ."
+    ]
+  },
   {
     "version": "1.163",
     "date": "16.07.2026",
