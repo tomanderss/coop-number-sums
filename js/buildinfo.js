@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.170';
-export const BUILD_HASH = '777b192';
+export const BUILD      = '1.171';
+export const BUILD_HASH = '54bec95';
 
 export const CHANGELOG = [
+  {
+    "version": "1.171",
+    "date": "17.07.2026",
+    "changes": [
+      "Endlos-Aufstieg lässt sich jetzt mit „Große Zahlen\" (10–19) kombinieren – im Solo- wie im Coop-Modus. Der ganze Lauf läuft dann mit großen Zahlen (auf jedem Level, wo die Feldgröße es zulässt)."
+    ]
+  },
   {
     "version": "1.170",
     "date": "17.07.2026",
