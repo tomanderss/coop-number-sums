@@ -1222,26 +1222,30 @@ function startEndless() {
     active: true, coop: false, advancing: false, level: 1,
     lives: ENDLESS_CFG.startLives, hints: ENDLESS_CFG.startHints,
     score: 0, coins: 0, best: state.stats.endlessBest || 0,
+    bigNumbers: !!state.sel.bigNumbers,   // „Große Zahlen" gilt für den ganzen Lauf (je Level, wo erlaubt)
   };
   navStack = [() => { navigate('home'); }];  // aus dem Lauf führt Zurück nach Home
-  log('game', 'Endlos-Aufstieg gestartet', { startLives: ENDLESS_CFG.startLives, best: state.endless.best });
+  log('game', 'Endlos-Aufstieg gestartet', { startLives: ENDLESS_CFG.startLives, best: state.endless.best, bigNumbers: state.endless.bigNumbers });
   loadEndlessLevel();
 }
 function loadEndlessLevel() {
   const diffId = endlessDiffId(state.endless.level, DIFFICULTIES.map(d => d.id));
+  // „Große Zahlen" je Level nur, wo die Feldgröße es erlaubt (kleine Frühlevel
+  // fallen automatisch auf 1–9 zurück).
+  const bigNumbers = !!state.endless.bigNumbers && bigNumbersAllowed(diffId);
   state.isTrainingGame = false;
   state.screen = 'game';
   state.generating = true;
   const t0 = performance.now();
-  log('game', 'Endlos-Level-Generierung gestartet', { level: state.endless.level, difficulty: diffId });
-  generateAsync({ difficulty: diffId })
+  log('game', 'Endlos-Level-Generierung gestartet', { level: state.endless.level, difficulty: diffId, bigNumbers });
+  generateAsync({ difficulty: diffId, bigNumbers })
     .then(puzzle => {
       log('game', 'Endlos-Level generiert', { level: state.endless.level, difficulty: diffId, rows: puzzle.rows, tookMs: Math.round(performance.now() - t0) });
       finishEndlessLevel(puzzle);
     })
     .catch(e => {
       log('game', 'Endlos-Generierung fehlgeschlagen, synchroner Versuch', e);
-      try { finishEndlessLevel(generatePuzzle({ difficulty: diffId })); }
+      try { finishEndlessLevel(generatePuzzle({ difficulty: diffId, bigNumbers })); }
       catch (err) { log('game', 'Endlos synchroner Fallback fehlgeschlagen', err); state.generating = false; throw err; }
     });
 }
@@ -1342,19 +1346,20 @@ function startCoopEndless() {
   state.coop.active = true;
   state.coop.waitingForGuest = false;
   state.coop.awaitingStart = false;   // kein Bereit-Lobby-Umweg im Endlos
-  state.endless = { active: true, coop: true, advancing: false, level: 1, lives: LIVES, hints: HINTS, score: 0, coins: 0, best: state.stats.endlessCoopBest || 0 };
+  state.endless = { active: true, coop: true, advancing: false, level: 1, lives: LIVES, hints: HINTS, score: 0, coins: 0, best: state.stats.endlessCoopBest || 0, bigNumbers: !!state.coop.lobbyBigNumbers };
   navigate('game');
-  log('coop', 'Coop-Endlos gestartet', { players: state.coop.players.length });
+  log('coop', 'Coop-Endlos gestartet', { players: state.coop.players.length, bigNumbers: state.endless.bigNumbers });
   loadCoopEndlessLevel();
 }
 function loadCoopEndlessLevel() {
   const e = state.endless;
   const diffId = endlessDiffId(e.level, DIFFICULTIES.map(d => d.id));
+  const bigNumbers = !!e.bigNumbers && bigNumbersAllowed(diffId);
   state.generating = true;
   e.advancing = true;
   const t0 = performance.now();
-  log('coop', 'Coop-Endlos-Level-Generierung', { level: e.level, difficulty: diffId });
-  generateAsync({ difficulty: diffId })
+  log('coop', 'Coop-Endlos-Level-Generierung', { level: e.level, difficulty: diffId, bigNumbers });
+  generateAsync({ difficulty: diffId, bigNumbers })
     .then(puzzle => { log('coop', 'Coop-Endlos-Level generiert', { level: e.level, tookMs: Math.round(performance.now() - t0) }); finishCoopEndlessLevel(puzzle); })
     .catch(err => { log('coop', 'Coop-Endlos-Generierung fehlgeschlagen', err); onLobbyGenFailed(err, 'Coop-Endlos'); });
 }
@@ -2301,7 +2306,7 @@ function handleCoopMsg(msg) {
     // mit frischer gameId, daher nie durch den Duplikat-Guard oben blockiert.
     // Ohne Marker sicherstellen, dass ein evtl. Alt-Endlos aus ist (normales Coop).
     if (msg.endless) {
-      state.endless = { active: true, coop: true, advancing: false, level: msg.endlessLevel || 1, lives: msg.lives ?? LIVES, hints: HINTS, score: (msg.endlessLevel || 1) - 1, coins: 0, best: state.stats.endlessCoopBest || 0 };
+      state.endless = { active: true, coop: true, advancing: false, level: msg.endlessLevel || 1, lives: msg.lives ?? LIVES, hints: HINTS, score: (msg.endlessLevel || 1) - 1, coins: 0, best: state.stats.endlessCoopBest || 0, bigNumbers: !!(msg.puzzle && msg.puzzle.bigNumbers) };
     } else if (state.endless.active) {
       state.endless.active = false;
     }
@@ -6517,10 +6522,10 @@ const App = {
 
       <difficulty-slider v-model="state.sel.difficulty" @randomstart="setupStart($event)"></difficulty-slider>
 
-      <!-- „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9 (nur 6×6–9×9). Ein
-           anderer kognitiver Reiz bei identischer Logik/Eindeutigkeit. Im
-           Endlos-Modus irrelevant (eigene Level-Generierung) → ausgeblendet. -->
-      <label v-if="bigNumbersAllowed(state.sel.difficulty) && !state.sel.endless" class="mode-toggle" :class="{ on: state.sel.bigNumbers }">
+      <!-- „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9. Ein anderer kognitiver
+           Reiz bei identischer Logik/Eindeutigkeit. Kombinierbar MIT Endlos
+           (gilt dann je Level, wo die Feldgröße es erlaubt). -->
+      <label v-if="bigNumbersAllowed(state.sel.difficulty)" class="mode-toggle" :class="{ on: state.sel.bigNumbers }">
         <b class="mt-title">{{ t('setup.bigNumbers') }}</b>
         <span class="mt-info" tabindex="0" role="button" :aria-label="t('setup.bigNumbersHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
           <span class="ei" v-html="ic('info')"></span>
