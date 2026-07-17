@@ -1,0 +1,1 @@
+Auswahl-Screens (Solo + Coop/Wettkampf) überarbeitet: Medaillon & Titel skalieren jetzt relativ mit der Bildschirmgröße (kein Überlappen mehr), und die Modus-Schalter „Große Zahlen"/„Endlos-Aufstieg" sind zu winzigen einzeiligen Reglern geschrumpft — die Erklärung erscheint als Tooltip beim Antippen des ⓘ.

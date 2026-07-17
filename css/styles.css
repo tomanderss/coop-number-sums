@@ -675,28 +675,48 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .setup-slider .setup-coderow,
 .setup-slider .diff-picker,
 .setup-slider .setup-startrow { position: relative; z-index: 1; }
-/* Die Slider-Komponente füllt die Section (Medaillon zentriert, Regler unten). */
-.setup-slider .diff-picker { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* Die Slider-Komponente füllt die Section (Medaillon zentriert, Regler unten).
+   min-height:min-content statt 0 → bei knappem Platz (Coop-Host mit Coderow +
+   ZWEI Toggles) schrumpft der Picker NICHT unter seinen Inhalt zusammen (das ließ
+   die Hero-Box kollabieren und Medaillon/Stats über die Nachbarn überlappen);
+   stattdessen scrollt die Section sauber. */
+.setup-slider .diff-picker { flex: 1 1 auto; min-height: min-content; display: flex; flex-direction: column; }
 .setup-startrow { flex: 0 0 auto; display: flex; flex-direction: column; }
 
-/* „Big Numbers"-Umschalter (Setup): kompakte Karte mit Schalter, über dem
-   morphenden Hintergrund (z-index 1). */
-.setup-slider .bignum-toggle { position: relative; z-index: 1; }
-.bignum-toggle {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 12px; cursor: pointer;
-  margin: 6px 0 10px; padding: 10px 14px; border-radius: 16px;
+/* Modus-Umschalter (Setup/Coop-Host): EXTREM kompakte EINZEILIGE Zeile — nur
+   fetter Kurztitel + Info-Glyph (Erklärung als Tooltip) + kleiner Schalter, über
+   dem morphenden Hintergrund (z-index 1). Nimmt bewusst minimalen vertikalen
+   Platz, damit die Auswahl-Screens auch mit zwei Toggles nie überlaufen. */
+.setup-slider .mode-toggle { position: relative; z-index: 1; }
+.mode-toggle {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px; cursor: pointer;
+  margin: 4px 0; padding: 6px 12px; border-radius: 12px; position: relative;
   background: color-mix(in srgb, var(--bg2) 78%, transparent);
-  border: 1.5px solid var(--line); transition: border-color .15s, background .15s;
+  border: 1px solid var(--line); transition: border-color .15s, background .15s;
 }
-.bignum-toggle.on { border-color: var(--accent, #3b82f6); background: color-mix(in srgb, var(--accent, #3b82f6) 14%, var(--bg2)); }
-.bignum-toggle .bignum-tx { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.bignum-toggle .bignum-tx b { font-size: .96rem; font-weight: 800; }
-.bignum-toggle .bignum-tx small { font-size: .76rem; color: var(--text2); line-height: 1.25; }
-.bignum-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.mode-toggle.on { border-color: var(--accent, #3b82f6); background: color-mix(in srgb, var(--accent, #3b82f6) 14%, var(--bg2)); }
+.mode-toggle .mt-title { flex: 1; min-width: 0; font-size: .9rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mode-toggle .mt-info { flex: 0 0 auto; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--text3); position: relative; cursor: help; }
+.mode-toggle .mt-info .ei { display: inline-grid; }
+.mode-toggle .mt-info .ei svg { width: 16px; height: 16px; }
+.mode-toggle .mt-info:focus-visible { outline: 2px solid var(--dacc, var(--accent, #3b82f6)); outline-offset: 1px; }
+/* Erklärungs-Tooltip: erscheint über dem Info-Glyph bei Hover (Desktop) ODER
+   Fokus (Touch: Antippen fokussiert den Glyph → Tooltip erscheint). */
+.mode-toggle .mt-tip {
+  display: none; position: absolute; right: -4px; bottom: calc(100% + 8px); z-index: 30;
+  width: max-content; max-width: min(260px, 70vw); padding: 8px 11px; border-radius: 10px;
+  background: var(--bg1, #10151f); border: 1px solid var(--line); color: var(--text2);
+  font-size: .74rem; font-weight: 600; line-height: 1.35; text-align: left; white-space: normal;
+  box-shadow: 0 10px 28px rgba(0,0,0,.42);
+}
+.mode-toggle .mt-info:hover .mt-tip, .mode-toggle .mt-info:focus .mt-tip, .mode-toggle .mt-info:focus-within .mt-tip { display: block; }
+.mode-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.mode-toggle .bignum-switch { width: 38px; height: 22px; }
+.mode-toggle .bignum-switch::after { width: 16px; height: 16px; top: 3px; left: 3px; }
+.mode-toggle.on .bignum-switch::after { transform: translateX(16px); }
 .bignum-switch { flex: 0 0 auto; width: 44px; height: 26px; border-radius: 999px; background: var(--grid); position: relative; transition: background .18s; }
 .bignum-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .18s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
-.bignum-toggle.on .bignum-switch { background: var(--accent, #3b82f6); }
-.bignum-toggle.on .bignum-switch::after { transform: translateX(18px); }
+.mode-toggle.on .bignum-switch { background: var(--accent, #3b82f6); }
 
 /* Coop/Race/Team: Raumcode INNERHALB des Vollflächen-Screens (kompakte Zeile über
    dem Slider) statt als separater Block außerhalb. */
@@ -708,8 +728,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border: 1px solid color-mix(in oklab, var(--dacc) 45%, transparent); }
 .setup-coderow .setup-codeinput::placeholder { color: var(--text3); letter-spacing: .1em; font-size: .95rem; }
 
-.setup-hero { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; }
-.diff-medallion { position: relative; width: 130px; height: 130px; display: grid; place-items: center; flex: 0 0 auto; }
+.setup-hero { flex: 1; min-height: min-content; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: clamp(6px, 1.8vh, 12px); }
+/* Medaillon skaliert relativ zur Viewport-Breite (klein auf schmalen Geräten,
+   gedeckelt auf 130px). Disc/Icon sind PROZENTUAL am Medaillon → skalieren mit. */
+.diff-medallion { position: relative; width: clamp(92px, 24vw, 130px); height: clamp(92px, 24vw, 130px); display: grid; place-items: center; flex: 0 0 auto; }
 .dm-ring { position: absolute; inset: 0; border-radius: 50%;
   background: conic-gradient(from -90deg, var(--dacc), var(--dacc-d), var(--dacc));
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
@@ -717,16 +739,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   filter: drop-shadow(0 0 13px color-mix(in oklab, var(--dacc) 58%, transparent));
   animation: dmspin 9s linear infinite; }
 @keyframes dmspin { to { transform: rotate(360deg); } }
-.dm-disc { width: 102px; height: 102px; border-radius: 50%; display: grid; place-items: center;
+.dm-disc { width: 78%; height: 78%; border-radius: 50%; display: grid; place-items: center;
   background: radial-gradient(circle at 32% 28%, color-mix(in oklab, var(--dacc) 24%, var(--card)), color-mix(in oklab, var(--card), #000 22%));
   box-shadow: inset 0 2px 12px rgba(0,0,0,.32); animation: dmpop .5s cubic-bezier(.2,1.5,.4,1); }
-.dm-ic { width: 60px; height: 60px; display: grid; place-items: center; filter: drop-shadow(0 3px 5px rgba(0,0,0,.32)); }
-.dm-ic svg { width: 60px; height: 60px; }
+.dm-ic { width: 58%; height: 58%; display: grid; place-items: center; filter: drop-shadow(0 3px 5px rgba(0,0,0,.32)); }
+.dm-ic svg { width: 100%; height: 100%; }
 @keyframes dmpop { 0% { transform: scale(.6) rotate(-14deg); opacity: .2; } 60% { transform: scale(1.06) rotate(3deg); } 100% { transform: none; } }
 
 .diff-eyebrow { font-size: .68rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
   color: color-mix(in oklab, var(--dacc) 60%, var(--text2)); }
-.diff-name { font-size: 2.2rem; font-weight: 900; letter-spacing: -.02em; line-height: 1; margin: 0; text-wrap: balance;
+.diff-name { font-size: clamp(1.55rem, 6.8vw, 2.2rem); font-weight: 900; letter-spacing: -.02em; line-height: 1; margin: 0; text-wrap: balance;
   color: var(--text); text-shadow: 0 2px 20px color-mix(in oklab, var(--dacc) 40%, transparent);
   animation: diffNameIn .5s cubic-bezier(.2,.9,.3,1); }
 @keyframes diffNameIn { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
@@ -801,8 +823,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .diff-card .diff-picker { position: relative; z-index: 1; display: flex; flex-direction: column; }
 .diff-card .setup-hero { flex: 0 0 auto; gap: 8px; }
 .diff-card .diff-medallion { width: 92px; height: 92px; }
-.diff-card .dm-disc { width: 72px; height: 72px; }
-.diff-card .dm-ic, .diff-card .dm-ic svg { width: 42px; height: 42px; }
 .diff-card .diff-name { font-size: 1.6rem; }
 .diff-card .setup-controls { padding-top: 6px; }
 
@@ -811,12 +831,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .dm-disc, .diff-name { animation: none !important; }
   .setup-slider, .diff-card, .dt-thumb, .dt-fill, .dt-tick, .diff-start { transition-duration: 200ms !important; }
 }
-/* Kürzere Telefone: Medaillon + Schrift etwas kompakter, damit ohne Scrollen alles passt. */
+/* Kürzere Telefone: Medaillon + Schrift etwas kompakter, damit ohne Scrollen alles
+   passt. Disc/Icon sind prozentual → folgen dem kleineren Medaillon automatisch. */
 @media (max-height: 720px) {
   .diff-medallion { width: 104px; height: 104px; }
-  .dm-disc { width: 82px; height: 82px; } .dm-ic, .dm-ic svg { width: 48px; height: 48px; }
-  .diff-name { font-size: 1.9rem; }
-  .setup-hero { gap: 9px; }
+  .diff-name { font-size: clamp(1.5rem, 6vw, 1.9rem); }
+  .setup-hero { gap: 8px; }
 }
 
 /* Coop-/Wettkampf-Host-Auswahl: Code-Eingabe, Schwierigkeitsraster und der
