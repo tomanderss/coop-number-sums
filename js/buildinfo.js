@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.164';
-export const BUILD_HASH = '85c0915';
+export const BUILD      = '1.165';
+export const BUILD_HASH = '9dc54a6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.165",
+    "date": "17.07.2026",
+    "changes": [
+      "Endlos-Aufstieg ist jetzt ein Schalter direkt im Solo-Schwierigkeitsscreen (neben „Große Zahlen\") – der Zwischenscreen (Klassisch/Endlos/Missionen) entfällt, „Neues Spiel\" führt direkt in die Auswahl.",
+      "Missionen erreichst du jetzt über den runden Knopf oben links auf dem Startbildschirm; er leuchtet und zeigt einen Zähler, sobald Belohnungen zum Einlösen bereitliegen.",
+      "Neue Erfolge: „Sternenstürmer\" (Endlos-Level 12) und „Gemeinsam hoch hinaus\" (erster Coop-Endlos-Lauf)."
+    ]
+  },
   {
     "version": "1.164",
     "date": "17.07.2026",
