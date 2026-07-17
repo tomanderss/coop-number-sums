@@ -277,6 +277,7 @@ export default {
     muteAllOn: '모두 음소거',
     muteAllOff: '음소거 해제',
     muteAll: '모두 음소거',
+    soundOn: '사운드',
     secDesktop: "데스크톱",
     desktop: {
       toolKey: '키: 도구 전환',

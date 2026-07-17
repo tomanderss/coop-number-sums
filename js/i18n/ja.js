@@ -277,6 +277,7 @@ export default {
     muteAllOn: 'すべてミュート',
     muteAllOff: 'ミュート解除',
     muteAll: 'すべてミュート',
+    soundOn: 'サウンド',
     secDesktop: "デスクトップ",
     desktop: {
       toolKey: 'キー: ツールを切り替え',

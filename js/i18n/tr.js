@@ -277,6 +277,7 @@ export default {
     muteAllOn: 'Tüm sesleri kapat',
     muteAllOff: 'Sesi aç',
     muteAll: 'Tüm sesleri kapat',
+    soundOn: 'Ses',
     secDesktop: "Masaüstü",
     desktop: {
       toolKey: 'Tuş: araç değiştir',

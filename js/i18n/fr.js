@@ -277,6 +277,7 @@ export default {
     muteAllOn: 'Tout couper',
     muteAllOff: 'Réactiver le son',
     muteAll: 'Tout couper',
+    soundOn: 'Son',
     secDesktop: "Bureau",
     desktop: {
       toolKey: 'Touche : changer d’outil',

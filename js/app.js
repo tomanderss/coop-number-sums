@@ -7590,11 +7590,12 @@ const App = {
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='ton' }">▾</span>
           </button>
           <div v-if="state.settingsTab==='ton'" class="admin-acc-body">
-          <!-- „Alles stummschalten": Ein-Schalter, der Musik UND alle UI-Sounds
-               still legt (zusätzlich zur Master-Lautstärke). Nutzt toggleMuteAll
-               (nicht toggleSetting), weil zusätzlich Music.setMuted greifen muss. -->
+          <!-- „Ton": POSITIVER Ein-Schalter (an = Ton hörbar, aus = alles stumm).
+               Intern weiterhin muteAll (invertiert dargestellt) — toggleMuteAll
+               kippt den Zustand + ruft Music.setMuted; der Schalter ist AN, wenn
+               NICHT stumm. So heißt es „Ton aktivieren" statt „Alles stumm". -->
           <div class="set-row" @click="toggleMuteAll">
-            <span>{{ t('settings.muteAll') }}</span><span class="switch" :class="{on:state.settings.muteAll}"><i></i></span>
+            <span>{{ t('settings.soundOn') }}</span><span class="switch" :class="{on:!state.settings.muteAll}"><i></i></span>
           </div>
           <!-- Erworbene Sound-/Musik-Pakete ausrüsten (mit ▶ Hör-Vorschau) -->
           <div class="set-row col" v-for="cat in settingsSoundCats()" :key="cat">

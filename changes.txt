@@ -1,0 +1,1 @@
+Ton-Schalter in den Einstellungen umgedreht: statt „Alles stummschalten" gibt es jetzt einen positiven „Ton"-Schalter – an bedeutet Ton hörbar, aus bedeutet stumm.
