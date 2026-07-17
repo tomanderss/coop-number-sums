@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 import { gotoApp, startNewGame, solveActivePuzzle, dismissStreakModal } from './helpers.js';
 
 test.describe('weekly missions', () => {
-  test('home missions button → missions screen lists the weekly quests; a completed one can be claimed for coins', async ({ page }) => {
+  test('home missions button → missions pop-up lists the weekly quests; a completed one can be claimed for coins', async ({ page }) => {
     await gotoApp(page);
-    // Missionen öffnen sich jetzt über den runden Knopf oben links auf Home.
+    // Missionen öffnen sich jetzt als Pop-up (Modal) über den runden Knopf oben links auf Home.
     await expect(page.locator('.home-missions-btn')).toBeVisible();
     await page.locator('.home-missions-btn').click();
-    await page.waitForSelector('.screen.missions-screen');
+    await page.waitForSelector('.modal-missions');
 
     // Vier Wochen-Missionen werden gelistet.
     expect(await page.locator('.mission-card').count()).toBe(4);

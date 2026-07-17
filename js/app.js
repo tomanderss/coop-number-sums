@@ -1437,7 +1437,9 @@ function claimMissionReward(id) {
   log('app', 'Mission eingelöst', { id, reward: m.reward });
   syncCloudNow('missionClaim');
 }
-function openMissions() { navTo('missions'); }
+// Missionen-Übersicht als Pop-up (Modal über dem aktuellen Screen), keine eigene
+// Seite mehr — so bleibt man auf Home und schließt einfach wieder.
+function openMissions() { state.modal = 'missions'; log('app', 'Missionen-Übersicht geöffnet'); }
 function missionProgressVal(m) { return missionValue(m, state.missions.progress); }
 function missionDone(m) { return isMissionComplete(m, state.missions.progress); }
 function missionClaimedUI(m) { return isMissionClaimed(m, state.missions.claimed); }
@@ -6494,23 +6496,6 @@ const App = {
       <button class="home-version" @click="checkForUpdate" :title="t('update.check')" :aria-label="t('update.check')">v{{ BUILD }}<span v-if="state.updateCheck === 'busy'" class="ei uc-spin" v-html="ic('refresh')"></span></button>
     </section>
 
-    <!-- ══ MISSIONEN (Wochen-Aufträge) ══ -->
-    <section v-else-if="state.screen==='missions'" class="screen missions-screen">
-      <header class="topbar"><button class="icon-btn" @click="goBack()">‹</button><h2>{{ t('missions.title') }}</h2><button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button></header>
-      <div class="missions-body">
-        <p class="missions-intro">{{ t('missions.intro') }}</p>
-        <div v-for="m in state.missions.list" :key="m.id" class="mission-card" :class="{ done: missionDone(m), claimed: missionClaimedUI(m) }">
-          <div class="mission-ic" v-html="ic(m.icon)"></div>
-          <div class="mission-main">
-            <div class="mission-name">{{ t('missions.m.' + m.id) }}</div>
-            <div class="mission-bar"><div class="mission-bar-fill" :style="{ width: Math.round(missionProgressVal(m) / m.target * 100) + '%' }"></div></div>
-            <div class="mission-sub">{{ missionProgressVal(m) }} / {{ m.target }} · <span class="ei" v-html="ic('coin')"></span> {{ m.reward }}</div>
-          </div>
-          <button v-if="missionClaimableUI(m)" class="btn btn-primary btn-sm mission-claim" @click="claimMissionReward(m.id)">{{ t('missions.claim') }}</button>
-          <span v-else-if="missionClaimedUI(m)" class="mission-check" :title="t('missions.done')"><span class="ei" v-html="ic('check')"></span></span>
-        </div>
-      </div>
-    </section>
 
     <!-- ══ SETUP (Slider-Schwierigkeitsauswahl mit morphendem Hintergrund) ══ -->
     <section v-else-if="state.screen==='setup'" class="screen setup setup-slider" :style="diffVars(state.sel.difficulty)">
@@ -8218,6 +8203,27 @@ const App = {
           <div v-for="e in CHANGELOG" :key="e.version" class="cl-entry">
             <div class="cl-head"><b>v{{ e.version }}</b><span>{{ e.date }}</span></div>
             <ul><li v-for="(it,i) in e.changes" :key="i">{{ it }}</li></ul>
+          </div>
+        </div>
+        <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>
+      </div>
+    </div>
+
+    <!-- Missionen-Übersicht (Wochen-Aufträge) als Pop-up. -->
+    <div v-if="state.modal==='missions'" class="modal-bg" @click.self="state.modal=null">
+      <div class="modal modal-missions">
+        <h3><span class="ei" v-html="ic('flag')"></span> {{ t('missions.title') }}</h3>
+        <p class="missions-intro">{{ t('missions.intro') }}</p>
+        <div class="missions-body">
+          <div v-for="m in state.missions.list" :key="m.id" class="mission-card" :class="{ done: missionDone(m), claimed: missionClaimedUI(m) }">
+            <div class="mission-ic" v-html="ic(m.icon)"></div>
+            <div class="mission-main">
+              <div class="mission-name">{{ t('missions.m.' + m.id) }}</div>
+              <div class="mission-bar"><div class="mission-bar-fill" :style="{ width: Math.round(missionProgressVal(m) / m.target * 100) + '%' }"></div></div>
+              <div class="mission-sub">{{ missionProgressVal(m) }} / {{ m.target }} · <span class="ei" v-html="ic('coin')"></span> {{ m.reward }}</div>
+            </div>
+            <button v-if="missionClaimableUI(m)" class="btn btn-primary btn-sm mission-claim" @click="claimMissionReward(m.id)">{{ t('missions.claim') }}</button>
+            <span v-else-if="missionClaimedUI(m)" class="mission-check" :title="t('missions.done')"><span class="ei" v-html="ic('check')"></span></span>
           </div>
         </div>
         <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>

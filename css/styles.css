@@ -2592,6 +2592,12 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .coin-chip-btn:active { transform: scale(.96); }
 
 /* Geldverlauf-Modal (Transaktionshistorie) */
+/* Missionen als Pop-up: Liste scrollt INNERHALB des Modals; Karten heben sich
+   vom Modal-Hintergrund (bg2) über bg3 ab. */
+.modal-missions { max-width: min(94vw, 440px); }
+.modal-missions .missions-intro { margin: -4px 0 2px; }
+.modal-missions .missions-body { padding: 2px; max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; }
+.modal-missions .mission-card { background: var(--bg3); }
 .modal-wallet-log { max-width: min(94vw, 440px); }
 .wallet-log-balance { text-align: center; color: var(--text3); font-weight: 700; font-size: .82rem; margin-top: -6px; }
 .wallet-log-empty { text-align: center; }

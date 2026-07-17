@@ -1,0 +1,1 @@
+Missionen-Übersicht öffnet sich jetzt als Pop-up-Fenster über dem Startbildschirm statt als eigene Seite – einfach antippen, ansehen, schließen.
