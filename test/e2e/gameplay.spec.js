@@ -30,8 +30,6 @@ test.describe('gameplay', () => {
   test('the random button starts the game immediately with the rolled difficulty', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
-    await page.waitForSelector('.screen.solo-menu');
-    await page.locator('.solo-card-classic').click();
     await page.waitForSelector('.screen.setup');
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'sehrleicht'; });
     // Zufall drücken → direkt im Spiel, ohne den Start-Knopf zu berühren.
@@ -140,13 +138,13 @@ test.describe('big numbers mode', () => {
   test('toggle generates a 10–19 board and it can be solved to a win', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
-    await page.waitForSelector('.screen.solo-menu');
-    await page.locator('.solo-card-classic').click();
     await page.waitForSelector('.screen.setup');
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'sehrleicht'; });
-    // Umschalter sichtbar (6×6 erlaubt) → einschalten.
-    await expect(page.locator('.mode-toggle')).toBeVisible();
-    await page.locator('.mode-toggle').click();
+    // „Große Zahlen"-Umschalter sichtbar (6×6 erlaubt) → einschalten. (Der Endlos-
+    // Toggle ist ein zweiter .mode-toggle, daher gezielt über den Titel ansprechen.)
+    const bigToggle = page.locator('.mode-toggle', { hasText: 'Große Zahlen' });
+    await expect(bigToggle).toBeVisible();
+    await bigToggle.click();
     expect(await page.evaluate(() => window.__cns.state.sel.bigNumbers)).toBe(true);
 
     await page.locator('.diff-start').click();
@@ -172,10 +170,8 @@ test.describe('big numbers mode', () => {
   test('the toggle is available for large fields too (all dimensions)', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
-    await page.waitForSelector('.screen.solo-menu');
-    await page.locator('.solo-card-classic').click();
     await page.waitForSelector('.screen.setup');
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'rip'; }); // 14×14
-    await expect(page.locator('.mode-toggle')).toBeVisible();
+    await expect(page.locator('.mode-toggle', { hasText: 'Große Zahlen' })).toBeVisible();
   });
 });

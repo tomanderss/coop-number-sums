@@ -1200,6 +1200,15 @@ function goNextPuzzle() {
   navigate('setup');
 }
 
+// Start aus dem Solo-Setup: der „Endlos-Aufstieg"-Schalter entscheidet, ob ein
+// Endlos-Lauf (ignoriert Schwierigkeit/Große Zahlen) oder eine klassische Partie
+// mit der gewählten Schwierigkeit startet. Wird sowohl vom Start-Knopf als auch
+// vom „Zufall"-Knopf (via @randomstart) aufgerufen.
+function setupStart(diffId) {
+  if (state.sel.endless) { startEndless(); return; }
+  newGame(diffId ?? state.sel.difficulty);
+}
+
 // ─── ENDLOS-AUFSTIEG (Solo) ───────────────────────────────────────────────────
 // Ein Lauf über immer schwerere Level (Schwierigkeitsleiter) auf einem GEMEINSAMEN
 // Leben-/Hinweis-Pool, bis man scheitert. Score = geschaffte Level. Komplett lokal;
@@ -3218,6 +3227,7 @@ function checkAchievements() {
     raceWon2v2: state.raceStats['2v2']?.racesWon || 0,
     streak: state.streak.currentStreak,
     endlessBest: state.stats.endlessBest || 0,
+    endlessCoopBest: state.stats.endlessCoopBest || 0,
     missionsAllDone: allMissionsComplete(state.missions.list, state.missions.progress),
     historyLength: state.puzzleHistory.length,
     wonAllDifficulties: DIFFICULTIES.every(d => (state.stats.byDifficulty[d.id]?.won || 0) > 0 || (state.stats.byDifficulty[d.id]?.coopWon || 0) > 0),
@@ -6364,7 +6374,7 @@ const App = {
       generalStats, fmtDuration, whatsNewEntries,
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
-      navigate, navTo, goBack, newGame, goNextPuzzle, startEndless, endlessAgain, endlessContinue, closeEndlessSummary, resumeGame, resumeCoopGame, onCellTap,
+      navigate, navTo, goBack, newGame, setupStart, goNextPuzzle, startEndless, endlessAgain, endlessContinue, closeEndlessSummary, resumeGame, resumeCoopGame, onCellTap,
       openMissions, claimMissionReward, missionsClaimable, missionProgressVal, missionDone, missionClaimedUI, missionClaimableUI, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
       rowSum, colSum, regionSum, rowSumR, colSumR, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
@@ -6422,7 +6432,16 @@ const App = {
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
       <span v-if="!isOnline()" class="offline-chip" :title="t('offline.chipHint')"><span class="ei" v-html="ic('cloud')"></span> {{ t('offline.chip') }}</span>
-      <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span></a>
+      <!-- Oben links: Missionen-Einstieg (rund, leicht abgehoben) + Spenden. Der
+           Missionen-Knopf zeigt einen Punkt/Zähler, sobald Belohnungen einlösbar
+           sind — so sieht man auf einen Blick „hier gibt's was zu holen". -->
+      <div class="home-topbar-left">
+        <button class="icon-btn home-missions-btn" :class="{ 'has-claim': missionsClaimable() > 0 }" @click="openMissions" :aria-label="t('missions.title')" :title="t('missions.title')">
+          <span class="ico-wrap" v-html="ic('flag')"></span>
+          <span v-if="missionsClaimable() > 0" class="home-missions-badge">{{ missionsClaimable() }}</span>
+        </button>
+        <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span></a>
+      </div>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge"><span class="ico-lead" v-html="ic('flame')"></span>{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
         <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')"><span class="ico-wrap" v-html="ic('users')"></span><span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span><span v-if="anyFriendOnline()" class="friends-online-dot"></span></button>
@@ -6456,7 +6475,7 @@ const App = {
             </span>
           </button>
         </div>
-        <button class="btn btn-primary" @click="coopReset(); navTo('solo')">
+        <button class="btn btn-primary" @click="coopReset(); navTo('setup')">
           <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
         <button class="btn btn-coop" :disabled="!coopAvailable || !isOnline()" @click="goCoop">
@@ -6474,33 +6493,6 @@ const App = {
         </div>
       </div>
       <button class="home-version" @click="checkForUpdate" :title="t('update.check')" :aria-label="t('update.check')">v{{ BUILD }}<span v-if="state.updateCheck === 'busy'" class="ei uc-spin" v-html="ic('refresh')"></span></button>
-    </section>
-
-    <!-- ══ SOLO-AUSWAHL (Klassisch / Endlos-Aufstieg) ══ -->
-    <section v-else-if="state.screen==='solo'" class="screen solo-menu">
-      <header class="topbar setup-top">
-        <button class="icon-btn" @click="goBack()">‹</button>
-        <h2>{{ t('solo.title') }}</h2>
-        <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
-      </header>
-      <div class="solo-cards">
-        <button class="btn btn-primary solo-card solo-card-classic" @click="navTo('setup')">
-          <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span>
-          <span class="btn-tx"><b>{{ t('solo.classic') }}</b><small>{{ t('solo.classicHint') }}</small></span>
-        </button>
-        <button class="btn btn-ghost solo-card solo-card-endless" @click="startEndless()">
-          <span class="btn-ic"><span class="ei" v-html="ic('meteor')"></span></span>
-          <span class="btn-tx">
-            <b>{{ t('solo.endless') }}</b><small>{{ t('solo.endlessHint') }}</small>
-            <small v-if="state.stats.endlessBest > 0" class="solo-best"><span class="ei" v-html="ic('trophy')"></span> {{ t('endless.best', { n: state.stats.endlessBest }) }}</small>
-          </span>
-        </button>
-        <button class="btn btn-ghost solo-card solo-card-missions" @click="openMissions()">
-          <span class="btn-ic"><span class="ei" v-html="ic('flag')"></span></span>
-          <span class="btn-tx"><b>{{ t('missions.title') }}</b><small>{{ t('missions.hint') }}</small></span>
-          <span v-if="missionsClaimable() > 0" class="missions-badge">{{ missionsClaimable() }}</span>
-        </button>
-      </div>
     </section>
 
     <!-- ══ MISSIONEN (Wochen-Aufträge) ══ -->
@@ -6530,11 +6522,12 @@ const App = {
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
 
-      <difficulty-slider v-model="state.sel.difficulty" @randomstart="newGame($event)"></difficulty-slider>
+      <difficulty-slider v-model="state.sel.difficulty" @randomstart="setupStart($event)"></difficulty-slider>
 
       <!-- „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9 (nur 6×6–9×9). Ein
-           anderer kognitiver Reiz bei identischer Logik/Eindeutigkeit. -->
-      <label v-if="bigNumbersAllowed(state.sel.difficulty)" class="mode-toggle" :class="{ on: state.sel.bigNumbers }">
+           anderer kognitiver Reiz bei identischer Logik/Eindeutigkeit. Im
+           Endlos-Modus irrelevant (eigene Level-Generierung) → ausgeblendet. -->
+      <label v-if="bigNumbersAllowed(state.sel.difficulty) && !state.sel.endless" class="mode-toggle" :class="{ on: state.sel.bigNumbers }">
         <b class="mt-title">{{ t('setup.bigNumbers') }}</b>
         <span class="mt-info" tabindex="0" role="button" :aria-label="t('setup.bigNumbersHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
           <span class="ei" v-html="ic('info')"></span>
@@ -6544,9 +6537,21 @@ const App = {
         <span class="bignum-switch" aria-hidden="true"></span>
       </label>
 
+      <!-- „Endlos-Aufstieg": ein Lauf über immer schwerere Level (3 Leben, kein
+           Refill). Ignoriert die gewählte Schwierigkeit/Große Zahlen. -->
+      <label class="mode-toggle" :class="{ on: state.sel.endless }">
+        <b class="mt-title">{{ t('solo.endless') }}</b>
+        <span class="mt-info" tabindex="0" role="button" :aria-label="t('solo.endlessHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
+          <span class="ei" v-html="ic('info')"></span>
+          <span class="mt-tip">{{ t('solo.endlessHint') }}</span>
+        </span>
+        <input type="checkbox" v-model="state.sel.endless" />
+        <span class="bignum-switch" aria-hidden="true"></span>
+      </label>
+
       <div class="setup-startrow">
-        <button class="btn btn-primary btn-start diff-start" @click="newGame(state.sel.difficulty)">
-          {{ t('setup.start') }}
+        <button class="btn btn-primary btn-start diff-start" @click="setupStart(state.sel.difficulty)">
+          {{ state.sel.endless ? t('solo.endlessStart') : t('setup.start') }}
         </button>
       </div>
     </section>

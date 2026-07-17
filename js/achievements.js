@@ -44,6 +44,9 @@ export const ACHIEVEMENTS = [
   { id: 'endlessFirst', icon: 'runner', check: (ctx) => (ctx.endlessBest || 0) >= 1 },
   { id: 'endlessLevel5', icon: 'bolt', check: (ctx) => (ctx.endlessBest || 0) >= 5 },
   { id: 'endlessLevel8', icon: 'crown', check: (ctx) => (ctx.endlessBest || 0) >= 8 },
+  { id: 'endlessLevel12', icon: 'galaxy', check: (ctx) => (ctx.endlessBest || 0) >= 12 },
+  // Coop-Endlos-Aufstieg (js/endless.js, gemeinsamer Lauf): erster geschaffter Lauf.
+  { id: 'endlessCoopFirst', icon: 'rocket', check: (ctx) => (ctx.endlessCoopBest || 0) >= 1 },
   // Wochen-Missionen: alle Aufträge einer Woche geschafft (js/missions.js).
   { id: 'missionsWeek', icon: 'flag', check: (ctx) => !!ctx.missionsAllDone },
 ];

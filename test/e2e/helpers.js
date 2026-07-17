@@ -28,14 +28,13 @@ export async function gotoSettingsSection(page, label) {
 }
 
 export async function startNewGame(page, difficulty = 'sehrleicht') {
+  // „Neues Spiel" führt jetzt DIREKT in den Schwierigkeits-Setup (kein Solo-
+  // Zwischenscreen mehr; Endlos ist ein Toggle im Setup).
   await page.locator('.home-actions .btn-primary').click();
-  // Solo-Auswahl: „Klassisch" führt in den Schwierigkeits-Setup (Endlos = eigener Modus).
-  await page.waitForSelector('.screen.solo-menu');
-  await page.locator('.solo-card-classic').click();
   await page.waitForSelector('.screen.setup');
   // Solo-Setup ist ein Slider (keine Karten mehr): Schwierigkeit direkt über den
   // Debug-Hook wählen, dann starten. (Coop/Race/Team behalten das Kartenraster.)
-  await page.evaluate((id) => { window.__cns.state.sel.difficulty = id; }, difficulty);
+  await page.evaluate((id) => { window.__cns.state.sel.difficulty = id; window.__cns.state.sel.endless = false; }, difficulty);
   await page.locator('.diff-start').click();
   await page.waitForSelector('.screen.game');
   await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);

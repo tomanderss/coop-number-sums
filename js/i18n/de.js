@@ -20,7 +20,7 @@ export default {
     },
   },
 
-  solo: { title: 'Solo', classic: 'Klassisch', classicHint: 'Ein Rätsel, freie Schwierigkeit', endless: 'Endlos-Aufstieg', endlessHint: 'Immer schwerer – wie weit kommst du?' },
+  solo: { title: 'Solo', classic: 'Klassisch', classicHint: 'Ein Rätsel, freie Schwierigkeit', endless: 'Endlos-Aufstieg', endlessHint: 'Immer schwerer – wie weit kommst du?', endlessStart: 'Endlos starten' },
   endless: { badge: 'Endlos', best: 'Bester Lauf: Level {n}', cleared: 'Level {n} geschafft!', lifeGained: '+1 Leben', overTitle: 'Lauf beendet', reached: 'Level {n} erreicht', record: 'Neuer Rekord!', levelDone: 'Level {n} geschafft!', continue: 'Fortsetzen', livesLabel: 'Leben' },
 
   mismatch: { title: 'Unterschiedliche Spielstände', sub: 'Dein Guthaben unterscheidet sich zwischen diesem Gerät und der Cloud. Alle Spielfortschritte (Siege, Erfolge, Käufe) werden automatisch zusammengeführt — wähle nur, welcher Geldstand gelten soll.', local: 'Dieses Gerät', cloud: 'Cloud', keepLocal: 'Dieses Gerät behalten', keepCloud: 'Cloud behalten', note: 'Der jeweils andere Stand wird als Backup gesichert und nicht gelöscht.' },
@@ -797,6 +797,8 @@ export default {
     endlessFirst: { title: 'Aufsteiger', desc: 'Schaffe dein erstes Level im Endlos-Aufstieg.' },
     endlessLevel5: { title: 'Kletterer', desc: 'Erreiche Level 5 im Endlos-Aufstieg.' },
     endlessLevel8: { title: 'Gipfelstürmer', desc: 'Erreiche Level 8 im Endlos-Aufstieg.' },
+    endlessLevel12: { title: 'Sternenstürmer', desc: 'Erreiche Level 12 im Endlos-Aufstieg.' },
+    endlessCoopFirst: { title: 'Gemeinsam hoch hinaus', desc: 'Schaffe einen Level im Coop-Endlos-Aufstieg.' },
     missionsWeek: { title: 'Wochenheld', desc: 'Schließe alle Wochen-Missionen einer Woche ab.' },
   },
   history: {

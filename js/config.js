@@ -338,6 +338,7 @@ export const DEFAULT_SETTINGS = {
 export const DEFAULT_GAME_OPTIONS = {
   difficulty: 'mittel',
   bigNumbers: false,   // „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9 (nur 6×6–9×9)
+  endless: false,      // „Endlos-Aufstieg": ein Lauf über immer schwerere Level (ignoriert difficulty/bigNumbers)
 };
 
 // „Big Numbers"-Modus (Zellwerte 10–19) ist für ALLE Feldgrößen freigegeben

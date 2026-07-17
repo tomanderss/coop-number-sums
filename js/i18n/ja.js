@@ -20,7 +20,7 @@ export default {
     },
   },
 
-  solo: { title: 'ソロ', classic: 'クラシック', classicHint: '1問、好きな難易度で', endless: 'エンドレス・クライム', endlessHint: 'どんどん難しく——どこまで行ける？' },
+  solo: { title: 'ソロ', classic: 'クラシック', classicHint: '1問、好きな難易度で', endless: 'エンドレス・クライム', endlessHint: 'どんどん難しく——どこまで行ける？', endlessStart: 'エンドレス開始' },
   endless: { badge: 'エンドレス', best: '最高記録: レベル{n}', cleared: 'レベル{n}クリア！', lifeGained: '+1 ライフ', overTitle: 'ゲーム終了', reached: 'レベル{n}到達', record: '新記録！', levelDone: 'レベル{n}クリア！', continue: '続ける', livesLabel: 'ライフ' },
 
   mismatch: { title: 'ゲームデータが異なります', sub: 'コイン残高がこの端末とクラウドで異なります。ゲームの進行状況（勝利・実績・購入）は自動的に統合されます。適用する残高だけを選んでください。', local: 'この端末', cloud: 'クラウド', keepLocal: 'この端末を残す', keepCloud: 'クラウドを残す', note: 'もう一方の状態はバックアップとして保存され、削除されません。' },
@@ -693,6 +693,8 @@ export default {
     endlessFirst: { title: 'クライマー', desc: 'エンドレス・クライムで最初のレベルをクリア。' },
     endlessLevel5: { title: '登はん者', desc: 'エンドレス・クライムでレベル5に到達。' },
     endlessLevel8: { title: '登頂者', desc: 'エンドレス・クライムでレベル8に到達。' },
+    endlessLevel12: { title: 'スタークライマー', desc: 'エンドレスクライムでレベル12に到達。' },
+    endlessCoopFirst: { title: '一緒に登ろう', desc: '協力エンドレスクライムでレベルをクリア。' },
     missionsWeek: { title: '週間ヒーロー', desc: '1週間のミッションをすべて達成する。' },
   },
   history: {

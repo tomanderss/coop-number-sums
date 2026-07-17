@@ -20,7 +20,7 @@ export default {
     },
   },
 
-  solo: { title: 'Solo', classic: 'Classic', classicHint: 'One puzzle, any difficulty', endless: 'Endless Climb', endlessHint: 'Ever harder – how far can you go?' },
+  solo: { title: 'Solo', classic: 'Classic', classicHint: 'One puzzle, any difficulty', endless: 'Endless Climb', endlessHint: 'Ever harder – how far can you go?', endlessStart: 'Start endless' },
   endless: { badge: 'Endless', best: 'Best run: level {n}', cleared: 'Level {n} cleared!', lifeGained: '+1 life', overTitle: 'Run over', reached: 'Reached level {n}', record: 'New record!', levelDone: 'Level {n} cleared!', continue: 'Continue', livesLabel: 'Lives' },
 
   mismatch: { title: 'Different game data', sub: 'Your coin balance differs between this device and the cloud. All game progress (wins, achievements, purchases) is merged automatically — just choose which balance should apply.', local: 'This device', cloud: 'Cloud', keepLocal: 'Keep this device', keepCloud: 'Keep cloud', note: 'The other state is kept as a backup and never deleted.' },
@@ -693,6 +693,8 @@ export default {
     endlessFirst: { title: 'Climber', desc: 'Clear your first level in Endless Climb.' },
     endlessLevel5: { title: 'Ascender', desc: 'Reach level 5 in Endless Climb.' },
     endlessLevel8: { title: 'Summiteer', desc: 'Reach level 8 in Endless Climb.' },
+    endlessLevel12: { title: 'Star Climber', desc: 'Reach level 12 in the endless climb.' },
+    endlessCoopFirst: { title: 'Rise Together', desc: 'Clear a level in the coop endless climb.' },
     missionsWeek: { title: 'Quest hero', desc: 'Complete all weekly missions in a single week.' },
   },
   history: {
