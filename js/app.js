@@ -6432,16 +6432,15 @@ const App = {
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
       <span v-if="!isOnline()" class="offline-chip" :title="t('offline.chipHint')"><span class="ei" v-html="ic('cloud')"></span> {{ t('offline.chip') }}</span>
-      <!-- Oben links: Missionen-Einstieg (rund, leicht abgehoben) + Spenden. Der
-           Missionen-Knopf zeigt einen Punkt/Zähler, sobald Belohnungen einlösbar
-           sind — so sieht man auf einen Blick „hier gibt's was zu holen". -->
-      <div class="home-topbar-left">
-        <button class="icon-btn home-missions-btn" :class="{ 'has-claim': missionsClaimable() > 0 }" @click="openMissions" :aria-label="t('missions.title')" :title="t('missions.title')">
-          <span class="ico-wrap" v-html="ic('flag')"></span>
-          <span v-if="missionsClaimable() > 0" class="home-missions-badge">{{ missionsClaimable() }}</span>
-        </button>
-        <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span></a>
-      </div>
+      <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span></a>
+      <!-- Missionen-Einstieg: rund + leicht abgehoben, sitzt UNTER der oberen
+           Icon-Leiste im Hauptbereich (nicht in der Kopfzeile, sonst würden
+           Zähler-Badge + Glüh-Ring am oberen Screenrand abgeschnitten). Zeigt
+           einen Zähler, sobald Belohnungen einlösbar sind. -->
+      <button class="icon-btn home-missions-btn" :class="{ 'has-claim': missionsClaimable() > 0 }" @click="openMissions" :aria-label="t('missions.title')" :title="t('missions.title')">
+        <span class="ico-wrap" v-html="ic('flag')"></span>
+        <span v-if="missionsClaimable() > 0" class="home-missions-badge">{{ missionsClaimable() }}</span>
+      </button>
       <span v-if="state.streak.currentStreak>0" class="home-streak-badge"><span class="ico-lead" v-html="ic('flame')"></span>{{ state.streak.currentStreak }}</span>
       <div class="home-topbar-right">
         <button v-if="state.account.status==='in'" class="icon-btn home-friends-btn" @click="openFriends" :aria-label="t('friends.title')" :title="t('friends.title')"><span class="ico-wrap" v-html="ic('users')"></span><span v-if="state.friends.requests.length" class="friends-req-badge">{{ state.friends.requests.length }}</span><span v-if="anyFriendOnline()" class="friends-online-dot"></span></button>
