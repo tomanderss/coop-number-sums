@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.171';
-export const BUILD_HASH = '54bec95';
+export const BUILD      = '1.172';
+export const BUILD_HASH = 'dfbedd9';
 
 export const CHANGELOG = [
+  {
+    "version": "1.172",
+    "date": "18.07.2026",
+    "changes": [
+      "Auch im Endlos-Aufstieg lässt sich jetzt mitten im Spiel ein Freund einladen („Mitspieler einladen\" im Pausenmenü) – der Lauf wird beim Beitritt live zum Coop-Endlos (geteilte Leben, gemeinsames Weiterklettern)."
+    ]
+  },
   {
     "version": "1.171",
     "date": "17.07.2026",
