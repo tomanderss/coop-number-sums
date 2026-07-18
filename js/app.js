@@ -2697,10 +2697,16 @@ function broadcastRoster() {
 // Brett neu, holt aber Nachzügler zuverlässig ins Spiel.
 function broadcastRunningInit() {
   log('coop', 'Sende laufenden Rundenstand (INIT running:true + START)', { gameId: state.gameId });
+  // Ist es ein (zu Coop umgewandelter) Endlos-Lauf, die Endlos-Marker mitschicken,
+  // damit der Beitretende als Coop-Endlos-Spieler landet (Level-Chip, geteilte
+  // Leben, Herz-Verlust-Farben) statt in einer normalen Coop-Runde.
+  const e = state.endless;
+  const endlessExtra = e.active ? { endless: true, endlessLevel: e.level, lifeLossBy: (state.coop.lifeLossBy || []).map(x => x || '') } : {};
   Coop.send({
     type: Coop.MSG.INIT, gameId: state.gameId, running: true,
     puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime,
     lives: state.lives, maxLives: state.maxLives, hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+    ...endlessExtra,
   });
   Coop.send({ type: Coop.MSG.START, startTime: state.startTime });
 }
@@ -3563,7 +3569,11 @@ function quitToHome() {
 // „Coop-Bonus ohne Partner").
 let soloInviteMyId = null;
 function canInviteToSolo() {
-  return state.saveSlot === 'solo' && !state.isTrainingGame && !state.coop.active
+  // Klassische Solo-Partie ODER ein Solo-Endlos-Lauf (noch nicht coop). Beide
+  // lassen sich mitten im Spiel live zu Coop umwandeln.
+  const soloClassic = state.saveSlot === 'solo';
+  const soloEndless = state.endless.active && !state.endless.coop;
+  return (soloClassic || soloEndless) && !state.isTrainingGame && !state.coop.active
     && !state.race.active && !state.team.active && state.status === 'playing';
 }
 function randomRoomCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
@@ -3635,10 +3645,12 @@ function onSoloInviteJoin(id, data) {
 // Vollzieht die eigentliche Umwandlung, sobald der erste Mitspieler beitritt.
 function completeSoloConversion() {
   if (state.soloInvite.status !== 'hosting' || !soloInviteMyId) return false;
+  const isSoloEndless = state.endless.active && !state.endless.coop;
   // Partie inzwischen beendet/gewechselt → Einladung stattdessen abräumen.
-  if (state.status !== 'playing' || state.saveSlot !== 'solo' || !state.puzzle) { cancelSoloInvite(); return false; }
+  if (state.status !== 'playing' || !state.puzzle || (state.saveSlot !== 'solo' && !isSoloEndless)) { cancelSoloInvite(); return false; }
   // Solo-Cloud-Session VOR dem Slot-Umzug beenden (pushSession prüft saveSlot).
-  pushSession(SESSION_STATUS.DONE);
+  // Der Endlos-Lauf ist ephemer (kein Solo-Slot/keine Session) → nur klassisch.
+  if (!isSoloEndless) pushSession(SESSION_STATUS.DONE);
   const myId = soloInviteMyId;
   // Exakte bisherige Spielzeit auf der ALTEN (lokalen) Uhr ablesen …
   const elapsedNow = state.paused ? state.elapsed : Math.max(0, Date.now() - state.startTime);
@@ -3660,10 +3672,18 @@ function completeSoloConversion() {
   // coop.active die Firebase-Server-Uhr — sonst zeigte der Gast eine falsche Zeit).
   const startTime = gameNow() - elapsedNow;
   if (!state.paused) { state.startTime = startTime; state.elapsed = elapsedNow; }
-  // Slot-Umzug: die Partie lebt ab jetzt im Coop-Slot (inkl. Coop-Session für
-  // „Coop fortsetzen"); der Solo-Slot wird geräumt statt einen Zwilling zu halten.
-  state.saveSlot = 'coop';
-  saveActiveGame(null);
+  // Endlos-Lauf → Coop-Endlos: coop-Flag setzen, Herz-Verlust-Farben ab jetzt
+  // führen, Bestwert auf den Coop-Endlos-Wert umstellen. Slot bleibt 'endless'
+  // (ephemer). Sonst (klassisch): Slot-Umzug in den Coop-Slot + Solo-Slot räumen.
+  if (isSoloEndless) {
+    state.endless.coop = true;
+    state.endless.best = state.stats.endlessCoopBest || 0;
+    state.coop.lifeLossBy = state.coop.lifeLossBy || [];
+    state.endless.lifeLossBy = state.coop.lifeLossBy.slice();
+  } else {
+    state.saveSlot = 'coop';
+    saveActiveGame(null);
+  }
   state.soloInvite.status = 'converted';
   if (state.modal === 'soloInvite') state.modal = null;
   // Der Host steht beim Einladen praktisch immer im Pausenmenü — der Beitritt

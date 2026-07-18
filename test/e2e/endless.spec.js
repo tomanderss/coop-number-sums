@@ -62,4 +62,19 @@ test.describe('endless climb', () => {
     await page.evaluate(() => window.__cns.state); // no-op
     expect(await page.evaluate(() => { const g = localStorage.getItem('cns_active_game'); return g && g !== 'null'; })).toBeFalsy();
   });
+
+  test('a solo endless run offers "invite a player" in the pause menu', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { window.__cns.state.sel.endless = true; });
+    await page.locator('.diff-start').click();
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+    // Einen Zug machen (Status bleibt playing), dann pausieren.
+    await page.evaluate(() => { const s = window.__cns.state, p = s.puzzle; s.tool = p.solution[0][0] ? 'pen' : 'eraser'; window.__cns.onCellTap(0, 0); });
+    await page.locator('.game-top .icon-btn').first().click();
+    await page.waitForSelector('.pause-overlay');
+    // „Mitspieler einladen" ist im Endlos-Lauf verfügbar (Live-Umwandlung zu Coop-Endlos).
+    await expect(page.locator('.pause-overlay .btn-ghost').filter({ hasText: 'einladen' })).toBeVisible();
+  });
 });
