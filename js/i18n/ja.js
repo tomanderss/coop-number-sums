@@ -50,7 +50,7 @@ export default {
   },
   home: {
     resume: '続ける',
-    resumeCoop: 'Coopを続ける',
+    resumeCoop: 'Coopを続ける', resumeEndless: 'エンドレスを再開',
     newGame: 'ソロモード',
     newGameHint: '一人で解く',
     coopMode: 'Coopモード',

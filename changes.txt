@@ -1,0 +1,1 @@
+Endlos-Aufstieg lässt sich jetzt fortsetzen: Verlässt man einen Solo-Endlos-Lauf (auch mit Großen Zahlen) zum Menü, erscheint auf dem Startbildschirm ein „Endlos fortsetzen"-Knopf, der den Lauf mit Level, Leben und Fortschritt genau dort wieder aufnimmt.

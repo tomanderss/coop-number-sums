@@ -50,7 +50,7 @@ export default {
   },
   home: {
     resume: 'Devam et',
-    resumeCoop: "Coop'u devam ettir",
+    resumeCoop: "Coop'u devam ettir", resumeEndless: "Sonsuza devam et",
     newGame: 'Solo mod',
     newGameHint: 'Tek başına çöz',
     coopMode: 'Coop modu',

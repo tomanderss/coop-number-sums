@@ -10,7 +10,7 @@ import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.j
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import * as Music from './music.js';
 import {
-  loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, snapshotSolved,
+  loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
   loadStats, recordResult, recordEndlessRun,
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
@@ -273,6 +273,7 @@ const state = reactive({
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
+  resumeAvailableEndless: null, // gespeicherter Solo-Endlos-Lauf (zum Fortsetzen, eigener Slot)
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   masterUnlock: false,           // Feier-Screen „Großmeister freigeschaltet" offen?
@@ -1258,6 +1259,8 @@ function finishEndlessLevel(puzzle) {
   state.generating = false;
   startTimer();
   requestWakeLock();
+  // Solo-Endlos ist ab dem geladenen Level fortsetzbar (auch vor dem ersten Zug).
+  if (!state.endless.coop) saveActiveGameEndless(endlessSnapshot());
 }
 // Level geschafft (aus win(), Solo UND Coop, idempotent): den NORMALEN Gewinn-Screen
 // zeigen (Zeit/Fehler/Hinweise/Schwierigkeit·Größe, Coop-Prozentverteilung,
@@ -1280,6 +1283,10 @@ function endlessLevelSolved(remote) {
   state.newHighscore = false; state.wouldHaveBeenBest = false; state.lastCoinReward = 0; state.lastStreakUsed = 0;
   launchWinFx(state.perfectWin);
   updateMusic();
+  // SOLO-Endlos fortsetzbar halten: zwischen den Leveln einen „nächstes Level"-
+  // Marker sichern (das gelöste Brett taugt nicht zum Fortsetzen). Quittet man auf
+  // dem Level-Screen, startet das Fortsetzen frisch bei Level score+1.
+  if (!e.coop) saveActiveGameEndless({ pending: true, endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers } });
   log('game', 'Endlos-Level gelöst', { level: e.score, coop: !!e.coop, lives: e.lives });
 }
 // „Fortsetzen" auf dem Endlos-Level-Screen: nächstes (schwereres) Level laden. Solo
@@ -1304,6 +1311,7 @@ function endlessGameOver() {
   if (coins > 0) { state.wallet = grantCurrency(coins, 'endless', { mode: 'endless', score }); granted = coins; }
   e.active = false;
   state.status = 'lost';   // saveSlot='endless' → persistGame fasst den Solo-Slot nie an
+  saveActiveGameEndless(null); state.resumeAvailableEndless = null;  // Lauf vorbei → Fortsetzen-Slot räumen
   state.endlessSummary = { score, best: stats.endlessBest, coins: granted, newBest };
   if (state.settings.sfxLose) Music.sfxLose();
   log('game', 'Endlos-Lauf beendet', { score, best: stats.endlessBest, coins: granted, newBest });
@@ -1321,6 +1329,7 @@ function endlessAbort() {
   state.stats = stats;
   if (coins > 0) state.wallet = grantCurrency(coins, 'endless', { mode: 'endless', score, aborted: true });
   e.active = false;
+  saveActiveGameEndless(null); state.resumeAvailableEndless = null;  // Lauf abgebrochen → Fortsetzen-Slot räumen
   recordMissionEvent({ played: true, endlessScore: score });
   checkAchievements();
   log('game', 'Endlos-Lauf abgebrochen', { score, coins });
@@ -3517,9 +3526,18 @@ function lose(remote) {
 // laufender Runde selbst die Host-Rolle und spielt weiter (siehe promoteToHost()/
 // onClose() bzw. onLeave() in startHosting/startJoining).
 function quitToHome() {
-  // Endlos-Aufstieg mitten im Lauf verlassen: geschaffte Level werden gewertet/
-  // belohnt (endlessAbort), dann normal nach Home.
-  if (state.endless.active) endlessAbort();
+  // Endlos-Aufstieg mitten im Lauf verlassen:
+  //  • SOLO-Endlos bleibt FORTSETZBAR — Lauf-Snapshot im eigenen Slot behalten,
+  //    nur den State sauber deaktivieren (kein Abbruch/keine Wertung; die kommt
+  //    erst am echten Lauf-Ende oder wenn der Lauf verworfen wird).
+  //  • COOP-Endlos ist eine Live-Session (nicht fortsetzbar) → werten & beenden.
+  if (state.endless.active) {
+    if (state.endless.coop) { endlessAbort(); }
+    else {
+      if (state.status === 'playing' && state.puzzle) saveActiveGameEndless(endlessSnapshot());
+      state.endless = { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0, lifeLossBy: [] };
+    }
+  }
   // Noch unbeantwortete Solo-Einladung? Raum abbauen (nach der Umwandlung ist
   // die Partie normales Coop und läuft über den coopReset-Pfad darunter).
   cancelSoloInvite();
@@ -3733,6 +3751,16 @@ function activeSnapshot() {
     ts: Date.now(),
   };
 }
+// Snapshot eines laufenden SOLO-Endlos-Levels: Brett + Lauf-Metadaten (Level,
+// Leben, Hinweise, Score, Große Zahlen). `pending:true` (ohne Brett) markiert den
+// Zustand ZWISCHEN Leveln → beim Fortsetzen wird das nächste Level frisch geladen.
+function endlessSnapshot() {
+  const e = state.endless;
+  return {
+    ...activeSnapshot(),
+    endless: { level: e.level, lives: state.lives, hints: Math.max(0, state.hintsLeft || 0), score: e.score, bigNumbers: !!e.bigNumbers },
+  };
+}
 function persistGame() {
   // Slot-Entscheidung über die STABILE state.saveSlot (beim Laden gesetzt), NICHT
   // über state.coop.active — dessen kurzes Flackern bei Rejoin/Rollenwechsel führte
@@ -3742,9 +3770,18 @@ function persistGame() {
   // Race-Matches sind strikt live/Wettkampf -- ein Fortsetzen nach Verbindungs-
   // abbruch wäre unfair/sinnlos (siehe state.race-Kommentar), daher nie persistiert.
   if (state.saveSlot === 'race' || state.race.active) return;
-  // Endlos-Aufstieg ist ein ephemerer Lauf — nie als „Fortsetzen" persistieren
-  // (und den echten Solo-Slot dabei nicht anfassen).
-  if (state.saveSlot === 'endless' || state.endless.active) return;
+  // Endlos-Aufstieg: den echten Solo-/Coop-Slot NIE anfassen. Ein SOLO-Endlos-Lauf
+  // ist aber fortsetzbar (eigener Slot) — mitten im Level den Rundenstand + die
+  // Lauf-Metadaten sichern; zwischen den Leveln wird stattdessen ein „nächstes
+  // Level"-Marker gespeichert (s. endlessLevelSolved). Coop-Endlos ist eine
+  // Live-Session (kein Fortsetzen hier).
+  if (state.saveSlot === 'endless' || state.endless.active) {
+    if (state.endless.active && !state.endless.coop && state.status === 'playing' && state.puzzle) {
+      const now = Date.now();
+      if (now - saveThrottle >= 400) { saveThrottle = now; saveActiveGameEndless(endlessSnapshot()); }
+    }
+    return;
+  }
   // Solo- und Coop-Spielstände leben in getrennten Storage-Slots, sonst
   // überschreibt ein 400ms-Autosave aus dem jeweils anderen Modus den
   // gespeicherten Stand des anderen.
@@ -3797,6 +3834,14 @@ function refreshResume() {
   const sess = (gc && gc.puzzle) ? loadCoopSession() : null;
   state.resumeAvailableCoop = (gc && gc.puzzle && sess) ? gc : null;
   if (gc && gc.puzzle && !sess) saveActiveGameCoop(null);
+  // Solo-Endlos-Lauf: gültig, wenn ein „nächstes Level"-Marker vorliegt ODER ein
+  // noch nicht gelöstes Brett. Ein (theoretisch) gelöst gespeichertes Brett wird
+  // verworfen (sonst 100%-Brett ohne Interaktion, wie im Solo-Slot).
+  let ge = loadActiveGameEndless();
+  if (ge && ge.endless && !ge.pending && ge.puzzle && snapshotSolved(ge)) { log('storage', 'Gelösten Endlos-Stand verworfen'); saveActiveGameEndless(null); ge = null; }
+  const geValid = ge && ge.endless && (ge.pending || (ge.puzzle && ge.marks));
+  state.resumeAvailableEndless = geValid ? ge : null;
+  if (ge && !geValid) saveActiveGameEndless(null);
 }
 function resumeGame() {
   const g = state.resumeAvailable;
@@ -3818,6 +3863,39 @@ function resumeGame() {
   navigate('game');
   loadPuzzleIntoState(g.puzzle, g);
   startTimer();
+}
+// Fortsetzen eines unterbrochenen SOLO-Endlos-Laufs (eigener Slot). Der Lauf-
+// Zustand (Level/Leben/Hinweise/Score/Große Zahlen) wird wiederhergestellt; je
+// nachdem, ob man mitten im Level oder zwischen zwei Leveln verlassen hat, wird
+// das exakte Brett geladen bzw. das nächste Level frisch generiert.
+function resumeEndlessGame() {
+  const g = state.resumeAvailableEndless;
+  if (!g || !g.endless) return;
+  coopReset();
+  const em = g.endless;
+  state.endlessSummary = null;
+  state.endless = {
+    active: true, coop: false, advancing: false, level: em.level,
+    lives: em.lives, hints: em.hints, score: em.score, coins: 0,
+    best: state.stats.endlessBest || 0, bigNumbers: !!em.bigNumbers,
+  };
+  navStack = [() => { navigate('home'); }];
+  log('game', 'Endlos-Lauf fortgesetzt', { level: em.level, pending: !!g.pending });
+  if (g.pending || !g.puzzle) { loadEndlessLevel(); return; }  // zwischen Leveln → nächstes Level frisch
+  // Mitten im Level verlassen: exaktes Brett wiederherstellen (markedBy wie bei resumeGame auffüllen).
+  if (g.marks) {
+    if (!Array.isArray(g.markedBy)) g.markedBy = g.marks.map((row) => row.map(() => null));
+    for (let r = 0; r < g.marks.length; r++) {
+      if (!Array.isArray(g.markedBy[r])) g.markedBy[r] = g.marks[r].map(() => null);
+      for (let c = 0; c < g.marks[r].length; c++) if (g.marks[r][c] !== 'none' && !g.markedBy[r][c]) g.markedBy[r][c] = LOCAL_PLAYER_ID;
+    }
+  }
+  state.isTrainingGame = false;
+  state.screen = 'game';
+  navigate('game');
+  loadPuzzleIntoState(g.puzzle, g);
+  startTimer();
+  requestWakeLock();
 }
 // Fortsetzen eines unterbrochenen Coop-Spiels (kalter Wiederverbindungsfall,
 // siehe Coop.rejoin()) -- state.coop.active/code/role/hostId müssen schon VOR
@@ -6410,7 +6488,7 @@ const App = {
       generalStats, fmtDuration, whatsNewEntries,
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
-      navigate, navTo, goBack, newGame, setupStart, goNextPuzzle, startEndless, endlessAgain, endlessContinue, closeEndlessSummary, resumeGame, resumeCoopGame, onCellTap,
+      navigate, navTo, goBack, newGame, setupStart, goNextPuzzle, startEndless, endlessAgain, endlessContinue, closeEndlessSummary, resumeGame, resumeCoopGame, resumeEndlessGame, onCellTap,
       openMissions, claimMissionReward, missionsClaimable, missionProgressVal, missionDone, missionClaimedUI, missionClaimableUI, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
       rowSum, colSum, regionSum, rowSumR, colSumR, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
@@ -6496,11 +6574,17 @@ const App = {
       </div>
 
       <div class="home-actions">
-        <div v-if="state.resumeAvailable || state.resumeAvailableCoop" class="resume-row">
+        <div v-if="state.resumeAvailable || state.resumeAvailableCoop || state.resumeAvailableEndless" class="resume-row">
           <button v-if="state.resumeAvailable" class="btn btn-resume" @click="resumeGame">
             <span class="btn-ic">▶</span>
             <span class="btn-tx"><b>{{ t('home.resume') }}</b>
               <small>{{ t('difficulty.'+state.resumeAvailable.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailable.elapsed||0) }}</small>
+            </span>
+          </button>
+          <button v-if="state.resumeAvailableEndless" class="btn btn-resume" @click="resumeEndlessGame">
+            <span class="btn-ic"><span class="ei" v-html="ic('meteor')"></span></span>
+            <span class="btn-tx"><b>{{ t('home.resumeEndless') }}</b>
+              <small>{{ t('endless.badge') }} · {{ t('setup.step') }} {{ state.resumeAvailableEndless.endless.level }}</small>
             </span>
           </button>
           <button v-if="state.resumeAvailableCoop" class="btn btn-resume" @click="resumeCoopGame">

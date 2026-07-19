@@ -50,7 +50,7 @@ export default {
   },
   home: {
     resume: 'Reprendre',
-    resumeCoop: 'Reprendre le coop',
+    resumeCoop: 'Reprendre le coop', resumeEndless: 'Reprendre sans fin',
     newGame: 'Mode solo',
     newGameHint: 'Résoudre seul',
     coopMode: 'Mode coopératif',
