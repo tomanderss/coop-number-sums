@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.174';
-export const BUILD_HASH = 'cfe9f7d';
+export const BUILD      = '1.175';
+export const BUILD_HASH = '83eddb0';
 
 export const CHANGELOG = [
+  {
+    "version": "1.175",
+    "date": "19.07.2026",
+    "changes": [
+      "Endlos-Aufstieg: zusätzlicher Gesamt-Timer über den ganzen Lauf (neben dem Level-Timer)",
+      "Endlos-Aufstieg: nach der höchsten Stufe (14×14) geht es wieder bei 6×6 weiter – wirklich endlos",
+      "Endlos-Fortsetzen-Knopf klar als „Endlos\" gekennzeichnet (eigener Look + Level-Anzeige)"
+    ]
+  },
   {
     "version": "1.174",
     "date": "19.07.2026",
