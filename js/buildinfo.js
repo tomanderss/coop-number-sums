@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.173';
-export const BUILD_HASH = '2966a4e';
+export const BUILD      = '1.174';
+export const BUILD_HASH = 'cfe9f7d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.174",
+    "date": "19.07.2026",
+    "changes": [
+      "Mitspieler einladen jetzt jederzeit möglich – der Knopf bleibt auch nach dem ersten Beitritt (als Coop-Host), bis der Raum voll ist"
+    ]
+  },
   {
     "version": "1.173",
     "date": "19.07.2026",
