@@ -1,3 +1,0 @@
-Endlos-Aufstieg: zusätzlicher Gesamt-Timer über den ganzen Lauf (neben dem Level-Timer)
-Endlos-Aufstieg: nach der höchsten Stufe (14×14) geht es wieder bei 6×6 weiter – wirklich endlos
-Endlos-Fortsetzen-Knopf klar als „Endlos" gekennzeichnet (eigener Look + Level-Anzeige)
