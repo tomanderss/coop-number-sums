@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.172';
-export const BUILD_HASH = 'dfbedd9';
+export const BUILD      = '1.173';
+export const BUILD_HASH = '2966a4e';
 
 export const CHANGELOG = [
+  {
+    "version": "1.173",
+    "date": "19.07.2026",
+    "changes": [
+      "Endlos-Aufstieg lässt sich jetzt fortsetzen: Verlässt man einen Solo-Endlos-Lauf (auch mit Großen Zahlen) zum Menü, erscheint auf dem Startbildschirm ein „Endlos fortsetzen\"-Knopf, der den Lauf mit Level, Leben und Fortschritt genau dort wieder aufnimmt."
+    ]
+  },
   {
     "version": "1.172",
     "date": "18.07.2026",
