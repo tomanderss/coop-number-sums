@@ -15,11 +15,12 @@
 export const ENDLESS_CFG = { startLives: 3, maxLives: 3, startHints: 3, lifeRefillEvery: 0 };
 
 // Schwierigkeits-INDEX (0-basiert) für ein 1-basiertes Level: klettert genau eine
-// Stufe pro Level und bleibt oben auf der höchsten Stufe stehen.
+// Stufe pro Level und WICKELT nach der höchsten Stufe wieder auf die leichteste um
+// (nach 14×14 geht es bei 6×6 weiter) — so ist der Modus wirklich endlos.
 export function endlessDiffIndex(level, ladderLen) {
   const i = Math.floor(level) - 1;
-  if (i < 0) return 0;
-  return Math.min(ladderLen - 1, i);
+  if (i < 0 || !(ladderLen > 0)) return 0;
+  return i % ladderLen;
 }
 
 // Schwierigkeits-ID für ein Level aus der geordneten Leiter (ids[0] = leichteste).

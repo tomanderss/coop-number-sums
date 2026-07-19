@@ -262,7 +262,7 @@ const state = reactive({
   // Level auf gemeinsamem Leben-/Hinweis-Pool. active=true markiert die laufende
   // Partie als Endlos (analog isTrainingGame/isRaceGame). endlessSummary hält den
   // Ergebnis-Screen nach Laufende.
-  endless: { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0, lifeLossBy: [] },
+  endless: { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0, lifeLossBy: [], accumMs: 0 },
   // Wochen-Missionen (js/missions.js): aktive Missionen der Woche + Fortschritt +
   // Eingelöst-Status. weekKey rotiert wöchentlich (initMissions setzt beim Start/
   // Wochenwechsel neu). claimNotice = kurzer Feier-Toast beim Einlösen.
@@ -1224,6 +1224,7 @@ function startEndless() {
     lives: ENDLESS_CFG.startLives, hints: ENDLESS_CFG.startHints,
     score: 0, coins: 0, best: state.stats.endlessBest || 0,
     bigNumbers: !!state.sel.bigNumbers,   // „Große Zahlen" gilt für den ganzen Lauf (je Level, wo erlaubt)
+    accumMs: 0,                            // aufsummierte Zeit aller geschafften Level (Gesamt-Timer)
   };
   navStack = [() => { navigate('home'); }];  // aus dem Lauf führt Zurück nach Home
   log('game', 'Endlos-Aufstieg gestartet', { startLives: ENDLESS_CFG.startLives, best: state.endless.best, bigNumbers: state.endless.bigNumbers });
@@ -1275,6 +1276,10 @@ function endlessLevelSolved(remote) {
   if (remote) { state.elapsed = remote.timeMs ?? state.elapsed; state.mistakes = remote.mistakes ?? state.mistakes; state.hintsUsed = remote.hintsUsed ?? state.hintsUsed; }
   state.status = 'won';
   stopTimer();
+  // Zeit dieses geschafften Levels in den Gesamt-Timer des Laufs übernehmen (genau
+  // einmal je Level dank des status-Guards oben). Ab jetzt zeigt der HUD-Gesamt-
+  // Timer (status!=='playing') accumMs allein — kein Doppelzählen des Level-Timers.
+  e.accumMs = (e.accumMs || 0) + Math.max(0, state.elapsed || 0);
   e.score = e.level;                                    // dieses Level ist geschafft
   e.hints = Math.max(0, state.hintsLeft || 0);          // Rest-Hinweise mitnehmen
   e.lives = Math.max(0, state.lives);                   // Rest-Leben übertragen (kein Refill)
@@ -1286,11 +1291,19 @@ function endlessLevelSolved(remote) {
   // SOLO-Endlos fortsetzbar halten: zwischen den Leveln einen „nächstes Level"-
   // Marker sichern (das gelöste Brett taugt nicht zum Fortsetzen). Quittet man auf
   // dem Level-Screen, startet das Fortsetzen frisch bei Level score+1.
-  if (!e.coop) saveActiveGameEndless({ pending: true, endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers } });
+  if (!e.coop) saveActiveGameEndless({ pending: true, endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0 } });
   log('game', 'Endlos-Level gelöst', { level: e.score, coop: !!e.coop, lives: e.lives });
 }
 // „Fortsetzen" auf dem Endlos-Level-Screen: nächstes (schwereres) Level laden. Solo
 // direkt; Coop nur der Host (generiert + broadcastet), der Gast wartet auf das INIT.
+// Gesamt-Laufzeit des Endlos-Laufs für den HUD-Gesamt-Timer. Während des Spiels:
+// accumMs (Summe der geschafften Level) + elapsed (laufendes Level). Außerhalb
+// (Level-/Ende-Screen): accumMs allein — die Zeit des gerade gelösten Levels wurde
+// in endlessLevelSolved bereits summiert (sonst würde sie doppelt zählen).
+function endlessTotalMs() {
+  const e = state.endless;
+  return (e.accumMs || 0) + (state.status === 'playing' ? Math.max(0, state.elapsed || 0) : 0);
+}
 function endlessContinue() {
   const e = state.endless;
   if (e.coop && state.coop.role !== 'host') return;     // Gast wartet auf Host-INIT
@@ -1312,7 +1325,7 @@ function endlessGameOver() {
   e.active = false;
   state.status = 'lost';   // saveSlot='endless' → persistGame fasst den Solo-Slot nie an
   saveActiveGameEndless(null); state.resumeAvailableEndless = null;  // Lauf vorbei → Fortsetzen-Slot räumen
-  state.endlessSummary = { score, best: stats.endlessBest, coins: granted, newBest };
+  state.endlessSummary = { score, best: stats.endlessBest, coins: granted, newBest, totalMs: endlessTotalMs() };
   if (state.settings.sfxLose) Music.sfxLose();
   log('game', 'Endlos-Lauf beendet', { score, best: stats.endlessBest, coins: granted, newBest });
   recordMissionEvent({ played: true, endlessScore: score });
@@ -1355,7 +1368,7 @@ function startCoopEndless() {
   state.coop.active = true;
   state.coop.waitingForGuest = false;
   state.coop.awaitingStart = false;   // kein Bereit-Lobby-Umweg im Endlos
-  state.endless = { active: true, coop: true, advancing: false, level: 1, lives: LIVES, hints: HINTS, score: 0, coins: 0, best: state.stats.endlessCoopBest || 0, bigNumbers: !!state.coop.lobbyBigNumbers };
+  state.endless = { active: true, coop: true, advancing: false, level: 1, lives: LIVES, hints: HINTS, score: 0, coins: 0, best: state.stats.endlessCoopBest || 0, bigNumbers: !!state.coop.lobbyBigNumbers, accumMs: 0 };
   navigate('game');
   log('coop', 'Coop-Endlos gestartet', { players: state.coop.players.length, bigNumbers: state.endless.bigNumbers });
   loadCoopEndlessLevel();
@@ -1405,7 +1418,7 @@ function endlessCoopGameOver() {
   if (coins > 0) { state.wallet = grantCurrency(coins, 'endless', { mode: 'endlessCoop', score }); granted = coins; }
   e.active = false;
   state.status = 'lost';
-  state.endlessSummary = { score, best: stats.endlessCoopBest, coins: granted, newBest, coop: true };
+  state.endlessSummary = { score, best: stats.endlessCoopBest, coins: granted, newBest, coop: true, totalMs: endlessTotalMs() };
   if (state.settings.sfxLose) Music.sfxLose();
   log('coop', 'Coop-Endlos beendet', { score, best: stats.endlessCoopBest, coins: granted, newBest });
   recordMissionEvent({ played: true, endlessScore: score });
@@ -2315,7 +2328,10 @@ function handleCoopMsg(msg) {
     // mit frischer gameId, daher nie durch den Duplikat-Guard oben blockiert.
     // Ohne Marker sicherstellen, dass ein evtl. Alt-Endlos aus ist (normales Coop).
     if (msg.endless) {
-      state.endless = { active: true, coop: true, advancing: false, level: msg.endlessLevel || 1, lives: msg.lives ?? LIVES, hints: HINTS, score: (msg.endlessLevel || 1) - 1, coins: 0, best: state.stats.endlessCoopBest || 0, bigNumbers: !!(msg.puzzle && msg.puzzle.bigNumbers) };
+      // accumMs (Gesamt-Timer) über die Level-INITs hinweg BEWAHREN — der Gast hat
+      // die Zeit des gerade gelösten Levels bereits in endlessLevelSolved summiert,
+      // sonst würde der frische INIT den Gesamt-Timer bei jedem Level zurücksetzen.
+      state.endless = { active: true, coop: true, advancing: false, level: msg.endlessLevel || 1, lives: msg.lives ?? LIVES, hints: HINTS, score: (msg.endlessLevel || 1) - 1, coins: 0, best: state.stats.endlessCoopBest || 0, bigNumbers: !!(msg.puzzle && msg.puzzle.bigNumbers), accumMs: state.endless.accumMs || 0 };
     } else if (state.endless.active) {
       state.endless.active = false;
     }
@@ -3535,7 +3551,7 @@ function quitToHome() {
     if (state.endless.coop) { endlessAbort(); }
     else {
       if (state.status === 'playing' && state.puzzle) saveActiveGameEndless(endlessSnapshot());
-      state.endless = { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0, lifeLossBy: [] };
+      state.endless = { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0, lifeLossBy: [], accumMs: 0 };
     }
   }
   // Noch unbeantwortete Solo-Einladung? Raum abbauen (nach der Umwandlung ist
@@ -3783,7 +3799,7 @@ function endlessSnapshot() {
   const e = state.endless;
   return {
     ...activeSnapshot(),
-    endless: { level: e.level, lives: state.lives, hints: Math.max(0, state.hintsLeft || 0), score: e.score, bigNumbers: !!e.bigNumbers },
+    endless: { level: e.level, lives: state.lives, hints: Math.max(0, state.hintsLeft || 0), score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0 },
   };
 }
 function persistGame() {
@@ -3903,6 +3919,7 @@ function resumeEndlessGame() {
     active: true, coop: false, advancing: false, level: em.level,
     lives: em.lives, hints: em.hints, score: em.score, coins: 0,
     best: state.stats.endlessBest || 0, bigNumbers: !!em.bigNumbers,
+    accumMs: em.accumMs || 0,   // Gesamt-Timer nahtlos fortsetzen
   };
   navStack = [() => { navigate('home'); }];
   log('game', 'Endlos-Lauf fortgesetzt', { level: em.level, pending: !!g.pending });
@@ -6513,7 +6530,7 @@ const App = {
       generalStats, fmtDuration, whatsNewEntries,
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
-      navigate, navTo, goBack, newGame, setupStart, goNextPuzzle, startEndless, endlessAgain, endlessContinue, closeEndlessSummary, resumeGame, resumeCoopGame, resumeEndlessGame, onCellTap,
+      navigate, navTo, goBack, newGame, setupStart, goNextPuzzle, startEndless, endlessAgain, endlessContinue, endlessTotalMs, closeEndlessSummary, resumeGame, resumeCoopGame, resumeEndlessGame, onCellTap,
       openMissions, claimMissionReward, missionsClaimable, missionProgressVal, missionDone, missionClaimedUI, missionClaimableUI, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
       rowSum, colSum, regionSum, rowSumR, colSumR, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
@@ -6606,11 +6623,12 @@ const App = {
               <small>{{ t('difficulty.'+state.resumeAvailable.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailable.elapsed||0) }}</small>
             </span>
           </button>
-          <button v-if="state.resumeAvailableEndless" class="btn btn-resume" @click="resumeEndlessGame">
+          <button v-if="state.resumeAvailableEndless" class="btn btn-resume endless" @click="resumeEndlessGame">
             <span class="btn-ic"><span class="ei" v-html="ic('meteor')"></span></span>
             <span class="btn-tx"><b>{{ t('home.resumeEndless') }}</b>
-              <small>{{ t('endless.badge') }} · {{ t('setup.step') }} {{ state.resumeAvailableEndless.endless.level }}</small>
+              <small>{{ t('endless.levelShort', { n: state.resumeAvailableEndless.endless.level }) }}<template v-if="state.resumeAvailableEndless.endless.bigNumbers"> · {{ t('setup.bigNumbers') }}</template></small>
             </span>
+            <span class="badge-endless">{{ t('endless.badge') }}</span>
           </button>
           <button v-if="state.resumeAvailableCoop" class="btn btn-resume" @click="resumeCoopGame">
             <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span>
@@ -6696,7 +6714,9 @@ const App = {
               <i v-if="!full && state.coop.active && lifeLossColor(i)" class="heart-strike" :style="{background: lifeLossColor(i)}"></i>
             </span>
           </div>
-          <div class="hud-item timer"><span class="timer-icon"><span class="ei" v-html="ic('clock')"></span></span><span>{{ fmtTime(state.elapsed) }}</span></div>
+          <div class="hud-item timer" :title="state.endless.active ? t('endless.levelTime') : null"><span class="timer-icon"><span class="ei" v-html="ic('clock')"></span></span><span>{{ fmtTime(state.elapsed) }}</span></div>
+          <!-- Endlos: zusätzlich der GESAMT-Timer über den ganzen Lauf (Sanduhr). -->
+          <div v-if="state.endless.active" class="hud-item timer total" :title="t('endless.totalTime')"><span class="timer-icon"><span class="ei" v-html="ic('hourglass')"></span></span><span>{{ fmtTime(endlessTotalMs()) }}</span></div>
           <div v-if="state.endless.active" class="hud-item endless-lvl" :title="t('solo.endless')"><span class="ei" v-html="ic('meteor')"></span><b>{{ state.endless.level }}</b></div>
         </div>
         <div class="top-actions">
@@ -7077,6 +7097,7 @@ const App = {
           <div class="result-emoji"><span class="ei" v-html="ic('meteor')"></span></div>
           <h2>{{ t('endless.overTitle') }}</h2>
           <div class="endless-reached">{{ t('endless.reached', { n: state.endlessSummary.score }) }}</div>
+          <div v-if="state.endlessSummary.totalMs > 0" class="result-diff"><span class="ei" v-html="ic('hourglass')"></span> {{ t('endless.totalTime') }}: {{ fmtTime(state.endlessSummary.totalMs) }}</div>
           <div v-if="state.endlessSummary.newBest" class="highscore-badge">{{ t('endless.record') }}</div>
           <div v-else class="result-msg">{{ t('endless.best', { n: state.endlessSummary.best }) }}</div>
           <div v-if="state.endlessSummary.coins > 0" class="coin-reward"><span class="ei" v-html="ic('coin')"></span> +{{ state.endlessSummary.coins }} <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>

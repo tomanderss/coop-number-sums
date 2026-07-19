@@ -21,7 +21,7 @@ export default {
   },
 
   solo: { title: 'Solo', classic: 'Classico', classicHint: 'Un rompicapo, difficoltà libera', endless: 'Scalata infinita', endlessHint: 'Sempre più difficile: fin dove arrivi?', endlessStart: 'Avvia infinito' },
-  endless: { badge: 'Infinito', best: 'Miglior partita: livello {n}', cleared: 'Livello {n} superato!', lifeGained: '+1 vita', overTitle: 'Partita finita', reached: 'Livello {n} raggiunto', record: 'Nuovo record!', levelDone: 'Livello {n} superato!', continue: 'Continua', livesLabel: 'Vite' },
+  endless: { badge: 'Infinito', best: 'Miglior partita: livello {n}', cleared: 'Livello {n} superato!', lifeGained: '+1 vita', overTitle: 'Partita finita', reached: 'Livello {n} raggiunto', record: 'Nuovo record!', levelDone: 'Livello {n} superato!', continue: 'Continua', livesLabel: 'Vite', levelShort: 'Livello {n}', levelTime: 'Tempo di questo livello', totalTime: 'Tempo totale della partita' },
 
   mismatch: { title: 'Dati di gioco diversi', sub: 'Il tuo saldo monete differisce tra questo dispositivo e il cloud. Tutti i progressi (vittorie, obiettivi, acquisti) vengono uniti automaticamente — scegli solo quale saldo deve valere.', local: 'Questo dispositivo', cloud: 'Cloud', keepLocal: 'Mantieni questo dispositivo', keepCloud: 'Mantieni il cloud', note: 'L’altro stato viene salvato come backup e non viene eliminato.' },
 

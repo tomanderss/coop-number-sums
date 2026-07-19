@@ -49,6 +49,34 @@ test.describe('endless climb', () => {
     expect(await page.evaluate(() => window.__cns.state.endless.level)).toBe(1);
   });
 
+  test('shows a separate total-run timer that accumulates across levels', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { window.__cns.state.sel.endless = true; });
+    await page.locator('.diff-start').click();
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+    // Zwei Timer im HUD: Level-Timer + Gesamt-Timer (Sanduhr).
+    await expect(page.locator('.hud-item.timer')).toHaveCount(2);
+    await expect(page.locator('.hud-item.timer.total')).toBeVisible();
+
+    // Level 1 mit „verstrichener" Zeit lösen → die Zeit landet im Gesamt-Timer.
+    await page.evaluate(() => { window.__cns.state.startTime = Date.now() - 5000; });
+    await solveActivePuzzle(page);
+    await page.waitForFunction(() => window.__cns.state.status === 'won');
+    const accum1 = await page.evaluate(() => window.__cns.state.endless.accumMs);
+    expect(accum1).toBeGreaterThanOrEqual(4000);
+
+    // Nächstes Level: Gesamt-Timer trägt die Zeit von Level 1 WEITER (accumMs bleibt),
+    // während der Level-Timer bei 0 neu startet.
+    await page.locator('.result-card .btn-primary').click();
+    await page.waitForFunction(() => window.__cns.state.endless.level === 2 && window.__cns.state.puzzle && !window.__cns.state.generating);
+    const accum2 = await page.evaluate(() => window.__cns.state.endless.accumMs);
+    expect(accum2).toBeGreaterThanOrEqual(accum1);
+    expect(await page.evaluate(() => window.__cns.state.elapsed)).toBeLessThan(2000); // Level-Timer frisch
+  });
+
   test('endless never leaves a solo resume game behind', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
@@ -92,9 +120,11 @@ test.describe('endless climb', () => {
     await page.locator('.game-top .icon-btn').first().click();
     await page.locator('.pause-overlay').getByText('Zum Menü').click();
     await page.waitForSelector('.screen.home');
-    // Endlos-Fortsetzen-Knopf erscheint.
+    // Endlos-Fortsetzen-Knopf erscheint und ist klar als Endlos gekennzeichnet
+    // (eigene .endless-Klasse + „Endlos"-Ecken-Chip).
     expect(await page.evaluate(() => !!window.__cns.state.resumeAvailableEndless)).toBe(true);
-    await expect(page.locator('.resume-row .btn-resume')).toHaveCount(1);
+    await expect(page.locator('.resume-row .btn-resume.endless')).toHaveCount(1);
+    await expect(page.locator('.resume-row .btn-resume.endless .badge-endless')).toBeVisible();
     // Fortsetzen → derselbe Lauf (Level, Große Zahlen, Seed), Endlos wieder aktiv.
     await page.locator('.resume-row .btn-resume').click();
     await page.waitForSelector('.screen.game');
