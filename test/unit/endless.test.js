@@ -8,21 +8,24 @@ import {
 const IDS = ['a', 'b', 'c', 'd']; // 4-stufige Leiter zum Testen
 
 describe('endless.diffIndex/diffId', () => {
-  test('climbs one step per level and caps at the top', () => {
+  test('climbs one step per level and WRAPS after the top back to the easiest', () => {
     assert.equal(endlessDiffIndex(1, 4), 0);
     assert.equal(endlessDiffIndex(2, 4), 1);
     assert.equal(endlessDiffIndex(4, 4), 3);
-    assert.equal(endlessDiffIndex(5, 4), 3);   // gedeckelt
-    assert.equal(endlessDiffIndex(99, 4), 3);
+    assert.equal(endlessDiffIndex(5, 4), 0);   // nach der höchsten wieder ganz unten
+    assert.equal(endlessDiffIndex(6, 4), 1);
+    assert.equal(endlessDiffIndex(8, 4), 3);
+    assert.equal(endlessDiffIndex(9, 4), 0);   // zweite Umrundung
   });
-  test('level below 1 clamps to the easiest', () => {
+  test('level below 1 clamps to the easiest; guards ladderLen 0', () => {
     assert.equal(endlessDiffIndex(0, 4), 0);
     assert.equal(endlessDiffIndex(-3, 4), 0);
+    assert.equal(endlessDiffIndex(5, 0), 0);   // keine Division durch 0 → NaN
   });
-  test('diffId maps through the ladder', () => {
+  test('diffId maps through the ladder (wrapping)', () => {
     assert.equal(endlessDiffId(1, IDS), 'a');
     assert.equal(endlessDiffId(3, IDS), 'c');
-    assert.equal(endlessDiffId(10, IDS), 'd');
+    assert.equal(endlessDiffId(5, IDS), 'a');   // nach 'd' wieder 'a'
     assert.equal(endlessDiffId(1, []), null);
   });
 });
@@ -52,8 +55,8 @@ describe('endless.coins', () => {
     assert.equal(endlessRunCoins(0, 4, base), 0);
     assert.equal(endlessRunCoins(1, 4, base), 10);
     assert.equal(endlessRunCoins(3, 4, base), 10 + 20 + 30);
-    // Level 5 liegt auf der gedeckelten Top-Stufe (Index 3 = 40)
-    assert.equal(endlessRunCoins(5, 4, base), 10 + 20 + 30 + 40 + 40);
+    // Level 5 wickelt auf Index 0 zurück (Basis 10) → 10+20+30+40 + 10
+    assert.equal(endlessRunCoins(5, 4, base), 10 + 20 + 30 + 40 + 10);
   });
 });
 

@@ -565,6 +565,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn:disabled { opacity: .55; }
 .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
 .btn-resume { background: linear-gradient(135deg, var(--good), #10b981); color: #042f1e; }
+/* Endlos-Fortsetzen: eigener Akzent-Look (statt Grün) + „Endlos"-Ecken-Chip, damit
+   er sich klar vom normalen Solo-/Coop-Fortsetzen abhebt. */
+.btn-resume.endless { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; position: relative; }
+.badge-endless {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: rgba(0,0,0,.24); color: #fff; font-size: .68rem; font-weight: 800;
+  padding: 3px 8px; border-radius: 999px; letter-spacing: .02em;
+}
 .btn-coop { background: var(--bg2); }
 .btn-ghost { background: var(--bg2); }
 .btn-danger { background: var(--bad); color: #fff; }
@@ -936,6 +944,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .timer { color: var(--text2); font-variant-numeric: tabular-nums; display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
 .timer-icon { font-size: 0.75em; line-height: 1; }
+/* Endlos-Gesamt-Timer: gleiche Optik wie der Level-Timer, aber akzentuiert (Sanduhr)
+   → auf den ersten Blick als „Zeit des ganzen Laufs" vom Level-Timer unterscheidbar. */
+.hud-item.timer.total { color: var(--accent); }
 .game-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; flex: 0 0 auto; }
 .chip { background: var(--bg2); color: var(--text2); font-size: .76rem; font-weight: 700; padding: 5px 10px; border-radius: 999px; }
 .zoomctl { margin-left: auto; display: flex; gap: 6px; }

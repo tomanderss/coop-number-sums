@@ -21,7 +21,7 @@ export default {
   },
 
   solo: { title: 'Solo', classic: 'Klassisch', classicHint: 'Ein Rätsel, freie Schwierigkeit', endless: 'Endlos-Aufstieg', endlessHint: 'Immer schwerer – wie weit kommst du?', endlessStart: 'Endlos starten' },
-  endless: { badge: 'Endlos', best: 'Bester Lauf: Level {n}', cleared: 'Level {n} geschafft!', lifeGained: '+1 Leben', overTitle: 'Lauf beendet', reached: 'Level {n} erreicht', record: 'Neuer Rekord!', levelDone: 'Level {n} geschafft!', continue: 'Fortsetzen', livesLabel: 'Leben' },
+  endless: { badge: 'Endlos', best: 'Bester Lauf: Level {n}', cleared: 'Level {n} geschafft!', lifeGained: '+1 Leben', overTitle: 'Lauf beendet', reached: 'Level {n} erreicht', record: 'Neuer Rekord!', levelDone: 'Level {n} geschafft!', continue: 'Fortsetzen', livesLabel: 'Leben', levelShort: 'Level {n}', levelTime: 'Zeit für dieses Level', totalTime: 'Gesamtzeit des Laufs' },
 
   mismatch: { title: 'Unterschiedliche Spielstände', sub: 'Dein Guthaben unterscheidet sich zwischen diesem Gerät und der Cloud. Alle Spielfortschritte (Siege, Erfolge, Käufe) werden automatisch zusammengeführt — wähle nur, welcher Geldstand gelten soll.', local: 'Dieses Gerät', cloud: 'Cloud', keepLocal: 'Dieses Gerät behalten', keepCloud: 'Cloud behalten', note: 'Der jeweils andere Stand wird als Backup gesichert und nicht gelöscht.' },
 
