@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.175';
-export const BUILD_HASH = '83eddb0';
+export const BUILD      = '1.176';
+export const BUILD_HASH = '4014e08';
 
 export const CHANGELOG = [
+  {
+    "version": "1.176",
+    "date": "19.07.2026",
+    "changes": [
+      "Endlos-Aufstieg: jedes fehlerfrei geschaffte Level zählt in die persönliche Bestzeit UND die Online-Bestenliste (perfekt gilt pro Level – auch wenn in einem früheren Level ein Leben verloren ging)",
+      "Bestenliste: das Abzeichen vor dem Namen zeigt jetzt stets das aktuell ausgerüstete Icon (auch nach Wechsel)"
+    ]
+  },
   {
     "version": "1.175",
     "date": "19.07.2026",
