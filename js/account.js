@@ -589,6 +589,31 @@ export async function publishBestTime(difficulty, timeMs, username, badge = null
   } catch (e) { log('account', 'publishBestTime fehlgeschlagen', e); }
 }
 
+// Das Abzeichen in ALLEN eigenen Bestenlisten-Einträgen auf den aktuell
+// ausgerüsteten Stand bringen — aufgerufen, wenn der Nutzer sein Abzeichen wechselt,
+// damit andere in der Bestenliste stets das aktuelle Icon vor dem Namen sehen (ohne
+// Cloud Functions gibt es sonst kein Live-Update fremder Einträge). Nur BESTEHENDE
+// Einträge werden angefasst (partielles Update behält timeMs/username → .validate ok).
+export async function updateLeaderboardBadge(diffIds, badge = null) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !Array.isArray(diffIds) || !diffIds.length) return;
+    let n = 0;
+    for (const diff of diffIds) {
+      try {
+        const ref = fb.ref(fb.db, `leaderboard/${diff}/${u.uid}`);
+        const cur = (await fb.get(ref)).val();
+        if (!cur || typeof cur.timeMs !== 'number') continue;   // nur vorhandene Einträge
+        if ((cur.badge || null) === (badge || null)) continue;  // schon aktuell
+        await fb.update(ref, { badge: badge || null });
+        n++;
+      } catch (_) { /* einzelner Fehlschlag darf die übrigen nicht stoppen */ }
+    }
+    if (n) log('account', 'Bestenlisten-Abzeichen aktualisiert', { count: n });
+  } catch (e) { log('account', 'updateLeaderboardBadge fehlgeschlagen', e); }
+}
+
 // Bestenliste einer Schwierigkeit live beobachten. cb(sortedEntries). Rückgabe:
 // Abmelde-Funktion.
 export async function watchLeaderboard(difficulty, cb) {

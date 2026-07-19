@@ -77,6 +77,29 @@ test.describe('endless climb', () => {
     expect(await page.evaluate(() => window.__cns.state.elapsed)).toBeLessThan(2000); // Level-Timer frisch
   });
 
+  test('a perfect endless level feeds the personal solo best time (per-level, no counter inflation)', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { window.__cns.state.sel.endless = true; window.__cns.state.sel.difficulty = 'sehrleicht'; });
+    await page.locator('.diff-start').click();
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
+    const diff = await page.evaluate(() => window.__cns.state.puzzle.difficulty);
+
+    // Level fehlerfrei lösen → persönliche Bestzeit für diese Schwierigkeit + „Neue Bestzeit!".
+    await solveActivePuzzle(page);
+    await page.waitForFunction(() => window.__cns.state.status === 'won');
+    const best = await page.evaluate((d) => window.__cns.state.stats.byDifficulty[d]?.bestTimeMs, diff);
+    expect(best).toBeGreaterThan(0);
+    expect(await page.evaluate(() => window.__cns.state.newHighscore)).toBe(true);
+    // KEINE aufgeblähten Solo-Zähler: der Lauf zählt erst am Ende als EIN Lauf.
+    expect(await page.evaluate(() => window.__cns.state.stats.won || 0)).toBe(0);
+    expect(await page.evaluate((d) => window.__cns.state.stats.byDifficulty[d]?.won || 0, diff)).toBe(0);
+    // „Neue Bestzeit!"-Badge ist im Level-Gewinn-Screen sichtbar.
+    await expect(page.locator('.result-card .highscore-badge')).toBeVisible();
+  });
+
   test('endless never leaves a solo resume game behind', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
