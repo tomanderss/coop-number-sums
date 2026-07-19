@@ -77,4 +77,30 @@ test.describe('endless climb', () => {
     // „Mitspieler einladen" ist im Endlos-Lauf verfügbar (Live-Umwandlung zu Coop-Endlos).
     await expect(page.locator('.pause-overlay .btn-ghost').filter({ hasText: 'einladen' })).toBeVisible();
   });
+
+  test('a solo endless run can be resumed after leaving to the menu (incl. big numbers)', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { const s = window.__cns.state; s.sel.endless = true; s.sel.bigNumbers = true; });
+    await page.locator('.diff-start').click();
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating);
+    const before = await page.evaluate(() => ({ big: window.__cns.state.puzzle.bigNumbers, seed: window.__cns.state.puzzle.seed, level: window.__cns.state.endless.level }));
+    // einen Zug machen, dann pausieren und zum Menü.
+    await page.evaluate(() => { const s = window.__cns.state; s.tool = 'pen'; window.__cns.onCellTap(0, 0); });
+    await page.locator('.game-top .icon-btn').first().click();
+    await page.locator('.pause-overlay').getByText('Zum Menü').click();
+    await page.waitForSelector('.screen.home');
+    // Endlos-Fortsetzen-Knopf erscheint.
+    expect(await page.evaluate(() => !!window.__cns.state.resumeAvailableEndless)).toBe(true);
+    await expect(page.locator('.resume-row .btn-resume')).toHaveCount(1);
+    // Fortsetzen → derselbe Lauf (Level, Große Zahlen, Seed), Endlos wieder aktiv.
+    await page.locator('.resume-row .btn-resume').click();
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating);
+    const after = await page.evaluate(() => ({ big: window.__cns.state.puzzle.bigNumbers, seed: window.__cns.state.puzzle.seed, level: window.__cns.state.endless.level, active: window.__cns.state.endless.active }));
+    expect(after).toEqual({ big: before.big, seed: before.seed, level: before.level, active: true });
+    expect(after.big).toBe(true);
+  });
 });

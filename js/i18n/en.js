@@ -50,7 +50,7 @@ export default {
   },
   home: {
     resume: 'Resume',
-    resumeCoop: 'Resume Coop',
+    resumeCoop: 'Resume Coop', resumeEndless: 'Resume endless',
     newGame: 'Solo mode',
     newGameHint: 'Solve alone',
     coopMode: 'Co-op mode',

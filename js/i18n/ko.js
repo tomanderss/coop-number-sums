@@ -50,7 +50,7 @@ export default {
   },
   home: {
     resume: '이어하기',
-    resumeCoop: '코업 이어하기',
+    resumeCoop: '코업 이어하기', resumeEndless: '엔드리스 이어하기',
     newGame: '솔로 모드',
     newGameHint: '혼자 풀기',
     coopMode: '협동 모드',

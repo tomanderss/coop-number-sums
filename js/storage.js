@@ -9,6 +9,7 @@ const KEYS = {
   SETTINGS: 'cns_settings',
   ACTIVE_GAME: 'cns_active_game',
   ACTIVE_GAME_COOP: 'cns_active_game_coop',
+  ACTIVE_GAME_ENDLESS: 'cns_active_game_endless',  // fortsetzbarer Solo-Endlos-Lauf (gerätelokal, nie synct)
   COOP_SESSION: 'cns_coop_session',
   STATS: 'cns_stats',
   SEEN_VERSION: 'cns_seen_version',
@@ -149,6 +150,10 @@ export function mergeCompletedGames(cloudList) {
 }
 export function loadActiveGameCoop() { return load(KEYS.ACTIVE_GAME_COOP, null); }
 export function saveActiveGameCoop(g) { if (g) save(KEYS.ACTIVE_GAME_COOP, g); else remove(KEYS.ACTIVE_GAME_COOP); }
+// Fortsetzbarer Solo-Endlos-Lauf (eigener Slot, damit ein Endlos-Lauf und ein
+// klassisches Solo-Spiel parallel fortsetzbar bleiben). Gerätelokal, nie synct.
+export function loadActiveGameEndless() { return load(KEYS.ACTIVE_GAME_ENDLESS, null); }
+export function saveActiveGameEndless(g) { if (g) save(KEYS.ACTIVE_GAME_ENDLESS, g); else remove(KEYS.ACTIVE_GAME_ENDLESS); }
 
 // ─── Kurzlebige Coop-Sitzungsdaten (Auto-Reconnect nach Hintergrund) ─────────
 // Wird beim Verstecken der App (visibilitychange) geschrieben, solange eine
