@@ -15,7 +15,7 @@ const {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame,
   loadActiveGameCoop, saveActiveGameCoop,
   saveCoopSession, loadCoopSession, clearCoopSession,
-  loadStats, recordResult, loadSeenVersion, saveSeenVersion,
+  loadStats, recordResult, recordEndlessLevelBest, loadSeenVersion, saveSeenVersion,
   importFromFile, generateId,
   loadStreak, recordStreakResult, loadAchievements, unlockAchievements,
   loadRace, recordRaceWin, recordRaceLoss,
@@ -191,6 +191,47 @@ describe('storage.recordResult', () => {
     assert.equal(stats.won, 0);
     assert.equal(stats.byDifficulty.mittel.coopWon, 1);
     assert.equal(stats.byDifficulty.mittel.won, 0);
+  });
+});
+
+describe('storage.recordEndlessLevelBest', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('a perfect endless level sets a new best time WITHOUT inflating win/played counters', () => {
+    const { stats, newHighscore } = recordEndlessLevelBest({ difficulty: 'mittel', timeMs: 5000, hintsUsed: 0, mistakes: 0 });
+    assert.equal(newHighscore, true);
+    assert.equal(stats.byDifficulty.mittel.bestTimeMs, 5000);
+    // KEINE Lauf-Buchhaltung: played/won/streak bleiben unberührt (die kommt über recordEndlessRun).
+    assert.equal(stats.won, 0);
+    assert.equal(stats.played, 0);
+    assert.equal(stats.currentStreak, 0);
+    assert.equal(stats.byDifficulty.mittel.won, 0);
+  });
+
+  test('perfect is judged per-level: a flawless level still counts even after an earlier mistake', () => {
+    // Level mit Fehler → keine Bestzeit (disqualifiziert)
+    let r = recordEndlessLevelBest({ difficulty: 'mittel', timeMs: 2000, hintsUsed: 0, mistakes: 1 });
+    assert.equal(r.newHighscore, false);
+    assert.equal(r.stats.byDifficulty.mittel?.bestTimeMs ?? null, null);
+    // Nächstes Level fehlerfrei (nur Leben-Pool war reduziert) → bestzeitwürdig
+    r = recordEndlessLevelBest({ difficulty: 'mittel', timeMs: 4000, hintsUsed: 0, mistakes: 0 });
+    assert.equal(r.newHighscore, true);
+    assert.equal(r.stats.byDifficulty.mittel.bestTimeMs, 4000);
+  });
+
+  test('a level solved with a hint is not best-time-worthy', () => {
+    const { newHighscore } = recordEndlessLevelBest({ difficulty: 'leicht', timeMs: 1000, hintsUsed: 1, mistakes: 0 });
+    assert.equal(newHighscore, false);
+  });
+
+  test('only a faster perfect level overwrites the best time', () => {
+    recordEndlessLevelBest({ difficulty: 'mittel', timeMs: 4000, hintsUsed: 0, mistakes: 0 });
+    let r = recordEndlessLevelBest({ difficulty: 'mittel', timeMs: 9000, hintsUsed: 0, mistakes: 0 });
+    assert.equal(r.newHighscore, false);
+    assert.equal(r.stats.byDifficulty.mittel.bestTimeMs, 4000);
+    r = recordEndlessLevelBest({ difficulty: 'mittel', timeMs: 2500, hintsUsed: 0, mistakes: 0 });
+    assert.equal(r.newHighscore, true);
+    assert.equal(r.stats.byDifficulty.mittel.bestTimeMs, 2500);
   });
 });
 

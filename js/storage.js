@@ -246,6 +246,32 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
   return { stats: s, newHighscore };
 }
 
+// Endlos-Level → persönliche Bestzeit je Schwierigkeit pflegen. Jedes GESCHAFFTE
+// Endlos-Level ist faktisch ein Solo-Rätsel seiner Schwierigkeit; seine Zeit soll
+// wie ein normaler Solo-Sieg in die Bestzeit (bestTimeMs) einfließen. WICHTIG:
+//  • „Perfekt" (bestzeitwürdig) richtet sich nach den Fehlern/Hinweisen DIESES
+//    Levels — NICHT nach in FRÜHEREN Leveln verlorenen Leben. Wer in Level 1 ein
+//    Leben verlor, aber Level 2 ohne Fehler/Hinweis schafft, hat für Level 2 einen
+//    perfekten (bestzeitwürdigen) Lauf.
+//  • KEINE Zähler (played/won/streak/perfectWins) — die Lauf-Buchhaltung läuft
+//    ausschließlich über recordEndlessRun; sonst zählte ein Lauf über N Level als
+//    N Solo-Siege. Nur die Bestzeit wird gepflegt. Rückgabe { stats, newHighscore }.
+export function recordEndlessLevelBest({ difficulty, timeMs, hintsUsed = 0, mistakes = 0 }) {
+  const perfect = (mistakes || 0) === 0 && (hintsUsed || 0) === 0;
+  if (!perfect || !difficulty || !(timeMs > 0)) return { stats: loadStats(), newHighscore: false };
+  const s = loadStats();
+  s.byDifficulty[difficulty] = {
+    played: 0, won: 0, lost: 0, sumTimeMs: 0, bestTimeMs: null,
+    coopPlayed: 0, coopWon: 0, coopLost: 0, coopSumTimeMs: 0, coopBestTimeMs: null,
+    ...s.byDifficulty[difficulty],
+  };
+  const d = s.byDifficulty[difficulty];
+  let newHighscore = false;
+  if (d.bestTimeMs == null || timeMs < d.bestTimeMs) { d.bestTimeMs = timeMs; newHighscore = true; }
+  if (newHighscore) saveStats(s);
+  return { stats: s, newHighscore };
+}
+
 // „Endlos-Aufstieg" abschließen: Score (erreichtes Level) verbuchen. Bestwert
 // = Maximum, Laufzähler +1. Rückgabe: { stats, newBest }.
 export function recordEndlessRun(score, { coop = false } = {}) {

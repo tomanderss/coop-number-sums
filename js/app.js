@@ -11,7 +11,7 @@ import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import * as Music from './music.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
-  loadStats, recordResult, recordEndlessRun,
+  loadStats, recordResult, recordEndlessRun, recordEndlessLevelBest,
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
@@ -1286,6 +1286,26 @@ function endlessLevelSolved(remote) {
   if (e.coop) e.lifeLossBy = (state.coop.lifeLossBy || []).slice();  // wer welche Leben verbraucht hat — bewahren
   state.perfectWin = (state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0;
   state.newHighscore = false; state.wouldHaveBeenBest = false; state.lastCoinReward = 0; state.lastStreakUsed = 0;
+  // Jedes geschaffte SOLO-Endlos-Level ist faktisch ein Solo-Rätsel seiner
+  // Schwierigkeit → seine Zeit pflegt die persönliche Bestzeit + (perfekt) die
+  // Online-Bestenliste. „Perfekt" richtet sich nach den Fehlern/Hinweisen DIESES
+  // Levels (state.mistakes/hintsUsed werden je Level frisch geladen), NICHT nach in
+  // früheren Leveln verlorenen Leben. KEINE Münz-/Streak-/Partie-Buchhaltung hier
+  // (die kommt gesammelt am Laufende) — recordEndlessLevelBest pflegt nur die Bestzeit.
+  if (!e.coop && state.puzzle && !state.isTrainingGame) {
+    const diff = state.puzzle.difficulty;
+    const prevBest = state.stats.byDifficulty[diff]?.bestTimeMs;
+    const disq = (state.mistakes || 0) > 0 || (state.hintsUsed || 0) > 0;
+    state.wouldHaveBeenBest = disq && (prevBest == null || state.elapsed < prevBest);
+    const { stats, newHighscore } = recordEndlessLevelBest({ difficulty: diff, timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes });
+    state.stats = stats;
+    state.newHighscore = newHighscore;
+    if (newHighscore) {
+      log('game', 'Endlos-Level: neue Solo-Bestzeit', { difficulty: diff, timeMs: state.elapsed });
+      if (state.account.status === 'in') Account.publishBestTime(diff, state.elapsed, state.account.username, myBadge());
+      syncCloudNow('endlessLevelBest');
+    }
+  }
   launchWinFx(state.perfectWin);
   updateMusic();
   // SOLO-Endlos fortsetzbar halten: zwischen den Leveln einen „nächstes Level"-
@@ -2551,6 +2571,10 @@ function upsertPlayer(id, name, requestedColor, username, badge) {
 // Format aus der gekauften Ära → als Stufe 1). Prestige-System: nicht mehr
 // gekauft, sondern verdient (s. prestige.js / Prestige-Screen).
 function myBadge() { const id = state.settings.profileBadge; if (isMasterBadge(id)) return id; return id && id !== 'none' && decodeBadge(id) ? id : null; }
+// Abzeichen für eine Bestenlisten-Zeile: der EIGENE Eintrag zeigt IMMER das aktuell
+// ausgerüstete Abzeichen (live, auch bevor der Cloud-Eintrag aktualisiert ist), alle
+// anderen ihren zuletzt veröffentlichten Stand.
+function lbBadge(e) { return e && e.uid === state.account.uid ? myBadge() : (e && e.badge); }
 // Prestige-Kontext für alle Kategorie-Berechnungen (aus den lokalen Statistiken).
 function prestigeCtx() {
   return { stats: state.stats, streak: state.streak, race: state.raceStats,
@@ -2596,7 +2620,19 @@ function afterBadgeChange() {
   if (state.coop.active && state.coop.myId) {
     Coop.send({ type: Coop.MSG.IDENTITY, name: state.settings.coopName, color: state.settings.coopMyColor, username: myUsername(), badge: myBadge() });
   }
-  if (state.account.status === 'in') { Account.publishPresence(currentGameInfo(), myBadge()); Account.scheduleSyncUp(); }
+  if (state.account.status === 'in') {
+    Account.publishPresence(currentGameInfo(), myBadge());
+    Account.scheduleSyncUp();
+    // Auch die eigenen Bestenlisten-Einträge auf das neue Abzeichen bringen, damit
+    // andere dort stets das aktuell ausgerüstete Icon vor dem Namen sehen.
+    Account.updateLeaderboardBadge(myLeaderboardDiffs(), myBadge());
+  }
+}
+// Schwierigkeiten, in denen der Nutzer eine (perfekte) Bestzeit hat → dort existiert
+// ein Bestenlisten-Eintrag, dessen Abzeichen aktualisiert werden kann.
+function myLeaderboardDiffs() {
+  const by = state.stats?.byDifficulty || {};
+  return Object.keys(by).filter((id) => (by[id]?.bestTimeMs || 0) > 0);
 }
 function prestigeTierName(tier) { return tier ? t('prestige.tier.t' + tier) : t('prestige.locked'); }
 // ── Master-Badge „Großmeister" ────────────────────────────────────────────────
@@ -6542,7 +6578,7 @@ const App = {
       openWalletLog, closeWalletLog, walletReasonLabel, walletEntryDetail, walletEntryFactors, walletEntryExpandable, toggleWalletEntry,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
-      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, badgeSvg, badgeDefs, badgeShown, ic,
+      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, lbBadge, badgeSvg, badgeDefs, badgeShown, ic,
       openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
       dismissPrestigeUnlock, prestigeUnlockName,
       masterInfo, isMasterEquipped, equipMaster, dismissMasterUnlock, MASTER_BADGE,
@@ -8295,7 +8331,7 @@ const App = {
             <div v-else class="lb-list">
               <div v-for="(e,i) in state.leaderboard.entries" :key="e.uid" class="lb-row" :class="{ me: e.uid===state.account.uid }">
                 <span class="lb-rank">{{ i+1 }}</span>
-                <span class="lb-name"><span v-if="badgeShown(e.badge)" class="badge-medal-inline" v-html="badgeSvg(e.badge)"></span>{{ e.username || e.uid }}</span>
+                <span class="lb-name"><span v-if="badgeShown(lbBadge(e))" class="badge-medal-inline" v-html="badgeSvg(lbBadge(e))"></span>{{ e.username || e.uid }}</span>
                 <span class="lb-time">{{ fmtTime(e.timeMs) }}</span>
               </div>
             </div>
