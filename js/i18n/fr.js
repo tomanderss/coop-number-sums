@@ -101,6 +101,7 @@ export default {
     title: 'Inviter un joueur',
     connecting: 'Création du salon …',
     msg: 'Ta partie continue normalement – dès que quelqu’un rejoint, vous jouez ensemble sur cette grille (coop).',
+    msgMore: 'Partage ce code pour que d’autres joueurs rejoignent ta partie en cours.',
     hint: 'Ton ami touche Coop ▸ Rejoindre et saisit ce code.',
     share: 'Partager le code',
     shareText: 'Joue à Number Sums avec moi ! Rejoins ma partie en cours – code du salon : {code}',

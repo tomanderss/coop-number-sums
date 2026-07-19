@@ -3594,6 +3594,31 @@ function canInviteToSolo() {
   return (soloClassic || soloEndless) && !state.isTrainingGame && !state.coop.active
     && !state.race.active && !state.team.active && state.status === 'playing';
 }
+// Nach der Umwandlung (ODER in einer direkt als Coop gestarteten Runde) kann der
+// HOST JEDERZEIT weitere Mitspieler holen, solange der Raum nicht voll ist — nur
+// reines Coop (Race/Team/FFA haben eigene Lobby-Semantik). So verschwindet der
+// „Mitspieler einladen"-Knopf nicht mehr, sobald der erste Gast beigetreten ist.
+function canInviteMore() {
+  return state.coop.active && state.coop.role === 'host' && state.status === 'playing'
+    && !state.race.active && !state.team.active && !state.coop.raceMode && !state.coop.ffaMode
+    && !state.coop.awaitingStart && state.coop.players.length < COOP_MAX_PLAYERS;
+}
+// Der im Einladungs-Dialog angezeigte Raumcode: pre-join steckt er in soloInvite,
+// nach der Umwandlung/als Coop-Host im coop-Raum.
+function inviteCode() { return state.soloInvite.code || state.coop.code || ''; }
+// Einladungs-Knopf im Pausenmenü: eine noch-Solo-Partie wird beim Beitritt live zu
+// Coop umgewandelt (inviteToSoloGame); ist die Partie schon Coop, einfach den
+// Dialog mit dem laufenden Raumcode öffnen — „Mitspieler einladen" bleibt so
+// jederzeit erreichbar (Nutzerwunsch: der Dialog darf nach dem 1. Beitritt nicht
+// verschwinden).
+function openInvite() {
+  if (state.coop.active && state.coop.role === 'host') {
+    log('coop', 'Einladungs-Dialog in laufender Coop-Runde geöffnet', { code: state.coop.code, players: state.coop.players.length });
+    state.modal = 'soloInvite';
+    return;
+  }
+  inviteToSoloGame();
+}
 function randomRoomCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
 function inviteToSoloGame(attempt = 0) {
   if (state.soloInvite.status === 'hosting' || state.soloInvite.status === 'connecting') { state.modal = 'soloInvite'; return; }
@@ -6529,7 +6554,7 @@ const App = {
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
-      canInviteToSolo, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
+      canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       isOnline,
@@ -6918,9 +6943,11 @@ const App = {
                Pause-Knopf (für alle Coop-Spieler synchron pausiert). -->
           <!-- Solo → Coop: mitten in der Solo-Partie einen Mitspieler einladen
                (z.B. wenn man Hilfe braucht) — das Spiel wird beim Beitritt live
-               zum Coop. Nach der Umwandlung (coop.active) verschwindet der Knopf. -->
-          <button v-if="canInviteToSolo() || state.soloInvite.status==='hosting' || state.soloInvite.status==='connecting'"
-                  class="btn btn-ghost" @click="inviteToSoloGame()">
+               zum Coop. Bleibt auch NACH der Umwandlung sichtbar (canInviteMore):
+               der Host kann jederzeit weitere Mitspieler holen, bis der Raum voll
+               ist. -->
+          <button v-if="canInviteToSolo() || canInviteMore() || state.soloInvite.status==='hosting' || state.soloInvite.status==='connecting'"
+                  class="btn btn-ghost" @click="openInvite()">
             <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span>
             {{ state.soloInvite.status==='hosting' ? t('soloInvite.buttonPending') : t('soloInvite.button') }}
           </button>
@@ -8423,15 +8450,19 @@ const App = {
           <div class="loading-bar"><span></span></div>
         </template>
         <template v-else>
-          <p class="confirm-msg">{{ t('soloInvite.msg') }}</p>
+          <!-- Vor dem ersten Beitritt: „läuft solange als Solo weiter". Nach der
+               Umwandlung / als Coop-Host: „teile den Code für weitere Mitspieler". -->
+          <p class="confirm-msg">{{ t(state.coop.active ? 'soloInvite.msgMore' : 'soloInvite.msg') }}</p>
           <div class="coop-code-label">{{ t('coop.yourCode') }}</div>
-          <div class="coop-code">{{ state.soloInvite.code }}</div>
+          <div class="coop-code">{{ inviteCode() }}</div>
           <p class="coop-subtext">{{ t('soloInvite.hint') }}</p>
           <button v-if="state.account.status==='in'" class="btn btn-ghost btn-sm" @click="openInvitePicker"><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteFriends') }}</button>
           <!-- Die Freunde-Auswahl erscheint als Vollbild-Modal ÜBER diesem Fenster
                (siehe .invite-modal weiter unten). -->
           <div class="confirm-actions">
-            <button class="btn btn-ghost" @click="cancelSoloInvite()">{{ t('soloInvite.cancel') }}</button>
+            <!-- „Zurückziehen" nur solange noch niemand beigetreten ist (pre-join).
+                 In der laufenden Coop-Runde gibt es nichts zurückzuziehen. -->
+            <button v-if="state.soloInvite.status==='hosting'" class="btn btn-ghost" @click="cancelSoloInvite()">{{ t('soloInvite.cancel') }}</button>
             <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>
           </div>
         </template>

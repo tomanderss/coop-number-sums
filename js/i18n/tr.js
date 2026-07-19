@@ -101,6 +101,7 @@ export default {
     title: 'Oyuncu davet et',
     connecting: 'Oda oluşturuluyor …',
     msg: 'Oyunun normal şekilde devam eder – biri katıldığı anda bu tahtada birlikte oynarsınız (co-op).',
+    msgMore: 'Bu kodu paylaş, böylece devam eden oyununuza daha fazla oyuncu katılabilir.',
     hint: 'Arkadaşın Co-op ▸ Katıl bölümüne girip bu kodu yazar.',
     share: 'Kodu paylaş',
     shareText: 'Benimle Number Sums oyna! Devam eden oyunuma katıl – oda kodu: {code}',
