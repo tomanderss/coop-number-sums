@@ -101,6 +101,7 @@ export default {
     title: 'Convidar um jogador',
     connecting: 'Criando sala …',
     msg: 'Seu jogo continua normalmente – assim que alguém entrar, vocês jogam juntos neste tabuleiro (coop).',
+    msgMore: 'Compartilhe este código para que mais jogadores entrem no seu jogo em andamento.',
     hint: 'Seu amigo toca em Coop ▸ Entrar e digita este código.',
     share: 'Compartilhar código',
     shareText: 'Jogue Number Sums comigo! Entre no meu jogo em andamento – código da sala: {code}',

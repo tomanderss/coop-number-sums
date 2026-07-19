@@ -101,6 +101,7 @@ export default {
     title: 'Mitspieler einladen',
     connecting: 'Raum wird erstellt …',
     msg: 'Dein Spiel läuft solange normal weiter – sobald jemand beitritt, spielt ihr gemeinsam auf diesem Brett (Coop).',
+    msgMore: 'Teile diesen Code, damit weitere Mitspieler eurer laufenden Partie beitreten.',
     hint: 'Dein Mitspieler tippt auf Coop ▸ Beitreten und gibt diesen Code ein.',
     share: 'Code teilen',
     shareText: 'Spiel mit mir Number Sums! Tritt meinem laufenden Spiel bei – Raumcode: {code}',

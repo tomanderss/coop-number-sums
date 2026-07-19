@@ -101,6 +101,7 @@ export default {
     title: 'Invita un giocatore',
     connecting: 'Creazione della stanza …',
     msg: 'La tua partita continua normalmente: appena qualcuno si unisce, giocate insieme su questa griglia (coop).',
+    msgMore: 'Condividi questo codice così altri giocatori possono unirsi alla partita in corso.',
     hint: 'Il tuo amico tocca Coop ▸ Unisciti e inserisce questo codice.',
     share: 'Condividi codice',
     shareText: 'Gioca a Number Sums con me! Unisciti alla mia partita in corso – codice stanza: {code}',

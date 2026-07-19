@@ -101,6 +101,7 @@ export default {
     title: 'Invitar a un jugador',
     connecting: 'Creando sala …',
     msg: 'Tu partida sigue como siempre: en cuanto alguien se una, jugaréis juntos en este tablero (cooperativo).',
+    msgMore: 'Comparte este código para que más jugadores se unan a tu partida en curso.',
     hint: 'Tu amigo toca Cooperativo ▸ Unirse e introduce este código.',
     share: 'Compartir código',
     shareText: '¡Juega Number Sums conmigo! Únete a mi partida en curso – código de sala: {code}',

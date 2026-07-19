@@ -101,6 +101,7 @@ export default {
     title: 'Invite a player',
     connecting: 'Creating room …',
     msg: 'Your game keeps running as usual – as soon as someone joins, you play together on this board (co-op).',
+    msgMore: 'Share this code so more players can join your ongoing game.',
     hint: 'Your friend taps Co-op ▸ Join and enters this code.',
     share: 'Share code',
     shareText: 'Play Number Sums with me! Join my running game – room code: {code}',
