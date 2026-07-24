@@ -3,7 +3,7 @@
 
 import { DEFAULT_SETTINGS } from './config.js';
 import { log, clearLog } from './debuglog.js';
-import { todayDateStr } from './streak.js';
+import { todayDateStr, sanitizeLastCompleted } from './streak.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -299,7 +299,21 @@ export function saveSeenVersion(v) { save(KEYS.SEEN_VERSION, v); }
 // das frühere Tagesrätsel — so bleiben bereits gespeicherte/exportierte Daten
 // kompatibel.
 const EMPTY_DAILY = { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalCompleted: 0, lossNoticeShown: false };
-function loadRawStreak() { return { ...EMPTY_DAILY, ...load(KEYS.DAILY, {}) }; }
+// Beim Laden IMMER das „zuletzt gespielt"-Datum heilen (sanitizeLastCompleted in
+// streak.js): ein via Admin-Editor/Fremddaten vergiftetes Datum (falsches Format
+// oder Zukunft) ließ die Serie sonst bei jedem Start reißen und nie mehr zählen.
+// Die Heilung wird sofort persistiert, damit auch Export/Cloud-Upload den
+// reparierten Stand tragen (und der Log-Eintrag nur einmal erscheint).
+function loadRawStreak() {
+  const d = { ...EMPTY_DAILY, ...load(KEYS.DAILY, {}) };
+  const healed = sanitizeLastCompleted(d.lastCompletedDate);
+  if (healed !== d.lastCompletedDate) {
+    log('storage', 'Streak-Datum geheilt (ungültig/zukünftig)', { von: d.lastCompletedDate, zu: healed });
+    d.lastCompletedDate = healed;
+    saveStreak(d);
+  }
+  return d;
+}
 
 // Ein Streak gilt nur als "noch lebendig", solange die letzte gespielte Partie
 // heute oder gestern war — wurde mindestens ein ganzer Kalendertag ausgelassen,

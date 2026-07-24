@@ -3501,6 +3501,10 @@ function broadcastRaceDone(outcome) {
 function applyStreakAfterGame() {
   const r = recordStreakResult();
   state.streak = r;
+  // Diagnose (niederfrequent, 1× je Partie-Ende): macht im Diagnoseprotokoll
+  // sichtbar, OB und WARUM der heutige Spieltag gezählt/übersprungen wurde —
+  // Kernwerkzeug für „meine Serie verlängert sich nicht mehr"-Meldungen.
+  log('game', 'Streak nach Partie', { current: r.currentStreak, last: r.lastCompletedDate, justCounted: r.justCounted, continued: r.continued });
   if (r.justCounted) {
     state.streakExtended = { current: r.currentStreak, best: r.bestStreak, continued: r.continued, isNewRecord: r.isNewRecord };
   }

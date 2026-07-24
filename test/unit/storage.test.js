@@ -26,7 +26,7 @@ const {
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
-const { todayDateStr } = await import('../../js/streak.js');
+const { todayDateStr, shiftDateStr } = await import('../../js/streak.js');
 
 describe('storage.settings', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });
@@ -317,6 +317,36 @@ describe('storage.recordStreakResult', () => {
     assert.equal(d.justCounted, true);
     assert.equal(d.continued, true);
     assert.equal(d.isNewRecord, true); // 2 > previous best of 1
+  });
+
+  // ── Selbstheilung vergifteter Streak-Daten (Admin-Editor/Uhr) ──────────────
+  // Ein falsch formatiertes oder zukünftiges lastCompletedDate ließ die Serie
+  // bei JEDEM loadStreak() reißen und recordStreakResult täglich bei 1 neu
+  // starten — die Serie „verlängerte sich nie mehr". Jetzt heilt loadRawStreak
+  // das Datum auf GESTERN: die Serie überlebt und das heutige Spiel zählt +1.
+  test('a poisoned German-format date does NOT break the streak; today continues +1', () => {
+    globalThis.localStorage.setItem('cns_daily', JSON.stringify({
+      lastCompletedDate: '24.07.2026', currentStreak: 30, bestStreak: 30, totalCompleted: 30, lossNoticeShown: false,
+    }));
+    const s = loadStreak();
+    assert.equal(s.currentStreak, 30);           // NICHT gerissen
+    assert.equal(s.justLost, false);
+    assert.equal(s.lastCompletedDate, shiftDateStr(todayDateStr(), -1)); // auf gestern geheilt
+    const d = recordStreakResult();              // heutiges Spiel
+    assert.equal(d.currentStreak, 31);           // zählt wieder +1
+    assert.equal(d.continued, true);
+    assert.equal(d.lastCompletedDate, todayDateStr());
+  });
+
+  test('a future lastCompletedDate heals the same way (streak survives, today counts)', () => {
+    globalThis.localStorage.setItem('cns_daily', JSON.stringify({
+      lastCompletedDate: '2999-01-01', currentStreak: 27, bestStreak: 27, totalCompleted: 27, lossNoticeShown: false,
+    }));
+    const s = loadStreak();
+    assert.equal(s.currentStreak, 27);
+    const d = recordStreakResult();
+    assert.equal(d.currentStreak, 28);
+    assert.equal(d.continued, true);
   });
 
   test('flags: a same-day replay does not count again', () => {

@@ -13,7 +13,7 @@ globalThis.localStorage = new MemoryStorage();
 const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
   isSignedIn, lastSyncAt, decideSync, isDivergent, friendActivityRank, sortFriends, sortLeaderboard,
-  presenceOnline, PRESENCE_STALE_MS, mergeSnapshots, walletBalanceDiffers,
+  presenceOnline, PRESENCE_STALE_MS, mergeSnapshots, mergeStreak, walletBalanceDiffers,
 } = await import('../../js/account.js');
 
 describe('account.isDivergent (echter Offline-vs-Cloud-Konflikt)', () => {
@@ -301,9 +301,12 @@ describe('account.mergeSnapshots (verlustfreier Merge bei Divergenz)', () => {
     assert.ok(m.achievements.firstWin && m.achievements.tenWins);
     assert.deepEqual([...m.completedGames].sort(), ['g1', 'g2', 'g3']);
   });
-  test('Streak: Zähler max, Datum das spätere, Flags von der jüngeren Seite', () => {
-    assert.equal(m.daily.currentStreak, 5);
-    assert.equal(m.daily.bestStreak, 7);
+  test('Streak: Zähler folgt der Seite mit dem späteren Spieldatum, Flags von der jüngeren Seite', () => {
+    // Lokal hat das SPÄTERE Datum (07-08) → SEIN Zähler (3) gilt. Das frühere
+    // max(3,5)=5 fabrizierte einen Zustand, der nie existierte (5 am 07-08),
+    // und ließ veraltete/vergiftete Cloud-Zähler jeden echten Stand überschreiben.
+    assert.equal(m.daily.currentStreak, 3);
+    assert.equal(m.daily.bestStreak, 7);           // Lebenszeit-Rekord bleibt Maximum
     assert.equal(m.daily.totalCompleted, 30);
     assert.equal(m.daily.lastCompletedDate, '2026-07-08');
     assert.equal(m.daily.lossNoticeShown, true);   // lokal ist jünger (ts 2000)
@@ -325,5 +328,45 @@ describe('account.mergeSnapshots (verlustfreier Merge bei Divergenz)', () => {
     const only = mergeSnapshots(local, {});
     assert.equal(only.stats.won, 10);
     assert.deepEqual(mergeSnapshots({}, {}).completedGames, []);
+  });
+});
+
+describe('account.mergeStreak (Streak-Merge heilt vergiftete Daten)', () => {
+  const today = '2026-07-24';
+  test('gleiches Datum → Zähler-Maximum (identischer Tag auf zwei Geräten)', () => {
+    const m = mergeStreak({ currentStreak: 31, lastCompletedDate: '2026-07-24' }, { currentStreak: 30, lastCompletedDate: '2026-07-24' }, true, today);
+    assert.equal(m.currentStreak, 31);
+    assert.equal(m.lastCompletedDate, '2026-07-24');
+  });
+  test('späteres Datum gewinnt den Zähler — auch wenn er KLEINER ist (kein Wiederbeleben veralteter Stände)', () => {
+    const m = mergeStreak({ currentStreak: 1, lastCompletedDate: '2026-07-24' }, { currentStreak: 30, lastCompletedDate: '2026-07-20' }, true, today);
+    assert.equal(m.currentStreak, 1);
+    assert.equal(m.lastCompletedDate, '2026-07-24');
+  });
+  test('GIFT-SZENARIO: deutsches Datumsformat gewinnt nicht mehr lexikografisch für immer', () => {
+    // Vorher: '24.07.2026' > '2026-07-24' (lexikografisch!) → Gift-Datum + alter
+    // Zähler überlebten JEDEN Merge, die Serie klemmte dauerhaft beim Admin-Wert.
+    const m = mergeStreak(
+      { currentStreak: 31, lastCompletedDate: '2026-07-24' },                 // echter Stand von heute
+      { currentStreak: 30, lastCompletedDate: '24.07.2026', bestStreak: 30 }, // vergifteter Cloud-Stand
+      true, today,
+    );
+    assert.equal(m.lastCompletedDate, '2026-07-24');   // echtes Datum gewinnt (Gift → gestern geheilt)
+    assert.equal(m.currentStreak, 31);                 // echter Zähler gewinnt
+    assert.equal(m.bestStreak, 30);                    // Lebenszeit-Rekord bleibt
+  });
+  test('Zukunfts-Datum wird geheilt und verliert gegen den echten heutigen Stand', () => {
+    const m = mergeStreak(
+      { currentStreak: 28, lastCompletedDate: '2026-07-24' },
+      { currentStreak: 27, lastCompletedDate: '2999-01-01' },
+      true, today,
+    );
+    assert.equal(m.lastCompletedDate, '2026-07-24');
+    assert.equal(m.currentStreak, 28);
+  });
+  test('beidseitig leer bleibt leer', () => {
+    const m = mergeStreak({}, {}, true, today);
+    assert.equal(m.lastCompletedDate, null);
+    assert.equal(m.currentStreak, 0);
   });
 });
