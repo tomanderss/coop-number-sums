@@ -112,6 +112,7 @@ export default {
   pause: {
     title: 'На паузе',
     msg: 'Поле скрыто – время не идёт.',
+    resuming: 'Продолжение через …',
     resume: 'Продолжить',
   },
   win: {

@@ -1346,6 +1346,30 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ─── Pause (Punkt 5): Feld verschwommen, nicht spielbar ─── */
 .board-wrap.blurred { filter: blur(11px) saturate(.8); opacity: .55; pointer-events: none; transition: filter .3s, opacity .3s; }
 .pause-time { font-size: 1.6rem; font-weight: 900; color: var(--accent2); font-variant-numeric: tabular-nums; }
+/* ── Resume-Countdown (3-2-1 + ablaufender Balken beim Fortsetzen) ──
+   Ziffer poppt je Sekunde neu (key-Wechsel im Template startet die Animation
+   erneut), der Balken läuft in exakt 3 s linear auf 0 — man sieht präzise, wann
+   es weitergeht. Nur transform/opacity/width — kein iOS-kritischer Filter. */
+.resume-count-card { align-items: center; gap: 10px; min-width: min(74vw, 260px); }
+.resume-count-label { font-weight: 800; color: var(--text2); margin: 0; }
+.resume-count-digit {
+  font-size: 4.2rem; font-weight: 900; line-height: 1; color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  animation: resume-pop .9s cubic-bezier(.2,1.3,.5,1);
+}
+@keyframes resume-pop {
+  0% { transform: scale(1.6); opacity: 0; }
+  35% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(.92); opacity: .9; }
+}
+.resume-count-bar { width: 100%; height: 8px; border-radius: 99px; background: var(--bg); overflow: hidden; }
+.resume-count-bar span {
+  display: block; height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  animation: resume-drain 3s linear forwards;
+}
+@keyframes resume-drain { from { width: 100%; } to { width: 0%; } }
+@media (prefers-reduced-motion: reduce) { .resume-count-digit { animation: none; } }
 
 /* ─── Overlay / Result ─── */
 /* margin:auto auf der Karte statt align/justify-content:center auf .overlay

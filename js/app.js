@@ -271,6 +271,7 @@ const state = reactive({
   endlessLevelFlash: null,       // kurze „Level geschafft"-Einblendung { level } | null
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
+  resumeCountdown: null,     // 3-2-1-Countdown beim Fortsetzen aus der Pause (null = kein Countdown)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   resumeAvailableEndless: null, // gespeicherter Solo-Endlos-Lauf (zum Fortsetzen, eigener Slot)
@@ -580,6 +581,7 @@ function pauseGame(broadcast = true, remoteElapsed) {
 }
 function resumeFromPause(broadcast = true) {
   if (!state.paused) return;
+  clearResumeCountdown();   // z.B. Remote-Resume mitten im eigenen Countdown
   state.paused = false;
   state.startTime = gameNow() - state.elapsed; // Zeit fortsetzen
   startTimer();
@@ -588,6 +590,31 @@ function resumeFromPause(broadcast = true) {
     if (state.race.active) Coop.send({ type: Coop.MSG.PAUSE, paused: false });
     else if (state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: false });
   }
+}
+// ── Resume-Countdown (3-2-1 + ablaufender Balken) ─────────────────────────────
+// „Fortsetzen" aus der Pause startet nicht mehr abrupt: erst zählt ein Overlay
+// 3-2-1 herunter (Balken läuft synchron ab), das Spiel bleibt solange PAUSIERT
+// (Timer eingefroren, Brett verdeckt — kein versehentlicher Tap ins Brett).
+// Erst bei 0 läuft resumeFromPause inkl. Coop-Broadcast (der Partner resumt wie
+// bisher in dem Moment — beide Uhren starten gemeinsam). Ein während des
+// Countdowns eintreffendes Remote-Resume bricht ihn ab (kein Doppel-Resume).
+let resumeCountdownTimer = null;
+function clearResumeCountdown() {
+  if (resumeCountdownTimer) { clearInterval(resumeCountdownTimer); resumeCountdownTimer = null; }
+  state.resumeCountdown = null;
+}
+function startResumeCountdown() {
+  if (!state.paused || state.resumeCountdown) return;
+  state.resumeCountdown = 3;
+  log('game', 'Resume-Countdown gestartet');
+  resumeCountdownTimer = setInterval(() => {
+    // Abbruchfälle: Remote-Resume (paused=false via resumeFromPause→clear) oder
+    // Screen-Wechsel (Zum-Menü-Pfade) — nie in einen toten Zustand resumen.
+    if (!state.paused || state.screen !== 'game') { clearResumeCountdown(); return; }
+    if (state.resumeCountdown > 1) { state.resumeCountdown--; return; }
+    clearResumeCountdown();
+    resumeFromPause();
+  }, 1000);
 }
 
 // Einstellungen sind von JEDEM Screen aus über das Zahnrad erreichbar. Wir merken
@@ -6959,7 +6986,7 @@ const App = {
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
       canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
-      canContinueSolo, continueSoloAlone,
+      canContinueSolo, continueSoloAlone, startResumeCountdown,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       isOnline,
@@ -7327,12 +7354,20 @@ const App = {
 
       <!-- Pause -->
       <div v-if="state.paused" class="overlay pause-overlay">
-        <div class="result-card">
+        <!-- Resume-Countdown: „Fortsetzen" zählt erst 3-2-1 herunter (Balken läuft
+             synchron ab), das Spiel bleibt bis 0 pausiert — kein versehentlicher
+             Tap ins Brett direkt nach dem Fortsetzen. -->
+        <div v-if="state.resumeCountdown" class="result-card resume-count-card">
+          <p class="resume-count-label">{{ t('pause.resuming') }}</p>
+          <div class="resume-count-digit" :key="state.resumeCountdown">{{ state.resumeCountdown }}</div>
+          <div class="resume-count-bar"><span></span></div>
+        </div>
+        <div v-else class="result-card">
           <div class="result-emoji"><span class="ei" v-html="ic('pause')"></span></div>
           <h2>{{ t('pause.title') }}</h2>
           <div class="pause-time"><span class="ei" v-html="ic('clock')"></span> {{ fmtTime(state.elapsed) }}</div>
           <p class="result-msg">{{ t('pause.msg') }}</p>
-          <button class="btn btn-primary" @click="resumeFromPause">{{ t('pause.resume') }}</button>
+          <button class="btn btn-primary" @click="startResumeCountdown">{{ t('pause.resume') }}</button>
           <!-- Aus dem Pausenmenü erreichbar: Einstellungen (öffnet das Menü, Spiel
                bleibt pausiert), Anleitung und Aufgeben. So läuft beim Öffnen der
                Einstellungen im Spiel exakt dieselbe Pausenmechanik wie über den
@@ -7349,7 +7384,7 @@ const App = {
           </button>
           <!-- Coop-Verbindung tot? → Brett als eigenständiges Solo-Spiel retten
                und sofort allein weiterspielen (Coop-Offline-Rettung). -->
-          <button v-if="canContinueSolo()" class="btn btn-ghost" @click="continueSoloAlone(); resumeFromPause();">
+          <button v-if="canContinueSolo()" class="btn btn-ghost" @click="continueSoloAlone(); startResumeCountdown();">
             <span class="btn-ic"><span class="ei" v-html="ic('play')"></span></span>
             {{ t('coop.continueSolo') }}
           </button>

@@ -112,6 +112,7 @@ export default {
   pause: {
     title: '一時停止中',
     msg: 'ボードは非表示です – 時間は進みません。',
+    resuming: '再開まで …',
     resume: '続ける',
   },
   win: {

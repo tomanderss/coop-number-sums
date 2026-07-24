@@ -112,6 +112,7 @@ export default {
   pause: {
     title: 'In pausa',
     msg: 'La griglia è nascosta – il tempo è fermo.',
+    resuming: 'Si riprende tra …',
     resume: 'Riprendi',
   },
   win: {
