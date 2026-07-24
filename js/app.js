@@ -11,7 +11,7 @@ import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import * as Music from './music.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
-  loadStats, recordResult, recordEndlessRun,
+  loadStats, recordResult, recordEndlessRun, applyEndlessBackfill,
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
@@ -35,7 +35,7 @@ import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, enc
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
-import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessIsRecord } from './endless.js';
+import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessIsRecord, reconstructEndlessRuns } from './endless.js';
 import { currentWeekKey, weeklyMissions, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
 
 const APP_START = Date.now();
@@ -1462,6 +1462,28 @@ function endlessAbort() {
   checkAchievements();
   log('game', 'Endlos-Lauf abgebrochen', { score, coins: e.coins || 0 });
   syncCloudNow('endlessAbort');
+}
+// Einmalige Migration beim Start: ALTE Endlos-Läufe (vor dem Einzelspiel-Umbau)
+// rückwirkend als Einzelspiele anrechnen. Quelle ist der SYNCTE Geldverlauf
+// (jeder Lauf hinterließ einen 'endless'-Eintrag mit meta.score/mode/aborted);
+// reconstructEndlessRuns (endless.js, rein/unit-getestet) zerlegt ihn in Siege
+// je Schwierigkeit + Schluss-Niederlagen, applyEndlessBackfill (storage.js)
+// bucht NUR die Zähler (keine erfundenen Zeiten/Bestzeiten/Perfekt-Werte; die
+// Basis-Münzen wurden am damaligen Laufende bereits gezahlt → keine Doppel-
+// Zahlung). Idempotent über das CLOUD-SYNCTE Settings-Flag endlessBackfillDone
+// (Zweitgeräte buchen nicht doppelt; Zähler mergen ohnehin als MAX).
+function runEndlessBackfill() {
+  if (state.settings.endlessBackfillDone) return;
+  const recon = reconstructEndlessRuns(loadWalletLog(), DIFFICULTIES.map(d => d.id));
+  const games = recon.wins + recon.coopWins + recon.losses + recon.coopLosses;
+  if (games > 0) {
+    state.stats = applyEndlessBackfill(recon);
+    log('game', 'Endlos-Backfill: alte Läufe rückwirkend als Einzelspiele verbucht', { runs: recon.runCount, wins: recon.wins, coopWins: recon.coopWins, losses: recon.losses, coopLosses: recon.coopLosses });
+    showToast(t('endless.backfillToast', { wins: recon.wins + recon.coopWins, runs: recon.runCount }), 'success', 6500);
+    checkAchievements();   // nachgebuchte Siege können Zähler-Achievements freischalten
+    syncCloudNow('endlessBackfill');
+  }
+  setSetting('endlessBackfillDone', true);
 }
 function endlessAgain() { state.endlessSummary = null; startEndless(); }
 function closeEndlessSummary() {
@@ -6298,6 +6320,7 @@ function init() {
   applyLocale();
   refreshResume();
   initMissions();   // Wochen-Missionen laden / bei Wochenwechsel neu setzen
+  runEndlessBackfill();   // einmalig: alte Endlos-Läufe rückwirkend als Einzelspiele anrechnen
   refreshAccountFromLocal();
   if (loadProfile().accountId) {
     refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)

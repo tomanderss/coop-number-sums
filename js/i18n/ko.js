@@ -21,7 +21,7 @@ export default {
   },
 
   solo: { title: '솔로', classic: '클래식', classicHint: '퍼즐 하나, 자유 난이도', endless: '엔드리스 클라임', endlessHint: '점점 더 어렵게 — 얼마나 갈 수 있나?', endlessStart: '엔드리스 시작' },
-  endless: { badge: '엔드리스', best: '최고 기록: 레벨 {n}', cleared: '레벨 {n} 클리어!', lifeGained: '+1 목숨', overTitle: '게임 종료', reached: '레벨 {n} 도달', record: '신기록!', levelDone: '레벨 {n} 클리어!', continue: '계속', livesLabel: '목숨', levelShort: '레벨 {n}', levelTime: '이 레벨 시간', totalTime: '전체 런 시간' },
+  endless: { badge: '엔드리스', best: '최고 기록: 레벨 {n}', cleared: '레벨 {n} 클리어!', lifeGained: '+1 목숨', overTitle: '게임 종료', reached: '레벨 {n} 도달', record: '신기록!', levelDone: '레벨 {n} 클리어!', continue: '계속', livesLabel: '목숨', levelShort: '레벨 {n}', levelTime: '이 레벨 시간', totalTime: '전체 런 시간', backfillToast: '과거 엔드리스 런 반영: {runs}회 런의 {wins}승이 통계에 추가되었습니다!' },
 
   mismatch: { title: '게임 데이터가 다릅니다', sub: '코인 잔액이 이 기기와 클라우드에서 다릅니다. 게임 진행(승리, 업적, 구매)은 자동으로 병합됩니다. 적용할 잔액만 선택하세요.', local: '이 기기', cloud: '클라우드', keepLocal: '이 기기 유지', keepCloud: '클라우드 유지', note: '다른 상태는 백업으로 저장되며 삭제되지 않습니다.' },
 

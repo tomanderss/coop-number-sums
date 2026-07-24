@@ -21,7 +21,7 @@ export default {
   },
 
   solo: { title: 'Solo', classic: 'Klassisch', classicHint: 'Ein Rätsel, freie Schwierigkeit', endless: 'Endlos-Aufstieg', endlessHint: 'Immer schwerer – wie weit kommst du?', endlessStart: 'Endlos starten' },
-  endless: { badge: 'Endlos', best: 'Bester Lauf: Level {n}', cleared: 'Level {n} geschafft!', lifeGained: '+1 Leben', overTitle: 'Lauf beendet', reached: 'Level {n} erreicht', record: 'Neuer Rekord!', levelDone: 'Level {n} geschafft!', continue: 'Fortsetzen', livesLabel: 'Leben', levelShort: 'Level {n}', levelTime: 'Zeit für dieses Level', totalTime: 'Gesamtzeit des Laufs' },
+  endless: { badge: 'Endlos', best: 'Bester Lauf: Level {n}', cleared: 'Level {n} geschafft!', lifeGained: '+1 Leben', overTitle: 'Lauf beendet', reached: 'Level {n} erreicht', record: 'Neuer Rekord!', levelDone: 'Level {n} geschafft!', continue: 'Fortsetzen', livesLabel: 'Leben', levelShort: 'Level {n}', levelTime: 'Zeit für dieses Level', totalTime: 'Gesamtzeit des Laufs', backfillToast: 'Frühere Endlos-Läufe nachgetragen: {wins} Siege aus {runs} Läufen zählen jetzt in deinen Statistiken!' },
 
   mismatch: { title: 'Unterschiedliche Spielstände', sub: 'Dein Guthaben unterscheidet sich zwischen diesem Gerät und der Cloud. Alle Spielfortschritte (Siege, Erfolge, Käufe) werden automatisch zusammengeführt — wähle nur, welcher Geldstand gelten soll.', local: 'Dieses Gerät', cloud: 'Cloud', keepLocal: 'Dieses Gerät behalten', keepCloud: 'Cloud behalten', note: 'Der jeweils andere Stand wird als Backup gesichert und nicht gelöscht.' },
 
@@ -505,6 +505,7 @@ export default {
         'settings/boardPalette': { l: 'Brett-Farbpalette (ausgerüstet)', d: 'Aktive Cage-Farbpalette („classic“ = eingebaute Farben).' },
         'settings/winEffect': { l: 'Sieg-Animation (ausgerüstet)', d: 'Aktive Sieganimation („confetti“ = Konfetti; andere Effekte müssen im Inventar liegen).' },
         'settings/masterCelebrated': { l: 'Großmeister-Feier gezeigt', d: 'Ob die einmalige Freischalt-Feier für das Großmeister-Abzeichen (alle 12 Kategorien auf Legendär) bereits gezeigt wurde.' },
+        'settings/endlessBackfillDone': { l: 'Endlos-Nachbuchung gelaufen', d: 'Ob die einmalige Migration, die frühere Endlos-Läufe rückwirkend als Einzelspiele in die Statistiken einbucht, bereits ausgeführt wurde.' },
         history: { l: 'Rätsel-Verlauf', d: 'Die letzten 20 gespielten Rätsel (Ringpuffer) — Grundlage für „Verlauf“ im Menü.' },
         activeGame: { l: 'Laufendes Solo-Spiel', d: 'Kompletter zwischengespeicherter Solo-Spielstand (für „Fortsetzen“). Leeren = kein Fortsetzen-Angebot.' },
         activeGameCoop: { l: 'Laufendes Coop-Spiel', d: 'Zwischengespeicherter Coop-Spielstand (für „Coop fortsetzen“).' },

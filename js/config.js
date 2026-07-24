@@ -293,6 +293,10 @@ export const DEFAULT_SETTINGS = {
                             // sonst Fallback auf Confetti (resolveActiveEffect).
   masterCelebrated: false,  // wurde die einmalige „Großmeister"-Feier (alle 12
                             // Prestige-Kategorien auf Legendär) schon gezeigt?
+  endlessBackfillDone: false, // einmalige Migration gelaufen? (alte Endlos-Läufe
+                            // aus dem Geldverlauf rückwirkend als Einzelspiele
+                            // verbucht — cloud-synct, damit Zweitgeräte nicht
+                            // doppelt nachbuchen)
   // Prozedurale Zen-Hintergrundmusik (js/music.js), pro Bereich schaltbar.
   // Default an; Lautstärke 0..1. "competition" deckt Race (1v1) UND Team (2v2) ab.
   // musicMenu = Menüs/Statistik/Verlauf usw. (alle Nicht-Spiel-Screens). Sind

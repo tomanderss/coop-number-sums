@@ -246,6 +246,31 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
   return { stats: s, newHighscore };
 }
 
+// Rückwirkende Endlos-Nachbuchung anwenden (einmalige Migration, s.
+// reconstructEndlessRuns in endless.js): bucht die rekonstruierten Einzelspiele
+// alter Läufe in die Zähler — Siege/Niederlagen/gespielt, global + je
+// Schwierigkeit, Solo und Coop getrennt. FASST BEWUSST NICHTS AN, was nicht
+// rekonstruierbar ist: keine Zeiten/Bestzeiten, keine perfectWins, keine
+// Sieg-Streaks (currentStreak/bestStreak), kein Tages-Streak. Rückgabe: stats.
+export function applyEndlessBackfill(recon) {
+  const s = loadStats();
+  const per = (recon && recon.perDiff) || {};
+  for (const [id, d] of Object.entries(per)) {
+    s.byDifficulty[id] = {
+      played: 0, won: 0, lost: 0, sumTimeMs: 0, bestTimeMs: null,
+      coopPlayed: 0, coopWon: 0, coopLost: 0, coopSumTimeMs: 0, coopBestTimeMs: null,
+      ...s.byDifficulty[id],
+    };
+    const b = s.byDifficulty[id];
+    b.won += d.won || 0; b.lost += d.lost || 0; b.played += (d.won || 0) + (d.lost || 0);
+    b.coopWon += d.coopWon || 0; b.coopLost += d.coopLost || 0; b.coopPlayed += (d.coopWon || 0) + (d.coopLost || 0);
+  }
+  s.won += recon.wins || 0; s.lost += recon.losses || 0; s.played += (recon.wins || 0) + (recon.losses || 0);
+  s.coopWon += recon.coopWins || 0; s.coopLost += recon.coopLosses || 0; s.coopPlayed += (recon.coopWins || 0) + (recon.coopLosses || 0);
+  saveStats(s);
+  return s;
+}
+
 // „Endlos-Aufstieg" abschließen: Score (erreichtes Level) verbuchen. Bestwert
 // = Maximum, Laufzähler +1. Rückgabe: { stats, newBest }.
 export function recordEndlessRun(score, { coop = false } = {}) {

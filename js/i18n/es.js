@@ -21,7 +21,7 @@ export default {
   },
 
   solo: { title: 'Solo', classic: 'Clásico', classicHint: 'Un puzle, dificultad libre', endless: 'Ascenso sin fin', endlessHint: 'Cada vez más difícil, ¿hasta dónde llegas?', endlessStart: 'Iniciar sin fin' },
-  endless: { badge: 'Sin fin', best: 'Mejor racha: nivel {n}', cleared: '¡Nivel {n} superado!', lifeGained: '+1 vida', overTitle: 'Fin de la partida', reached: 'Nivel {n} alcanzado', record: '¡Nuevo récord!', levelDone: '¡Nivel {n} superado!', continue: 'Continuar', livesLabel: 'Vidas', levelShort: 'Nivel {n}', levelTime: 'Tiempo de este nivel', totalTime: 'Tiempo total de la partida' },
+  endless: { badge: 'Sin fin', best: 'Mejor racha: nivel {n}', cleared: '¡Nivel {n} superado!', lifeGained: '+1 vida', overTitle: 'Fin de la partida', reached: 'Nivel {n} alcanzado', record: '¡Nuevo récord!', levelDone: '¡Nivel {n} superado!', continue: 'Continuar', livesLabel: 'Vidas', levelShort: 'Nivel {n}', levelTime: 'Tiempo de este nivel', totalTime: 'Tiempo total de la partida', backfillToast: 'Partidas sin fin anteriores acreditadas: ¡{wins} victorias de {runs} partidas ya cuentan en tus estadísticas!' },
 
   mismatch: { title: 'Datos de juego distintos', sub: 'Tu saldo de monedas difiere entre este dispositivo y la nube. Todo el progreso (victorias, logros, compras) se fusiona automáticamente; elige solo qué saldo debe valer.', local: 'Este dispositivo', cloud: 'Nube', keepLocal: 'Conservar este dispositivo', keepCloud: 'Conservar la nube', note: 'El otro estado se guarda como copia de seguridad y no se elimina.' },
 
