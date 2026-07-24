@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.176';
-export const BUILD_HASH = '4014e08';
+export const BUILD      = '1.177';
+export const BUILD_HASH = '052e5db';
 
 export const CHANGELOG = [
+  {
+    "version": "1.177",
+    "date": "24.07.2026",
+    "changes": [
+      "Deutlich flüssigere Bedienung: Werkzeug-Umschalter (Einkreisen/Löschen) und Buttons reagieren jetzt sofort – das Brett wird nicht mehr bei jedem Umschalten/Sekundentick mitgerendert"
+    ]
+  },
   {
     "version": "1.176",
     "date": "19.07.2026",

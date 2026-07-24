@@ -1,1 +1,0 @@
-Deutlich flüssigere Bedienung: Werkzeug-Umschalter (Einkreisen/Löschen) und Buttons reagieren jetzt sofort – das Brett wird nicht mehr bei jedem Umschalten/Sekundentick mitgerendert
