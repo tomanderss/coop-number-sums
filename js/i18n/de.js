@@ -188,6 +188,8 @@ export default {
     errorInvalidCode: 'Bitte 6-stelligen Zahlencode eingeben.',
     errorCodeTaken: 'Code bereits vergeben — wähle eine andere Zahl.',
     errorConnection: 'Verbindungsfehler.',
+    continueSolo: 'Allein weiterspielen',
+    continueSoloDone: 'Du spielst jetzt allein weiter – Spielstand gesichert.',
     errorCodeNotFound: 'Code nicht gefunden.',
     errorTimeout: 'Zeitüberschreitung.',
     partnerLeftGame: 'Mitspieler hat das Spiel beendet',
@@ -235,6 +237,7 @@ export default {
     weLostByLives: 'Euer Team (Team {myTeam}) hat alle Leben verloren — das Match ist für euch vorbei. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
   },
   chat: {
+    typing: '{name} schreibt …',
     title: 'Chat',
     placeholder: 'Nachricht schreiben …',
     send: 'Senden',

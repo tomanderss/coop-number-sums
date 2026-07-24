@@ -188,6 +188,8 @@ export default {
     errorInvalidCode: 'Lütfen 6 haneli bir kod girin.',
     errorCodeTaken: 'Bu kod zaten kullanılıyor — başka bir sayı seç.',
     errorConnection: 'Bağlantı hatası.',
+    continueSolo: 'Tek başına devam et',
+    continueSoloDone: 'Artık tek başına devam ediyorsun – ilerleme kaydedildi.',
     errorCodeNotFound: 'Kod bulunamadı.',
     errorTimeout: 'Zaman aşımı.',
     partnerLeftGame: 'Takım arkadaşı oyundan ayrıldı',
@@ -235,6 +237,7 @@ export default {
     weLostByLives: 'Takımınız (Takım {myTeam}) tüm canlarını kaybetti — maç sizin için bitti. (Takım {myTeam}: %{myPct} - Takım {oppTeam}: %{oppPct})',
   },
   chat: {
+    typing: '{name} yazıyor …',
     title: 'Sohbet',
     placeholder: 'Mesaj yaz …',
     send: 'Gönder',

@@ -87,6 +87,24 @@ function withTimeout(promise) {
   ]);
 }
 
+// ── Tipp-Indikator (Chat) ─────────────────────────────────────────────────────
+// Transienter Knoten rooms/{code}/typing/{uid} (KEIN events-Eintrag — der würde
+// die Event-Historie/Join-Anker vermüllen). setTyping(true) setzt den eigenen
+// Eintrag + onDisconnect-Aufräumer, setTyping(false) entfernt ihn; alle Clients
+// beobachten den Knoten per onValue und bekommen die LIVE-Menge der tippenden
+// uids (ohne die eigene). app.js registriert den Callback einmal via onTyping().
+let unsubTyping = null;
+let onTypingCb = null;
+export function onTyping(cb) { onTypingCb = cb; }
+export async function setTyping(active) {
+  if (!fb || !roomCode) return;
+  try {
+    const ref = fb.ref(fb.db, `rooms/${roomCode}/typing/${fb.uid}`);
+    if (active) { await fb.set(ref, fb.serverTimestamp()); fb.onDisconnect(ref).remove(); }
+    else await fb.remove(ref);
+  } catch (e) { log('coop', 'Tipp-Status senden fehlgeschlagen', e); }
+}
+
 function attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey) {
   // Defensive: falls eine vorherige Session (derselbe Tab, neue Lobby ohne
   // zwischenzeitlichen leave()-Aufruf) noch Listener auf dem alten Raum hängen
@@ -96,6 +114,12 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey)
   // verarbeiten. Genau das war die Ursache für falsch gezählte Fehler nach
   // Lobby-Verlassen-und-wieder-Beitreten.
   unsubJoin && unsubJoin(); unsubLeave && unsubLeave(); unsubEvents && unsubEvents();
+  unsubTyping && unsubTyping();
+  // Tipp-Status aller Mitspieler live beobachten (eigene uid rausfiltern).
+  unsubTyping = f.onValue(f.ref(f.db, `rooms/${code}/typing`), (snap) => {
+    const v = snap.val() || {};
+    try { onTypingCb && onTypingCb(Object.keys(v).filter((u) => u !== f.uid)); } catch (_) {}
+  });
 
   const playersRef = f.ref(f.db, `rooms/${code}/players`);
   // Nach einem kalten Rejoin darf die Event-Historie NICHT von Anfang an
@@ -127,7 +151,13 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey)
     lastEventKey = snap.key; // JEDES Event zählt (auch eigene) — Anker für den nächsten rejoin()
     const msg = snap.val();
     if (!msg || msg.author === f.uid) return;
-    onMessage && onMessage(msg);
+    // Fehlertolerant: EIN kaputtes/unerwartetes Event (z.B. neues Feld einer
+    // neueren App-Version, fehlgeschlagene Verarbeitung) darf weder den
+    // Firebase-Listener noch die App killen — vorher riss eine Exception hier
+    // die komplette Event-Kette ab (Symptom: Beitretender hängt/Blackscreen,
+    // Lobby „kaputt"). Der Fehler wird geloggt, die übrigen Events laufen weiter.
+    try { onMessage && onMessage(msg); }
+    catch (e) { log('coop', 'Event-Verarbeitung fehlgeschlagen (ignoriert)', { type: msg.type, error: e && (e.message || String(e)) }); }
   });
 }
 
@@ -436,7 +466,10 @@ export function listenTeamEvents(team, onMessage) {
   unsubTeamEvents = fb.onChildAdded(ref, (snap) => {
     const msg = snap.val();
     if (!msg || msg.author === fb.uid) return;
-    onMessage && onMessage(msg);
+    // Fehlertolerant wie bei den Raum-Events: ein kaputtes Event killt weder
+    // Listener noch App (s. attachListeners).
+    try { onMessage && onMessage(msg); }
+    catch (e) { log('coop', 'Team-Event-Verarbeitung fehlgeschlagen (ignoriert)', { type: msg.type, error: e && (e.message || String(e)) }); }
   });
 }
 
@@ -488,11 +521,14 @@ export async function leave({ keepRoom = false } = {}) {
   unsubJoin && unsubJoin(); unsubLeave && unsubLeave(); unsubEvents && unsubEvents();
   unsubTeamEvents && unsubTeamEvents(); unsubTeamProgress && unsubTeamProgress();
   unsubRaceProgress && unsubRaceProgress(); unsubConn && unsubConn();
+  unsubTyping && unsubTyping(); unsubTyping = null;
   unsubJoin = unsubLeave = unsubEvents = unsubTeamEvents = unsubTeamProgress = unsubRaceProgress = unsubConn = null;
   selfInfo = null; everOnline = false; sawDisconnect = false; lastEventKey = null;
   roomCode = null; myPlayerRef = null;
   if (!f || !playerRef) return;
   try {
+    // Eigenen Tipp-Status mitnehmen (sonst tippt ein „Geist" ewig weiter).
+    try { await f.remove(f.ref(f.db, `rooms/${code}/typing/${f.uid}`)); } catch (_) {}
     await f.onDisconnect(playerRef).cancel();
     await f.remove(playerRef);
     if (keepRoom) { log('coop', `Raum ${code} verlassen – bleibt für Fortsetzen bestehen`); return; }
@@ -517,4 +553,5 @@ export const MSG = {
   TEAM_START: 'teamStart', TEAM_DONE: 'teamDone',
   RACE_START: 'raceStart', RACE_DONE: 'raceDone',
   CHAT: 'chat',
+  RESYNC: 'resync',   // Gast ohne Brett bittet den Host, den Rundenstand erneut zu senden (Selbstheilung)
 };

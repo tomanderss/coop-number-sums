@@ -188,6 +188,8 @@ export default {
     errorInvalidCode: 'Please enter a 6-digit code.',
     errorCodeTaken: 'Code already taken — choose a different number.',
     errorConnection: 'Connection error.',
+    continueSolo: 'Continue alone',
+    continueSoloDone: 'You are now playing on your own – progress saved.',
     errorCodeNotFound: 'Code not found.',
     errorTimeout: 'Timed out.',
     partnerLeftGame: 'Teammate left the game',
@@ -235,6 +237,7 @@ export default {
     weLostByLives: 'Your team ran out of lives — the match is over for you. (Team {myTeam}: {myPct}% vs. Team {oppTeam}: {oppPct}%)',
   },
   chat: {
+    typing: '{name} is typing …',
     title: 'Chat',
     placeholder: 'Write a message …',
     send: 'Send',
