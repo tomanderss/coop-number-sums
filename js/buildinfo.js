@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.180';
-export const BUILD_HASH = 'f1c6862';
+export const BUILD      = '1.181';
+export const BUILD_HASH = '5c3e3dd';
 
 export const CHANGELOG = [
+  {
+    "version": "1.181",
+    "date": "24.07.2026",
+    "changes": [
+      "Coop-Beitritt abgesichert: kein schwarzer Bildschirm mehr – kaputte Beitritte zeigen einen Warte-Screen mit Ausweg, und fehlende Spielstände werden automatisch beim Host nachgefordert (Selbstheilung)",
+      "Coop offline? Das Brett wird automatisch als eigenständiges Solo-Spiel gerettet (beim Verlassen gespeichert) – neuer Knopf „Allein weiterspielen\" im Pausenmenü",
+      "Chat: animierte Tipp-Punkte am Chat-Symbol und als „… schreibt\"-Blase im Chat, wenn ein Mitspieler gerade tippt"
+    ]
+  },
   {
     "version": "1.180",
     "date": "24.07.2026",
