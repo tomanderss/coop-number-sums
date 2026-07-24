@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.177';
-export const BUILD_HASH = '052e5db';
+export const BUILD      = '1.178';
+export const BUILD_HASH = '72de646';
 
 export const CHANGELOG = [
+  {
+    "version": "1.178",
+    "date": "24.07.2026",
+    "changes": [
+      "Endlos-Aufstieg: jedes Level zählt jetzt als vollwertiges Einzelspiel – Sieg in den Statistiken (gesamt + je Schwierigkeit), volle Münzbelohnung mit allen Multiplikatoren direkt im Level-Endscreen, Verlauf, Missionen und Erfolge; das gescheiterte Schluss-Level zählt als Niederlage"
+    ]
+  },
   {
     "version": "1.177",
     "date": "24.07.2026",
