@@ -926,6 +926,22 @@ function boardFrameClass() {
   const id = shopEquippedId('frame');
   return id && id !== 'none' ? 'frame-' + id : '';
 }
+// ── Brett-Optik (Modulebene, damit die BoardGrid-Child-Komponente sie nutzt) ──
+// Dynamischer Skin (Cosmetic 'dynamicColor'): mindestens eine gekaufte Skin-
+// Vorlage aktiviert das Skin-Rendering auch OHNE den exklusiven Skin (der
+// schaltet nur den freien Editor frei).
+const skinUnlocked = computed(() => !!state.inventory[SKIN_ID]);
+const skinPresetOwned = computed(() => SKINPRESET_ITEMS.some((p) => ownsShopItem(state.inventory, p)));
+const skinActive = computed(() => (skinUnlocked.value || skinPresetOwned.value) && state.settings.skinEnabled);
+const skinVars = computed(() => skinActive.value ? buildSkinVars(state.settings) : {});
+const skinBoardClasses = computed(() => buildSkinClasses(state.settings, skinActive.value));
+const gridStyle = computed(() => ({
+  gridTemplateColumns: `var(--hdr) repeat(${state.puzzle?.cols || 1}, var(--cell))`,
+  gridTemplateRows: `var(--hdr) repeat(${state.puzzle?.rows || 1}, var(--cell))`,
+  '--cell': state.cellPx + 'px',
+  '--hdr': state.cellPx + 'px',
+  '--fs': Math.max(11, Math.round(state.cellPx * 0.4)) + 'px',
+}));
 // Aktive Paletten-Transformation für cellStyle (null = Klassisch/unverändert).
 function activePaletteFx() {
   const it = shopItemById(shopEquippedId('palette'));
@@ -4431,7 +4447,28 @@ function setSetting(key, val) {
 // Sichtbarkeit der Markierung prüfen. Als watch statt setSetting-Hook, weil der
 // Custom-Farbwähler per v-model DIREKT in state.settings schreibt (kein setSetting).
 watch(() => [state.settings.coopMyColor, state.settings.boardPalette], () => applyMarkSafeRegionColors());
-watch(() => state.settings, (s) => { saveSettings(s); if (state.account.status === 'in') Account.scheduleSyncUp(); }, { deep: true });
+// Settings-Persist ENTPRELLT (Trailing 250 ms): der Werkzeug-Umschalter schreibt
+// bei JEDEM Wechsel state.settings.confirmTool — das synchrone JSON.stringify +
+// localStorage.setItem lag damit mitten im Tap-Pfad (Teil der gemeldeten
+// „Button reagiert nicht"-Latenz). Jetzt sammelt ein kurzer Timer die Writes;
+// flushSettingsSave() sichert bei App-Verstecken/pagehide sofort (nichts geht
+// verloren, wenn iOS die PWA direkt danach einfriert/killt).
+let settingsSaveTimer = null;
+function flushSettingsSave() {
+  if (!settingsSaveTimer) return;
+  clearTimeout(settingsSaveTimer); settingsSaveTimer = null;
+  saveSettings(state.settings);
+}
+watch(() => state.settings, () => {
+  if (settingsSaveTimer) clearTimeout(settingsSaveTimer);
+  settingsSaveTimer = setTimeout(() => {
+    settingsSaveTimer = null;
+    saveSettings(state.settings);
+    if (state.account.status === 'in') Account.scheduleSyncUp();
+  }, 250);
+}, { deep: true });
+window.addEventListener('pagehide', flushSettingsSave);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettingsSave(); });
 
 // ─── DATEN: EXPORT / IMPORT / BACKUPS ─────────────────────────────────────────
 function doExport() { exportToFile('manual').then(() => showToast(t('toast.backupExported'), 'success')).catch(() => {}); }
@@ -6371,8 +6408,66 @@ const DifficultySlider = {
 // ════════════════════════════════════════════════════════════════════════════
 //  KOMPONENTE / TEMPLATE
 // ════════════════════════════════════════════════════════════════════════════
+// ── BoardGrid: das Spielbrett als EIGENE Child-Komponente ─────────────────────
+// KERN-PERFORMANCEFIX: Vue trackt Render-Abhängigkeiten PRO KOMPONENTE. Solange
+// das Brett im App-Template lag, renderte JEDE reaktive Änderung der App (Tool-
+// Umschalter state.tool, Sekunden-Tick state.elapsed, HUD/Chat/Toasts, …) ALLE
+// ~200 Zellen mit (cellClasses/cellStyle/Aria ×196 auf 14×14) — auf älteren
+// Geräten im Spätspiel spürbare Tap-Latenz („Button reagiert nicht", Züge im
+// falschen Modus). Als Child-Komponente rendert das Brett NUR noch, wenn sich
+// ECHTE Brett-Abhängigkeiten ändern (marks/flash/justResolved/cellMeta/Skin/…).
+// Alle Helfer sind bewusst Modul-Scope — kein Props-Threading nötig.
+// boardRenderCount zählt Brett-Renders (localhost-Debug/E2E-Regressionstest).
+let boardRenderCount = 0;
+const BoardGrid = {
+  setup() {
+    return {
+      state, cellClasses, cellStyle, cellAriaLabel, onCellTap,
+      onCellPointerDown, onCellPointerMove, onCellPointerCancel,
+      rowResolvedR, colResolvedR, regionResolvedR, rowSumR, colSumR, rowSumMatch, colSumMatch,
+      skinBoardClasses, skinVars, gridStyle, boardFontClass, boardFrameClass,
+      countRender: () => { boardRenderCount++; return ''; },
+    };
+  },
+  template: `
+          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused, 'big-num': state.puzzle.bigNumbers }]" :style="[gridStyle, skinVars]" :data-rc="countRender()">
+            <div class="corner"></div>
+            <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
+              <template v-if="!colResolvedR(c-1)">
+                <span class="cur" :class="{match: colSumMatch(c-1)}">{{ colSumR(c-1) }}</span>
+                <span class="tgt">{{ state.puzzle.colTargets[c-1] }}</span>
+              </template>
+            </div>
+            <template v-for="r in state.puzzle.rows" :key="'r'+r">
+              <div class="hdr row-hdr" :class="{resolved: rowResolvedR(r-1), pulse: state.justResolved['row-'+(r-1)]}">
+                <template v-if="!rowResolvedR(r-1)">
+                  <span class="cur" :class="{match: rowSumMatch(r-1)}">{{ rowSumR(r-1) }}</span>
+                  <span class="tgt">{{ state.puzzle.rowTargets[r-1] }}</span>
+                </template>
+              </div>
+              <div v-for="c in state.puzzle.cols" :key="r+'-'+c"
+                   class="cell" :class="cellClasses(r-1,c-1)" :style="cellStyle(r-1,c-1)"
+                   role="button" tabindex="0" :aria-label="cellAriaLabel(r-1,c-1)"
+                   @click="onCellTap(r-1,c-1)"
+                   @keydown.enter.prevent="onCellTap(r-1,c-1)"
+                   @keydown.space.prevent="onCellTap(r-1,c-1)"
+                   @pointerdown="onCellPointerDown($event,r-1,c-1)"
+                   @pointermove="onCellPointerMove($event)"
+                   @pointerup="onCellPointerCancel"
+                   @pointerleave="onCellPointerCancel"
+                   @pointercancel="onCellPointerCancel"
+                   @contextmenu.prevent>
+                <span v-if="state.cellMeta[r-1][c-1].chip!=null && !regionResolvedR(state.cellMeta[r-1][c-1].region)" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
+                <span class="cnum">{{ state.puzzle.values[r-1][c-1] }}</span>
+                <i v-if="state.marks[r-1][c-1]==='removed' && state.cellMeta[r-1][c-1].hintMark" class="hint-dot"></i>
+              </div>
+            </template>
+          </div>
+  `,
+};
+
 const App = {
-  components: { DifficultySlider },
+  components: { DifficultySlider, BoardGrid },
   setup() {
     const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
     // Coop/Race/Team: zeigt der Coop-Screen gerade die Host-Schwierigkeitsauswahl?
@@ -6455,13 +6550,8 @@ const App = {
     // Wrapper um progressPct(), das dieselbe Berechnung schon fürs Team-/Race-
     // Throttle-Pushing nutzt (siehe dort), hier aber ungedrosselt für die lokale UI.
     const myProgressPct = computed(() => progressPct());
-    const gridStyle = computed(() => ({
-      gridTemplateColumns: `var(--hdr) repeat(${state.puzzle?.cols || 1}, var(--cell))`,
-      gridTemplateRows: `var(--hdr) repeat(${state.puzzle?.rows || 1}, var(--cell))`,
-      '--cell': state.cellPx + 'px',
-      '--hdr': state.cellPx + 'px',
-      '--fs': Math.max(11, Math.round(state.cellPx * 0.4)) + 'px',
-    }));
+    // gridStyle/skinVars/skinBoardClasses leben auf MODULEBENE (bei den übrigen
+    // Brett-Helfern), damit die BoardGrid-Child-Komponente sie direkt nutzt.
     onMounted(init);
     const coopAvailable = computed(() => Coop.isAvailable());
     // Die "fehlerfrei"-Formulierung gilt nur, wenn die jeweilige Seite tatsächlich
@@ -6517,14 +6607,8 @@ const App = {
     });
     const achievementsUnlockedCount = computed(() => Object.keys(state.achievements).length);
 
-    // ── Dynamischer Skin (Cosmetic 'dynamicColor') ──
-    const skinUnlocked = computed(() => !!state.inventory[SKIN_ID]);
-    // Mindestens eine gekaufte Skin-Vorlage aktiviert das Skin-Rendering auch
-    // OHNE den exklusiven Skin (der schaltet nur den freien Editor frei).
-    const skinPresetOwned = computed(() => SKINPRESET_ITEMS.some((p) => ownsShopItem(state.inventory, p)));
-    const skinActive = computed(() => (skinUnlocked.value || skinPresetOwned.value) && state.settings.skinEnabled);
-    const skinVars = computed(() => skinActive.value ? buildSkinVars(state.settings) : {});
-    const skinBoardClasses = computed(() => buildSkinClasses(state.settings, skinActive.value));
+    // ── Dynamischer Skin: skinUnlocked/skinActive/skinVars/skinBoardClasses
+    // leben auf MODULEBENE (s. Brett-Optik-Block) — hier nur die Editor-Vorschau.
     // Editor-Vorschau: IMMER aktiv (unabhängig vom Master-Schalter), damit man die
     // gerade eingestellte Optik sieht.
     const skinPreviewVars = computed(() => buildSkinVars(state.settings));
@@ -6861,40 +6945,11 @@ const App = {
         </div>
         </div>
 
+        <!-- Das Brett ist eine EIGENE Child-Komponente (BoardGrid): App-Renders
+             (Tool-Umschalter, Sekunden-Tick, HUD) rendern die ~200 Zellen NICHT
+             mehr mit — das Brett rendert nur bei echten Brett-Änderungen. -->
         <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
-          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused, 'big-num': state.puzzle.bigNumbers }]" :style="[gridStyle, skinVars]">
-            <div class="corner"></div>
-            <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
-              <template v-if="!colResolvedR(c-1)">
-                <span class="cur" :class="{match: colSumMatch(c-1)}">{{ colSumR(c-1) }}</span>
-                <span class="tgt">{{ state.puzzle.colTargets[c-1] }}</span>
-              </template>
-            </div>
-            <template v-for="r in state.puzzle.rows" :key="'r'+r">
-              <div class="hdr row-hdr" :class="{resolved: rowResolvedR(r-1), pulse: state.justResolved['row-'+(r-1)]}">
-                <template v-if="!rowResolvedR(r-1)">
-                  <span class="cur" :class="{match: rowSumMatch(r-1)}">{{ rowSumR(r-1) }}</span>
-                  <span class="tgt">{{ state.puzzle.rowTargets[r-1] }}</span>
-                </template>
-              </div>
-              <div v-for="c in state.puzzle.cols" :key="r+'-'+c"
-                   class="cell" :class="cellClasses(r-1,c-1)" :style="cellStyle(r-1,c-1)"
-                   role="button" tabindex="0" :aria-label="cellAriaLabel(r-1,c-1)"
-                   @click="onCellTap(r-1,c-1)"
-                   @keydown.enter.prevent="onCellTap(r-1,c-1)"
-                   @keydown.space.prevent="onCellTap(r-1,c-1)"
-                   @pointerdown="onCellPointerDown($event,r-1,c-1)"
-                   @pointermove="onCellPointerMove($event)"
-                   @pointerup="onCellPointerCancel"
-                   @pointerleave="onCellPointerCancel"
-                   @pointercancel="onCellPointerCancel"
-                   @contextmenu.prevent>
-                <span v-if="state.cellMeta[r-1][c-1].chip!=null && !regionResolvedR(state.cellMeta[r-1][c-1].region)" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
-                <span class="cnum">{{ state.puzzle.values[r-1][c-1] }}</span>
-                <i v-if="state.marks[r-1][c-1]==='removed' && state.cellMeta[r-1][c-1].hintMark" class="hint-dot"></i>
-              </div>
-            </template>
-          </div>
+          <board-grid></board-grid>
         </div>
 
         <div class="game-sidebar-bottom">
@@ -8879,7 +8934,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, boardRenders: () => boardRenderCount, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');
