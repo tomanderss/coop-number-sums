@@ -512,7 +512,7 @@ export default {
     listTitle: 'Your friends', empty: 'No friends yet – add someone by username above.', remove: 'Remove',
     removeTitle: 'Remove friend', removeMsg: 'Remove {name} from your friends list?', nowFriends: '{name} is now your friend',
     online: 'Online', offline: 'Offline', offlineSince: 'Offline · last seen {when}', inGame: 'In game · {info}',
-    mode: { solo: 'Solo', coop: 'Co-op', race: '1v1', team: 'Team' },
+    mode: { solo: 'Solo', coop: 'Co-op', race: '1v1', team: 'Team', endless: 'Endless', endlessCoop: 'Co-op endless' },
     lbSoonTitle: 'Leaderboards coming soon', lbSoonHint: 'Cheat-resistant rankings will arrive with server-side scoring.',
     lbLoading: "Loading leaderboard …", lbEmpty: "No times yet — be the first!",
     err: { invalidUsername: 'Invalid username.', userNotFound: 'No user found with that username.', alreadyFriends: 'You are already friends.', selfFriend: 'You can’t add yourself.', notSignedIn: 'Please sign in first.' },

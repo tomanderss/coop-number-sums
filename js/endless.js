@@ -40,14 +40,9 @@ export function endlessLivesAfter(curLives, level, cfg = ENDLESS_CFG) {
   return Math.max(0, Math.min(cfg.maxLives, next));
 }
 
-// Münzen für einen ganzen Lauf: Summe der Schwierigkeits-Basiswerte je geschafftem
-// Level (coinBaseForIndex wird von außen — config.js — reingereicht, damit dieses
-// Modul rein/testbar bleibt).
-export function endlessRunCoins(score, ladderLen, coinBaseForIndex) {
-  let sum = 0;
-  for (let L = 1; L <= score; L++) sum += coinBaseForIndex(endlessDiffIndex(L, ladderLen)) || 0;
-  return sum;
-}
+// (endlessRunCoins ist ENTFERNT: Münzen fließen seit dem Einzelspiel-Umbau je
+// Level direkt in endlessLevelSolved — mit vollen Multiplikatoren wie ein
+// normaler Sieg — statt als Basiswert-Summe am Laufende.)
 
 // Neuer Bestwert? (rein, für Anzeige „Neuer Rekord!")
 export function endlessIsRecord(score, prevBest) {

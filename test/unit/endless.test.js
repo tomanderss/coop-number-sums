@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ENDLESS_CFG, endlessDiffIndex, endlessDiffId, endlessGrantsLife,
-  endlessLivesAfter, endlessRunCoins, endlessIsRecord,
+  endlessLivesAfter, endlessIsRecord,
 } from '../../js/endless.js';
 
 const IDS = ['a', 'b', 'c', 'd']; // 4-stufige Leiter zum Testen
@@ -49,16 +49,8 @@ describe('endless.lives', () => {
   });
 });
 
-describe('endless.coins', () => {
-  const base = (i) => [10, 20, 30, 40][i] || 0;
-  test('sums the difficulty base of every cleared level', () => {
-    assert.equal(endlessRunCoins(0, 4, base), 0);
-    assert.equal(endlessRunCoins(1, 4, base), 10);
-    assert.equal(endlessRunCoins(3, 4, base), 10 + 20 + 30);
-    // Level 5 wickelt auf Index 0 zurück (Basis 10) → 10+20+30+40 + 10
-    assert.equal(endlessRunCoins(5, 4, base), 10 + 20 + 30 + 40 + 10);
-  });
-});
+// (endlessRunCoins-Tests entfernt: Münzen fließen seit dem Einzelspiel-Umbau je
+// Level direkt über die normale Sieg-Belohnung in app.js, nicht mehr als Summe.)
 
 describe('endless.isRecord', () => {
   test('true only when the score beats the previous best', () => {

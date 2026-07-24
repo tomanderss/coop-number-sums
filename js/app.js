@@ -11,7 +11,7 @@ import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import * as Music from './music.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
-  loadStats, recordResult, recordEndlessRun, recordEndlessLevelBest,
+  loadStats, recordResult, recordEndlessRun,
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
@@ -35,7 +35,7 @@ import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, enc
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
-import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessRunCoins, endlessIsRecord } from './endless.js';
+import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessIsRecord } from './endless.js';
 import { currentWeekKey, weeklyMissions, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
 
 const APP_START = Date.now();
@@ -1302,33 +1302,83 @@ function endlessLevelSolved(remote) {
   if (e.coop) e.lifeLossBy = (state.coop.lifeLossBy || []).slice();  // wer welche Leben verbraucht hat — bewahren
   state.perfectWin = (state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0;
   state.newHighscore = false; state.wouldHaveBeenBest = false; state.lastCoinReward = 0; state.lastStreakUsed = 0;
-  // Jedes geschaffte SOLO-Endlos-Level ist faktisch ein Solo-Rätsel seiner
-  // Schwierigkeit → seine Zeit pflegt die persönliche Bestzeit + (perfekt) die
-  // Online-Bestenliste. „Perfekt" richtet sich nach den Fehlern/Hinweisen DIESES
-  // Levels (state.mistakes/hintsUsed werden je Level frisch geladen), NICHT nach in
-  // früheren Leveln verlorenen Leben. KEINE Münz-/Streak-/Partie-Buchhaltung hier
-  // (die kommt gesammelt am Laufende) — recordEndlessLevelBest pflegt nur die Bestzeit.
-  if (!e.coop && state.puzzle && !state.isTrainingGame) {
-    const diff = state.puzzle.difficulty;
-    const prevBest = state.stats.byDifficulty[diff]?.bestTimeMs;
-    const disq = (state.mistakes || 0) > 0 || (state.hintsUsed || 0) > 0;
-    state.wouldHaveBeenBest = disq && (prevBest == null || state.elapsed < prevBest);
-    const { stats, newHighscore } = recordEndlessLevelBest({ difficulty: diff, timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes });
-    state.stats = stats;
-    state.newHighscore = newHighscore;
-    if (newHighscore) {
-      log('game', 'Endlos-Level: neue Solo-Bestzeit', { difficulty: diff, timeMs: state.elapsed });
-      if (state.account.status === 'in') Account.publishBestTime(diff, state.elapsed, state.account.username, myBadge());
-      syncCloudNow('endlessLevelBest');
-    }
-  }
   launchWinFx(state.perfectWin);
   updateMusic();
-  // SOLO-Endlos fortsetzbar halten: zwischen den Leveln einen „nächstes Level"-
-  // Marker sichern (das gelöste Brett taugt nicht zum Fortsetzen). Quittet man auf
-  // dem Level-Screen, startet das Fortsetzen frisch bei Level score+1.
-  if (!e.coop) saveActiveGameEndless({ pending: true, endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0 } });
   log('game', 'Endlos-Level gelöst', { level: e.score, coop: !!e.coop, lives: e.lives });
+  // ── VOLLE Einzelspiel-Buchhaltung je Level ──────────────────────────────────
+  // Jedes geschaffte Endlos-Level IST ein individuell gewonnenes Spiel seiner
+  // Schwierigkeit: Sieg-Zähler (global + je Schwierigkeit), Zeit-Summen, Bestzeit
+  // + Bestenliste, VOLLE Münzbelohnung mit allen Multiplikatoren (perfekt ×2,
+  // Bestzeit ×2, Coop ×2, Streak-Bonus), Tages-Streak, Verlauf, Missionen,
+  // Achievements/Prestige. „Perfekt" gilt pro Level (mistakes/hintsUsed je Level
+  // frisch), NICHT nach in früheren Leveln verlorenen Leben. Der Lauf selbst wird
+  // am Ende NUR noch als Lauf gewertet (endlessBest/Runs) — die Münzen sind dann
+  // schon je Level geflossen (keine Doppel-Vergütung). Wie in win() läuft die
+  // (teils schwere) Buchhaltung NACH dem ersten gepainteten Frame.
+  afterPaint(() => {
+    if (state.isTrainingGame || !state.puzzle) return;
+    const isCoop = !!e.coop;
+    const diff = state.puzzle.difficulty;
+    // Streak ZUERST (der Streak-Münz-Multiplikator zählt den heutigen Sieg mit).
+    applyStreakAfterGame();
+    // Bestzeit-Vergleich VOR recordResult einfangen (der Aufruf überschreibt sie).
+    const prevBest = isCoop ? state.stats.byDifficulty[diff]?.coopBestTimeMs : state.stats.byDifficulty[diff]?.bestTimeMs;
+    const disqualified = (state.mistakes || 0) > 0 || (state.hintsUsed || 0) > 0;
+    state.wouldHaveBeenBest = disqualified && (prevBest == null || state.elapsed < prevBest);
+    const { stats, newHighscore } = recordResult({
+      difficulty: diff, outcome: 'won',
+      timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+      coop: isCoop,
+    });
+    state.stats = stats;
+    state.newHighscore = newHighscore;
+    const dIdx = DIFFICULTIES.findIndex(d => d.id === diff);
+    const perfect = (state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0;
+    const streakDays = state.streak.currentStreak || 0;
+    const bonus = { coop: isCoop, perfect, bestTime: newHighscore, streak: streakDays };
+    // Belohnungs-Idempotenz je Level (jedes Level hat seine eigene gameId) — wie
+    // bei normalen Solo-Siegen; Coop belohnt jeden Spieler selbst (wie win()).
+    const alreadyRewarded = !isCoop && state.gameId && isGameCompleted(state.gameId);
+    const coins = alreadyRewarded ? 0 : coinReward(dIdx, bonus);
+    const mult = Math.round(coinMultiplier(bonus) * 100) / 100;
+    if (coins) state.wallet = grantCurrency(coins, 'win', {
+      difficulty: diff, mode: isCoop ? 'endlessCoop' : 'endless',
+      base: coinBaseForIndex(dIdx), mult, coopMult: isCoop, perfect, bestTime: newHighscore,
+      streakDays: streakDays || 0,
+      streakPct: streakDays ? Math.round(coinStreakBonus(streakDays) * 100) : 0,
+      gameId: state.gameId || null, endlessLevel: e.score,
+    });
+    if (!isCoop && state.gameId) markGameCompleted(state.gameId);
+    state.lastCoinReward = coins;
+    state.lastCoinMult = mult;
+    state.lastStreakUsed = streakDays;
+    e.coins = (e.coins || 0) + coins;   // Lauf-Summe für den Ergebnis-Screen
+    // Neue perfekte Solo-Bestzeit → Online-Bestenliste (Coop-Level bewusst nicht).
+    if (newHighscore && !isCoop && state.account.status === 'in') {
+      Account.publishBestTime(diff, state.elapsed, state.account.username, myBadge());
+    }
+    // Verlauf + Missionen + Achievements/Prestige — exakt wie ein normaler Sieg.
+    state.puzzleHistory = recordHistory({
+      difficulty: diff, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
+      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+      timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
+    });
+    recordMissionEvent({
+      won: true, played: true, perfect,
+      coop: state.coop.active, race: false,
+      bigNumbers: !!state.puzzle?.bigNumbers, difficulty: diff, diffIndex: dIdx,
+      streak: streakDays,
+    });
+    checkAchievements();
+    checkMasterUnlock();
+    checkPrestigeUnlocks();
+    // SOLO-Endlos fortsetzbar halten: JETZT (nach der Buchhaltung, inkl. Lauf-
+    // Münzsumme) den Zwischen-Level-Marker sichern — das gelöste Brett selbst
+    // taugt nicht zum Fortsetzen, das Fortsetzen startet frisch bei score+1.
+    if (!isCoop) saveActiveGameEndless({ pending: true, endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 } });
+    log('game', 'Endlos-Level als Einzelsieg verbucht', { level: e.score, difficulty: diff, coins, mult, newHighscore, perfect, coop: isCoop });
+    syncCloudNow('endlessLevel');
+  });
 }
 // „Fortsetzen" auf dem Endlos-Level-Screen: nächstes (schwereres) Level laden. Solo
 // direkt; Coop nur der Host (generiert + broadcastet), der Gast wartet auf das INIT.
@@ -1347,41 +1397,70 @@ function endlessContinue() {
   e.level = e.score + 1;
   if (e.coop) loadCoopEndlessLevel(); else loadEndlessLevel();
 }
-// Lauf beendet (aus lose(), Leben aufgebraucht): Score verbuchen, Münzen für alle
-// geschafften Level gutschreiben, Ergebnis-Screen zeigen.
+// Lauf beendet (aus lose(), Leben aufgebraucht): das GESCHEITERTE Schluss-Level
+// als individuelle Niederlage seiner Schwierigkeit verbuchen (jedes Level ist ein
+// Einzelspiel — auch das verlorene), dann den Lauf werten (endlessBest/Runs).
+// Münzen sind bereits JE LEVEL geflossen (endlessLevelSolved) — hier wird nur
+// noch die Lauf-Summe (e.coins) angezeigt, NICHTS erneut gutgeschrieben.
 function endlessGameOver() {
-  stopTimer();
   const e = state.endless;
+  if (!e.active) return;   // idempotent (Doppel-lose darf nicht doppelt buchen)
+  // Exakte Zeit des gescheiterten Levels stempeln (lose() verzweigt VOR seinem
+  // eigenen Stempel hierher) — zählt in die Niederlagen-Buchhaltung + Gesamtzeit.
+  if (!state.paused && state.startTime && state.status === 'playing') state.elapsed = Math.max(0, gameNow() - state.startTime);
+  stopTimer();
   const score = e.score;
-  const coins = endlessRunCoins(score, DIFFICULTIES.length, coinBaseForIndex);
+  e.accumMs = (e.accumMs || 0) + Math.max(0, state.elapsed || 0);   // auch die Zeit des verlorenen Levels zählt zur Laufzeit
+  // Individuelle Niederlage (Zähler global + je Schwierigkeit, Tages-Streak-
+  // Aktivität, Verlauf, Missionen) — exakt wie lose() bei einem Einzelspiel.
+  if (state.puzzle && !state.isTrainingGame) {
+    const { stats } = recordResult({
+      difficulty: state.puzzle.difficulty, outcome: 'lost',
+      timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+      coop: false,
+    });
+    state.stats = stats;
+    applyStreakAfterGame();
+    state.puzzleHistory = recordHistory({
+      difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
+      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+      timeMs: state.elapsed, outcome: 'lost', coop: false,
+    });
+  }
   const { stats, newBest } = recordEndlessRun(score);
   state.stats = stats;
-  let granted = 0;
-  if (coins > 0) { state.wallet = grantCurrency(coins, 'endless', { mode: 'endless', score }); granted = coins; }
   e.active = false;
   state.status = 'lost';   // saveSlot='endless' → persistGame fasst den Solo-Slot nie an
   saveActiveGameEndless(null); state.resumeAvailableEndless = null;  // Lauf vorbei → Fortsetzen-Slot räumen
-  state.endlessSummary = { score, best: stats.endlessBest, coins: granted, newBest, totalMs: endlessTotalMs() };
+  state.endlessSummary = { score, best: stats.endlessBest, coins: e.coins || 0, newBest, totalMs: endlessTotalMs() };
   if (state.settings.sfxLose) Music.sfxLose();
-  log('game', 'Endlos-Lauf beendet', { score, best: stats.endlessBest, coins: granted, newBest });
-  recordMissionEvent({ played: true, endlessScore: score });
+  log('game', 'Endlos-Lauf beendet', { score, best: stats.endlessBest, coins: e.coins || 0, newBest });
+  recordMissionEvent({
+    played: true, won: false, endlessScore: score,
+    difficulty: state.puzzle?.difficulty,
+    diffIndex: DIFFICULTIES.findIndex(d => d.id === state.puzzle?.difficulty),
+  });
   checkAchievements();
+  checkMasterUnlock();
+  checkPrestigeUnlocks();
   syncCloudNow('endlessEnd');
 }
-// Mitten im Lauf aufgeben (Menü): geschaffte Level werden trotzdem gewertet/belohnt.
+// Mitten im Lauf aufgeben (Menü): der Lauf wird gewertet (endlessBest/Runs) — die
+// Münzen/Siege der geschafften Level sind bereits je Level geflossen; das
+// ANGEFANGENE Level zählt wie ein verlassenes Einzelspiel NICHT als Niederlage.
 function endlessAbort() {
   const e = state.endless;
   if (!e.active) return;
   const score = e.score;
-  const coins = endlessRunCoins(score, DIFFICULTIES.length, coinBaseForIndex);
-  const { stats } = recordEndlessRun(score);
+  // coop-Flag mitgeben: ein abgebrochener COOP-Endlos-Lauf gehört in die Coop-
+  // Endlos-Statistik (endlessCoopBest/Runs), nicht in die Solo-Werte.
+  const { stats } = recordEndlessRun(score, { coop: !!e.coop });
   state.stats = stats;
-  if (coins > 0) state.wallet = grantCurrency(coins, 'endless', { mode: 'endless', score, aborted: true });
   e.active = false;
   saveActiveGameEndless(null); state.resumeAvailableEndless = null;  // Lauf abgebrochen → Fortsetzen-Slot räumen
   recordMissionEvent({ played: true, endlessScore: score });
   checkAchievements();
-  log('game', 'Endlos-Lauf abgebrochen', { score, coins });
+  log('game', 'Endlos-Lauf abgebrochen', { score, coins: e.coins || 0 });
   syncCloudNow('endlessAbort');
 }
 function endlessAgain() { state.endlessSummary = null; startEndless(); }
@@ -1441,24 +1520,47 @@ function finishCoopEndlessLevel(puzzle) {
   startCoopGame(startTime);
   requestWakeLock();
 }
-// Leben gemeinsam aufgebraucht → Lauf endet für alle (idempotent).
+// Leben gemeinsam aufgebraucht → Lauf endet für alle (idempotent). Das
+// GESCHEITERTE Schluss-Level ist eine individuelle Coop-Niederlage (jedes Level
+// = Einzelspiel); Münzen sind bereits je Level geflossen (endlessLevelSolved) —
+// die Summary zeigt nur noch die eigene Lauf-Summe (e.coins).
 function endlessCoopGameOver() {
   if (state.endlessSummary) return;
   stopTimer();
   const e = state.endless;
   const score = e.score;
-  const coins = endlessRunCoins(score, DIFFICULTIES.length, coinBaseForIndex);
+  e.accumMs = (e.accumMs || 0) + Math.max(0, state.elapsed || 0);   // Zeit des verlorenen Levels zählt zur Laufzeit
+  // Individuelle Coop-Niederlage für das Schluss-Level (jeder Client bucht seine
+  // eigene Statistik — wie bei einer normalen Coop-Niederlage in lose()).
+  if (state.puzzle && !state.isTrainingGame) {
+    const { stats } = recordResult({
+      difficulty: state.puzzle.difficulty, outcome: 'lost',
+      timeMs: state.elapsed, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
+      coop: true,
+    });
+    state.stats = stats;
+    applyStreakAfterGame();
+    state.puzzleHistory = recordHistory({
+      difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
+      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+      timeMs: state.elapsed, outcome: 'lost', coop: true,
+    });
+  }
   const { stats, newBest } = recordEndlessRun(score, { coop: true });
   state.stats = stats;
-  let granted = 0;
-  if (coins > 0) { state.wallet = grantCurrency(coins, 'endless', { mode: 'endlessCoop', score }); granted = coins; }
   e.active = false;
   state.status = 'lost';
-  state.endlessSummary = { score, best: stats.endlessCoopBest, coins: granted, newBest, coop: true, totalMs: endlessTotalMs() };
+  state.endlessSummary = { score, best: stats.endlessCoopBest, coins: e.coins || 0, newBest, coop: true, totalMs: endlessTotalMs() };
   if (state.settings.sfxLose) Music.sfxLose();
-  log('coop', 'Coop-Endlos beendet', { score, best: stats.endlessCoopBest, coins: granted, newBest });
-  recordMissionEvent({ played: true, endlessScore: score });
+  log('coop', 'Coop-Endlos beendet', { score, best: stats.endlessCoopBest, coins: e.coins || 0, newBest });
+  recordMissionEvent({
+    played: true, won: false, endlessScore: score,
+    coop: true, difficulty: state.puzzle?.difficulty,
+    diffIndex: DIFFICULTIES.findIndex(d => d.id === state.puzzle?.difficulty),
+  });
   checkAchievements();
+  checkMasterUnlock();
+  checkPrestigeUnlocks();
   syncCloudNow('endlessCoopEnd');
 }
 
@@ -2364,10 +2466,11 @@ function handleCoopMsg(msg) {
     // mit frischer gameId, daher nie durch den Duplikat-Guard oben blockiert.
     // Ohne Marker sicherstellen, dass ein evtl. Alt-Endlos aus ist (normales Coop).
     if (msg.endless) {
-      // accumMs (Gesamt-Timer) über die Level-INITs hinweg BEWAHREN — der Gast hat
-      // die Zeit des gerade gelösten Levels bereits in endlessLevelSolved summiert,
-      // sonst würde der frische INIT den Gesamt-Timer bei jedem Level zurücksetzen.
-      state.endless = { active: true, coop: true, advancing: false, level: msg.endlessLevel || 1, lives: msg.lives ?? LIVES, hints: HINTS, score: (msg.endlessLevel || 1) - 1, coins: 0, best: state.stats.endlessCoopBest || 0, bigNumbers: !!(msg.puzzle && msg.puzzle.bigNumbers), accumMs: state.endless.accumMs || 0 };
+      // accumMs (Gesamt-Timer) UND coins (eigene Lauf-Münzsumme) über die
+      // Level-INITs hinweg BEWAHREN — der Gast hat beides beim Lösen des gerade
+      // beendeten Levels in endlessLevelSolved summiert; ein frischer INIT darf
+      // sie nicht zurücksetzen.
+      state.endless = { active: true, coop: true, advancing: false, level: msg.endlessLevel || 1, lives: msg.lives ?? LIVES, hints: HINTS, score: (msg.endlessLevel || 1) - 1, coins: state.endless.coins || 0, best: state.stats.endlessCoopBest || 0, bigNumbers: !!(msg.puzzle && msg.puzzle.bigNumbers), accumMs: state.endless.accumMs || 0 };
     } else if (state.endless.active) {
       state.endless.active = false;
     }
@@ -3851,7 +3954,7 @@ function endlessSnapshot() {
   const e = state.endless;
   return {
     ...activeSnapshot(),
-    endless: { level: e.level, lives: state.lives, hints: Math.max(0, state.hintsLeft || 0), score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0 },
+    endless: { level: e.level, lives: state.lives, hints: Math.max(0, state.hintsLeft || 0), score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 },
   };
 }
 function persistGame() {
@@ -3969,7 +4072,8 @@ function resumeEndlessGame() {
   state.endlessSummary = null;
   state.endless = {
     active: true, coop: false, advancing: false, level: em.level,
-    lives: em.lives, hints: em.hints, score: em.score, coins: 0,
+    lives: em.lives, hints: em.hints, score: em.score,
+    coins: em.coins || 0,       // bisher im Lauf verdiente Münzen (Summary am Laufende)
     best: state.stats.endlessBest || 0, bigNumbers: !!em.bigNumbers,
     accumMs: em.accumMs || 0,   // Gesamt-Timer nahtlos fortsetzen
   };

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, solveActivePuzzle } from './helpers.js';
+import { gotoApp, solveActivePuzzle, dismissStreakModal } from './helpers.js';
 
 test.describe('endless climb', () => {
   test('setup endless toggle starts a run, clearing a level advances, losing shows the summary', async ({ page }) => {
@@ -24,6 +24,15 @@ test.describe('endless climb', () => {
     await page.waitForFunction(() => window.__cns.state.status === 'won');
     await expect(page.locator('.result-card.win')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.endless.score)).toBe(1);
+    // KERN: das Level ist ein VOLLWERTIGER Einzelsieg — Zähler + volle Münz-
+    // Belohnung (Buchhaltung läuft nach dem ersten Frame → warten).
+    await page.waitForFunction(() => (window.__cns.state.stats.won || 0) === 1);
+    const diff1 = await page.evaluate(() => window.__cns.state.puzzle.difficulty);
+    expect(await page.evaluate((d) => window.__cns.state.stats.byDifficulty[d]?.won || 0, diff1)).toBe(1);
+    expect(await page.evaluate(() => window.__cns.state.lastCoinReward)).toBeGreaterThan(0);
+    expect(await page.evaluate(() => window.__cns.state.wallet.balance)).toBeGreaterThan(0);
+    // Erstes Spiel des Tages → Streak-Feier-Screen wegklicken, dann weiter.
+    await dismissStreakModal(page);
     // „Fortsetzen" lädt erst das nächste (schwerere) Level → Level 2
     await page.locator('.result-card .btn-primary').click();
     await page.waitForFunction(() => window.__cns.state.endless.level === 2 && window.__cns.state.puzzle && !window.__cns.state.generating);
@@ -42,6 +51,11 @@ test.describe('endless climb', () => {
     expect(await page.evaluate(() => !!window.__cns.state.endlessSummary)).toBe(true);
     expect(await page.evaluate(() => window.__cns.state.endlessSummary.score)).toBe(1);
     expect(await page.evaluate(() => window.__cns.state.stats.endlessBest)).toBe(1);
+    // Das GESCHEITERTE Schluss-Level zählt als individuelle Niederlage; die
+    // Summary zeigt die Summe der bereits je Level geflossenen Münzen.
+    expect(await page.evaluate(() => window.__cns.state.stats.lost || 0)).toBe(1);
+    expect(await page.evaluate(() => window.__cns.state.stats.played || 0)).toBe(2);
+    expect(await page.evaluate(() => window.__cns.state.endlessSummary.coins)).toBeGreaterThan(0);
     // „Neues Spiel" startet einen frischen Lauf.
     await page.locator('.result-card .btn-primary').click();
     await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating);
@@ -69,7 +83,9 @@ test.describe('endless climb', () => {
     expect(accum1).toBeGreaterThanOrEqual(4000);
 
     // Nächstes Level: Gesamt-Timer trägt die Zeit von Level 1 WEITER (accumMs bleibt),
-    // während der Level-Timer bei 0 neu startet.
+    // während der Level-Timer bei 0 neu startet. (Streak-Feier des ersten
+    // Tagesspiels vorher wegklicken — sie liegt über dem Fortsetzen-Knopf.)
+    await dismissStreakModal(page);
     await page.locator('.result-card .btn-primary').click();
     await page.waitForFunction(() => window.__cns.state.endless.level === 2 && window.__cns.state.puzzle && !window.__cns.state.generating);
     const accum2 = await page.evaluate(() => window.__cns.state.endless.accumMs);
@@ -77,7 +93,7 @@ test.describe('endless climb', () => {
     expect(await page.evaluate(() => window.__cns.state.elapsed)).toBeLessThan(2000); // Level-Timer frisch
   });
 
-  test('a perfect endless level feeds the personal solo best time (per-level, no counter inflation)', async ({ page }) => {
+  test('a perfect endless level counts as a FULL individual win (best time, counters, coins)', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
     await page.waitForSelector('.screen.setup');
@@ -87,15 +103,23 @@ test.describe('endless climb', () => {
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
     const diff = await page.evaluate(() => window.__cns.state.puzzle.difficulty);
 
-    // Level fehlerfrei lösen → persönliche Bestzeit für diese Schwierigkeit + „Neue Bestzeit!".
+    // Level fehlerfrei lösen → vollwertiger Einzelsieg (Buchhaltung nach dem 1. Frame).
     await solveActivePuzzle(page);
     await page.waitForFunction(() => window.__cns.state.status === 'won');
+    await page.waitForFunction(() => (window.__cns.state.stats.won || 0) === 1);
+    // Bestzeit + „Neue Bestzeit!" (perfekt gilt pro Level).
     const best = await page.evaluate((d) => window.__cns.state.stats.byDifficulty[d]?.bestTimeMs, diff);
     expect(best).toBeGreaterThan(0);
     expect(await page.evaluate(() => window.__cns.state.newHighscore)).toBe(true);
-    // KEINE aufgeblähten Solo-Zähler: der Lauf zählt erst am Ende als EIN Lauf.
-    expect(await page.evaluate(() => window.__cns.state.stats.won || 0)).toBe(0);
-    expect(await page.evaluate((d) => window.__cns.state.stats.byDifficulty[d]?.won || 0, diff)).toBe(0);
+    // VOLLE Zähler: 1 Sieg global + je Schwierigkeit, 1 gespielt, Zeit-Summe.
+    expect(await page.evaluate((d) => window.__cns.state.stats.byDifficulty[d]?.won || 0, diff)).toBe(1);
+    expect(await page.evaluate(() => window.__cns.state.stats.played || 0)).toBe(1);
+    expect(await page.evaluate((d) => window.__cns.state.stats.byDifficulty[d]?.sumTimeMs || 0, diff)).toBeGreaterThan(0);
+    // VOLLE Münzbelohnung mit Multiplikatoren (perfekt ×2, Bestzeit ×2 → ≥ ×4).
+    expect(await page.evaluate(() => window.__cns.state.lastCoinReward)).toBeGreaterThan(0);
+    expect(await page.evaluate(() => window.__cns.state.lastCoinMult)).toBeGreaterThanOrEqual(4);
+    // Der Sieg landet im Verlauf (jedes Level = dokumentiertes Einzelspiel).
+    expect(await page.evaluate(() => window.__cns.state.puzzleHistory.length)).toBe(1);
     // „Neue Bestzeit!"-Badge ist im Level-Gewinn-Screen sichtbar.
     await expect(page.locator('.result-card .highscore-badge')).toBeVisible();
   });

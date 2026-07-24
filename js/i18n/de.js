@@ -616,7 +616,7 @@ export default {
     listTitle: 'Deine Freunde', empty: 'Noch keine Freunde – füge oben jemanden über den Benutzernamen hinzu.', remove: 'Entfernen',
     removeTitle: 'Freund entfernen', removeMsg: '{name} aus deiner Freundesliste entfernen?', nowFriends: '{name} ist jetzt dein Freund',
     online: 'Online', offline: 'Offline', offlineSince: 'Offline · zuletzt {when}', inGame: 'Im Spiel · {info}',
-    mode: { solo: 'Solo', coop: 'Coop', race: '1vs1', team: 'Team' },
+    mode: { solo: 'Solo', coop: 'Coop', race: '1vs1', team: 'Team', endless: 'Endlos', endlessCoop: 'Coop-Endlos' },
     lbSoonTitle: 'Bestenlisten kommen bald', lbSoonHint: 'Manipulationssichere Ranglisten folgen mit serverseitiger Auswertung.',
     lbLoading: "Bestenliste wird geladen …", lbEmpty: "Noch keine Zeiten — sei die/der Erste!",
     err: { invalidUsername: 'Ungültiger Benutzername.', userNotFound: 'Kein Nutzer mit diesem Benutzernamen gefunden.', alreadyFriends: 'Ihr seid bereits befreundet.', selfFriend: 'Du kannst dich nicht selbst hinzufügen.', notSignedIn: 'Bitte melde dich zuerst an.' },

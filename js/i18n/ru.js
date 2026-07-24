@@ -512,7 +512,7 @@ export default {
     listTitle: 'Ваши друзья', empty: 'Пока нет друзей — добавьте кого-нибудь по имени пользователя выше.', remove: 'Удалить',
     removeTitle: 'Удалить друга', removeMsg: 'Удалить {name} из списка друзей?', nowFriends: '{name} теперь ваш друг',
     online: 'В сети', offline: 'Не в сети', offlineSince: 'Не в сети · был(а) {when}', inGame: 'В игре · {info}',
-    mode: { solo: 'Соло', coop: 'Кооп', race: '1 на 1', team: 'Команда' },
+    mode: { solo: 'Соло', coop: 'Кооп', race: '1 на 1', team: 'Команда', endless: 'Бесконечный', endlessCoop: 'Кооп-бесконечный' },
     lbSoonTitle: 'Таблицы лидеров скоро', lbSoonHint: 'Защищённые от читеров рейтинги появятся с серверным подсчётом.',
     lbLoading: "Загрузка таблицы лидеров …", lbEmpty: "Пока нет результатов — станьте первым!",
     err: { invalidUsername: 'Недопустимое имя пользователя.', userNotFound: 'Пользователь с таким именем не найден.', alreadyFriends: 'Вы уже друзья.', selfFriend: 'Нельзя добавить самого себя.', notSignedIn: 'Сначала войдите в аккаунт.' },

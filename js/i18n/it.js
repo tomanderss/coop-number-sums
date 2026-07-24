@@ -512,7 +512,7 @@ export default {
     listTitle: 'I tuoi amici', empty: 'Ancora nessun amico – aggiungi qualcuno tramite il nome utente qui sopra.', remove: 'Rimuovi',
     removeTitle: 'Rimuovi amico', removeMsg: 'Rimuovere {name} dalla tua lista amici?', nowFriends: '{name} ora è tuo amico',
     online: 'Online', offline: 'Offline', offlineSince: 'Offline · visto {when}', inGame: 'In partita · {info}',
-    mode: { solo: 'Solo', coop: 'Coop', race: '1v1', team: 'Squadra' },
+    mode: { solo: 'Solo', coop: 'Coop', race: '1v1', team: 'Squadra', endless: 'Infinito', endlessCoop: 'Coop infinito' },
     lbSoonTitle: 'Classifiche in arrivo', lbSoonHint: 'Le classifiche a prova di imbroglio arriveranno con il calcolo lato server.',
     lbLoading: "Caricamento classifica …", lbEmpty: "Ancora nessun tempo: sii il primo!",
     err: { invalidUsername: 'Nome utente non valido.', userNotFound: 'Nessun utente trovato con questo nome.', alreadyFriends: 'Siete già amici.', selfFriend: 'Non puoi aggiungere te stesso.', notSignedIn: 'Accedi prima.' },
