@@ -21,7 +21,7 @@ export default {
   },
 
   solo: { title: 'Solo', classic: 'Classique', classicHint: 'Une grille, difficulté libre', endless: 'Ascension sans fin', endlessHint: 'Toujours plus dur – jusqu’où irez-vous ?', endlessStart: 'Démarrer sans fin' },
-  endless: { badge: 'Sans fin', best: 'Meilleure partie : niveau {n}', cleared: 'Niveau {n} réussi !', lifeGained: '+1 vie', overTitle: 'Partie terminée', reached: 'Niveau {n} atteint', record: 'Nouveau record !', levelDone: 'Niveau {n} réussi !', continue: 'Continuer', livesLabel: 'Vies', levelShort: 'Niveau {n}', levelTime: 'Temps de ce niveau', totalTime: 'Temps total de la partie' },
+  endless: { badge: 'Sans fin', best: 'Meilleure partie : niveau {n}', cleared: 'Niveau {n} réussi !', lifeGained: '+1 vie', overTitle: 'Partie terminée', reached: 'Niveau {n} atteint', record: 'Nouveau record !', levelDone: 'Niveau {n} réussi !', continue: 'Continuer', livesLabel: 'Vies', levelShort: 'Niveau {n}', levelTime: 'Temps de ce niveau', totalTime: 'Temps total de la partie', backfillToast: 'Anciennes parties sans fin créditées : {wins} victoires de {runs} parties comptent désormais dans tes statistiques !' },
 
   mismatch: { title: 'Données de jeu différentes', sub: 'Votre solde de pièces diffère entre cet appareil et le cloud. Toute la progression (victoires, succès, achats) est fusionnée automatiquement — choisissez seulement quel solde doit s’appliquer.', local: 'Cet appareil', cloud: 'Cloud', keepLocal: 'Garder cet appareil', keepCloud: 'Garder le cloud', note: 'L’autre état est conservé en sauvegarde et jamais supprimé.' },
 

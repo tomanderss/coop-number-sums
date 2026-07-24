@@ -48,3 +48,37 @@ export function endlessLivesAfter(curLives, level, cfg = ENDLESS_CFG) {
 export function endlessIsRecord(score, prevBest) {
   return score > 0 && score > (prevBest || 0);
 }
+
+// ── Rückwirkende Zerlegung ALTER Endlos-Läufe (einmalige Migration) ───────────
+// Vor dem Einzelspiel-Umbau wurden Endlos-Level NICHT als individuelle Siege
+// verbucht — aber jeder Lauf hinterließ im (syncten) Geldverlauf einen Eintrag
+// `{reason:'endless', meta:{score, mode:'endless'|'endlessCoop', aborted?}}`.
+// Daraus lässt sich exakt rekonstruieren, WELCHE Level (= Schwierigkeiten der
+// Leiter) gewonnen wurden: Lauf mit score N ⇒ Level 1..N geschafft; endete er
+// NICHT per Abbruch, war Level N+1 zusätzlich eine Niederlage. Alte Läufe
+// kletterten mit DECKEL-Semantik (oben stehen bleiben, kein Wrap) — deshalb hier
+// bewusst min(len-1, L-1) statt endlessDiffIndex. NICHT rekonstruierbar (und
+// bewusst nicht erfunden): per-Level-Zeiten, Fehler/Hinweise (⇒ perfekt),
+// Bestzeiten, Multiplikator-Münzen (Basis-Münzen wurden damals bereits gezahlt).
+export function reconstructEndlessRuns(walletLog, diffIds) {
+  const out = { runCount: 0, wins: 0, coopWins: 0, losses: 0, coopLosses: 0, perDiff: {} };
+  if (!Array.isArray(walletLog) || !Array.isArray(diffIds) || !diffIds.length) return out;
+  const capId = (L) => diffIds[Math.min(diffIds.length - 1, Math.max(0, Math.floor(L) - 1))];
+  const bucket = (id) => out.perDiff[id] || (out.perDiff[id] = { won: 0, coopWon: 0, lost: 0, coopLost: 0 });
+  for (const en of walletLog) {
+    if (!en || en.reason !== 'endless' || !en.meta) continue;
+    const score = Math.floor(en.meta.score || 0);
+    if (score <= 0) continue;
+    out.runCount++;
+    const coop = en.meta.mode === 'endlessCoop';
+    for (let L = 1; L <= score; L++) {
+      const d = bucket(capId(L));
+      if (coop) { d.coopWon++; out.coopWins++; } else { d.won++; out.wins++; }
+    }
+    if (!en.meta.aborted) {   // Lauf endete durch Leben-Aus → Schluss-Level = Niederlage
+      const d = bucket(capId(score + 1));
+      if (coop) { d.coopLost++; out.coopLosses++; } else { d.lost++; out.losses++; }
+    }
+  }
+  return out;
+}

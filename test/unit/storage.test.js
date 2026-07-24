@@ -15,7 +15,7 @@ const {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame,
   loadActiveGameCoop, saveActiveGameCoop,
   saveCoopSession, loadCoopSession, clearCoopSession,
-  loadStats, recordResult, loadSeenVersion, saveSeenVersion,
+  loadStats, recordResult, applyEndlessBackfill, loadSeenVersion, saveSeenVersion,
   importFromFile, generateId,
   loadStreak, recordStreakResult, loadAchievements, unlockAchievements,
   loadRace, recordRaceWin, recordRaceLoss,
@@ -198,6 +198,40 @@ describe('storage.recordResult', () => {
 // volle Niederlage je Level — Zähler, Zeiten, Bestzeit) — die per-Level-Semantik
 // („perfekt gilt pro Level") deckt die recordResult-Suite oben ab; das frühere
 // recordEndlessLevelBest (nur-Bestzeit ohne Zähler) ist entfernt.
+
+describe('storage.applyEndlessBackfill', () => {
+  beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('books reconstructed wins/losses into global and per-difficulty counters', () => {
+    // Vorbestand: 1 normaler Solo-Sieg (darf nicht überschrieben werden).
+    recordResult({ difficulty: 'mittel', outcome: 'won', timeMs: 5000, hintsUsed: 0, mistakes: 0 });
+    const s = applyEndlessBackfill({
+      runCount: 2, wins: 3, coopWins: 2, losses: 1, coopLosses: 1,
+      perDiff: {
+        sehrleicht: { won: 2, coopWon: 1, lost: 0, coopLost: 0 },
+        leicht: { won: 1, coopWon: 1, lost: 1, coopLost: 1 },
+      },
+    });
+    assert.equal(s.won, 1 + 3);
+    assert.equal(s.lost, 1);
+    assert.equal(s.played, 1 + 4);        // 3 Siege + 1 Niederlage nachgebucht
+    assert.equal(s.coopWon, 2);
+    assert.equal(s.coopLost, 1);
+    assert.equal(s.coopPlayed, 3);
+    assert.equal(s.byDifficulty.sehrleicht.won, 2);
+    assert.equal(s.byDifficulty.sehrleicht.coopWon, 1);
+    assert.equal(s.byDifficulty.leicht.won, 1);
+    assert.equal(s.byDifficulty.leicht.lost, 1);
+    assert.equal(s.byDifficulty.leicht.played, 2);
+    assert.equal(s.byDifficulty.leicht.coopPlayed, 2);
+    // Bestehendes bleibt unangetastet: Bestzeit + mittel-Sieg.
+    assert.equal(s.byDifficulty.mittel.won, 1);
+    assert.equal(s.byDifficulty.mittel.bestTimeMs, 5000);
+    // Keine erfundenen Werte: Streaks/Perfekt bleiben unberührt.
+    assert.equal(s.perfectWins, 1);       // nur der echte perfekte Vorbestand
+    assert.equal(s.currentStreak, 1);
+  });
+});
 
 describe('storage.seenVersion', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });

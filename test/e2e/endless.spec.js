@@ -124,6 +124,34 @@ test.describe('endless climb', () => {
     await expect(page.locator('.result-card .highscore-badge')).toBeVisible();
   });
 
+  test('old endless runs are credited retroactively as individual games (one-time backfill)', async ({ page }) => {
+    // Geldverlauf VOR dem App-Start seeden: zwei alte Endlos-Läufe — einer bis
+    // Level 3 (Leben-Aus → zusätzlich 1 Niederlage), einer bis Level 1 abgebrochen.
+    await page.addInitScript(() => {
+      localStorage.setItem('cns_wallet_log', JSON.stringify([
+        { id: 'bk-a', ts: 1000, amount: 60, reason: 'endless', balance: 60, meta: { mode: 'endless', score: 3 } },
+        { id: 'bk-b', ts: 2000, amount: 20, reason: 'endless', balance: 80, meta: { mode: 'endless', score: 1, aborted: true } },
+      ]));
+    });
+    await gotoApp(page);
+    // 4 nachgebuchte Siege (3+1), 1 Niederlage (nur der nicht abgebrochene Lauf).
+    await page.waitForFunction(() => (window.__cns.state.stats.won || 0) === 4);
+    expect(await page.evaluate(() => window.__cns.state.stats.lost || 0)).toBe(1);
+    expect(await page.evaluate(() => window.__cns.state.stats.played || 0)).toBe(5);
+    // Je Schwierigkeit entlang der Leiter: Level 1 zweimal (beide Läufe), Level 2/3 je einmal.
+    const ladder = await page.evaluate(() => {
+      const by = window.__cns.state.stats.byDifficulty;
+      return Object.entries(by).filter(([, v]) => (v.won || 0) + (v.lost || 0) > 0).map(([id, v]) => [id, v.won || 0, v.lost || 0]);
+    });
+    expect(ladder.length).toBe(4); // 3 Sieg-Stufen + 1 Niederlage-Stufe
+    // Flag verhindert Doppel-Buchung: Neustart der App ändert NICHTS.
+    await page.reload();
+    await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
+    await page.waitForFunction(() => window.__cns && window.__cns.state.stats);
+    expect(await page.evaluate(() => window.__cns.state.stats.won || 0)).toBe(4);
+    expect(await page.evaluate(() => window.__cns.state.stats.played || 0)).toBe(5);
+  });
+
   test('endless never leaves a solo resume game behind', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-actions .btn-primary').click();
