@@ -112,6 +112,7 @@ export default {
   pause: {
     title: 'Pausado',
     msg: 'O tabuleiro está oculto – o tempo está parado.',
+    resuming: 'Retomando em …',
     resume: 'Continuar',
   },
   win: {

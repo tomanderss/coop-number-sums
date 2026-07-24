@@ -112,6 +112,7 @@ export default {
   pause: {
     title: 'Duraklatıldı',
     msg: 'Tahta gizlendi – süre durdu.',
+    resuming: 'Devam etmeye …',
     resume: 'Devam et',
   },
   win: {

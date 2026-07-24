@@ -112,6 +112,7 @@ export default {
   pause: {
     title: '일시정지됨',
     msg: '보드가 가려져 있습니다 – 시간이 멈췄습니다.',
+    resuming: '곧 재개됩니다 …',
     resume: '이어하기',
   },
   win: {

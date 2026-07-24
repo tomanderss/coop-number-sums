@@ -112,6 +112,7 @@ export default {
   pause: {
     title: 'Paused',
     msg: 'The board is hidden – the timer is stopped.',
+    resuming: 'Resuming in …',
     resume: 'Resume',
   },
   win: {

@@ -129,6 +129,29 @@ test.describe('gameplay', () => {
     const markedAfterUndo = await page.evaluate(() => window.__cns.state.marks[0][0]);
     expect(markedAfterUndo).toBe('none');
   });
+
+  test('resuming from pause runs a 3-2-1 countdown before the game continues', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page, 'sehrleicht');
+    // Pausieren → Fortsetzen tippen.
+    await page.locator('.game-top .icon-btn').first().click();
+    await page.waitForSelector('.pause-overlay');
+    await page.locator('.pause-overlay .btn-primary').click();
+    // Countdown läuft: Karte mit Ziffer + Balken, Spiel bleibt PAUSIERT (kein
+    // versehentlicher Tap ins Brett, Timer eingefroren).
+    await expect(page.locator('.resume-count-card')).toBeVisible();
+    await expect(page.locator('.resume-count-digit')).toHaveText('3');
+    await expect(page.locator('.resume-count-bar span')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
+    // Nach einer Sekunde: 2 — und immer noch pausiert.
+    await page.waitForFunction(() => window.__cns.state.resumeCountdown === 2);
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
+    // Countdown zu Ende → Spiel läuft wieder, Overlay weg.
+    await page.waitForFunction(() => !window.__cns.state.paused, null, { timeout: 6000 });
+    await expect(page.locator('.pause-overlay')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__cns.state.resumeCountdown)).toBe(null);
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+  });
 });
 
 // „Big Numbers"-Modus (Zellwerte 10–19): der Umschalter erscheint nur für
