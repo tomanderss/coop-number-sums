@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.179';
-export const BUILD_HASH = '6e643cf';
+export const BUILD      = '1.180';
+export const BUILD_HASH = 'f1c6862';
 
 export const CHANGELOG = [
+  {
+    "version": "1.180",
+    "date": "24.07.2026",
+    "changes": [
+      "Tages-Serie-Fix: eine durch manuelles Setzen (Admin) oder ungültiges Datum „festgeklemmte\" Serie heilt sich jetzt selbst und zählt wieder täglich hoch; der Cloud-Abgleich kann den Zähler nicht mehr mit veralteten Ständen überschreiben"
+    ]
+  },
   {
     "version": "1.179",
     "date": "24.07.2026",
