@@ -1,1 +1,0 @@
-Frühere Endlos-Läufe werden einmalig rückwirkend angerechnet: alle damals geschafften Level zählen jetzt als Siege in den Statistiken (je Schwierigkeit), inkl. Niederlagen der Schluss-Level und neu geprüfter Erfolge
