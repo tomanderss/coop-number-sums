@@ -16,6 +16,7 @@
 
 import { ensureFirebase } from './firebase.js';
 import { log } from './debuglog.js';
+import { todayDateStr, sanitizeLastCompleted } from './streak.js';
 import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
@@ -109,15 +110,26 @@ export function mergeMissions(a = {}, b = {}) {
   for (const k of new Set([...Object.keys(ap), ...Object.keys(bp)])) progress[k] = Math.max(nz(ap[k]), nz(bp[k]));
   return { weekKey: ak, progress, claimed: { ...(b.claimed || {}), ...(a.claimed || {}) } };
 }
-// Streak (cns_daily): Zähler = Maximum, letztes Abschlussdatum = das spätere,
-// Anzeige-Flags (lossNoticeShown/justLost) folgen der jüngeren Seite.
-function mergeStreak(a = {}, b = {}, aNewer = true) {
+// Streak (cns_daily): Der Anker der Serie ist das JÜNGSTE echte Spieldatum —
+// die Seite mit dem späteren (GÜLTIGEN, per sanitizeLastCompleted geheilten)
+// Datum trägt die aktuellste Aktivität, also gilt IHR currentStreak; nur bei
+// gleichem Datum entscheidet das Maximum. Früher galt pauschal max(currentStreak)
+// + lexikografisches max(Datum) über UNGEPRÜFTE Strings: ein einmal via
+// Admin-Editor vergiftetes Datum (deutsches Format „24.07.2026" gewinnt
+// lexikografisch ewig gegen jedes echte „2026-…"!) stellte so bei jedem Merge
+// den alten Zähler samt Gift-Datum wieder her — die Serie klemmte dauerhaft.
+// bestStreak/totalCompleted bleiben Lebenszeit-Maxima; Anzeige-Flags
+// (lossNoticeShown/justLost) folgen weiterhin der jüngeren Seite. Exportiert
+// für Unit-Tests (today injizierbar).
+export function mergeStreak(a = {}, b = {}, aNewer = true, today = todayDateStr()) {
   const out = aNewer ? { ...b, ...a } : { ...a, ...b };
-  out.currentStreak = Math.max(nz(a.currentStreak), nz(b.currentStreak));
+  const da = sanitizeLastCompleted(a.lastCompletedDate, today) || '';
+  const db = sanitizeLastCompleted(b.lastCompletedDate, today) || '';
+  if (da === db) out.currentStreak = Math.max(nz(a.currentStreak), nz(b.currentStreak));
+  else out.currentStreak = da > db ? nz(a.currentStreak) : nz(b.currentStreak);
   out.bestStreak = Math.max(nz(a.bestStreak), nz(b.bestStreak));
   out.totalCompleted = Math.max(nz(a.totalCompleted), nz(b.totalCompleted));
-  const da = a.lastCompletedDate || '', db = b.lastCompletedDate || '';
-  out.lastCompletedDate = (da > db ? da : db) || null;   // YYYY-MM-DD → lexikografisch
+  out.lastCompletedDate = (da > db ? da : db) || null;
   return out;
 }
 // Verlauf: Union nach Zeitstempel, jüngste zuerst, auf HISTORY_MAX gekappt.
