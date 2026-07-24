@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.178';
-export const BUILD_HASH = '72de646';
+export const BUILD      = '1.179';
+export const BUILD_HASH = '6e643cf';
 
 export const CHANGELOG = [
+  {
+    "version": "1.179",
+    "date": "24.07.2026",
+    "changes": [
+      "Frühere Endlos-Läufe werden einmalig rückwirkend angerechnet: alle damals geschafften Level zählen jetzt als Siege in den Statistiken (je Schwierigkeit), inkl. Niederlagen der Schluss-Level und neu geprüfter Erfolge"
+    ]
+  },
   {
     "version": "1.178",
     "date": "24.07.2026",
