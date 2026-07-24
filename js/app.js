@@ -278,7 +278,7 @@ const state = reactive({
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   masterUnlock: false,           // Feier-Screen „Großmeister freigeschaltet" offen?
   prestigeUnlock: null,          // Feier einer neu erreichten Prestige-Stufe { sym, tier, key, more } | null
-  chat: { open: false, messages: [], unread: 0, draft: '', kb: 0 },  // Multiplayer-Textchat (ephemer; kb = Höhe der eingeblendeten Tastatur px)
+  chat: { open: false, messages: [], unread: 0, draft: '', kb: 0, typingUids: [] },  // Multiplayer-Textchat (ephemer; kb = Tastatur-Höhe px; typingUids = gerade tippende Mitspieler, live aus Coop.onTyping)
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
   walletLogOpen: false,          // Geldverlauf-Modal offen? (Transaktionshistorie)
@@ -2385,6 +2385,7 @@ function receiveChat(msg) {
 function sendChat() {
   const text = String(state.chat.draft || '').trim().slice(0, CHAT_TEXT_MAX);
   if (!text || !isMultiplayer()) return;
+  stopChatTyping();   // Nachricht raus = nicht mehr am Tippen
   const name = chatSenderName();
   const color = state.settings.coopMyColor;
   const badge = myBadge();
@@ -2392,6 +2393,32 @@ function sendChat() {
   pushChatMessage({ uid: state.coop.myId, name, color, badge, text, self: true, ts: Date.now() });
   state.chat.draft = '';
   log('coop', 'Chat gesendet', { len: text.length });
+}
+// ── Tipp-Indikator („… schreibt", à la WhatsApp) ──────────────────────────────
+// Beim Tippen im Chat wird der eigene Status als transienter Raum-Knoten gesetzt
+// (Coop.setTyping — KEIN events-Eintrag, gedrosselt auf max. 1 Schreibzugriff /
+// 2 s) und nach 3 s Tipp-Pause bzw. beim Senden/Schließen wieder entfernt
+// (onDisconnect räumt Abstürze auf). Alle Clients sehen die live tippenden
+// Mitspieler (state.chat.typingUids, via Coop.onTyping in init()) — als
+// animierte Punkte am Chat-Button der Topbar UND als Tipp-Blase im Chat.
+let typingSentAt = 0, typingStopTimer = null;
+function onChatTyping() {
+  if (!isMultiplayer()) return;
+  const now = Date.now();
+  if (now - typingSentAt > 2000) { typingSentAt = now; Coop.setTyping(true); }
+  clearTimeout(typingStopTimer);
+  typingStopTimer = setTimeout(stopChatTyping, 3000);
+}
+function stopChatTyping() {
+  clearTimeout(typingStopTimer); typingStopTimer = null;
+  if (typingSentAt) { typingSentAt = 0; Coop.setTyping(false); }
+}
+// Gerade tippende MITSPIELER als Anzeigedaten (Name + Farbe aus dem Roster).
+function typingPlayers() {
+  if (!state.chat.typingUids.length) return [];
+  return state.chat.typingUids
+    .filter((u) => u !== state.coop.myId)
+    .map((u) => state.coop.players.find((p) => p.id === u) || { id: u, name: t('common.defaultPlayerName'), color: '#888' });
 }
 function scrollChatToEnd() {
   const el = document.querySelector('.chat-msgs');
@@ -2421,9 +2448,9 @@ function unbindChatViewport() {
   state.chat.kb = 0;
 }
 function openChat() { state.chat.open = true; state.chat.unread = 0; bindChatViewport(); nextTick(() => { scrollChatToEnd(); document.querySelector('.chat-input')?.focus(); }); }
-function closeChat() { state.chat.open = false; unbindChatViewport(); }
+function closeChat() { state.chat.open = false; unbindChatViewport(); stopChatTyping(); }
 function toggleChat() { state.chat.open ? closeChat() : openChat(); }
-function resetChat() { unbindChatViewport(); state.chat.messages = []; state.chat.unread = 0; state.chat.open = false; state.chat.draft = ''; }
+function resetChat() { unbindChatViewport(); stopChatTyping(); state.chat.messages = []; state.chat.unread = 0; state.chat.open = false; state.chat.draft = ''; state.chat.typingUids = []; }
 
 // Nachrichten, die einen LAUFENDEN Spielzustand voraussetzen — ohne geladenes
 // Brett (z.B. direkt nach dem Beitritt, bevor das INIT eintrifft) würden sie
@@ -2434,6 +2461,39 @@ const COOP_GAME_MSGS = new Set([Coop.MSG.MOVE, Coop.MSG.UNDO, Coop.MSG.CHECK, Co
 // steht, muss dann sofort einsteigen (Sicherheitsnetz gegen jeden Lobby-Hänger,
 // unabhängig von running-Flag/START/Timing).
 const COOP_LIVE_ACTIVITY = new Set([Coop.MSG.MOVE, Coop.MSG.UNDO, Coop.MSG.CHECK, Coop.MSG.MISTAKE, Coop.MSG.HINT]);
+// Minimale Struktur-Prüfung eines per INIT empfangenen Puzzles: alles, was das
+// Brett-Template/loadPuzzleIntoState zwingend braucht. Verhindert, dass ein
+// kaputtes INIT die App halb lädt (Spiel-Screen ohne Brett = Blackscreen).
+function validPuzzleShape(p) {
+  return !!(p && Number.isInteger(p.rows) && p.rows > 0 && Number.isInteger(p.cols) && p.cols > 0
+    && Array.isArray(p.values) && p.values.length === p.rows && Array.isArray(p.values[0])
+    && Array.isArray(p.solution) && p.solution.length === p.rows
+    && Array.isArray(p.rowTargets) && Array.isArray(p.colTargets));
+}
+// ── Resync-Watchdog (Gast-Selbstheilung) ──────────────────────────────────────
+// Hängt ein Beitretender verbunden im Raum, hat aber nach ein paar Sekunden kein
+// Brett (INIT verloren/verworfen/fehlgeschlagen), fordert er den Rundenstand
+// aktiv beim Host an (MSG.RESYNC → Host antwortet mit broadcastRunningInit bzw.
+// dem Lobby-INIT). Mehrere Versuche, dann Ruhe — der Blackscreen-Schutz-Screen
+// (Template) bietet ohnehin jederzeit den Ausweg ins Menü.
+let coopResyncTimer = null, coopResyncTries = 0;
+function coopNeedsResync() {
+  return state.coop.active && state.coop.connected && !state.puzzle && !state.coop.generating && state.coop.role !== 'host';
+}
+function startCoopResyncWatchdog() {
+  if (coopResyncTimer) return;
+  coopResyncTries = 0;
+  coopResyncTimer = setInterval(() => {
+    if (!coopNeedsResync()) { stopCoopResyncWatchdog(); return; }
+    if (coopResyncTries >= 4) { log('coop', 'Resync-Watchdog: aufgegeben (kein Brett nach 4 Versuchen)'); stopCoopResyncWatchdog(); return; }
+    coopResyncTries++;
+    log('coop', 'Resync-Watchdog: fordere Rundenstand beim Host an', { attempt: coopResyncTries });
+    Coop.send({ type: Coop.MSG.RESYNC });
+  }, 5000);
+}
+function stopCoopResyncWatchdog() { if (coopResyncTimer) { clearInterval(coopResyncTimer); coopResyncTimer = null; } }
+watch(coopNeedsResync, (stuck) => { if (stuck) startCoopResyncWatchdog(); else stopCoopResyncWatchdog(); });
+
 function handleCoopMsg(msg) {
   // Race hält state.coop.active absichtlich false (s. state.race-Kommentar),
   // empfängt aber legitime PAUSE-Events über den Raum → race.active zählt mit.
@@ -2474,6 +2534,17 @@ function handleCoopMsg(msg) {
       return;
     }
     log('coop', 'INIT empfangen', { running: !!msg.running, gameId: msg.gameId || null, hasStart: msg.startTime != null });
+    // BLACKSCREEN-PRÄVENTION: das Puzzle VOR jeder Zustandsänderung prüfen. Ein
+    // kaputtes/beschnittenes INIT (Versionsversatz, sanitize-Verlust, Schreib-
+    // abbruch) lud sonst halb — die App landete auf dem Spiel-Screen ohne Brett
+    // (= toter schwarzer Bildschirm). Ungültig → ignorieren + Rundenstand aktiv
+    // beim Host anfordern (RESYNC); der Host sendet erneut (broadcastRunningInit
+    // bzw. Lobby-INIT) — Selbstheilung statt kaputter Lobby.
+    if (!validPuzzleShape(msg.puzzle)) {
+      log('coop', 'INIT mit ungültigem Puzzle verworfen → RESYNC angefordert', { gameId: msg.gameId || null });
+      Coop.send({ type: Coop.MSG.RESYNC });
+      return;
+    }
     // Coop-Flags ZUERST setzen (VOR loadPuzzleIntoState): der Beitretende lädt so
     // im Coop-Kontext — saveSlot='coop' (nicht versehentlich 'solo', was den
     // Solo-Slot mit einem Coop-Brett überschrieb) und applyMarkSafeRegionColors
@@ -2563,6 +2634,20 @@ function handleCoopMsg(msg) {
     if (state.coop.role === 'host') {
       const p = state.coop.players.find(pl => pl.id === msg.author);
       if (p) { p.ready = false; broadcastRoster(); }
+    }
+  } else if (msg.type === Coop.MSG.RESYNC) {
+    // Ein Gast hängt ohne Brett und bittet um den Rundenstand: der Host sendet
+    // erneut — läuft die Runde, den kompletten laufenden Stand (bereits aktive
+    // Spieler ignorieren das Wiederhol-INIT dank gameId-Guard); steht die
+    // Bereit-Lobby, das Lobby-INIT. Selbstheilung gegen verlorene/kaputte INITs.
+    if (state.coop.role === 'host' && state.coop.active && state.puzzle) {
+      if (!state.coop.awaitingStart && state.status === 'playing') {
+        log('coop', 'RESYNC-Anfrage → sende laufenden Rundenstand erneut', { from: msg.author });
+        broadcastRunningInit();
+      } else if (state.coop.awaitingStart) {
+        log('coop', 'RESYNC-Anfrage → sende Lobby-INIT erneut', { from: msg.author });
+        Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+      }
     }
   } else if (msg.type === Coop.MSG.TEAM_START) {
     applyTeamStart(msg.seed, msg.difficulty, !!msg.bigNumbers);
@@ -3723,6 +3808,12 @@ function lose(remote) {
 // laufender Runde selbst die Host-Rolle und spielt weiter (siehe promoteToHost()/
 // onClose() bzw. onLeave() in startHosting/startJoining).
 function quitToHome() {
+  // COOP-OFFLINE-RETTUNG: Verlässt man eine reine Coop-Partie, deren Verbindung
+  // tot ist, wird sie ZUERST automatisch in ein eigenständiges Solo-Spiel
+  // umgewandelt (continueSoloAlone) — der Stand landet im Solo-/Endlos-Slot und
+  // ist als „Fortsetzen" wieder da, statt mit der kaputten Lobby unterzugehen.
+  // Danach läuft der normale Quit-Fluss (saveSlot ist dann 'solo'/'endless').
+  if (canContinueSolo()) continueSoloAlone(true);
   // Endlos-Aufstieg mitten im Lauf verlassen:
   //  • SOLO-Endlos bleibt FORTSETZBAR — Lauf-Snapshot im eigenen Slot behalten,
   //    nur den State sauber deaktivieren (kein Abbruch/keine Wertung; die kommt
@@ -3770,6 +3861,48 @@ function quitToHome() {
   // 'race'/unbekannt → nichts speichern/löschen (Solo-Slot bleibt unberührt)
   refreshResume();
   navigate('home');
+}
+
+// ── COOP-OFFLINE-RETTUNG: allein als eigenständiges Solo-Spiel weiterspielen ──
+// Ist die Coop-Verbindung tot (Offline-Chip), war das Brett früher praktisch
+// verloren: Weiterspielen sendete ins Leere, Verlassen zerstörte ggf. die Lobby
+// und es gab keinen Spielstand. Jetzt wird die laufende REINE Coop-Partie (nicht
+// Race/Team/FFA) in ein vollwertiges Solo-Spiel umgewandelt: eigener Slot,
+// eigene gameId, lokale Uhr, alle Markierungen in der eigenen Farbe — und beim
+// Verlassen im Offline-Zustand passiert das AUTOMATISCH (quitToHome), sodass
+// immer ein gespeicherter Solo-Stand übrig bleibt. Der Raum wird dabei bewusst
+// NICHT abgerissen (keepRoom) — der Partner könnte selbst nur still offline sein.
+function canContinueSolo() {
+  return state.coop.active && state.coop.online === false && state.status === 'playing' && !!state.puzzle
+    && !state.race.active && !state.team.active && !state.coop.raceMode && !state.coop.ffaMode && !state.isTrainingGame;
+}
+function continueSoloAlone(silent = false) {
+  if (!canContinueSolo()) return false;
+  const wasEndless = state.endless.active && state.endless.coop;
+  log('coop', 'Coop offline → Umwandlung in eigenständiges Solo-Spiel', { code: state.coop.code, endless: wasEndless });
+  // Exakte Zeit auf der ALTEN (Server-)Uhr ablesen, bevor gameNow() auf die
+  // lokale Uhr wechselt (sonst springt der Timer um den Server-Offset).
+  const elapsedNow = state.paused ? state.elapsed : Math.max(0, gameNow() - state.startTime);
+  // Coop-Endlos wird zum SOLO-Endlos-Lauf (Slot 'endless', fortsetzbar) — Flag
+  // VOR coopReset umlegen, sonst beendet dessen Endlos-Guard den Lauf.
+  if (wasEndless) { state.endless.coop = false; state.endless.best = state.stats.endlessBest || 0; }
+  coopReset({ keepRoom: true });
+  clearCoopSession();
+  saveActiveGameCoop(null);   // kein paralleles „Coop fortsetzen" desselben Bretts
+  // Alle Markierungen gehören jetzt „mir" (einheitlich eigene Farbe/Skin).
+  for (let r = 0; r < state.markedBy.length; r++)
+    for (let c = 0; c < state.markedBy[r].length; c++)
+      if (state.markedBy[r][c]) state.markedBy[r][c] = LOCAL_PLAYER_ID;
+  state.saveSlot = wasEndless ? 'endless' : 'solo';
+  state.gameId = generateId();   // eigenständige Partie-Identität (Session/Belohnung)
+  state.sessionRev = 0;
+  state.startTime = Date.now() - elapsedNow;   // lokale Uhr neu verankern
+  state.elapsed = elapsedNow;
+  applyMarkSafeRegionColors();
+  persistGame();
+  refreshResume();
+  if (!silent) showToast(t('coop.continueSoloDone'), 'success', 3200);
+  return true;
 }
 
 // ─── SOLO → COOP: Freund in die LAUFENDE Solo-Partie einladen ─────────────────
@@ -6322,6 +6455,9 @@ function init() {
     });
   } catch (_) {}
   applyLocale();
+  // Tipp-Indikator: live tippende Mitspieler aus dem Raum übernehmen (Chat-Button
+  // + Tipp-Blase). Einmalige Registrierung — gilt für jede künftige Coop-Session.
+  Coop.onTyping((uids) => { state.chat.typingUids = uids; });
   refreshResume();
   initMissions();   // Wochen-Missionen laden / bei Wochenwechsel neu setzen
   runEndlessBackfill();   // einmalig: alte Endlos-Läufe rückwirkend als Einzelspiele anrechnen
@@ -6801,7 +6937,7 @@ const App = {
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       desktopKeyLabel, startDesktopKeyCapture, cancelDesktopKeyCapture, clearDesktopToolKey,
-      isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll,
+      isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -6823,6 +6959,7 @@ const App = {
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
       canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
+      canContinueSolo, continueSoloAlone,
       startTrainingGame, applyTrainingStep,
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       isOnline,
@@ -6953,6 +7090,21 @@ const App = {
     </section>
 
     <!-- ══ GAME ══ -->
+    <!-- BLACKSCREEN-SCHUTZ: landet die App (z.B. durch ein fehlgeschlagenes
+         Coop-INIT oder Event-Timing) auf dem Spiel-Screen OHNE geladenes Brett,
+         crashte früher das Template an state.puzzle.* → komplett schwarzer
+         Bildschirm, Lobby unrettbar. Jetzt: freundlicher Warte-Screen mit
+         Ausweg; der Resync-Watchdog fordert parallel den Rundenstand beim Host
+         an (Selbstheilung, s. startCoopResyncWatchdog). -->
+    <section v-else-if="state.screen==='game' && !state.puzzle" class="screen game game-recover">
+      <div class="loading-overlay recover">
+        <div class="loading-card">
+          <div class="loading-bar"><span></span></div>
+          <p>{{ t('game.loading') }}</p>
+          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
+        </div>
+      </div>
+    </section>
     <section v-else-if="state.screen==='game'" class="screen game" :class="{ 'race-mode': state.race.active, 'team-mode': state.team.active, 'training-mode': state.isTrainingGame }">
       <!-- Aufgeräumte Spiel-Topbar: oben nur HUD (Leben/Zeit) + Pause. Aufgeben,
            Einstellungen und Anleitung sind ins Pausenmenü gewandert (siehe unten);
@@ -6971,9 +7123,11 @@ const App = {
           <div v-if="state.endless.active" class="hud-item endless-lvl" :title="t('solo.endless')"><span class="ei" v-html="ic('meteor')"></span><b>{{ state.endless.level }}</b></div>
         </div>
         <div class="top-actions">
-          <button class="icon-btn chat-btn" v-if="isMultiplayer()" @click="toggleChat" :aria-label="t('chat.title')" :title="t('chat.title')">
+          <button class="icon-btn chat-btn" v-if="isMultiplayer()" @click="toggleChat" :aria-label="t('chat.title')" :title="typingPlayers().length ? t('chat.typing', { name: typingPlayers()[0].name }) : t('chat.title')">
             <span class="ico-wrap" v-html="ic('chat')"></span>
             <span v-if="state.chat.unread" class="chat-unread">{{ state.chat.unread }}</span>
+            <!-- Mitspieler tippt gerade → drei „wandernde" Punkte am Chat-Symbol. -->
+            <span v-else-if="typingPlayers().length" class="chat-typing-dots" :style="{ '--tp-col': typingPlayers()[0].color }"><i></i><i></i><i></i></span>
           </button>
           <button class="icon-btn" v-if="state.puzzle && !state.generating && state.status==='playing' && !state.coop.awaitingStart" @click="pauseGame" :title="t('game.pauseTitle')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
@@ -7192,6 +7346,12 @@ const App = {
                   class="btn btn-ghost" @click="openInvite()">
             <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span>
             {{ state.soloInvite.status==='hosting' ? t('soloInvite.buttonPending') : t('soloInvite.button') }}
+          </button>
+          <!-- Coop-Verbindung tot? → Brett als eigenständiges Solo-Spiel retten
+               und sofort allein weiterspielen (Coop-Offline-Rettung). -->
+          <button v-if="canContinueSolo()" class="btn btn-ghost" @click="continueSoloAlone(); resumeFromPause();">
+            <span class="btn-ic"><span class="ei" v-html="ic('play')"></span></span>
+            {{ t('coop.continueSolo') }}
           </button>
           <button class="btn btn-ghost" @click="openSettings"><span class="btn-ic"><span class="ei" v-html="ic('gear')"></span></span> {{ t('home.settings') }}</button>
           <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic"><span class="ei" v-html="ic('book')"></span></span> {{ t('home.howto') }}</button>
@@ -8871,9 +9031,15 @@ const App = {
             </div>
             <div class="chat-bubble">{{ m.text }}</div>
           </div>
+          <!-- „… schreibt"-Blase (à la WhatsApp): erscheint live, solange ein
+               Mitspieler tippt — mit Name in Spielerfarbe + wandernden Punkten. -->
+          <div v-for="p in typingPlayers()" :key="'tp-'+p.id" class="chat-msg chat-typing-row" :aria-label="t('chat.typing', { name: p.name })">
+            <div class="chat-sender"><span class="chat-name" :style="p.color ? { color: p.color } : null">{{ p.name }}</span></div>
+            <div class="chat-bubble chat-typing-bubble" :style="{ '--tp-col': p.color || 'currentColor' }"><i></i><i></i><i></i></div>
+          </div>
         </div>
         <form class="chat-input-row" @submit.prevent="sendChat">
-          <input class="text-input chat-input" v-model="state.chat.draft" :maxlength="300" :placeholder="t('chat.placeholder')" autocomplete="off" />
+          <input class="text-input chat-input" v-model="state.chat.draft" @input="onChatTyping" :maxlength="300" :placeholder="t('chat.placeholder')" autocomplete="off" />
           <button type="submit" class="btn btn-primary chat-send" :disabled="!state.chat.draft.trim()" :aria-label="t('chat.send')" :title="t('chat.send')"><span class="ico-wrap" v-html="ic('send')"></span></button>
         </form>
       </div>

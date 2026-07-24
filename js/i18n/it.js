@@ -188,6 +188,8 @@ export default {
     errorInvalidCode: 'Inserisci un codice di 6 cifre.',
     errorCodeTaken: 'Codice già in uso — scegli un altro numero.',
     errorConnection: 'Errore di connessione.',
+    continueSolo: 'Continua da solo',
+    continueSoloDone: 'Ora continui da solo: progressi salvati.',
     errorCodeNotFound: 'Codice non trovato.',
     errorTimeout: 'Tempo scaduto.',
     partnerLeftGame: 'Il compagno ha lasciato la partita',
@@ -235,6 +237,7 @@ export default {
     weLostByLives: 'La vostra squadra (Squadra {myTeam}) ha perso tutte le vite — la partita è finita per voi. (Squadra {myTeam}: {myPct}% vs. Squadra {oppTeam}: {oppPct}%)',
   },
   chat: {
+    typing: '{name} sta scrivendo …',
     title: 'Chat',
     placeholder: 'Scrivi un messaggio …',
     send: 'Invia',

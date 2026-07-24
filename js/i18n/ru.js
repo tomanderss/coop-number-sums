@@ -188,6 +188,8 @@ export default {
     errorInvalidCode: 'Введите 6-значный код.',
     errorCodeTaken: 'Код уже занят — выберите другое число.',
     errorConnection: 'Ошибка соединения.',
+    continueSolo: 'Продолжить в одиночку',
+    continueSoloDone: 'Теперь вы играете в одиночку – прогресс сохранён.',
     errorCodeNotFound: 'Код не найден.',
     errorTimeout: 'Истекло время ожидания.',
     partnerLeftGame: 'Товарищ по команде покинул игру',
@@ -235,6 +237,7 @@ export default {
     weLostByLives: 'Ваша команда (Команда {myTeam}) потеряла все жизни — матч завершён для вас. (Команда {myTeam}: {myPct}% vs. Команда {oppTeam}: {oppPct}%)',
   },
   chat: {
+    typing: '{name} печатает …',
     title: 'Чат',
     placeholder: 'Написать сообщение …',
     send: 'Отправить',

@@ -188,6 +188,8 @@ export default {
     errorInvalidCode: 'Digite um código de 6 dígitos.',
     errorCodeTaken: 'Código já em uso — escolha outro número.',
     errorConnection: 'Erro de conexão.',
+    continueSolo: 'Continuar sozinho',
+    continueSoloDone: 'Agora você continua sozinho – progresso salvo.',
     errorCodeNotFound: 'Código não encontrado.',
     errorTimeout: 'Tempo esgotado.',
     partnerLeftGame: 'O parceiro saiu do jogo',
@@ -235,6 +237,7 @@ export default {
     weLostByLives: 'Seu time (Time {myTeam}) perdeu todas as vidas — a partida acabou para vocês. (Time {myTeam}: {myPct}% vs. Time {oppTeam}: {oppPct}%)',
   },
   chat: {
+    typing: '{name} está digitando …',
     title: 'Chat',
     placeholder: 'Escreva uma mensagem …',
     send: 'Enviar',

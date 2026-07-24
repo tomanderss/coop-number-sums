@@ -1,0 +1,3 @@
+Coop-Beitritt abgesichert: kein schwarzer Bildschirm mehr – kaputte Beitritte zeigen einen Warte-Screen mit Ausweg, und fehlende Spielstände werden automatisch beim Host nachgefordert (Selbstheilung)
+Coop offline? Das Brett wird automatisch als eigenständiges Solo-Spiel gerettet (beim Verlassen gespeichert) – neuer Knopf „Allein weiterspielen" im Pausenmenü
+Chat: animierte Tipp-Punkte am Chat-Symbol und als „… schreibt"-Blase im Chat, wenn ein Mitspieler gerade tippt

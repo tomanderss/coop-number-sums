@@ -188,6 +188,8 @@ export default {
     errorInvalidCode: 'Introduce un código de 6 dígitos.',
     errorCodeTaken: 'Código ya en uso — elige otro número.',
     errorConnection: 'Error de conexión.',
+    continueSolo: 'Seguir en solitario',
+    continueSoloDone: 'Ahora sigues jugando en solitario: progreso guardado.',
     errorCodeNotFound: 'Código no encontrado.',
     errorTimeout: 'Tiempo de espera agotado.',
     partnerLeftGame: 'El compañero ha abandonado la partida',
@@ -235,6 +237,7 @@ export default {
     weLostByLives: 'Vuestro equipo (Equipo {myTeam}) se quedó sin vidas — la partida terminó para vosotros. (Equipo {myTeam}: {myPct}% vs. Equipo {oppTeam}: {oppPct}%)',
   },
   chat: {
+    typing: '{name} está escribiendo …',
     title: 'Chat',
     placeholder: 'Escribe un mensaje …',
     send: 'Enviar',
