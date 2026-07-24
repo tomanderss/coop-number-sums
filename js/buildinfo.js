@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.181';
-export const BUILD_HASH = '5c3e3dd';
+export const BUILD      = '1.182';
+export const BUILD_HASH = 'd364005';
 
 export const CHANGELOG = [
+  {
+    "version": "1.182",
+    "date": "24.07.2026",
+    "changes": [
+      "Fortsetzen aus der Pause zählt jetzt sichtbar 3-2-1 mit ablaufendem Balken herunter – kein versehentlicher Tipp ins Brett mehr"
+    ]
+  },
   {
     "version": "1.181",
     "date": "24.07.2026",
