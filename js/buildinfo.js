@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.189';
-export const BUILD_HASH = '460e908';
+export const BUILD      = '1.190';
+export const BUILD_HASH = 'ccd9cf6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.190",
+    "date": "25.07.2026",
+    "changes": [
+      "Der Zurück-Knopf (Zug rückgängig) ist aus der Werkzeugleiste entfernt",
+      "Hinweise sind jetzt in allen Modi unbegrenzt (auch im Endlos-Aufstieg — vorher nur 3 pro Lauf)"
+    ]
+  },
   {
     "version": "1.189",
     "date": "25.07.2026",
