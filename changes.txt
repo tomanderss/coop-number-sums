@@ -1,0 +1,1 @@
+Admin-Geschenk-Benachrichtigung korrigiert: bei geschenkten Münzen steht jetzt „hat dir X Münzen geschenkt“ statt fälschlich „Guthaben auf X gesetzt“ (Abzüge entsprechend als Verringerung)
