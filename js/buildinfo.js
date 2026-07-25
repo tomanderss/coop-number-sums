@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.183';
-export const BUILD_HASH = '3085051';
+export const BUILD      = '1.184';
+export const BUILD_HASH = '0fb7c36';
 
 export const CHANGELOG = [
+  {
+    "version": "1.184",
+    "date": "25.07.2026",
+    "changes": [
+      "Sieg- und Niederlage-Screen komplett neu strukturiert: passt jetzt in jedem Modus (auch Coop mit 4 Spielern, Münzen und Verteilung) immer komplett auf den Bildschirm",
+      "Duell-Ergebnis (1v1, Jeder-gegen-jeden, 2v2) als Balken-Grafik mit Pokal statt reinem Prozent-Text",
+      "Team-Verteilung im Ergebnis kompakter: ein gestapelter Farbbalken plus eine Zeile pro Spieler mit MVP-Krone"
+    ]
+  },
   {
     "version": "1.183",
     "date": "25.07.2026",
