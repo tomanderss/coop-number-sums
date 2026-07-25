@@ -1752,7 +1752,9 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.markedBy = saved?.markedBy || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill(null));
   state.maxLives = saved?.maxLives ?? LIVES;
   state.lives = saved?.lives ?? LIVES;
-  state.hintsLeft = saved?.hintsLeft ?? HINTS;
+  // Hinweise sind in ALLEN Modi unbegrenzt (Nutzerwunsch) — auch ein alter
+  // Spielstand/Endlos-Lauf mit endlichem Rest-Pool wird auf ∞ angehoben.
+  state.hintsLeft = HINTS;
   state.hintsUsed = saved?.hintsUsed ?? 0;
   state.mistakes = saved?.mistakes ?? 0;
   state.coop.lifeLossBy = [];
@@ -7280,10 +7282,10 @@ const App = {
         </div>
 
         <div class="game-sidebar-bottom">
+        <!-- Kein Undo-Knopf mehr (Nutzerwunsch) — Fehlzüge werden ohnehin sofort
+             aufgedeckt und nie gesetzt; undo() bleibt nur für Coop-UNDO-Events
+             älterer Clients erhalten. -->
         <div v-if="!state.isTrainingGame || state.trainingDone" class="toolbar">
-          <button class="round-btn" :disabled="!state.history.length" @click="undo" :title="t('game.undoTitle')" :aria-label="t('game.undoTitle')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-4"/></svg>
-          </button>
           <div class="tool-toggle" @click="toggleTool">
             <div class="tool-pill" :class="{ pen: state.tool==='pen' }"></div>
             <span class="tool-ic eraser" :class="{active: state.tool==='eraser'}" :title="t('game.eraserTitle')">

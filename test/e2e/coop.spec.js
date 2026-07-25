@@ -332,7 +332,10 @@ test.describe('coop', () => {
       mistakes: window.__cns.state.mistakes, status: window.__cns.state.status,
       awaitingStart: window.__cns.state.coop.awaitingStart,
     }));
-    expect(s).toEqual({ lives: 1, maxLives: 3, hintsLeft: 0, hintsUsed: 3, mistakes: 2, status: 'playing', awaitingStart: false });
+    // hintsLeft aus dem INIT wird bewusst IGNORIERT: Hinweise sind in allen
+    // Modi unbegrenzt — auch ein übermittelter alter Rest-Pool (hier 0) wird
+    // beim Laden auf ∞ angehoben.
+    expect(s).toEqual({ lives: 1, maxLives: 3, hintsLeft: Infinity, hintsUsed: 3, mistakes: 2, status: 'playing', awaitingStart: false });
     // Zeit läuft ab dem übermittelten Startzeitpunkt weiter (≈ 60s, nicht 0).
     await page.waitForFunction(() => window.__cns.state.elapsed >= 59000);
   });

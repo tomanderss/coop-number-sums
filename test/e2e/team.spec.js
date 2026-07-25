@@ -213,8 +213,9 @@ test.describe('team vs team', () => {
     await page.waitForFunction(() => window.__cns && window.__cns.state.puzzle && !window.__cns.state.generating);
 
     expect(await page.evaluate(() => window.__cns.state.team.active)).toBe(true);
-    // Only the undo button remains -- the hint button (also a .round-btn) is gone.
-    await expect(page.locator('.toolbar .round-btn')).toHaveCount(1);
+    // Undo-Knopf ist generell entfernt, der Hinweis-Knopf im Team-Modus versteckt
+    // -- die Werkzeugleiste hat also gar keinen .round-btn mehr.
+    await expect(page.locator('.toolbar .round-btn')).toHaveCount(0);
   });
 
   test('the randomize button splits all players into non-null teams, balanced to within one', async ({ page }) => {

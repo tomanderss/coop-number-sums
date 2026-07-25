@@ -112,22 +112,13 @@ test.describe('gameplay', () => {
     expect(await page.evaluate(() => window.__cns.state.zoom)).toBe(1);
   });
 
-  test('undo reverts the last mark', async ({ page }) => {
+  // Der Undo-Knopf ist entfernt (Nutzerwunsch) — in der Werkzeugleiste bleibt
+  // nur der Hinweis-Knopf als .round-btn.
+  test('the toolbar has no undo button anymore (only the hint button remains)', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
-
-    await page.evaluate(() => {
-      const { state, onCellTap } = window.__cns;
-      const p = state.puzzle;
-      state.tool = p.solution[0][0] ? 'pen' : 'eraser';
-      onCellTap(0, 0);
-    });
-    const markedAfterTap = await page.evaluate(() => window.__cns.state.marks[0][0]);
-    expect(markedAfterTap).not.toBe('none');
-
-    await page.locator('.toolbar .round-btn').first().click(); // undo
-    const markedAfterUndo = await page.evaluate(() => window.__cns.state.marks[0][0]);
-    expect(markedAfterUndo).toBe('none');
+    await expect(page.locator('.toolbar .round-btn')).toHaveCount(1);
+    await expect(page.locator('.toolbar .round-btn')).toHaveAttribute('title', 'Hinweis');
   });
 
   test('resuming from pause runs a 1.5s bar countdown before the game continues', async ({ page }) => {
