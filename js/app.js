@@ -271,7 +271,7 @@ const state = reactive({
   endlessLevelFlash: null,       // kurze „Level geschafft"-Einblendung { level } | null
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
-  resumeCountdown: null,     // 3-2-1-Countdown beim Fortsetzen aus der Pause (null = kein Countdown)
+  resumeCountdown: null,     // 2-s-Countdown beim Fortsetzen aus der Pause (null = kein Countdown)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   resumeAvailableEndless: null, // gespeicherter Solo-Endlos-Lauf (zum Fortsetzen, eigener Slot)
@@ -592,8 +592,8 @@ function resumeFromPause(broadcast = true) {
   }
 }
 // ── Resume-Countdown (3-2-1 + ablaufender Balken) ─────────────────────────────
-// „Fortsetzen" aus der Pause startet nicht mehr abrupt: erst zählt ein Overlay
-// 3-2-1 herunter (Balken läuft synchron ab), das Spiel bleibt solange PAUSIERT
+// „Fortsetzen" aus der Pause startet nicht mehr abrupt: erst läuft 2 s lang ein
+// Balken ab („Weiter geht's", keine Ziffern), das Spiel bleibt solange PAUSIERT
 // (Timer eingefroren, Brett verdeckt — kein versehentlicher Tap ins Brett).
 // Erst bei 0 läuft resumeFromPause inkl. Coop-Broadcast (der Partner resumt wie
 // bisher in dem Moment — beide Uhren starten gemeinsam). Ein während des
@@ -605,7 +605,7 @@ function clearResumeCountdown() {
 }
 function startResumeCountdown() {
   if (!state.paused || state.resumeCountdown) return;
-  state.resumeCountdown = 3;
+  state.resumeCountdown = 2;
   log('game', 'Resume-Countdown gestartet');
   resumeCountdownTimer = setInterval(() => {
     // Abbruchfälle: Remote-Resume (paused=false via resumeFromPause→clear) oder
@@ -7354,12 +7354,11 @@ const App = {
 
       <!-- Pause -->
       <div v-if="state.paused" class="overlay pause-overlay">
-        <!-- Resume-Countdown: „Fortsetzen" zählt erst 3-2-1 herunter (Balken läuft
-             synchron ab), das Spiel bleibt bis 0 pausiert — kein versehentlicher
-             Tap ins Brett direkt nach dem Fortsetzen. -->
+        <!-- Resume-Countdown: „Fortsetzen" lässt erst 2 s lang einen Balken ablaufen
+             („Weiter geht's", keine Ziffern), das Spiel bleibt solange pausiert —
+             kein versehentlicher Tap ins Brett direkt nach dem Fortsetzen. -->
         <div v-if="state.resumeCountdown" class="result-card resume-count-card">
           <p class="resume-count-label">{{ t('pause.resuming') }}</p>
-          <div class="resume-count-digit" :key="state.resumeCountdown">{{ state.resumeCountdown }}</div>
           <div class="resume-count-bar"><span></span></div>
         </div>
         <div v-else class="result-card">

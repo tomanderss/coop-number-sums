@@ -1,0 +1,1 @@
+Fortsetzen-Countdown verkürzt: nur noch 2 Sekunden mit ablaufendem Balken („Weiter geht’s“), ohne Ziffernanzeige

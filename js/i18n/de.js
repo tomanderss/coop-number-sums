@@ -112,7 +112,7 @@ export default {
   pause: {
     title: 'Pausiert',
     msg: 'Das Feld ist verdeckt – die Zeit läuft nicht weiter.',
-    resuming: 'Weiter geht’s in …',
+    resuming: 'Weiter geht’s …',
     resume: 'Fortsetzen',
   },
   win: {

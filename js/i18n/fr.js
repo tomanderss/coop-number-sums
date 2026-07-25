@@ -112,7 +112,7 @@ export default {
   pause: {
     title: 'En pause',
     msg: 'La grille est masquée – le temps est arrêté.',
-    resuming: 'Reprise dans …',
+    resuming: 'Reprise …',
     resume: 'Reprendre',
   },
   win: {
