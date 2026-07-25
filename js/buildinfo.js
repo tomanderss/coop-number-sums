@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.187';
-export const BUILD_HASH = 'fa7c076';
+export const BUILD      = '1.188';
+export const BUILD_HASH = '6e25db0';
 
 export const CHANGELOG = [
+  {
+    "version": "1.188",
+    "date": "25.07.2026",
+    "changes": [
+      "Koop/Wettkampf: Drückt ein Spieler „Fortsetzen“, sehen jetzt ALLE den ablaufenden Countdown-Balken synchron — das Pausenmenü schließt bei allen gemeinsam",
+      "Ergebnis-Karte beim Mitspieler repariert: „Warte auf den Host“ als eigene Zeile, der „Zum Menü“-Knopf ist nicht mehr gequetscht und sieht aus wie beim Host",
+      "Team-Performance sauber ausgerichtet: Namen, richtige Züge, Fehler und Prozente stehen jetzt exakt spaltenweise untereinander (MVP-Markierung ohne Versatz)"
+    ]
+  },
   {
     "version": "1.187",
     "date": "25.07.2026",
