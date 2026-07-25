@@ -106,6 +106,12 @@ test.describe('race mode', () => {
     await expect(page.locator('.result-card.lose')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.race.matchOver)).toBe(true);
     expect(await page.evaluate(() => window.__cns.state.race.winner)).toBe('opponent');
+    // Duell-GRAFIK statt Prozent-Text: zwei Balken (ich + Gegner), der Sieger
+    // (Gegner) steht mit Pokal in der obersten Zeile.
+    await expect(page.locator('.result-card.lose .duel-graph .duel-row')).toHaveCount(2);
+    await expect(page.locator('.result-card.lose .duel-row').first()).toHaveClass(/winner/);
+    await expect(page.locator('.result-card.lose .duel-row.winner .duel-trophy')).toBeVisible();
+    await expect(page.locator('.result-card.lose .duel-row.winner .duel-name')).toContainText('Mara');
     // Solo "retry"/"new game" buttons stay hidden in race mode -- only the
     // race-specific rematch button (host) takes their place.
     await expect(page.locator('.result-card.lose .btn-primary')).toHaveCount(1);
@@ -132,6 +138,10 @@ test.describe('race mode', () => {
 
     await expect(page.locator('.result-card.win')).toBeVisible();
     expect(await page.evaluate(() => window.__cns.state.race.winner)).toBe('me');
+    // In der Duell-Grafik trägt MEINE Zeile den Pokal (Sieger zuerst).
+    await expect(page.locator('.result-card.win .duel-graph .duel-row')).toHaveCount(2);
+    await expect(page.locator('.result-card.win .duel-row').first()).toHaveClass(/winner/);
+    await expect(page.locator('.result-card.win .duel-row.winner')).toHaveClass(/mine/);
 
     // Winning offers the same host-side rematch button as losing does --
     // no separate "next puzzle"/"new game" path in race mode.
