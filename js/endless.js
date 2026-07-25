@@ -12,7 +12,7 @@
 // identisch zum Coop-Endlos: reine Ausdauer, jeder Fehler zählt. (Die Refill-
 // Mechanik bleibt in endlessGrantsLife/endlessLivesAfter erhalten, ist per Default
 // aber deaktiviert; ein explizites cfg mit lifeRefillEvery>0 aktiviert sie wieder.)
-export const ENDLESS_CFG = { startLives: 3, maxLives: 3, startHints: 3, lifeRefillEvery: 0 };
+export const ENDLESS_CFG = { startLives: 3, maxLives: 3, startHints: Infinity, lifeRefillEvery: 0 };
 
 // Schwierigkeits-INDEX (0-basiert) für ein 1-basiertes Level: klettert genau eine
 // Stufe pro Level und WICKELT nach der höchsten Stufe wieder auf die leichteste um

@@ -5,7 +5,7 @@ import { gotoApp, startNewGame } from './helpers.js';
 // Bestzeit-Warnung eine Schritt-für-Schritt-Erklärung mit den KONKRETEN Zahlen
 // des Bretts. Jeder Schritt highlightet seine Zellen (Rest gedimmt) und wird
 // per „Weiter" bestätigt; der LETZTE Schritt führt den erklärten Zug aus.
-// Der Hinweis-Knopf ist das letzte .round-btn der Werkzeugleiste (nach Undo).
+// Der Hinweis-Knopf ist der einzige .round-btn der Werkzeugleiste (Undo entfernt).
 const hintBtn = (page) => page.locator('.toolbar .round-btn').last();
 const nextBtn = (page) => page.locator('.tutor-card .btn');
 
