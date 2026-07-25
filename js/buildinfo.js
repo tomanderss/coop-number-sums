@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.188';
-export const BUILD_HASH = '6e25db0';
+export const BUILD      = '1.189';
+export const BUILD_HASH = '460e908';
 
 export const CHANGELOG = [
+  {
+    "version": "1.189",
+    "date": "25.07.2026",
+    "changes": [
+      "Der Tipp ist jetzt ein echter Tutor: Er erklärt Schritt für Schritt mit den konkreten Zahlen deines Bretts, warum der nächste Zug zwingend ist — Bereich anschauen, Zwischenstand, Kombinationen durchzählen, Folgerung. Jeden Schritt bestätigst du per „Weiter“, keine Tipp-Stufen und keine generischen Texte mehr"
+    ]
+  },
   {
     "version": "1.188",
     "date": "25.07.2026",
