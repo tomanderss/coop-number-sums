@@ -5380,13 +5380,19 @@ function dismissAdminNotice() {
 function adminNoticeText(n) {
   if (!n) return '';
   const from = n.from || 'Admin';
-  // Selbstgabe: eigener Text (kein „{from} hat dir …"); Betrag mit Vorzeichen.
+  // Guthaben: n.amount ist das DELTA (nicht der Zielwert) — der Text muss also
+  // „um {n} erhöht/verringert" sagen, nie „auf {n} gesetzt" (früherer Bug:
+  // +5000 geschenkt → „Guthaben auf 5000 gesetzt").
+  if (n.kind === 'currency') {
+    const amt = n.amount ?? 0;
+    const abs = Math.abs(amt);
+    if (n.self) return t(amt >= 0 ? 'notice.currencySelfPlus' : 'notice.currencySelfMinus', { n: abs });
+    return t(amt >= 0 ? 'notice.currencyPlus' : 'notice.currencyMinus', { from, n: abs });
+  }
   if (n.self) {
-    if (n.kind === 'currency') { const a = n.amount ?? 0; return t('notice.currencySelf', { n: (a >= 0 ? '+' : '') + a }); }
     const it = adminItemLabel(n.item || '');
     return t(n.kind === 'revoke' ? 'notice.revokeSelf' : 'notice.giftSelf', { item: it });
   }
-  if (n.kind === 'currency') return t('notice.currency', { from, n: n.amount ?? 0 });
   const item = adminItemLabel(n.item || '');
   return t(n.kind === 'revoke' ? 'notice.revoke' : 'notice.gift', { from, item });
 }
