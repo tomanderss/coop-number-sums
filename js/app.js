@@ -8,6 +8,7 @@ import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
+import { buildHintTutorial } from './hinttutor.js';
 import * as Music from './music.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
@@ -98,7 +99,7 @@ const state = reactive({
   newHighscore: false,        // true, wenn beim letzten Sieg eine neue Bestzeit erzielt wurde
   wouldHaveBeenBest: false,   // true, wenn die Zeit ohne Fehler/Hinweise eine neue Bestzeit gewesen wäre
   hintWarnShown: false,       // true, sobald die einmalige Hinweis-Warnung dieser Partie bestätigt wurde
-  hintNudge: null,            // aktiver sokratischer Hinweis { group:{kind,ref,target}, reason, rem, r, c, want }
+  hintTutor: null,            // aktiver Tipp-Tutor { steps:[…], i, target:{r,c,want} } — s. js/hinttutor.js
                               // — highlightet die Gruppe + zeigt eine Leitfrage, OHNE die Zelle/Aktion zu verraten;
                               // erst ein zweiter Tipp auf den Hinweis-Knopf löst die Zelle wirklich auf.
   bestTimeNotice: null,       // Text der kurzen Top-Banner-Meldung "Bestzeit nicht mehr möglich"
@@ -1765,7 +1766,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.wouldHaveBeenBest = false;
   state.perfectWin = false;
   state.hintWarnShown = false;
-  state.hintNudge = null;
+  state.hintTutor = null;
   state.elapsed = saved?.elapsed ?? 0;
   // Bei Coop-INIT übernimmt der Gast den exakten Host-Startzeitpunkt, damit beide
   // Seiten dieselbe Zeit anzeigen (sonst Drift durch Verbindungsaufbau-Latenz).
@@ -1992,7 +1993,7 @@ function onCellTap(r, c) {
 }
 
 function setMark(r, c, next, user, fromId) {
-  if (user) state.hintNudge = null; // eigene Aktion verwirft die offene Leitfrage (Highlight + Banner)
+  if (user) state.hintTutor = null; // eigene Aktion verwirft den offenen Tipp-Tutor (Zahlen wären veraltet)
   const cur = state.marks[r][c];
   if (cur === next) return;
 
@@ -2034,19 +2035,17 @@ function setMark(r, c, next, user, fromId) {
 }
 
 function afterMove() {
-  clearStaleHintNudge();
+  clearStaleTutor();
   persistGame();
   if (state.team.active) pushTeamProgress();
   if (state.race.active) pushRaceProgress();
   if (isSolved()) win();
 }
-// Verwirft den aktiven Hinweis, sobald SEINE Zielzelle gelöst ist — egal wodurch
-// (eigener Zug, Auflösen, Coop-Partner). So bleibt nie ein veralteter Hinweis mit
-// stage≥2 im Kopf hängen, der den nächsten Tipp fälschlich sofort auflösen würde:
-// nach jeder gelösten Zelle beginnt der nächste Hinweis wieder bei Stufe 1.
-function clearStaleHintNudge() {
-  const n = state.hintNudge;
-  if (n && state.marks[n.r][n.c] === n.want) state.hintNudge = null;
+// Verwirft den aktiven Tipp-Tutor, sobald seine Zielzelle gelöst ist — egal
+// wodurch (Auflösen, Coop-Partner-Zug): die Erklärung wäre dann veraltet.
+function clearStaleTutor() {
+  const tt = state.hintTutor;
+  if (tt && state.marks[tt.target.r][tt.target.c] !== 'none') state.hintTutor = null;
 }
 
 let lastErrorSfx = 0;
@@ -2247,95 +2246,63 @@ function applyHintEffect(r, c, mark, user = true, fromId) {
   afterMove();
 }
 
-// Dreistufiger Hinweis — jeder Tipp auf den Knopf geht eine Stufe weiter:
-//  Stufe 1: markiert NUR den relevanten Bereich (Zeile/Spalte/Käfig, der den
-//    nächsten Zug erzwingt) — kein Text, keine Lösung. Verdeckt nichts, der
-//    Spieler sucht selbst.
-//  Stufe 2: blendet zusätzlich die sokratische Leitfrage ein (Banner) — erklärt
-//    den Gedanken, ohne die konkrete Zelle/Aktion zu nennen.
-//  Stufe 3: löst die konkrete Zelle wirklich auf.
-// Schon Stufe 1 kostet die Bestzeit (jede Hilfe zählt) — daher kommt die
-// einmalige Warnung VOR Stufe 1. Stufe 2/3 lösen dann keine weitere Warnung/
-// Strafe mehr aus (ist ja schon "verbraucht"). Gibt es keinen einfach
-// erklärbaren Schritt (nur Tier-2/2.5-Logik nötig), wird sofort aufgelöst.
+// ── Tipp-Tutor (keine Stufen mehr) ───────────────────────────────────────────
+// Ein Tipp startet den Tutor (js/hinttutor.js): eine Kette kleiner Schritte,
+// die mit den KONKRETEN Zahlen des Bretts erklärt, warum der nächste Zug
+// zwingend ist — erst Bereich highlighten, dann Zwischenstand, dann die
+// eigentliche Logik (z.B. echte Kombinations-Aufzählung), zuletzt die
+// Folgerung. JEDER Schritt wird per „Weiter" bestätigt (auch der Tipp-Knopf
+// selbst schaltet weiter); der letzte Schritt führt den Zug aus. Die Strafe
+// (Bestzeit futsch) fällt einmal beim Start an, wie bisher.
 function useHint() {
   if (state.status !== 'playing' || state.hintsLeft <= 0 || state.isRaceGame || state.team.active) return;
-  // Das Zielfeld wird DETERMINISTISCH aus dem (geteilten) Brett abgeleitet -> alle
-  // Coop-Spieler bekommen denselben Hinweis; sobald es gelöst ist, rückt es für alle
-  // gemeinsam weiter. Die Stufen 1/2/3 laufen rein lokal (clientseitig) pro Spieler.
-  const target = nextHintTarget();
-  if (!target) return;
-  const n = state.hintNudge;
-  // Nur weiterstufen, wenn der gemerkte Hinweis WIRKLICH zum aktuellen Zielfeld
-  // gehört und dieses noch offen ist. Sonst (veralteter/abweichender Hinweis,
-  // Session-Überhang, vom Partner gelöst, oder Tier-2-Fallback) beginnt es frisch
-  // bei Stufe 1 — statt fälschlich sofort aufzulösen (genau der Coop-Bug).
-  const sameTarget = n && n.r === target.r && n.c === target.c && state.marks[target.r][target.c] === 'none';
-  if (sameTarget && n.stage >= 2) { // Stufe 3: auflösen
-    state.hintNudge = null;
-    if (state.settings.sfxHint) Music.sfxHint();
-    doRevealCell(target.r, target.c, target.want);
-    return;
-  }
-  if (sameTarget && n.stage === 1) { // Stufe 2: Leitfrage einblenden
-    if (state.settings.sfxHint) Music.sfxHint();
-    n.stage = 2;
-    return;
-  }
-  // Stufe 1 (frisch fürs aktuelle Zielfeld): erst die einmalige Warnung, dann markieren.
-  confirmThenStartHint(target);
+  if (state.hintTutor) { tutorNext(); return; } // Tipp-Knopf = „Weiter"
+  confirmThenStartHint();
 }
-// Deterministisches nächstes Hinweis-Ziel — rein aus dem geteilten Brett, daher für
-// ALLE Coop-Spieler identisch (kein Math.random wie in findHintCell!). Bevorzugt
-// einen Tier-1-Schritt mit erklärbarer Leitfrage; sonst die erste noch nicht
-// korrekt markierte Zelle in fester Scan-Reihenfolge (KEEP bevorzugt), generisch.
-function nextHintTarget() {
-  const step = findTrainingStep(state.puzzle, state.marks);
-  if (step) return { r: step.r, c: step.c, want: step.action, group: step.group, reason: step.reason, rem: step.rem };
-  const p = state.puzzle;
-  let firstAny = null;
-  for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) {
-    const want = p.solution[r][c] ? 'kept' : 'removed';
-    if (state.marks[r][c] === want) continue;
-    if (want === 'kept') return genericTarget(r, c, want);
-    if (!firstAny) firstAny = [r, c, want];
-  }
-  return firstAny ? genericTarget(firstAny[0], firstAny[1], firstAny[2]) : null;
-}
-// Generischer (Tier-2-)Hinweis: die Cage der Zelle hervorheben, ohne konkrete
-// Summen-Leitfrage. Jede Spielzelle gehört zu einer Cage (region >= 0).
-function genericTarget(r, c, want) {
-  return { r, c, want, group: { kind: 'region', ref: state.cellMeta[r][c].region, target: null }, reason: 'generic', rem: null };
-}
-// Hinweis-Banner wegklicken (X) — verwirft die offene Frage komplett, sodass die
-// Werkzeugleiste wieder frei ist; der nächste Tipp auf den Knopf beginnt neu bei
-// Stufe 1.
-function dismissHintNudge() { state.hintNudge = null; }
-// "Auflösen"-Knopf im Banner (= Stufe 3): deckt die Zelle auf. Keine erneute
-// Strafe — die lief schon in Stufe 1.
-function revealHintNudge() {
-  const n = state.hintNudge;
-  if (!n) return;
-  state.hintNudge = null;
-  doRevealCell(n.r, n.c, n.want);
-}
-// Einmalige Bestzeit-Warnung je Partie, dann den Hinweis starten — bei Abbruch
+// Einmalige Bestzeit-Warnung je Partie, dann den Tutor starten — bei Abbruch
 // bleibt hintWarnShown false, sodass die Warnung erneut käme.
-function confirmThenStartHint(target) {
+function confirmThenStartHint() {
   if (!state.hintWarnShown) {
-    ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => { state.hintWarnShown = true; startHint(target); });
+    ask(t('game.hintConfirmTitle'), t('game.hintConfirmMsg'), () => { state.hintWarnShown = true; startHint(); });
     return;
   }
-  startHint(target);
+  startHint();
 }
-// Stufe 1: zieht die Strafe (Bestzeit futsch) und markiert den relevanten Bereich
-// für das (synchron bestimmte) Zielfeld. Löst NIE direkt auf — die Auflösung
-// passiert ausschließlich über Stufe 3 (doppelter Knopfdruck / "Auflösen").
-function startHint(target) {
+function startHint() {
+  const t0 = Date.now();
+  const tut = buildHintTutorial(state.puzzle, state.marks);
+  if (!tut) return;
   registerHintPenalty();
-  if (state.settings.sfxHint) Music.sfxHint(); // Stufe 1 — Ton bei jeder Hinweis-Instanz
-  state.hintNudge = { group: target.group, reason: target.reason, rem: target.rem, r: target.r, c: target.c, want: target.want, stage: 1 };
-  log('game', `Hinweis Stufe 1 (Bereich markiert)`, { group: target.group.kind });
+  if (state.settings.sfxHint) Music.sfxHint();
+  state.hintTutor = { steps: tut.steps, i: 0, target: tut.target };
+  log('game', 'Tipp-Tutor gestartet', { reason: tut.reason, steps: tut.steps.length, tookMs: Date.now() - t0 });
+}
+// „Weiter"-Knopf: nächster Schritt; auf dem LETZTEN Schritt wird der erklärte
+// Zug ausgeführt (inkl. Coop-Sync via doRevealCell).
+function tutorNext() {
+  const tt = state.hintTutor;
+  if (!tt) return;
+  if (tt.i < tt.steps.length - 1) { tt.i++; return; }
+  const a = tt.target;
+  state.hintTutor = null;
+  log('game', 'Tipp-Tutor abgeschlossen', { r: a.r, c: a.c });
+  doRevealCell(a.r, a.c, a.want);
+}
+function dismissTutor() { state.hintTutor = null; }
+// Text des aktuellen Tutor-Schritts: i18n-Key + konkrete Zahlen; {unit}/{unit2}
+// werden hier zu menschenlesbaren Bereichs-Labels („Zeile 3", „Käfig") aufgelöst.
+function tutorUnitLabel(u) {
+  if (!u) return '';
+  return t('training.group.' + u.kind, { n: u.ref + 1 });
+}
+function tutorStepText() {
+  const tt = state.hintTutor;
+  if (!tt) return '';
+  const s = tt.steps[tt.i];
+  const params = { ...s.params, unit: tutorUnitLabel(s.unit), unit2: tutorUnitLabel(s.unit2) };
+  let text = t('tutor.' + s.key, params);
+  if (s.key === 'combos' && s.params.more > 0) text += ' ' + t('tutor.moreCombos', { n: s.params.more });
+  return text;
 }
 // Strafe für die Hinweis-Nutzung: zählt den Hinweis (entwertet die Bestzeit) und
 // meldet das einmal sichtbar. Läuft genau einmal je Hinweis-Sequenz (in Stufe 1).
@@ -6749,7 +6716,7 @@ const BoardGrid = {
     };
   },
   template: `
-          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused, 'big-num': state.puzzle.bigNumbers }]" :style="[gridStyle, skinVars]" :data-rc="countRender()">
+          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused, 'big-num': state.puzzle.bigNumbers, 'tutor-dim': !!state.hintTutor }]" :style="[gridStyle, skinVars]" :data-rc="countRender()">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
               <template v-if="!colResolvedR(c-1)">
@@ -6993,7 +6960,7 @@ const App = {
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, navTo, goBack, newGame, setupStart, goNextPuzzle, startEndless, endlessAgain, endlessContinue, endlessTotalMs, closeEndlessSummary, resumeGame, resumeCoopGame, resumeEndlessGame, onCellTap,
-      openMissions, claimMissionReward, missionsClaimable, missionProgressVal, missionDone, missionClaimedUI, missionClaimableUI, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, revealHintNudge, dismissHintNudge, doCheck,
+      openMissions, claimMissionReward, missionsClaimable, missionProgressVal, missionDone, missionClaimedUI, missionClaimableUI, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, tutorNext, dismissTutor, tutorStepText, doCheck,
       rowSum, colSum, regionSum, rowSumR, colSumR, rowResolved, colResolved, regionResolved, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
@@ -7351,19 +7318,17 @@ const App = {
         </template>
       </div>
 
-      <!-- Sokratischer Hinweis, Stufe 2: highlightet den Bereich (hint-group) UND
-           blendet die Leitfrage ein, ohne die konkrete Zelle/Aktion zu verraten.
-           Stufe 1 zeigt nur das Highlight (kein Banner). Per "Auflösen" (oder
-           erneut auf den Hinweis-Knopf) wird die Zelle aufgedeckt; per X wird das
-           Banner weggeklickt, damit es die Werkzeugleiste nicht dauerhaft
-           verdeckt. -->
-      <div v-if="state.hintNudge && state.hintNudge.stage>=2 && !state.isTrainingGame && state.status==='playing' && !state.paused" class="hint-banner">
+      <!-- Tipp-Tutor: erklärt Schritt für Schritt mit den KONKRETEN Zahlen,
+           warum der nächste Zug zwingend ist. Jeder Schritt highlightet seine
+           Zellen (hint-group, Rest des Bretts gedimmt) und wird per „Weiter"
+           bestätigt; der letzte Schritt führt den Zug aus. X bricht ab. -->
+      <div v-if="state.hintTutor && !state.isTrainingGame && state.status==='playing' && !state.paused" class="hint-banner tutor-card">
         <div class="hint-text">
-          <b><span class="ei" v-html="ic('bulb')"></span> {{ t('training.group.'+state.hintNudge.group.kind, { n: state.hintNudge.group.ref+1 }) }}<template v-if="state.hintNudge.group.target!=null"> ({{ t('training.target', { n: state.hintNudge.group.target }) }})</template></b>
-          <span>{{ t('hint.socratic.'+state.hintNudge.reason, { rem: state.hintNudge.rem }) }}</span>
+          <b><span class="ei" v-html="ic('bulb')"></span> {{ t('tutor.title') }} <span class="tutor-progress">{{ state.hintTutor.i + 1 }}/{{ state.hintTutor.steps.length }}</span></b>
+          <span>{{ tutorStepText() }}</span>
         </div>
-        <button class="btn btn-ghost btn-sm" @click="revealHintNudge">{{ t('hint.reveal') }}</button>
-        <button class="hint-dismiss" @click="dismissHintNudge" :aria-label="t('hint.dismiss')" :title="t('hint.dismiss')"><span class="ico-wrap" v-html="ic('close')"></span></button>
+        <button class="btn btn-primary btn-sm" @click="tutorNext">{{ state.hintTutor.i < state.hintTutor.steps.length - 1 ? t('tutor.next') : t('tutor.apply') }}</button>
+        <button class="hint-dismiss" @click="dismissTutor" :aria-label="t('hint.dismiss')" :title="t('hint.dismiss')"><span class="ico-wrap" v-html="ic('close')"></span></button>
       </div>
 
       <!-- Coop-Lobby: Rätsel ist da, Zeit läuft erst nach "Starten" -->
@@ -9289,16 +9254,17 @@ function cellClasses(r, c) {
     'hint-group': inHintGroup(r, c),
   };
 }
-// Gehört Zelle (r,c) zur Gruppe der aktiven sokratischen Leitfrage? Markiert
-// bewusst die GANZE Zeile/Spalte/Käfig (nicht die Zielzelle), damit der Spieler
-// den Schluss selbst zieht, ohne dass die konkrete Zelle verraten wird.
+// Fokus-Zellen des aktuellen Tutor-Schritts als Set (r*1000+c) — cached
+// computed, damit inHintGroup pro Zelle O(1) bleibt (Brett-Render-Kernregel).
+const tutorFocusSet = computed(() => {
+  const tt = state.hintTutor;
+  if (!tt) return null;
+  const s = tt.steps[tt.i];
+  return new Set(s.cells.map(([r, c]) => r * 1000 + c));
+});
 function inHintGroup(r, c) {
-  const n = state.hintNudge;
-  if (!n) return false;
-  if (n.group.kind === 'row') return r === n.group.ref;
-  if (n.group.kind === 'col') return c === n.group.ref;
-  if (n.group.kind === 'region') return state.cellMeta[r][c].region === n.group.ref;
-  return false;
+  const set = tutorFocusSet.value;
+  return !!set && set.has(r * 1000 + c);
 }
 // Style-Objekte je Zelle CACHEN und bei unveränderten Eingaben DIESELBE Referenz
 // zurückgeben: Vue patcht :style nur, wenn sich die Referenz/Werte ändern — bei
@@ -9338,7 +9304,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, boardRenders: () => boardRenderCount, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint, boardRenders: () => boardRenderCount, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');

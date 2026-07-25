@@ -1,18 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, startNewGame } from './helpers.js';
 
-// Dreistufiger Hinweis — schon Stufe 1 kostet die Bestzeit, daher kommt die
-// einmalige Warnung VOR Stufe 1:
-//  Stufe 1 (1. Tipp, nach Warnung): markiert NUR den relevanten Bereich
-//    (Highlight), kein Banner. hintsUsed +1.
-//  Stufe 2 (2. Tipp): blendet zusätzlich die Leitfrage ein (Banner). Keine
-//    weitere Strafe. Per X wegklickbar.
-//  Stufe 3 ("Auflösen"/3. Tipp): deckt die Zelle auf. Keine zweite Warnung.
+// Tipp-Tutor (keine Stufen mehr): Ein Tipp startet nach der einmaligen
+// Bestzeit-Warnung eine Schritt-für-Schritt-Erklärung mit den KONKRETEN Zahlen
+// des Bretts. Jeder Schritt highlightet seine Zellen (Rest gedimmt) und wird
+// per „Weiter" bestätigt; der LETZTE Schritt führt den erklärten Zug aus.
 // Der Hinweis-Knopf ist das letzte .round-btn der Werkzeugleiste (nach Undo).
 const hintBtn = (page) => page.locator('.toolbar .round-btn').last();
+const nextBtn = (page) => page.locator('.tutor-card .btn');
 
 // Löst das ganze Rätsel korrekt bis auf die beiden Eck-Zellen (0,0) und
-// (R-1,C-1) -> ein Tier-1-Schritt ist garantiert verfügbar, seedunabhängig.
+// (R-1,C-1) -> ein einfach erklärbarer Schritt ist garantiert verfügbar.
 async function solveExceptCorners(page) {
   await page.evaluate(() => {
     const { state, onCellTap } = window.__cns;
@@ -28,134 +26,95 @@ async function solveExceptCorners(page) {
   });
 }
 
-// Stufe 1 auslösen inkl. Bestätigen der einmaligen Bestzeit-Warnung.
-async function startStage1(page) {
+// Tutor starten inkl. Bestätigen der einmaligen Bestzeit-Warnung.
+async function startTutor(page) {
   await hintBtn(page).click();
   await expect(page.locator('.modal-bg')).toBeVisible();
   await page.locator('.modal-bg .btn-danger').click();
 }
 
-test('Stufe 1: warnt zuerst, markiert dann nur den Bereich und kostet die Bestzeit', async ({ page }) => {
+test('Tipp startet den Tutor: Warnung, dann Schritt 1 mit Highlight + konkretem Text', async ({ page }) => {
   await gotoApp(page);
   await startNewGame(page, 'sehrleicht');
   await solveExceptCorners(page);
 
-  await startStage1(page);
+  await startTutor(page);
 
+  await expect(page.locator('.tutor-card')).toBeVisible();
+  const tt = await page.evaluate(() => ({ i: window.__cns.state.hintTutor.i, steps: window.__cns.state.hintTutor.steps.length }));
+  expect(tt.i).toBe(0);
+  expect(tt.steps).toBeGreaterThanOrEqual(3);
+  // Schritt 1 highlightet den Bereich, der Rest des Bretts ist gedimmt.
   expect(await page.locator('.cell.hint-group').count()).toBeGreaterThan(0);
-  await expect(page.locator('.hint-banner')).toBeHidden(); // Stufe 1 zeigt KEIN Banner
-  expect(await page.evaluate(() => window.__cns.state.hintNudge?.stage)).toBe(1);
-  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1); // Strafe schon hier
+  await expect(page.locator('.board.tutor-dim')).toBeVisible();
+  // Der Text ist KONKRET: enthält die Zielsumme (eine Zahl), kein generischer Satz.
+  const text = await page.locator('.tutor-card .hint-text > span').textContent();
+  expect(text).toMatch(/\d/);
+  // Strafe fällt beim Start an.
+  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1);
 });
 
-test('Stufe 2: zweiter Tipp blendet die Leitfrage ein, ohne weitere Strafe', async ({ page }) => {
+test('„Weiter" schaltet die Schritte durch, der letzte Schritt führt den Zug aus', async ({ page }) => {
   await gotoApp(page);
   await startNewGame(page, 'sehrleicht');
   await solveExceptCorners(page);
 
-  await startStage1(page);
-  await hintBtn(page).click(); // Stufe 2
+  await startTutor(page);
+  const info = await page.evaluate(() => {
+    const tt = window.__cns.state.hintTutor;
+    return { steps: tt.steps.length, target: tt.target };
+  });
 
-  await expect(page.locator('.hint-banner')).toBeVisible();
-  expect(await page.locator('.cell.hint-group').count()).toBeGreaterThan(0);
-  expect(await page.evaluate(() => window.__cns.state.hintNudge?.stage)).toBe(2);
-  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1); // unverändert
+  // Durch alle Schritte klicken; das Highlight wechselt je Schritt.
+  for (let i = 1; i < info.steps; i++) {
+    await nextBtn(page).click();
+    expect(await page.evaluate(() => window.__cns.state.hintTutor?.i)).toBe(i);
+  }
+  // Letzter Schritt zeigt den Ausführen-Knopf und wendet beim Klick den Zug an.
+  await nextBtn(page).click();
+  expect(await page.evaluate(() => window.__cns.state.hintTutor)).toBe(null);
+  expect(await page.evaluate(({ r, c }) => window.__cns.state.marks[r][c], info.target)).toBe(info.target.want);
+  // Keine weitere Strafe über den Start hinaus.
+  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1);
 });
 
-test('X klickt das Banner weg und gibt die Werkzeugleiste frei', async ({ page }) => {
+test('Auch der Hinweis-Knopf selbst schaltet weiter (wie „Weiter")', async ({ page }) => {
   await gotoApp(page);
   await startNewGame(page, 'sehrleicht');
   await solveExceptCorners(page);
 
-  await startStage1(page);
-  await hintBtn(page).click(); // Stufe 2
-  await expect(page.locator('.hint-banner')).toBeVisible();
+  await startTutor(page);
+  // Die Tutor-Karte liegt über der Werkzeugleiste — die Weiterschalt-Logik des
+  // Knopfs (useHint → tutorNext) wird daher direkt über die App-API geprüft.
+  await page.evaluate(() => window.__cns.useHint());
+  expect(await page.evaluate(() => window.__cns.state.hintTutor?.i)).toBe(1);
+  // Keine zusätzliche Strafe durchs Weiterschalten.
+  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1);
+});
+
+test('X bricht den Tutor ab: kein Zug, Highlight weg, Werkzeugleiste frei', async ({ page }) => {
+  await gotoApp(page);
+  await startNewGame(page, 'sehrleicht');
+  await solveExceptCorners(page);
+
+  await startTutor(page);
+  await expect(page.locator('.tutor-card')).toBeVisible();
+  const before = await page.evaluate(() => JSON.stringify(window.__cns.state.marks));
 
   await page.locator('.hint-dismiss').click();
 
-  await expect(page.locator('.hint-banner')).toBeHidden();
-  expect(await page.evaluate(() => window.__cns.state.hintNudge)).toBe(null);
+  await expect(page.locator('.tutor-card')).toBeHidden();
+  expect(await page.evaluate(() => window.__cns.state.hintTutor)).toBe(null);
   expect(await page.locator('.cell.hint-group').count()).toBe(0);
+  expect(await page.evaluate(() => JSON.stringify(window.__cns.state.marks))).toBe(before);
 });
 
-test('Stufe 3: "Auflösen" deckt die Zelle auf, ohne zweite Warnung', async ({ page }) => {
+test('Eigener Zug verwirft den offenen Tutor (Zahlen wären veraltet)', async ({ page }) => {
   await gotoApp(page);
   await startNewGame(page, 'sehrleicht');
   await solveExceptCorners(page);
 
-  await startStage1(page);
-  await hintBtn(page).click(); // Stufe 2
-  await expect(page.locator('.hint-banner')).toBeVisible();
-
-  const target = await page.evaluate(() => {
-    const n = window.__cns.state.hintNudge;
-    return { r: n.r, c: n.c, want: n.want };
-  });
-
-  await page.locator('.hint-banner .btn').click(); // "Auflösen"
-
-  // Keine zweite Bestzeit-Warnung, Zelle ist aufgedeckt, Strafe bleibt bei 1.
-  await expect(page.locator('.modal-bg')).toBeHidden();
-  await expect(page.locator('.hint-banner')).toBeHidden();
-  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1);
-  expect(await page.evaluate(({ r, c }) => window.__cns.state.marks[r][c], target)).toBe(target.want);
-});
-
-test('Nach dem Auflösen beginnt der nächste Hinweis wieder bei Stufe 1 (nicht instant Stufe 3)', async ({ page }) => {
-  await gotoApp(page);
-  await startNewGame(page, 'sehrleicht');
-  await solveExceptCorners(page);
-
-  // Kompletter Durchlauf bis Stufe 3 (Auflösen).
-  await startStage1(page);
-  await hintBtn(page).click();              // Stufe 2
-  await page.locator('.hint-banner .btn').click(); // "Auflösen" -> Zelle gelöst, Hinweis verworfen
-  expect(await page.evaluate(() => window.__cns.state.hintNudge)).toBe(null);
-
-  // Neuer Tipp MUSS wieder bei Stufe 1 starten: nur Highlight, kein Banner,
-  // kein sofortiges Auflösen.
-  await hintBtn(page).click();
-  expect(await page.evaluate(() => window.__cns.state.hintNudge?.stage)).toBe(1);
-  await expect(page.locator('.hint-banner')).toBeHidden();
-});
-
-test('Coop-Sync: Ziel ist deterministisch und ein abweichender/veralteter Hinweis löst NICHT sofort auf, sondern startet neu bei Stufe 1', async ({ page }) => {
-  await gotoApp(page);
-  await startNewGame(page, 'sehrleicht');
-  await solveExceptCorners(page);
-  await startStage1(page);
-  const A = await page.evaluate(() => ({ r: window.__cns.state.hintNudge.r, c: window.__cns.state.hintNudge.c }));
-
-  // Determinismus: Nudge zurücksetzen, erneut tippen -> exakt dieselbe Zielzelle
-  // (kein Zufall mehr) -> alle Coop-Spieler bekommen dasselbe Hinweisfeld.
-  await page.evaluate(() => { window.__cns.state.hintNudge = null; window.__cns.state.hintsLeft = 99; });
-  await hintBtn(page).click();
-  expect(await page.evaluate(() => ({ r: window.__cns.state.hintNudge.r, c: window.__cns.state.hintNudge.c }))).toEqual(A);
-
-  // Abweichender (veralteter) Nudge auf der ANDEREN offenen Eckzelle B (Stufe 1,
-  // damit kein Banner den Knopf überdeckt). Tippen darf B NICHT auflösen, sondern
-  // muss frisch bei Stufe 1 auf dem deterministischen Ziel A neu beginnen.
-  const before = await page.evaluate((A) => {
-    const s = window.__cns.state, p = s.puzzle;
-    const B = (A.r === 0 && A.c === 0) ? { r: p.rows - 1, c: p.cols - 1 } : { r: 0, c: 0 };
-    s.hintNudge = { r: B.r, c: B.c, want: 'kept', stage: 1, group: { kind: 'region', ref: 0, target: null }, reason: 'generic', rem: null };
-    return { B, markB: s.cellMeta[B.r][B.c].hintMark };
-  }, A);
-  await hintBtn(page).click();
-  const after = await page.evaluate((before) => {
-    const s = window.__cns.state;
-    return { nudge: { r: s.hintNudge.r, c: s.hintNudge.c, stage: s.hintNudge.stage }, markB: s.cellMeta[before.B.r][before.B.c].hintMark };
-  }, before);
-  expect(after.nudge).toEqual({ r: A.r, c: A.c, stage: 1 }); // zurück aufs Ziel, Stufe 1
-  expect(after.markB).toBe(before.markB);                    // B NICHT aufgelöst
-});
-
-test('Eigener Zug verwirft den Hinweis (auch in Stufe 1)', async ({ page }) => {
-  await gotoApp(page);
-  await startNewGame(page, 'sehrleicht');
-  await solveExceptCorners(page);
-
-  await startStage1(page);
+  await startTutor(page);
   expect(await page.locator('.cell.hint-group').count()).toBeGreaterThan(0);
 
   await page.evaluate(() => {
@@ -165,6 +124,22 @@ test('Eigener Zug verwirft den Hinweis (auch in Stufe 1)', async ({ page }) => {
     onCellTap(0, 0);
   });
 
-  expect(await page.evaluate(() => window.__cns.state.hintNudge)).toBe(null);
+  expect(await page.evaluate(() => window.__cns.state.hintTutor)).toBe(null);
   expect(await page.locator('.cell.hint-group').count()).toBe(0);
+});
+
+test('Der Tutor erklärt ein frisches Brett von Anfang an (voller Durchklick löst eine Zelle)', async ({ page }) => {
+  await gotoApp(page);
+  await startNewGame(page, 'sehrleicht');
+
+  await startTutor(page);
+  const steps = await page.evaluate(() => window.__cns.state.hintTutor.steps.length);
+  for (let i = 1; i <= steps; i++) await nextBtn(page).click();
+  // Genau eine Zelle wurde durch den Tutor gelöst.
+  const solvedCount = await page.evaluate(() => {
+    let n = 0;
+    for (const row of window.__cns.state.marks) for (const m of row) if (m !== 'none') n++;
+    return n;
+  });
+  expect(solvedCount).toBe(1);
 });
