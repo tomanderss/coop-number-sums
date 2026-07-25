@@ -114,4 +114,39 @@ test.describe('coop robustness', () => {
     await page.evaluate(() => { window.__cns.state.chat.typingUids = []; });
     await expect(page.locator('.chat-typing-row')).toHaveCount(0);
   });
+
+  // Redesign des Ergebnis-Screens: selbst der VOLLSTE Fall (Coop-Endlos-Sieg,
+  // 4 Spieler mit Verteilungs-Zeilen, Münzen + Multiplikator + Streak-Bonus,
+  // Perfekt- + Bestzeit-Badge, Leben-Zeile) passt KOMPLETT auf den Bildschirm.
+  test('the fullest possible win card (coop endless, 4 players, all extras) fits the viewport', async ({ page }) => {
+    await gotoApp(page);
+    await asGuestInGame(page);
+    await page.evaluate(() => {
+      const s = window.__cns.state;
+      s.coop.players = [
+        { id: 'host', name: 'Hosti', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' },
+        { id: 'p3', name: 'Spielerin Drei', color: '#7bd389' }, { id: 'p4', name: 'Vierter', color: '#e5b567' },
+      ];
+      // Züge auf alle vier verteilen, damit die Verteilung 4 Zeilen hat.
+      const ids = ['host', 'me', 'p3', 'p4'];
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { s.marks[r][c] = 'kept'; s.markedBy[r][c] = ids[(r * 4 + c) % 4]; }
+      s.coop.mistakesByPlayer = { host: 1, me: 0, p3: 2, p4: 0 };
+      s.endless.active = true; s.endless.coop = true; s.endless.score = 7;
+      s.lives = 1; s.maxLives = 3; s.coop.lifeLossBy = ['host', 'p3', null];
+      s.lastCoinReward = 264; s.lastCoinMult = 4; s.lastStreakUsed = 30;
+      s.perfectWin = true; s.newHighscore = true;
+      s.status = 'won';
+    });
+    await expect(page.locator('.result-card.win')).toBeVisible();
+    await expect(page.locator('.result-card.win .perf-line')).toHaveCount(4);
+    await expect(page.locator('.result-card.win .perf-stack')).toBeVisible();
+    await expect(page.locator('.result-card.win .coin-reward')).toBeVisible();
+    await expect(page.locator('.result-card.win .endless-lives-row')).toBeVisible();
+    // Kernforderung: Karte ragt weder oben noch unten raus.
+    const card = await page.locator('.result-card.win').boundingBox();
+    const viewport = page.viewportSize();
+    expect(card.height).toBeLessThanOrEqual(viewport.height - 20);
+    expect(card.y).toBeGreaterThanOrEqual(0);
+    expect(card.y + card.height).toBeLessThanOrEqual(viewport.height);
+  });
 });

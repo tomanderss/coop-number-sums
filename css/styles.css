@@ -1374,6 +1374,28 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   text-align: center; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px var(--shadow);
   animation: pop .4s cubic-bezier(.2,1.3,.5,1); margin: auto; flex-shrink: 0;
 }
+/* ── Kompakt-Layout der Ergebnis-Karte (.rc = Sieg/Niederlage/Endlos-Ende) ──
+   Kopfzeile (Icon + Titel + Schwierigkeit nebeneinander) statt gestapeltem
+   Riesen-Emoji, engere Abstände, Aktions-Knöpfe nebeneinander — die Karte passt
+   damit in JEDEM Modus (auch Coop-Endlos, 4 Spieler, Münzen + Multiplikator +
+   Verteilung) ohne Skalierung komplett auf kleine Displays. Kein Element wird
+   nur „kleiner gezoomt" — die Struktur ist flacher. */
+.result-card.rc { gap: 9px; padding: 18px 18px 16px; max-width: 384px; }
+.rc-head { display: flex; align-items: center; gap: 12px; text-align: left; }
+.rc-head .result-emoji { font-size: 2.3rem; line-height: 1; flex: 0 0 auto; }
+.rc-headtx { min-width: 0; flex: 1 1 auto; }
+.result-card.rc h2 { font-size: 1.28rem; overflow-wrap: anywhere; }
+.result-card.rc .result-diff { margin: 1px 0 0; font-size: .9rem; }
+.rc-badges { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.rc-badges > * { margin: 0; align-self: center; }
+.rc-actions { display: flex; gap: 8px; margin-top: 2px; }
+.rc-actions .btn { flex: 1 1 0; min-width: 0; padding-left: 10px; padding-right: 10px; }
+.rc-actions .rc-wait { flex: 1 1 auto; align-self: center; font-size: .84rem; }
+.result-card.rc .result-stats { margin: 0; }
+.result-card.rc .result-stats b { font-size: 1.25rem; }
+.result-card.rc .coin-reward { margin: 0; }
+.result-card.rc .coin-streak-bonus { margin: -4px 0 0; }
+.result-card.rc .endless-lives-row { margin: 0; }
 /* Makelloser Sieg (0 Fehler, 0 Hinweise) bekommt einen goldenen Schimmer statt
    des normalen Schattens -- abgestufte Belohnung zum sonst identischen Sieg-Screen. */
 .result-card.win.perfect {
@@ -1405,25 +1427,48 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .team-result { display: flex; flex-direction: column; gap: 4px; text-align: left; margin: 2px 0 4px; }
 .team-chip.player-chip b { margin-left: 5px; font-weight: 700; opacity: .85; }
 
-/* ─── Coop: Team-Performance & MVP (Gewonnen/Verloren-Screen) ─── */
-.coop-performance { display: flex; flex-direction: column; gap: 8px; text-align: left; margin: 2px 0 4px; }
-/* Gegner-Team-Leben-Verlust im 2v2-Ergebnis-Screen — einfache Chip-Reihe statt
-   der ausführlichen .perf-row-Karten des eigenen Teams, da hier nur die
-   Fehlerzahl pro Gegner-Spieler zählt, keine Korrekt/Falsch-Aufschlüsselung. */
-.opponent-team-performance { display: flex; flex-direction: column; gap: 6px; text-align: left; margin: 2px 0 4px; }
-.opponent-team-performance .chip { margin-right: 6px; }
-.perf-title { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
-.perf-row { background: var(--bg3); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
-.perf-row.mvp { box-shadow: 0 0 0 2px #fbbf24 inset; }
-/* Kopf einer Performance-Karte: Name links (darf umbrechen/schrumpfen), Prozent
-   rechts FIX. min-width:0 + overflow-wrap:anywhere lassen auch einen sehr langen
-   Namen ohne Leerzeichen brechen, statt die Prozentzahl aus der Karte zu schieben. */
-.perf-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.perf-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; font-weight: 800; font-size: .88rem; }
-.perf-pct { flex: 0 0 auto; font-weight: 800; font-size: .88rem; color: var(--text2); }
-.perf-bar { height: 5px; border-radius: 999px; background: var(--bg); overflow: hidden; }
-.perf-bar-fill { height: 100%; border-radius: 999px; }
-.perf-nums { display: flex; flex-wrap: wrap; gap: 8px; font-size: .72rem; color: var(--text2); }
+/* ─── Coop: Team-Performance & MVP (Gewonnen/Verloren-Screen) ───
+   KOMPAKT: EIN gestapelter Verteilungs-Balken (Segmente in Spielerfarbe) +
+   genau EINE Zeile je Spieler (Punkt · Name · richtige Züge/Fehler · Prozent).
+   So passen auch 4 Spieler zusammen mit Münzen/Multiplikator/Stats garantiert
+   auf kleine Displays (früher: 3-zeilige Karten je Spieler → Karte lief über). */
+.coop-performance { display: flex; flex-direction: column; gap: 6px; text-align: left; margin: 0; }
+.opponent-team-performance { display: flex; flex-direction: column; gap: 5px; text-align: left; margin: 0; }
+.opp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.perf-title { font-size: .74rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
+.perf-stack { display: flex; height: 12px; border-radius: 999px; background: var(--bg3); overflow: hidden; }
+.perf-stack span { display: block; height: 100%; min-width: 3px; }
+.perf-stack span + span { border-left: 2px solid var(--bg2); }
+.perf-line { display: flex; align-items: center; gap: 7px; min-height: 22px; }
+.perf-line.mvp { background: rgba(251,191,36,.09); box-shadow: 0 0 0 1.5px rgba(251,191,36,.55); border-radius: 999px; padding: 1px 8px 1px 6px; }
+.perf-dot { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; }
+.perf-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; font-weight: 800; font-size: .84rem; display: flex; align-items: center; gap: 6px; }
+.perf-mvp { display: inline-flex; align-items: center; gap: 3px; color: #fbbf24; font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .4px; }
+.perf-mini { flex: 0 0 auto; display: inline-flex; gap: 8px; font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.perf-mini .pm { display: inline-flex; align-items: center; gap: 2px; }
+.perf-mini .pm.good { color: var(--good, #22c55e); }
+.perf-mini .pm.bad { color: var(--bad, #ef4444); }
+.perf-mini .ei svg { width: 13px; height: 13px; }
+.perf-pct { flex: 0 0 auto; font-weight: 900; font-size: .84rem; color: var(--text2); font-variant-numeric: tabular-nums; }
+
+/* ─── Duell-Grafik (Race 1v1/FFA + Team-vs-Team, Sieg-/Niederlage-Screen) ───
+   Ein Balken je Partei in Spielerfarbe statt reinem Prozent-Text: Sieger oben
+   mit Pokal, Ausgeschiedene ausgegraut. Der Füllstand fährt einmalig per
+   transform:scaleX ein (compositor-only, Breite selbst ist statisch). */
+.duel-graph { display: flex; flex-direction: column; gap: 7px; text-align: left; background: var(--bg3); border-radius: 14px; padding: 10px 12px; }
+.duel-row { display: grid; grid-template-columns: minmax(56px, 32%) 1fr auto; align-items: center; gap: 8px; }
+.duel-name { font-weight: 800; font-size: .82rem; min-width: 0; overflow-wrap: anywhere; display: flex; align-items: center; gap: 4px; }
+.duel-trophy { color: #fbbf24; flex: 0 0 auto; }
+.duel-trophy svg { width: 15px; height: 15px; }
+.duel-row.winner .duel-name { color: #fbbf24; }
+.duel-row.out { opacity: .55; }
+.duel-bar { height: 10px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.duel-fill { display: block; height: 100%; border-radius: 999px; background: var(--text3); transform-origin: left; animation: duel-fill .8s cubic-bezier(.2,.9,.3,1) both; }
+.duel-fill.mine { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+@keyframes duel-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.duel-pct { font-weight: 900; font-size: .82rem; font-variant-numeric: tabular-nums; }
+.duel-msg { margin: 1px 0 0; font-size: .8rem; color: var(--text2); }
+@media (prefers-reduced-motion: reduce) { .duel-fill { animation: none; } }
 
 /* ─── Trainingsmodus: Erklär-Banner (kein Vollbild-Overlay, siehe app.js) ─── */
 /* Teil des normalen Flex-Spalten-Flusses von .screen.game (wie .toolbar/

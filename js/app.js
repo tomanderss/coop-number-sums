@@ -6891,6 +6891,28 @@ const App = {
       if (tm.endReason === 'lost') return t('team.weLostByLives', params);
       return t('team.weLost', params);
     });
+    // Duell-Ergebnis als GRAFIK (Race 1v1/FFA + Team-vs-Team): ein Balken je
+    // Partei in Spielerfarbe, Sieger zuerst (Pokal), Ausgeschiedene ans Ende —
+    // ersetzt den reinen Prozent-Text im Sieg-/Niederlage-Dialog.
+    const duelBars = computed(() => {
+      const bars = [];
+      if (state.race.active) {
+        const r = state.race;
+        bars.push({ id: 'me', name: myUsername() || t('common.you'), color: state.settings.coopMyColor, pct: r.myPct, me: true, winner: r.winner === 'me', out: r.winner === 'out' });
+        if (r.ffa) {
+          for (const o of r.opponents) bars.push({ id: o.id, name: o.name, color: o.color, pct: o.pct, out: o.out, winner: r.winner === 'opponent' && !!r.winnerName && o.name === r.winnerName });
+        } else {
+          bars.push({ id: 'opp', name: r.opponentName || t('common.defaultPlayerName'), color: r.opponentColor, pct: r.opponentPct, winner: r.winner === 'opponent' });
+        }
+      } else if (state.team.active && state.team.winningTeam) {
+        const tm = state.team;
+        const oppTeam = tm.myTeam === 'A' ? 'B' : 'A';
+        bars.push({ id: 'my', name: t(tm.myTeam === 'A' ? 'team.labelA' : 'team.labelB'), pct: tm.myPct, me: true, winner: tm.winningTeam === tm.myTeam });
+        bars.push({ id: 'opp', name: t(oppTeam === 'A' ? 'team.labelA' : 'team.labelB'), pct: tm.opponentPct, winner: tm.winningTeam === oppTeam });
+      }
+      bars.sort((a, b) => ((b.winner ? 1 : 0) - (a.winner ? 1 : 0)) || ((a.out ? 1 : 0) - (b.out ? 1 : 0)) || (b.pct - a.pct));
+      return bars;
+    });
     // Das WIN-Overlay zeigte bisher immer t('win.title') ("Gelöst!"), auch wenn
     // der Sieg im Team-/Race-Modus nur daraus kam, dass die Gegenseite alle Leben
     // verloren oder aufgegeben hat -- man hat dann selbst nichts "gelöst".
@@ -6984,7 +7006,7 @@ const App = {
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
-      openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle,
+      openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle, duelBars,
       canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       canContinueSolo, continueSoloAlone, startResumeCountdown,
       startTrainingGame, applyTrainingStep,
@@ -7393,25 +7415,38 @@ const App = {
         </div>
       </div>
 
-      <!-- Gewonnen / Verloren -->
+      <!-- Gewonnen / Verloren — kompakte Karte, die IMMER auf den Bildschirm passt:
+           Kopfzeile (Icon + Titel + Schwierigkeit) statt gestapeltem Riesen-Emoji,
+           Badges/Münzen als Chip-Zeilen, Duell-GRAFIK statt Prozent-Text,
+           Team-Verteilung als EIN gestapelter Balken + eine Zeile je Spieler
+           (bis 4 Spieler), Aktionen nebeneinander. Identischer Aufbau in allen
+           Modi — jede Sektion erscheint nur, wenn relevant. -->
       <div v-if="state.status==='won'" class="overlay">
-        <div class="result-card win" :class="{ perfect: state.perfectWin }">
-          <div class="result-emoji"><span class="ei" v-html="ic(state.endless.active ? 'meteor' : 'party')"></span></div>
-          <h2>{{ state.endless.active ? t('endless.levelDone', { n: state.endless.score }) : winTitle }}</h2>
-          <div v-if="state.puzzle" class="result-diff">{{ t('difficulty.' + state.puzzle.difficulty) }} · {{ state.puzzle.rows }}×{{ state.puzzle.cols }}</div>
-          <div v-if="state.team.active" class="team-result">
-            <p class="result-msg">{{ teamResultMsg }}</p>
+        <div class="result-card win rc" :class="{ perfect: state.perfectWin }">
+          <div class="rc-head">
+            <div class="result-emoji"><span class="ei" v-html="ic(state.endless.active ? 'meteor' : 'party')"></span></div>
+            <div class="rc-headtx">
+              <h2>{{ state.endless.active ? t('endless.levelDone', { n: state.endless.score }) : winTitle }}</h2>
+              <div v-if="state.puzzle" class="result-diff">{{ t('difficulty.' + state.puzzle.difficulty) }} · {{ state.puzzle.rows }}×{{ state.puzzle.cols }}</div>
+            </div>
           </div>
-          <div v-if="state.race.active" class="team-result">
-            <p class="result-msg">{{ raceResultMsg }}</p>
+          <div v-if="state.perfectWin || state.newHighscore || state.wouldHaveBeenBest" class="rc-badges">
+            <div v-if="state.perfectWin" class="perfect-badge">{{ t('win.perfectBadge') }}</div>
+            <div v-if="state.newHighscore" class="highscore-badge">{{ t('win.newHighscore') }}</div>
+            <div v-else-if="state.wouldHaveBeenBest" class="highscore-badge missed">
+              {{ t('win.missedPrefix') }}
+              <template v-if="state.mistakes>0 && state.hintsUsed>0"> {{ t('win.missedBoth') }}</template>
+              <template v-else-if="state.mistakes>0"> {{ t('win.missedMistakes') }}</template>
+              <template v-else> {{ t('win.missedHints') }}</template>.
+            </div>
           </div>
-          <div v-if="state.perfectWin" class="perfect-badge">{{ t('win.perfectBadge') }}</div>
-          <div v-if="state.newHighscore" class="highscore-badge">{{ t('win.newHighscore') }}</div>
-          <div v-else-if="state.wouldHaveBeenBest" class="highscore-badge missed">
-            {{ t('win.missedPrefix') }}
-            <template v-if="state.mistakes>0 && state.hintsUsed>0"> {{ t('win.missedBoth') }}</template>
-            <template v-else-if="state.mistakes>0"> {{ t('win.missedMistakes') }}</template>
-            <template v-else> {{ t('win.missedHints') }}</template>.
+          <div v-if="duelBars.length" class="duel-graph">
+            <div v-for="b in duelBars" :key="b.id" class="duel-row" :class="{ winner: b.winner, out: b.out, mine: b.me }">
+              <span class="duel-name"><span v-if="b.winner" class="ei duel-trophy" v-html="ic('trophy')"></span>{{ b.name }}</span>
+              <span class="duel-bar"><span class="duel-fill" :class="{ mine: b.me && !b.color }" :style="{ width: Math.max(b.pct, 2) + '%', background: b.color || null }"></span></span>
+              <span class="duel-pct">{{ b.pct }}%</span>
+            </div>
+            <p class="duel-msg">{{ state.team.active ? teamResultMsg : raceResultMsg }}</p>
           </div>
           <div v-if="state.lastCoinReward > 0" class="coin-reward"><span class="ei" v-html="ic('coin')"></span> +{{ state.lastCoinReward }} <span v-if="state.lastCoinMult > 1" class="coin-mult">×{{ state.lastCoinMult }}</span> <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
           <div v-if="state.lastStreakUsed > 0" class="coin-streak-bonus"><span class="ei" v-html="ic('flame')"></span> {{ t('wallet.streakBonus', { days: state.lastStreakUsed, pct: streakBonusPct(state.lastStreakUsed) }) }}</div>
@@ -7432,93 +7467,96 @@ const App = {
           </div>
           <div v-if="coopPerformance.length" class="coop-performance">
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>
-            <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
-              <div class="perf-head">
-                <span class="perf-name" :style="{color: pl.color}">{{ playerLabel(pl) }}<template v-if="pl.id===mvpId"> {{ t('win.mvp') }}</template></span>
-                <span class="perf-pct">{{ pl.contributionPct }}%</span>
-              </div>
-              <div class="perf-bar"><div class="perf-bar-fill" :style="{width: pl.contributionPct + '%', background: pl.color}"></div></div>
-              <div class="perf-nums">
-                <span>{{ t('win.correctKept', { count: pl.correctKept }) }}</span>
-                <span>{{ t('win.correctRemoved', { count: pl.correctRemoved }) }}</span>
-                <span>{{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
-              </div>
+            <div class="perf-stack"><span v-for="pl in coopPerformance" :key="pl.id" :style="{ width: pl.contributionPct + '%', background: pl.color }"></span></div>
+            <div v-for="pl in coopPerformance" :key="pl.id" class="perf-line" :class="{mvp: pl.id===mvpId}">
+              <span class="perf-dot" :style="{background: pl.color}"></span>
+              <span class="perf-name" :style="{color: pl.color}">{{ playerLabel(pl) }}<span v-if="pl.id===mvpId" class="perf-mvp"><span class="ei" v-html="ic('crown')"></span> {{ t('win.mvp') }}</span></span>
+              <span class="perf-mini"><span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correctKept + pl.correctRemoved }}</span><span class="pm bad"><span class="ei" v-html="ic('heart-broken')"></span>{{ pl.mistakes }}</span></span>
+              <span class="perf-pct">{{ pl.contributionPct }}%</span>
             </div>
           </div>
           <div v-if="opponentTeamPerformance.length" class="opponent-team-performance">
             <div class="perf-title">{{ t('team.opponentLivesLostPerPlayer') }}</div>
-            <span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ playerLabel(pl) }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
+            <div class="opp-chips"><span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ playerLabel(pl) }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span></div>
           </div>
-          <!-- Endlos: „Fortsetzen" (Solo direkt, Coop nur Host; Gast wartet auf Host). -->
-          <template v-if="state.endless.active">
-            <button v-if="!state.endless.coop || state.coop.role==='host'" class="btn btn-primary" @click="endlessContinue">{{ t('endless.continue') }}</button>
-            <p v-else class="result-msg">{{ t('win.waitingForHost') }}</p>
-          </template>
-          <template v-else>
-            <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-            <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
-            <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
-            <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
-            <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
-          </template>
-          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
+          <div class="rc-actions">
+            <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
+            <!-- Endlos: „Fortsetzen" (Solo direkt, Coop nur Host; Gast wartet auf Host). -->
+            <template v-if="state.endless.active">
+              <button v-if="!state.endless.coop || state.coop.role==='host'" class="btn btn-primary" @click="endlessContinue">{{ t('endless.continue') }}</button>
+              <p v-else class="result-msg rc-wait">{{ t('win.waitingForHost') }}</p>
+            </template>
+            <template v-else>
+              <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
+              <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('win.nextPuzzle') }}</button>
+              <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg rc-wait">{{ t('win.waitingForHost') }}</p>
+              <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
+              <p v-else-if="state.race.active" class="result-msg rc-wait">{{ t('win.waitingForHost') }}</p>
+            </template>
+          </div>
         </div>
       </div>
       <div v-if="state.status==='lost' && !state.endlessSummary" class="overlay">
-        <div class="result-card lose">
-          <div class="result-emoji"><span class="ei" v-html="ic('heart-broken')"></span></div>
-          <template v-if="state.team.active">
-            <h2>{{ t('team.lossTitleAuto') }}</h2>
-            <p class="result-msg">{{ teamResultMsg }}</p>
-          </template>
-          <template v-else-if="state.race.active">
-            <h2>{{ t('race.lossTitleAuto') }}</h2>
-            <p class="result-msg">{{ raceResultMsg }}</p>
-          </template>
-          <template v-else>
-            <h2>{{ t('loss.title') }}</h2>
-            <p class="result-msg">{{ t('loss.msg') }}</p>
-          </template>
+        <div class="result-card lose rc">
+          <div class="rc-head">
+            <div class="result-emoji"><span class="ei" v-html="ic('heart-broken')"></span></div>
+            <div class="rc-headtx">
+              <h2>{{ state.team.active ? t('team.lossTitleAuto') : state.race.active ? t('race.lossTitleAuto') : t('loss.title') }}</h2>
+              <div v-if="state.puzzle" class="result-diff">{{ t('difficulty.' + state.puzzle.difficulty) }} · {{ state.puzzle.rows }}×{{ state.puzzle.cols }}</div>
+            </div>
+          </div>
+          <p v-if="!state.team.active && !state.race.active" class="result-msg">{{ t('loss.msg') }}</p>
+          <div v-if="duelBars.length" class="duel-graph">
+            <div v-for="b in duelBars" :key="b.id" class="duel-row" :class="{ winner: b.winner, out: b.out, mine: b.me }">
+              <span class="duel-name"><span v-if="b.winner" class="ei duel-trophy" v-html="ic('trophy')"></span>{{ b.name }}</span>
+              <span class="duel-bar"><span class="duel-fill" :class="{ mine: b.me && !b.color }" :style="{ width: Math.max(b.pct, 2) + '%', background: b.color || null }"></span></span>
+              <span class="duel-pct">{{ b.pct }}%</span>
+            </div>
+            <p class="duel-msg">{{ state.team.active ? teamResultMsg : raceResultMsg }}</p>
+          </div>
           <div v-if="coopPerformance.length" class="coop-performance">
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>
-            <div v-for="pl in coopPerformance" :key="pl.id" class="perf-row" :class="{mvp: pl.id===mvpId}">
-              <div class="perf-head">
-                <span class="perf-name" :style="{color: pl.color}">{{ playerLabel(pl) }}<template v-if="pl.id===mvpId"> {{ t('win.mvp') }}</template></span>
-                <span class="perf-pct">{{ pl.contributionPct }}%</span>
-              </div>
-              <div class="perf-bar"><div class="perf-bar-fill" :style="{width: pl.contributionPct + '%', background: pl.color}"></div></div>
-              <div class="perf-nums">
-                <span>{{ t('win.correctKept', { count: pl.correctKept }) }}</span>
-                <span>{{ t('win.correctRemoved', { count: pl.correctRemoved }) }}</span>
-                <span>{{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
-              </div>
+            <div class="perf-stack"><span v-for="pl in coopPerformance" :key="pl.id" :style="{ width: pl.contributionPct + '%', background: pl.color }"></span></div>
+            <div v-for="pl in coopPerformance" :key="pl.id" class="perf-line" :class="{mvp: pl.id===mvpId}">
+              <span class="perf-dot" :style="{background: pl.color}"></span>
+              <span class="perf-name" :style="{color: pl.color}">{{ playerLabel(pl) }}<span v-if="pl.id===mvpId" class="perf-mvp"><span class="ei" v-html="ic('crown')"></span> {{ t('win.mvp') }}</span></span>
+              <span class="perf-mini"><span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correctKept + pl.correctRemoved }}</span><span class="pm bad"><span class="ei" v-html="ic('heart-broken')"></span>{{ pl.mistakes }}</span></span>
+              <span class="perf-pct">{{ pl.contributionPct }}%</span>
             </div>
           </div>
           <div v-if="opponentTeamPerformance.length" class="opponent-team-performance">
             <div class="perf-title">{{ t('team.opponentLivesLostPerPlayer') }}</div>
-            <span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ playerLabel(pl) }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span>
+            <div class="opp-chips"><span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ playerLabel(pl) }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span></div>
           </div>
-          <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
-          <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('common.newGame') }}</button>
-          <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg">{{ t('win.waitingForHost') }}</p>
-          <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
-          <p v-else-if="state.race.active" class="result-msg">{{ t('win.waitingForHost') }}</p>
-          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
+          <div class="rc-actions">
+            <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
+            <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
+            <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('common.newGame') }}</button>
+            <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg rc-wait">{{ t('win.waitingForHost') }}</p>
+            <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
+            <p v-else-if="state.race.active" class="result-msg rc-wait">{{ t('win.waitingForHost') }}</p>
+          </div>
         </div>
       </div>
 
       <!-- Endlos: Ergebnis-Screen am Laufende (Leben aufgebraucht) -->
       <div v-if="state.endlessSummary" class="overlay">
-        <div class="result-card" :class="{ 'endless-record': state.endlessSummary.newBest }">
-          <div class="result-emoji"><span class="ei" v-html="ic('meteor')"></span></div>
-          <h2>{{ t('endless.overTitle') }}</h2>
-          <div class="endless-reached">{{ t('endless.reached', { n: state.endlessSummary.score }) }}</div>
+        <div class="result-card rc" :class="{ 'endless-record': state.endlessSummary.newBest }">
+          <div class="rc-head">
+            <div class="result-emoji"><span class="ei" v-html="ic('meteor')"></span></div>
+            <div class="rc-headtx">
+              <h2>{{ t('endless.overTitle') }}</h2>
+              <div class="endless-reached">{{ t('endless.reached', { n: state.endlessSummary.score }) }}</div>
+            </div>
+          </div>
           <div v-if="state.endlessSummary.totalMs > 0" class="result-diff"><span class="ei" v-html="ic('hourglass')"></span> {{ t('endless.totalTime') }}: {{ fmtTime(state.endlessSummary.totalMs) }}</div>
-          <div v-if="state.endlessSummary.newBest" class="highscore-badge">{{ t('endless.record') }}</div>
+          <div v-if="state.endlessSummary.newBest" class="rc-badges"><div class="highscore-badge">{{ t('endless.record') }}</div></div>
           <div v-else class="result-msg">{{ t('endless.best', { n: state.endlessSummary.best }) }}</div>
           <div v-if="state.endlessSummary.coins > 0" class="coin-reward"><span class="ei" v-html="ic('coin')"></span> +{{ state.endlessSummary.coins }} <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
-          <button v-if="!state.endlessSummary.coop" class="btn btn-primary" @click="endlessAgain">{{ t('common.newGame') }}</button>
-          <button class="btn btn-ghost" @click="closeEndlessSummary">{{ t('common.menu') }}</button>
+          <div class="rc-actions">
+            <button class="btn btn-ghost" @click="closeEndlessSummary">{{ t('common.menu') }}</button>
+            <button v-if="!state.endlessSummary.coop" class="btn btn-primary" @click="endlessAgain">{{ t('common.newGame') }}</button>
+          </div>
         </div>
       </div>
     </section>
