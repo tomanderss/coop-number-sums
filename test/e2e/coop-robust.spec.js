@@ -140,6 +140,12 @@ test.describe('coop robustness', () => {
     await expect(page.locator('.result-card.win')).toBeVisible();
     await expect(page.locator('.result-card.win .perf-line')).toHaveCount(4);
     await expect(page.locator('.result-card.win .perf-stack')).toBeVisible();
+    // Spalten fluchten exakt: alle Namen beginnen auf derselben X-Position,
+    // alle Prozente enden an derselben rechten Kante (MVP-Zeile ohne Versatz).
+    const nameXs = await page.$$eval('.result-card.win .perf-line .perf-name', els => els.map(e => e.getBoundingClientRect().left));
+    expect(Math.max(...nameXs) - Math.min(...nameXs)).toBeLessThanOrEqual(1);
+    const pctRights = await page.$$eval('.result-card.win .perf-line .perf-pct', els => els.map(e => e.getBoundingClientRect().right));
+    expect(Math.max(...pctRights) - Math.min(...pctRights)).toBeLessThanOrEqual(1);
     await expect(page.locator('.result-card.win .coin-reward')).toBeVisible();
     await expect(page.locator('.result-card.win .endless-lives-row')).toBeVisible();
     // Kernforderung: Karte ragt weder oben noch unten raus.
@@ -148,5 +154,31 @@ test.describe('coop robustness', () => {
     expect(card.height).toBeLessThanOrEqual(viewport.height - 20);
     expect(card.y).toBeGreaterThanOrEqual(0);
     expect(card.y + card.height).toBeLessThanOrEqual(viewport.height);
+    // Gast-Fall: der Warte-Text steht als EIGENE Zeile über dem Menü-Knopf —
+    // der „Zum Menü"-Knopf wird nicht mehr zusammengequetscht (kein Umbruch).
+    const wait = await page.locator('.rc-actions .rc-wait').boundingBox();
+    const menuBtn = await page.locator('.rc-actions .btn').first().boundingBox();
+    expect(wait.y + wait.height).toBeLessThanOrEqual(menuBtn.y + 1);
+    expect(menuBtn.width).toBeGreaterThan(card.width * 0.7);
+    expect(menuBtn.height).toBeLessThan(60);
+  });
+
+  // Coop-Resume-Countdown: drückt EIN Spieler „Fortsetzen", sehen ALLE den
+  // ablaufenden Balken (RESUME_COUNT-Event) — das eigentliche RESUME kommt am
+  // Balken-Ende vom Drücker und schließt das Pausenmenü überall.
+  test('a partner pressing resume shows the countdown bar for everyone', async ({ page }) => {
+    await gotoApp(page);
+    await asGuestInGame(page);
+    await page.evaluate(() => { window.__cns.handleCoopMsg({ type: 'pause', paused: true, elapsed: 5000 }); });
+    await expect(page.locator('.pause-overlay')).toBeVisible();
+    // Partner drückt „Fortsetzen" → bei UNS erscheint der Countdown-Balken.
+    await page.evaluate(() => { window.__cns.handleCoopMsg({ type: 'resumeCount' }); });
+    await expect(page.locator('.resume-count-card')).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.paused)).toBe(true);
+    // Das RESUME des Drückers beendet Pause + Countdown auch bei uns.
+    await page.evaluate(() => { window.__cns.handleCoopMsg({ type: 'pause', paused: false }); });
+    await page.waitForFunction(() => !window.__cns.state.paused);
+    await expect(page.locator('.pause-overlay')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__cns.state.resumeCountdown)).toBe(null);
   });
 });
