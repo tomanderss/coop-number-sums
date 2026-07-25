@@ -1,2 +1,0 @@
-Der Zurück-Knopf (Zug rückgängig) ist aus der Werkzeugleiste entfernt
-Hinweise sind jetzt in allen Modi unbegrenzt (auch im Endlos-Aufstieg — vorher nur 3 pro Lauf)
