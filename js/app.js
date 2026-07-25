@@ -605,17 +605,31 @@ function clearResumeCountdown() {
   if (resumeCountdownTimer) { clearTimeout(resumeCountdownTimer); resumeCountdownTimer = null; }
   state.resumeCountdown = null;
 }
-function startResumeCountdown() {
+// fromRemote=true: ein MITSPIELER hat „Fortsetzen" gedrückt (RESUME_COUNT-Event)
+// — der Balken läuft auch hier, aber NUR der Drücker resumt am Ende und
+// broadcastet das RESUME (sonst Doppel-Resume/Uhr-Races). Bleibt das RESUME
+// aus (Netzabriss), fällt der Remote-Countdown nach kurzer Karenz zurück ins
+// Pausenmenü statt ewig auf dem Balken zu hängen.
+function startResumeCountdown(fromRemote = false) {
+  // Klick-Handler übergeben das Event-Objekt als 1. Argument — nur ein
+  // EXPLIZITES true (RESUME_COUNT-Handler) zählt als remote.
+  fromRemote = fromRemote === true;
   if (!state.paused || state.resumeCountdown) return;
   state.resumeCountdown = 1;
-  log('game', 'Resume-Countdown gestartet');
+  log('game', 'Resume-Countdown gestartet', { fromRemote });
+  if (!fromRemote) {
+    // Partner sollen den Countdown SYNCHRON sehen (das Pausenmenü schließt
+    // sonst bei ihnen erst abrupt mit dem fertigen RESUME).
+    if (state.race.active) Coop.send({ type: Coop.MSG.RESUME_COUNT });
+    else if (state.coop.active) coopSend({ type: Coop.MSG.RESUME_COUNT });
+  }
   resumeCountdownTimer = setTimeout(() => {
     // Abbruchfälle: Remote-Resume (paused=false via resumeFromPause→clear) oder
     // Screen-Wechsel (Zum-Menü-Pfade) — nie in einen toten Zustand resumen.
     if (!state.paused || state.screen !== 'game') { clearResumeCountdown(); return; }
     clearResumeCountdown();
-    resumeFromPause();
-  }, RESUME_COUNTDOWN_MS);
+    if (!fromRemote) resumeFromPause();
+  }, fromRemote ? RESUME_COUNTDOWN_MS + 2500 : RESUME_COUNTDOWN_MS);
 }
 
 // Einstellungen sind von JEDEM Screen aus über das Zahnrad erreichbar. Wir merken
@@ -2547,6 +2561,10 @@ function handleCoopMsg(msg) {
     applyRemoteMistake(msg.by, msg.n);
   } else if (msg.type === Coop.MSG.PAUSE) {
     if (msg.paused) pauseGame(false, msg.elapsed); else resumeFromPause(false);
+  } else if (msg.type === Coop.MSG.RESUME_COUNT) {
+    // Ein Mitspieler hat „Fortsetzen" gedrückt → denselben Countdown-Balken
+    // zeigen (das eigentliche RESUME kommt am Balken-Ende vom Drücker).
+    if (state.paused && state.screen === 'game') startResumeCountdown(true);
   } else if (msg.type === Coop.MSG.HINT) {
     applyHintEffect(msg.r, msg.c, msg.mark, false, msg.from);
   } else if (msg.type === Coop.MSG.INIT) {

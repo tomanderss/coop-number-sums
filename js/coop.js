@@ -554,4 +554,5 @@ export const MSG = {
   RACE_START: 'raceStart', RACE_DONE: 'raceDone',
   CHAT: 'chat',
   RESYNC: 'resync',   // Gast ohne Brett bittet den Host, den Rundenstand erneut zu senden (Selbstheilung)
+  RESUME_COUNT: 'resumeCount', // jemand hat „Fortsetzen" gedrückt → alle zeigen den ablaufenden Countdown-Balken
 };
