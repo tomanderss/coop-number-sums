@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.182';
-export const BUILD_HASH = 'd364005';
+export const BUILD      = '1.183';
+export const BUILD_HASH = '3085051';
 
 export const CHANGELOG = [
+  {
+    "version": "1.183",
+    "date": "25.07.2026",
+    "changes": [
+      "Fortsetzen-Countdown verkürzt: nur noch 2 Sekunden mit ablaufendem Balken („Weiter geht’s“), ohne Ziffernanzeige"
+    ]
+  },
   {
     "version": "1.182",
     "date": "24.07.2026",
