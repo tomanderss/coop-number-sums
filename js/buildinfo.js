@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.184';
-export const BUILD_HASH = '0fb7c36';
+export const BUILD      = '1.185';
+export const BUILD_HASH = 'ea03c41';
 
 export const CHANGELOG = [
+  {
+    "version": "1.185",
+    "date": "25.07.2026",
+    "changes": [
+      "Streak-Bonus verdoppelt: +10% Münzen pro Streak-Tag statt +5% (z.B. 10er-Streak = doppelte Belohnung)",
+      "Duell-End-Screen aufgewertet: Fehler-Anzeige je Partei in der Balken-Grafik und eigene Statistik-Zeile (Zeit/Fehler/Hinweise) jetzt auch bei einer Niederlage",
+      "Fortsetzen-Countdown auf 1 Sekunde verkürzt"
+    ]
+  },
   {
     "version": "1.184",
     "date": "25.07.2026",

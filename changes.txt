@@ -1,3 +1,0 @@
-Streak-Bonus verdoppelt: +10% Münzen pro Streak-Tag statt +5% (z.B. 10er-Streak = doppelte Belohnung)
-Duell-End-Screen aufgewertet: Fehler-Anzeige je Partei in der Balken-Grafik und eigene Statistik-Zeile (Zeit/Fehler/Hinweise) jetzt auch bei einer Niederlage
-Fortsetzen-Countdown auf 1 Sekunde verkürzt
