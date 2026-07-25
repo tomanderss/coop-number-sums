@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.186';
-export const BUILD_HASH = '9ed09de';
+export const BUILD      = '1.187';
+export const BUILD_HASH = 'fa7c076';
 
 export const CHANGELOG = [
+  {
+    "version": "1.187",
+    "date": "25.07.2026",
+    "changes": [
+      "Admin-Geschenk-Benachrichtigung korrigiert: bei geschenkten Münzen steht jetzt „hat dir X Münzen geschenkt“ statt fälschlich „Guthaben auf X gesetzt“ (Abzüge entsprechend als Verringerung)"
+    ]
+  },
   {
     "version": "1.186",
     "date": "25.07.2026",
