@@ -592,7 +592,7 @@ function resumeFromPause(broadcast = true) {
   }
 }
 // ── Resume-Countdown (3-2-1 + ablaufender Balken) ─────────────────────────────
-// „Fortsetzen" aus der Pause startet nicht mehr abrupt: erst läuft 2 s lang ein
+// „Fortsetzen" aus der Pause startet nicht mehr abrupt: erst läuft 1 s lang ein
 // Balken ab („Weiter geht's", keine Ziffern), das Spiel bleibt solange PAUSIERT
 // (Timer eingefroren, Brett verdeckt — kein versehentlicher Tap ins Brett).
 // Erst bei 0 läuft resumeFromPause inkl. Coop-Broadcast (der Partner resumt wie
@@ -605,7 +605,7 @@ function clearResumeCountdown() {
 }
 function startResumeCountdown() {
   if (!state.paused || state.resumeCountdown) return;
-  state.resumeCountdown = 2;
+  state.resumeCountdown = 1;
   log('game', 'Resume-Countdown gestartet');
   resumeCountdownTimer = setInterval(() => {
     // Abbruchfälle: Remote-Resume (paused=false via resumeFromPause→clear) oder
@@ -3669,8 +3669,8 @@ function win(remote) {
   // Auftakt ruckelte und „verschluckte" die erste Sekunde der Animation.
   afterPaint(() => {
     // Streak ZUERST buchen (vor der Münz-Belohnung), damit der heutige Sieg bereits
-    // in der Streak steckt und der Streak-Münz-Multiplikator (+5% je Streak-Tag)
-    // ihn mitzählt — z.B. 5er-Streak ⇒ +25%.
+    // in der Streak steckt und der Streak-Münz-Multiplikator (+10% je Streak-Tag)
+    // ihn mitzählt — z.B. 5er-Streak ⇒ +50%.
     if (!state.isTrainingGame) applyStreakAfterGame();
     // Trainingsrätsel (geführter Lernmodus, keine echte eigene Leistung)
     // fließen bewusst nicht in die nach Schwierigkeit gebucketeten Streaks/
@@ -3701,7 +3701,7 @@ function win(remote) {
       const dIdx = DIFFICULTIES.findIndex(d => d.id === state.puzzle.difficulty);
       const perfect = state.mistakes === 0 && state.hintsUsed === 0;
       const isCoopish = state.coop.active || state.isRaceGame || state.team.active;
-      // Streak-Bonus (+5% je Streak-Tag, additiv) fließt in den Gesamt-Multiplikator
+      // Streak-Bonus (+10% je Streak-Tag, additiv) fließt in den Gesamt-Multiplikator
       // ein — applyStreakAfterGame() lief oben bereits, state.streak ist aktuell.
       const streakDays = state.streak.currentStreak || 0;
       const bonus = { coop: isCoopish, perfect, bestTime: newHighscore, streak: streakDays };
@@ -6893,22 +6893,23 @@ const App = {
     });
     // Duell-Ergebnis als GRAFIK (Race 1v1/FFA + Team-vs-Team): ein Balken je
     // Partei in Spielerfarbe, Sieger zuerst (Pokal), Ausgeschiedene ans Ende —
-    // ersetzt den reinen Prozent-Text im Sieg-/Niederlage-Dialog.
+    // ersetzt den reinen Prozent-Text im Sieg-/Niederlage-Dialog. `mistakes`
+    // (Fehler je Partei, soweit bekannt) erscheint als kleiner Zähler je Zeile.
     const duelBars = computed(() => {
       const bars = [];
       if (state.race.active) {
         const r = state.race;
-        bars.push({ id: 'me', name: myUsername() || t('common.you'), color: state.settings.coopMyColor, pct: r.myPct, me: true, winner: r.winner === 'me', out: r.winner === 'out' });
+        bars.push({ id: 'me', name: myUsername() || t('common.you'), color: state.settings.coopMyColor, pct: r.myPct, me: true, winner: r.winner === 'me', out: r.winner === 'out', mistakes: state.mistakes });
         if (r.ffa) {
-          for (const o of r.opponents) bars.push({ id: o.id, name: o.name, color: o.color, pct: o.pct, out: o.out, winner: r.winner === 'opponent' && !!r.winnerName && o.name === r.winnerName });
+          for (const o of r.opponents) bars.push({ id: o.id, name: o.name, color: o.color, pct: o.pct, out: o.out, winner: r.winner === 'opponent' && !!r.winnerName && o.name === r.winnerName, mistakes: o.mistakes });
         } else {
-          bars.push({ id: 'opp', name: r.opponentName || t('common.defaultPlayerName'), color: r.opponentColor, pct: r.opponentPct, winner: r.winner === 'opponent' });
+          bars.push({ id: 'opp', name: r.opponentName || t('common.defaultPlayerName'), color: r.opponentColor, pct: r.opponentPct, winner: r.winner === 'opponent', mistakes: r.opponentMistakes });
         }
       } else if (state.team.active && state.team.winningTeam) {
         const tm = state.team;
         const oppTeam = tm.myTeam === 'A' ? 'B' : 'A';
-        bars.push({ id: 'my', name: t(tm.myTeam === 'A' ? 'team.labelA' : 'team.labelB'), pct: tm.myPct, me: true, winner: tm.winningTeam === tm.myTeam });
-        bars.push({ id: 'opp', name: t(oppTeam === 'A' ? 'team.labelA' : 'team.labelB'), pct: tm.opponentPct, winner: tm.winningTeam === oppTeam });
+        bars.push({ id: 'my', name: t(tm.myTeam === 'A' ? 'team.labelA' : 'team.labelB'), pct: tm.myPct, me: true, winner: tm.winningTeam === tm.myTeam, mistakes: state.mistakes });
+        bars.push({ id: 'opp', name: t(oppTeam === 'A' ? 'team.labelA' : 'team.labelB'), pct: tm.opponentPct, winner: tm.winningTeam === oppTeam, mistakes: tm.opponentMistakes });
       }
       bars.sort((a, b) => ((b.winner ? 1 : 0) - (a.winner ? 1 : 0)) || ((a.out ? 1 : 0) - (b.out ? 1 : 0)) || (b.pct - a.pct));
       return bars;
@@ -7376,7 +7377,7 @@ const App = {
 
       <!-- Pause -->
       <div v-if="state.paused" class="overlay pause-overlay">
-        <!-- Resume-Countdown: „Fortsetzen" lässt erst 2 s lang einen Balken ablaufen
+        <!-- Resume-Countdown: „Fortsetzen" lässt erst 1 s lang einen Balken ablaufen
              („Weiter geht's", keine Ziffern), das Spiel bleibt solange pausiert —
              kein versehentlicher Tap ins Brett direkt nach dem Fortsetzen. -->
         <div v-if="state.resumeCountdown" class="result-card resume-count-card">
@@ -7444,6 +7445,7 @@ const App = {
             <div v-for="b in duelBars" :key="b.id" class="duel-row" :class="{ winner: b.winner, out: b.out, mine: b.me }">
               <span class="duel-name"><span v-if="b.winner" class="ei duel-trophy" v-html="ic('trophy')"></span>{{ b.name }}</span>
               <span class="duel-bar"><span class="duel-fill" :class="{ mine: b.me && !b.color }" :style="{ width: Math.max(b.pct, 2) + '%', background: b.color || null }"></span></span>
+              <span class="duel-mist" :title="t('win.mistakesLabel')"><span class="ei" v-html="ic('heart-broken')"></span>{{ b.mistakes ?? 0 }}</span>
               <span class="duel-pct">{{ b.pct }}%</span>
             </div>
             <p class="duel-msg">{{ state.team.active ? teamResultMsg : raceResultMsg }}</p>
@@ -7510,9 +7512,17 @@ const App = {
             <div v-for="b in duelBars" :key="b.id" class="duel-row" :class="{ winner: b.winner, out: b.out, mine: b.me }">
               <span class="duel-name"><span v-if="b.winner" class="ei duel-trophy" v-html="ic('trophy')"></span>{{ b.name }}</span>
               <span class="duel-bar"><span class="duel-fill" :class="{ mine: b.me && !b.color }" :style="{ width: Math.max(b.pct, 2) + '%', background: b.color || null }"></span></span>
+              <span class="duel-mist" :title="t('win.mistakesLabel')"><span class="ei" v-html="ic('heart-broken')"></span>{{ b.mistakes ?? 0 }}</span>
               <span class="duel-pct">{{ b.pct }}%</span>
             </div>
             <p class="duel-msg">{{ state.team.active ? teamResultMsg : raceResultMsg }}</p>
+          </div>
+          <!-- Eigene Runden-Statistik auch bei der Niederlage — gleicher Aufbau
+               wie der Sieg-Screen (identische Karte in allen Modi). -->
+          <div class="result-stats">
+            <div><b>{{ fmtTime(state.elapsed) }}</b><small>{{ t('win.timeLabel') }}</small></div>
+            <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
+            <div><b>{{ state.hintsUsed }}</b><small>{{ t('win.hintsLabel') }}</small></div>
           </div>
           <div v-if="coopPerformance.length" class="coop-performance">
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>

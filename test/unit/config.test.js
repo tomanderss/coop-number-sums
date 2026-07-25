@@ -166,22 +166,22 @@ describe('config.coinReward', () => {
     assert.equal(coinMultiplier({ coop: true, perfect: true, bestTime: true }), 8);
   });
 
-  test('streak adds +5% per day ADDITIVELY on top of the multiplicative bonuses', () => {
-    assert.equal(COIN_STREAK_STEP, 0.05);
+  test('streak adds +10% per day ADDITIVELY on top of the multiplicative bonuses', () => {
+    assert.equal(COIN_STREAK_STEP, 0.10);
     // reine Streak-Bonus-Funktion (additiver Anteil)
     assert.equal(coinStreakBonus(0), 0);
-    assert.equal(coinStreakBonus(5), 0.25);
-    assert.equal(coinStreakBonus(10), 0.5);
-    assert.equal(coinStreakBonus(20), 1);
-    // additiv: keine aktiven Boni ⇒ 1 + 0.25 = 1.25
-    assert.equal(coinMultiplier({ streak: 5 }), 1.25);
-    assert.equal(coinMultiplier({ streak: 10 }), 1.5);
-    assert.equal(coinMultiplier({ streak: 20 }), 2);
-    // additiv OBEN DRAUF: ×2 (Bestzeit) + Streak 5 ⇒ 2.25, NICHT 2.5
-    assert.equal(coinMultiplier({ bestTime: true, streak: 5 }), 2.25);
-    assert.equal(coinMultiplier({ coop: true, perfect: true, streak: 10 }), 4.5);
+    assert.equal(coinStreakBonus(5), 0.5);
+    assert.equal(coinStreakBonus(10), 1);
+    assert.equal(coinStreakBonus(20), 2);
+    // additiv: keine aktiven Boni ⇒ 1 + 0.5 = 1.5
+    assert.equal(coinMultiplier({ streak: 5 }), 1.5);
+    assert.equal(coinMultiplier({ streak: 10 }), 2);
+    assert.equal(coinMultiplier({ streak: 20 }), 3);
+    // additiv OBEN DRAUF: ×2 (Bestzeit) + Streak 5 ⇒ 2.5, NICHT 3
+    assert.equal(coinMultiplier({ bestTime: true, streak: 5 }), 2.5);
+    assert.equal(coinMultiplier({ coop: true, perfect: true, streak: 10 }), 5);
     // kein Cap, wächst weiter
-    assert.equal(coinMultiplier({ streak: 40 }), 3);
+    assert.equal(coinMultiplier({ streak: 40 }), 5);
   });
 
   test('streak never lowers the reward and defaults to no bonus', () => {
@@ -190,11 +190,11 @@ describe('config.coinReward', () => {
       assert.equal(coinReward(i, { streak: 0 }), base);
       assert.equal(coinReward(i, { streak: -3 }), base); // negativ ⇒ kein Malus
       assert.ok(coinReward(i, { streak: 10 }) >= base);
-      // Streak 20 verdoppelt den reinen Basiswert (×1 + 1.0)
-      assert.equal(coinReward(i, { streak: 20 }), Math.round(base * 2));
+      // Streak 10 verdoppelt den reinen Basiswert (×1 + 1.0)
+      assert.equal(coinReward(i, { streak: 10 }), Math.round(base * 2));
     }
     // gebrochene Streak-Zahl wird abgerundet
-    assert.equal(coinStreakBonus(5.9), 0.25);
+    assert.equal(coinStreakBonus(5.9), 0.5);
   });
 
   test('out-of-range difficulty index yields 0', () => {

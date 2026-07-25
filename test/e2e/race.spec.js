@@ -112,6 +112,9 @@ test.describe('race mode', () => {
     await expect(page.locator('.result-card.lose .duel-row').first()).toHaveClass(/winner/);
     await expect(page.locator('.result-card.lose .duel-row.winner .duel-trophy')).toBeVisible();
     await expect(page.locator('.result-card.lose .duel-row.winner .duel-name')).toContainText('Mara');
+    // Je Partei ein Fehler-Zähler + die eigene Statistik-Zeile auch bei Niederlage.
+    await expect(page.locator('.result-card.lose .duel-mist')).toHaveCount(2);
+    await expect(page.locator('.result-card.lose .result-stats')).toBeVisible();
     // Solo "retry"/"new game" buttons stay hidden in race mode -- only the
     // race-specific rematch button (host) takes their place.
     await expect(page.locator('.result-card.lose .btn-primary')).toHaveCount(1);
