@@ -130,7 +130,7 @@ test.describe('gameplay', () => {
     expect(markedAfterUndo).toBe('none');
   });
 
-  test('resuming from pause runs a 1s bar countdown before the game continues', async ({ page }) => {
+  test('resuming from pause runs a 1.5s bar countdown before the game continues', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
     // Pausieren → Fortsetzen tippen.
