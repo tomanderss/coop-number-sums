@@ -592,29 +592,30 @@ function resumeFromPause(broadcast = true) {
   }
 }
 // ── Resume-Countdown (3-2-1 + ablaufender Balken) ─────────────────────────────
-// „Fortsetzen" aus der Pause startet nicht mehr abrupt: erst läuft 1 s lang ein
-// Balken ab („Weiter geht's", keine Ziffern), das Spiel bleibt solange PAUSIERT
-// (Timer eingefroren, Brett verdeckt — kein versehentlicher Tap ins Brett).
-// Erst bei 0 läuft resumeFromPause inkl. Coop-Broadcast (der Partner resumt wie
-// bisher in dem Moment — beide Uhren starten gemeinsam). Ein während des
-// Countdowns eintreffendes Remote-Resume bricht ihn ab (kein Doppel-Resume).
+// „Fortsetzen" aus der Pause startet nicht mehr abrupt: erst läuft 1,5 s lang
+// ein Balken ab („Weiter geht's", keine Ziffern), das Spiel bleibt solange
+// PAUSIERT (Timer eingefroren, Brett verdeckt — kein versehentlicher Tap ins
+// Brett). Erst danach läuft resumeFromPause inkl. Coop-Broadcast (der Partner
+// resumt wie bisher in dem Moment — beide Uhren starten gemeinsam). Ein während
+// des Countdowns eintreffendes Remote-Resume bricht ihn ab (kein Doppel-Resume).
+// Dauer hier UND in der CSS-Balken-Animation (@keyframes resume-drain) pflegen.
+const RESUME_COUNTDOWN_MS = 1500;
 let resumeCountdownTimer = null;
 function clearResumeCountdown() {
-  if (resumeCountdownTimer) { clearInterval(resumeCountdownTimer); resumeCountdownTimer = null; }
+  if (resumeCountdownTimer) { clearTimeout(resumeCountdownTimer); resumeCountdownTimer = null; }
   state.resumeCountdown = null;
 }
 function startResumeCountdown() {
   if (!state.paused || state.resumeCountdown) return;
   state.resumeCountdown = 1;
   log('game', 'Resume-Countdown gestartet');
-  resumeCountdownTimer = setInterval(() => {
+  resumeCountdownTimer = setTimeout(() => {
     // Abbruchfälle: Remote-Resume (paused=false via resumeFromPause→clear) oder
     // Screen-Wechsel (Zum-Menü-Pfade) — nie in einen toten Zustand resumen.
     if (!state.paused || state.screen !== 'game') { clearResumeCountdown(); return; }
-    if (state.resumeCountdown > 1) { state.resumeCountdown--; return; }
     clearResumeCountdown();
     resumeFromPause();
-  }, 1000);
+  }, RESUME_COUNTDOWN_MS);
 }
 
 // Einstellungen sind von JEDEM Screen aus über das Zahnrad erreichbar. Wir merken
