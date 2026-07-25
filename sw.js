@@ -22,6 +22,7 @@ const ASSETS = [
   './js/prestige.js',
   './js/skins.js',
   './js/training.js',
+  './js/hinttutor.js',
   './js/shopitems.js',
   './js/wineffects.js',
   './js/winshapes.js',
