@@ -68,12 +68,12 @@ export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
 // perfekt+Bestzeit → ×4, Coop+perfekt+Bestzeit → ×8.
 export const COIN_BASE = [5, 10, 20, 40, 80, 180, 400, 900, 2000];
 export const COIN_COOP_MULT = 2, COIN_PERFECT_MULT = 2, COIN_BESTTIME_MULT = 2;
-// Streak-Bonus: +5% Münzen pro Tages-Streak, ADDITIV auf den Boni-Multiplikator
-// (nicht multiplikativ) und ohne Cap. Beispiel: Streak 5 ⇒ +25% (×1,25),
-// Streak 10 ⇒ +50%, Streak 20 ⇒ +100%. Kombiniert mit einer neuen Bestzeit (×2)
-// und Streak 5 ⇒ ×2,25. Bricht die Streak, fällt der Bonus auf 0 zurück (die
+// Streak-Bonus: +10% Münzen pro Tages-Streak, ADDITIV auf den Boni-Multiplikator
+// (nicht multiplikativ) und ohne Cap. Beispiel: Streak 5 ⇒ +50% (×1,5),
+// Streak 10 ⇒ +100%, Streak 20 ⇒ +200%. Kombiniert mit einer neuen Bestzeit (×2)
+// und Streak 5 ⇒ ×2,5. Bricht die Streak, fällt der Bonus auf 0 zurück (die
 // currentStreak wird in storage.recordStreakResult() zurückgesetzt).
-export const COIN_STREAK_STEP = 0.05;
+export const COIN_STREAK_STEP = 0.10;
 // Zusätzlicher additiver Multiplikator-Anteil aus der aktuellen Streak (≥0).
 export function coinStreakBonus(streak = 0) {
   return COIN_STREAK_STEP * Math.max(0, Math.floor(streak || 0));

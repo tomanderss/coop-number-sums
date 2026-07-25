@@ -1347,7 +1347,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .board-wrap.blurred { filter: blur(11px) saturate(.8); opacity: .55; pointer-events: none; transition: filter .3s, opacity .3s; }
 .pause-time { font-size: 1.6rem; font-weight: 900; color: var(--accent2); font-variant-numeric: tabular-nums; }
 /* ── Resume-Countdown (nur „Weiter geht's" + ablaufender Balken, keine Ziffern) ──
-   Der Balken läuft in exakt 2 s linear auf 0 — man sieht präzise, wann es
+   Der Balken läuft in exakt 1 s linear auf 0 — man sieht präzise, wann es
    weitergeht. Nur width — kein iOS-kritischer Filter. */
 .resume-count-card { align-items: center; gap: 10px; min-width: min(74vw, 260px); }
 .resume-count-label { font-weight: 800; color: var(--text2); margin: 0; }
@@ -1355,7 +1355,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .resume-count-bar span {
   display: block; height: 100%; border-radius: 99px;
   background: linear-gradient(90deg, var(--accent), var(--accent2));
-  animation: resume-drain 2s linear forwards;
+  animation: resume-drain 1s linear forwards;
 }
 @keyframes resume-drain { from { width: 100%; } to { width: 0%; } }
 
@@ -1456,7 +1456,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    mit Pokal, Ausgeschiedene ausgegraut. Der Füllstand fährt einmalig per
    transform:scaleX ein (compositor-only, Breite selbst ist statisch). */
 .duel-graph { display: flex; flex-direction: column; gap: 7px; text-align: left; background: var(--bg3); border-radius: 14px; padding: 10px 12px; }
-.duel-row { display: grid; grid-template-columns: minmax(56px, 32%) 1fr auto; align-items: center; gap: 8px; }
+.duel-row { display: grid; grid-template-columns: minmax(56px, 30%) 1fr auto auto; align-items: center; gap: 8px; }
 .duel-name { font-weight: 800; font-size: .82rem; min-width: 0; overflow-wrap: anywhere; display: flex; align-items: center; gap: 4px; }
 .duel-trophy { color: #fbbf24; flex: 0 0 auto; }
 .duel-trophy svg { width: 15px; height: 15px; }
@@ -1466,7 +1466,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .duel-fill { display: block; height: 100%; border-radius: 999px; background: var(--text3); transform-origin: left; animation: duel-fill .8s cubic-bezier(.2,.9,.3,1) both; }
 .duel-fill.mine { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
 @keyframes duel-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.duel-pct { font-weight: 900; font-size: .82rem; font-variant-numeric: tabular-nums; }
+.duel-pct { font-weight: 900; font-size: .82rem; font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+/* Fehler-Zähler je Partei (kleines gebrochenes Herz + Zahl). */
+.duel-mist { display: inline-flex; align-items: center; gap: 2px; font-size: .74rem; font-weight: 700; color: var(--bad, #ef4444); font-variant-numeric: tabular-nums; }
+.duel-mist .ei svg { width: 12px; height: 12px; }
 .duel-msg { margin: 1px 0 0; font-size: .8rem; color: var(--text2); }
 @media (prefers-reduced-motion: reduce) { .duel-fill { animation: none; } }
 
