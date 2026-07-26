@@ -113,12 +113,18 @@ test.describe('gameplay', () => {
   });
 
   // Der Undo-Knopf ist entfernt (Nutzerwunsch) — in der Werkzeugleiste bleibt
-  // nur der Hinweis-Knopf als .round-btn.
-  test('the toolbar has no undo button anymore (only the hint button remains)', async ({ page }) => {
+  // nur der Hinweis-Knopf als .round-btn; der Werkzeug-Umschalter sitzt trotzdem
+  // EXAKT mittig (unsichtbarer Ausgleichs-Spacer in Hinweis-Knopf-Breite).
+  test('the toolbar has no undo button anymore and the tool toggle stays centered', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
     await expect(page.locator('.toolbar .round-btn')).toHaveCount(1);
     await expect(page.locator('.toolbar .round-btn')).toHaveAttribute('title', 'Hinweis');
+    const bar = await page.locator('.toolbar').boundingBox();
+    const toggle = await page.locator('.toolbar .tool-toggle').boundingBox();
+    const barCenter = bar.x + bar.width / 2;
+    const toggleCenter = toggle.x + toggle.width / 2;
+    expect(Math.abs(toggleCenter - barCenter)).toBeLessThanOrEqual(2);
   });
 
   test('resuming from pause runs a 1.5s bar countdown before the game continues', async ({ page }) => {
