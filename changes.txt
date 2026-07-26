@@ -1,3 +1,0 @@
-Cloud-Sync repariert: Während einer laufenden Partie scheiterte der komplette Upload still — jetzt synchronisiert wirklich alles (Einstellungen, Abzeichen, Coop-Name, Spielstände) jederzeit
-Der Endlos-Lauf synchronisiert jetzt geräteübergreifend — „Endlos fortsetzen“ funktioniert auf jedem angemeldeten Gerät
-Geräte-Abgleich klüger: Beim Anmelden gewinnt immer der zuletzt wirklich geänderte Stand (ein altes Gerät überschreibt nie mehr Abzeichen oder Coop-Namen aus der Cloud)
