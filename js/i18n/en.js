@@ -438,6 +438,7 @@ export default {
       history: 'History',
       activeGame: 'Active game',
       activeGameCoop: 'Active co-op game',
+      activeGameEndless: 'Active endless run',
       inventory: 'Inventory (snapshot)',
     },
     consoleTitle: 'Admin console',

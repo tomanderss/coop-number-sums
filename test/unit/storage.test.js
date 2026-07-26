@@ -22,7 +22,8 @@ const {
   loadInventory, inventoryHas, grantInventory, revokeInventory, mergeInventory,
   reconcileInventoryFromCloud, applyCloudWallet,
   loadWallet, grantCurrency, spendCurrency, loadProfile, saveProfile,
-  collectExportData, pickActiveGame, snapshotSolved, loadActiveGameBackup,
+  collectExportData, pickActiveGame, pickEndlessSlot, snapshotSolved, loadActiveGameBackup,
+  loadActiveGameEndless, saveActiveGameEndless,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
@@ -828,5 +829,49 @@ describe('storage.walletLog (geräteübergreifende Herkunft des Guthabens)', () 
     grantCurrency(50, 'win');
     importFromFile(JSON.stringify(snap));
     assert.equal(loadWalletLog().length, 2);   // eigener + importierter Eintrag
+  });
+});
+
+describe('storage.pickEndlessSlot (Endlos-Slot synct geräteübergreifend)', () => {
+  const board = (ts) => ({ ts, puzzle: { rows: 1, cols: 1, solution: [[true]] }, marks: [['none']], endless: { level: 3 } });
+  const pending = (ts) => ({ pending: true, ts, endless: { level: 4 } });
+
+  test('ein {pending:true}-Marker (zwischen zwei Leveln) ist ein GÜLTIGER Stand', () => {
+    assert.deepEqual(pickEndlessSlot(null, pending(5)), pending(5));
+    assert.deepEqual(pickEndlessSlot(pending(5), null), pending(5));
+  });
+
+  test('der jüngere Stand (ts) gewinnt — auch Marker vs. Brett', () => {
+    const older = board(100), newerMark = pending(200);
+    assert.deepEqual(pickEndlessSlot(older, newerMark), newerMark);
+    assert.deepEqual(pickEndlessSlot(newerMark, older), newerMark);
+  });
+
+  test('ein bereits gelöstes Brett zählt wie „nicht vorhanden"', () => {
+    const solved = { ts: 999, puzzle: { rows: 1, cols: 1, solution: [[true]] }, marks: [['kept']] };
+    assert.deepEqual(pickEndlessSlot(solved, pending(5)), pending(5));
+  });
+
+  test('collectExportData sichert den Endlos-Slot mit (Cloud-Sync)', () => {
+    saveActiveGameEndless(pending(7));
+    assert.deepEqual(collectExportData().activeGameEndless, pending(7));
+    saveActiveGameEndless(null);
+  });
+
+  test('importFromFile übernimmt einen jüngeren Cloud-Endlos-Stand', () => {
+    saveActiveGameEndless(board(100));
+    importFromFile(JSON.stringify({ activeGameEndless: pending(200) }));
+    assert.deepEqual(loadActiveGameEndless(), pending(200));
+    saveActiveGameEndless(null);
+  });
+});
+
+describe('storage.saveSettings (updatedAt-Stempel für den Geräte-Merge)', () => {
+  test('jedes Speichern stempelt die letzte Einstellungs-Änderung', () => {
+    const before = Date.now();
+    saveSettings({ ...DEFAULT_SETTINGS, profileBadge: 'crown-2' });
+    const s = loadSettings();
+    assert.equal(s.profileBadge, 'crown-2');
+    assert.ok(s.updatedAt >= before, 'updatedAt gestempelt');
   });
 });

@@ -370,3 +370,33 @@ describe('account.mergeStreak (Streak-Merge heilt vergiftete Daten)', () => {
     assert.equal(m.currentStreak, 0);
   });
 });
+
+describe('account.mergeSnapshots (Frische nach echter Änderungszeit, nicht Sammel-ts)', () => {
+  test('veraltete lokale Settings verlieren gegen den jüngeren Cloud-Stand — trotz frischem Sammel-ts', () => {
+    // Desktop-Szenario: lokal frisch gesammelt (ts = jetzt), aber die letzte
+    // ECHTE Änderung (rev) liegt weit zurück; die Cloud hat das aktuelle
+    // Abzeichen-Equip + den Coop-Namen.
+    const local = { ts: 2000, rev: 100, settings: { profileBadge: 'alt-1', coopName: 'Alt', updatedAt: 100 } };
+    const cloud = { ts: 1000, rev: 900, settings: { profileBadge: 'neu-4', coopName: 'Neu', updatedAt: 900 } };
+    const m = mergeSnapshots(local, cloud);
+    assert.equal(m.settings.profileBadge, 'neu-4');
+    assert.equal(m.settings.coopName, 'Neu');
+  });
+
+  test('settings.updatedAt entscheidet feldgenau — auch gegen ein insgesamt neueres rev', () => {
+    // Gerät A hat zuletzt GESPIELT (rev hoch), Gerät B hat zuletzt eine
+    // EINSTELLUNG geändert (settings.updatedAt hoch) → B's Settings gewinnen.
+    const local = { ts: 5000, rev: 5000, settings: { profileBadge: 'a', updatedAt: 300 } };
+    const cloud = { ts: 1000, rev: 1000, settings: { profileBadge: 'b', updatedAt: 800 } };
+    assert.equal(mergeSnapshots(local, cloud).settings.profileBadge, 'b');
+  });
+
+  test('der Endlos-Slot wandert mit (jüngerer Stand gewinnt, pending-Marker gültig)', () => {
+    const local = { rev: 1, activeGameEndless: { pending: true, ts: 100, endless: { level: 4 } } };
+    const cloud = { rev: 2, activeGameEndless: { pending: true, ts: 300, endless: { level: 7 } } };
+    assert.equal(mergeSnapshots(local, cloud).activeGameEndless.endless.level, 7);
+    assert.equal(mergeSnapshots(cloud, local).activeGameEndless.endless.level, 7);
+    // Nur eine Seite hat einen Lauf → der bleibt erhalten.
+    assert.equal(mergeSnapshots({ rev: 9 }, cloud).activeGameEndless.endless.level, 7);
+  });
+});

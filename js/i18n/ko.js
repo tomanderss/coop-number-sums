@@ -438,6 +438,7 @@ export default {
       history: '기록',
       activeGame: '진행 중인 게임',
       activeGameCoop: '진행 중인 협동 게임',
+      activeGameEndless: '진행 중인 엔드리스 런',
       inventory: '인벤토리(스냅샷)',
     },
     consoleTitle: '관리자 콘솔',

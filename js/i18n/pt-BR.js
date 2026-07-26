@@ -438,6 +438,7 @@ export default {
       history: 'Histórico',
       activeGame: 'Jogo ativo',
       activeGameCoop: 'Jogo coop ativo',
+      activeGameEndless: 'Jornada sem fim em andamento',
       inventory: 'Inventário (cópia)',
     },
     consoleTitle: 'Console de admin',
