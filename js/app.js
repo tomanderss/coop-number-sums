@@ -7286,6 +7286,9 @@ const App = {
              aufgedeckt und nie gesetzt; undo() bleibt nur für Coop-UNDO-Events
              älterer Clients erhalten. -->
         <div v-if="!state.isTrainingGame || state.trainingDone" class="toolbar">
+          <!-- Unsichtbarer Ausgleich in Hinweis-Knopf-Breite: hält den Werkzeug-
+               Umschalter EXAKT mittig, obwohl links kein Undo-Knopf mehr sitzt. -->
+          <span v-if="!state.isRaceGame && !state.team.active" class="toolbar-spacer" aria-hidden="true"></span>
           <div class="tool-toggle" @click="toggleTool">
             <div class="tool-pill" :class="{ pen: state.tool==='pen' }"></div>
             <span class="tool-ic eraser" :class="{active: state.tool==='eraser'}" :title="t('game.eraserTitle')">

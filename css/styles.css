@@ -1243,6 +1243,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .game-sidebar-bottom .toolbar {
     flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 12px;
   }
+  /* In der schmalen Seitenspalte gilt das zentrierte Wrap-Layout — der
+     Ausgleichs-Spacer/die auto-Margins des Hochformats stören hier nur. */
+  .game-sidebar-bottom .toolbar .toolbar-spacer { display: none; }
+  .game-sidebar-bottom .toolbar .tool-toggle { margin-inline: 0; }
   .game-sidebar-bottom .round-btn,
   .game-sidebar-bottom .tool-ic,
   .game-sidebar-bottom .tool-pill { width: 46px; height: 46px; }
@@ -1275,7 +1279,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 22px;
     margin-bottom: 16px;
   }
-  .game-sidebar-bottom .toolbar .tool-toggle { order: 1; }
+  .game-sidebar-bottom .toolbar .toolbar-spacer { display: none; }
+  .game-sidebar-bottom .toolbar .tool-toggle { order: 1; margin-inline: 0; }
   .game-sidebar-bottom .round-btn,
   .game-sidebar-bottom .tool-ic,
   .game-sidebar-bottom .tool-pill { width: 54px; height: 54px; }
@@ -1284,8 +1289,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 /* ─── Toolbar (Stift/Radierer) ─── */
-/* drei Gruppen weit auseinander (Punkt 4), etwas nach oben gezogen (Punkt 3) */
+/* Der Werkzeug-Umschalter sitzt EXAKT mittig: links gleicht .toolbar-spacer
+   (Hinweis-Knopf-Breite, unsichtbar) den Hinweis-Knopf rechts aus; die
+   auto-Margins zentrieren den Umschalter auch, wenn der Hinweis-Knopf fehlt
+   (Race/Team blenden Spacer UND Hinweis gemeinsam aus). */
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 8px 0; margin-bottom: 26px; flex: 0 0 auto; }
+.toolbar-spacer { width: 60px; flex: 0 0 auto; }
+.toolbar .tool-toggle { margin-inline: auto; }
 .round-btn {
   position: relative; width: 60px; height: 60px; border-radius: 50%; background: var(--bg2);
   box-shadow: 0 3px 12px var(--shadow); display: flex; align-items: center; justify-content: center; color: var(--text2);
