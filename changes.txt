@@ -1,1 +1,0 @@
-Der Einkreisen/Löschen-Umschalter sitzt wieder exakt in der Mitte der Werkzeugleiste (war nach dem Entfernen des Zurück-Knopfs nach links gerutscht)
