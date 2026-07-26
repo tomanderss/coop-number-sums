@@ -438,6 +438,7 @@ export default {
       history: '履歴',
       activeGame: '進行中のゲーム',
       activeGameCoop: '進行中の協力ゲーム',
+      activeGameEndless: '進行中のエンドレス走',
       inventory: 'インベントリ（スナップショット）',
     },
     consoleTitle: '管理コンソール',

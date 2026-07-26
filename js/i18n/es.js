@@ -438,6 +438,7 @@ export default {
       history: 'Historial',
       activeGame: 'Partida activa',
       activeGameCoop: 'Partida coop activa',
+      activeGameEndless: 'Partida sin fin en curso',
       inventory: 'Inventario (copia)',
     },
     consoleTitle: 'Consola de admin',

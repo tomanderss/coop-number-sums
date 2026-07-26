@@ -1418,7 +1418,7 @@ function endlessLevelSolved(remote) {
     // SOLO-Endlos fortsetzbar halten: JETZT (nach der Buchhaltung, inkl. Lauf-
     // Münzsumme) den Zwischen-Level-Marker sichern — das gelöste Brett selbst
     // taugt nicht zum Fortsetzen, das Fortsetzen startet frisch bei score+1.
-    if (!isCoop) saveActiveGameEndless({ pending: true, endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 } });
+    if (!isCoop) saveActiveGameEndless({ pending: true, ts: Date.now(), endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 } });
     log('game', 'Endlos-Level als Einzelsieg verbucht', { level: e.score, difficulty: diff, coins, mult, newHighscore, perfect, coop: isCoop });
     syncCloudNow('endlessLevel');
   });

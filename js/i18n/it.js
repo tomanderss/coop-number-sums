@@ -438,6 +438,7 @@ export default {
       history: 'Cronologia',
       activeGame: 'Partita attiva',
       activeGameCoop: 'Partita coop attiva',
+      activeGameEndless: 'Scalata infinita in corso',
       inventory: 'Inventario (snapshot)',
     },
     consoleTitle: 'Console admin',

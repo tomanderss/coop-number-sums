@@ -438,6 +438,7 @@ export default {
       history: 'История',
       activeGame: 'Текущая игра',
       activeGameCoop: 'Текущая кооп-игра',
+      activeGameEndless: 'Текущий бесконечный забег',
       inventory: 'Инвентарь (снимок)',
     },
     consoleTitle: 'Консоль администратора',

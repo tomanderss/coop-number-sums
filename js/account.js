@@ -21,7 +21,7 @@ import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
-  deviceId, saveConflictBackup, pickActiveGame, HISTORY_MAX,
+  deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
 } from './storage.js';
 
@@ -149,15 +149,28 @@ function mergeHistory(a = [], b = [], cap = HISTORY_MAX) {
 // Funktion; bei gleichem Saldo ist die Wahl egal (updatedAt der jüngeren Seite
 // hält die watchGifts-Gate konsistent).
 export function mergeSnapshots(local = {}, cloud = {}) {
-  const localNewer = nz(local.ts) >= nz(cloud.ts);
+  // „Neuer" = Seite mit der JÜNGEREN ECHTEN Datenänderung (rev = DATA_REV der
+  // letzten Nutzdaten-Änderung). Der frühere Vergleich über snapshot.ts war
+  // kaputt: die lokale Seite wird beim Reconcile FRISCH gesammelt (ts = jetzt)
+  // und zählte damit IMMER als neuer — veraltete lokale Settings/Wallet/Profile
+  // eines lange unbenutzten Geräts überschrieben so den aktuelleren Cloud-Stand
+  // (Symptom: falsches Abzeichen-Equip/Coop-Name nach Desktop-Login).
+  const localNewer = nz(local.rev) ? nz(local.rev) >= nz(cloud.rev) : nz(local.ts) >= nz(cloud.ts);
   const newer = localNewer ? local : cloud;
+  // Settings zusätzlich FELDGENAU nach settings.updatedAt (Stempel jeder echten
+  // Einstellungs-Änderung, s. storage.saveSettings) — präziser als rev, das
+  // auch durch Spiel-/Statistik-Schreiber bumpt.
+  const sLoc = nz(local.settings && local.settings.updatedAt);
+  const sCld = nz(cloud.settings && cloud.settings.updatedAt);
+  const settingsSide = sLoc !== sCld ? (sLoc > sCld ? local : cloud) : newer;
   return {
     ts: Math.max(nz(local.ts), nz(cloud.ts)),
     v: 1, label: 'merge',
     rev: Math.max(nz(local.rev), nz(cloud.rev)),
-    settings: newer.settings || (localNewer ? cloud.settings : local.settings) || {},
+    settings: settingsSide.settings || (settingsSide === local ? cloud.settings : local.settings) || {},
     activeGame: pickActiveGame(local.activeGame, cloud.activeGame),
     activeGameCoop: pickActiveGame(local.activeGameCoop, cloud.activeGameCoop),
+    activeGameEndless: pickEndlessSlot(local.activeGameEndless, cloud.activeGameEndless),
     stats: mergeNumericDeep(local.stats || {}, cloud.stats || {}),
     daily: mergeStreak(local.daily || {}, cloud.daily || {}, localNewer),
     history: mergeHistory(local.history, cloud.history),
@@ -784,7 +797,11 @@ export async function syncInventoryFromCloud(uid) {
 // d.h. lokal == Cloud == syncedRev (kein Konflikt beim nächsten Start).
 async function uploadLocal(fb, uid) {
   await mergeCloudInventory(fb, uid);                 // erst fremde/Geschenk-Items aufnehmen …
-  await fb.set(userRef(fb, uid, 'data'), collectExportData('sync'));
+  // sanitizeForFirebase ist PFLICHT: die Aktivspiel-Slots tragen hintsLeft:
+  // Infinity — unsaniert lehnte RTDB den GESAMTEN Snapshot-Write ab, sodass
+  // während einer laufenden Partie NIE ein Upload durchkam (Symptom: kein
+  // „Fortsetzen" auf dem Zweitgerät, veraltete Settings trotz Sync).
+  await fb.set(userRef(fb, uid, 'data'), sanitizeForFirebase(collectExportData('sync')));
   await fb.set(userRef(fb, uid, 'inventory'), loadInventory());  // … dann die Union schreiben
   setSyncedRev(dataRev());
 }

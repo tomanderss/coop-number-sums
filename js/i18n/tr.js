@@ -438,6 +438,7 @@ export default {
       history: 'Geçmiş',
       activeGame: 'Aktif oyun',
       activeGameCoop: 'Aktif coop oyunu',
+      activeGameEndless: 'Devam eden sonsuz tırmanış',
       inventory: 'Envanter (anlık görüntü)',
     },
     consoleTitle: 'Yönetici konsolu',

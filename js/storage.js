@@ -9,7 +9,7 @@ const KEYS = {
   SETTINGS: 'cns_settings',
   ACTIVE_GAME: 'cns_active_game',
   ACTIVE_GAME_COOP: 'cns_active_game_coop',
-  ACTIVE_GAME_ENDLESS: 'cns_active_game_endless',  // fortsetzbarer Solo-Endlos-Lauf (gerätelokal, nie synct)
+  ACTIVE_GAME_ENDLESS: 'cns_active_game_endless',  // fortsetzbarer Solo-Endlos-Lauf (SYNCT als Teil des Snapshots, Merge via pickEndlessSlot)
   COOP_SESSION: 'cns_coop_session',
   STATS: 'cns_stats',
   SEEN_VERSION: 'cns_seen_version',
@@ -36,7 +36,7 @@ const KEYS = {
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
 // Bewusst OHNE SEEN_VERSION/COOP_SESSION/Backups/DATA_REV/SYNCED_REV.
 const USER_DATA_KEYS = new Set([
-  'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_stats', 'cns_daily',
+  'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_active_game_endless', 'cns_stats', 'cns_daily',
   'cns_history', 'cns_achievements', 'cns_missions', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
   'cns_completed_games', 'cns_wallet_log',
 ]);
@@ -94,7 +94,12 @@ export function loadSettings() {
   if (!stored.themeMode && typeof stored.darkMode === 'boolean') s.themeMode = stored.darkMode ? 'dark' : 'light';
   return s;
 }
-export function saveSettings(s) { save(KEYS.SETTINGS, s); }
+// updatedAt stempelt jede echte Einstellungs-Änderung dieses Geräts — der
+// Cloud-Merge (account.mergeSnapshots) nimmt die Settings der Seite mit dem
+// JÜNGEREN updatedAt (nicht mehr pauschal die „lokale" Seite; die zählte durch
+// den frischen Sammel-Zeitstempel sonst IMMER als neuer und überschrieb z.B.
+// das in der Cloud aktuellere Abzeichen-Equip oder den Coop-Namen).
+export function saveSettings(s) { save(KEYS.SETTINGS, { ...s, updatedAt: Date.now() }); }
 
 // ─── Laufendes Spiel (Resume) ─────────────────────────────────────────────────
 // Solo und Coop liegen in getrennten Slots, damit ein laufendes Coop-Spiel nie
@@ -612,6 +617,7 @@ export function collectExportData(type = 'manual') {
     settings: load(KEYS.SETTINGS, {}),
     activeGame: load(KEYS.ACTIVE_GAME, null),
     activeGameCoop: load(KEYS.ACTIVE_GAME_COOP, null),
+    activeGameEndless: load(KEYS.ACTIVE_GAME_ENDLESS, null),
     stats: load(KEYS.STATS, {}),
     daily: load(KEYS.DAILY, {}),
     history: load(KEYS.HISTORY, []),
@@ -682,6 +688,17 @@ export function pickActiveGame(localG, importedG) {
   if (!i) return l;
   return (Number(i.ts) || 0) > (Number(l.ts) || 0) ? i : l;
 }
+// Wie pickActiveGame, aber für den ENDLOS-Slot: dort ist auch ein
+// {pending:true}-Marker OHNE Brett ein gültiger fortsetzbarer Stand (zwischen
+// zwei Leveln — das nächste Level wird beim Fortsetzen frisch generiert).
+export function pickEndlessSlot(localG, importedG) {
+  const valid = (g) => !!g && (g.pending === true || (g.puzzle && !snapshotSolved(g)));
+  const l = valid(localG) ? localG : null;
+  const i = valid(importedG) ? importedG : null;
+  if (!l) return i;
+  if (!i) return l;
+  return (Number(i.ts) || 0) > (Number(l.ts) || 0) ? i : l;
+}
 export function importFromFile(jsonText) {
   const data = JSON.parse(jsonText);
   if (data.settings) save(KEYS.SETTINGS, data.settings);
@@ -718,6 +735,9 @@ export function importFromFile(jsonText) {
   }
   if (data.activeGameCoop !== undefined) {
     saveActiveGameCoop(pickActiveGame(loadActiveGameCoop(), data.activeGameCoop));
+  }
+  if (data.activeGameEndless !== undefined) {
+    saveActiveGameEndless(pickEndlessSlot(loadActiveGameEndless(), data.activeGameEndless));
   }
   return data;
 }
