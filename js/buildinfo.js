@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.190';
-export const BUILD_HASH = 'ccd9cf6';
+export const BUILD      = '1.191';
+export const BUILD_HASH = 'eee50d5';
 
 export const CHANGELOG = [
+  {
+    "version": "1.191",
+    "date": "26.07.2026",
+    "changes": [
+      "Der Einkreisen/Löschen-Umschalter sitzt wieder exakt in der Mitte der Werkzeugleiste (war nach dem Entfernen des Zurück-Knopfs nach links gerutscht)"
+    ]
+  },
   {
     "version": "1.190",
     "date": "25.07.2026",
