@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.191';
-export const BUILD_HASH = 'eee50d5';
+export const BUILD      = '1.192';
+export const BUILD_HASH = '82cb285';
 
 export const CHANGELOG = [
+  {
+    "version": "1.192",
+    "date": "26.07.2026",
+    "changes": [
+      "Cloud-Sync repariert: Während einer laufenden Partie scheiterte der komplette Upload still — jetzt synchronisiert wirklich alles (Einstellungen, Abzeichen, Coop-Name, Spielstände) jederzeit",
+      "Der Endlos-Lauf synchronisiert jetzt geräteübergreifend — „Endlos fortsetzen“ funktioniert auf jedem angemeldeten Gerät",
+      "Geräte-Abgleich klüger: Beim Anmelden gewinnt immer der zuletzt wirklich geänderte Stand (ein altes Gerät überschreibt nie mehr Abzeichen oder Coop-Namen aus der Cloud)"
+    ]
+  },
   {
     "version": "1.191",
     "date": "26.07.2026",
