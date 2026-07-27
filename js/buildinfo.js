@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.193';
-export const BUILD_HASH = 'd6af195';
+export const BUILD      = '1.194';
+export const BUILD_HASH = '016f087';
 
 export const CHANGELOG = [
+  {
+    "version": "1.194",
+    "date": "27.07.2026",
+    "changes": [
+      "Laufende Solo-/Endlos-Spiele werden jetzt auch WÄHREND der Partie alle 30s in die Cloud synchronisiert, nicht nur bei Pause/Spielende/App-Verstecken — Fortsetzen auf einem anderen Gerät funktioniert dadurch zuverlässiger."
+    ]
+  },
   {
     "version": "1.193",
     "date": "27.07.2026",
