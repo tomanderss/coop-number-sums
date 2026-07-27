@@ -1,1 +1,0 @@
-Die Neuigkeiten zu einer neuen Version zeigt jetzt wieder jedes Gerät einmal selbst an — vorher galten sie kontoweit als gelesen, wodurch das später aktualisierte Gerät sie übersprang.
