@@ -643,13 +643,16 @@ describe('storage.profile', () => {
 describe('storage.collectExportData', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });
 
-  test('der Snapshot trägt die Settings + die zuletzt gesehene Version mit (nichts bleibt gerätelokal)', () => {
+  test('der Snapshot trägt die Settings mit, aber NICHT die zuletzt gesehene Version', () => {
     saveSettings({ themeMode: 'dark', palette: 'neon' });
-    saveSeenVersion('1.194');
+    saveSeenVersion('1.196');
     const snap = collectExportData('sync');
     assert.equal(snap.settings.themeMode, 'dark');
     assert.equal(snap.settings.palette, 'neon');
-    assert.equal(snap.seenVersion, '1.194');
+    // seenVersion ist BEWUSST gerätelokal: sie beschreibt den lokal installierten
+    // Build. Synchronisiert übersprang das langsamer aktualisierte Gerät die
+    // Neuigkeiten (bzw. ein noch altes Gerät löste sie erneut aus).
+    assert.equal(snap.seenVersion, undefined);
   });
 
   test('snap.rev ist die Revision, die hochgeladen wird — Basis der Sync-Basislinie', () => {

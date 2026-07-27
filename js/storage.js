@@ -36,12 +36,17 @@ const KEYS = {
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
 // Bewusst OHNE COOP_SESSION (kurzlebiges Reconnect-Token)/Backups (gerätelokale
 // Sicherheitskopien)/DATA_REV/SYNCED_REV/LAST_SYNC/DEVICE_ID (Sync- bzw.
-// Geräte-Buchhaltung, die per Definition NICHT reisen darf). ALLES andere, was
-// der Nutzer irgendwie ändern kann, gehört hier hinein UND in collectExportData
-// — sonst bleibt es gerätelokal (Symptom: „Theme/Kosmetik nicht übernommen").
+// Geräte-Buchhaltung, die per Definition NICHT reisen darf) und OHNE SEEN_VERSION:
+// das ist die Frage „welchen Build hat DIESES Gerät schon gesehen?" und damit an
+// den lokal installierten Build gekoppelt. Geräte laufen legitim auf
+// verschiedenen Builds (der Service Worker liefert cache-first aus), also zappelte
+// ein synchronisierter Wert hin und her: das langsamere Gerät übersprang die
+// Neuigkeiten, ein noch altes Gerät schrieb seinen Stand zurück und löste sie
+// erneut aus. ALLES andere, was der Nutzer ändern kann, gehört hier hinein UND in
+// collectExportData — sonst bleibt es gerätelokal (Symptom: „Theme nicht übernommen").
 const USER_DATA_KEYS = new Set([
   'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_active_game_endless',
-  'cns_stats', 'cns_daily', 'cns_seen_version',
+  'cns_stats', 'cns_daily',
   'cns_history', 'cns_achievements', 'cns_missions', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
   'cns_completed_games', 'cns_wallet_log',
 ]);
@@ -621,7 +626,6 @@ export function collectExportData(type = 'manual') {
     ts: Date.now(), v: 1, label: type,
     rev: load(KEYS.DATA_REV, 0),   // Änderungszeit der Daten (für Cloud-Konfliktcheck)
     settings: load(KEYS.SETTINGS, {}),
-    seenVersion: load(KEYS.SEEN_VERSION, null),
     activeGame: load(KEYS.ACTIVE_GAME, null),
     activeGameCoop: load(KEYS.ACTIVE_GAME_COOP, null),
     activeGameEndless: load(KEYS.ACTIVE_GAME_ENDLESS, null),
@@ -709,7 +713,6 @@ export function pickEndlessSlot(localG, importedG) {
 export function importFromFile(jsonText) {
   const data = JSON.parse(jsonText);
   if (data.settings) save(KEYS.SETTINGS, data.settings);
-  if (data.seenVersion !== undefined && data.seenVersion !== null) save(KEYS.SEEN_VERSION, data.seenVersion);
   if (data.stats) save(KEYS.STATS, data.stats);
   if (data.daily) save(KEYS.DAILY, data.daily);
   if (data.history) save(KEYS.HISTORY, data.history);
