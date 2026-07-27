@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.196';
-export const BUILD_HASH = 'dc336be';
+export const BUILD      = '1.197';
+export const BUILD_HASH = 'bc7601c';
 
 export const CHANGELOG = [
+  {
+    "version": "1.197",
+    "date": "27.07.2026",
+    "changes": [
+      "Die Neuigkeiten zu einer neuen Version zeigt jetzt wieder jedes Gerät einmal selbst an — vorher galten sie kontoweit als gelesen, wodurch das später aktualisierte Gerät sie übersprang."
+    ]
+  },
   {
     "version": "1.196",
     "date": "27.07.2026",
