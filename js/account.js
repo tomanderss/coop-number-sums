@@ -191,7 +191,6 @@ export function mergeSnapshots(local = {}, cloud = {}) {
     rev: Math.max(nz(local.rev), nz(cloud.rev)),
     // Einstellungen: CLOUD gewinnt immer (s. mergeSettingsCloudWins).
     settings: mergeSettingsCloudWins(local.settings, cloud.settings),
-    seenVersion: cloud.seenVersion ?? local.seenVersion ?? null,
     activeGame: pickActiveGame(local.activeGame, cloud.activeGame),
     activeGameCoop: pickActiveGame(local.activeGameCoop, cloud.activeGameCoop),
     activeGameEndless: pickEndlessSlot(local.activeGameEndless, cloud.activeGameEndless),
