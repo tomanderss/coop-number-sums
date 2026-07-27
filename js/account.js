@@ -76,6 +76,22 @@ const nz = (v) => Number(v) || 0;
 export function walletBalanceDiffers(a, b) {
   return nz(a && a.wallet && a.wallet.balance) !== nz(b && b.wallet && b.wallet.balance);
 }
+// Liegen in DEMSELBEN Aktivspiel-Slot zwei WIRKLICH VERSCHIEDENE offene Partien
+// (unterschiedliche gameId) auf beiden Seiten? Das ist der Fall, den der Nutzer
+// selbst entscheiden muss: offline weitergespielt, nie synchronisiert — dann
+// existieren zwei echte Spielstände und keine Automatik darf einen davon
+// wegwerfen. Hat nur EINE Seite eine Partie, ist es kein Konflikt (verlustfrei
+// mergebar); ohne gameId (Alt-Stände) entscheidet weiterhin die ts-Regel in
+// pickActiveGame. Rein, unit-getestet.
+export function activeGamesConflict(local = {}, cloud = {}) {
+  return ['activeGame', 'activeGameCoop', 'activeGameEndless'].some((k) => {
+    const l = local && local[k], c = cloud && cloud[k];
+    if (!l || !c) return false;
+    const lid = l.gameId || '', cid = c.gameId || '';
+    if (!lid || !cid) return false;
+    return lid !== cid;
+  });
+}
 // Bestzeit: kleinster vorhandener Wert (null/fehlend = keine Zeit).
 function bestOf(a, b) {
   const va = a != null ? Number(a) : null, vb = b != null ? Number(b) : null;
@@ -142,6 +158,18 @@ function mergeHistory(a = [], b = [], cap = HISTORY_MAX) {
   });
   return all.sort((x, y) => nz(y.ts) - nz(x.ts)).slice(0, cap);
 }
+// Einstellungen/Präferenzen sind ACCOUNT-Eigenschaften, nicht Geräte-Eigenschaften:
+// beim Laden/Abgleich gilt IMMER der CLOUD-Stand. Ein neu angemeldetes Gerät darf
+// seine (oft nur per Default entstandenen) lokalen Einstellungen NIE nach oben
+// drücken — genau das passierte vorher und überschrieb Theme/Farben/Kosmetik des
+// Accounts. Lokale Felder füllen ausschließlich Lücken, die die Cloud gar nicht
+// kennt (z.B. eine Einstellung, die erst eine neuere App-Version eingeführt hat).
+// Nutzer-Änderungen wandern weiterhin nach oben (Settings-Watch → scheduleSyncUp,
+// spätestens beim Sync auf Pause/App-Verstecken/pagehide) und werden damit selbst
+// zum neuen Cloud-Stand des Accounts.
+export function mergeSettingsCloudWins(local = {}, cloud = {}) {
+  return { ...(local || {}), ...(cloud || {}) };
+}
 // Verlustfreier Merge zweier Nutzdaten-Snapshots (Form von collectExportData).
 // local gilt bei Kleinigkeiten als bevorzugte Seite, wenn es den jüngeren ts hat.
 // wallet wird bewusst UNGEMERGT von der jüngeren Seite übernommen — bei
@@ -157,17 +185,13 @@ export function mergeSnapshots(local = {}, cloud = {}) {
   // (Symptom: falsches Abzeichen-Equip/Coop-Name nach Desktop-Login).
   const localNewer = nz(local.rev) ? nz(local.rev) >= nz(cloud.rev) : nz(local.ts) >= nz(cloud.ts);
   const newer = localNewer ? local : cloud;
-  // Settings zusätzlich FELDGENAU nach settings.updatedAt (Stempel jeder echten
-  // Einstellungs-Änderung, s. storage.saveSettings) — präziser als rev, das
-  // auch durch Spiel-/Statistik-Schreiber bumpt.
-  const sLoc = nz(local.settings && local.settings.updatedAt);
-  const sCld = nz(cloud.settings && cloud.settings.updatedAt);
-  const settingsSide = sLoc !== sCld ? (sLoc > sCld ? local : cloud) : newer;
   return {
     ts: Math.max(nz(local.ts), nz(cloud.ts)),
     v: 1, label: 'merge',
     rev: Math.max(nz(local.rev), nz(cloud.rev)),
-    settings: settingsSide.settings || (settingsSide === local ? cloud.settings : local.settings) || {},
+    // Einstellungen: CLOUD gewinnt immer (s. mergeSettingsCloudWins).
+    settings: mergeSettingsCloudWins(local.settings, cloud.settings),
+    seenVersion: cloud.seenVersion ?? local.seenVersion ?? null,
     activeGame: pickActiveGame(local.activeGame, cloud.activeGame),
     activeGameCoop: pickActiveGame(local.activeGameCoop, cloud.activeGameCoop),
     activeGameEndless: pickEndlessSlot(local.activeGameEndless, cloud.activeGameEndless),
@@ -801,9 +825,19 @@ async function uploadLocal(fb, uid) {
   // Infinity — unsaniert lehnte RTDB den GESAMTEN Snapshot-Write ab, sodass
   // während einer laufenden Partie NIE ein Upload durchkam (Symptom: kein
   // „Fortsetzen" auf dem Zweitgerät, veraltete Settings trotz Sync).
-  await fb.set(userRef(fb, uid, 'data'), sanitizeForFirebase(collectExportData('sync')));
+  const snap = collectExportData('sync');
+  await fb.set(userRef(fb, uid, 'data'), sanitizeForFirebase(snap));
   await fb.set(userRef(fb, uid, 'inventory'), loadInventory());  // … dann die Union schreiben
-  setSyncedRev(dataRev());
+  // Basislinie = GENAU die Revision, die jetzt in der Cloud liegt (snap.rev) —
+  // NICHT das inzwischen weitergelaufene dataRev(). Das war ein harter Sync-
+  // Killer: während einer Partie schreibt der Autosave alle 400 ms und bumpt
+  // DATA_REV, also lag dataRev() nach den await-Roundtrips fast immer VOR
+  // snap.rev. Damit galt dauerhaft syncedRev > cloudRev, und der
+  // Fremd-Änderungs-Schutz in syncNow() ("cloudRev !== base") hielt JEDEN
+  // weiteren Upload dieses Geräts für einen Fremd-Konflikt und übersprang ihn —
+  // permanent. Ergebnis: das laufende Spiel (und alle Settings/Kosmetik) kamen
+  // nie in der Cloud an, das Zweitgerät konnte nichts fortsetzen.
+  setSyncedRev(nz(snap.rev));
 }
 // Cloud → lokal (nur bei 'takeCloud' oder Nutzerwahl „Cloud behalten"). Überschreibt
 // die lokalen Nutzdaten bewusst mit dem Cloud-Snapshot; Inventar bleibt vereinigt.
@@ -857,17 +891,29 @@ export async function reconcile() {
       syncedRev: syncedRev(),
       hasLocalData: hasLocalData(),
     });
-    // ECHTE formale Divergenz (lokal UND Cloud seit der Basislinie geändert):
-    // INHALTLICH auflösen statt formal fragen. Alles Mergebare wird verlustfrei
-    // zusammengeführt (mergeSnapshots) — der Dialog erscheint NUR noch, wenn die
-    // Geld-Salden abweichen (einzige nicht automatisch entscheidbare Größe);
-    // die Nutzerwahl betrifft dann auch nur noch das Guthaben.
-    if (decision === 'takeCloud' && hasLocalData()
-        && isDivergent({ localRev: dataRev(), cloudRev: snap ? (snap.rev || 0) : 0, syncedRev: syncedRev() })) {
+    // Die Cloud gewinnt formal — statt sie aber BLIND über lokale Daten zu
+    // schreiben, wird INHALTLICH aufgelöst: alles Mergebare fließt verlustfrei
+    // zusammen (mergeSnapshots; Einstellungen davon ausgenommen, dort gewinnt die
+    // Cloud bewusst komplett). Gefragt wird nur bei Guthaben-/Spielstand-Konflikt.
+    // Bedingung bewusst NUR noch „Cloud gewinnt formal UND es gibt lokale Daten":
+    // die frühere Zusatzhürde isDivergent() ist per Definition false, solange
+    // syncedRev==null (Erstkontakt dieses Geräts) — genau dann lief also ein
+    // BLINDES applyCloud und überschrieb den lokalen Stand (z.B. anonym erspielter
+    // Fortschritt oder lokal gesetzte Kosmetik beim ersten Login auf dem Desktop).
+    // Jetzt wird immer inhaltlich gemergt, wenn lokal überhaupt etwas zu verlieren ist.
+    if (decision === 'takeCloud' && hasLocalData()) {
       const localData = collectExportData('conflict');
-      if (walletBalanceDiffers(localData, snap)) {
-        log('account', 'reconcile', { decision: 'conflict' });
-        return { decision: 'conflict', cloud: snap, localData, cloudTs: (snap && snap.ts) || 0, localTs: dataRev() };
+      // Gefragt wird NUR bei den zwei Dingen, die keine Automatik entscheiden darf:
+      //  • Guthaben (Käufe lassen es legitim SINKEN — Raten würde Käufe erstatten)
+      //  • zwei verschiedene offene Partien (offline weitergespielt, nie gesynct)
+      // Alles andere (Einstellungen: Cloud gewinnt; Fortschritt/Inventar: Union/Max)
+      // wird weiterhin still und verlustfrei zusammengeführt.
+      const walletDiff = walletBalanceDiffers(localData, snap);
+      const gameDiff = activeGamesConflict(localData, snap);
+      if (walletDiff || gameDiff) {
+        const reason = walletDiff && gameDiff ? 'both' : (walletDiff ? 'wallet' : 'game');
+        log('account', 'reconcile', { decision: 'conflict', reason });
+        return { decision: 'conflict', reason, cloud: snap, localData, cloudTs: (snap && snap.ts) || 0, localTs: dataRev() };
       }
       // Gleicher Geldstand → stiller verlustfreier Merge, kein Dialog. Die
       // Cloud-Seite wird vorher als Backup gesichert (nie still verloren).
@@ -903,6 +949,15 @@ export async function resolveConflict(choice) {
     saveConflictBackup(choice === 'cloud' ? { side: 'local', data: localData } : { side: 'cloud', data: snap });
     const merged = mergeSnapshots(localData, snap || {});
     merged.wallet = (choice === 'cloud' ? (snap && snap.wallet) : localData.wallet) || {};
+    // Nur die TATSÄCHLICH kollidierenden Aktivspiel-Slots folgen der Wahl — bei
+    // allen anderen bleibt der verlustfreie Merge (sonst würde „Cloud behalten"
+    // eine Partie löschen, die es nur lokal gibt und um die es gar nicht ging).
+    for (const k of ['activeGame', 'activeGameCoop', 'activeGameEndless']) {
+      const l = localData[k], c = (snap || {})[k];
+      if (l && c && (l.gameId || '') && (c.gameId || '') && l.gameId !== c.gameId) {
+        merged[k] = choice === 'cloud' ? c : l;
+      }
+    }
     importFromFile(JSON.stringify(merged));
     await uploadLocal(fb, u.uid); stampSynced();
     log('account', 'Versions-Mismatch aufgelöst', { choice, merged: true });

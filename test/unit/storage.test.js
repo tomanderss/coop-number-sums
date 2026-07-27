@@ -24,7 +24,7 @@ const {
   loadWallet, grantCurrency, spendCurrency, loadProfile, saveProfile,
   collectExportData, pickActiveGame, pickEndlessSlot, snapshotSolved, loadActiveGameBackup,
   loadActiveGameEndless, saveActiveGameEndless,
-  loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
+  loadWalletLog, mergeWalletLogs, unexplainedWalletDelta, dataRev,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
 const { todayDateStr, shiftDateStr } = await import('../../js/streak.js');
@@ -642,6 +642,26 @@ describe('storage.profile', () => {
 
 describe('storage.collectExportData', () => {
   beforeEach(() => { globalThis.localStorage.clear(); });
+
+  test('der Snapshot trägt die Settings + die zuletzt gesehene Version mit (nichts bleibt gerätelokal)', () => {
+    saveSettings({ themeMode: 'dark', palette: 'neon' });
+    saveSeenVersion('1.194');
+    const snap = collectExportData('sync');
+    assert.equal(snap.settings.themeMode, 'dark');
+    assert.equal(snap.settings.palette, 'neon');
+    assert.equal(snap.seenVersion, '1.194');
+  });
+
+  test('snap.rev ist die Revision, die hochgeladen wird — Basis der Sync-Basislinie', () => {
+    // Regressionsschutz für den Sync-Killer: uploadLocal stempelt syncedRev mit
+    // snap.rev (NICHT mit dem inzwischen weitergelaufenen dataRev()). Sonst gilt
+    // dauerhaft syncedRev > cloudRev und der Fremd-Änderungs-Schutz überspringt
+    // JEDEN weiteren Upload — während einer Partie schreibt der Autosave ständig.
+    const snap = collectExportData('sync');
+    assert.equal(snap.rev, dataRev());
+    saveSettings({ themeMode: 'light' });          // Änderung NACH dem Sammeln
+    assert.ok(dataRev() > snap.rev, 'dataRev läuft weiter, snap.rev bleibt stehen');
+  });
 
   test('export payload includes inventory/wallet/profile but NEVER the role', () => {
     grantInventory('dynamicColor', 'version');

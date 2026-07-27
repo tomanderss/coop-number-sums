@@ -34,9 +34,14 @@ const KEYS = {
   ACTIVE_GAME_BACKUP: 'cns_active_game_backup', // letzter durch Divergenz verdrängter Solo-Stand (nie still gelöscht)
 };
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
-// Bewusst OHNE SEEN_VERSION/COOP_SESSION/Backups/DATA_REV/SYNCED_REV.
+// Bewusst OHNE COOP_SESSION (kurzlebiges Reconnect-Token)/Backups (gerätelokale
+// Sicherheitskopien)/DATA_REV/SYNCED_REV/LAST_SYNC/DEVICE_ID (Sync- bzw.
+// Geräte-Buchhaltung, die per Definition NICHT reisen darf). ALLES andere, was
+// der Nutzer irgendwie ändern kann, gehört hier hinein UND in collectExportData
+// — sonst bleibt es gerätelokal (Symptom: „Theme/Kosmetik nicht übernommen").
 const USER_DATA_KEYS = new Set([
-  'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_active_game_endless', 'cns_stats', 'cns_daily',
+  'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_active_game_endless',
+  'cns_stats', 'cns_daily', 'cns_seen_version',
   'cns_history', 'cns_achievements', 'cns_missions', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
   'cns_completed_games', 'cns_wallet_log',
 ]);
@@ -94,11 +99,12 @@ export function loadSettings() {
   if (!stored.themeMode && typeof stored.darkMode === 'boolean') s.themeMode = stored.darkMode ? 'dark' : 'light';
   return s;
 }
-// updatedAt stempelt jede echte Einstellungs-Änderung dieses Geräts — der
-// Cloud-Merge (account.mergeSnapshots) nimmt die Settings der Seite mit dem
-// JÜNGEREN updatedAt (nicht mehr pauschal die „lokale" Seite; die zählte durch
-// den frischen Sammel-Zeitstempel sonst IMMER als neuer und überschrieb z.B.
-// das in der Cloud aktuellere Abzeichen-Equip oder den Coop-Namen).
+// updatedAt stempelt jede echte Einstellungs-Änderung dieses Geräts (nur noch
+// informativ/fürs Admin-Panel). Für den Abgleich gilt: Einstellungen sind
+// ACCOUNT-Eigenschaften, beim Laden gewinnt IMMER die Cloud
+// (account.mergeSnapshots → mergeSettingsCloudWins); eine Änderung HIER wandert
+// dafür sofort nach oben (Settings-Watch → Account.scheduleSyncUp, zusätzlich der
+// Sync bei Pause/App-Verstecken/pagehide) und wird damit selbst zum neuen Cloud-Stand.
 export function saveSettings(s) { save(KEYS.SETTINGS, { ...s, updatedAt: Date.now() }); }
 
 // ─── Laufendes Spiel (Resume) ─────────────────────────────────────────────────
@@ -615,6 +621,7 @@ export function collectExportData(type = 'manual') {
     ts: Date.now(), v: 1, label: type,
     rev: load(KEYS.DATA_REV, 0),   // Änderungszeit der Daten (für Cloud-Konfliktcheck)
     settings: load(KEYS.SETTINGS, {}),
+    seenVersion: load(KEYS.SEEN_VERSION, null),
     activeGame: load(KEYS.ACTIVE_GAME, null),
     activeGameCoop: load(KEYS.ACTIVE_GAME_COOP, null),
     activeGameEndless: load(KEYS.ACTIVE_GAME_ENDLESS, null),
@@ -702,6 +709,7 @@ export function pickEndlessSlot(localG, importedG) {
 export function importFromFile(jsonText) {
   const data = JSON.parse(jsonText);
   if (data.settings) save(KEYS.SETTINGS, data.settings);
+  if (data.seenVersion !== undefined && data.seenVersion !== null) save(KEYS.SEEN_VERSION, data.seenVersion);
   if (data.stats) save(KEYS.STATS, data.stats);
   if (data.daily) save(KEYS.DAILY, data.daily);
   if (data.history) save(KEYS.HISTORY, data.history);
@@ -745,6 +753,7 @@ export function importFromFile(jsonText) {
 // ─── Alle lokalen Daten löschen ───────────────────────────────────────────────
 export function deleteAllData() {
   remove(KEYS.SETTINGS);
+  remove(KEYS.ACTIVE_GAME_ENDLESS);
   remove(KEYS.ACTIVE_GAME);
   remove(KEYS.ACTIVE_GAME_COOP);
   remove(KEYS.COOP_SESSION);
