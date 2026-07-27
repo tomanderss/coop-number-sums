@@ -5075,11 +5075,12 @@ function refreshAccountFromLocal() {
 }
 // Sofort ALLE Daten in die Cloud sichern (mit sichtbarem Status). No-op ohne Login.
 // Sofortige (NICHT entprellte) Cloud-Sicherung bei Hauptevents: Spielstart,
-// Pause, Sieg, Niederlage, App-Verstecken/Schließen. `scheduleSyncUp()` wartet bis
-// zu 30 s (SYNC_MIN_GAP) — wurde die App vorher geschlossen, ging der Upload
+// Pause, Sieg, Niederlage, App-Verstecken/Schließen — PLUS reason:'periodic'
+// alle 30s auch WÄHREND einer laufenden Partie (s. Aufrufer in init()). `scheduleSyncUp()`
+// wartet bis zu 30 s (SYNC_MIN_GAP) — wurde die App vorher geschlossen, ging der Upload
 // verloren und ein FERTIGES Spiel tauchte danach wieder als „Fortsetzen" auf
-// (Belohnung/Abschluss nicht in der Cloud). Diese Events sind selten (kein
-// Per-Zug-Sync!) → kein Speicher-/Socket-Churn wie beim früheren Dauer-Entpreller;
+// (Belohnung/Abschluss nicht in der Cloud). Kein Per-ZUG-Sync (kein Aufruf aus
+// setMark) → kein Speicher-/Socket-Churn wie beim früheren Dauer-Entpreller;
 // der damalige iOS-Absturz kam von den Animationen, nicht von der Sync-Rate.
 function syncCloudNow(reason) {
   if (state.account.status !== 'in') return;
@@ -6503,12 +6504,16 @@ function init() {
       startSessionWatch();
       reconcileSession();
     });
-    // …und automatisch alle 60 s weiter sichern, solange die App offen ist.
-    // Periodischer Cloud-Sync NICHT während einer laufenden Partie (schont die
-    // Verbindung/den Speicher im konzentrationskritischen Moment; der lokale
-    // Autosave sichert den Fortschritt ohnehin). Gesichert wird stattdessen bei
-    // Spielende, beim Wechsel ins Menü und beim Verstecken/Schließen der App.
-    setInterval(() => { if (state.account.status === 'in' && !gameSessionActive()) doSyncNow(); }, 30000);
+    // …und automatisch alle 30s weiter sichern — AUCH während einer laufenden
+    // Partie (Solo/Endlos): sonst sah ein laufendes Spiel die Cloud nur bei den
+    // seltenen Event-Triggern (Start/Pause/Sieg/Verstecken) und blieb auf einem
+    // Zweitgerät als "nicht fortsetzbar" hängen, sobald genau diese Trigger auf
+    // dem Erstgerät ausblieben (z.B. hartes Beenden ohne sauberes pagehide).
+    // syncCloudNow (statt blindem doSyncNow) hält dabei auch die Live-Solo-Session
+    // (pushSession) auf demselben Takt aktuell. Kostet pro Tick nur einen kleinen
+    // Cloud-Read (data/rev-Vergleich in Account.syncNow) plus — nur bei Bedarf —
+    // den vollen Snapshot-Write, den ohnehin jedes Pause/Hide-Event auslöst.
+    setInterval(() => { if (state.account.status === 'in') syncCloudNow('periodic'); }, 30000);
   }
   // Präsenz-Heartbeat: hält das eigene lastActive frisch, damit die Frische-
   // Prüfung (Account.presenceOnline, TTL PRESENCE_STALE_MS) echte Online-Nutzer

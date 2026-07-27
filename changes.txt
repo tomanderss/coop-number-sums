@@ -1,0 +1,1 @@
+Laufende Solo-/Endlos-Spiele werden jetzt auch WÄHREND der Partie alle 30s in die Cloud synchronisiert, nicht nur bei Pause/Spielende/App-Verstecken — Fortsetzen auf einem anderen Gerät funktioniert dadurch zuverlässiger.
