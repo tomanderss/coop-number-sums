@@ -1390,7 +1390,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    damit in JEDEM Modus (auch Coop-Endlos, 4 Spieler, Münzen + Multiplikator +
    Verteilung) ohne Skalierung komplett auf kleine Displays. Kein Element wird
    nur „kleiner gezoomt" — die Struktur ist flacher. */
-.result-card.rc { gap: 9px; padding: 18px 18px 16px; max-width: 384px; }
+/* Breiter als die Standardkarte (mehr Platz für Team-Performance-Zeilen) —
+   auf schmalen Displays begrenzt sie ohnehin die verfügbare Breite (Overlay-
+   Padding + width:100%), der höhere Cap zahlt sich vor allem auf breiteren
+   Geräten aus (Tablet/Desktop-Fenster). */
+.result-card.rc { gap: 9px; padding: 16px 16px 16px; max-width: 440px; }
 .rc-head { display: flex; align-items: center; gap: 12px; text-align: left; }
 .rc-head .result-emoji { font-size: 2.3rem; line-height: 1; flex: 0 0 auto; }
 .rc-headtx { min-width: 0; flex: 1 1 auto; }
@@ -1457,22 +1461,28 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .perf-stack { display: flex; height: 12px; border-radius: 999px; background: var(--bg3); overflow: hidden; }
 .perf-stack span { display: block; height: 100%; min-width: 3px; }
 .perf-stack span + span { border-left: 2px solid var(--bg2); }
-/* Spieler-Zeilen als GRID mit festen Spalten (Punkt · Name · ✓ · Fehler · %) —
-   alle Zeilen fluchten exakt untereinander. Das MVP-Highlight ändert NUR
-   Hintergrund/Ring, NICHT das Padding (alle Zeilen tragen dasselbe), sonst
-   beginnt der MVP-Name eingerückt gegenüber den anderen. `.perf-mini` löst
-   sich per display:contents auf, damit ✓ und Fehler eigene Grid-Spalten sind. */
-.perf-line { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto auto; align-items: center; column-gap: 7px; min-height: 24px; padding: 2px 8px 2px 6px; border-radius: 999px; }
+/* Spieler-Zeilen als GRID mit festen Spalten (Punkt · Name · MVP-Marke · ✓ ·
+   Fehler · %) — alle Zeilen fluchten exakt untereinander. Das MVP-Highlight
+   ändert NUR Hintergrund/Ring, NICHT das Padding. Die MVP-Spalte ist eine
+   FESTE Breite und wird IMMER gerendert (leer, wenn keine MVP-Zeile) — sonst
+   rutschen bei Auto-Placement die restlichen Spalten (✓/Fehler/%) einer
+   Nicht-MVP-Zeile um eine Spalte nach links und die Ausrichtung bricht.
+   `.perf-mini` löst sich per display:contents auf, damit ✓ und Fehler eigene
+   Grid-Spalten sind. Der Name bricht NICHT mehr um (das ließ z.B. „MVP"
+   buchstabenweise umbrechen, weil overflow-wrap:anywhere auf dem ganzen
+   Flex-Container inkl. Badge griff) — stattdessen eine Zeile mit Ellipse;
+   ein sehr langer Name wird gekürzt, bleibt aber immer lesbar in EINER Zeile. */
+.perf-line { display: grid; grid-template-columns: 10px minmax(0, 1fr) 44px auto auto auto; align-items: center; column-gap: 6px; min-height: 24px; padding: 2px 8px 2px 6px; border-radius: 999px; }
 .perf-line.mvp { background: rgba(251,191,36,.09); box-shadow: 0 0 0 1.5px rgba(251,191,36,.55); }
-.perf-dot { width: 10px; height: 10px; border-radius: 50%; }
-.perf-name { min-width: 0; overflow-wrap: anywhere; font-weight: 800; font-size: .84rem; display: flex; align-items: center; gap: 6px; }
-.perf-mvp { display: inline-flex; align-items: center; gap: 3px; color: #fbbf24; font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .4px; }
+.perf-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.perf-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 800; font-size: .84rem; }
+.perf-mvp { display: inline-flex; align-items: center; gap: 3px; color: #fbbf24; font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
 .perf-mini { display: contents; }
 .perf-mini .pm { display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px; font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.perf-mini .pm.good { color: var(--good, #22c55e); min-width: 42px; }
-.perf-mini .pm.bad { color: var(--bad, #ef4444); min-width: 34px; }
+.perf-mini .pm.good { color: var(--good, #22c55e); min-width: 34px; }
+.perf-mini .pm.bad { color: var(--bad, #ef4444); min-width: 26px; }
 .perf-mini .ei svg { width: 13px; height: 13px; }
-.perf-pct { justify-self: end; min-width: 40px; text-align: right; font-weight: 900; font-size: .84rem; color: var(--text2); font-variant-numeric: tabular-nums; }
+.perf-pct { justify-self: end; min-width: 38px; text-align: right; font-weight: 900; font-size: .84rem; color: var(--text2); font-variant-numeric: tabular-nums; }
 
 /* ─── Duell-Grafik (Race 1v1/FFA + Team-vs-Team, Sieg-/Niederlage-Screen) ───
    Ein Balken je Partei in Spielerfarbe statt reinem Prozent-Text: Sieger oben

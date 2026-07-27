@@ -163,6 +163,40 @@ test.describe('coop robustness', () => {
     expect(menuBtn.height).toBeLessThan(60);
   });
 
+  // Regression: ein langer, leerzeichenloser Spielername ließ den Namen mitten
+  // im Wort umbrechen UND riss dabei das MVP-Abzeichen buchstabenweise
+  // auseinander ("M"/"V"/"P" untereinander), weil overflow-wrap:anywhere auf
+  // dem ganzen Flex-Container inkl. Badge griff. Jetzt bleibt die Zeile
+  // einzeilig (Ellipse statt Umbruch), das Badge bricht nie.
+  test('a long unbroken player name never wraps and the MVP badge stays intact', async ({ page }) => {
+    await gotoApp(page);
+    await asGuestInGame(page);
+    await page.evaluate(() => {
+      const s = window.__cns.state;
+      s.coop.players = [
+        { id: 'host', name: 'MinzLeckiFutta', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' },
+      ];
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { s.marks[r][c] = 'kept'; s.markedBy[r][c] = r < 3 ? 'host' : 'me'; }
+      s.coop.mistakesByPlayer = { host: 0, me: 1 };
+      s.status = 'won';
+    });
+    await expect(page.locator('.result-card.win .perf-line')).toHaveCount(2);
+    const mvpRow = page.locator('.result-card.win .perf-line.mvp');
+    await expect(mvpRow).toBeVisible();
+    // Das Badge zeigt den vollständigen Text "MVP" auf einer Zeile — nicht in
+    // einzelne Buchstaben zerlegt (jede Buchstaben-Zeile hätte eine eigene,
+    // sehr kleine Bounding-Box mit stark abweichender Breite/Höhe).
+    await expect(mvpRow.locator('.perf-mvp')).toContainText('MVP');
+    const mvpBox = await mvpRow.locator('.perf-mvp').boundingBox();
+    expect(mvpBox.height).toBeLessThan(20); // eine Textzeile, nicht drei gestapelte Buchstaben
+    // Der Name bleibt einzeilig (Höhe einer Zeile, kein Umbruch).
+    const nameBox = await mvpRow.locator('.perf-name').boundingBox();
+    expect(nameBox.height).toBeLessThan(20);
+    // Spaltenausrichtung bleibt über beide Zeilen erhalten (MVP-Zeile ohne Versatz).
+    const pctRights = await page.$$eval('.result-card.win .perf-line .perf-pct', els => els.map(e => e.getBoundingClientRect().right));
+    expect(Math.max(...pctRights) - Math.min(...pctRights)).toBeLessThanOrEqual(1);
+  });
+
   // Coop-Resume-Countdown: drückt EIN Spieler „Fortsetzen", sehen ALLE den
   // ablaufenden Balken (RESUME_COUNT-Event) — das eigentliche RESUME kommt am
   // Balken-Ende vom Drücker und schließt das Pausenmenü überall.
