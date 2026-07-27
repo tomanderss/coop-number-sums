@@ -1,0 +1,1 @@
+Spielernamen im Ergebnis-Screen werden nicht mehr abgeschnitten: der Name steht jetzt vollständig in einer eigenen Zeile, die Statistiken (richtig/Fehler/Anteil) darunter in festen Spalten — untereinander und damit weiter vergleichbar.

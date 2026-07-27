@@ -1461,27 +1461,34 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .perf-stack { display: flex; height: 12px; border-radius: 999px; background: var(--bg3); overflow: hidden; }
 .perf-stack span { display: block; height: 100%; min-width: 3px; }
 .perf-stack span + span { border-left: 2px solid var(--bg2); }
-/* Spieler-Zeilen als GRID mit festen Spalten (Punkt · Name · MVP-Marke · ✓ ·
-   Fehler · %) — alle Zeilen fluchten exakt untereinander. Das MVP-Highlight
-   ändert NUR Hintergrund/Ring, NICHT das Padding. Die MVP-Spalte ist eine
-   FESTE Breite und wird IMMER gerendert (leer, wenn keine MVP-Zeile) — sonst
-   rutschen bei Auto-Placement die restlichen Spalten (✓/Fehler/%) einer
-   Nicht-MVP-Zeile um eine Spalte nach links und die Ausrichtung bricht.
-   `.perf-mini` löst sich per display:contents auf, damit ✓ und Fehler eigene
-   Grid-Spalten sind. Der Name bricht NICHT mehr um (das ließ z.B. „MVP"
-   buchstabenweise umbrechen, weil overflow-wrap:anywhere auf dem ganzen
-   Flex-Container inkl. Badge griff) — stattdessen eine Zeile mit Ellipse;
-   ein sehr langer Name wird gekürzt, bleibt aber immer lesbar in EINER Zeile. */
-.perf-line { display: grid; grid-template-columns: 10px minmax(0, 1fr) 44px auto auto auto; align-items: center; column-gap: 6px; min-height: 24px; padding: 2px 8px 2px 6px; border-radius: 999px; }
+/* Spieler-Block = ZWEI Zeilen: oben der VOLLE Name, darunter die Zahlen.
+   Vorher standen Name und Zahlen in EINER Grid-Zeile — der Name bekam nur den
+   Rest der Breite und wurde bei längeren Namen mit „…" abgeschnitten
+   („JACOBY BES…"). Ein Name ist aber kein Detail, das man kürzen darf. Jetzt
+   hat er die volle Kartenbreite (bricht praktisch nie um) und die Zahlen
+   stehen in einem eigenen, für ALLE Spieler identischen Spaltenraster
+   direkt darunter — untereinander und damit weiterhin vergleichbar.
+   Das MVP-Highlight ändert NUR Hintergrund/Ring, NICHT das Padding. */
+.perf-line { padding: 3px 8px 4px 6px; border-radius: 12px; }
 .perf-line.mvp { background: rgba(251,191,36,.09); box-shadow: 0 0 0 1.5px rgba(251,191,36,.55); }
+/* Zeile 1: Punkt + VOLLER Name + MVP. Der Name bekommt die GANZE Kartenbreite,
+   konkurriert also nicht mehr mit den Zahlen — deshalb reicht sie praktisch immer
+   ohne Umbruch. `overflow-wrap:anywhere` steht BEWUSST nur auf .perf-name (nicht
+   auf dem Flex-Container): so bricht ein extremer Name als LETZTES Mittel um,
+   statt abgeschnitten zu werden, und das MVP-Badge bricht trotzdem nie
+   buchstabenweise (eigener Flex-Item, nowrap, schrumpft nicht). */
+.perf-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .perf-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
-.perf-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 800; font-size: .84rem; }
-.perf-mvp { display: inline-flex; align-items: center; gap: 3px; color: #fbbf24; font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
-.perf-mini { display: contents; }
-.perf-mini .pm { display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px; font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.perf-mini .pm.good { color: var(--good, #22c55e); min-width: 34px; }
-.perf-mini .pm.bad { color: var(--bad, #ef4444); min-width: 26px; }
-.perf-mini .ei svg { width: 13px; height: 13px; }
+.perf-name { min-width: 0; font-weight: 800; font-size: .84rem; line-height: 1.25; overflow-wrap: anywhere; }
+.perf-mvp { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px; color: #fbbf24; font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
+/* Zeile 2: die Zahlen. FESTES Spaltenraster (für jeden Spieler identisch), damit
+   ✓ / Fehler / % über alle Zeilen hinweg exakt untereinander stehen und
+   vergleichbar bleiben — das war der Sinn der alten einzeiligen Grid-Lösung. */
+.perf-stats { display: grid; grid-template-columns: minmax(52px, 68px) minmax(44px, 58px) 1fr; align-items: center; column-gap: 10px; padding-left: 16px; }
+.perf-stats .pm { display: inline-flex; align-items: center; gap: 3px; font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.perf-stats .pm.good { color: var(--good, #22c55e); }
+.perf-stats .pm.bad { color: var(--bad, #ef4444); }
+.perf-stats .ei svg { width: 13px; height: 13px; }
 .perf-pct { justify-self: end; min-width: 38px; text-align: right; font-weight: 900; font-size: .84rem; color: var(--text2); font-variant-numeric: tabular-nums; }
 
 /* ─── Duell-Grafik (Race 1v1/FFA + Team-vs-Team, Sieg-/Niederlage-Screen) ───
