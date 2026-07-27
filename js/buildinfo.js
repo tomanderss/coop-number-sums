@@ -1,8 +1,18 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.194';
-export const BUILD_HASH = '016f087';
+export const BUILD      = '1.195';
+export const BUILD_HASH = '900a8ee';
 
 export const CHANGELOG = [
+  {
+    "version": "1.195",
+    "date": "27.07.2026",
+    "changes": [
+      "Cloud-Sync repariert: Ein laufendes Spiel (auch Endlos) landet jetzt wirklich in der Cloud und lässt sich auf einem anderen Gerät fortsetzen — bisher hat sich das Gerät nach dem ersten Upload einer Partie selbst dauerhaft blockiert.",
+      "Einstellungen, Farben und Kosmetik gehören jetzt zum Konto: beim Laden gilt immer der Cloud-Stand, ein neu angemeldetes Gerät überschreibt sie nicht mehr.",
+      "Zuletzt gesehene Version wird mitsynchronisiert (keine doppelten Neuigkeiten-Hinweise auf dem Zweitgerät).",
+      "Gefragt wird nur noch bei echten Konflikten: abweichendes Guthaben oder zwei verschiedene unbeendete Partien (offline weitergespielt) — mit passendem Erklärtext."
+    ]
+  },
   {
     "version": "1.194",
     "date": "27.07.2026",
