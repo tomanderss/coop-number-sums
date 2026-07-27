@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.195';
-export const BUILD_HASH = '900a8ee';
+export const BUILD      = '1.196';
+export const BUILD_HASH = 'dc336be';
 
 export const CHANGELOG = [
+  {
+    "version": "1.196",
+    "date": "27.07.2026",
+    "changes": [
+      "Spielernamen im Ergebnis-Screen werden nicht mehr abgeschnitten: der Name steht jetzt vollständig in einer eigenen Zeile, die Statistiken (richtig/Fehler/Anteil) darunter in festen Spalten — untereinander und damit weiter vergleichbar."
+    ]
+  },
   {
     "version": "1.195",
     "date": "27.07.2026",
