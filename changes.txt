@@ -1,2 +1,0 @@
-Team-Performance im Ergebnis-Screen repariert: das MVP-Abzeichen bricht nicht mehr buchstabenweise um, lange Spielernamen werden sauber gekürzt statt mitten im Wort umzubrechen
-Die Ergebnis-Karte darf jetzt mehr Platz einnehmen, bleibt aber in jedem Modus gleich und ragt nie über den Bildschirm hinaus

@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.192';
-export const BUILD_HASH = '82cb285';
+export const BUILD      = '1.193';
+export const BUILD_HASH = 'd6af195';
 
 export const CHANGELOG = [
+  {
+    "version": "1.193",
+    "date": "27.07.2026",
+    "changes": [
+      "Team-Performance im Ergebnis-Screen repariert: das MVP-Abzeichen bricht nicht mehr buchstabenweise um, lange Spielernamen werden sauber gekürzt statt mitten im Wort umzubrechen",
+      "Die Ergebnis-Karte darf jetzt mehr Platz einnehmen, bleibt aber in jedem Modus gleich und ragt nie über den Bildschirm hinaus"
+    ]
+  },
   {
     "version": "1.192",
     "date": "26.07.2026",
