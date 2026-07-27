@@ -174,7 +174,7 @@ test.describe('coop robustness', () => {
     await page.evaluate(() => {
       const s = window.__cns.state;
       s.coop.players = [
-        { id: 'host', name: 'MinzLeckiFutta', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' },
+        { id: 'host', name: 'JACOBY BESTMANNSSON', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' },
       ];
       for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { s.marks[r][c] = 'kept'; s.markedBy[r][c] = r < 3 ? 'host' : 'me'; }
       s.coop.mistakesByPlayer = { host: 0, me: 1 };
@@ -192,9 +192,20 @@ test.describe('coop robustness', () => {
     // Der Name bleibt einzeilig (Höhe einer Zeile, kein Umbruch).
     const nameBox = await mvpRow.locator('.perf-name').boundingBox();
     expect(nameBox.height).toBeLessThan(20);
-    // Spaltenausrichtung bleibt über beide Zeilen erhalten (MVP-Zeile ohne Versatz).
+    // Der Name wird NIE abgeschnitten — er steht in einer eigenen Zeile über den
+    // Zahlen und hat die volle Kartenbreite. Vorher kürzte ihn eine Ellipse zu
+    // „JACOBY BES…", weil er sich die Zeile mit ✓/Fehler/% teilen musste.
+    const clipped = await mvpRow.locator('.perf-name').evaluate(el => el.scrollWidth > el.clientWidth + 1);
+    expect(clipped).toBe(false);
+    await expect(mvpRow.locator('.perf-name')).toHaveText('JACOBY BESTMANNSSON');
+    // Spaltenausrichtung bleibt über beide Zeilen erhalten (MVP-Zeile ohne Versatz):
+    // die Zahlen stehen für JEDEN Spieler im selben Raster und bleiben vergleichbar.
     const pctRights = await page.$$eval('.result-card.win .perf-line .perf-pct', els => els.map(e => e.getBoundingClientRect().right));
     expect(Math.max(...pctRights) - Math.min(...pctRights)).toBeLessThanOrEqual(1);
+    for (const sel of ['.pm.good', '.pm.bad']) {
+      const lefts = await page.$$eval(`.result-card.win .perf-stats ${sel}`, els => els.map(e => e.getBoundingClientRect().left));
+      expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThanOrEqual(1);
+    }
   });
 
   // Coop-Resume-Countdown: drückt EIN Spieler „Fortsetzen", sehen ALLE den

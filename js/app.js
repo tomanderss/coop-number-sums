@@ -7481,11 +7481,16 @@ const App = {
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>
             <div class="perf-stack"><span v-for="pl in coopPerformance" :key="pl.id" :style="{ width: pl.contributionPct + '%', background: pl.color }"></span></div>
             <div v-for="pl in coopPerformance" :key="pl.id" class="perf-line" :class="{mvp: pl.id===mvpId}">
-              <span class="perf-dot" :style="{background: pl.color}"></span>
-              <span class="perf-name" :style="{color: pl.color}" :title="playerLabel(pl)">{{ playerLabel(pl) }}</span>
-              <span class="perf-mvp"><template v-if="pl.id===mvpId"><span class="ei" v-html="ic('crown')"></span>{{ t('win.mvp') }}</template></span>
-              <span class="perf-mini"><span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correctKept + pl.correctRemoved }}</span><span class="pm bad"><span class="ei" v-html="ic('heart-broken')"></span>{{ pl.mistakes }}</span></span>
-              <span class="perf-pct">{{ pl.contributionPct }}%</span>
+              <div class="perf-head">
+                <span class="perf-dot" :style="{background: pl.color}"></span>
+                <span class="perf-name" :style="{color: pl.color}">{{ playerLabel(pl) }}</span>
+                <span v-if="pl.id===mvpId" class="perf-mvp"><span class="ei" v-html="ic('crown')"></span>{{ t('win.mvp') }}</span>
+              </div>
+              <div class="perf-stats">
+                <span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correctKept + pl.correctRemoved }}</span>
+                <span class="pm bad"><span class="ei" v-html="ic('heart-broken')"></span>{{ pl.mistakes }}</span>
+                <span class="perf-pct">{{ pl.contributionPct }}%</span>
+              </div>
             </div>
           </div>
           <div v-if="opponentTeamPerformance.length" class="opponent-team-performance">
@@ -7539,11 +7544,16 @@ const App = {
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>
             <div class="perf-stack"><span v-for="pl in coopPerformance" :key="pl.id" :style="{ width: pl.contributionPct + '%', background: pl.color }"></span></div>
             <div v-for="pl in coopPerformance" :key="pl.id" class="perf-line" :class="{mvp: pl.id===mvpId}">
-              <span class="perf-dot" :style="{background: pl.color}"></span>
-              <span class="perf-name" :style="{color: pl.color}" :title="playerLabel(pl)">{{ playerLabel(pl) }}</span>
-              <span class="perf-mvp"><template v-if="pl.id===mvpId"><span class="ei" v-html="ic('crown')"></span>{{ t('win.mvp') }}</template></span>
-              <span class="perf-mini"><span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correctKept + pl.correctRemoved }}</span><span class="pm bad"><span class="ei" v-html="ic('heart-broken')"></span>{{ pl.mistakes }}</span></span>
-              <span class="perf-pct">{{ pl.contributionPct }}%</span>
+              <div class="perf-head">
+                <span class="perf-dot" :style="{background: pl.color}"></span>
+                <span class="perf-name" :style="{color: pl.color}">{{ playerLabel(pl) }}</span>
+                <span v-if="pl.id===mvpId" class="perf-mvp"><span class="ei" v-html="ic('crown')"></span>{{ t('win.mvp') }}</span>
+              </div>
+              <div class="perf-stats">
+                <span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correctKept + pl.correctRemoved }}</span>
+                <span class="pm bad"><span class="ei" v-html="ic('heart-broken')"></span>{{ pl.mistakes }}</span>
+                <span class="perf-pct">{{ pl.contributionPct }}%</span>
+              </div>
             </div>
           </div>
           <div v-if="opponentTeamPerformance.length" class="opponent-team-performance">
