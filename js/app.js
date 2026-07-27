@@ -5237,9 +5237,19 @@ function openVersionMismatch(r) {
   state.versionMismatch = {
     local: syncSummary(r.localData),
     cloud: syncSummary(r.cloud),
+    // 'wallet' = nur Guthaben, 'game' = zwei verschiedene offene Partien,
+    // 'both' = beides. Steuert nur den Erklärtext des Dialogs.
+    reason: r.reason || 'wallet',
     busy: false,
   };
-  log('account', 'Versions-Mismatch-Dialog geöffnet', { local: state.versionMismatch.local, cloud: state.versionMismatch.cloud });
+  log('account', 'Versions-Mismatch-Dialog geöffnet', { reason: r.reason, local: state.versionMismatch.local, cloud: state.versionMismatch.cloud });
+}
+// Erklärtext passend zum Konfliktgrund (nie „Guthaben", wenn es ums Spiel ging).
+function mismatchSubText() {
+  const why = state.versionMismatch && state.versionMismatch.reason;
+  if (why === 'game') return t('mismatch.subGame');
+  if (why === 'both') return t('mismatch.subBoth');
+  return t('mismatch.sub');
 }
 // Nutzerwahl anwenden: 'local' = dieses Gerät behalten, 'cloud' = Cloud behalten.
 // Die unterlegene Seite sichert resolveConflict als Backup. Danach sauber neu laden.
@@ -6988,7 +6998,7 @@ const App = {
       desktopKeyLabel, startDesktopKeyCapture, cancelDesktopKeyCapture, clearDesktopToolKey,
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
       reclaimSession, dismissDeviceNotice,
-      resolveVersionMismatch, fmtMismatchTime,
+      resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -8440,7 +8450,7 @@ const App = {
     <div v-if="state.versionMismatch" class="modal-overlay mismatch-overlay">
       <div class="modal mismatch-modal">
         <h2 class="mismatch-title"><span class="ei" v-html="ic('warning')"></span> {{ t('mismatch.title') }}</h2>
-        <p class="mismatch-sub">{{ t('mismatch.sub') }}</p>
+        <p class="mismatch-sub">{{ mismatchSubText() }}</p>
         <div class="mismatch-cards">
           <button class="mismatch-card" :disabled="state.versionMismatch.busy" @click="resolveVersionMismatch('local')">
             <div class="mc-head">{{ t('mismatch.local') }}</div>

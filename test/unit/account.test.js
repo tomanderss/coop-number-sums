@@ -14,6 +14,7 @@ const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
   isSignedIn, lastSyncAt, decideSync, isDivergent, friendActivityRank, sortFriends, sortLeaderboard,
   presenceOnline, PRESENCE_STALE_MS, mergeSnapshots, mergeStreak, walletBalanceDiffers,
+  mergeSettingsCloudWins, activeGamesConflict,
 } = await import('../../js/account.js');
 
 describe('account.isDivergent (echter Offline-vs-Cloud-Konflikt)', () => {
@@ -315,8 +316,13 @@ describe('account.mergeSnapshots (verlustfreier Merge bei Divergenz)', () => {
     assert.equal(m.race['1v1'].racesWon, 4);
     assert.equal(m.race['2v2'].racesWon, 2);
   });
-  test('Kleinigkeiten (Settings/Profil/Wallet) folgen der jüngeren Seite', () => {
-    assert.equal(m.settings.musicSolo, false);
+  test('Einstellungen kommen IMMER aus der Cloud (Account-Eigenschaft, nicht Geräte-Eigenschaft)', () => {
+    // Lokal ist hier die jüngere Seite (rev/ts) und hat musicSolo:false — trotzdem
+    // gilt der Cloud-Wert true. Einstellungen/Kosmetik gehören zum ACCOUNT; ein
+    // Gerät darf sie beim Laden nie hochdrücken (sonst „Theme nach Login weg").
+    assert.equal(m.settings.musicSolo, true);
+  });
+  test('Kleinigkeiten (Profil/Wallet) folgen der jüngeren Seite', () => {
     assert.equal(m.profile.displayName, 'Tom');
     assert.deepEqual(m.wallet, { balance: 500, updatedAt: 9 });
   });
@@ -398,5 +404,72 @@ describe('account.mergeSnapshots (Frische nach echter Änderungszeit, nicht Samm
     assert.equal(mergeSnapshots(cloud, local).activeGameEndless.endless.level, 7);
     // Nur eine Seite hat einen Lauf → der bleibt erhalten.
     assert.equal(mergeSnapshots({ rev: 9 }, cloud).activeGameEndless.endless.level, 7);
+  });
+});
+
+describe('account.mergeSettingsCloudWins (Einstellungen sind Account-Sache)', () => {
+  test('die Cloud gewinnt JEDES Feld, das sie kennt', () => {
+    const m = mergeSettingsCloudWins(
+      { themeMode: 'light', palette: 'neon', coopName: 'Handy' },
+      { themeMode: 'dark', palette: 'classic', coopName: 'Tom' },
+    );
+    assert.equal(m.themeMode, 'dark');
+    assert.equal(m.palette, 'classic');
+    assert.equal(m.coopName, 'Tom');
+  });
+  test('ein neu angemeldetes Gerät kann die Account-Einstellungen NICHT überschreiben', () => {
+    // Symptom vorher: das zweite Gerät drückte seine (Default-)Settings hoch.
+    const cloud = { themeMode: 'dark', winEffect: 'meteor', updatedAt: 1000 };
+    const fresh = { themeMode: 'auto', winEffect: 'confetti', updatedAt: 99999 };
+    const m = mergeSettingsCloudWins(fresh, cloud);
+    assert.equal(m.themeMode, 'dark');
+    assert.equal(m.winEffect, 'meteor');
+  });
+  test('lokale Felder füllen nur Lücken, die die Cloud gar nicht kennt', () => {
+    const m = mergeSettingsCloudWins({ brandNewOption: true }, { themeMode: 'dark' });
+    assert.equal(m.brandNewOption, true);
+    assert.equal(m.themeMode, 'dark');
+  });
+  test('robust gegen leere/fehlende Seiten', () => {
+    assert.deepEqual(mergeSettingsCloudWins(null, null), {});
+    assert.deepEqual(mergeSettingsCloudWins({ a: 1 }, null), { a: 1 });
+    assert.deepEqual(mergeSettingsCloudWins(null, { a: 2 }), { a: 2 });
+  });
+  test('mergeSnapshots übernimmt die Cloud-Einstellungen auch bei jüngerer lokaler rev', () => {
+    const m = mergeSnapshots(
+      { rev: 9999, settings: { themeMode: 'light', palette: 'neon' } },
+      { rev: 1, settings: { themeMode: 'dark', palette: 'classic' } },
+    );
+    assert.equal(m.settings.themeMode, 'dark');
+    assert.equal(m.settings.palette, 'classic');
+  });
+});
+
+describe('account.activeGamesConflict (Rückfrage nur bei echtem Spielstand-Konflikt)', () => {
+  test('zwei verschiedene offene Partien im selben Slot → Konflikt', () => {
+    assert.equal(activeGamesConflict(
+      { activeGame: { gameId: 'a', puzzle: {} } },
+      { activeGame: { gameId: 'b', puzzle: {} } },
+    ), true);
+  });
+  test('dieselbe Partie → kein Konflikt (rev/ts entscheidet automatisch)', () => {
+    assert.equal(activeGamesConflict(
+      { activeGame: { gameId: 'a', puzzle: {} } },
+      { activeGame: { gameId: 'a', puzzle: {} } },
+    ), false);
+  });
+  test('nur eine Seite hat eine Partie → kein Konflikt (verlustfrei mergebar)', () => {
+    assert.equal(activeGamesConflict({ activeGame: { gameId: 'a' } }, {}), false);
+    assert.equal(activeGamesConflict({}, { activeGame: { gameId: 'b' } }), false);
+    assert.equal(activeGamesConflict({}, {}), false);
+  });
+  test('Alt-Stände ohne gameId lösen keine Rückfrage aus', () => {
+    assert.equal(activeGamesConflict({ activeGame: { puzzle: {} } }, { activeGame: { puzzle: {} } }), false);
+  });
+  test('gilt für JEDEN Slot — auch Endlos und Coop', () => {
+    assert.equal(activeGamesConflict(
+      { activeGameEndless: { gameId: 'e1' } }, { activeGameEndless: { gameId: 'e2' } }), true);
+    assert.equal(activeGamesConflict(
+      { activeGameCoop: { gameId: 'c1' } }, { activeGameCoop: { gameId: 'c2' } }), true);
   });
 });
