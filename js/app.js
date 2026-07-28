@@ -1,6 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
+import { createBot, nextAction as botNextAction, applyAction as botApplyAction, botPct, targetMsFor, PRESET_LEVELS, PRESET_PROFILES, DEFAULT_AVG_MS } from './duelbot.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, bigNumbersAllowed, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
 import { generatePuzzle, remapColorsForMarkVisibility } from './generator.js';
 import { todayDateStr } from './streak.js';
@@ -16,7 +17,7 @@ import {
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
-  loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
+  loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss, avgTimesByDifficulty,
   loadMissions, saveMissions,
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, saveProfile, loadInventory, grantInventory, revokeInventory,
@@ -32,7 +33,7 @@ import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shop
 import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup, masterMedalMarkup } from './badgeart.js';
 import { winShapeDefs, winShape, dragonMarkup, unicornMarkup, phoenixMarkup, rocketMarkup, discoMarkup } from './winshapes.js';
 import { icon as customIcon, hasIcon } from './icons.js';
-import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge, MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge, unlockedTierCodes, newlyUnlockedTiers, headlineUnlock } from './prestige.js';
+import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge, MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge, unlockedTierCodes, newlyUnlockedTiers, headlineUnlock, duelWins } from './prestige.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
@@ -194,6 +195,14 @@ const state = reactive({
     // Der Transport (raceProgress/{uid}) ist bereits pro-Spieler; hier halten wir
     // die Liste aller Gegner statt genau eines. Die 1v1-Felder oben bleiben für
     // den klassischen 1v1-Ergebnis-/HUD-Text erhalten.
+    // ── KI-Duell ──────────────────────────────────────────────────────────────
+    // Ein KI-Duell ist ein vollwertiges Race-Match, aber OHNE Firebase/Raum: der
+    // Gegner ist ein lokaler opponents-Eintrag, dessen pct ein Scheduler treibt
+    // (s. startAiDuel/scheduleBotAction). Funktioniert daher auch offline.
+    ai: false,              // true, wenn der Gegner der KI-Bot ist
+    aiLevel: 'medium',      // feste Stärke-Stufe (PRESET_LEVELS)
+    aiSkill: 1,             // Prozent-Regler auf die Zielzeit (1 = Vorlage)
+    aiTargetMs: 0,          // kalibrierte Zielzeit dieses Duells (nur Diagnose)
     ffa: false,             // true, wenn dieses Race-Match ein FFA (≥3 Spieler) ist
     opponents: [],          // [{ id, name, color, pct, mistakes, out }] — alle Gegner (ohne mich)
     winnerName: '',         // Name des ersten Fertigen (für den FFA-Ergebnis-Text)
@@ -574,7 +583,7 @@ function pauseGame(broadcast = true, remoteElapsed) {
     // Race: state.coop.active bleibt absichtlich false (siehe state.race-Kommentar),
     // coopSend() wäre hier also ein No-op -- analog zum MSG.START-Versand direkt
     // über Coop.send(), damit der Gegner trotzdem mitpausiert/-startet wird.
-    if (state.race.active) Coop.send({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
+    if (state.race.active && !state.race.ai) Coop.send({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
     else if (state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: true, elapsed: state.elapsed });
   }
   persistGame();          // aktuellen Stand lokal sichern …
@@ -588,7 +597,7 @@ function resumeFromPause(broadcast = true) {
   startTimer();
   updateMusic();
   if (broadcast) {
-    if (state.race.active) Coop.send({ type: Coop.MSG.PAUSE, paused: false });
+    if (state.race.active && !state.race.ai) Coop.send({ type: Coop.MSG.PAUSE, paused: false });
     else if (state.coop.active) coopSend({ type: Coop.MSG.PAUSE, paused: false });
   }
 }
@@ -621,7 +630,7 @@ function startResumeCountdown(fromRemote = false) {
   if (!fromRemote) {
     // Partner sollen den Countdown SYNCHRON sehen (das Pausenmenü schließt
     // sonst bei ihnen erst abrupt mit dem fertigen RESUME).
-    if (state.race.active) Coop.send({ type: Coop.MSG.RESUME_COUNT });
+    if (state.race.active && !state.race.ai) Coop.send({ type: Coop.MSG.RESUME_COUNT });
     else if (state.coop.active) coopSend({ type: Coop.MSG.RESUME_COUNT });
   }
   resumeCountdownTimer = setTimeout(() => {
@@ -2167,6 +2176,7 @@ let raceProgressTimer = null;
 // kamen. Der Timer garantiert, dass der letzte Stand spätestens nach Ablauf
 // des Throttle-Fensters nachgereicht wird.
 function pushRaceProgress() {
+  if (state.race.ai) return;   // KI-Duell ist rein lokal — es gibt keinen Raum
   const now = Date.now();
   const elapsed = now - raceProgressThrottle;
   if (elapsed >= 2000) {
@@ -2768,6 +2778,9 @@ function coopReset({ keepRoom = false } = {}) {
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
   state.coop.generating = false;
   state.coop.teamMode = false;
+  stopBot();
+  botState = null;
+  state.race.ai = false;
   state.coop.raceMode = false;
   state.coop.ffaMode = false;
   state.coop.invitePickerOpen = false; state.coop.invitedUids = [];
@@ -3538,7 +3551,9 @@ function checkAchievements() {
     perfectWins: state.coop.active ? state.stats.coopPerfectWins : state.stats.perfectWins,
     currentStreak: state.coop.active ? state.stats.coopCurrentStreak : state.stats.currentStreak,
     coopWon: state.stats.coopWon || 0,
-    raceWon1v1: state.raceStats['1v1']?.racesWon || 0,
+    // Duell-Achievements zaehlen KI-Duelle mit (eigene Statistik-Kategorie,
+    // aber gemeinsame Wertung — s. duelWins in js/prestige.js).
+    raceWon1v1: duelWins(state.raceStats),
     raceWon2v2: state.raceStats['2v2']?.racesWon || 0,
     streak: state.streak.currentStreak,
     endlessBest: state.stats.endlessBest || 0,
@@ -3580,6 +3595,15 @@ function broadcastTeamDone(outcome) {
 // Team-vs-Team).
 function broadcastRaceDone(outcome) {
   state.race.matchOver = true;
+  if (state.race.ai) {
+    // KI-Duell: Ergebnis nur lokal festhalten, kein Coop.send (kein Raum).
+    state.race.winner = outcome === 'won' ? 'me' : 'opponent';
+    if (outcome === 'won') state.race.winnerName = myUsername() || t('common.you');
+    state.race.endReason = outcome;
+    state.race.myPct = progressPct();
+    stopBot();
+    return;
+  }
   if (state.race.ffa && outcome === 'lost') {
     // FFA: selbst ausgeschieden (Leben verloren/aufgegeben) -- das Match läuft für
     // die Übrigen weiter, deshalb 'out' statt eines Gegner-Siegs anzeigen.
@@ -3725,7 +3749,7 @@ function win(remote) {
       }
     }
     if (!state.isTrainingGame) applyStreakAfterGame();
-    if (state.isRaceGame) state.raceStats = recordRaceWin(state.race.ffa ? 'ffa' : '1v1', state.elapsed);
+    if (state.isRaceGame) state.raceStats = recordRaceWin(state.race.ai ? 'ai' : state.race.ffa ? 'ffa' : '1v1', state.elapsed);
     if (state.team.active) state.raceStats = recordRaceWin('2v2', state.elapsed);
     // Trainingsrätsel landen bewusst nicht im Verlauf/in den Achievements (siehe
     // oben) -- sie werden beliebig oft wiederholt und sollen den Ringpuffer bzw.
@@ -3791,7 +3815,7 @@ function lose(remote) {
     state.stats = stats;
   }
   if (!state.isTrainingGame) applyStreakAfterGame();
-  if (state.isRaceGame) state.raceStats = recordRaceLoss(state.race.ffa ? 'ffa' : '1v1');
+  if (state.isRaceGame) state.raceStats = recordRaceLoss(state.race.ai ? 'ai' : state.race.ffa ? 'ffa' : '1v1');
   if (state.team.active) state.raceStats = recordRaceLoss('2v2');
   if (!state.isTrainingGame) {
     state.puzzleHistory = recordHistory({
@@ -6293,6 +6317,158 @@ function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD);
 function dismissStreakLostNotice() { state.streakLostNotice = false; }
 function dismissStreakExtended() { state.streakExtended = null; }
 
+// ─── KI-DUELL ─────────────────────────────────────────────────────────────────
+// Ein KI-Duell ist ein vollwertiges Race-Match (state.isRaceGame = true, damit
+// alle Duell-Achievements greifen), aber ohne Firebase: der Gegner ist ein
+// lokaler opponents-Eintrag, den ein setTimeout-Scheduler treibt. Läuft deshalb
+// auch offline. Die Duell-UI (HUD-Balken, duelBars, .duel-graph-Ergebniskarte)
+// bleibt unverändert — für sie ist der Bot einfach ein weiterer Gegner.
+let botState = null;        // Bot-Instanz (js/duelbot.js), null = kein KI-Duell
+let botTimer = null;
+
+function stopBot() {
+  if (botTimer) { clearTimeout(botTimer); botTimer = null; }
+}
+// Der Bot darf NICHT weiterlaufen, während der Spieler pausiert oder die App im
+// Hintergrund ist — sonst „rennt" er, obwohl die eigene Uhr steht.
+function botPaused() {
+  return state.paused || !!state.resumeCountdown || (typeof document !== 'undefined' && document.hidden);
+}
+// setTimeout-Kette statt Frame-Loop: ein Bot-Zug kostet nichts am Brett (der Bot
+// hat keins) und schreibt nur den ganzzahligen Fortschritt des Gegners — das
+// Brett rendert dabei nicht neu (s. Board-Render-Regeln in CLAUDE.md).
+function scheduleBotAction() {
+  stopBot();
+  if (!botState || !state.race.ai || state.race.matchOver || state.status !== 'playing') return;
+  const action = botNextAction(botState);
+  if (action.kind === 'done') return;
+  const wait = botPaused() ? 400 : Math.max(50, action.delayMs);
+  botTimer = setTimeout(() => {
+    botTimer = null;
+    if (!botState || !state.race.ai || state.race.matchOver || state.status !== 'playing') return;
+    // Während Pause/Hintergrund NICHT ausführen, nur erneut nachsehen.
+    if (botPaused()) { scheduleBotAction(); return; }
+    const res = botApplyAction(botState, action);
+    const opp = state.race.opponents[0];
+    if (opp) { opp.pct = res.pct; opp.mistakes = botState.mistakes; }
+    state.race.opponentPct = res.pct;
+    state.race.opponentMistakes = botState.mistakes;
+    if (res.out) { onBotEliminated(); return; }
+    if (res.done) { onBotSolved(); return; }
+    scheduleBotAction();
+  }, wait);
+}
+
+// Der Bot hat gelöst → das Match ist verloren (Spiegel des RACE_DONE-1v1-Zweigs,
+// nur ohne Netzwerk).
+function onBotSolved() {
+  stopBot();
+  if (state.race.matchOver || state.status !== 'playing') return;
+  state.race.matchOver = true;
+  state.race.winner = 'opponent';
+  state.race.endReason = 'won';
+  state.race.winnerName = state.race.opponentName;
+  state.race.opponentPct = 100;
+  state.race.myPct = progressPct();
+  log('game', 'KI-Duell: Bot hat gelöst', { level: state.race.aiLevel, botMistakes: botState?.mistakes, myPct: state.race.myPct });
+  lose({ timeMs: state.elapsed, mistakes: state.mistakes, hintsUsed: state.hintsUsed });
+}
+// Der Bot hat alle Leben verloren → er ist ausgeschieden, der Spieler gewinnt.
+function onBotEliminated() {
+  stopBot();
+  if (state.race.matchOver || state.status !== 'playing') return;
+  const opp = state.race.opponents[0];
+  if (opp) opp.out = true;
+  state.race.matchOver = true;
+  state.race.winner = 'me';
+  state.race.winnerName = myUsername() || t('common.you');
+  state.race.endReason = 'won';
+  state.race.myPct = progressPct();
+  log('game', 'KI-Duell: Bot ausgeschieden (alle Leben verloren)', { level: state.race.aiLevel });
+  win();
+}
+
+// Zielzeit des Duells: Grundlage sind die EIGENEN DURCHSCHNITTSzeiten aus den
+// Statistiken (sumTimeMs / won), nicht die Bestzeiten — ein Gegner, der immer
+// Bestzeit spielt, wäre unfair. Fehlt für eine Schwierigkeit ein eigener Wert,
+// greift die Vorgabetabelle in duelbot.js.
+function aiTargetFor(difficulty) {
+  return targetMsFor({
+    avgMs: avgTimesByDifficulty(state.stats),
+    difficulty,
+    level: state.race.aiLevel,
+    skill: state.race.aiSkill,
+  });
+}
+// Hat der Spieler für diese Schwierigkeit eigene Durchschnittsdaten? (Nur für die
+// Anzeige „kalibriert auf dich" vs. „Vorgabewert".)
+function aiCalibrated(difficulty) {
+  return avgTimesByDifficulty(state.stats)[difficulty] != null;
+}
+function aiTargetLabel(difficulty) {
+  return fmtTime(aiTargetFor(difficulty));
+}
+
+function goAiDuel() {
+  state.modal = null;
+  coopReset();
+  pushNav(() => { coopReset(); navigate('home'); });
+  navigate('aiduel');
+}
+
+// Startet das KI-Duell: Rätsel generieren, Bot auf die Zielzeit kalibrieren,
+// Timer + Scheduler anwerfen. Kein Raum, keine Lobby, kein awaitingStart.
+function startAiDuel(diffId) {
+  const difficulty = diffId || state.sel.difficulty;
+  state.isTrainingGame = false;
+  state.isRaceGame = true;
+  state.race.active = true;
+  state.race.ai = true;
+  state.race.ffa = false;
+  state.race.matchOver = false;
+  state.race.winner = null;
+  state.race.winnerName = '';
+  state.race.endReason = null;
+  state.race.myPct = 0;
+  state.race.opponentPct = 0;
+  state.race.opponentMistakes = 0;
+  const level = PRESET_LEVELS[state.race.aiLevel] ? state.race.aiLevel : 'medium';
+  state.race.aiLevel = level;
+  state.race.opponentId = 'ai';
+  state.race.opponentName = t('aiduel.opponentName', { level: t('aiduel.level.' + level) });
+  state.race.opponentColor = '#7c8cff';
+  state.race.opponents = [{ id: 'ai', name: state.race.opponentName, color: state.race.opponentColor, pct: 0, mistakes: 0, out: false }];
+  state.screen = 'game';
+  state.generating = true;
+  const targetMs = aiTargetFor(difficulty);
+  state.race.aiTargetMs = targetMs;
+  log('game', 'KI-Duell gestartet', { difficulty, level, skill: state.race.aiSkill, targetMs, calibrated: aiCalibrated(difficulty) });
+  const t0 = Date.now();
+  generateAsync({ difficulty, bigNumbers: false }).then(puzzle => {
+    if (!state.race.ai) return;   // zwischenzeitlich abgebrochen
+    loadPuzzleIntoState(puzzle, null);
+    state.generating = false;
+    const shape = { ...PRESET_PROFILES.medium, mistakesPerGame: PRESET_LEVELS[level].mistakesPerGame, stallRate: PRESET_LEVELS[level].stallRate };
+    botState = createBot({ puzzle, profile: shape, skill: state.race.aiSkill, seed: (Date.now() ^ 0x9e3779b9) >>> 0, targetMs });
+    startTimer();
+    scheduleBotAction();
+    log('game', 'KI-Duell: Brett bereit', { tookMs: Date.now() - t0, timeScale: Number(botState.timeScale.toFixed(3)) });
+  }).catch(e => {
+    log('error', 'KI-Duell: Generierung fehlgeschlagen', e);
+    state.generating = false;
+    showToast(t('toast.genFailed'), 'error', 3000);
+    aiDuelReset();
+    navigate('home');
+  });
+}
+function aiDuelReset() {
+  stopBot();
+  botState = null;
+  state.race.ai = false;
+  state.race.active = false;
+  state.isRaceGame = false;
+}
+
 // ─── APP-UPDATE (Service Worker) ──────────────────────────────────────────────
 // Läuft gerade ein Spiel oder eine Coop-/Wettkampf-Session? Dann darf NICHTS die
 // Seite neu laden oder einen Update-Dialog aufpoppen — sonst wird der Nutzer
@@ -6999,6 +7175,7 @@ const App = {
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
+      goAiDuel, startAiDuel, aiTargetLabel, aiCalibrated, aiLevels: Object.keys(PRESET_LEVELS),
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -7092,9 +7269,8 @@ const App = {
           <span v-if="!isOnline()" class="badge-soon">{{ t('offline.badge') }}</span>
           <span v-else-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
         </button>
-        <button class="btn btn-ghost race-btn" :disabled="!coopAvailable || !isOnline()" @click="state.modal='raceChoice'">
+        <button class="btn btn-ghost race-btn" @click="state.modal='raceChoice'">
           <span class="btn-ic"><span class="ei" v-html="ic('versus')"></span></span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
-          <span v-if="!isOnline()" class="badge-soon">{{ t('offline.badge') }}</span>
         </button>
         <div class="home-grid">
           <button class="btn btn-ghost" @click="navTo('stats')"><span class="btn-ic"><span class="ei" v-html="ic('chart')"></span></span> {{ t('home.stats') }}</button>
@@ -7106,6 +7282,48 @@ const App = {
 
 
     <!-- ══ SETUP (Slider-Schwierigkeitsauswahl mit morphendem Hintergrund) ══ -->
+    <!-- KI-Duell: Schwierigkeit (wie im Solo-Setup) + Gegnerstaerke. Der Bot
+         orientiert sich an den eigenen DURCHSCHNITTSzeiten (nicht Bestzeiten);
+         die feste Stufe und der Prozent-Regler wirken beide auf dieselbe
+         Zielzeit. Kein Raum/keine Lobby -> laeuft auch offline. -->
+    <section v-else-if="state.screen==='aiduel'" class="screen setup setup-slider" :style="diffVars(state.sel.difficulty)">
+      <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
+      <header class="topbar setup-top">
+        <button class="icon-btn" @click="goBack()">‹</button>
+        <h2><span class="ei" v-html="ic('robot')"></span> {{ t('aiduel.title') }}</h2>
+        <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
+      </header>
+
+      <difficulty-slider v-model="state.sel.difficulty" @randomstart="startAiDuel($event)"></difficulty-slider>
+
+      <div class="ai-setup">
+        <div class="ai-row">
+          <b class="ai-label">{{ t('aiduel.strength') }}</b>
+          <div class="ai-levels">
+            <button v-for="lv in aiLevels" :key="lv" class="ai-lv" :class="{ on: state.race.aiLevel===lv }"
+                    @click="state.race.aiLevel=lv">{{ t('aiduel.level.'+lv) }}</button>
+          </div>
+        </div>
+        <div class="ai-row">
+          <b class="ai-label">{{ t('aiduel.tempo') }}</b>
+          <div class="ai-skill">
+            <input type="range" min="60" max="140" step="5" :value="Math.round(state.race.aiSkill*100)"
+                   @input="state.race.aiSkill = Number($event.target.value)/100" />
+            <span class="ai-pct">{{ Math.round(state.race.aiSkill*100) }}%</span>
+          </div>
+        </div>
+        <p class="ai-target">
+          <span class="ei" v-html="ic('hourglass')"></span>
+          {{ t('aiduel.expected', { time: aiTargetLabel(state.sel.difficulty) }) }}
+          <small>{{ aiCalibrated(state.sel.difficulty) ? t('aiduel.calibrated') : t('aiduel.default') }}</small>
+        </p>
+      </div>
+
+      <button class="btn btn-primary diff-start" @click="startAiDuel(state.sel.difficulty)">
+        <span class="ei" v-html="ic('versus')"></span> {{ t('aiduel.start') }}
+      </button>
+    </section>
+
     <section v-else-if="state.screen==='setup'" class="screen setup setup-slider" :style="diffVars(state.sel.difficulty)">
       <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
       <header class="topbar setup-top">
@@ -7654,6 +7872,17 @@ const App = {
                 <span class="chip"><span class="ei" v-html="ic('medal')"></span> {{ state.raceStats['1v1'].racesWon }} / {{ state.raceStats['1v1'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
                 <span class="chip"><span class="ei" v-html="ic('chart-up')"></span> {{ racePct(state.raceStats['1v1']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
                 <span class="chip best-time-chip"><span class="ei" v-html="ic('trophy')"></span> {{ state.raceStats['1v1'].fastestWinMs!=null ? fmtTime(state.raceStats['1v1'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
+              </div>
+            </div>
+            <!-- KI-Duell: EIGENE Kategorie, damit die 1v1-Zeile eine reine
+                 Menschen-Bilanz bleibt. Fuer Achievements/Prestige zaehlen beide
+                 zusammen (duelWins in js/prestige.js). -->
+            <div class="diff-sub">
+              <div class="diff-sub-label">{{ t('stats.raceAi') }}</div>
+              <div class="diff-row-sub">
+                <span class="chip"><span class="ei" v-html="ic('robot')"></span> {{ state.raceStats['ai'].racesWon }} / {{ state.raceStats['ai'].racesPlayed }}<span class="chip-label">{{ t('stats.wonPlayedLabel') }}</span></span>
+                <span class="chip"><span class="ei" v-html="ic('chart-up')"></span> {{ racePct(state.raceStats['ai']) }}%<span class="chip-label">{{ t('stats.winPctLabel') }}</span></span>
+                <span class="chip best-time-chip"><span class="ei" v-html="ic('trophy')"></span> {{ state.raceStats['ai'].fastestWinMs!=null ? fmtTime(state.raceStats['ai'].fastestWinMs) : '-:--' }}<span class="chip-label">{{ t('stats.bestTimeLabel') }}</span></span>
               </div>
             </div>
             <div class="diff-sub">
@@ -8834,14 +9063,17 @@ const App = {
       <div class="modal">
         <h3>{{ t('home.raceMode') }}</h3>
         <p class="coop-tagline">{{ t('race.choiceHint') }}</p>
-        <button class="btn btn-primary" @click="goRace('1v1')">
+        <button class="btn btn-primary" :disabled="!coopAvailable || !isOnline()" @click="goRace('1v1')">
           <span class="btn-ic"><span class="ei" v-html="ic('versus')"></span></span><span class="btn-tx"><b>{{ t('race.choice1v1') }}</b><small>{{ t('home.raceHint') }}</small></span>
         </button>
-        <button class="btn btn-ghost" @click="goRace('ffa')">
+        <button class="btn btn-ghost" :disabled="!coopAvailable || !isOnline()" @click="goRace('ffa')">
           <span class="btn-ic"><span class="ei" v-html="ic('swords')"></span></span><span class="btn-tx"><b>{{ t('race.choiceFfa') }}</b><small>{{ t('race.choiceFfaHint') }}</small></span>
         </button>
-        <button class="btn btn-ghost" @click="goRace('2v2')">
+        <button class="btn btn-ghost" :disabled="!coopAvailable || !isOnline()" @click="goRace('2v2')">
           <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('race.choice2v2') }}</b><small>{{ t('team.assignHint') }}</small></span>
+        </button>
+        <button class="btn btn-ghost" @click="goAiDuel">
+          <span class="btn-ic"><span class="ei" v-html="ic('robot')"></span></span><span class="btn-tx"><b>{{ t('aiduel.title') }}</b><small>{{ t('aiduel.hint') }}</small></span>
         </button>
         <button class="btn btn-ghost" style="margin-top:8px" @click="state.modal=null">{{ t('common.cancel') }}</button>
       </div>
@@ -9336,7 +9568,34 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint, boardRenders: () => boardRenderCount, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint, // KI-Duell-Testhaken: spult den Bot bis 100 % vor bzw. lässt ihn ausscheiden,
+  // damit E2E beide Match-Enden ohne Echtzeit-Warten prüfen kann.
+  aiBotFastForward: () => {
+    if (!botState) return false;
+    stopBot();
+    let guard = 0;
+    while (botPct(botState) < 100 && guard++ < 20000) {
+      const a = botNextAction(botState);
+      if (a.kind === 'done') break;
+      if (a.kind === 'mistake') continue;   // Fehler ignorieren, wir wollen den Durchlauf
+      botApplyAction(botState, a);
+      if (botPct(botState) >= 100) break;
+    }
+    const opp = state.race.opponents[0];
+    if (opp) opp.pct = botPct(botState);
+    state.race.opponentPct = botPct(botState);
+    onBotSolved();
+    return true;
+  },
+  aiBotEliminate: () => {
+    if (!botState) return false;
+    stopBot();
+    botState.lives = 0;
+    botState.mistakes = 3;
+    onBotEliminated();
+    return true;
+  },
+  boardRenders: () => boardRenderCount, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');

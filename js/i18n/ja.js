@@ -23,6 +23,7 @@ export default {
   solo: { title: 'ソロ', classic: 'クラシック', classicHint: '1問、好きな難易度で', endless: 'エンドレス・クライム', endlessHint: 'どんどん難しく——どこまで行ける？', endlessStart: 'エンドレス開始' },
   endless: { badge: 'エンドレス', best: '最高記録: レベル{n}', cleared: 'レベル{n}クリア！', lifeGained: '+1 ライフ', overTitle: 'ゲーム終了', reached: 'レベル{n}到達', record: '新記録！', levelDone: 'レベル{n}クリア！', continue: '続ける', livesLabel: 'ライフ', levelShort: 'レベル{n}', levelTime: 'このレベルの時間', totalTime: 'ラン全体の時間', backfillToast: '過去のエンドレスランを反映: {runs}回のランの{wins}勝が統計に加算されました！' },
 
+  aiduel: { title: 'AIとの対戦', hint: 'あなたのペースの相手 — オフラインでも', opponentName: 'AI（{level}）', strength: '強さ', tempo: 'ペース', start: '対戦を開始', expected: '相手の想定タイム: {time}', calibrated: '（あなたの平均タイム基準）', default: '（既定値）', level: { easy: 'やさしい', medium: 'ふつう', hard: 'むずかしい', brutal: '極悪' } },
   mismatch: { title: 'ゲームデータが異なります', sub: 'コイン残高がこの端末とクラウドで異なります。ゲームの進行状況（勝利・実績・購入）は自動的に統合されます。適用する残高だけを選んでください。', subGame: 'この端末とクラウドにそれぞれ別の未完了ゲームがあります（オフラインで続けてプレイした可能性があります）。他のすべて（進行状況・実績・設定）は自動的に統合されます。どの進行中ゲームを適用するかだけ選んでください。', subBoth: 'コイン残高が異なり、さらにこの端末とクラウドにそれぞれ別の未完了ゲームがあります。他の進行状況は自動的に統合されます。残高と進行中ゲームについてどちらを適用するか選んでください。', local: 'この端末', cloud: 'クラウド', keepLocal: 'この端末を残す', keepCloud: 'クラウドを残す', note: 'もう一方の状態はバックアップとして保存され、削除されません。' },
 
   offline: { unavailable: 'オフラインでは利用できません', badge: 'オフライン', chip: 'オフライン', chipHint: 'オフラインです — ソロパズルは引き続きプレイできます。' },
@@ -148,7 +149,7 @@ export default {
     avgTimeLabel: '平均タイム',
     lostLabel: '敗北',
     raceSection: '対戦モード',
-    race1v1: '1対1',
+    race1v1: '1対1', raceAi: 'AI対戦',
     race2v2: '2対2',
     winPctLabel: '勝率',
     reset: '統計をリセット',

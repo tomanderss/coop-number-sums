@@ -11,6 +11,13 @@
 
 // Reihenfolge = Anzeige-Reihenfolge im Prestige-Screen.
 // metric(ctx) liefert den aktuellen Zahlenwert der Kategorie aus dem Kontext
+// Duell-Siege = 1v1 GEGEN MENSCHEN + KI-Duelle. Die Statistik führt beide
+// getrennt (eigene Kategorie 'ai'), für Abzeichen und Achievements zählen sie
+// aber zusammen — sonst blieben die Duell-Stufen praktisch unerreichbar, wenn
+// keine Mitspieler verfügbar sind. Rein, unit-getestet.
+export function duelWins(race) {
+  return (Number(race?.['1v1']?.racesWon) || 0) + (Number(race?.['ai']?.racesWon) || 0);
+}
 // { stats, streak, race, difficulties }. thresholds = [t1,t2,t3,t4] (aufsteigend);
 // erreichte Stufe = Anzahl unterschrittener/erreichter Schwellen.
 // Schwellen [Bronze, Silber, Gold, Legendär]. NEU KALIBRIERT an echten
@@ -25,7 +32,7 @@ export const PRESTIGE = [
   { sym: 'rakete',  key: 'teamSpirit',  thresholds: [5, 15, 40, 90],
     metric: c => c.stats.coopWon || 0 },
   { sym: 'stern',   key: 'duelist',     thresholds: [3, 10, 25, 60],
-    metric: c => c.race?.['1v1']?.racesWon || 0 },
+    metric: c => duelWins(c.race) },
   { sym: 'blitz',   key: 'teamDuel',    thresholds: [3, 10, 25, 60],
     metric: c => c.race?.['2v2']?.racesWon || 0 },
   { sym: 'flamme',  key: 'streak',      thresholds: [3, 7, 14, 25],

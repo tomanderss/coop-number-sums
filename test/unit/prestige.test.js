@@ -4,7 +4,7 @@ import {
   PRESTIGE, allPrestige, categoryProgress, tierForValue,
   isUnlocked, encodeBadge, decodeBadge, prestigeBySym, isPrestigeSym,
   MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge,
-  unlockedTierCodes, newlyUnlockedTiers, headlineUnlock,
+  unlockedTierCodes, newlyUnlockedTiers, headlineUnlock, duelWins,
 } from '../../js/prestige.js';
 import { hasBadgeMedal, masterMedalMarkup } from '../../js/badgeart.js';
 
@@ -197,5 +197,26 @@ describe('prestige.newlyUnlockedTiers / headlineUnlock (Aufstiegs-Feier)', () =>
     const fresh = newlyUnlockedTiers(ctx(60, 0), new Set(['trophae-1']));
     const codes = fresh.map(f => f.code);
     assert.ok(codes.includes('trophae-2') && !codes.includes('trophae-1'));
+  });
+});
+
+describe('prestige.duelWins (KI-Duelle zählen für Abzeichen mit)', () => {
+  test('summiert 1v1 (Menschen) und KI-Duelle', () => {
+    assert.equal(duelWins({ '1v1': { racesWon: 4 }, 'ai': { racesWon: 7 } }), 11);
+  });
+  test('robust gegen fehlende Kategorien', () => {
+    assert.equal(duelWins({ '1v1': { racesWon: 3 } }), 3);
+    assert.equal(duelWins({ 'ai': { racesWon: 2 } }), 2);
+    assert.equal(duelWins({}), 0);
+    assert.equal(duelWins(null), 0);
+    assert.equal(duelWins(undefined), 0);
+  });
+  test('KI-Siege wirken sich auf die Duell-Prestige-Kategorie aus', () => {
+    const base = { stats: {}, streak: {}, difficulties: [] };
+    const withAi = allPrestige({ ...base, race: { '1v1': { racesWon: 5 }, 'ai': { racesWon: 5 } } });
+    const withoutAi = allPrestige({ ...base, race: { '1v1': { racesWon: 5 } } });
+    const vals = (list) => list.map(c => c.value).join(',');
+    assert.notEqual(vals(withAi), vals(withoutAi),
+      'ohne Wirkung blieben die Duell-Abzeichen ohne Mitspieler unerreichbar');
   });
 });

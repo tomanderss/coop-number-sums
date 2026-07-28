@@ -7,6 +7,7 @@ const ASSETS = [
   './js/vue.esm-browser.prod.js',
   './js/config.js',
   './js/solver.js',
+  './js/duelbot.js',
   './js/generator.js',
   './js/genworker.js',
   './js/storage.js',

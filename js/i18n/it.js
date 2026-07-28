@@ -23,6 +23,7 @@ export default {
   solo: { title: 'Solo', classic: 'Classico', classicHint: 'Un rompicapo, difficoltà libera', endless: 'Scalata infinita', endlessHint: 'Sempre più difficile: fin dove arrivi?', endlessStart: 'Avvia infinito' },
   endless: { badge: 'Infinito', best: 'Miglior partita: livello {n}', cleared: 'Livello {n} superato!', lifeGained: '+1 vita', overTitle: 'Partita finita', reached: 'Livello {n} raggiunto', record: 'Nuovo record!', levelDone: 'Livello {n} superato!', continue: 'Continua', livesLabel: 'Vite', levelShort: 'Livello {n}', levelTime: 'Tempo di questo livello', totalTime: 'Tempo totale della partita', backfillToast: 'Partite infinite passate accreditate: {wins} vittorie da {runs} partite ora contano nelle tue statistiche!' },
 
+  aiduel: { title: 'Duello contro l’IA', hint: 'Un avversario al tuo ritmo — anche offline', opponentName: 'IA ({level})', strength: 'Forza', tempo: 'Ritmo', start: 'Avvia duello', expected: 'Tempo previsto dell’avversario: {time}', calibrated: '(sui tuoi tempi medi)', default: '(valore predefinito)', level: { easy: 'Facile', medium: 'Medio', hard: 'Difficile', brutal: 'Brutale' } },
   mismatch: { title: 'Dati di gioco diversi', sub: 'Il tuo saldo monete differisce tra questo dispositivo e il cloud. Tutti i progressi (vittorie, obiettivi, acquisti) vengono uniti automaticamente — scegli solo quale saldo deve valere.', subGame: 'Su questo dispositivo e nel cloud c’è una partita non finita DIVERSA — probabilmente hai continuato a giocare offline. Tutto il resto (progressi, obiettivi, impostazioni) viene unito automaticamente; scegli solo quale partita in corso deve valere.', subBoth: 'Il tuo saldo monete differisce E su questo dispositivo e nel cloud c’è una partita non finita diversa. Tutti gli altri progressi vengono uniti automaticamente — scegli quale lato deve valere per saldo e partita in corso.', local: 'Questo dispositivo', cloud: 'Cloud', keepLocal: 'Mantieni questo dispositivo', keepCloud: 'Mantieni il cloud', note: 'L’altro stato viene salvato come backup e non viene eliminato.' },
 
   offline: { unavailable: 'Non disponibile offline', badge: 'Offline', chip: 'Offline', chipHint: 'Sei offline — i puzzle in solitaria funzionano ancora.' },
@@ -148,7 +149,7 @@ export default {
     avgTimeLabel: 'Tempo medio',
     lostLabel: 'Perse',
     raceSection: 'Modalità duello',
-    race1v1: '1v1',
+    race1v1: '1v1', raceAi: 'Duello IA',
     race2v2: '2v2',
     winPctLabel: 'Percentuale vittorie',
     reset: 'Reimposta statistiche',
