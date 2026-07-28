@@ -19,6 +19,12 @@ const trainingBtn = (page) => page.locator('.modal .training-btn');
 // generator is guaranteed (see TRAINING_GEN_BUDGET in app.js) to pick a
 // puzzle that is fully solvable this way, so the loop always terminates well
 // before the cell-count upper bound used as a safety cap here.
+// Dieser Ablauf klickt ein KOMPLETTES Rätsel Schritt für Schritt durch. Das
+// sprengt unter CI-Last regelmäßig Playwrights 30-s-Standardtimeout — nicht
+// wegen eines Fehlers, sondern weil der Test seiner Natur nach lang ist. Jeder
+// Test, der ihn benutzt, markiert sich deshalb als test.slow() (verdreifacht das
+// Zeitlimit). Vorherige Anläufe haben nur an Symptomen geschraubt (Button-Warten,
+// größere Einzel-Timeouts), das eigentliche Problem war das Gesamtlimit.
 async function applyAllTrainingSteps(page) {
   const cellCount = await page.evaluate(() => {
     const p = window.__cns.state.puzzle;
@@ -58,6 +64,7 @@ test.describe('training mode', () => {
   });
 
   test('applying every forced step solves the puzzle without affecting stats', async ({ page }) => {
+    test.slow();   // spielt ein ganzes Rätsel Schritt für Schritt durch
     await gotoApp(page);
     const statsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('cns_stats') || 'null'));
 
@@ -76,6 +83,7 @@ test.describe('training mode', () => {
   });
 
   test('the win screen offers another training example instead of "next puzzle"', async ({ page }) => {
+    test.slow();   // spielt ein ganzes Rätsel Schritt für Schritt durch
     await gotoApp(page);
     await openHowtoModal(page);
     await trainingBtn(page).click();

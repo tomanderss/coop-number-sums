@@ -1,2 +1,1 @@
-Neuer Modus „Duell gegen KI": ein Gegner, der wirklich wie ein Mensch sucht — früh die leichten Ansatzpunkte schnell, in der Mitte langsamer bei den Teilsummen, am Ende wieder schnell beim Auflösen. Er orientiert sich an deinen DURCHSCHNITTSzeiten (nicht Bestzeiten), macht Fehler und kann dadurch selbst ausscheiden. Vier feste Stärke-Stufen plus Prozent-Regler; läuft ohne Mitspieler und auch offline.
-KI-Duelle werden als eigene Kategorie in der Statistik geführt, zählen für Duell-Achievements und Prestige-Abzeichen aber ganz normal mit.
+Interne Testverbesserung (keine Auswirkung im Spiel).

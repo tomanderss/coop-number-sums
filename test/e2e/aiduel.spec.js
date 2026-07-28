@@ -127,8 +127,12 @@ test.describe('KI-Duell', () => {
     await openAiSetup(page);
     await startDuel(page);
     await solveActivePuzzle(page);
-    await page.waitForFunction(() => window.__cns.state.status === 'won', null, { timeout: 15000 });
-    // raceFirstWin verlangt outcome 'won' + isRace — beides gilt im KI-Duell.
+    // Die Achievement-Buchung laeuft in afterPaint NACH dem Statuswechsel — auf
+    // status==='won' zu pruefen reicht also nicht (in CI schlug genau das fehl).
+    // raceFirstWin verlangt outcome 'won' + isRace; beides gilt im KI-Duell.
+    await page.waitForFunction(
+      () => !!(window.__cns.state.achievements || {}).raceFirstWin,
+      null, { timeout: 15000 });
     const unlocked = await page.evaluate(() => Object.keys(window.__cns.state.achievements || {}));
     expect(unlocked).toContain('raceFirstWin');
   });
