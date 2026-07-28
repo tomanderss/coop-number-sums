@@ -23,6 +23,17 @@ async function startDuel(page, { difficulty = 'sehrleicht', level = 'medium' } =
   await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating, null, { timeout: 30000 });
 }
 
+// Die KOMPLETTE Nachbereitung einer Partie (Statistik, Achievements, Muenzen)
+// laeuft in win()/lose() innerhalb von afterPaint — also NACH dem Statuswechsel.
+// Auf status==='won'/'lost' zu warten reicht deshalb nicht, um raceStats zu
+// lesen; genau daran sind hier schon zwei Tests in CI gescheitert (lokal war es
+// immer schnell genug). Immer auf die BUCHUNG selbst warten.
+async function waitForAiBooking(page, field) {
+  await page.waitForFunction(
+    (f) => (window.__cns.state.raceStats?.ai?.[f] || 0) > 0,
+    field, { timeout: 15000 });
+}
+
 test.describe('KI-Duell', () => {
   test('Einstieg, Setup und Start funktionieren (ohne Lobby, ohne Netz)', async ({ page }) => {
     await openAiSetup(page);
@@ -76,6 +87,7 @@ test.describe('KI-Duell', () => {
     await startDuel(page);
     await solveActivePuzzle(page);
     await expect(page.locator('.result-card')).toBeVisible();
+    await waitForAiBooking(page, 'racesWon');
     const res = await page.evaluate(() => {
       const s = window.__cns.state;
       return { status: s.status, winner: s.race.winner, ai: s.raceStats.ai, human: s.raceStats['1v1'] };
@@ -96,6 +108,7 @@ test.describe('KI-Duell', () => {
     // Testhaken: den Bot bis 100 % vorspulen statt in Echtzeit zu warten.
     expect(await page.evaluate(() => window.__cns.aiBotFastForward())).toBe(true);
     await page.waitForFunction(() => window.__cns.state.status === 'lost', null, { timeout: 15000 });
+    await waitForAiBooking(page, 'racesLost');
     const res = await page.evaluate(() => {
       const s = window.__cns.state;
       return { winner: s.race.winner, endReason: s.race.endReason, ai: s.raceStats.ai, oppPct: s.race.opponents[0].pct };
@@ -114,6 +127,7 @@ test.describe('KI-Duell', () => {
     await startDuel(page);
     expect(await page.evaluate(() => window.__cns.aiBotEliminate())).toBe(true);
     await page.waitForFunction(() => window.__cns.state.status === 'won', null, { timeout: 15000 });
+    await waitForAiBooking(page, 'racesWon');
     const res = await page.evaluate(() => {
       const s = window.__cns.state;
       return { winner: s.race.winner, out: s.race.opponents[0].out, ai: s.raceStats.ai };
