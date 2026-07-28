@@ -33,15 +33,66 @@ import { buildModel, UNK, KEEP, REMOVE } from './solver.js';
 // Nebeneffekt: der Bot kann nie hängenbleiben, egal wie das Rätsel aussieht.
 export const TIER = { T1: 't1', T2: 't2', HARD: 'hard' };
 
-// Standard-Gegner („feste Stufen"). Zeiten in ms, an echten Spielerzeiten
-// kalibriert (8×8 mittel ≈ 2–4 min für einen soliden Spieler). Die Werte sind
-// die Ausgangsbasis, bis ein echtes Spielerprofil vorliegt (s. buildProfile in
-// Stufe 3 des Plans) — nachjustiert wird über scripts/duelbot-calibrate.js.
+// ─── Zielzeiten: der Bot orientiert sich an DURCHSCHNITTSzeiten ───────────────
+// Eine Bestzeit ist ein Ausnahmelauf; ein Duellgegner, der immer Bestzeit spielt,
+// wäre unfair und unrealistisch. Maßstab ist deshalb die DURCHSCHNITTSzeit je
+// Schwierigkeit. Die steht bereits in den Statistiken: `sumTimeMs / won` aus
+// `stats.byDifficulty[id]` (js/storage.js) — es braucht dafür keine neue
+// Aufzeichnung.
+//
+// Diese Tabelle sind echte Spieler-Durchschnitte und dient als Vorgabe, solange
+// ein Spieler für eine Schwierigkeit noch keine eigenen Werte hat.
+// WICHTIG: Die Zeit skaliert stark überlinear mit der Brettgröße (6×6 ≈ 44 s,
+// 14×14 ≈ 24 min — Faktor 32 bei nur 5,4× so vielen Zellen). Ein Modell mit
+// einer globalen Denkzeit-Tabelle trifft das NICHT (gemessen: es war auf kleinen
+// Brettern zu langsam und auf großen bis 3,4× zu schnell). Darum wird pro Duell
+// auf die Zielzeit kalibriert (s. createBot/timeScale).
+export const DEFAULT_AVG_MS = {
+  sehrleicht:   44000,   // 6×6
+  leicht:       74000,   // 7×7
+  mittel:      193000,   // 8×8
+  schwer:      283000,   // 9×9
+  extrem:      438000,   // 10×10
+  mashallah:  1046000,   // 11×11
+  dikkawas:   1009000,   // 12×12
+  bismillah:  1051000,   // 13×13
+  rip:        1421000,   // 14×14
+};
+
+// Feste Stärke-Stufen: Multiplikator auf die Zielzeit (>1 = langsamer/schwächer)
+// plus das Fehlerverhalten. „Mittel" entspricht genau dem Durchschnittsspieler.
+// mistakesPerGame = ERWARTETE Fehler je PARTIE (nicht je Zug!). Eine Quote pro
+// Zug skaliert mit der Brettgröße und tötete den Bot auf großen Feldern fast
+// immer: 0,03/Zug × ~150 Entscheidungen ≈ 4,5 Fehler bei 3 Leben (gemessen:
+// 14×14 flog in 3 von 4 Läufen raus). Ein Mensch macht auf einem großen Brett
+// aber nicht mehr Fehler, nur weil es größer ist.
+export const PRESET_LEVELS = {
+  easy:   { speed: 1.45, mistakesPerGame: 2.20, stallRate: 0.055 },
+  medium: { speed: 1.00, mistakesPerGame: 1.20, stallRate: 0.035 },
+  hard:   { speed: 0.78, mistakesPerGame: 0.60, stallRate: 0.020 },
+  brutal: { speed: 0.58, mistakesPerGame: 0.25, stallRate: 0.010 },
+};
+
+// Zielzeit für ein Duell. `avgMs` = eigene Durchschnittszeiten (aus den Stats),
+// sonst DEFAULT_AVG_MS. `level` = feste Stufe, `skill` = Prozent-Regler
+// (1.1 ⇒ 10 % schneller als die Vorlage). Beide Regler wirken multiplikativ auf
+// dieselbe Zielzeit — genau die „feste Stufen UND relativ"-Anforderung.
+export function targetMsFor({ avgMs, difficulty, level = 'medium', skill = 1 } = {}) {
+  const own = Number(avgMs && avgMs[difficulty]);
+  const base = Number.isFinite(own) && own > 0 ? own : (DEFAULT_AVG_MS[difficulty] || DEFAULT_AVG_MS.mittel);
+  const speed = PRESET_LEVELS[level]?.speed ?? 1;
+  const sk = clampNum(skill, [0.4, 2.5], 1);
+  return Math.max(5000, (base * speed) / sk);
+}
+
+// Zeit-SHAPE der Profile: nach der Kalibrierung zählen nur noch die VERHÄLTNISSE
+// (Tier 1 : Tier 2 : hart : Burst) — die absoluten Werte skaliert `timeScale` auf
+// die Zielzeit. Fehler-/Hängerquoten bleiben absolut.
 export const PRESET_PROFILES = {
-  easy:   { think: { t1: 3400, t2: 9000, hard: 15000 }, burstMs: 620, searchMax: 2.8, mistakeRate: 0.060, recoverMs: 4200, stallRate: 0.055, stallMs: 8000 },
-  medium: { think: { t1: 2000, t2: 5200, hard: 9000 },  burstMs: 340, searchMax: 2.5, mistakeRate: 0.030, recoverMs: 3000, stallRate: 0.035, stallMs: 6000 },
-  hard:   { think: { t1: 1250, t2: 3200, hard: 5600 },  burstMs: 230, searchMax: 2.2, mistakeRate: 0.014, recoverMs: 2200, stallRate: 0.020, stallMs: 4500 },
-  brutal: { think: { t1: 780,  t2: 2000, hard: 3400 },  burstMs: 165, searchMax: 1.9, mistakeRate: 0.006, recoverMs: 1500, stallRate: 0.010, stallMs: 3000 },
+  easy:   { think: { t1: 3400, t2: 9000, hard: 15000 }, burstMs: 620, searchMax: 2.8, mistakesPerGame: 2.20, recoverMs: 4200, stallRate: 0.055, stallMs: 8000 },
+  medium: { think: { t1: 2000, t2: 5200, hard: 9000 },  burstMs: 340, searchMax: 2.5, mistakesPerGame: 1.20, recoverMs: 3000, stallRate: 0.035, stallMs: 6000 },
+  hard:   { think: { t1: 1250, t2: 3200, hard: 5600 },  burstMs: 230, searchMax: 2.2, mistakesPerGame: 0.60, recoverMs: 2200, stallRate: 0.020, stallMs: 4500 },
+  brutal: { think: { t1: 780,  t2: 2000, hard: 3400 },  burstMs: 165, searchMax: 1.9, mistakesPerGame: 0.25, recoverMs: 1500, stallRate: 0.010, stallMs: 3000 },
 };
 
 // Grenzen für JEDES Profilfeld. Pflicht für Fremdprofile (Freunde-Klone kommen
@@ -49,7 +100,7 @@ export const PRESET_PROFILES = {
 // Bot weder sofort gewinnen lassen noch die Engine sprengen (Infinity/NaN/0).
 const LIMITS = {
   't1':   [250, 30000], 't2': [400, 60000], 'hard': [600, 90000],
-  burstMs: [60, 4000], searchMax: [1, 6], mistakeRate: [0, 0.35],
+  burstMs: [60, 4000], searchMax: [1, 6], mistakesPerGame: [0, 8],
   recoverMs: [200, 20000], stallRate: [0, 0.3], stallMs: [500, 30000],
 };
 const clampNum = (v, [lo, hi], fallback) => {
@@ -71,7 +122,7 @@ export function clampProfile(p) {
     },
     burstMs:     clampNum(src.burstMs,     LIMITS.burstMs,     base.burstMs),
     searchMax:   clampNum(src.searchMax,   LIMITS.searchMax,   base.searchMax),
-    mistakeRate: clampNum(src.mistakeRate, LIMITS.mistakeRate, base.mistakeRate),
+    mistakesPerGame: clampNum(src.mistakesPerGame, LIMITS.mistakesPerGame, base.mistakesPerGame),
     recoverMs:   clampNum(src.recoverMs,   LIMITS.recoverMs,   base.recoverMs),
     stallRate:   clampNum(src.stallRate,   LIMITS.stallRate,   base.stallRate),
     stallMs:     clampNum(src.stallMs,     LIMITS.stallMs,     base.stallMs),
@@ -120,17 +171,16 @@ function subsetForce(vals, rem) {
 }
 
 // ─── Bot-Zustand ──────────────────────────────────────────────────────────────
-// `skill` skaliert das TEMPO: 1.0 = Profil wie hinterlegt, 1.1 = 10 % schneller
-// und entsprechend weniger fehleranfällig (der Prozent-Regler der UI).
-export function createBot({ puzzle, profile, skill = 1, seed = 1 } = {}) {
+function makeBot(puzzle, profile, skill, seed) {
   const model = buildModel(puzzle);
-  const sk = clampNum(skill, [0.4, 2.5], 1);
   return {
     model,
     solution: puzzle.solution,
     prof: clampProfile(profile),
-    skill: sk,
+    skill: clampNum(skill, [0.4, 2.5], 1),
     rng: mulberry32(seed),
+    timeScale: 1,       // wird von createBot auf die Zielzeit kalibriert
+    mistakeP: 0,        // Fehlerwahrscheinlichkeit je DENKZUG (aus mistakesPerGame, s. createBot)
     mark: new Array(model.cells.length).fill(UNK),
     total: puzzle.rows * puzzle.cols,
     decided: 0,
@@ -139,6 +189,49 @@ export function createBot({ puzzle, profile, skill = 1, seed = 1 } = {}) {
     queue: [],          // offene Züge der AKTUELLEN Deduktion (Burst)
     lastGroupId: -1,    // Lokalität: Menschen arbeiten dort weiter, wo sie waren
   };
+}
+
+// Trockenlauf: spielt das Rätsel ohne echte Zeit durch. Liefert die Referenzdauer
+// UND die Anzahl der DENKZÜGE (Bursts zählen nicht — auf ihnen passieren keine
+// Fehler). Fehler sind hier bewusst AUS: der Lauf misst die reine Lösezeit und
+// darf nicht durch ein Ausscheiden abbrechen (das würde die Skalierung sprengen).
+// Kosten gemessen: 4,6 ms (8×8) bis 17,7 ms (14×14) — läuft beim Duell-Start
+// hinter dem ohnehin sichtbaren Lade-Overlay, also unkritisch.
+function dryRun(puzzle, profile, skill, seed) {
+  const dry = makeBot(puzzle, { ...clampProfile(profile), mistakesPerGame: 0 }, skill, seed);
+  let total = 0, thinks = 0;
+  for (let i = 0; i < 100000 && !botDone(dry); i++) {
+    const a = nextAction(dry);
+    if (a.kind === 'done') break;
+    total += a.delayMs;
+    if (!a.burst) thinks++;
+    applyAction(dry, a);
+  }
+  return { total, thinks };
+}
+
+// `targetMs` (optional) = gewünschte GESAMTdauer des Duells, i.d.R. aus
+// targetMsFor() und damit aus DURCHSCHNITTSzeiten. Ist sie gesetzt, kalibriert
+// sich der Bot per Trockenlauf exakt darauf: alle Zeiten werden mit demselben
+// Faktor skaliert, die VERHÄLTNISSE (Tier-Trennung, U-Kurve, Bursts) bleiben
+// dadurch unverändert erhalten.
+// `skill` beeinflusst zusätzlich die Fehleranfälligkeit; auf die Dauer wirkt es
+// über targetMs (nicht doppelt — der Trockenlauf enthält denselben Faktor).
+export function createBot({ puzzle, profile, skill = 1, seed = 1, targetMs = null } = {}) {
+  const bot = makeBot(puzzle, profile, skill, seed);
+  const { total: base, thinks } = dryRun(puzzle, profile, skill, seed);
+  // Zeit auf die Zielzeit (= Durchschnittszeit) skalieren. Die erwartete
+  // Fehler-Erholzeit gehört in die Referenz: die Durchschnittszeit eines echten
+  // Spielers ENTHÄLT dessen Fehler schon — sonst käme sie oben drauf und der Bot
+  // wäre systematisch langsamer als die Vorlage.
+  const overhead = bot.prof.mistakesPerGame * bot.prof.recoverMs;
+  if (Number.isFinite(targetMs) && targetMs > 0 && base > 0) {
+    bot.timeScale = clampNum(targetMs / (base + overhead), [0.02, 50], 1);
+  }
+  // Fehler PRO PARTIE in eine Wahrscheinlichkeit je Denkzug umrechnen — dadurch
+  // bleibt die erwartete Fehlerzahl über alle Brettgrößen konstant.
+  bot.mistakeP = thinks > 0 ? Math.min(0.5, bot.prof.mistakesPerGame / thinks) : 0;
+  return bot;
 }
 
 // Fortschritt in Prozent — MUSS dieselbe Formel wie progressPct() in app.js
@@ -252,9 +345,10 @@ export function nextAction(bot) {
   const p = bot.prof, sk = bot.skill;
   const jit = () => 0.75 + bot.rng() * 0.5;   // ±25 % Streuung
 
+  const scale = bot.timeScale || 1;
   // Läuft noch ein Burst? Dann keine neue Denkzeit — nur Eintragetempo.
   if (bot.queue.length) {
-    return { kind: 'move', delayMs: Math.round((p.burstMs / sk) * jit()), move: bot.queue[0], burst: true };
+    return { kind: 'move', delayMs: Math.round((p.burstMs / sk) * jit() * scale), move: bot.queue[0], burst: true };
   }
   const buckets = candidateBuckets(bot);
   if (!buckets.length) return { kind: 'done', delayMs: 0 };
@@ -280,10 +374,10 @@ export function nextAction(bot) {
   if (bot.rng() < p.stallRate) delay += (p.stallMs / sk) * jit();
 
   // Fehlgriff: kostet Leben + Zeit, das Brett bleibt unverändert (wie setMark()).
-  if (bot.rng() < p.mistakeRate / sk) {
-    return { kind: 'mistake', delayMs: Math.round(delay + p.recoverMs / sk) };
+  if (bot.rng() < bot.mistakeP / sk) {
+    return { kind: 'mistake', delayMs: Math.round((delay + p.recoverMs / sk) * scale) };
   }
-  return { kind: 'move', delayMs: Math.round(delay), move: best.moves[0], rest: best.moves.slice(1), groupId: best.groupId, tier: best.tier };
+  return { kind: 'move', delayMs: Math.round(delay * scale), move: best.moves[0], rest: best.moves.slice(1), groupId: best.groupId, tier: best.tier };
 }
 
 // Aktion anwenden. Mutiert den Bot (interne Zustandsmaschine, kein
@@ -293,8 +387,11 @@ export function applyAction(bot, action) {
   if (action.kind === 'mistake') {
     bot.mistakes++;
     bot.lives--;
-    bot.queue = [];              // Fehlgriff wirft ihn aus der Deduktion
-    bot.lastGroupId = -1;
+    // Die Deduktion bleibt bewusst STEHEN: ein Fehlgriff ist ein Vertipper, kein
+    // Gedächtnisverlust — der Spieler weiß weiter, was er gerade eintragen wollte.
+    // (Vorher wurde die Burst-Queue geleert; die Folgezellen wurden dann als neue
+    // DENKzüge gewertet, was zusätzliche Fehlerchancen schuf und sich
+    // aufschaukelte: der Bot flog auf großen Brettern fast immer raus.)
     return { pct: botPct(bot), mistake: true, out: bot.lives <= 0 };
   }
   const { ci, want } = action.move;

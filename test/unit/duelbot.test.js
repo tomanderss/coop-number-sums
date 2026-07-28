@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 const {
   createBot, nextAction, applyAction, candidateBuckets, botPct, botDone,
-  clampProfile, PRESET_PROFILES, TIER,
+  clampProfile, PRESET_PROFILES, PRESET_LEVELS, TIER, targetMsFor, DEFAULT_AVG_MS,
 } = await import('../../js/duelbot.js');
 const { generatePuzzle } = await import('../../js/generator.js');
 
@@ -30,17 +30,17 @@ describe('duelbot.clampProfile (Fremdprofile dürfen die Engine nie sprengen)', 
   test('vollständiges Profil bleibt erhalten', () => {
     const p = clampProfile(PRESET_PROFILES.hard);
     assert.equal(p.think.t1, PRESET_PROFILES.hard.think.t1);
-    assert.equal(p.mistakeRate, PRESET_PROFILES.hard.mistakeRate);
+    assert.equal(p.mistakesPerGame, PRESET_PROFILES.hard.mistakesPerGame);
   });
   test('nicht-endliche und absurde Werte werden gefangen', () => {
     const p = clampProfile({
       think: { t1: Infinity, t2: NaN, hard: -5 },
-      burstMs: 0, searchMax: 999, mistakeRate: 5, recoverMs: 'x', stallRate: -1, stallMs: Infinity,
+      burstMs: 0, searchMax: 999, mistakesPerGame: 99, recoverMs: 'x', stallRate: -1, stallMs: Infinity,
     });
-    for (const v of [p.think.t1, p.think.t2, p.think.hard, p.burstMs, p.searchMax, p.mistakeRate, p.recoverMs, p.stallRate, p.stallMs]) {
+    for (const v of [p.think.t1, p.think.t2, p.think.hard, p.burstMs, p.searchMax, p.mistakesPerGame, p.recoverMs, p.stallRate, p.stallMs]) {
       assert.ok(Number.isFinite(v), 'jedes Feld muss endlich sein');
     }
-    assert.ok(p.mistakeRate <= 0.35, 'Fehlerquote gedeckelt');
+    assert.ok(p.mistakesPerGame <= 8, 'Fehlerzahl gedeckelt');
     assert.ok(p.think.t1 >= 250, 'Denkzeit kann nicht auf ~0 gedrückt werden (Instant-Win)');
     assert.ok(p.burstMs >= 60);
     assert.ok(p.stallRate >= 0);
@@ -89,7 +89,7 @@ describe('duelbot: löst zuverlässig und ohne Hängenbleiben', () => {
   for (const difficulty of ['sehrleicht', 'mittel', 'schwer']) {
     test(`${difficulty} wird vollständig gelöst`, () => {
       // Fehlerfrei rechnen, damit der Lauf nicht am Lebensverlust endet.
-      const profile = { ...PRESET_PROFILES.medium, mistakeRate: 0, stallRate: 0 };
+      const profile = { ...PRESET_PROFILES.medium, mistakesPerGame: 0, stallRate: 0 };
       const puzzle = puzzleFor(difficulty, 99);
       const bot = createBot({ puzzle, profile, seed: 5 });
       const { steps } = runBot(bot);
@@ -102,7 +102,7 @@ describe('duelbot: löst zuverlässig und ohne Hängenbleiben', () => {
     // Brett bis auf zwei Zellen künstlich leeren -> notfalls muss der Bot per
     // Lösung weitermachen statt zu hängen.
     const puzzle = puzzleFor('mittel', 11);
-    const profile = { ...PRESET_PROFILES.medium, mistakeRate: 0, stallRate: 0 };
+    const profile = { ...PRESET_PROFILES.medium, mistakesPerGame: 0, stallRate: 0 };
     const bot = createBot({ puzzle, profile, seed: 2 });
     const buckets = candidateBuckets(bot);
     assert.ok(buckets.length);
@@ -114,7 +114,7 @@ describe('duelbot: löst zuverlässig und ohne Hängenbleiben', () => {
 
 describe('duelbot: menschliches Tempo', () => {
   const puzzle = puzzleFor('mittel', 4242);
-  const noNoise = (base) => ({ ...base, mistakeRate: 0, stallRate: 0 });
+  const noNoise = (base) => ({ ...base, mistakesPerGame: 0, stallRate: 0 });
 
   test('schwerere Deduktion = längere Denkzeit', () => {
     // searchFactor konstant halten (gleiche Bucket-Zahl) ist im echten Brett nicht
@@ -169,30 +169,16 @@ describe('duelbot: menschliches Tempo', () => {
     assert.ok(avgBurst < avgThink, `Burst-Einträge (${avgBurst | 0}ms) müssen klar schneller sein als Denkzüge (${avgThink | 0}ms)`);
   });
 
-  test('höhere Stärke = schneller fertig (monoton über die Presets)', () => {
-    const times = ['easy', 'medium', 'hard', 'brutal'].map(k => {
-      const bot = createBot({ puzzle, profile: noNoise(PRESET_PROFILES[k]), seed: 13 });
-      return runBot(bot).totalMs;
-    });
-    for (let i = 1; i < times.length; i++) {
-      assert.ok(times[i] < times[i - 1], `Stufe ${i} muss schneller sein als ${i - 1} (${times.join(' > ')})`);
-    }
-  });
-
   test('skill-Regler skaliert das Tempo', () => {
     const mk = (skill) => {
-      const bot = createBot({ puzzle, profile: noNoise(PRESET_PROFILES.medium), skill, seed: 13 });
+      const target = targetMsFor({ difficulty: 'mittel', skill });
+      const bot = createBot({ puzzle, profile: noNoise(PRESET_PROFILES.medium), skill, seed: 13, targetMs: target });
       return runBot(bot).totalMs;
     };
     const slow = mk(0.7), normal = mk(1), fast = mk(1.3);
     assert.ok(slow > normal && normal > fast, `70% > 100% > 130% erwartet (${slow} / ${normal} / ${fast})`);
   });
 
-  test('Lösungszeit liegt im menschlichen Band (8×8 mittel, medium-Profil)', () => {
-    const bot = createBot({ puzzle, profile: noNoise(PRESET_PROFILES.medium), seed: 13 });
-    const min = runBot(bot).totalMs / 60000;
-    assert.ok(min > 0.8 && min < 12, `unrealistische Duellzeit: ${min.toFixed(1)} min`);
-  });
 });
 
 describe('duelbot: Fehler und Ausscheiden', () => {
@@ -219,13 +205,13 @@ describe('duelbot: Fehler und Ausscheiden', () => {
   });
 
   test('eine hohe Fehlerquote lässt den Bot tatsächlich ausscheiden', () => {
-    const bot = createBot({ puzzle, profile: { ...PRESET_PROFILES.easy, mistakeRate: 0.35 }, seed: 4 });
+    const bot = createBot({ puzzle, profile: { ...PRESET_PROFILES.easy, mistakesPerGame: 6 }, seed: 4 });
     runBot(bot);
     assert.ok(bot.mistakes > 0, 'Fehler treten auf');
   });
 
-  test('mistakeRate 0 → nie ein Fehler', () => {
-    const bot = createBot({ puzzle, profile: { ...PRESET_PROFILES.medium, mistakeRate: 0, stallRate: 0 }, seed: 8 });
+  test('mistakesPerGame 0 → nie ein Fehler', () => {
+    const bot = createBot({ puzzle, profile: { ...PRESET_PROFILES.medium, mistakesPerGame: 0, stallRate: 0 }, seed: 8 });
     runBot(bot);
     assert.equal(bot.mistakes, 0);
     assert.equal(bot.lives, 3);
@@ -250,7 +236,7 @@ describe('duelbot: Determinismus (Voraussetzung für Tests + Reproduzierbarkeit)
 describe('duelbot.botPct (muss zu progressPct in app.js passen)', () => {
   test('0 % am Start, 100 % am Ende, monoton steigend', () => {
     const puzzle = puzzleFor('sehrleicht', 5);
-    const bot = createBot({ puzzle, profile: { ...PRESET_PROFILES.brutal, mistakeRate: 0, stallRate: 0 }, seed: 6 });
+    const bot = createBot({ puzzle, profile: { ...PRESET_PROFILES.brutal, mistakesPerGame: 0, stallRate: 0 }, seed: 6 });
     assert.equal(botPct(bot), 0);
     let last = 0;
     while (!botDone(bot)) {
@@ -262,5 +248,96 @@ describe('duelbot.botPct (muss zu progressPct in app.js passen)', () => {
       last = pct;
     }
     assert.equal(botPct(bot), 100);
+  });
+});
+
+describe('duelbot: Kalibrierung auf DURCHSCHNITTSzeiten (nicht Bestzeiten)', () => {
+  test('targetMsFor nimmt die eigenen Durchschnittszeiten, sonst die Vorgabe', () => {
+    // Eigene Werte gewinnen …
+    assert.equal(targetMsFor({ avgMs: { mittel: 250000 }, difficulty: 'mittel' }), 250000);
+    // … fehlen sie (oder sind unbrauchbar), greift die Vorgabetabelle.
+    assert.equal(targetMsFor({ difficulty: 'mittel' }), DEFAULT_AVG_MS.mittel);
+    assert.equal(targetMsFor({ avgMs: { mittel: 0 }, difficulty: 'mittel' }), DEFAULT_AVG_MS.mittel);
+    assert.equal(targetMsFor({ avgMs: { mittel: NaN }, difficulty: 'mittel' }), DEFAULT_AVG_MS.mittel);
+  });
+
+  test('feste Stufen UND Prozent-Regler wirken auf dieselbe Zielzeit', () => {
+    const base = targetMsFor({ difficulty: 'mittel', level: 'medium' });
+    assert.ok(targetMsFor({ difficulty: 'mittel', level: 'easy' }) > base, 'easy ist langsamer');
+    assert.ok(targetMsFor({ difficulty: 'mittel', level: 'brutal' }) < base, 'brutal ist schneller');
+    assert.ok(targetMsFor({ difficulty: 'mittel', skill: 1.25 }) < base, '125 % ist schneller');
+    assert.ok(targetMsFor({ difficulty: 'mittel', skill: 0.8 }) > base, '80 % ist langsamer');
+    // Kombination beider Regler
+    assert.ok(targetMsFor({ difficulty: 'mittel', level: 'hard', skill: 1.2 })
+      < targetMsFor({ difficulty: 'mittel', level: 'hard' }));
+  });
+
+  test('der Bot trifft die Zielzeit über ALLE Schwierigkeiten (±12 %)', () => {
+    // Das ist die Kernanforderung: die Duellzeit muss der Durchschnittszeit des
+    // Spielers entsprechen. Ein globales Denkzeit-Modell konnte das NICHT — die
+    // Zeit wächst überlinear mit der Brettgröße (6×6 44 s → 14×14 24 min), es lag
+    // gemessen zwischen 0,57× und 3,39× daneben. Daher die Selbstkalibrierung.
+    for (const difficulty of Object.keys(DEFAULT_AVG_MS)) {
+      const target = targetMsFor({ difficulty });
+      const bot = createBot({
+        puzzle: puzzleFor(difficulty, 91),
+        profile: { ...PRESET_PROFILES.medium, mistakesPerGame: 0, stallRate: 0 },
+        seed: 3, targetMs: target,
+      });
+      const { totalMs } = runBot(bot);
+      const dev = Math.abs(totalMs - target) / target;
+      assert.ok(dev < 0.12,
+        `${difficulty}: ${Math.round(totalMs / 1000)}s statt ${Math.round(target / 1000)}s (${Math.round(dev * 100)}% Abweichung)`);
+    }
+  });
+
+  test('die Zielzeit gilt auch für kleine und große Bretter gleich gut', () => {
+    // Gegenprobe zum alten Fehler: ohne Kalibrierung war 6×6 zu langsam und
+    // 14×14 fast 3× zu schnell.
+    for (const difficulty of ['sehrleicht', 'rip']) {
+      const target = targetMsFor({ difficulty });
+      const bot = createBot({
+        puzzle: puzzleFor(difficulty, 91),
+        profile: { ...PRESET_PROFILES.medium, mistakesPerGame: 0, stallRate: 0 },
+        seed: 5, targetMs: target,
+      });
+      const { totalMs } = runBot(bot);
+      assert.ok(Math.abs(totalMs - target) / target < 0.12, `${difficulty} verfehlt die Zielzeit`);
+    }
+  });
+});
+
+describe('duelbot: Fehlerzahl ist brettgrößen-UNABHÄNGIG', () => {
+  // Vorher war die Fehlerquote pro ZUG definiert: auf 14×14 (~150 Entscheidungen)
+  // ergab das ~4,5 erwartete Fehler bei 3 Leben — der Bot flog in 3 von 4 Läufen
+  // raus, große Bretter waren dadurch geschenkt. Jetzt zählt mistakesPerGame.
+  const measure = (difficulty, mistakesPerGame, runs = 12) => {
+    const target = targetMsFor({ difficulty });
+    const puzzle = puzzleFor(difficulty, 91);
+    let sum = 0;
+    for (let s = 0; s < runs; s++) {
+      const bot = createBot({ puzzle, profile: { ...PRESET_PROFILES.medium, mistakesPerGame, stallRate: 0 }, seed: 500 + s, targetMs: target });
+      runBot(bot);
+      sum += bot.mistakes;
+    }
+    return sum / runs;
+  };
+
+  test('6×6 und 14×14 machen ähnlich viele Fehler', () => {
+    const small = measure('sehrleicht', 1.2);
+    const big = measure('rip', 1.2);
+    assert.ok(Math.abs(small - big) < 1.0,
+      `Fehlerzahl darf nicht an der Brettgröße hängen (6×6=${small.toFixed(2)} 14×14=${big.toFixed(2)})`);
+  });
+
+  test('die erwartete Fehlerzahl wird ungefähr eingehalten', () => {
+    const got = measure('mittel', 1.2, 16);
+    assert.ok(got > 0.5 && got < 2.2, `~1,2 Fehler erwartet, gemessen ${got.toFixed(2)}`);
+  });
+
+  test('stärkere Stufen machen weniger Fehler', () => {
+    const easy = measure('mittel', PRESET_LEVELS.easy.mistakesPerGame);
+    const brutal = measure('mittel', PRESET_LEVELS.brutal.mistakesPerGame);
+    assert.ok(easy > brutal, `easy (${easy.toFixed(2)}) muss mehr Fehler machen als brutal (${brutal.toFixed(2)})`);
   });
 });
