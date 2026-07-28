@@ -432,7 +432,25 @@ describe('storage.race', () => {
   const EMPTY_MODE = { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null };
 
   test('loadRace returns empty defaults for all modes when nothing is stored', () => {
-    assert.deepEqual(loadRace(), { '1v1': EMPTY_MODE, '2v2': EMPTY_MODE, 'ffa': EMPTY_MODE });
+    // 'ai' = KI-Duelle: eigene Kategorie, damit die 1v1-Bilanz eine reine
+    // Menschen-Bilanz bleibt (fuer Achievements/Prestige zaehlen beide zusammen).
+    assert.deepEqual(loadRace(), { '1v1': EMPTY_MODE, '2v2': EMPTY_MODE, 'ffa': EMPTY_MODE, 'ai': EMPTY_MODE });
+  });
+
+  test('KI-Duelle laufen in eine EIGENE Kategorie und lassen 1v1 unberuehrt', () => {
+    recordRaceWin('ai', 61000);
+    const r = recordRaceLoss('ai');
+    assert.equal(r['ai'].racesPlayed, 2);
+    assert.equal(r['ai'].racesWon, 1);
+    assert.equal(r['ai'].fastestWinMs, 61000);
+    assert.deepEqual(r['1v1'], EMPTY_MODE, 'die Menschen-Bilanz bleibt unberuehrt');
+  });
+
+  test('Alt-Staende ohne ai-Kategorie werden migriert', () => {
+    globalThis.localStorage.setItem('cns_race', JSON.stringify({ '1v1': { racesPlayed: 5, racesWon: 3, racesLost: 2, fastestWinMs: 9000 } }));
+    const r = loadRace();
+    assert.equal(r['1v1'].racesWon, 3);
+    assert.deepEqual(r['ai'], EMPTY_MODE);
   });
 
   test('recordRaceWin/Loss track the ffa (free-for-all) bucket independently', () => {

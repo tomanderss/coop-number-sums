@@ -387,7 +387,10 @@ export function recordStreakResult(dateStr = todayDateStr()) {
 
 // ─── Race-/Duell-Modus (1v1 und 2v2, einfache Zähler ohne Periodenbindung) ───
 const EMPTY_RACE_MODE = { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null };
-const EMPTY_RACE = { '1v1': { ...EMPTY_RACE_MODE }, '2v2': { ...EMPTY_RACE_MODE }, 'ffa': { ...EMPTY_RACE_MODE } };
+// 'ai' = Duelle gegen den KI-Gegner. Bewusst EIGENE Kategorie (die 1v1-Bilanz
+// bleibt eine reine Menschen-Bilanz), zählt aber über duelWins() für
+// Achievements und Prestige mit — s. js/prestige.js.
+const EMPTY_RACE = { '1v1': { ...EMPTY_RACE_MODE }, '2v2': { ...EMPTY_RACE_MODE }, 'ffa': { ...EMPTY_RACE_MODE }, 'ai': { ...EMPTY_RACE_MODE } };
 
 // Ältere Speicherstände hatten eine flache Form ({racesPlayed,...} ohne
 // Modus-Aufteilung) — wird hier transparent als "1v1"-Daten übernommen, statt
@@ -396,12 +399,13 @@ const EMPTY_RACE = { '1v1': { ...EMPTY_RACE_MODE }, '2v2': { ...EMPTY_RACE_MODE 
 // leer ergänzt.
 function migrateRace(loaded) {
   if (loaded && typeof loaded.racesPlayed === 'number') {
-    return { '1v1': { ...EMPTY_RACE_MODE, ...loaded }, '2v2': { ...EMPTY_RACE_MODE }, 'ffa': { ...EMPTY_RACE_MODE } };
+    return { '1v1': { ...EMPTY_RACE_MODE, ...loaded }, '2v2': { ...EMPTY_RACE_MODE }, 'ffa': { ...EMPTY_RACE_MODE }, 'ai': { ...EMPTY_RACE_MODE } };
   }
   return {
     '1v1': { ...EMPTY_RACE_MODE, ...(loaded?.['1v1'] || {}) },
     '2v2': { ...EMPTY_RACE_MODE, ...(loaded?.['2v2'] || {}) },
     'ffa': { ...EMPTY_RACE_MODE, ...(loaded?.['ffa'] || {}) },
+    'ai':  { ...EMPTY_RACE_MODE, ...(loaded?.['ai']  || {}) },
   };
 }
 export function loadRace() { return migrateRace(load(KEYS.RACE, {})); }
@@ -421,6 +425,22 @@ export function recordRaceLoss(mode) {
   r[mode].racesPlayed++; r[mode].racesLost++;
   saveRace(r);
   return r;
+}
+
+// Durchschnittliche Lösezeit je Schwierigkeit aus den bereits gesammelten
+// Statistiken: sumTimeMs / won. Grundlage für den KI-Duellgegner, der sich an
+// DURCHSCHNITTS- und nicht an Bestzeiten orientiert (s. js/duelbot.js). Rein,
+// unit-getestet; Schwierigkeiten ohne Sieg fehlen im Ergebnis (dort greift die
+// Vorgabetabelle DEFAULT_AVG_MS).
+export function avgTimesByDifficulty(stats) {
+  const out = {};
+  const by = (stats && stats.byDifficulty) || {};
+  for (const [id, d] of Object.entries(by)) {
+    const won = Number(d && d.won) || 0;
+    const sum = Number(d && d.sumTimeMs) || 0;
+    if (won > 0 && sum > 0) out[id] = Math.round(sum / won);
+  }
+  return out;
 }
 
 // ─── Verlauf gelöster Rätsel (Ringpuffer, neueste zuerst) ─────────────────────

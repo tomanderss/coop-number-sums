@@ -23,6 +23,7 @@ export default {
   solo: { title: 'Tek Kişilik', classic: 'Klasik', classicHint: 'Tek bulmaca, serbest zorluk', endless: 'Sonsuz Tırmanış', endlessHint: 'Giderek zorlaşır – nereye kadar?', endlessStart: 'Sonsuzu başlat' },
   endless: { badge: 'Sonsuz', best: 'En iyi tur: seviye {n}', cleared: 'Seviye {n} tamamlandı!', lifeGained: '+1 can', overTitle: 'Tur bitti', reached: 'Seviye {n} ulaşıldı', record: 'Yeni rekor!', levelDone: 'Seviye {n} tamamlandı!', continue: 'Devam', livesLabel: 'Can', levelShort: 'Seviye {n}', levelTime: 'Bu seviyenin süresi', totalTime: 'Turun toplam süresi', backfillToast: 'Geçmiş sonsuz turlar işlendi: {runs} turdan {wins} galibiyet artık istatistiklerinde sayılıyor!' },
 
+  aiduel: { title: 'Yapay zekâya karşı düello', hint: 'Kendi tempona göre bir rakip — çevrimdışı da çalışır', opponentName: 'YZ ({level})', strength: 'Güç', tempo: 'Tempo', start: 'Düelloyu başlat', expected: 'Beklenen rakip süresi: {time}', calibrated: '(ortalama sürelerine göre)', default: '(varsayılan değer)', level: { easy: 'Kolay', medium: 'Orta', hard: 'Zor', brutal: 'Acımasız' } },
   mismatch: { title: 'Farklı oyun verileri', sub: 'Jeton bakiyen bu cihaz ile bulut arasında farklı. Tüm oyun ilerlemesi (galibiyetler, başarımlar, satın almalar) otomatik birleştirilir — yalnızca hangi bakiyenin geçerli olacağını seç.', subGame: 'Bu cihazda ve bulutta AYRI birer bitmemiş oyun var — muhtemelen çevrimdışı oynamaya devam ettin. Diğer her şey (ilerleme, başarımlar, ayarlar) otomatik birleştirilir; yalnızca hangi devam eden oyunun geçerli olacağını seç.', subBoth: 'Jeton bakiyen farklı VE bu cihazda ve bulutta ayrı birer bitmemiş oyun var. Diğer tüm ilerleme otomatik birleştirilir — bakiye ve devam eden oyun için hangi tarafın geçerli olacağını seç.', local: 'Bu cihaz', cloud: 'Bulut', keepLocal: 'Bu cihazı tut', keepCloud: 'Bulutu tut', note: 'Diğer durum yedek olarak saklanır ve silinmez.' },
 
   offline: { unavailable: 'Çevrimdışı kullanılamaz', badge: 'Çevrimdışı', chip: 'Çevrimdışı', chipHint: 'Çevrimdışısın — tekli bulmacalar çalışmaya devam eder.' },
@@ -148,7 +149,7 @@ export default {
     avgTimeLabel: 'Ort. süre',
     lostLabel: 'Kaybedilen',
     raceSection: 'Düello Modu',
-    race1v1: "1'e 1",
+    race1v1: "1'e 1", raceAi: 'YZ düellosu',
     race2v2: "2'ye 2",
     winPctLabel: 'Galibiyet oranı',
     reset: 'İstatistikleri sıfırla',

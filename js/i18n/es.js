@@ -23,6 +23,7 @@ export default {
   solo: { title: 'Solo', classic: 'Clásico', classicHint: 'Un puzle, dificultad libre', endless: 'Ascenso sin fin', endlessHint: 'Cada vez más difícil, ¿hasta dónde llegas?', endlessStart: 'Iniciar sin fin' },
   endless: { badge: 'Sin fin', best: 'Mejor racha: nivel {n}', cleared: '¡Nivel {n} superado!', lifeGained: '+1 vida', overTitle: 'Fin de la partida', reached: 'Nivel {n} alcanzado', record: '¡Nuevo récord!', levelDone: '¡Nivel {n} superado!', continue: 'Continuar', livesLabel: 'Vidas', levelShort: 'Nivel {n}', levelTime: 'Tiempo de este nivel', totalTime: 'Tiempo total de la partida', backfillToast: 'Partidas sin fin anteriores acreditadas: ¡{wins} victorias de {runs} partidas ya cuentan en tus estadísticas!' },
 
+  aiduel: { title: 'Duelo contra la IA', hint: 'Un rival a tu ritmo — también sin conexión', opponentName: 'IA ({level})', strength: 'Fuerza', tempo: 'Ritmo', start: 'Iniciar duelo', expected: 'Tiempo previsto del rival: {time}', calibrated: '(según tus tiempos medios)', default: '(valor por defecto)', level: { easy: 'Fácil', medium: 'Medio', hard: 'Difícil', brutal: 'Brutal' } },
   mismatch: { title: 'Datos de juego distintos', sub: 'Tu saldo de monedas difiere entre este dispositivo y la nube. Todo el progreso (victorias, logros, compras) se fusiona automáticamente; elige solo qué saldo debe valer.', subGame: 'Este dispositivo y la nube tienen cada uno una partida sin terminar DISTINTA — probablemente seguiste jugando sin conexión. Todo lo demás (progreso, logros, ajustes) se fusiona automáticamente; elige solo qué partida en curso debe valer.', subBoth: 'Tu saldo de monedas difiere Y este dispositivo y la nube tienen cada uno una partida sin terminar distinta. Todo el resto del progreso se fusiona automáticamente; elige qué lado debe valer para el saldo y la partida en curso.', local: 'Este dispositivo', cloud: 'Nube', keepLocal: 'Conservar este dispositivo', keepCloud: 'Conservar la nube', note: 'El otro estado se guarda como copia de seguridad y no se elimina.' },
 
   offline: { unavailable: 'No disponible sin conexión', badge: 'Sin conexión', chip: 'Sin conexión', chipHint: 'Estás sin conexión: los puzles en solitario siguen funcionando.' },
@@ -148,7 +149,7 @@ export default {
     avgTimeLabel: 'Tiempo prom.',
     lostLabel: 'Perdidas',
     raceSection: 'Modo duelo',
-    race1v1: '1v1',
+    race1v1: '1v1', raceAi: 'Duelo IA',
     race2v2: '2v2',
     winPctLabel: 'Tasa de victorias',
     reset: 'Restablecer estadísticas',
