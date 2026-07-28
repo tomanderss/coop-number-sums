@@ -316,7 +316,10 @@ export function candidateBuckets(bot) {
 //   • Anfang:  viel offenes Brett, einige leichte Footholds → mittel
 //   • Mitte:   viel offenes Brett, 1–2 zähe Ansatzpunkte    → langsam (Maximum)
 //   • Endspiel: kaum offenes Brett, fast alles erzwungen     → schnell
-function searchFactor(bucketCount, coveredCells, undecided, total, searchMax) {
+// Exportiert, weil js/playstyle.js beim Auswerten echter Partien denselben
+// Faktor HERAUSRECHNEN muss: die gemessene Zugdauer eines Spielers enthält ihn
+// multiplikativ und ist daher kein reines Signal für den Deduktionstyp.
+export function searchFactor(bucketCount, coveredCells, undecided, total, searchMax) {
   const density = undecided > 0 ? Math.min(1, coveredCells / undecided) : 1;
   // Sättigt früh: schon ~4 gleichzeitig offene Deduktionen heißen „ich finde
   // sofort eine". Ein Mensch scannt das Brett nicht proportional zu seiner Größe.

@@ -18,7 +18,7 @@
 // Die Auswertung läuft EINMAL am Spielende (in der afterPaint-Buchhaltung von
 // win()/lose()) über `analyzeGame()`.
 
-import { candidateBuckets, createBot, TIER } from './duelbot.js';
+import { candidateBuckets, createBot, searchFactor, TIER, PRESET_PROFILES } from './duelbot.js';
 
 const nz = (v) => Number(v) || 0;
 
@@ -54,14 +54,26 @@ export function analyzeGame({ puzzle, moves, mistakes = 0, totalMs = 0, difficul
   // Kandidaten-Enumerator benutzt wie beim Bot — was der Bot als „Tier 1" ansieht,
   // gilt hier also identisch.
   const bot = createBot({ puzzle, seed: 1 });
-  const tierOf = new Map();   // ci -> Tier zum Zeitpunkt des Zuges
+  const total = puzzle.rows * puzzle.cols;
+  const searchMax = PRESET_PROFILES.medium.searchMax;
+  const tierOf = new Map();    // ci -> Tier zum Zeitpunkt des Zuges
+  const factorOf = new Map();  // ci -> Suchaufwand der damaligen Brettlage
   for (const m of moves) {
     const ci = m.r * puzzle.cols + m.c;
+    const buckets = candidateBuckets(bot);
     let tier = TIER.HARD;
-    for (const b of candidateBuckets(bot)) {
+    for (const b of buckets) {
       if (b.moves.some((x) => x.ci === ci)) { tier = b.tier; break; }
     }
     tierOf.set(ci, tier);
+    // Wie schwer war es in DIESEM Moment überhaupt, einen Ansatzpunkt zu finden?
+    // Genau dieser Faktor steckt multiplikativ in der gemessenen Zugdauer und
+    // wird unten herausgerechnet — sonst erscheinen leichte Deduktionen in einer
+    // zähen Brettlage als „langsam" und die Tier-Verhältnisse verwaschen
+    // (gemessen: t2/t1 kam als 1,38 statt 2,60 zurück).
+    const covered = new Set();
+    for (const b of buckets) for (const x of b.moves) covered.add(x.ci);
+    factorOf.set(ci, searchFactor(buckets.length, covered.size, total - bot.decided, total, searchMax));
     // Zug im Modell nachziehen (nur gültige, eigene Züge kommen hier an).
     if (bot.mark[ci] === 0) {
       bot.mark[ci] = m.want === 'kept' ? 1 : 2;
@@ -80,7 +92,10 @@ export function analyzeGame({ puzzle, moves, mistakes = 0, totalMs = 0, difficul
     if (dt >= STALL_MIN_MS) { stalls++; continue; }
     const ci = moves[i].r * puzzle.cols + moves[i].c;
     const tier = tierOf.get(ci) || TIER.HARD;
-    (think[tier] || think.hard).push(dt);
+    // Suchaufwand der Brettlage herausrechnen → übrig bleibt die reine Denkzeit
+    // für diesen Deduktionstyp.
+    const f = factorOf.get(ci) || 1;
+    (think[tier] || think.hard).push(dt / f);
   }
 
   const thinkCount = think.t1.length + think.t2.length + think.hard.length;
@@ -128,8 +143,12 @@ export function buildProfile(samples) {
       hard: hard || Math.round((t2 || base * 2.4) * 1.7),
     },
     burstMs: burstMs || Math.round(base * 0.17),
-    // Fehler pro Partie: direkt der Median über die gespielten Partien.
-    mistakesPerGame: median(list.map((s) => nz(s.mistakes))),
+    // Fehler pro Partie: MITTELWERT, nicht Median. Fehlerzahlen sind kleine
+    // Ganzzahlen (0–4) — der Median springt dort in ganzen Schritten und
+    // überschätzte die Quote deutlich (gemessen: 2 statt 1,2). Ein Ausreißer-
+    // Risiko wie bei den Zeiten gibt es hier nicht, weil die Werte nach oben
+    // ohnehin durch die Leben begrenzt sind.
+    mistakesPerGame: Math.round((list.reduce((a, s) => a + nz(s.mistakes), 0) / games) * 100) / 100,
     // Hänger je Partie in eine Wahrscheinlichkeit je Denkzug umrechnen.
     stallRate: (() => {
       const perGame = list.map((s) => nz(s.stalls) / Math.max(1, nz(s.thinkCount)));
