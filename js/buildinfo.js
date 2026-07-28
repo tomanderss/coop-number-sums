@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.197';
-export const BUILD_HASH = 'bc7601c';
+export const BUILD      = '1.198';
+export const BUILD_HASH = 'db11c50';
 
 export const CHANGELOG = [
+  {
+    "version": "1.198",
+    "date": "28.07.2026",
+    "changes": [
+      "Neuer Modus „Duell gegen KI\": ein Gegner, der wirklich wie ein Mensch sucht — früh die leichten Ansatzpunkte schnell, in der Mitte langsamer bei den Teilsummen, am Ende wieder schnell beim Auflösen. Er orientiert sich an deinen DURCHSCHNITTSzeiten (nicht Bestzeiten), macht Fehler und kann dadurch selbst ausscheiden. Vier feste Stärke-Stufen plus Prozent-Regler; läuft ohne Mitspieler und auch offline.",
+      "KI-Duelle werden als eigene Kategorie in der Statistik geführt, zählen für Duell-Achievements und Prestige-Abzeichen aber ganz normal mit."
+    ]
+  },
   {
     "version": "1.197",
     "date": "27.07.2026",
