@@ -63,14 +63,11 @@ test.describe('KI-Duell', () => {
     // innerhalb einer Stufe brachte er keine sinnvolle Unterscheidung.
     await expect(page.locator('.ai-lv')).toHaveCount(4);
     await expect(page.locator('.ai-skill')).toHaveCount(0);
-    // Gegner-Auswahl: Standard-Stufen ODER der eigene Klon. Ohne aufgezeichnete
-    // Partien ist der Klon gesperrt und zeigt stattdessen den Lernfortschritt.
+    // Gegner: genau ZWEI Grundoptionen (Standard-KI / individuelle KI). Einzelne
+    // Klone tauchen erst in der individuellen Sektion auf — und dort nur die
+    // spielbereiten.
     await expect(page.locator('.ai-opp')).toHaveCount(2);
-    await expect(page.locator('.ai-opp.ai-clone')).toBeDisabled();
-    await expect(page.locator('.ai-opp.ai-clone')).toContainText('lernt noch');
-    // Ohne Freunde (nicht angemeldet) gibt es auch keine Freundes-Klone — die
-    // Zeile darf dann gar nicht erst erscheinen.
-    await expect(page.locator('.ai-friends')).toHaveCount(0);
+    await expect(page.locator('.ai-clones')).toHaveCount(0);
     // Die erwartete Gegnerzeit wird angezeigt und ist eine echte Zeit.
     await expect(page.locator('.ai-target')).toContainText(/\d+:\d\d/);
 
@@ -181,25 +178,45 @@ test.describe('KI-Duell', () => {
     expect(unlocked).toContain('raceFirstWin');
   });
 
-  test('Freundes-Klone: fertige sind wählbar, lernende bleiben gesperrt', async ({ page }) => {
+  // Der Kern des Layout-Umbaus: unfertige Klone dürfen die Auswahl NICHT
+  // zustellen. Bei inaktiven Freunden wird der Klon nie fertig — die stünden
+  // sonst für immer nutzlos in der Liste.
+  test('Nur spielbereite Klone stehen in der Auswahl, lernende in der Übersicht', async ({ page }) => {
     await openAiSetup(page);
     await injectFriendClones(page);
-    await expect(page.locator('.ai-friends')).toBeVisible();
-    await expect(page.locator('.ai-opp.ai-friend')).toHaveCount(2);
-    // Fertige Klone zuerst — der lernende steht hinten und ist gesperrt.
-    const ready = page.locator('.ai-opp.ai-friend').first();
-    const learning = page.locator('.ai-opp.ai-friend').last();
-    await expect(ready).toContainText('Blitz');
-    await expect(learning).toBeDisabled();
-    await expect(learning).toContainText('lernt noch');
+    await page.locator('.ai-opp', { hasText: 'Individuelle KI' }).click();
 
-    await ready.click();
+    await expect(page.locator('.ai-clones')).toBeVisible();
+    await expect(page.locator('.ai-opp.ai-friend')).toHaveCount(1);
+    await expect(page.locator('.ai-opp.ai-friend')).toContainText('Blitz');
+    await expect(page.locator('.ai-clones')).not.toContainText('Neuling');
+    // Der fertige Klon ist ohne Zutun vorausgewählt — der Start-Knopf zeigt nie
+    // ins Leere.
     expect(await page.evaluate(() => window.__cns.state.race.aiFriend)).toBe('u-fast');
+
+    // Der lernende Freund UND der eigene Klon (noch 0 Partien) stecken hinter dem
+    // Link, nicht in der Auswahl.
+    await expect(page.locator('.ai-learning-link')).toContainText('2');
+    await page.locator('.ai-learning-link').click();
+    await expect(page.locator('.modal-learning')).toBeVisible();
+    await expect(page.locator('.modal-learning')).toContainText('Neuling');
+    await expect(page.locator('.modal-learning .learn-row')).toHaveCount(2);
+  });
+
+  test('Ohne einen einzigen fertigen Klon bleibt die Standard-KI die Grundlage', async ({ page }) => {
+    await openAiSetup(page);
+    await page.locator('.ai-opp', { hasText: 'Individuelle KI' }).click();
+    await expect(page.locator('.ai-clones .ai-hint')).toBeVisible();
+    await expect(page.locator('.ai-opp.ai-friend')).toHaveCount(0);
+    // Nichts Spielbares da -> das Duell startet trotzdem, mit der Standard-KI.
+    await startDuel(page);
+    expect(await page.evaluate(() => window.__cns.state.race.opponents[0].name)).toContain('KI');
   });
 
   test('Der Klon eines Freundes spielt mit DESSEN Zeiten, nicht mit meinen', async ({ page }) => {
     await openAiSetup(page);
     await injectFriendClones(page);
+    await page.locator('.ai-opp', { hasText: 'Individuelle KI' }).click();
     await page.locator('.ai-opp.ai-friend').first().click();
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'sehrleicht'; });
     // Blitz braucht auf 6×6 im Schnitt 30 s — die erwartete Gegnerzeit muss das
@@ -226,6 +243,7 @@ test.describe('KI-Duell', () => {
       window.__cns.state.race.friendClones['u-fast'].avgMs = { sehrleicht: 1 };
       window.__cns.state.race.friendClones['u-fast'].profile.think = { t1: 0, t2: 0, hard: 0 };
     });
+    await page.locator('.ai-opp', { hasText: 'Individuelle KI' }).click();
     await page.locator('.ai-opp.ai-friend').first().click();
     await startDuel(page);
     const target = await page.evaluate(() => window.__cns.state.race.aiTargetMs);
