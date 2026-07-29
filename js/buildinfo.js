@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.198';
-export const BUILD_HASH = 'db11c50';
+export const BUILD      = '1.199';
+export const BUILD_HASH = 'b30e8e6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.199",
+    "date": "29.07.2026",
+    "changes": [
+      "Der KI-Gegner spielt jetzt viel menschlicher: keine gleichmäßigen Abstände mehr, sondern schnelle Phasen am Anfang und am Ende, zähes Grübeln in der Mitte — und echte Denkpausen, in denen minutenlang nichts passiert. Der Fortschrittsbalken des Gegners fühlt sich dadurch an wie ein echter Mitspieler.",
+      "Der Prozent-Regler im KI-Duell ist entfallen — die vier Stärke-Stufen reichen aus.",
+      "Deine Partien werden ab sofort ausgewertet, um daraus deinen persönlichen KI-Klon zu bauen (Tempo, Fehlerverhalten, welche Logik du zuerst findest). Sobald genug Partien zusammen sind, kannst du im KI-Duell gegen „Mein Klon\" antreten."
+    ]
+  },
   {
     "version": "1.198",
     "date": "28.07.2026",
