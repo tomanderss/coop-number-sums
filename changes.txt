@@ -1,2 +1,0 @@
-Neu im KI-Duell: Du kannst jetzt gegen die Klone deiner Freunde antreten. Ein Freundes-Klon spielt mit dem Stil UND den Durchschnittszeiten seines Vorbilds — ein starker Freund ist damit auch als Gegner stärker. Freunde, deren Klon noch lernt, stehen mit ihrem Lernfortschritt in der Liste.
-Dein eigener Klon wird veröffentlicht, sobald er fertig kalibriert ist, damit deine Freunde gegen dich antreten können — auch während du gar nicht online bist.
