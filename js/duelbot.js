@@ -130,6 +130,27 @@ export function clampProfile(p) {
   };
 }
 
+// Fremde DURCHSCHNITTSZEITEN müssen genauso geklemmt werden wie das Profil, und
+// zwar getrennt davon: die Zeit bestimmt allein, wie lange der Klon fürs Rätsel
+// braucht — `clampProfile` fasst sie nicht an. Eine manipulierte 1-ms-Zeit hätte
+// den Freundes-Klon sofort gewinnen lassen (`targetMsFor` kennt nur einen
+// 5-Sekunden-Boden, und der ist auf einem 14×14 immer noch ein Instant-Win).
+// Deshalb je Schwierigkeit auf ein Band um den Vorgabewert klemmen: wirklich
+// schnelle Spieler bleiben schnell, Unmögliches wird gekappt. Unbekannte
+// Schwierigkeiten und unbrauchbare Werte fallen raus (targetMsFor greift dann
+// von selbst auf DEFAULT_AVG_MS zurück).
+export const AVG_BAND = [0.25, 5];
+export function clampAvgMs(avg) {
+  const src = (avg && typeof avg === 'object') ? avg : {};
+  const out = {};
+  for (const [diff, def] of Object.entries(DEFAULT_AVG_MS)) {
+    const v = Number(src[diff]);
+    if (!Number.isFinite(v) || v <= 0) continue;
+    out[diff] = Math.min(def * AVG_BAND[1], Math.max(def * AVG_BAND[0], v));
+  }
+  return out;
+}
+
 // Seedbarer Zufall (mulberry32, wie generator.js) — gleicher Seed ⇒ gleiches Spiel.
 function mulberry32(seed) {
   let a = seed >>> 0;

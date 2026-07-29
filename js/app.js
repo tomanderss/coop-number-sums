@@ -1,7 +1,7 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { createBot, nextAction as botNextAction, applyAction as botApplyAction, botPct, targetMsFor, PRESET_LEVELS, PRESET_PROFILES, DEFAULT_AVG_MS } from './duelbot.js';
+import { createBot, nextAction as botNextAction, applyAction as botApplyAction, botPct, targetMsFor, clampProfile, clampAvgMs, PRESET_LEVELS, PRESET_PROFILES, DEFAULT_AVG_MS } from './duelbot.js';
 import { analyzeGame, buildProfile, MIN_GAMES as CLONE_MIN_GAMES } from './playstyle.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, bigNumbersAllowed, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
 import { generatePuzzle, remapColorsForMarkVisibility } from './generator.js';
@@ -207,6 +207,9 @@ const state = reactive({
                             // (der frühere Prozent-Regler war überflüssig neben den Stufen)
     aiTargetMs: 0,          // kalibrierte Zielzeit dieses Duells (nur Diagnose)
     aiClone: false,         // true = gegen den EIGENEN Klon spielen (Spielstil aus eigenen Partien)
+    aiFriend: null,         // uid eines FREUNDES-Klons (schlägt aiClone/Stufe) oder null
+    friendClones: {},       // uid → Cloud-Eintrag aus /aiProfiles (beim Öffnen des Screens geholt)
+    clonesLoading: false,   // true, solange die Freundes-Klone geladen werden
     ffa: false,             // true, wenn dieses Race-Match ein FFA (≥3 Spieler) ist
     opponents: [],          // [{ id, name, color, pct, mistakes, out }] — alle Gegner (ohne mich)
     winnerName: '',         // Name des ersten Fertigen (für den FFA-Ergebnis-Text)
@@ -6359,6 +6362,10 @@ function recordPlaySample() {
     if (!sample) return;
     const all = addPlaySample(sample);
     log('game', 'Spielstil-Stichprobe gesichert', { games: all.length, tookMs: Date.now() - t0, thinkCount: sample.thinkCount });
+    // Genau EIN Ort für die Veröffentlichung: hier ist der Klon gerade frisch
+    // geworden. Der Aufruf ist bewusst nicht abgewartet — die Spielende-
+    // Buchhaltung darf nicht auf das Netz warten.
+    publishMyClone();
   } catch (e) {
     log('error', 'Spielstil-Auswertung fehlgeschlagen', e);
   }
@@ -6445,18 +6452,64 @@ function onBotEliminated() {
 // Statistiken (sumTimeMs / won), nicht die Bestzeiten — ein Gegner, der immer
 // Bestzeit spielt, wäre unfair. Fehlt für eine Schwierigkeit ein eigener Wert,
 // greift die Vorgabetabelle in duelbot.js.
-function aiTargetFor(difficulty) {
+function aiTargetFor(difficulty, spec = aiOpponentSpec()) {
   return targetMsFor({
-    avgMs: avgTimesByDifficulty(state.stats),
+    avgMs: spec.avgMs,
     difficulty,
-    level: state.race.aiLevel,
+    level: spec.level,
     skill: state.race.aiSkill,
   });
 }
+
+// Der gewählte Gegner, aufgelöst zu allem, was Zielzeit und Verhalten brauchen.
+// Bewusst EINE Stelle für die drei Fälle (feste Stufe / eigener Klon /
+// Freundes-Klon), damit die angezeigte Erwartungszeit und das tatsächliche Duell
+// garantiert dieselbe Grundlage benutzen.
+function aiOpponentSpec() {
+  const fuid = state.race.aiFriend;
+  if (fuid) {
+    const entry = state.race.friendClones[fuid] || null;
+    const friend = (state.friends.list || []).find((f) => f.uid === fuid);
+    // FREMDDATEN aus der Cloud, ungeprüft: Profil UND Durchschnittszeiten müssen
+    // beide durch ihre Klemme. Ohne clampAvgMs hätte eine manipulierte 1-ms-Zeit
+    // den Klon sofort gewinnen lassen — clampProfile fasst die Zeit nicht an.
+    return {
+      kind: 'friend',
+      name: (entry && entry.username) || (friend && friend.username) || t('aiduel.oppFriend'),
+      profile: clampProfile(entry && entry.profile),
+      avgMs: clampAvgMs(entry && entry.avgMs),
+      level: 'medium',
+    };
+  }
+  if (state.race.aiClone) {
+    const c = myClone();
+    return {
+      kind: 'clone',
+      name: t('aiduel.oppCloneName'),
+      // Der eigene Klon behält bewusst den searchMax des Presets: der Wert steuert
+      // die U-Kurve der Suche, nicht den persönlichen Stil.
+      profile: (c.ready && c.profile)
+        ? { ...PRESET_PROFILES.medium, ...c.profile, searchMax: PRESET_PROFILES.medium.searchMax }
+        : { ...PRESET_PROFILES.medium },
+      avgMs: avgTimesByDifficulty(state.stats),
+      level: 'medium',
+    };
+  }
+  const level = PRESET_LEVELS[state.race.aiLevel] ? state.race.aiLevel : 'medium';
+  return {
+    kind: 'preset',
+    name: t('aiduel.opponentName', { level: t('aiduel.level.' + level) }),
+    profile: { ...PRESET_PROFILES.medium, mistakesPerGame: PRESET_LEVELS[level].mistakesPerGame, stallRate: PRESET_LEVELS[level].stallRate },
+    avgMs: avgTimesByDifficulty(state.stats),
+    level,
+  };
+}
+
 // Hat der Spieler für diese Schwierigkeit eigene Durchschnittsdaten? (Nur für die
-// Anzeige „kalibriert auf dich" vs. „Vorgabewert".)
+// Anzeige „kalibriert auf dich" vs. „Vorgabewert".) Beim Freundes-Klon zählt
+// dessen Kalibrierung, nicht die eigene.
 function aiCalibrated(difficulty) {
-  return avgTimesByDifficulty(state.stats)[difficulty] != null;
+  return aiOpponentSpec().avgMs[difficulty] != null;
 }
 // Status des eigenen Klons für die Gegnerauswahl: kalibriert oder „lernt noch".
 function cloneStatus() {
@@ -6467,11 +6520,72 @@ function aiTargetLabel(difficulty) {
   return fmtTime(aiTargetFor(difficulty));
 }
 
+// Freundes-Klone für die Gegnerauswahl. Freunde OHNE fertigen Klon bleiben in der
+// Liste (ausgegraut, mit Fortschritt) — sonst wäre nicht erkennbar, dass da einer
+// entsteht. Fertige zuerst, danach alphabetisch.
+function friendClones() {
+  return (state.friends.list || []).map((f) => {
+    const e = state.race.friendClones[f.uid] || null;
+    const games = Number(e && e.games) || 0;
+    return {
+      uid: f.uid,
+      name: (e && e.username) || f.username || '?',
+      games,
+      need: CLONE_MIN_GAMES,
+      ready: !!(e && e.profile) && games >= CLONE_MIN_GAMES,
+    };
+  }).sort((a, b) => (Number(b.ready) - Number(a.ready)) || a.name.localeCompare(b.name));
+}
+
+function pickAiOpponent(kind, uid = null) {
+  state.race.aiClone = kind === 'clone';
+  state.race.aiFriend = kind === 'friend' ? uid : null;
+}
+
+// Die Klon-Profile der Freunde beim Öffnen des Duell-Screens einmal holen (kein
+// Dauer-Listener — ein Profil ändert sich höchstens einmal je Partie des Freundes).
+async function loadFriendClones() {
+  const uids = (state.friends.list || []).map((f) => f.uid).filter(Boolean);
+  if (!uids.length || state.account.status !== 'in' || !isOnline()) return;
+  state.race.clonesLoading = true;
+  const t0 = Date.now();
+  try {
+    state.race.friendClones = await Account.fetchAiProfiles(uids);
+    log('game', 'Freundes-Klone geladen', {
+      asked: uids.length, found: Object.keys(state.race.friendClones).length, tookMs: Date.now() - t0,
+    });
+  } catch (e) {
+    log('error', 'Freundes-Klone laden fehlgeschlagen', e);
+  } finally {
+    state.race.clonesLoading = false;
+  }
+}
+
+// Den eigenen Klon veröffentlichen, sobald er fertig kalibriert ist — damit
+// Freunde gegen ihn spielen können. Läuft am Spielende (nach der Auswertung der
+// Partie) und ist bewusst „fire and forget": ein Fehlschlag darf die
+// Spielende-Buchhaltung nicht stören.
+function publishMyClone() {
+  try {
+    if (state.account.status !== 'in' || !isOnline()) return;
+    const c = myClone();
+    if (!c.ready || !c.profile) return;
+    Account.publishAiProfile({
+      profile: c.profile,
+      games: c.games,
+      avgMs: avgTimesByDifficulty(state.stats),
+      username: state.account.username,
+      badge: myBadge(),
+    });
+  } catch (e) { log('error', 'KI-Klon veröffentlichen fehlgeschlagen', e); }
+}
+
 function goAiDuel() {
   state.modal = null;
   coopReset();
   pushNav(() => { coopReset(); navigate('home'); });
   navigate('aiduel');
+  loadFriendClones();
 }
 
 // Startet das KI-Duell: Rätsel generieren, Bot auf die Zielzeit kalibrieren,
@@ -6490,30 +6604,28 @@ function startAiDuel(diffId) {
   state.race.myPct = 0;
   state.race.opponentPct = 0;
   state.race.opponentMistakes = 0;
-  const level = PRESET_LEVELS[state.race.aiLevel] ? state.race.aiLevel : 'medium';
-  state.race.aiLevel = level;
+  if (!PRESET_LEVELS[state.race.aiLevel]) state.race.aiLevel = 'medium';
+  // Gegner EINMAL auflösen und festhalten: Zielzeit, Name und Profil müssen aus
+  // derselben Momentaufnahme kommen — die Auswahl darf sich während der
+  // Generierung nicht mehr auswirken.
+  const spec = aiOpponentSpec();
   state.race.opponentId = 'ai';
-  state.race.opponentName = t('aiduel.opponentName', { level: t('aiduel.level.' + level) });
+  state.race.opponentName = spec.name;
   state.race.opponentColor = '#7c8cff';
   state.race.opponents = [{ id: 'ai', name: state.race.opponentName, color: state.race.opponentColor, pct: 0, mistakes: 0, out: false }];
   state.screen = 'game';
   state.generating = true;
-  const targetMs = aiTargetFor(difficulty);
+  const targetMs = aiTargetFor(difficulty, spec);
   state.race.aiTargetMs = targetMs;
-  log('game', 'KI-Duell gestartet', { difficulty, level, skill: state.race.aiSkill, targetMs, calibrated: aiCalibrated(difficulty) });
+  log('game', 'KI-Duell gestartet', { difficulty, kind: spec.kind, level: spec.level, targetMs, calibrated: spec.avgMs[difficulty] != null });
   const t0 = Date.now();
   generateAsync({ difficulty, bigNumbers: false }).then(puzzle => {
     if (!state.race.ai) return;   // zwischenzeitlich abgebrochen
     loadPuzzleIntoState(puzzle, null);
     state.generating = false;
-    // Profil-SHAPE: der eigene Klon, sobald genug Partien aufgezeichnet sind —
-    // sonst das Standardverhalten. Die ZEIT kommt in beiden Faellen aus targetMs
-    // (Durchschnittszeiten), das Profil bestimmt nur, WIE die Zeit verteilt wird.
-    const clone = state.race.aiClone ? myClone() : { profile: null, ready: false };
-    const shape = (clone.ready && clone.profile)
-      ? { ...PRESET_PROFILES.medium, ...clone.profile, searchMax: PRESET_PROFILES.medium.searchMax }
-      : { ...PRESET_PROFILES.medium, mistakesPerGame: PRESET_LEVELS[level].mistakesPerGame, stallRate: PRESET_LEVELS[level].stallRate };
-    botState = createBot({ puzzle, profile: shape, skill: state.race.aiSkill, seed: (Date.now() ^ 0x9e3779b9) >>> 0, targetMs });
+    // Das Profil bestimmt nur, WIE sich die Zeit über die Züge verteilt (Tier-Mix,
+    // Bursts, Hänger, Fehler); die absolute Dauer kommt aus targetMs.
+    botState = createBot({ puzzle, profile: spec.profile, skill: state.race.aiSkill, seed: (Date.now() ^ 0x9e3779b9) >>> 0, targetMs });
     startTimer();
     scheduleBotAction();
     log('game', 'KI-Duell: Brett bereit', { tookMs: Date.now() - t0, timeScale: Number(botState.timeScale.toFixed(3)) });
@@ -7240,6 +7352,7 @@ const App = {
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
       goAiDuel, startAiDuel, aiTargetLabel, aiCalibrated, aiLevels: Object.keys(PRESET_LEVELS), cloneStatus,
+      friendClones, pickAiOpponent,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -7368,15 +7481,31 @@ const App = {
         <div class="ai-row">
           <b class="ai-label">{{ t('aiduel.opponent') }}</b>
           <div class="ai-levels">
-            <button class="ai-opp" :class="{ on: !state.race.aiClone }" @click="state.race.aiClone=false">{{ t('aiduel.oppPreset') }}</button>
+            <button class="ai-opp" :class="{ on: !state.race.aiClone && !state.race.aiFriend }" @click="pickAiOpponent('preset')">{{ t('aiduel.oppPreset') }}</button>
             <button class="ai-opp ai-clone" :class="{ on: state.race.aiClone, locked: !cloneStatus().ready }"
-                    :disabled="!cloneStatus().ready" @click="state.race.aiClone=true">
+                    :disabled="!cloneStatus().ready" @click="pickAiOpponent('clone')">
               {{ t('aiduel.oppClone') }}
               <small v-if="!cloneStatus().ready">{{ t('aiduel.cloneLearning', { n: cloneStatus().games, need: cloneStatus().need }) }}</small>
             </button>
           </div>
         </div>
-        <div class="ai-row" v-if="!state.race.aiClone">
+        <!-- Freundes-Klone: spielen mit dem Stil UND den Durchschnittszeiten des
+             Freundes — ein starker Freund ist damit objektiv ein stärkerer Gegner.
+             Freunde ohne fertigen Klon bleiben sichtbar (ausgegraut, mit
+             Fortschritt), damit erkennbar ist, dass da einer entsteht. -->
+        <div class="ai-row ai-friends" v-if="friendClones().length || state.race.clonesLoading">
+          <b class="ai-label">{{ t('aiduel.friendClones') }}</b>
+          <div class="ai-levels" v-if="!state.race.clonesLoading">
+            <button v-for="fc in friendClones()" :key="fc.uid" class="ai-opp ai-friend"
+                    :class="{ on: state.race.aiFriend===fc.uid, locked: !fc.ready }"
+                    :disabled="!fc.ready" @click="pickAiOpponent('friend', fc.uid)">
+              {{ fc.name }}
+              <small v-if="!fc.ready">{{ t('aiduel.cloneLearning', { n: fc.games, need: fc.need }) }}</small>
+            </button>
+          </div>
+          <p class="ai-hint" v-else>{{ t('aiduel.clonesLoading') }}</p>
+        </div>
+        <div class="ai-row" v-if="!state.race.aiClone && !state.race.aiFriend">
           <b class="ai-label">{{ t('aiduel.strength') }}</b>
           <div class="ai-levels">
             <button v-for="lv in aiLevels" :key="lv" class="ai-lv" :class="{ on: state.race.aiLevel===lv }"

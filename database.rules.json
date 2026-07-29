@@ -102,6 +102,14 @@
       }
     },
 
+    "aiProfiles": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['v','games','profile']) && newData.child('games').isNumber() && newData.child('v').isNumber()"
+      }
+    },
+
     "usernames": {
       ".read": "auth != null",
       "$key": {

@@ -34,6 +34,27 @@ async function waitForAiBooking(page, field) {
     field, { timeout: 15000 });
 }
 
+// Freundes-Klone kommen sonst nur mit Anmeldung + Firebase zustande. Für die UI
+// zählt allein, was in state.friends.list / state.race.friendClones steht — also
+// genau das setzen (dieselbe Zustandsgrenze, die auch die Coop-E2E-Tests nutzen).
+async function injectFriendClones(page) {
+  await page.evaluate(() => {
+    window.__cns.state.friends.list = [
+      { uid: 'u-fast', username: 'Blitz' },
+      { uid: 'u-new', username: 'Neuling' },
+    ];
+    window.__cns.state.race.friendClones = {
+      'u-fast': {
+        v: 1, games: 20, username: 'Blitz',
+        avgMs: { sehrleicht: 30000 },
+        profile: { think: { t1: 900, t2: 2400, hard: 4000 }, burstMs: 200, mistakesPerGame: 0.4, stallRate: 0.03 },
+      },
+      // Freund MIT Eintrag, aber noch zu wenigen Partien -> bleibt gesperrt.
+      'u-new': { v: 1, games: 3, username: 'Neuling', profile: { think: { t1: 3000 } } },
+    };
+  });
+}
+
 test.describe('KI-Duell', () => {
   test('Einstieg, Setup und Start funktionieren (ohne Lobby, ohne Netz)', async ({ page }) => {
     await openAiSetup(page);
@@ -47,6 +68,9 @@ test.describe('KI-Duell', () => {
     await expect(page.locator('.ai-opp')).toHaveCount(2);
     await expect(page.locator('.ai-opp.ai-clone')).toBeDisabled();
     await expect(page.locator('.ai-opp.ai-clone')).toContainText('lernt noch');
+    // Ohne Freunde (nicht angemeldet) gibt es auch keine Freundes-Klone — die
+    // Zeile darf dann gar nicht erst erscheinen.
+    await expect(page.locator('.ai-friends')).toHaveCount(0);
     // Die erwartete Gegnerzeit wird angezeigt und ist eine echte Zeit.
     await expect(page.locator('.ai-target')).toContainText(/\d+:\d\d/);
 
@@ -155,5 +179,56 @@ test.describe('KI-Duell', () => {
       null, { timeout: 15000 });
     const unlocked = await page.evaluate(() => Object.keys(window.__cns.state.achievements || {}));
     expect(unlocked).toContain('raceFirstWin');
+  });
+
+  test('Freundes-Klone: fertige sind wählbar, lernende bleiben gesperrt', async ({ page }) => {
+    await openAiSetup(page);
+    await injectFriendClones(page);
+    await expect(page.locator('.ai-friends')).toBeVisible();
+    await expect(page.locator('.ai-opp.ai-friend')).toHaveCount(2);
+    // Fertige Klone zuerst — der lernende steht hinten und ist gesperrt.
+    const ready = page.locator('.ai-opp.ai-friend').first();
+    const learning = page.locator('.ai-opp.ai-friend').last();
+    await expect(ready).toContainText('Blitz');
+    await expect(learning).toBeDisabled();
+    await expect(learning).toContainText('lernt noch');
+
+    await ready.click();
+    expect(await page.evaluate(() => window.__cns.state.race.aiFriend)).toBe('u-fast');
+  });
+
+  test('Der Klon eines Freundes spielt mit DESSEN Zeiten, nicht mit meinen', async ({ page }) => {
+    await openAiSetup(page);
+    await injectFriendClones(page);
+    await page.locator('.ai-opp.ai-friend').first().click();
+    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'sehrleicht'; });
+    // Blitz braucht auf 6×6 im Schnitt 30 s — die erwartete Gegnerzeit muss das
+    // spiegeln (der Vorgabewert läge bei 44 s) und als „kalibriert" gelten,
+    // obwohl ICH für diese Schwierigkeit gar keine Daten habe.
+    await expect(page.locator('.ai-target')).toContainText('0:30');
+    await expect(page.locator('.ai-target')).not.toContainText('Vorgabewert');
+
+    await startDuel(page);
+    const st = await page.evaluate(() => ({
+      target: window.__cns.state.race.aiTargetMs,
+      name: window.__cns.state.race.opponents[0].name,
+    }));
+    expect(st.target).toBe(30000);
+    expect(st.name).toBe('Blitz');
+  });
+
+  test('Ein manipuliertes Freundes-Profil kann nicht sofort gewinnen', async ({ page }) => {
+    await openAiSetup(page);
+    await injectFriendClones(page);
+    // Angriff: 1-ms-Durchschnittszeit + Denkzeit 0. Beides muss geklemmt werden,
+    // sonst wäre der Klon vor dem ersten eigenen Zug fertig.
+    await page.evaluate(() => {
+      window.__cns.state.race.friendClones['u-fast'].avgMs = { sehrleicht: 1 };
+      window.__cns.state.race.friendClones['u-fast'].profile.think = { t1: 0, t2: 0, hard: 0 };
+    });
+    await page.locator('.ai-opp.ai-friend').first().click();
+    await startDuel(page);
+    const target = await page.evaluate(() => window.__cns.state.race.aiTargetMs);
+    expect(target).toBeGreaterThan(5000);
   });
 });
