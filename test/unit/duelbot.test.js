@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 const {
   createBot, nextAction, applyAction, candidateBuckets, botPct, botDone,
-  clampProfile, PRESET_PROFILES, PRESET_LEVELS, TIER, targetMsFor, DEFAULT_AVG_MS,
+  clampProfile, clampAvgMs, AVG_BAND, PRESET_PROFILES, PRESET_LEVELS, TIER, targetMsFor, DEFAULT_AVG_MS,
 } = await import('../../js/duelbot.js');
 const { generatePuzzle } = await import('../../js/generator.js');
 
@@ -50,6 +50,45 @@ describe('duelbot.clampProfile (Fremdprofile dürfen die Engine nie sprengen)', 
       const p = clampProfile(bad);
       assert.equal(p.think.t1, PRESET_PROFILES.medium.think.t1);
     }
+  });
+});
+
+// Die Durchschnittszeiten eines Freundes bestimmen ALLEIN, wie lange sein Klon
+// fürs Rätsel braucht — clampProfile fasst sie nicht an. Sie kommen aus der Cloud
+// und sind damit genauso ungeprüft wie das Profil.
+describe('duelbot.clampAvgMs (fremde Durchschnittszeiten)', () => {
+  test('plausible Zeiten bleiben unverändert', () => {
+    const avg = { mittel: 240000, rip: 1600000 };
+    const out = clampAvgMs(avg);
+    assert.equal(out.mittel, 240000);
+    assert.equal(out.rip, 1600000);
+  });
+
+  test('ein manipulierter Instant-Win wird gekappt', () => {
+    // OHNE diese Klemme hätte targetMsFor nur seinen 5-Sekunden-Boden gezogen —
+    // auf einem 14×14 immer noch ein sicherer Sieg des Klons.
+    const out = clampAvgMs({ rip: 1, mittel: -5, schwer: 0 });
+    assert.equal(out.rip, DEFAULT_AVG_MS.rip * AVG_BAND[0]);
+    assert.ok(!('mittel' in out), 'negative Werte fliegen raus');
+    assert.ok(!('schwer' in out), 'null fliegt raus');
+    // Und die Klemme muss auch im Ergebnis ankommen, nicht nur in der Map.
+    assert.ok(targetMsFor({ avgMs: out, difficulty: 'rip' }) > 60000);
+  });
+
+  test('absurd langsame Zeiten werden nach oben gekappt', () => {
+    const out = clampAvgMs({ sehrleicht: 999_999_999 });
+    assert.equal(out.sehrleicht, DEFAULT_AVG_MS.sehrleicht * AVG_BAND[1]);
+  });
+
+  test('Unsinn und unbekannte Schwierigkeiten verschwinden spurlos', () => {
+    for (const bad of [null, undefined, 42, 'nope', [], { rip: NaN }, { rip: Infinity }]) {
+      const out = clampAvgMs(bad);
+      assert.ok(out && typeof out === 'object');
+      assert.equal(out.rip, undefined);
+    }
+    assert.equal(clampAvgMs({ gibtsnicht: 1000 }).gibtsnicht, undefined);
+    // Fällt alles weg, greift targetMsFor von selbst auf DEFAULT_AVG_MS zurück.
+    assert.equal(targetMsFor({ avgMs: clampAvgMs(null), difficulty: 'mittel' }), DEFAULT_AVG_MS.mittel);
   });
 });
 

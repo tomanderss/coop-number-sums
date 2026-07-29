@@ -3048,6 +3048,12 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .ai-target small { font-weight: 600; opacity: .75; }
 /* Gegner-Auswahl im KI-Duell: der eigene Klon darf zweizeilig sein (Name +
    Kalibrier-Fortschritt), die Standard-Stufen bleiben einzeilig. */
-.ai-opp.ai-clone { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
-.ai-opp.ai-clone small { font-size: .64rem; font-weight: 700; opacity: .75; }
+.ai-opp.ai-clone, .ai-opp.ai-friend { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
+.ai-opp.ai-clone small, .ai-opp.ai-friend small { font-size: .64rem; font-weight: 700; opacity: .75; }
 .ai-opp.locked { opacity: .55; }
+/* Freundes-Klone: eigene Zeile, der Name darf lang sein und wird NICHT
+   abgeschnitten (dieselbe Regel wie auf der Ergebniskarte — Namen bleiben
+   vollständig lesbar), deshalb Umbruch als letztes Mittel statt Ellipse. */
+.ai-friends .ai-levels { gap: 6px 6px; }
+.ai-opp.ai-friend { max-width: 100%; overflow-wrap: anywhere; }
+.ai-hint { margin: 0; font-size: .78rem; font-weight: 700; color: var(--text2); opacity: .8; }
