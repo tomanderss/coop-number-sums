@@ -32,6 +32,7 @@ const KEYS = {
   DEVICE_ID: 'cns_device_id',   // stabile Geräte-Kennung (Multi-Device-Handoff); PER GERÄT, wird NIE synct/als Nutzdaten gezählt
   COMPLETED_GAMES: 'cns_completed_games', // [gameId,…] bereits abgerechnete Partien (Belohnungs-Idempotenz über Geräte), FIFO
   ACTIVE_GAME_BACKUP: 'cns_active_game_backup', // letzter durch Divergenz verdrängter Solo-Stand (nie still gelöscht)
+  PLAY_SAMPLES: 'cns_play_samples', // [{ts,difficulty,think,burstMs,mistakes,…}] — Spielstil-Stichproben je Partie (js/playstyle.js), FIFO, SYNCT
 };
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
 // Bewusst OHNE COOP_SESSION (kurzlebiges Reconnect-Token)/Backups (gerätelokale
@@ -48,7 +49,7 @@ const USER_DATA_KEYS = new Set([
   'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_active_game_endless',
   'cns_stats', 'cns_daily',
   'cns_history', 'cns_achievements', 'cns_missions', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
-  'cns_completed_games', 'cns_wallet_log',
+  'cns_completed_games', 'cns_wallet_log', 'cns_play_samples',
 ]);
 // Wie lange „Coop fortsetzen" nach der letzten Sicherung angeboten wird. Der
 // Raum lebt in der RTDB weiter, solange ihn niemand aktiv verlässt (Präsenz-
@@ -634,6 +635,35 @@ const EMPTY_PROFILE = { displayName: '', role: 'user', accountId: null, createdA
 export function loadProfile() { return { ...EMPTY_PROFILE, ...load(KEYS.PROFILE, {}) }; }
 export function saveProfile(p) { save(KEYS.PROFILE, { ...loadProfile(), ...p }); return loadProfile(); }
 
+// ─── Spielstil-Stichproben (Basis des eigenen KI-Klons) ──────────────────────
+// Je beendeter Solo-Partie EINE kompakte Stichprobe (nur Aggregate: Denkzeiten
+// je Deduktionstyp, Eintragetempo, Fehler — keine Brettinhalte, keine Zugfolge).
+// Nutzdaten-Key ⇒ synct mit, damit der eigene Klon dem Konto auf jedes Gerät
+// folgt. FIFO gekappt: mehr als PLAY_SAMPLES_MAX Partien verbessern die Mediane
+// nicht mehr nennenswert und blähen nur den Snapshot auf.
+export const PLAY_SAMPLES_MAX = 25;
+export function loadPlaySamples() { const a = load(KEYS.PLAY_SAMPLES, []); return Array.isArray(a) ? a : []; }
+export function addPlaySample(sample) {
+  if (!sample || typeof sample !== 'object') return loadPlaySamples();
+  const a = loadPlaySamples();
+  a.push(sample);
+  while (a.length > PLAY_SAMPLES_MAX) a.shift();
+  save(KEYS.PLAY_SAMPLES, a);
+  return a;
+}
+// Union-Merge nach Zeitstempel (wie der Geldverlauf): Partien, die auf einem
+// anderen Gerät gespielt wurden, gehen beim Sync nicht verloren. Rein/unit-getestet.
+export function mergePlaySamples(a = [], b = []) {
+  const seen = new Set();
+  const all = [...(a || []), ...(b || [])].filter((s) => {
+    const k = s && String(s.ts);
+    if (!k || k === 'undefined' || seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+  all.sort((x, y) => (Number(x.ts) || 0) - (Number(y.ts) || 0));
+  return all.slice(-PLAY_SAMPLES_MAX);
+}
+
 // ─── Datei-Export / Import ────────────────────────────────────────────────────
 function buildTimestamp() {
   const d = new Date(); const pad = n => String(n).padStart(2, '0');
@@ -657,6 +687,7 @@ export function collectExportData(type = 'manual') {
     race: load(KEYS.RACE, {}),
     inventory: load(KEYS.INVENTORY, {}),
     wallet: load(KEYS.WALLET, {}),
+    playSamples: loadPlaySamples(),  // Spielstil des Nutzers (Basis des eigenen KI-Klons)
     walletLog: loadWalletLog(),   // Geldverlauf reist mit (Union-Merge beim Import — Herkunft bleibt geräteübergreifend erhalten)
     completedGames: load(KEYS.COMPLETED_GAMES, []),  // Belohnungs-Idempotenz (Union-Merge beim Import)
     // Rolle NICHT mitsynchronisieren — sie ist serverseitig autoritativ
@@ -742,6 +773,7 @@ export function importFromFile(jsonText) {
   if (data.inventory) save(KEYS.INVENTORY, data.inventory);
   if (data.wallet) save(KEYS.WALLET, data.wallet);
   // Geldverlauf: Union (nie schrumpfen) — Einträge beider Seiten bleiben erhalten.
+  if (Array.isArray(data.playSamples)) save(KEYS.PLAY_SAMPLES, mergePlaySamples(loadPlaySamples(), data.playSamples));
   if (Array.isArray(data.walletLog)) save(KEYS.WALLET_LOG, mergeWalletLogs(loadWalletLog(), data.walletLog));
   // Union-Merge (nie schrumpfen): abgerechnete Partien beider Seiten behalten.
   if (data.completedGames) mergeCompletedGames(data.completedGames);
@@ -790,6 +822,7 @@ export function deleteAllData() {
   remove(KEYS.INVENTORY);
   remove(KEYS.WALLET);
   remove(KEYS.WALLET_LOG);
+  remove(KEYS.PLAY_SAMPLES);
   remove(KEYS.PROFILE);
   remove(KEYS.DATA_REV);
   remove(KEYS.SYNCED_REV);

@@ -107,8 +107,10 @@ export function analyzeGame({ puzzle, moves, mistakes = 0, totalMs = 0, difficul
     cells: puzzle.rows * puzzle.cols,
     totalMs: nz(totalMs),
     mistakes: nz(mistakes),
-    think: { t1: median(think.t1), t2: median(think.t2), hard: median(think.hard) },
-    burstMs: median(bursts),
+    // Auf ganze Millisekunden runden: die Werte reisen im Cloud-Snapshot mit,
+    // und Nachkommastellen einer Median-Denkzeit tragen keine Information.
+    think: { t1: Math.round(median(think.t1)), t2: Math.round(median(think.t2)), hard: Math.round(median(think.hard)) },
+    burstMs: Math.round(median(bursts)),
     stalls,
     thinkCount,
   };

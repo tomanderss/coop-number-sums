@@ -3042,10 +3042,12 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .ai-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ai-label { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; flex: 0 0 auto; }
 .ai-levels { display: flex; gap: 6px; flex: 1 1 auto; flex-wrap: wrap; }
-.ai-lv { flex: 1 1 auto; min-width: 64px; padding: 7px 10px; border-radius: 999px; background: var(--bg2); color: var(--text2); font-weight: 800; font-size: .78rem; }
-.ai-lv.on { background: var(--accent); color: #fff; }
-.ai-skill { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; }
-.ai-skill input[type="range"] { flex: 1 1 auto; min-width: 90px; accent-color: var(--accent); }
-.ai-pct { min-width: 46px; text-align: right; font-weight: 900; font-variant-numeric: tabular-nums; }
+.ai-lv, .ai-opp { flex: 1 1 auto; min-width: 64px; padding: 7px 10px; border-radius: 999px; background: var(--bg2); color: var(--text2); font-weight: 800; font-size: .78rem; }
+.ai-lv.on, .ai-opp.on { background: var(--accent); color: #fff; }
 .ai-target { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0; font-size: .82rem; font-weight: 700; color: var(--text2); }
 .ai-target small { font-weight: 600; opacity: .75; }
+/* Gegner-Auswahl im KI-Duell: der eigene Klon darf zweizeilig sein (Name +
+   Kalibrier-Fortschritt), die Standard-Stufen bleiben einzeilig. */
+.ai-opp.ai-clone { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
+.ai-opp.ai-clone small { font-size: .64rem; font-weight: 700; opacity: .75; }
+.ai-opp.locked { opacity: .55; }

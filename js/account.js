@@ -23,6 +23,7 @@ import {
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
   deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
+  mergePlaySamples,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -203,6 +204,7 @@ export function mergeSnapshots(local = {}, cloud = {}) {
     inventory: { ...(cloud.inventory || {}), ...(local.inventory || {}) },            // Union
     wallet: newer.wallet || (localNewer ? cloud.wallet : local.wallet) || {},
     walletLog: mergeWalletLogs(local.walletLog, cloud.walletLog),   // Herkunfts-Verlauf beider Seiten vereinigen
+    playSamples: mergePlaySamples(local.playSamples, cloud.playSamples),  // Spielstil beider Geräte vereinigen (eigener KI-Klon)
     completedGames: [...new Set([...(local.completedGames || []), ...(cloud.completedGames || [])])],
     profile: newer.profile || (localNewer ? cloud.profile : local.profile) || {},
   };

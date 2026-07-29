@@ -2,6 +2,7 @@
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { createBot, nextAction as botNextAction, applyAction as botApplyAction, botPct, targetMsFor, PRESET_LEVELS, PRESET_PROFILES, DEFAULT_AVG_MS } from './duelbot.js';
+import { analyzeGame, buildProfile, MIN_GAMES as CLONE_MIN_GAMES } from './playstyle.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, bigNumbersAllowed, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
 import { generatePuzzle, remapColorsForMarkVisibility } from './generator.js';
 import { todayDateStr } from './streak.js';
@@ -18,6 +19,7 @@ import {
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss, avgTimesByDifficulty,
+  loadPlaySamples, addPlaySample,
   loadMissions, saveMissions,
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, saveProfile, loadInventory, grantInventory, revokeInventory,
@@ -201,8 +203,10 @@ const state = reactive({
     // (s. startAiDuel/scheduleBotAction). Funktioniert daher auch offline.
     ai: false,              // true, wenn der Gegner der KI-Bot ist
     aiLevel: 'medium',      // feste Stärke-Stufe (PRESET_LEVELS)
-    aiSkill: 1,             // Prozent-Regler auf die Zielzeit (1 = Vorlage)
+    aiSkill: 1,             // fester Faktor 1 — die Stärke steuert allein die Stufe
+                            // (der frühere Prozent-Regler war überflüssig neben den Stufen)
     aiTargetMs: 0,          // kalibrierte Zielzeit dieses Duells (nur Diagnose)
+    aiClone: false,         // true = gegen den EIGENEN Klon spielen (Spielstil aus eigenen Partien)
     ffa: false,             // true, wenn dieses Race-Match ein FFA (≥3 Spieler) ist
     opponents: [],          // [{ id, name, color, pct, mistakes, out }] — alle Gegner (ohne mich)
     winnerName: '',         // Name des ersten Fertigen (für den FFA-Ergebnis-Text)
@@ -1790,6 +1794,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   // per ResizeObserver auf .board-wrap dauerhaft nachziehen (Layout-Settle,
   // Adressleiste, Rotation) → Brett bleibt immer vollständig eingepasst.
   nextTick(() => { computeCellSize(); observeBoardWrap(); });
+  startPlayLog();   // Spielstil-Aufzeichnung für diese Partie beginnen
   persistGame();
 }
 
@@ -2019,6 +2024,11 @@ function setMark(r, c, next, user, fromId) {
   const region = state.cellMeta[r][c].region;
   const wasRow = rowResolved(r), wasCol = colResolved(c);
   const wasRegion = region >= 0 ? regionResolved(region) : false;
+
+  // Spielstil-Aufzeichnung: NUR ein Array-Push (kein localStorage, keine Analyse)
+  // — der Tap-Pfad muss billig bleiben (Board-Render-Regeln in CLAUDE.md). Die
+  // Auswertung läuft einmal am Spielende, s. recordPlaySample().
+  if (user && next !== 'none' && moveLog) moveLog.push({ r, c, want: next, t: state.elapsed });
 
   state.history = [{ r, c, prev: cur }]; // nur der letzte Zug ist rückgängig machbar
   state.marks[r][c] = next;
@@ -3683,6 +3693,7 @@ function win(remote) {
     // Streak ZUERST buchen (vor der Münz-Belohnung), damit der heutige Sieg bereits
     // in der Streak steckt und der Streak-Münz-Multiplikator (+10% je Streak-Tag)
     // ihn mitzählt — z.B. 5er-Streak ⇒ +50%.
+    recordPlaySample();   // Spielstil dieser Partie auswerten (nur echte Solo-Partien)
     if (!state.isTrainingGame) applyStreakAfterGame();
     // Trainingsrätsel (geführter Lernmodus, keine echte eigene Leistung)
     // fließen bewusst nicht in die nach Schwierigkeit gebucketeten Streaks/
@@ -3814,6 +3825,9 @@ function lose(remote) {
     });
     state.stats = stats;
   }
+  // Auch eine verlorene Partie ist gueltiges Trainingsmaterial fuer den eigenen
+  // Klon — der Spieler hat bis zum Aus normal gespielt.
+  recordPlaySample();
   if (!state.isTrainingGame) applyStreakAfterGame();
   if (state.isRaceGame) state.raceStats = recordRaceLoss(state.race.ai ? 'ai' : state.race.ffa ? 'ffa' : '1v1');
   if (state.team.active) state.raceStats = recordRaceLoss('2v2');
@@ -6317,6 +6331,45 @@ function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD);
 function dismissStreakLostNotice() { state.streakLostNotice = false; }
 function dismissStreakExtended() { state.streakExtended = null; }
 
+// ─── SPIELSTIL-AUFZEICHNUNG (Basis des eigenen KI-Klons) ─────────────────────
+// Während der Partie wird nur roh mitgeschrieben (s. setMark). Ausgewertet wird
+// EINMAL am Spielende in der afterPaint-Buchhaltung — dort ist Rechenzeit
+// unkritisch, im Tap-Pfad wäre sie es nicht.
+let moveLog = null;
+
+// Nur ECHTE eigene Solo-Partien taugen als Trainingsdaten: Training ist geführt,
+// Coop/Team sind fremdbestimmt, und KI-Duelle würden den Klon auf sich selbst
+// zurückkoppeln.
+function playSampleEligible() {
+  return !state.isTrainingGame && !state.isRaceGame && !state.coop.active && !state.team.active;
+}
+function startPlayLog() { moveLog = playSampleEligible() ? [] : null; }
+
+// Am Spielende: Zug-Log auswerten und als kompakte Stichprobe sichern.
+function recordPlaySample() {
+  if (!moveLog || !moveLog.length || !state.puzzle) { moveLog = null; return; }
+  const moves = moveLog;
+  moveLog = null;
+  try {
+    const t0 = Date.now();
+    const sample = analyzeGame({
+      puzzle: state.puzzle, moves, mistakes: state.mistakes,
+      totalMs: state.elapsed, difficulty: state.puzzle.difficulty,
+    });
+    if (!sample) return;
+    const all = addPlaySample(sample);
+    log('game', 'Spielstil-Stichprobe gesichert', { games: all.length, tookMs: Date.now() - t0, thinkCount: sample.thinkCount });
+  } catch (e) {
+    log('error', 'Spielstil-Auswertung fehlgeschlagen', e);
+  }
+}
+
+// Der eigene Klon: aus den gesammelten Stichproben abgeleitet. `ready` erst ab
+// genug Partien — vorher zeigt die UI den Fortschritt statt eines halbgaren Klons.
+function myClone() {
+  return buildProfile(loadPlaySamples());
+}
+
 // ─── KI-DUELL ─────────────────────────────────────────────────────────────────
 // Ein KI-Duell ist ein vollwertiges Race-Match (state.isRaceGame = true, damit
 // alle Duell-Achievements greifen), aber ohne Firebase: der Gegner ist ein
@@ -6405,6 +6458,11 @@ function aiTargetFor(difficulty) {
 function aiCalibrated(difficulty) {
   return avgTimesByDifficulty(state.stats)[difficulty] != null;
 }
+// Status des eigenen Klons für die Gegnerauswahl: kalibriert oder „lernt noch".
+function cloneStatus() {
+  const c = myClone();
+  return { ready: c.ready, games: c.games, need: CLONE_MIN_GAMES };
+}
 function aiTargetLabel(difficulty) {
   return fmtTime(aiTargetFor(difficulty));
 }
@@ -6448,7 +6506,13 @@ function startAiDuel(diffId) {
     if (!state.race.ai) return;   // zwischenzeitlich abgebrochen
     loadPuzzleIntoState(puzzle, null);
     state.generating = false;
-    const shape = { ...PRESET_PROFILES.medium, mistakesPerGame: PRESET_LEVELS[level].mistakesPerGame, stallRate: PRESET_LEVELS[level].stallRate };
+    // Profil-SHAPE: der eigene Klon, sobald genug Partien aufgezeichnet sind —
+    // sonst das Standardverhalten. Die ZEIT kommt in beiden Faellen aus targetMs
+    // (Durchschnittszeiten), das Profil bestimmt nur, WIE die Zeit verteilt wird.
+    const clone = state.race.aiClone ? myClone() : { profile: null, ready: false };
+    const shape = (clone.ready && clone.profile)
+      ? { ...PRESET_PROFILES.medium, ...clone.profile, searchMax: PRESET_PROFILES.medium.searchMax }
+      : { ...PRESET_PROFILES.medium, mistakesPerGame: PRESET_LEVELS[level].mistakesPerGame, stallRate: PRESET_LEVELS[level].stallRate };
     botState = createBot({ puzzle, profile: shape, skill: state.race.aiSkill, seed: (Date.now() ^ 0x9e3779b9) >>> 0, targetMs });
     startTimer();
     scheduleBotAction();
@@ -7175,7 +7239,7 @@ const App = {
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
-      goAiDuel, startAiDuel, aiTargetLabel, aiCalibrated, aiLevels: Object.keys(PRESET_LEVELS),
+      goAiDuel, startAiDuel, aiTargetLabel, aiCalibrated, aiLevels: Object.keys(PRESET_LEVELS), cloneStatus,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -7297,19 +7361,26 @@ const App = {
       <difficulty-slider v-model="state.sel.difficulty" @randomstart="startAiDuel($event)"></difficulty-slider>
 
       <div class="ai-setup">
+        <!-- Gegner: Standard-Stufen ODER der eigene Klon (Spielstil aus den
+             eigenen Partien). Der Klon ist erst ab genug aufgezeichneten
+             Partien spielbar — vorher zeigt der Knopf den Fortschritt, statt
+             einen halbgaren „Klon" vorzugaukeln. -->
         <div class="ai-row">
+          <b class="ai-label">{{ t('aiduel.opponent') }}</b>
+          <div class="ai-levels">
+            <button class="ai-opp" :class="{ on: !state.race.aiClone }" @click="state.race.aiClone=false">{{ t('aiduel.oppPreset') }}</button>
+            <button class="ai-opp ai-clone" :class="{ on: state.race.aiClone, locked: !cloneStatus().ready }"
+                    :disabled="!cloneStatus().ready" @click="state.race.aiClone=true">
+              {{ t('aiduel.oppClone') }}
+              <small v-if="!cloneStatus().ready">{{ t('aiduel.cloneLearning', { n: cloneStatus().games, need: cloneStatus().need }) }}</small>
+            </button>
+          </div>
+        </div>
+        <div class="ai-row" v-if="!state.race.aiClone">
           <b class="ai-label">{{ t('aiduel.strength') }}</b>
           <div class="ai-levels">
             <button v-for="lv in aiLevels" :key="lv" class="ai-lv" :class="{ on: state.race.aiLevel===lv }"
                     @click="state.race.aiLevel=lv">{{ t('aiduel.level.'+lv) }}</button>
-          </div>
-        </div>
-        <div class="ai-row">
-          <b class="ai-label">{{ t('aiduel.tempo') }}</b>
-          <div class="ai-skill">
-            <input type="range" min="60" max="140" step="5" :value="Math.round(state.race.aiSkill*100)"
-                   @input="state.race.aiSkill = Number($event.target.value)/100" />
-            <span class="ai-pct">{{ Math.round(state.race.aiSkill*100) }}%</span>
           </div>
         </div>
         <p class="ai-target">

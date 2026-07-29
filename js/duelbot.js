@@ -67,10 +67,10 @@ export const DEFAULT_AVG_MS = {
 // 14×14 flog in 3 von 4 Läufen raus). Ein Mensch macht auf einem großen Brett
 // aber nicht mehr Fehler, nur weil es größer ist.
 export const PRESET_LEVELS = {
-  easy:   { speed: 1.45, mistakesPerGame: 2.20, stallRate: 0.055 },
-  medium: { speed: 1.00, mistakesPerGame: 1.20, stallRate: 0.035 },
-  hard:   { speed: 0.78, mistakesPerGame: 0.60, stallRate: 0.020 },
-  brutal: { speed: 0.58, mistakesPerGame: 0.25, stallRate: 0.010 },
+  easy:   { speed: 1.45, mistakesPerGame: 2.20, stallRate: 0.075 },
+  medium: { speed: 1.00, mistakesPerGame: 1.20, stallRate: 0.060 },
+  hard:   { speed: 0.78, mistakesPerGame: 0.60, stallRate: 0.045 },
+  brutal: { speed: 0.58, mistakesPerGame: 0.25, stallRate: 0.030 },
 };
 
 // Zielzeit für ein Duell. `avgMs` = eigene Durchschnittszeiten (aus den Stats),
@@ -89,10 +89,10 @@ export function targetMsFor({ avgMs, difficulty, level = 'medium', skill = 1 } =
 // (Tier 1 : Tier 2 : hart : Burst) — die absoluten Werte skaliert `timeScale` auf
 // die Zielzeit. Fehler-/Hängerquoten bleiben absolut.
 export const PRESET_PROFILES = {
-  easy:   { think: { t1: 3400, t2: 9000, hard: 15000 }, burstMs: 620, searchMax: 2.8, mistakesPerGame: 2.20, recoverMs: 4200, stallRate: 0.055, stallMs: 8000 },
-  medium: { think: { t1: 2000, t2: 5200, hard: 9000 },  burstMs: 340, searchMax: 2.5, mistakesPerGame: 1.20, recoverMs: 3000, stallRate: 0.035, stallMs: 6000 },
-  hard:   { think: { t1: 1250, t2: 3200, hard: 5600 },  burstMs: 230, searchMax: 2.2, mistakesPerGame: 0.60, recoverMs: 2200, stallRate: 0.020, stallMs: 4500 },
-  brutal: { think: { t1: 780,  t2: 2000, hard: 3400 },  burstMs: 165, searchMax: 1.9, mistakesPerGame: 0.25, recoverMs: 1500, stallRate: 0.010, stallMs: 3000 },
+  easy:   { think: { t1: 3400, t2: 9000, hard: 15000 }, burstMs: 620, searchMax: 2.8, mistakesPerGame: 2.20, recoverMs: 4200, stallRate: 0.075, stallMin: 7, stallSpan: 26 },
+  medium: { think: { t1: 2000, t2: 5200, hard: 9000 },  burstMs: 340, searchMax: 2.5, mistakesPerGame: 1.20, recoverMs: 3000, stallRate: 0.060, stallMin: 6, stallSpan: 22 },
+  hard:   { think: { t1: 1250, t2: 3200, hard: 5600 },  burstMs: 230, searchMax: 2.2, mistakesPerGame: 0.60, recoverMs: 2200, stallRate: 0.045, stallMin: 5, stallSpan: 18 },
+  brutal: { think: { t1: 780,  t2: 2000, hard: 3400 },  burstMs: 165, searchMax: 1.9, mistakesPerGame: 0.25, recoverMs: 1500, stallRate: 0.030, stallMin: 4, stallSpan: 14 },
 };
 
 // Grenzen für JEDES Profilfeld. Pflicht für Fremdprofile (Freunde-Klone kommen
@@ -101,7 +101,7 @@ export const PRESET_PROFILES = {
 const LIMITS = {
   't1':   [250, 30000], 't2': [400, 60000], 'hard': [600, 90000],
   burstMs: [60, 4000], searchMax: [1, 6], mistakesPerGame: [0, 8],
-  recoverMs: [200, 20000], stallRate: [0, 0.3], stallMs: [500, 30000],
+  recoverMs: [200, 20000], stallRate: [0, 0.3], stallMin: [0, 40], stallSpan: [0, 80],
 };
 const clampNum = (v, [lo, hi], fallback) => {
   const n = Number(v);
@@ -125,7 +125,8 @@ export function clampProfile(p) {
     mistakesPerGame: clampNum(src.mistakesPerGame, LIMITS.mistakesPerGame, base.mistakesPerGame),
     recoverMs:   clampNum(src.recoverMs,   LIMITS.recoverMs,   base.recoverMs),
     stallRate:   clampNum(src.stallRate,   LIMITS.stallRate,   base.stallRate),
-    stallMs:     clampNum(src.stallMs,     LIMITS.stallMs,     base.stallMs),
+    stallMin:    clampNum(src.stallMin,    LIMITS.stallMin,    base.stallMin),
+    stallSpan:   clampNum(src.stallSpan,   LIMITS.stallSpan,   base.stallSpan),
   };
 }
 
@@ -332,7 +333,11 @@ export function searchFactor(bucketCount, coveredCells, undecided, total, search
   // Endspiel-Bonus: sind nur noch wenige Zellen offen, ist das Suchen praktisch
   // vorbei — der Blick überfliegt den Rest. Das ist der „am Ende geht es wieder
   // schnell, weil man nur noch auflöst"-Effekt in Reinform.
-  if (total > 0 && undecided <= total * 0.15) f *= 0.55;
+  // Fenster BEWUSST breit (30 % statt 15 %): das letzte Fortschritts-Drittel eines
+  // Rätsels umfasst deutlich mehr als die letzten 15 % der Zellen, und genau dort
+  // soll sich das „ich löse nur noch auf"-Gefühl einstellen. Gemessen war das
+  // Endspiel mit dem engen Fenster kaum schneller als die zähe Mitte.
+  if (total > 0 && undecided <= total * 0.30) f *= 0.5;
   // Eröffnungs-Bonus: der Generator garantiert jedem Rätsel einen leichten
   // Einstieg (Foothold-Kriterium, s. js/generator.js) — die ersten Züge sind
   // gesuchte, offensichtliche Ansatzpunkte und gehen entsprechend flott. Ohne
@@ -346,7 +351,16 @@ export function searchFactor(bucketCount, coveredCells, undecided, total, search
 // ruft dann applyAction(). kind: 'move' | 'mistake' | 'done'.
 export function nextAction(bot) {
   const p = bot.prof, sk = bot.skill;
-  const jit = () => 0.75 + bot.rng() * 0.5;   // ±25 % Streuung
+  // Streuung LOGNORMAL statt gleichverteilt: ein Mensch braucht für dieselbe
+  // Deduktion mal 3 s und mal 20 s. Eine enge Gleichverteilung (früher ±25 %)
+  // erzeugte ein mechanisches Ticken — gemessen lag die längste Pause auf 8×8 bei
+  // 13,6 s, es gab NIE eine über 30 s. Genau das soll der Gegner nicht sein.
+  const jit = () => {
+    // Box-Muller aus dem seedbaren RNG (bleibt reproduzierbar).
+    const u = Math.max(1e-9, bot.rng()), v = bot.rng();
+    const g = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    return Math.exp(g * 0.55);   // Median 1, p90 ≈ 2,0, p99 ≈ 3,6
+  };
 
   const scale = bot.timeScale || 1;
   // Läuft noch ein Burst? Dann keine neue Denkzeit — nur Eintragetempo.
@@ -373,8 +387,16 @@ export function nextAction(bot) {
   const undecided = bot.total - bot.decided;
   let delay = (think / sk) * searchFactor(buckets.length, covered.size, undecided, bot.total, p.searchMax) * jit();
 
-  // Gelegentlicher Hänger (neu scannen, Ablenkung).
-  if (bot.rng() < p.stallRate) delay += (p.stallMs / sk) * jit();
+  // Echte HÄNGER: Phasen, in denen scheinbar nichts passiert — man starrt aufs
+  // Brett, findet den Faden nicht, legt das Handy kurz weg. Als VIELFACHES der
+  // eigenen Denkzeit modelliert, damit es auf jedem Brett stimmt: auf einem
+  // großen Feld (langsameres Grundtempo) werden daraus ein bis zwei Minuten, auf
+  // einem kleinen entsprechend weniger. Ein fester ms-Wert konnte das nicht —
+  // er war auf 14×14 zu kurz und auf 6×6 absurd lang.
+  if (bot.rng() < p.stallRate) {
+    const r = bot.rng();
+    delay += (think / sk) * (p.stallMin + p.stallSpan * r * r);
+  }
 
   // Fehlgriff: kostet Leben + Zeit, das Brett bleibt unverändert (wie setMark()).
   if (bot.rng() < bot.mistakeP / sk) {
