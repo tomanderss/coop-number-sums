@@ -19,31 +19,38 @@ const trainingBtn = (page) => page.locator('.modal .training-btn');
 // generator is guaranteed (see TRAINING_GEN_BUDGET in app.js) to pick a
 // puzzle that is fully solvable this way, so the loop always terminates well
 // before the cell-count upper bound used as a safety cap here.
-// Dieser Ablauf klickt ein KOMPLETTES Rätsel Schritt für Schritt durch. Das
-// sprengt unter CI-Last regelmäßig Playwrights 30-s-Standardtimeout — nicht
-// wegen eines Fehlers, sondern weil der Test seiner Natur nach lang ist. Jeder
-// Test, der ihn benutzt, markiert sich deshalb als test.slow() (verdreifacht das
-// Zeitlimit). Vorherige Anläufe haben nur an Symptomen geschraubt (Button-Warten,
-// größere Einzel-Timeouts), das eigentliche Problem war das Gesamtlimit.
+// Dieser Ablauf klickt ein KOMPLETTES Rätsel Schritt für Schritt durch. Nicht
+// die einzelne Aktion ist langsam, sondern ihre ANZAHL: pro Zelle fielen früher
+// drei Playwright-Round-Trips an (Status abfragen, auf den Knopf warten,
+// klicken), und unter CI-Last kostet jeder davon zweistellige Millisekunden bis
+// über eine Zehntelsekunde — bei ~40 Schritten reichte das bis an das Zeitlimit
+// heran (zuletzt ein Timeout bei 1,5 min). Deshalb hier EIN Round-Trip je
+// Schritt: Spielstatus und Knopf-Bereitschaft werden in derselben evaluate()
+// gelesen. Die Tests, die das benutzen, setzen zusätzlich ein explizites
+// Zeitlimit (test.slow() verdreifacht nur den Standardwert und traf zu knapp).
 async function applyAllTrainingSteps(page) {
-  const cellCount = await page.evaluate(() => {
-    const p = window.__cns.state.puzzle;
-    return p.rows * p.cols;
-  });
   const applyBtn = page.locator('.training-banner .btn-primary');
-  const playing = () => page.evaluate(() => window.__cns.state.status === 'playing');
-  for (let i = 0; i < cellCount + 1; i++) {
-    if (!(await playing())) break;
+  const probe = () => page.evaluate(() => ({
+    playing: window.__cns.state.status === 'playing',
+    ready: !!document.querySelector('.training-banner .btn-primary'),
+    cells: window.__cns.state.puzzle.rows * window.__cns.state.puzzle.cols,
+  }));
+  const first = await probe();
+  for (let i = 0; i < first.cells + 1; i++) {
+    const s = i === 0 ? first : await probe();
+    if (!s.playing) break;
     // Der Schritt-Button verschwindet unter CI-Last kurz zwischen zwei Schritten,
     // während der nächste erzwungene Zug berechnet/animiert wird. Früher brach die
     // Schleife dann sofort ab (isVisible()===false) -> das Rätsel blieb ungelöst,
     // die Win-Karte erschien nie (der bekannte Flake). Jetzt WARTEN wir, bis der
     // Button wiederkommt; ist das Spiel derweil gewonnen, greift die playing-Prüfung.
-    try {
-      await applyBtn.waitFor({ state: 'visible', timeout: 5000 });
-    } catch {
-      if (!(await playing())) break;   // gewonnen -> fertig
-      continue;                         // sonst: Button kam noch nicht zurück, erneut versuchen
+    if (!s.ready) {
+      try {
+        await applyBtn.waitFor({ state: 'visible', timeout: 5000 });
+      } catch {
+        if (!(await probe()).playing) break;   // gewonnen -> fertig
+        continue;                              // sonst: Button kam noch nicht zurück
+      }
     }
     await applyBtn.click();
   }
@@ -64,7 +71,7 @@ test.describe('training mode', () => {
   });
 
   test('applying every forced step solves the puzzle without affecting stats', async ({ page }) => {
-    test.slow();   // spielt ein ganzes Rätsel Schritt für Schritt durch
+    test.setTimeout(180_000);   // spielt ein ganzes Rätsel Schritt für Schritt durch
     await gotoApp(page);
     const statsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('cns_stats') || 'null'));
 
@@ -83,7 +90,7 @@ test.describe('training mode', () => {
   });
 
   test('the win screen offers another training example instead of "next puzzle"', async ({ page }) => {
-    test.slow();   // spielt ein ganzes Rätsel Schritt für Schritt durch
+    test.setTimeout(180_000);   // spielt ein ganzes Rätsel Schritt für Schritt durch
     await gotoApp(page);
     await openHowtoModal(page);
     await trainingBtn(page).click();
