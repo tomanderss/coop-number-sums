@@ -3051,9 +3051,21 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .ai-opp.ai-clone, .ai-opp.ai-friend { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
 .ai-opp.ai-clone small, .ai-opp.ai-friend small { font-size: .64rem; font-weight: 700; opacity: .75; }
 .ai-opp.locked { opacity: .55; }
-/* Freundes-Klone: eigene Zeile, der Name darf lang sein und wird NICHT
-   abgeschnitten (dieselbe Regel wie auf der Ergebniskarte — Namen bleiben
-   vollständig lesbar), deshalb Umbruch als letztes Mittel statt Ellipse. */
-.ai-friends .ai-levels { gap: 6px 6px; }
+/* Klon-Auswahl: der Name darf lang sein und wird NICHT abgeschnitten (dieselbe
+   Regel wie auf der Ergebniskarte — Namen bleiben vollständig lesbar), deshalb
+   Umbruch als letztes Mittel statt Ellipse. */
 .ai-opp.ai-friend { max-width: 100%; overflow-wrap: anywhere; }
-.ai-hint { margin: 0; font-size: .78rem; font-weight: 700; color: var(--text2); opacity: .8; }
+.ai-hint { margin: 0; font-size: .78rem; font-weight: 700; color: var(--text2); opacity: .8; flex: 1 1 100%; }
+/* Der Weg zu den unfertigen Klonen: bewusst ein unauffälliger Textlink, keine
+   weitere Knopfreihe — er soll nur informieren, nicht die Auswahl zustellen. */
+.ai-learning-link {
+  align-self: flex-start; padding: 2px 0; background: none; color: var(--text2);
+  font-size: .76rem; font-weight: 700; text-decoration: underline; opacity: .8;
+}
+.modal-learning .learn-list { display: flex; flex-direction: column; gap: 10px; margin: 14px 0 16px; }
+.modal-learning .learn-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; }
+.modal-learning .learn-name { font-weight: 800; font-size: .86rem; overflow-wrap: anywhere; }
+.modal-learning .learn-num { font-size: .76rem; font-weight: 700; color: var(--text2); white-space: nowrap; }
+.modal-learning .learn-bar { grid-column: 1 / -1; height: 6px; border-radius: 999px; background: var(--bg2); overflow: hidden; }
+.modal-learning .learn-bar-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+.modal-learning .learn-row.me .learn-name { color: var(--accent); }

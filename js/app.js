@@ -206,6 +206,7 @@ const state = reactive({
     aiSkill: 1,             // fester Faktor 1 — die Stärke steuert allein die Stufe
                             // (der frühere Prozent-Regler war überflüssig neben den Stufen)
     aiTargetMs: 0,          // kalibrierte Zielzeit dieses Duells (nur Diagnose)
+    aiMode: 'preset',       // 'preset' = feste Stärke-Stufe · 'individual' = Klon (eigener oder Freund)
     aiClone: false,         // true = gegen den EIGENEN Klon spielen (Spielstil aus eigenen Partien)
     aiFriend: null,         // uid eines FREUNDES-Klons (schlägt aiClone/Stufe) oder null
     friendClones: {},       // uid → Cloud-Eintrag aus /aiProfiles (beim Öffnen des Screens geholt)
@@ -6466,7 +6467,8 @@ function aiTargetFor(difficulty, spec = aiOpponentSpec()) {
 // Freundes-Klon), damit die angezeigte Erwartungszeit und das tatsächliche Duell
 // garantiert dieselbe Grundlage benutzen.
 function aiOpponentSpec() {
-  const fuid = state.race.aiFriend;
+  const individual = state.race.aiMode === 'individual';
+  const fuid = individual ? state.race.aiFriend : null;
   if (fuid) {
     const entry = state.race.friendClones[fuid] || null;
     const friend = (state.friends.list || []).find((f) => f.uid === fuid);
@@ -6481,7 +6483,7 @@ function aiOpponentSpec() {
       level: 'medium',
     };
   }
-  if (state.race.aiClone) {
+  if (individual && state.race.aiClone) {
     const c = myClone();
     return {
       kind: 'clone',
@@ -6520,9 +6522,7 @@ function aiTargetLabel(difficulty) {
   return fmtTime(aiTargetFor(difficulty));
 }
 
-// Freundes-Klone für die Gegnerauswahl. Freunde OHNE fertigen Klon bleiben in der
-// Liste (ausgegraut, mit Fortschritt) — sonst wäre nicht erkennbar, dass da einer
-// entsteht. Fertige zuerst, danach alphabetisch.
+// Alle Freundes-Klone mit ihrem Kalibrier-Stand. Fertige zuerst, danach alphabetisch.
 function friendClones() {
   return (state.friends.list || []).map((f) => {
     const e = state.race.friendClones[f.uid] || null;
@@ -6535,6 +6535,36 @@ function friendClones() {
       ready: !!(e && e.profile) && games >= CLONE_MIN_GAMES,
     };
   }).sort((a, b) => (Number(b.ready) - Number(a.ready)) || a.name.localeCompare(b.name));
+}
+
+// Die Auswahl zeigt NUR spielbereite Klone. Unfertige gehören bewusst NICHT in
+// die Liste: bei inaktiven Freunden wird ihr Klon nie fertig, sie würden also für
+// immer Platz belegen. Sie stecken stattdessen in einer eigenen Übersicht
+// (aiLearning-Modal), die man nur öffnet, wenn man wissen will, wer noch lernt.
+function readyClones() {
+  return friendClones().filter((c) => c.ready);
+}
+function learningClones() {
+  return friendClones().filter((c) => !c.ready);
+}
+// Gibt es überhaupt einen spielbaren individuellen Gegner (eigener Klon oder Freund)?
+function anyCloneReady() {
+  return cloneStatus().ready || readyClones().length > 0;
+}
+
+// Modus umschalten. Beim Wechsel auf „individuell" gleich etwas Spielbares
+// vorauswählen (eigener Klon zuerst, sonst der erste fertige Freund), damit der
+// Start-Knopf nie ins Leere zeigt.
+function setAiMode(mode) {
+  state.race.aiMode = mode === 'individual' ? 'individual' : 'preset';
+  if (state.race.aiMode !== 'individual') return;
+  const stillValid = state.race.aiFriend
+    ? readyClones().some((c) => c.uid === state.race.aiFriend)
+    : (state.race.aiClone && cloneStatus().ready);
+  if (stillValid) return;
+  if (cloneStatus().ready) pickAiOpponent('clone');
+  else if (readyClones().length) pickAiOpponent('friend', readyClones()[0].uid);
+  else pickAiOpponent('preset');
 }
 
 function pickAiOpponent(kind, uid = null) {
@@ -6552,8 +6582,12 @@ async function loadFriendClones() {
   try {
     state.race.friendClones = await Account.fetchAiProfiles(uids);
     log('game', 'Freundes-Klone geladen', {
-      asked: uids.length, found: Object.keys(state.race.friendClones).length, tookMs: Date.now() - t0,
+      asked: uids.length, found: Object.keys(state.race.friendClones).length,
+      ready: readyClones().length, tookMs: Date.now() - t0,
     });
+    // Erst jetzt steht fest, wer spielbereit ist — eine im leeren Zustand
+    // getroffene Vorauswahl nachziehen.
+    if (state.race.aiMode === 'individual') setAiMode('individual');
   } catch (e) {
     log('error', 'Freundes-Klone laden fehlgeschlagen', e);
   } finally {
@@ -7352,7 +7386,7 @@ const App = {
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
       goAiDuel, startAiDuel, aiTargetLabel, aiCalibrated, aiLevels: Object.keys(PRESET_LEVELS), cloneStatus,
-      friendClones, pickAiOpponent,
+      friendClones, readyClones, learningClones, anyCloneReady, pickAiOpponent, setAiMode,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
       startUsernameEdit, doChangeUsername, onUsernameInput, canSaveUsername, playerLabel,
@@ -7478,40 +7512,44 @@ const App = {
              eigenen Partien). Der Klon ist erst ab genug aufgezeichneten
              Partien spielbar — vorher zeigt der Knopf den Fortschritt, statt
              einen halbgaren „Klon" vorzugaukeln. -->
+        <!-- Zwei Grundoptionen statt einer langen Knopfreihe: Standard-KI (feste
+             Stufen) ODER individuelle KI (Klone). Erst in der zweiten Sektion
+             geht es um einzelne Klone — und dort NUR um spielbereite. -->
         <div class="ai-row">
           <b class="ai-label">{{ t('aiduel.opponent') }}</b>
           <div class="ai-levels">
-            <button class="ai-opp" :class="{ on: !state.race.aiClone && !state.race.aiFriend }" @click="pickAiOpponent('preset')">{{ t('aiduel.oppPreset') }}</button>
-            <button class="ai-opp ai-clone" :class="{ on: state.race.aiClone, locked: !cloneStatus().ready }"
-                    :disabled="!cloneStatus().ready" @click="pickAiOpponent('clone')">
-              {{ t('aiduel.oppClone') }}
-              <small v-if="!cloneStatus().ready">{{ t('aiduel.cloneLearning', { n: cloneStatus().games, need: cloneStatus().need }) }}</small>
-            </button>
+            <button class="ai-opp" :class="{ on: state.race.aiMode!=='individual' }" @click="setAiMode('preset')">{{ t('aiduel.modePreset') }}</button>
+            <button class="ai-opp" :class="{ on: state.race.aiMode==='individual' }" @click="setAiMode('individual')">{{ t('aiduel.modeIndividual') }}</button>
           </div>
         </div>
-        <!-- Freundes-Klone: spielen mit dem Stil UND den Durchschnittszeiten des
-             Freundes — ein starker Freund ist damit objektiv ein stärkerer Gegner.
-             Freunde ohne fertigen Klon bleiben sichtbar (ausgegraut, mit
-             Fortschritt), damit erkennbar ist, dass da einer entsteht. -->
-        <div class="ai-row ai-friends" v-if="friendClones().length || state.race.clonesLoading">
-          <b class="ai-label">{{ t('aiduel.friendClones') }}</b>
-          <div class="ai-levels" v-if="!state.race.clonesLoading">
-            <button v-for="fc in friendClones()" :key="fc.uid" class="ai-opp ai-friend"
-                    :class="{ on: state.race.aiFriend===fc.uid, locked: !fc.ready }"
-                    :disabled="!fc.ready" @click="pickAiOpponent('friend', fc.uid)">
-              {{ fc.name }}
-              <small v-if="!fc.ready">{{ t('aiduel.cloneLearning', { n: fc.games, need: fc.need }) }}</small>
-            </button>
-          </div>
-          <p class="ai-hint" v-else>{{ t('aiduel.clonesLoading') }}</p>
-        </div>
-        <div class="ai-row" v-if="!state.race.aiClone && !state.race.aiFriend">
+
+        <div class="ai-row" v-if="state.race.aiMode!=='individual'">
           <b class="ai-label">{{ t('aiduel.strength') }}</b>
           <div class="ai-levels">
             <button v-for="lv in aiLevels" :key="lv" class="ai-lv" :class="{ on: state.race.aiLevel===lv }"
                     @click="state.race.aiLevel=lv">{{ t('aiduel.level.'+lv) }}</button>
           </div>
         </div>
+
+        <!-- Individuelle KI: NUR spielbereite Klone. Wer noch lernt, steckt in der
+             Extra-Übersicht — bei inaktiven Freunden wird der Klon nie fertig, die
+             würden sonst dauerhaft die Auswahl zustellen. -->
+        <div class="ai-row ai-clones" v-else>
+          <b class="ai-label">{{ t('aiduel.clone') }}</b>
+          <p class="ai-hint" v-if="state.race.clonesLoading">{{ t('aiduel.clonesLoading') }}</p>
+          <div class="ai-levels" v-else-if="anyCloneReady()">
+            <button v-if="cloneStatus().ready" class="ai-opp ai-clone" :class="{ on: state.race.aiClone }"
+                    @click="pickAiOpponent('clone')">{{ t('aiduel.oppClone') }}</button>
+            <button v-for="fc in readyClones()" :key="fc.uid" class="ai-opp ai-friend"
+                    :class="{ on: state.race.aiFriend===fc.uid }" @click="pickAiOpponent('friend', fc.uid)">{{ fc.name }}</button>
+          </div>
+          <p class="ai-hint" v-else>{{ t('aiduel.noClones', { need: cloneStatus().need }) }}</p>
+        </div>
+        <button v-if="state.race.aiMode==='individual' && !state.race.clonesLoading && (learningClones().length || !cloneStatus().ready)"
+                class="ai-learning-link" @click="state.modal='aiLearning'">
+          {{ t('aiduel.learningCount', { n: learningClones().length + (cloneStatus().ready ? 0 : 1) }) }}
+        </button>
+
         <p class="ai-target">
           <span class="ei" v-html="ic('hourglass')"></span>
           {{ t('aiduel.expected', { time: aiTargetLabel(state.sel.difficulty) }) }}
@@ -9294,6 +9332,29 @@ const App = {
     </div>
 
     <!-- Missionen-Übersicht (Wochen-Aufträge) als Pop-up. -->
+    <!-- Übersicht „Klone in Ausbildung". Bewusst eine EIGENE Ansicht: in der
+         Auswahl würden unfertige Klone nur Platz kosten, und bei inaktiven
+         Freunden bliebe der Fortschritt für immer stehen. -->
+    <div v-if="state.modal==='aiLearning'" class="modal-bg" @click.self="state.modal=null">
+      <div class="modal modal-learning">
+        <h3><span class="ei" v-html="ic('robot')"></span> {{ t('aiduel.learningTitle') }}</h3>
+        <p class="ai-hint">{{ t('aiduel.learningIntro', { need: cloneStatus().need }) }}</p>
+        <div class="learn-list">
+          <div v-if="!cloneStatus().ready" class="learn-row me">
+            <div class="learn-name">{{ t('aiduel.oppClone') }}</div>
+            <div class="learn-bar"><div class="learn-bar-fill" :style="{ width: Math.min(100, Math.round(cloneStatus().games / cloneStatus().need * 100)) + '%' }"></div></div>
+            <div class="learn-num">{{ cloneStatus().games }} / {{ cloneStatus().need }}</div>
+          </div>
+          <div v-for="fc in learningClones()" :key="fc.uid" class="learn-row">
+            <div class="learn-name">{{ fc.name }}</div>
+            <div class="learn-bar"><div class="learn-bar-fill" :style="{ width: Math.min(100, Math.round(fc.games / fc.need * 100)) + '%' }"></div></div>
+            <div class="learn-num">{{ fc.games }} / {{ fc.need }}</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" @click="state.modal=null">{{ t('common.close') }}</button>
+      </div>
+    </div>
+
     <div v-if="state.modal==='missions'" class="modal-bg" @click.self="state.modal=null">
       <div class="modal modal-missions">
         <h3><span class="ei" v-html="ic('flag')"></span> {{ t('missions.title') }}</h3>
