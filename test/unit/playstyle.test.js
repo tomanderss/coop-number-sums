@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { analyzeGame, buildProfile, median, MIN_GAMES, BURST_MAX_MS, STALL_MIN_MS } =
+const { analyzeGame, buildProfile, median, medianF, MIN_GAMES, BURST_MAX_MS, STALL_MIN_MS } =
   await import('../../js/playstyle.js');
 const { generatePuzzle } = await import('../../js/generator.js');
 const { createBot, nextAction, applyAction, botDone, PRESET_PROFILES, targetMsFor } =
@@ -52,6 +52,19 @@ describe('playstyle.median', () => {
     assert.equal(median(null), 0);
     assert.equal(median([NaN, Infinity]), 0);
   });
+
+  // Diese Trennung ist keine Kosmetik: `median` rundet (es wurde für
+  // Millisekunden gebaut), und angewandt auf Anteile machte es aus einem
+  // Käfig-Anteil von 0,2 eine 0 und aus einer Lokalität von 0,83 eine 1 — die
+  // Verhaltensmuster kamen dadurch gar nicht im Profil an.
+  test('medianF rundet NICHT (Pflicht für Anteile und Faktoren)', () => {
+    assert.equal(medianF([0.2, 0.2, 0.2]), 0.2);
+    assert.equal(median([0.2, 0.2, 0.2]), 0.2);          // ungerade Länge: exakt
+    assert.equal(median([0.2, 0.4]), 0);                  // gerade Länge: gerundet!
+    assert.equal(medianF([0.2, 0.4]), 0.30000000000000004);
+    assert.equal(medianF([]), 0);
+    assert.equal(medianF(null), 0);
+  });
 });
 
 describe('playstyle.analyzeGame', () => {
@@ -74,6 +87,37 @@ describe('playstyle.analyzeGame', () => {
     assert.ok(!json.includes('solution'), 'keine Lösung');
     assert.ok(!json.includes('marks'), 'keine Marken');
     assert.ok(json.length < 400, `Stichprobe muss kompakt bleiben (${json.length} Zeichen)`);
+  });
+
+  // Geteiltes Brett (Coop/Team): die Züge des Partners MÜSSEN mitkommen, sonst
+  // stimmt der Brettnachbau ab dem ersten fremden Zug nicht mehr — und damit auch
+  // die Deduktions-Einordnung der eigenen Züge nicht. Gemessen werden sie nicht.
+  test('fremde Züge stellen das Brett nach, zählen aber nicht als eigene', () => {
+    const g = playAndRecord('mittel', PRESET_PROFILES.medium, 4);
+    // Jeden zweiten Zug zum Partnerzug erklären.
+    const shared = g.moves.map((m, i) => (i % 2 ? { ...m, other: 1 } : m));
+    const solo = analyzeGame(g);
+    const coop = analyzeGame({ ...g, moves: shared });
+    assert.ok(coop, 'auch mit Partnerzügen entsteht eine Stichprobe');
+    assert.ok(coop.ownMoves < solo.ownMoves, 'nur eigene Züge zählen als eigene');
+    assert.ok(coop.ownMoves > 0);
+  });
+
+  test('ein Fehlgriff verändert das Brett nicht, sein Kontext wird gezählt', () => {
+    const g = playAndRecord('mittel', PRESET_PROFILES.medium, 6);
+    const clean = analyzeGame(g);
+    // Denselben Verlauf, aber mit einem eingeschobenen Fehlgriff auf einer Zelle,
+    // die später NOCH korrekt gesetzt wird. Wird der Fehlgriff aufs Brett gelegt,
+    // läuft der Nachbau auseinander und die Tier-Zuordnung kippt.
+    const late = g.moves[g.moves.length - 1];
+    const moves = [g.moves[0], { ...late, want: 'kept', t: g.moves[0].t + 3000, err: 1 },
+      ...g.moves.slice(1).map((m) => ({ ...m, t: m.t + 3000 }))];
+    const withErr = analyzeGame({ ...g, moves, mistakes: 1 });
+    assert.ok(withErr);
+    assert.equal(withErr.ownMoves, clean.ownMoves, 'der Fehlgriff ist kein eigener Zug');
+    const errTotal = withErr.errPhase.early + withErr.errPhase.mid + withErr.errPhase.late;
+    assert.equal(errTotal, 1, 'genau ein Fehler-Kontext erfasst');
+    assert.equal(Object.values(withErr.errTier).reduce((a, b) => a + b, 0), 1);
   });
 
   test('trennt Bursts, Denkzüge und Hänger anhand der Schwellen', () => {
@@ -141,6 +185,37 @@ describe('playstyle.buildProfile — Round-Trip: Stil wird zurückgewonnen', () 
       assert.equal(r.games, 0);
       assert.equal(r.profile, null);
     }
+  });
+
+  // Die Verhaltensmuster sind der eigentliche Punkt an „spielt wie ich": nicht nur
+  // wie schnell, sondern WELCHE Struktur zuerst, wie sprunghaft, wie über die
+  // Phasen verteilt. Sie müssen als echte Zwischenwerte ankommen — vor dem
+  // medianF-Fix waren regionBias und phase im Profil auf 0 bzw. 1 gerundet.
+  test('Verhaltensmuster kommen als echte Anteile im Profil an', () => {
+    const samples = samplesFor(PRESET_PROFILES.medium, 10);
+    const { profile } = buildProfile(samples);
+    for (const [name, v] of [['regionBias', profile.regionBias], ['locality', profile.locality]]) {
+      assert.ok(v > 0 && v < 1, `${name} muss ein echter Anteil sein, ist ${v}`);
+    }
+    for (const k of ['early', 'mid', 'late']) {
+      assert.ok(profile.phase[k] > 0.3 && profile.phase[k] < 3, `phase.${k} unplausibel: ${profile.phase[k]}`);
+    }
+    // Die Phase misst den PERSÖNLICHEN Anteil — der generische Verlauf steckt
+    // schon im Suchfaktor. Ein Bot ohne Phasen-Eigenheit muss deshalb bei ~1
+    // landen; vor dem Herausrechnen des Tier-Anteils kam die Eröffnung als 1,86.
+    assert.ok(Math.abs(profile.phase.early - 1) < 0.35,
+      `Eröffnung sollte neutral (~1) messen, ist ${profile.phase.early}`);
+  });
+
+  test('Fehler-Verteilungen summieren sich zu 1 (oder sind gleichverteilt)', () => {
+    const { profile } = buildProfile(samplesFor(PRESET_PROFILES.medium, 10));
+    for (const field of ['errPhase', 'errTier']) {
+      const sum = Object.values(profile[field]).reduce((a, b) => a + b, 0);
+      assert.ok(Math.abs(sum - 1) < 0.05, `${field} summiert zu ${sum}`);
+    }
+    // Ohne beobachtete Fehler darf nicht „passiert nie" herauskommen.
+    const noErr = buildProfile([{ thinkCount: 9, think: { t1: 1000 }, burstMs: 200, mistakes: 0 }]);
+    assert.equal(noErr.profile.errPhase.early, 0.33);
   });
 
   test('das Ergebnis ist ein für duelbot brauchbares Profil', () => {

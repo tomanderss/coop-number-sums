@@ -1,0 +1,2 @@
+Dein KI-Klon lernt jetzt aus JEDEM Modus: Solo, Endlos-Aufstieg (jedes Level einzeln), Coop, Team und alle Duelle. Bisher zählten nur reine Solo-Partien — ein langer Endlos-Lauf war für den Klon unsichtbar.
+Der Klon erfasst außerdem, WIE du spielst: ob du zuerst auf Käfige oder auf Zeilen und Spalten schaust, wie sprunghaft du über das Brett arbeitest, ob du früh oder spät stärker bist und in welchen Situationen du dich verklickst. Sein Gegner-Verhalten richtet sich nach all dem.

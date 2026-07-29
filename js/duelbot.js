@@ -102,6 +102,10 @@ const LIMITS = {
   't1':   [250, 30000], 't2': [400, 60000], 'hard': [600, 90000],
   burstMs: [60, 4000], searchMax: [1, 6], mistakesPerGame: [0, 8],
   recoverMs: [200, 20000], stallRate: [0, 0.3], stallMin: [0, 40], stallSpan: [0, 80],
+  // Verhaltensmuster: Anteile bzw. Faktoren. `phase` ist nach oben und unten
+  // begrenzt, weil ein extremer Wert die Kalibrierung sonst aushebeln könnte
+  // (0,01 in allen Phasen = Instant-Win trotz korrekter Zielzeit).
+  regionBias: [0, 1], locality: [0, 1], phase: [0.3, 3], errShare: [0, 1],
 };
 const clampNum = (v, [lo, hi], fallback) => {
   const n = Number(v);
@@ -114,6 +118,7 @@ export function clampProfile(p) {
   const base = PRESET_PROFILES.medium;
   const src = (p && typeof p === 'object') ? p : {};
   const th = (src.think && typeof src.think === 'object') ? src.think : {};
+  const ph = (src.phase && typeof src.phase === 'object') ? src.phase : {};
   return {
     think: {
       t1:   clampNum(th.t1,   LIMITS['t1'],   base.think.t1),
@@ -127,7 +132,29 @@ export function clampProfile(p) {
     stallRate:   clampNum(src.stallRate,   LIMITS.stallRate,   base.stallRate),
     stallMin:    clampNum(src.stallMin,    LIMITS.stallMin,    base.stallMin),
     stallSpan:   clampNum(src.stallSpan,   LIMITS.stallSpan,   base.stallSpan),
+    // Verhaltensmuster (fehlen bei Presets und bei Alt-Profilen ⇒ 0/neutral).
+    regionBias: clampNum(src.regionBias, LIMITS.regionBias, 0),
+    locality:   clampNum(src.locality,   LIMITS.locality,   0),
+    phase: {
+      early: clampNum(ph.early, LIMITS.phase, 1),
+      mid:   clampNum(ph.mid,   LIMITS.phase, 1),
+      late:  clampNum(ph.late,  LIMITS.phase, 1),
+    },
+    errPhase: normShares(src.errPhase, ['early', 'mid', 'late']),
+    errTier: normShares(src.errTier, ['t1', 't2', 'hard']),
   };
+}
+
+// Anteile eines Fremdprofils auf Summe 1 normieren. Ein manipulierter Eintrag
+// könnte sonst „alle Fehler in der Endphase, Faktor 50" behaupten und den Klon
+// dort reihenweise ausscheiden lassen — oder umgekehrt nie.
+function normShares(src, keys) {
+  const o = (src && typeof src === 'object') ? src : {};
+  const vals = keys.map((k) => clampNum(o[k], LIMITS.errShare, 0));
+  const sum = vals.reduce((a, v) => a + v, 0);
+  const out = {};
+  keys.forEach((k, i) => { out[k] = sum > 0 ? Math.round((vals[i] / sum) * 100) / 100 : Math.round((1 / keys.length) * 100) / 100; });
+  return out;
 }
 
 // Fremde DURCHSCHNITTSZEITEN müssen genauso geklemmt werden wie das Profil, und
@@ -210,6 +237,7 @@ function makeBot(puzzle, profile, skill, seed) {
     lives: 3,
     queue: [],          // offene Züge der AKTUELLEN Deduktion (Burst)
     lastGroupId: -1,    // Lokalität: Menschen arbeiten dort weiter, wo sie waren
+    lastGroups: null,   // alle Strukturen der zuletzt bearbeiteten Zelle
   };
 }
 
@@ -221,15 +249,18 @@ function makeBot(puzzle, profile, skill, seed) {
 // hinter dem ohnehin sichtbaren Lade-Overlay, also unkritisch.
 function dryRun(puzzle, profile, skill, seed) {
   const dry = makeBot(puzzle, { ...clampProfile(profile), mistakesPerGame: 0 }, skill, seed);
-  let total = 0, thinks = 0;
+  let total = 0, thinks = 0, errWSum = 0;
   for (let i = 0; i < 100000 && !botDone(dry); i++) {
     const a = nextAction(dry);
     if (a.kind === 'done') break;
     total += a.delayMs;
-    if (!a.burst) thinks++;
+    // Nicht die Denkzüge ZÄHLEN, sondern ihre Fehler-Gewichte summieren: teilt man
+    // `mistakesPerGame` durch diese Summe, ist die erwartete Fehlerzahl exakt die
+    // kalibrierte — auch bei stark ungleicher Verteilung über Phasen/Tiers.
+    if (!a.burst) { thinks++; errWSum += (a.errW > 0 ? a.errW : 1); }
     applyAction(dry, a);
   }
-  return { total, thinks };
+  return { total, thinks, errWSum };
 }
 
 // `targetMs` (optional) = gewünschte GESAMTdauer des Duells, i.d.R. aus
@@ -241,7 +272,7 @@ function dryRun(puzzle, profile, skill, seed) {
 // über targetMs (nicht doppelt — der Trockenlauf enthält denselben Faktor).
 export function createBot({ puzzle, profile, skill = 1, seed = 1, targetMs = null } = {}) {
   const bot = makeBot(puzzle, profile, skill, seed);
-  const { total: base, thinks } = dryRun(puzzle, profile, skill, seed);
+  const { total: base, thinks, errWSum } = dryRun(puzzle, profile, skill, seed);
   // Zeit auf die Zielzeit (= Durchschnittszeit) skalieren. Die erwartete
   // Fehler-Erholzeit gehört in die Referenz: die Durchschnittszeit eines echten
   // Spielers ENTHÄLT dessen Fehler schon — sonst käme sie oben drauf und der Bot
@@ -251,8 +282,11 @@ export function createBot({ puzzle, profile, skill = 1, seed = 1, targetMs = nul
     bot.timeScale = clampNum(targetMs / (base + overhead), [0.02, 50], 1);
   }
   // Fehler PRO PARTIE in eine Wahrscheinlichkeit je Denkzug umrechnen — dadurch
-  // bleibt die erwartete Fehlerzahl über alle Brettgrößen konstant.
-  bot.mistakeP = thinks > 0 ? Math.min(0.5, bot.prof.mistakesPerGame / thinks) : 0;
+  // bleibt die erwartete Fehlerzahl über alle Brettgrößen konstant. Geteilt wird
+  // durch die Summe der GEWICHTE (nicht die Anzahl der Denkzüge), damit auch eine
+  // schiefe Phasen-/Tier-Verteilung die Gesamtzahl nicht verschiebt.
+  const wSum = errWSum > 0 ? errWSum : thinks;
+  bot.mistakeP = wSum > 0 ? bot.prof.mistakesPerGame / wSum : 0;
   return bot;
 }
 
@@ -391,12 +425,35 @@ export function nextAction(bot) {
   const buckets = candidateBuckets(bot);
   if (!buckets.length) return { kind: 'done', delayMs: 0 };
 
-  // Bucket wählen: leichte Deduktionen bevorzugt, und bevorzugt dort, wo der Bot
-  // gerade gearbeitet hat (Lokalität) — sonst wirkt er wie ein Scanner.
+  // Bucket wählen: leichte Deduktionen bevorzugt, bevorzugt dort, wo der Bot
+  // gerade gearbeitet hat (Lokalität), und bevorzugt in der Art von Struktur, die
+  // sein Vorbild zuerst absucht — sonst wirkt er wie ein Scanner. `locality` und
+  // `regionBias` kommen beim Klon aus echten Partien (js/playstyle.js); 0 heißt
+  // „keine Aussage" und lässt das neutrale Preset-Verhalten stehen.
+  // Lokalität in ZWEI Stufen, und das mit Absicht:
+  //  • Ohne Messwert (alle Presets) bleibt es beim engen Kriterium „genau dieselbe
+  //    Gruppe, Faktor 3". Das ist das über viele Messungen eingestellte Verhalten,
+  //    das die zähe Mitte trägt — es breiter zu fassen machte das mittlere Drittel
+  //    genauso schnell wie den Einstieg (gemessen 729 ms vs 738 ms), weil der Bot
+  //    dann in Kaskaden hängen bleibt und die Teilsummen-Lagen seltener erreicht.
+  //  • Mit Messwert (Klon) zählt „berührt eine Struktur des letzten Zuges" — genau
+  //    die Definition, die playstyle.js messt. Nur so lässt sich ein sprunghafter
+  //    Spieler von einem hartnäckigen unterscheiden (gemessen 0,68 vs 0,88).
+  const hasLoc = p.locality > 0;
+  const localW = 0.55 + 4.5 * (hasLoc ? p.locality : 0.55);
   let best = null, bestW = -1;
   for (const b of buckets) {
     let w = b.tier === TIER.T1 ? 3 : b.tier === TIER.T2 ? 1.5 : 1;
-    if (b.groupId === bot.lastGroupId) w *= 2.5;
+    if (!hasLoc) {
+      if (b.groupId === bot.lastGroupId) w *= 3;
+    } else if (b.groupId === bot.lastGroupId || (bot.lastGroups && bot.lastGroups.includes(b.groupId))) {
+      w *= localW;
+    }
+    if (p.regionBias > 0) {
+      const isRegion = (bot.model.groups[b.groupId] || {}).kind === 'region';
+      // Anteil 0,5 = neutral; 0,8 heißt „achtet klar zuerst auf Käfige".
+      w *= isRegion ? (0.5 + p.regionBias) : (1.5 - p.regionBias);
+    }
     w *= 0.5 + bot.rng();
     if (w > bestW) { bestW = w; best = b; }
   }
@@ -406,7 +463,14 @@ export function nextAction(bot) {
   const covered = new Set();
   for (const b of buckets) for (const m of b.moves) covered.add(m.ci);
   const undecided = bot.total - bot.decided;
-  let delay = (think / sk) * searchFactor(buckets.length, covered.size, undecided, bot.total, p.searchMax) * jit();
+  // Spielphase aus dem Fortschritt — dieselbe Dreiteilung, die playstyle.js messt.
+  const prog = bot.total > 0 ? bot.decided / bot.total : 0;
+  const phaseKey = prog < 1 / 3 ? 'early' : prog < 2 / 3 ? 'mid' : 'late';
+  // PERSÖNLICHES Phasen-Tempo. Der generische Verlauf (leichter Einstieg, zähe
+  // Mitte, schnelles Auflösen) steckt bereits in searchFactor; dieser Faktor legt
+  // nur obendrauf, was den einzelnen Spieler auszeichnet — z.B. „bricht am Ende ein".
+  const phaseF = (p.phase && p.phase[phaseKey] > 0) ? p.phase[phaseKey] : 1;
+  let delay = (think / sk) * searchFactor(buckets.length, covered.size, undecided, bot.total, p.searchMax) * phaseF * jit();
 
   // Echte HÄNGER: Phasen, in denen scheinbar nichts passiert — man starrt aufs
   // Brett, findet den Faden nicht, legt das Handy kurz weg. Als VIELFACHES der
@@ -420,10 +484,32 @@ export function nextAction(bot) {
   }
 
   // Fehlgriff: kostet Leben + Zeit, das Brett bleibt unverändert (wie setMark()).
-  if (bot.rng() < bot.mistakeP / sk) {
-    return { kind: 'mistake', delayMs: Math.round((delay + p.recoverMs / sk) * scale) };
+  // Die Grundquote stammt aus der Kalibrierung (Fehler PRO PARTIE); `errPhase` und
+  // `errTier` verschieben sie nur dorthin, wo das Vorbild wirklich danebengreift —
+  // in welcher Spielphase und bei welcher Art von Deduktion. Der Gewichtungsfaktor
+  // wird MITGEGEBEN, weil der Trockenlauf ihn aufsummiert und `mistakeP` daraus
+  // bestimmt: nur so bleibt die erwartete Fehlerzahl je Partie exakt die
+  // kalibrierte, egal wie schief die Verteilung ist.
+  const errW = errWeight(p, phaseKey, best.tier);
+  if (bot.rng() < Math.min(0.5, (bot.mistakeP * errW) / sk)) {
+    return { kind: 'mistake', delayMs: Math.round((delay + p.recoverMs / sk) * scale), errW };
   }
-  return { kind: 'move', delayMs: Math.round(delay * scale), move: best.moves[0], rest: best.moves.slice(1), groupId: best.groupId, tier: best.tier };
+  return { kind: 'move', delayMs: Math.round(delay * scale), move: best.moves[0], rest: best.moves.slice(1), groupId: best.groupId, tier: best.tier, errW };
+}
+
+// Relative Fehlerneigung dieser Situation. Anteile werden auf die
+// Gleichverteilung normiert (×Anzahl der Klassen), damit ein neutrales Profil
+// exakt 1 ergibt und die Kalibrierung unangetastet bleibt.
+function errWeight(p, phaseKey, tier) {
+  const ph = (p.errPhase && p.errPhase[phaseKey] > 0) ? p.errPhase[phaseKey] * 3 : 1;
+  const ti = (p.errTier && p.errTier[tier] > 0) ? p.errTier[tier] * 3 : 1;
+  // Nach oben BEGRENZT, und zwar wegen eines Effekts, den der Trockenlauf nicht
+  // sehen kann: ein Fehlgriff lässt das Brett unverändert, der Bot würfelt also
+  // gleich wieder in derselben Phase mit demselben hohen Gewicht — Fehler
+  // clustern und die Gesamtzahl läuft davon (gemessen 1,40 statt 1,2 bei einer
+  // 96-%-Konzentration auf die Endphase). Der Deckel erhält die RICHTUNG der
+  // Verteilung, verhindert aber das Aufschaukeln.
+  return clampNum(ph * ti, [0.25, 2], 1);
 }
 
 // Aktion anwenden. Mutiert den Bot (interne Zustandsmaschine, kein
@@ -447,5 +533,8 @@ export function applyAction(bot, action) {
   }
   bot.queue = action.burst ? bot.queue.slice(1) : (action.rest || []);
   if (action.groupId != null && action.groupId >= 0) bot.lastGroupId = action.groupId;
+  // Alle Strukturen der zuletzt bearbeiteten Zelle merken — Grundlage der Lokalität.
+  const lastCell = bot.model.cells[ci];
+  if (lastCell) bot.lastGroups = lastCell.groups;
   return { pct: botPct(bot), done: botDone(bot) };
 }

@@ -51,6 +51,128 @@ describe('duelbot.clampProfile (Fremdprofile dürfen die Engine nie sprengen)', 
       assert.equal(p.think.t1, PRESET_PROFILES.medium.think.t1);
     }
   });
+
+  test('Verhaltensmuster werden geklemmt und Anteile normiert', () => {
+    const p = clampProfile({
+      regionBias: 5, locality: -2,
+      phase: { early: 0.001, mid: NaN, late: 99 },
+      errPhase: { early: 40, mid: 0, late: 0 },
+      errTier: { t1: 'x', t2: null, hard: undefined },
+    });
+    assert.equal(p.regionBias, 1);
+    assert.equal(p.locality, 0);
+    // Ein 0,001-Faktor in allen Phasen wäre ein Instant-Win trotz korrekter Zielzeit.
+    assert.equal(p.phase.early, 0.3);
+    assert.equal(p.phase.mid, 1);
+    assert.equal(p.phase.late, 3);
+    // Anteile summieren immer zu 1 — ein „40" darf nicht als 40-fache Quote wirken.
+    assert.equal(p.errPhase.early, 1);
+    assert.equal(p.errPhase.mid, 0);
+    // Gar keine brauchbaren Werte ⇒ Gleichverteilung, nicht „passiert nie".
+    assert.equal(p.errTier.t1, 0.33);
+  });
+});
+
+// Ein Profil ohne wirksame Hebel wäre Statistik-Theater: die gemessenen Muster
+// müssen das Zugverhalten des Bots nachweisbar verändern.
+describe('duelbot: Verhaltensmuster wirken wirklich', () => {
+  // Spielt fehlerfrei durch und meldet, WAS der Bot bevorzugt hat.
+  function trace(extra, seed) {
+    const puzzle = generatePuzzle({ difficulty: 'mittel', seed: seed * 131 });
+    const profile = { ...PRESET_PROFILES.medium, mistakesPerGame: 0, ...extra };
+    const bot = createBot({ puzzle, profile, seed, targetMs: targetMsFor({ difficulty: 'mittel' }) });
+    let region = 0, thinks = 0, local = 0, pairs = 0, lastGroups = null, guard = 0;
+    while (!botDone(bot) && guard++ < 20000) {
+      const a = nextAction(bot);
+      if (a.kind === 'done') break;
+      if (!a.burst && a.groupId != null) {
+        thinks++;
+        if ((bot.model.groups[a.groupId] || {}).kind === 'region') region++;
+      }
+      // Anker wie in playstyle.js: ALLE eigenen Züge, auch Bursts.
+      const cell = a.move ? bot.model.cells[a.move.ci] : null;
+      if (cell) {
+        if (lastGroups) { pairs++; if (cell.groups.some((g) => lastGroups.includes(g))) local++; }
+        lastGroups = cell.groups;
+      }
+      applyAction(bot, a);
+    }
+    return { region: thinks ? region / thinks : 0, local: pairs ? local / pairs : 0 };
+  }
+  const avg = (extra, n = 12) => {
+    let r = 0, l = 0;
+    for (let s = 1; s <= n; s++) { const t = trace(extra, s); r += t.region; l += t.local; }
+    return { region: r / n, local: l / n };
+  };
+
+  test('regionBias verschiebt, welche Struktur der Bot zuerst absucht', () => {
+    const cage = avg({ regionBias: 0.9 });
+    const line = avg({ regionBias: 0.1 });
+    assert.ok(cage.region > line.region + 0.1,
+      `Käfig-Spieler muss deutlich mehr Käfig-Deduktionen ziehen (${cage.region.toFixed(2)} vs ${line.region.toFixed(2)})`);
+  });
+
+  // Verglichen werden zwei GEMESSENE Profile, nicht eines gegen das Preset: die
+  // Presets laufen bewusst über das engere Kriterium (s. nextAction), ein Vergleich
+  // über die Mechanismus-Grenze hinweg würde also nicht den Hebel messen.
+  test('locality trennt den sprunghaften vom hartnäckigen Spieler', () => {
+    const jumpy = avg({ locality: 0.05 });
+    const sticky = avg({ locality: 0.95 });
+    assert.ok(jumpy.local < sticky.local - 0.08,
+      `sprunghaft muss messbar weniger lokal sein (${jumpy.local.toFixed(2)} vs ${sticky.local.toFixed(2)})`);
+  });
+
+  test('das Phasen-Tempo verschiebt die Zeit, ohne die Gesamtdauer zu sprengen', () => {
+    // Kalibriert wird auf die Zielzeit — ein Phasen-Profil darf sie nicht aushebeln.
+    const puzzle = generatePuzzle({ difficulty: 'mittel', seed: 909 });
+    const target = targetMsFor({ difficulty: 'mittel' });
+    const runFor = (phase) => {
+      const bot = createBot({
+        puzzle, seed: 3, targetMs: target,
+        profile: { ...PRESET_PROFILES.medium, mistakesPerGame: 0, phase },
+      });
+      let t = 0, guard = 0;
+      while (!botDone(bot) && guard++ < 20000) {
+        const a = nextAction(bot);
+        if (a.kind === 'done') break;
+        t += a.delayMs;
+        applyAction(bot, a);
+      }
+      return t;
+    };
+    const flat = runFor({ early: 1, mid: 1, late: 1 });
+    const lateSlump = runFor({ early: 0.7, mid: 1, late: 2 });
+    for (const [name, t] of [['neutral', flat], ['späterer Einbruch', lateSlump]]) {
+      assert.ok(Math.abs(t / target - 1) < 0.35, `${name}: ${(t / 1000).toFixed(0)}s vs Ziel ${(target / 1000).toFixed(0)}s`);
+    }
+  });
+
+  test('eine schiefe Fehler-Verteilung verschiebt WO, nicht WIE VIEL', () => {
+    // Die Kalibrierung teilt mistakesPerGame durch die Summe der GEWICHTE — ohne
+    // das würde eine Konzentration auf eine Phase die Gesamtzahl mit hochziehen.
+    const puzzle = generatePuzzle({ difficulty: 'mittel', seed: 707 });
+    const count = (errPhase) => {
+      let sum = 0;
+      for (let seed = 1; seed <= 25; seed++) {
+        const bot = createBot({
+          puzzle, seed, targetMs: targetMsFor({ difficulty: 'mittel' }),
+          profile: { ...PRESET_PROFILES.medium, mistakesPerGame: 1.2, errPhase },
+        });
+        let guard = 0;
+        while (!botDone(bot) && guard++ < 20000) {
+          const a = nextAction(bot);
+          if (a.kind === 'done') break;
+          if (a.kind === 'mistake') { sum++; if (applyAction(bot, a).out) break; continue; }
+          applyAction(bot, a);
+        }
+      }
+      return sum / 25;
+    };
+    const flat = count({ early: 0.33, mid: 0.33, late: 0.34 });
+    const skewed = count({ early: 0.02, mid: 0.02, late: 0.96 });
+    assert.ok(Math.abs(skewed - flat) < 0.6,
+      `Gesamtzahl darf nicht davonlaufen (${flat.toFixed(2)} neutral vs ${skewed.toFixed(2)} schief)`);
+  });
 });
 
 // Die Durchschnittszeiten eines Freundes bestimmen ALLEIN, wie lange sein Klon
