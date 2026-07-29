@@ -1,1 +1,0 @@
-Die Gegner-Auswahl im KI-Duell ist aufgeräumt: Du wählst jetzt zuerst zwischen Standard-KI und individueller KI. In der individuellen Sektion stehen nur noch Klone, die wirklich spielbereit sind — Klone, die noch lernen, findest du gesammelt in einer eigenen Übersicht mit Lernfortschritt.

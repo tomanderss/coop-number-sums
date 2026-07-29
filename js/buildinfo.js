@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.200';
-export const BUILD_HASH = '95976e9';
+export const BUILD      = '1.201';
+export const BUILD_HASH = '1e59ef3';
 
 export const CHANGELOG = [
+  {
+    "version": "1.201",
+    "date": "29.07.2026",
+    "changes": [
+      "Die Gegner-Auswahl im KI-Duell ist aufgeräumt: Du wählst jetzt zuerst zwischen Standard-KI und individueller KI. In der individuellen Sektion stehen nur noch Klone, die wirklich spielbereit sind — Klone, die noch lernen, findest du gesammelt in einer eigenen Übersicht mit Lernfortschritt."
+    ]
+  },
   {
     "version": "1.200",
     "date": "29.07.2026",
