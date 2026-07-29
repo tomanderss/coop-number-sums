@@ -38,9 +38,15 @@ test.describe('KI-Duell', () => {
   test('Einstieg, Setup und Start funktionieren (ohne Lobby, ohne Netz)', async ({ page }) => {
     await openAiSetup(page);
     expect(await page.evaluate(() => window.__cns.state.screen)).toBe('aiduel');
-    // Alle vier festen Stufen + Prozent-Regler sind da (beide Regler, wie gefordert).
+    // Vier feste Stärke-Stufen — bewusst KEIN zusätzlicher Prozent-Regler:
+    // innerhalb einer Stufe brachte er keine sinnvolle Unterscheidung.
     await expect(page.locator('.ai-lv')).toHaveCount(4);
-    await expect(page.locator('.ai-skill input[type="range"]')).toBeVisible();
+    await expect(page.locator('.ai-skill')).toHaveCount(0);
+    // Gegner-Auswahl: Standard-Stufen ODER der eigene Klon. Ohne aufgezeichnete
+    // Partien ist der Klon gesperrt und zeigt stattdessen den Lernfortschritt.
+    await expect(page.locator('.ai-opp')).toHaveCount(2);
+    await expect(page.locator('.ai-opp.ai-clone')).toBeDisabled();
+    await expect(page.locator('.ai-opp.ai-clone')).toContainText('lernt noch');
     // Die erwartete Gegnerzeit wird angezeigt und ist eine echte Zeit.
     await expect(page.locator('.ai-target')).toContainText(/\d+:\d\d/);
 
@@ -57,15 +63,15 @@ test.describe('KI-Duell', () => {
     expect(st.target).toBeGreaterThan(0);
   });
 
-  test('der Prozent-Regler verändert die erwartete Gegnerzeit', async ({ page }) => {
+  test('die Stärke-Stufe verändert die erwartete Gegnerzeit', async ({ page }) => {
     await openAiSetup(page);
-    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'mittel'; window.__cns.state.race.aiSkill = 1; });
+    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'mittel'; window.__cns.state.race.aiLevel = 'medium'; });
     await page.waitForTimeout(120);
-    const normal = await page.locator('.ai-target').innerText();
-    await page.evaluate(() => { window.__cns.state.race.aiSkill = 1.4; });
+    const medium = await page.locator('.ai-target').innerText();
+    await page.evaluate(() => { window.__cns.state.race.aiLevel = 'brutal'; });
     await page.waitForTimeout(120);
-    const fast = await page.locator('.ai-target').innerText();
-    expect(fast).not.toBe(normal);
+    const brutal = await page.locator('.ai-target').innerText();
+    expect(brutal).not.toBe(medium);
   });
 
   test('der Bot macht Fortschritt und bleibt in der Pause stehen', async ({ page }) => {
