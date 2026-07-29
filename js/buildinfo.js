@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.199';
-export const BUILD_HASH = 'b30e8e6';
+export const BUILD      = '1.200';
+export const BUILD_HASH = '95976e9';
 
 export const CHANGELOG = [
+  {
+    "version": "1.200",
+    "date": "29.07.2026",
+    "changes": [
+      "Neu im KI-Duell: Du kannst jetzt gegen die Klone deiner Freunde antreten. Ein Freundes-Klon spielt mit dem Stil UND den Durchschnittszeiten seines Vorbilds — ein starker Freund ist damit auch als Gegner stärker. Freunde, deren Klon noch lernt, stehen mit ihrem Lernfortschritt in der Liste.",
+      "Dein eigener Klon wird veröffentlicht, sobald er fertig kalibriert ist, damit deine Freunde gegen dich antreten können — auch während du gar nicht online bist."
+    ]
+  },
   {
     "version": "1.199",
     "date": "29.07.2026",
