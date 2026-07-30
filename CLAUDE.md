@@ -66,7 +66,7 @@ node build.js --major                           # bump major, reset minor
 
 - Unit: `node:test`, no framework. Import `js/` modules directly.
 - E2E: Playwright, Pixel 7 emulation, `de-DE` locale, server on port 8099. Helpers in `test/e2e/helpers.js`. State driven via `window.__cns`.
-- CI: `.github/workflows/test.yml` — triggers on push to `master` and all PRs.
+- CI: `.github/workflows/test.yml` — läuft auf **PRs** (nicht mehr zusätzlich auf `push: master`: der Nachlauf testete nach dem Squash-Merge denselben Baum, der als PR gerade grün war, und kostete jeden Merge doppelt; wir mergen strikt seriell und nur nach grünem PR-Lauf). **Kostenbewusst geschnitten** — der Juli-Verbrauchsbericht zeigte 4738 Actions-Minuten allein für diesen Workflow (76 % des Kontingents, ~680 Läufe): `concurrency` + `cancel-in-progress` (ein neuer Push bricht den überholten Lauf ab — vorher wurden beide bezahlt, der größte Einzelposten, weil ein PR meist mehrere Korrektur-Pushes bekommt), `cache: 'npm'`, **Playwright-Browser-Cache** (`~/.cache/ms-playwright`, Schlüssel = `hashFiles('package-lock.json')`, bei Treffer nur noch `install-deps` statt ~120 MB Chromium-Download), `timeout-minutes: 20` (ohne Limit lässt GitHub einen hängenden Job 6 h laufen = 360 Minuten für nichts) und `paths-ignore` für reine Text-/Release-Dateien. **`sw.js` gehört NICHT in `paths-ignore`**, obwohl `build.js` es bei jedem Release anfasst: der Unit-Test, der jedes `js/`-Modul in der Asset-Liste erzwingt, darf nie ausfallen (unvollständiger Precache = Nutzer offline ausgesperrt) — Release-PRs fahren deshalb weiterhin einen Lauf. Die Testabdeckung ist unverändert (immer die komplette Suite vor jedem Merge).
 
 ## Workflow for every code change
 

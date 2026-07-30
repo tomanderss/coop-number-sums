@@ -1,22 +1,78 @@
 name: Tests
 
+# ── Kostenbewusst geschnitten ────────────────────────────────────────────────
+# Der Verbrauchsbericht für Juli zeigte 4738 Actions-Minuten allein für diesen
+# Workflow (76 % der gesamten Kontingent-Nutzung) — bei ~7 min pro Lauf also rund
+# 680 Läufe. Die Maßnahmen unten setzen genau an den Posten an, die diese Zahl
+# erzeugt haben, OHNE die Testabdeckung zu verringern: es läuft weiterhin die
+# komplette Suite (Unit + E2E) vor jedem Merge.
+
 on:
-  push:
-    branches: [master]
+  # Der frühere zweite Trigger `push: branches: [master]` ist entfallen: er fuhr
+  # nach dem Squash-Merge dieselbe Suite auf demselben Baum, der als PR gerade
+  # grün war — jeder Merge kostete dadurch doppelt. Wir mergen strikt seriell und
+  # immer erst nach grünem PR-Lauf, der Nachlauf brachte also keine neue Aussage.
   pull_request:
+    # Reine Text-/Release-Änderungen brauchen keinen Testlauf. `paths-ignore`
+    # greift nur, wenn ALLE geänderten Dateien hier gelistet sind — ein PR mit
+    # Code fährt also weiterhin die volle Suite.
+    # sw.js steht BEWUSST NICHT hier, obwohl `node build.js` es bei jedem Release
+    # anfasst: ein Unit-Test prüft, dass jedes js/-Modul in der Asset-Liste des
+    # Service Workers steht, und diese Prüfung darf nie ausfallen (ein
+    # unvollständiger Precache sperrt Nutzer offline aus).
+    paths-ignore:
+      - '**.md'
+      - 'changes.txt'
+      - 'version-*.txt'
+      - '.release-counter'
+      - 'js/buildinfo.js'
+      - '.gitignore'
+      - 'LICENSE'
+
+# Ein neuer Push auf denselben PR macht den laufenden Test überflüssig — vorher
+# liefen beide bis zum Ende durch und wurden beide bezahlt. Das war der größte
+# einzelne Kostenposten, weil ein PR im Schnitt mehrere Korrektur-Pushes bekommt.
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Schutz gegen den teuersten Einzelfall: ohne Limit lässt GitHub einen
+    # hängenden Job bis zu 6 Stunden laufen (= 360 Minuten für einen Lauf, der
+    # nichts liefert). Die Suite braucht ~7 min, 20 min sind reichlich Luft.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          # npm-Cache: spart den Neu-Download der Abhängigkeiten je Lauf.
+          cache: 'npm'
 
       - run: npm ci
 
-      - run: npx playwright install --with-deps chromium
+      # Chromium wog bisher jeden Lauf neu ~120 MB Download. Der Cache-Schlüssel
+      # hängt an package-lock.json — ein Playwright-Versionssprung erzeugt also
+      # automatisch einen neuen Schlüssel, es kann keine veraltete Browser-Version
+      # hängen bleiben.
+      - name: Playwright-Browser aus dem Cache
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Chromium installieren (nur bei Cache-Miss)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      # Bei Cache-Treffer liegt der Browser schon da; die System-Bibliotheken
+      # gehören zur Runner-Umgebung und müssen trotzdem gesetzt werden.
+      - name: Systemabhängigkeiten (bei Cache-Treffer)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - run: npm test
