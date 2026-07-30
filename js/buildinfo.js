@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.201';
-export const BUILD_HASH = '1e59ef3';
+export const BUILD      = '1.202';
+export const BUILD_HASH = '820f80c';
 
 export const CHANGELOG = [
+  {
+    "version": "1.202",
+    "date": "30.07.2026",
+    "changes": [
+      "Dein KI-Klon lernt jetzt aus JEDEM Modus: Solo, Endlos-Aufstieg (jedes Level einzeln), Coop, Team und alle Duelle. Bisher zählten nur reine Solo-Partien — ein langer Endlos-Lauf war für den Klon unsichtbar.",
+      "Der Klon erfasst außerdem, WIE du spielst: ob du zuerst auf Käfige oder auf Zeilen und Spalten schaust, wie sprunghaft du über das Brett arbeitest, ob du früh oder spät stärker bist und in welchen Situationen du dich verklickst. Sein Gegner-Verhalten richtet sich nach all dem."
+    ]
+  },
   {
     "version": "1.201",
     "date": "29.07.2026",
