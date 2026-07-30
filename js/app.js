@@ -1379,6 +1379,10 @@ function endlessLevelSolved(remote) {
     if (state.isTrainingGame || !state.puzzle) return;
     const isCoop = !!e.coop;
     const diff = state.puzzle.difficulty;
+    // Jedes Endlos-Level ist ein vollwertiges Einzelspiel — also auch eine eigene
+    // Stilprobe. Ohne diesen Aufruf wäre ein langer Endlos-Lauf für den Klon
+    // unsichtbar, obwohl dort die meisten Züge fallen.
+    recordPlaySample();
     // Streak ZUERST (der Streak-Münz-Multiplikator zählt den heutigen Sieg mit).
     applyStreakAfterGame();
     // Bestzeit-Vergleich VOR recordResult einfangen (der Aufruf überschreibt sie).
@@ -1471,6 +1475,9 @@ function endlessGameOver() {
   stopTimer();
   const score = e.score;
   e.accumMs = (e.accumMs || 0) + Math.max(0, state.elapsed || 0);   // auch die Zeit des verlorenen Levels zählt zur Laufzeit
+  // Auch das GESCHEITERTE Level ist Trainingsmaterial: der Spieler hat bis zum Aus
+  // normal gespielt (lose() verzweigt vor seinem eigenen recordPlaySample hierher).
+  recordPlaySample();
   // Individuelle Niederlage (Zähler global + je Schwierigkeit, Tages-Streak-
   // Aktivität, Verlauf, Missionen) — exakt wie lose() bei einem Einzelspiel.
   if (state.puzzle && !state.isTrainingGame) {
@@ -1612,6 +1619,7 @@ function endlessCoopGameOver() {
   const e = state.endless;
   const score = e.score;
   e.accumMs = (e.accumMs || 0) + Math.max(0, state.elapsed || 0);   // Zeit des verlorenen Levels zählt zur Laufzeit
+  recordPlaySample();   // auch das gescheiterte Coop-Level zählt für den Klon
   // Individuelle Coop-Niederlage für das Schluss-Level (jeder Client bucht seine
   // eigene Statistik — wie bei einer normalen Coop-Niederlage in lose()).
   if (state.puzzle && !state.isTrainingGame) {
@@ -2022,7 +2030,13 @@ function setMark(r, c, next, user, fromId) {
   if (user) {
     const sol = state.puzzle.solution[r][c];
     const wrong = (next === 'kept' && !sol) || (next === 'removed' && sol);
-    if (wrong) { flashError(r, c); registerMistake(); return; }
+    if (wrong) {
+      // Der Fehlgriff gehört MIT ins Zug-Log (nur ein Array-Push): erst dadurch
+      // lässt sich später sagen, WO jemand danebengreift — in welcher Spielphase
+      // und bei welcher Art von Deduktion — statt bloß WIE OFT.
+      if (moveLog) moveLog.push({ r, c, want: next, t: state.elapsed, err: 1 });
+      flashError(r, c); registerMistake(); return;
+    }
   }
 
   const region = state.cellMeta[r][c].region;
@@ -2032,7 +2046,13 @@ function setMark(r, c, next, user, fromId) {
   // Spielstil-Aufzeichnung: NUR ein Array-Push (kein localStorage, keine Analyse)
   // — der Tap-Pfad muss billig bleiben (Board-Render-Regeln in CLAUDE.md). Die
   // Auswertung läuft einmal am Spielende, s. recordPlaySample().
-  if (user && next !== 'none' && moveLog) moveLog.push({ r, c, want: next, t: state.elapsed });
+  // FREMDE Züge (Coop/Team, geteiltes Brett) wandern MIT ins Log, markiert als
+  // `other`: die Auswertung stellt das Brett Zug für Zug nach, und ohne die Züge
+  // des Partners wäre dieser Nachbau ab dem ersten fremden Zug falsch — die
+  // Deduktions-Einordnung MEINER Züge damit auch. Gemessen werden sie nicht.
+  if (next !== 'none' && moveLog && (user || state.coop.active || state.team.active)) {
+    moveLog.push(user ? { r, c, want: next, t: state.elapsed } : { r, c, want: next, t: state.elapsed, other: 1 });
+  }
 
   state.history = [{ r, c, prev: cur }]; // nur der letzte Zug ist rückgängig machbar
   state.marks[r][c] = next;
@@ -6344,8 +6364,14 @@ let moveLog = null;
 // Nur ECHTE eigene Solo-Partien taugen als Trainingsdaten: Training ist geführt,
 // Coop/Team sind fremdbestimmt, und KI-Duelle würden den Klon auf sich selbst
 // zurückkoppeln.
+// JEDER Modus zählt für den Klon: Solo, Endlos, Coop, Team, Duell 1v1/FFA und
+// auch das KI-Duell — überall spielt der Nutzer selbst, und nur die Summe aller
+// Partien ergibt einen Klon, der wirklich er ist. Ausgenommen bleibt EINZIG der
+// Trainingsmodus: dort setzt der Tutor die Züge (`applyTrainingStep` ruft setMark),
+// die Deduktion kommt also von der App und nicht vom Spieler — als Stilprobe wäre
+// das eine Aufzeichnung der App über sich selbst.
 function playSampleEligible() {
-  return !state.isTrainingGame && !state.isRaceGame && !state.coop.active && !state.team.active;
+  return !state.isTrainingGame;
 }
 function startPlayLog() { moveLog = playSampleEligible() ? [] : null; }
 
