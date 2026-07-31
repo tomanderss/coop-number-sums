@@ -703,6 +703,9 @@ export async function publishAiProfile({ profile, games, avgMs, username, badge 
       avgMs: avgMs && Object.keys(avgMs).length ? avgMs : null,
       profile,
     }));
+    // `games` mitloggen: daran lässt sich im Diagnoseprotokoll ablesen, ob ein
+    // Klon überhaupt Trainingsmaterial bekommt — genau die Frage, die bei einem
+    // Freund ohne Fortschritt zuerst auftaucht.
     log('account', 'KI-Klon veröffentlicht', { games });
   } catch (e) { log('account', 'publishAiProfile fehlgeschlagen', e); }
 }

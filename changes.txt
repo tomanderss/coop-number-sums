@@ -1,0 +1,1 @@
+Der Lernfortschritt von Freundes-Klonen wird jetzt wirklich angezeigt. Bisher wurde ein Klon erst veröffentlicht, wenn er fertig war — bei jedem lernenden Freund stand deshalb dauerhaft „0/8" mit leerem Balken, egal wie viele Partien er schon gespielt hatte.
