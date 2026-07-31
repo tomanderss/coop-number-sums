@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.202';
-export const BUILD_HASH = '820f80c';
+export const BUILD      = '1.203';
+export const BUILD_HASH = '43d4162';
 
 export const CHANGELOG = [
+  {
+    "version": "1.203",
+    "date": "31.07.2026",
+    "changes": [
+      "Der Lernfortschritt von Freundes-Klonen wird jetzt wirklich angezeigt. Bisher wurde ein Klon erst veröffentlicht, wenn er fertig war — bei jedem lernenden Freund stand deshalb dauerhaft „0/8\" mit leerem Balken, egal wie viele Partien er schon gespielt hatte."
+    ]
+  },
   {
     "version": "1.202",
     "date": "30.07.2026",
