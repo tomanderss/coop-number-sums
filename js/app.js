@@ -6629,7 +6629,14 @@ function publishMyClone() {
   try {
     if (state.account.status !== 'in' || !isOnline()) return;
     const c = myClone();
-    if (!c.ready || !c.profile) return;
+    // BEWUSST auch den noch unfertigen Klon veröffentlichen. Vorher stand hier
+    // `!c.ready` — dadurch existierte `/aiProfiles/{uid}` erst ab der achten
+    // Partie, und für jeden lernenden Freund zeigte die Übersicht zwangsläufig
+    // „0/8" mit leerem Balken. Der Fortschritt war also strukturell nicht
+    // darstellbar. Die Empfängerseite entscheidet ohnehin selbst über die
+    // Spielbereitschaft (`games >= CLONE_MIN_GAMES` in friendClones), das
+    // vorläufige Profil wird nie als Gegner ausgewählt.
+    if (!c.profile) return;
     Account.publishAiProfile({
       profile: c.profile,
       games: c.games,
