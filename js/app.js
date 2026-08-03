@@ -1524,7 +1524,15 @@ function endlessAbort() {
   const { stats } = recordEndlessRun(score, { coop: !!e.coop });
   state.stats = stats;
   e.active = false;
-  saveActiveGameEndless(null); state.resumeAvailableEndless = null;  // Lauf abgebrochen → Fortsetzen-Slot räumen
+  // NUR ein SOLO-Lauf räumt den Fortsetzen-Slot. Ein Coop-Endlos-Lauf liegt dort
+  // ohnehin nie (Live-Session, nicht fortsetzbar) — der Slot gehört weiterhin dem
+  // EIGENEN Solo-Lauf. Vorher wurde er bedingungslos geleert: wer einer
+  // Coop-Endlos-Runde beitrat und sie verließ, verlor damit seinen eigenen,
+  // völlig unbeteiligten Solo-Endlos-Stand. (Im Diagnoseprotokoll nachvollzogen:
+  // Solo-Lauf auf Level 5 fortgesetzt, danach Beitritt zu einer fremden
+  // Coop-Endlos-Runde, beim Verlassen war der eigene Lauf weg.)
+  // endlessCoopGameOver räumt den Slot aus genau demselben Grund nicht.
+  if (!e.coop) { saveActiveGameEndless(null); state.resumeAvailableEndless = null; }
   recordMissionEvent({ played: true, endlessScore: score });
   checkAchievements();
   log('game', 'Endlos-Lauf abgebrochen', { score, coins: e.coins || 0 });
@@ -2644,6 +2652,14 @@ function handleCoopMsg(msg) {
       state.endless.lifeLossBy = state.coop.lifeLossBy.slice();
     }
     navigate('game');
+    // iOS-Schwarzbild: HIER baut der Beitretende ein komplett neues Brett auf,
+    // OHNE dass ein visibilitychange oder pageshow davor lag — und genau an diesen
+    // beiden Ereignissen hängt die bisherige Prävention. Nach einem Kaltstart über
+    // eine Einladung (iOS killt die PWA aggressiv) ist das die einzige Stelle, an
+    // der ein großer frischer Teilbaum ohne Repaint-Anstoß erscheint. Im gemeldeten
+    // Fall zeigte das Protokoll Brett geladen, Timer gestartet, Wake Lock aktiv und
+    // KEINE Ausnahme — der Zustand war also korrekt, nur nicht gezeichnet.
+    nudgeRepaint('coopInit');
     // running: die Runde LÄUFT bereits (Solo→Coop-Umwandlung / Nachzügler in einer
     // laufenden Coop-Runde) — sofort starten, OHNE auf das separate START-Event zu
     // warten. Damit kann der Beitretende unter keinen Umständen (Event-Reihenfolge,
