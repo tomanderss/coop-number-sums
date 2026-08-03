@@ -75,4 +75,35 @@ test.describe('coop endless climb', () => {
     expect(await page.evaluate(() => window.__cns.state.endless.level)).toBe(2);
     expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
   });
+
+  // Regression aus einem echten Diagnoseprotokoll: der Spieler hatte einen EIGENEN
+  // Solo-Endlos-Lauf auf Level 5 offen, trat der Coop-Endlos-Runde einer Freundin
+  // bei und verließ sie wieder — danach war sein eigener, völlig unbeteiligter Lauf
+  // verschwunden. Ursache: endlessAbort() räumte den Fortsetzen-Slot bedingungslos,
+  // obwohl ein Coop-Endlos-Lauf dort nie liegt (Live-Session). endlessCoopGameOver
+  // fasst den Slot aus genau diesem Grund nicht an.
+  test('das Verlassen einer Coop-Endlos-Runde loescht NICHT den eigenen Solo-Endlos-Stand', async ({ page }) => {
+    await gotoApp(page);
+    // Einen eigenen Solo-Endlos-Stand hinterlegen (wie nach „Endlos fortsetzen").
+    await page.evaluate(() => {
+      localStorage.setItem('cns_active_game_endless', JSON.stringify({
+        ts: Date.now(), pending: true,
+        endless: { level: 5, lives: 2, hints: 3, score: 4, bigNumbers: false, accumMs: 123456, coins: 400 },
+      }));
+    });
+    await asGuest(page);
+    await page.evaluate((p) => window.__cns.handleCoopMsg({ type: 'init', gameId: 'cl1', running: true, puzzle: p, marks: null, markedBy: null, startTime: Date.now(), lives: 3, maxLives: 3, endless: true, endlessLevel: 3 }), PUZZLE('mittel'));
+    await page.waitForSelector('.screen.game');
+    expect(await page.evaluate(() => window.__cns.state.endless.coop)).toBe(true);
+
+    // Über das Pausenmenü zurück ins Hauptmenü — genau der Weg aus dem Protokoll.
+    // Im Multiplayer steht der Chat-Knopf VOR dem Pause-Knopf, daher `.last()`.
+    await page.locator('.game-top .icon-btn').last().click();
+    await page.locator('.pause-overlay').getByText('Zum Menü').click();
+    await expect(page.locator('.screen.home')).toBeVisible();
+
+    const slot = await page.evaluate(() => JSON.parse(localStorage.getItem('cns_active_game_endless') || 'null'));
+    expect(slot, 'der eigene Solo-Endlos-Stand muss den Coop-Abbruch überleben').not.toBeNull();
+    expect(slot.endless.level).toBe(5);
+  });
 });

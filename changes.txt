@@ -1,0 +1,2 @@
+Wichtig: Wer einer Coop-Endlos-Runde beitrat und sie wieder verließ, hat dabei seinen EIGENEN offenen Endlos-Lauf verloren. Der eigene Lauf bleibt jetzt erhalten — eine Coop-Runde fasst ihn nicht mehr an.
+Beim Beitritt zu einer laufenden Partie wird das Brett jetzt zusätzlich zum Neuzeichnen angestoßen. Das soll den schwarzen Bildschirm verhindern, der auf dem iPhone auftreten konnte, wenn die App durch die Einladung frisch gestartet ist.
