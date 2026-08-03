@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.203';
-export const BUILD_HASH = '43d4162';
+export const BUILD      = '1.204';
+export const BUILD_HASH = '1bfca46';
 
 export const CHANGELOG = [
+  {
+    "version": "1.204",
+    "date": "03.08.2026",
+    "changes": [
+      "Wichtig: Wer einer Coop-Endlos-Runde beitrat und sie wieder verließ, hat dabei seinen EIGENEN offenen Endlos-Lauf verloren. Der eigene Lauf bleibt jetzt erhalten — eine Coop-Runde fasst ihn nicht mehr an.",
+      "Beim Beitritt zu einer laufenden Partie wird das Brett jetzt zusätzlich zum Neuzeichnen angestoßen. Das soll den schwarzen Bildschirm verhindern, der auf dem iPhone auftreten konnte, wenn die App durch die Einladung frisch gestartet ist."
+    ]
+  },
   {
     "version": "1.203",
     "date": "31.07.2026",
