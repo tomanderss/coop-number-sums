@@ -26,6 +26,24 @@ export function isActiveStatus(status) {
   return status === SESSION_STATUS.PLAYING || status === SESSION_STATUS.PAUSED;
 }
 
+// Ist eine Cloud-Session TOT, also endgültig nicht mehr fortsetzbar? Das ist der
+// Fall, wenn sie sich als aktiv ausgibt, ihr payload aber nichts Spielbares mehr
+// enthält: gar kein Brett, oder ein bereits vollständig gelöstes.
+//
+// Eine solche Session MUSS aktiv beendet werden. Sonst zieht sie JEDES Gerät bei
+// JEDEM Sichtbarwerden erneut („takeCloud"), legt sie in den Fortsetzen-Slot,
+// verwirft sie dort sofort wieder als gelöst — und die Cloud bleibt unverändert
+// auf „playing". Genau diese Endlosschleife stand 14-mal in einem 90-Minuten-
+// Diagnoseprotokoll und ließ auf beiden Geräten immer wieder „tote Spiele"
+// auftauchen. Solche Sessions entstanden u.a. durch einen früher an `Infinity`
+// gescheiterten „done"-Upload; sie heilen ohne diesen Schritt NIE von selbst,
+// weil nichts sie je wieder anfasst.
+export function sessionIsDead(cloud, payloadSolved = false) {
+  if (!cloud || !isActiveStatus(cloud.status)) return false;
+  if (!cloud.payload || !cloud.payload.puzzle) return true;
+  return !!payloadSolved;
+}
+
 // Kern-Entscheidung: Was soll das lokale Gerät mit seiner (evtl. offenen) Partie
 // tun, wenn es die Cloud-Session sieht? Rein funktional, keine Nebenwirkungen.
 //

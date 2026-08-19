@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decideSessionSync, shouldGrantReward, nextRev, isActiveStatus, SESSION_SCHEMA } from '../../js/session.js';
+import { decideSessionSync, sessionIsDead, shouldGrantReward, nextRev, isActiveStatus, SESSION_SCHEMA } from '../../js/session.js';
 
 const D = 'devA';
 const OTHER = 'devB';
@@ -85,4 +85,32 @@ test('isActiveStatus', () => {
   assert.equal(isActiveStatus('paused'), true);
   assert.equal(isActiveStatus('done'), false);
   assert.equal(isActiveStatus('none'), false);
+});
+
+// Regression: eine Cloud-Session, die sich als aktiv ausgibt, deren payload aber
+// nichts Spielbares mehr enthaelt, heilt NIE von selbst — sie wird von jedem
+// Geraet erneut gezogen, lokal als geloest verworfen und bleibt in der Cloud auf
+// „playing". Im Diagnoseprotokoll 14-mal in 90 Minuten („tote Spiele werden
+// staendig wiederbelebt"). Deshalb muss sie als tot ERKENNBAR sein.
+test('sessionIsDead erkennt nicht mehr fortsetzbare Cloud-Sessions', () => {
+  const withBoard = { status: 'playing', payload: { puzzle: { rows: 4, cols: 4 } } };
+  // Lebendig: aktives Brett, nicht geloest.
+  assert.equal(sessionIsDead(withBoard, false), false);
+  // Tot: dasselbe Brett, aber bereits vollstaendig geloest.
+  assert.equal(sessionIsDead(withBoard, true), true);
+  // Tot: aktiv gemeldet, aber gar kein Brett im payload.
+  assert.equal(sessionIsDead({ status: 'playing', payload: null }), true);
+  assert.equal(sessionIsDead({ status: 'paused', payload: {} }), true);
+  // Pausiert MIT Brett bleibt fortsetzbar.
+  assert.equal(sessionIsDead({ status: 'paused', payload: { puzzle: { rows: 4, cols: 4 } } }, false), false);
+});
+
+test('sessionIsDead fasst bereits beendete oder fehlende Sessions nicht an', () => {
+  // Nichts zu beenden — sonst wuerde jeder Reconcile einen sinnlosen Schreibvorgang
+  // ausloesen (und die rev bei jedem Sichtbarwerden hochzaehlen).
+  for (const st of ['done', 'none']) {
+    assert.equal(sessionIsDead({ status: st, payload: null }), false);
+  }
+  assert.equal(sessionIsDead(null), false);
+  assert.equal(sessionIsDead(undefined, true), false);
 });
