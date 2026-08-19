@@ -1,0 +1,2 @@
+Beim Beitritt zu einer laufenden Partie wird das Brett jetzt kurz ruhig aufgebaut, bevor die Skin-Animation startet. Ein Beitretender bekommt den kompletten bisherigen Spielstand auf einen Schlag — auf dem iPhone konnte das die Darstellung überfordern und zu einem schwarzen Bildschirm führen.
+Tote Spielstände in der Cloud werden jetzt endgültig beendet, statt auf jedem Gerät immer wieder als fortsetzbar aufzutauchen. Damit hören die „wiederbelebten" Spiele zwischen iPhone und iPad auf.

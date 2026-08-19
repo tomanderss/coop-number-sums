@@ -29,7 +29,7 @@ import {
   generateId, deviceId, isGameCompleted, markGameCompleted, loadActiveGameBackup, saveActiveGameBackup,
   loadConflictBackup, saveConflictBackup, collectExportData,
 } from './storage.js';
-import { decideSessionSync, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
+import { decideSessionSync, sessionIsDead, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
 import { badgeMedalMarkup, hasBadgeMedal, badgeDefsMarkup, masterMedalMarkup } from './badgeart.js';
@@ -290,6 +290,7 @@ const state = reactive({
   generating: false,
   paused: false,             // Pausenmodus (Feld verdeckt, Zeit gestoppt)
   resumeCountdown: null,     // 2-s-Countdown beim Fortsetzen aus der Pause (null = kein Countdown)
+  joinFreeze: false,         // kurz nach einem Mid-Game-Beitritt: Skin-Rotation aus (s. handleCoopMsg INIT)
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   resumeAvailableEndless: null, // gespeicherter Solo-Endlos-Lauf (zum Fortsetzen, eigener Slot)
@@ -2660,6 +2661,14 @@ function handleCoopMsg(msg) {
     // Fall zeigte das Protokoll Brett geladen, Timer gestartet, Wake Lock aktiv und
     // KEINE Ausnahme — der Zustand war also korrekt, nur nicht gezeichnet.
     nudgeRepaint('coopInit');
+    // Ein Beitretender bekommt das Brett MIT dem bisherigen Spielstand — bei einer
+    // umgewandelten Solo-Partie also auf einen Schlag Dutzende markierte Zellen.
+    // Jede markierte Zelle traegt beim dynamischen Skin eine eigene rotierende
+    // Ebene; in einer normalen Coop-Runde entstehen die nach und nach, hier alle in
+    // EINEM Frame. Genau diese Konstellation hat WebKit schon einmal zerlegt (s.
+    // js/skins.js). Deshalb die Rotation kurz anhalten, bis das Brett steht — die
+    // Klasse `.skin-freeze` gibt es dafuer bereits (Pause-Pfad).
+    startJoinFreeze(countMarked());
     // running: die Runde LÄUFT bereits (Solo→Coop-Umwandlung / Nachzügler in einer
     // laufenden Coop-Runde) — sofort starten, OHNE auf das separate START-Event zu
     // warten. Damit kann der Beitretende unter keinen Umständen (Event-Reihenfolge,
@@ -5216,14 +5225,73 @@ function clearDefunctSolo(showNotice) {
   refreshResume();
 }
 
+// Kurz nach einem Beitritt mitten ins Spiel: Skin-Rotation anhalten, damit das
+// frisch aufgebaute Brett erst einmal statisch stehen darf. Danach laeuft alles
+// normal weiter. Zusaetzlich wird EINMAL protokolliert, was tatsaechlich gerendert
+// wurde — Brettgroesse, Zellenzahl, markierte Zellen, aktiver Skin. Bei einem
+// erneuten Schwarzbild ist damit sofort unterscheidbar, ob das Brett gar nicht
+// aufgebaut wurde (Groesse 0) oder ob es steht und nur nicht gezeichnet wird.
+let joinFreezeTimer = null;
+function countMarked() {
+  let n = 0;
+  const m = state.marks || [];
+  for (const row of m) for (const v of (row || [])) if (v && v !== 'none') n++;
+  return n;
+}
+function startJoinFreeze(marked) {
+  state.joinFreeze = true;
+  if (joinFreezeTimer) clearTimeout(joinFreezeTimer);
+  joinFreezeTimer = setTimeout(() => { state.joinFreeze = false; joinFreezeTimer = null; }, 1800);
+  afterPaint(() => {
+    try {
+      const el = document.querySelector('.board');
+      const r = el && el.getBoundingClientRect();
+      log('coop', 'Beitritt gerendert', {
+        cells: el ? el.querySelectorAll('.cell').length : 0,
+        w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0,
+        marked, skin: state.settings.skinStyle || null,
+        winfx: !!state.winFx, paused: !!state.paused,
+      });
+    } catch (e) { log('error', 'Beitritts-Render-Protokoll fehlgeschlagen', e); }
+  });
+}
+
+// Eine TOTE Cloud-Session beenden, damit sie nie wieder jemanden erreicht.
+// Bewusst NICHT ueber pushSession: das steigt aus, sobald lokal kein Solo-Spiel
+// offen ist (`state.gameId` fehlt) — und genau dann tritt der Fall auf. Deshalb
+// direkt mit gameId und rev-Basis der CLOUD; das Compare-and-Set greift weiterhin,
+// ein Geraet mit aelterer Basis kann eine inzwischen frischere Session nicht kippen.
+async function retireCloudSession(cloud) {
+  try {
+    const r = await Account.writeSession({
+      gameId: cloud.gameId, status: SESSION_STATUS.DONE, payload: null,
+      appBuild: BUILD, schema: SESSION_SCHEMA, baseRev: cloud.rev || 0,
+    });
+    if (r && r.ok) state.sessionRev = r.rev;
+    log('account', 'Tote Cloud-Session beendet', { gameId: cloud.gameId || null, ok: !!(r && r.ok) });
+  } catch (e) { log('error', 'Tote Cloud-Session beenden fehlgeschlagen', e); }
+}
+
 // Cloud-Partie lokal übernehmen. readonly = ein anderes Gerät ist Besitzer → Brett
 // gesperrt bis „Hier weiterspielen". Ist der Spieler gerade in genau dieser Partie,
 // wird das Brett auf den Cloud-Stand nachgezogen; sonst als „Fortsetzen" abgelegt.
 function adoptCloudSession(cloud, readonly) {
-  if (!cloud || !cloud.payload) { state.sessionRev = cloud ? (cloud.rev || 0) : 0; return; }
-  const snap = cloud.payload;
-  saveActiveGame(snap);                 // in den Solo-Slot (Fortsetzen)
+  if (!cloud) { state.sessionRev = 0; return; }
   state.sessionRev = cloud.rev || 0;
+  const snap = cloud.payload;
+  // TOTE Session (kein Brett oder bereits vollstaendig geloest): NICHT uebernehmen,
+  // sondern in der Cloud BEENDEN. Vorher wurde sie hier in den Solo-Slot geschrieben,
+  // von refreshResume sofort wieder als geloest verworfen — und die Cloud blieb auf
+  // „playing". Damit zog sie jedes Geraet bei jedem Sichtbarwerden erneut: im
+  // Diagnoseprotokoll 14-mal in 90 Minuten, fuer den Nutzer „tote Spiele werden
+  // staendig wiederbelebt".
+  if (sessionIsDead(cloud, snap ? snapshotSolved(snap) : false)) {
+    retireCloudSession(cloud);
+    refreshResume();
+    return;
+  }
+  if (!snap) return;
+  saveActiveGame(snap);                 // in den Solo-Slot (Fortsetzen)
   const inThisGame = state.screen === 'game' && state.saveSlot === 'solo' && state.gameId === cloud.gameId;
   if (inThisGame && snap.puzzle) {
     // Live nachziehen: dieselbe Partie ist auf einem anderen Gerät weitergelaufen.
@@ -7168,7 +7236,7 @@ const BoardGrid = {
     };
   },
   template: `
-          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused, 'big-num': state.puzzle.bigNumbers, 'tutor-dim': !!state.hintTutor }]" :style="[gridStyle, skinVars]" :data-rc="countRender()">
+          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused || state.joinFreeze, 'big-num': state.puzzle.bigNumbers, 'tutor-dim': !!state.hintTutor }]" :style="[gridStyle, skinVars]" :data-rc="countRender()">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
               <template v-if="!colResolvedR(c-1)">

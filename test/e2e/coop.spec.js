@@ -447,4 +447,68 @@ test.describe('coop', () => {
     await page.locator('.invite-modal-head .icon-btn').click();
     await expect(page.locator('.invite-modal')).toBeHidden();
   });
+
+  // Der Beitritt zu einer LAUFENDEN, zu Coop umgewandelten Solo-Partie ist der
+  // Pfad, fuer den wiederholt ein schwarzer Bildschirm gemeldet wurde. Anders als
+  // eine frische Coop-Runde haengt hier auf einen Schlag der komplette bisherige
+  // Spielstand am Brett — Dutzende markierte Zellen in EINEM Frame. Der Test
+  // nagelt fest, dass dabei wirklich ein sichtbares Brett entsteht (Groesse > 0,
+  // alle Zellen da, keine Konsolenfehler) und dass die Skin-Rotation waehrend des
+  // Aufbaus angehalten ist.
+  test('Beitritt in eine laufende umgewandelte Solo-Partie rendert ein sichtbares Brett', async ({ page }) => {
+    const errors = [];
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+
+    await gotoApp(page);
+    await startNewGame(page);
+    // Ein paar Zuege setzen, damit der Stand wie bei einer laufenden Partie aussieht.
+    const host = await page.evaluate(() => {
+      const { state, onCellTap } = window.__cns;
+      state.tool = 'pen';
+      for (let c = 0; c < state.puzzle.cols; c++) onCellTap(0, c);
+      return {
+        puzzle: JSON.parse(JSON.stringify(state.puzzle)),
+        marks: JSON.parse(JSON.stringify(state.marks)),
+        markedBy: JSON.parse(JSON.stringify(state.markedBy)),
+      };
+    });
+
+    // Beitretender: frischer Start, NICHT im Spiel.
+    await page.reload();
+    await page.waitForFunction(() => !!window.__cns);
+    await page.evaluate((h) => {
+      const s = window.__cns.state;
+      s.coop.active = true; s.coop.role = 'guest'; s.coop.myId = 'me';
+      s.coop.players = [{ id: 'host', name: 'H', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' }];
+      // hintsLeft fehlt BEWUSST: HINTS ist Infinity und wird vor dem Senden
+      // herausgefiltert, beim Empfaenger kommt der Key gar nicht an.
+      window.__cns.handleCoopMsg({
+        type: 'init', gameId: 'conv1', running: true,
+        puzzle: h.puzzle, marks: h.marks, markedBy: h.markedBy,
+        startTime: Date.now() - 5000, lives: 3, maxLives: 3, hintsUsed: 0, mistakes: 0,
+      });
+    }, host);
+
+    await page.waitForSelector('.screen.game');
+    // Waehrend des Aufbaus steht die Skin-Rotation still.
+    expect(await page.evaluate(() => window.__cns.state.joinFreeze)).toBe(true);
+    await expect(page.locator('.board.skin-freeze')).toHaveCount(1);
+
+    const box = await page.locator('.board').boundingBox();
+    expect(box, 'das Brett muss ueberhaupt eine Flaeche haben').not.toBeNull();
+    expect(box.width).toBeGreaterThan(50);
+    expect(box.height).toBeGreaterThan(50);
+    const cells = await page.evaluate(() => ({
+      total: document.querySelectorAll('.board .cell').length,
+      marked: document.querySelectorAll('.board .cell.kept, .board .cell.removed').length,
+      rows: window.__cns.state.puzzle.rows, cols: window.__cns.state.puzzle.cols,
+    }));
+    expect(cells.total).toBe(cells.rows * cells.cols);
+    expect(cells.marked, 'der uebernommene Spielstand muss sichtbar sein').toBeGreaterThan(0);
+    expect(errors, 'ein Render-Fehler wuerde die Seite leer lassen').toEqual([]);
+
+    // Nach dem Aufbau laeuft die Rotation wieder.
+    await page.waitForFunction(() => window.__cns.state.joinFreeze === false, null, { timeout: 5000 });
+  });
 });
