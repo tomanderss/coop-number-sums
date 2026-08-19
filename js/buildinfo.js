@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.204';
-export const BUILD_HASH = '1bfca46';
+export const BUILD      = '1.205';
+export const BUILD_HASH = '9073988';
 
 export const CHANGELOG = [
+  {
+    "version": "1.205",
+    "date": "19.08.2026",
+    "changes": [
+      "Beim Beitritt zu einer laufenden Partie wird das Brett jetzt kurz ruhig aufgebaut, bevor die Skin-Animation startet. Ein Beitretender bekommt den kompletten bisherigen Spielstand auf einen Schlag — auf dem iPhone konnte das die Darstellung überfordern und zu einem schwarzen Bildschirm führen.",
+      "Tote Spielstände in der Cloud werden jetzt endgültig beendet, statt auf jedem Gerät immer wieder als fortsetzbar aufzutauchen. Damit hören die „wiederbelebten\" Spiele zwischen iPhone und iPad auf."
+    ]
+  },
   {
     "version": "1.204",
     "date": "03.08.2026",
