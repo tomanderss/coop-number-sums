@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.206';
-export const BUILD_HASH = 'd53c7aa';
+export const BUILD      = '1.207';
+export const BUILD_HASH = 'c35d077';
 
 export const CHANGELOG = [
+  {
+    "version": "1.207",
+    "date": "20.08.2026",
+    "changes": [
+      "Ein abgeschlossenes Spiel verschwindet jetzt sofort aus den Spielständen und aus dem Fortsetzen-Knopf — bisher blieb es dort liegen und tauchte teilweise erst nach einem Neustart der App richtig auf.",
+      "Nach dem Löschen eines Spielstands bietet der Fortsetzen-Knopf sofort den nächsten vorhandenen Stand an. Bisher verschwand er ganz, obwohl noch Spielstände da waren, und kam erst nach einem Neustart zurück."
+    ]
+  },
   {
     "version": "1.206",
     "date": "20.08.2026",
