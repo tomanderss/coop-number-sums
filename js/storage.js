@@ -9,6 +9,8 @@ const KEYS = {
   SETTINGS: 'cns_settings',
   ACTIVE_GAME: 'cns_active_game',
   ACTIVE_GAME_COOP: 'cns_active_game_coop',
+  SAVES: 'cns_saves',  // Bibliothek gespeicherter Partien [{id,kind,ts,...snapshot}] — ein Eintrag JE Partie (gameId),
+                       // damit ein neues Spiel nie einen alten Stand ueberschreibt. SYNCT (Union-Merge nach id).
   ACTIVE_GAME_ENDLESS: 'cns_active_game_endless',  // fortsetzbarer Solo-Endlos-Lauf (SYNCT als Teil des Snapshots, Merge via pickEndlessSlot)
   COOP_SESSION: 'cns_coop_session',
   STATS: 'cns_stats',
@@ -49,7 +51,7 @@ const USER_DATA_KEYS = new Set([
   'cns_settings', 'cns_active_game', 'cns_active_game_coop', 'cns_active_game_endless',
   'cns_stats', 'cns_daily',
   'cns_history', 'cns_achievements', 'cns_missions', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
-  'cns_completed_games', 'cns_wallet_log', 'cns_play_samples',
+  'cns_completed_games', 'cns_wallet_log', 'cns_play_samples', 'cns_saves',
 ]);
 // Wie lange „Coop fortsetzen" nach der letzten Sicherung angeboten wird. Der
 // Raum lebt in der RTDB weiter, solange ihn niemand aktiv verlässt (Präsenz-
@@ -679,6 +681,7 @@ export function collectExportData(type = 'manual') {
     activeGame: load(KEYS.ACTIVE_GAME, null),
     activeGameCoop: load(KEYS.ACTIVE_GAME_COOP, null),
     activeGameEndless: load(KEYS.ACTIVE_GAME_ENDLESS, null),
+    saves: loadSaves(),   // Bibliothek gespeicherter Partien (Union-Merge nach id)
     stats: load(KEYS.STATS, {}),
     daily: load(KEYS.DAILY, {}),
     history: load(KEYS.HISTORY, []),
@@ -742,6 +745,86 @@ export function snapshotSolved(g) {
   }
   return true;
 }
+// ─── Bibliothek gespeicherter Partien ────────────────────────────────────────
+// Bisher gab es GENAU EINEN Solo-Slot: ein neues Spiel überschrieb den alten
+// Stand ersatzlos. Hier liegt stattdessen je Partie ein eigener Eintrag,
+// geschlüsselt über die `gameId` — ein neues Spiel bekommt eine neue Identität
+// und damit einen eigenen Eintrag, überschrieben wird nie etwas.
+//
+// Der laufende Stand wird zusätzlich weiterhin in ACTIVE_GAME/ACTIVE_GAME_ENDLESS
+// geschrieben: daran hängen die geräteübergreifende Cloud-Session und das
+// bestehende Fortsetzen. Die Bibliothek ist das ARCHIV, das nichts mehr verliert.
+export const SAVES_MAX = 12;
+
+export function loadSaves() {
+  const a = load(KEYS.SAVES, []);
+  return Array.isArray(a) ? a.filter((g) => g && g.id) : [];
+}
+export function saveSaves(list) { save(KEYS.SAVES, pruneSaves(list)); }
+
+// Neueste zuerst, gekappt. Ein bereits vollständig gelöstes Brett fliegt raus —
+// es ist faktisch abgeschlossen und als „Fortsetzen" nutzlos (dieselbe Regel wie
+// im Aktivspiel-Slot, s. snapshotSolved).
+export function pruneSaves(list) {
+  const seen = new Set();
+  const out = [];
+  for (const g of (Array.isArray(list) ? list : [])) {
+    if (!g || !g.id || seen.has(g.id)) continue;
+    if (!g.pending && (!g.puzzle || snapshotSolved(g))) continue;
+    seen.add(g.id);
+    out.push(g);
+  }
+  out.sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0));
+  return out.slice(0, SAVES_MAX);
+}
+
+// Einen Stand in die Bibliothek schreiben bzw. aktualisieren (gleiche id = gleiche
+// Partie). Gibt die neue Liste zurück.
+export function upsertSave(entry) {
+  if (!entry || !entry.id) return loadSaves();
+  const list = loadSaves().filter((g) => g.id !== entry.id);
+  list.unshift(entry);
+  const pruned = pruneSaves(list);
+  save(KEYS.SAVES, pruned);
+  return pruned;
+}
+export function removeSave(id) {
+  const list = loadSaves().filter((g) => g.id !== id);
+  save(KEYS.SAVES, list);
+  return list;
+}
+
+// Fortschritt eines Stands in Prozent — korrekt gesetzte Zellen / Gesamtzellen.
+// Dieselbe Formel wie progressPct() im Spiel, damit die Anzeige in der Liste und
+// im laufenden Spiel dieselbe Zahl zeigt. Rein, damit sie testbar bleibt.
+export function snapshotProgress(g) {
+  const p = g && g.puzzle;
+  if (!p || !Array.isArray(p.solution) || !Array.isArray(g.marks)) return 0;
+  const total = (Number(p.rows) || 0) * (Number(p.cols) || 0);
+  if (!total) return 0;
+  let ok = 0;
+  for (let r = 0; r < p.rows; r++) {
+    const sol = p.solution[r], m = g.marks[r];
+    if (!sol || !m) continue;
+    for (let c = 0; c < p.cols; c++) {
+      if (m[c] && m[c] !== 'none' && m[c] === (sol[c] ? 'kept' : 'removed')) ok++;
+    }
+  }
+  return Math.round((ok / total) * 100);
+}
+
+// Zwei Bibliotheken zusammenführen (Geräte-Merge): Union nach id, bei gleicher id
+// gewinnt der JÜNGERE Stand. Nichts geht verloren, solange die Kappung reicht.
+export function mergeSaves(a, b) {
+  const byId = new Map();
+  for (const g of [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])]) {
+    if (!g || !g.id) continue;
+    const prev = byId.get(g.id);
+    if (!prev || (Number(g.ts) || 0) > (Number(prev.ts) || 0)) byId.set(g.id, g);
+  }
+  return pruneSaves([...byId.values()]);
+}
+
 export function pickActiveGame(localG, importedG) {
   // Bereits gelöste Stände wie „nicht vorhanden" behandeln (s. snapshotSolved).
   const l = localG && localG.puzzle && !snapshotSolved(localG) ? localG : null;
@@ -799,6 +882,9 @@ export function importFromFile(jsonText) {
   if (data.activeGameCoop !== undefined) {
     saveActiveGameCoop(pickActiveGame(loadActiveGameCoop(), data.activeGameCoop));
   }
+  // Bibliothek: Union nach id, nie ersetzen — ein Import darf keine Partie
+  // verlieren, die nur auf DIESEM Geraet existiert.
+  if (data.saves !== undefined) saveSaves(mergeSaves(loadSaves(), data.saves));
   if (data.activeGameEndless !== undefined) {
     saveActiveGameEndless(pickEndlessSlot(loadActiveGameEndless(), data.activeGameEndless));
   }
@@ -808,6 +894,7 @@ export function importFromFile(jsonText) {
 // ─── Alle lokalen Daten löschen ───────────────────────────────────────────────
 export function deleteAllData() {
   remove(KEYS.SETTINGS);
+  remove(KEYS.SAVES);
   remove(KEYS.ACTIVE_GAME_ENDLESS);
   remove(KEYS.ACTIVE_GAME);
   remove(KEYS.ACTIVE_GAME_COOP);

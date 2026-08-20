@@ -21,7 +21,7 @@ import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
-  deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, HISTORY_MAX,
+  deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, mergeSaves, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
   mergePlaySamples,
 } from './storage.js';
@@ -195,6 +195,7 @@ export function mergeSnapshots(local = {}, cloud = {}) {
     activeGame: pickActiveGame(local.activeGame, cloud.activeGame),
     activeGameCoop: pickActiveGame(local.activeGameCoop, cloud.activeGameCoop),
     activeGameEndless: pickEndlessSlot(local.activeGameEndless, cloud.activeGameEndless),
+    saves: mergeSaves(local.saves, cloud.saves),   // Bibliothek beider Geraete vereinigen (Union nach id, juengerer Stand gewinnt)
     stats: mergeNumericDeep(local.stats || {}, cloud.stats || {}),
     daily: mergeStreak(local.daily || {}, cloud.daily || {}, localNewer),
     history: mergeHistory(local.history, cloud.history),
