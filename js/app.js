@@ -14,6 +14,7 @@ import { buildHintTutorial } from './hinttutor.js';
 import * as Music from './music.js';
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
+  loadSaves, upsertSave, removeSave, snapshotProgress, SAVES_MAX,
   loadStats, recordResult, recordEndlessRun, applyEndlessBackfill,
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
@@ -294,6 +295,8 @@ const state = reactive({
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   resumeAvailableEndless: null, // gespeicherter Solo-Endlos-Lauf (zum Fortsetzen, eigener Slot)
+  saves: [],                 // Bibliothek gespeicherter Partien (neueste zuerst), s. refreshResume
+  savesOpen: false,          // Spielstand-Liste (Bottom-Sheet) offen?
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   masterUnlock: false,           // Feier-Screen „Großmeister freigeschaltet" offen?
@@ -1440,7 +1443,11 @@ function endlessLevelSolved(remote) {
     // SOLO-Endlos fortsetzbar halten: JETZT (nach der Buchhaltung, inkl. Lauf-
     // Münzsumme) den Zwischen-Level-Marker sichern — das gelöste Brett selbst
     // taugt nicht zum Fortsetzen, das Fortsetzen startet frisch bei score+1.
-    if (!isCoop) saveActiveGameEndless({ pending: true, ts: Date.now(), endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 } });
+    if (!isCoop) {
+      const marker = { pending: true, ts: Date.now(), gameId: state.gameId, endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 } };
+      saveActiveGameEndless(marker);
+      rememberSave(marker, 'endless');   // auch der Zwischenstand gehoert in die Bibliothek
+    }
     log('game', 'Endlos-Level als Einzelsieg verbucht', { level: e.score, difficulty: diff, coins, mult, newHighscore, perfect, coop: isCoop });
     syncCloudNow('endlessLevel');
   });
@@ -4235,7 +4242,12 @@ function persistGame() {
   if (state.saveSlot === 'endless' || state.endless.active) {
     if (state.endless.active && !state.endless.coop && state.status === 'playing' && state.puzzle) {
       const now = Date.now();
-      if (now - saveThrottle >= 400) { saveThrottle = now; saveActiveGameEndless(endlessSnapshot()); }
+      if (now - saveThrottle >= 400) {
+        saveThrottle = now;
+        const snap = endlessSnapshot();
+        saveActiveGameEndless(snap);
+        rememberSave(snap, 'endless');
+      }
     }
     return;
   }
@@ -4271,10 +4283,89 @@ function persistGame() {
     // Moment gesichert und sind damit konsistent zueinander.
     saveCoopSession({ code: state.coop.code, role: state.coop.role, name: state.settings.coopName, color: state.settings.coopMyColor, hostId: state.coop.hostId, lastEventKey: Coop.getLastEventKey() });
   } else if (state.saveSlot === 'solo') {
-    saveActiveGame(activeSnapshot());
+    const snap = activeSnapshot();
+    saveActiveGame(snap);
+    // ZUSAETZLICH in die Bibliothek, geschluesselt ueber die gameId. Dadurch
+    // ueberschreibt ein neues Spiel keinen alten Stand mehr — es bekommt einfach
+    // einen eigenen Eintrag. Der Aktivspiel-Slot bleibt daneben bestehen, an ihm
+    // haengt die geraeteuebergreifende Cloud-Session.
+    rememberSave(snap, 'solo');
   }
   // unbekannter Slot → NICHTS schreiben (Solo-Slot bleibt garantiert unberührt)
 }
+// ─── Bibliothek gespeicherter Partien ────────────────────────────────────────
+// Jede Partie hat ihren EIGENEN Eintrag (Schluessel = gameId). Ein neues Spiel
+// ueberschreibt damit nie einen alten Stand — genau der Punkt, an dem frueher
+// Fortschritt verloren ging. Der Aktivspiel-Slot bleibt daneben bestehen: an ihm
+// haengen Cloud-Session und der prominente „Fortsetzen"-Knopf.
+function rememberSave(snap, kind) {
+  if (!snap || !state.gameId) return;
+  state.saves = upsertSave({ ...snap, id: state.gameId, kind, ts: snap.ts || Date.now() });
+}
+function openSaves() { state.saves = loadSaves(); state.savesOpen = true; }
+function closeSaves() { state.savesOpen = false; }
+
+// Anzeige-Helfer fuer die Liste. Bewusst hier und nicht im Template, damit das
+// Template lesbar bleibt.
+function saveProgress(g) { return g && g.pending ? 100 : snapshotProgress(g); }
+function saveIsEndless(g) { return !!(g && (g.kind === 'endless' || g.endless)); }
+function saveDifficulty(g) { return (g && (g.difficulty || (g.puzzle && g.puzzle.difficulty))) || 'mittel'; }
+function saveDim(g) {
+  const p = g && g.puzzle;
+  if (p && p.rows) return `${p.rows}x${p.cols}`;
+  const d = DIFF_BY_ID[saveDifficulty(g)];
+  return d ? `${d.dim.r}x${d.dim.c}` : '';
+}
+// Laeuft genau dieser Stand gerade? Dann wird er als solcher markiert statt als
+// „fortsetzbar" angeboten.
+function saveIsCurrent(g) { return !!(g && state.gameId && g.id === state.gameId && state.status === 'playing'); }
+// Relative Zeit — beim Auswaehlen ist „vor 5 Minuten" nuetzlicher als ein Datum.
+function saveWhen(g) {
+  const ts = Number(g && g.ts) || 0;
+  if (!ts) return '';
+  const min = Math.floor((Date.now() - ts) / 60000);
+  if (min < 1) return t('saves.justNow');
+  if (min < 60) return t('saves.minsAgo', { n: min });
+  const h = Math.floor(min / 60);
+  if (h < 24) return t('saves.hoursAgo', { n: h });
+  const d = Math.floor(h / 24);
+  return d === 1 ? t('saves.yesterday') : t('saves.daysAgo', { n: d });
+}
+
+// Einen bestimmten Stand fortsetzen. Er wird dafuer zum aktiven Slot gemacht,
+// damit der bestehende Fortsetzen-Pfad (inkl. Cloud-Session) unveraendert greift.
+function resumeSave(g) {
+  if (!g) return;
+  closeSaves();
+  if (saveIsCurrent(g)) { navigate('game'); return; }
+  log('game', 'Spielstand aus der Bibliothek fortgesetzt', { kind: g.kind || null, endless: saveIsEndless(g), progress: saveProgress(g) });
+  if (saveIsEndless(g)) {
+    saveActiveGameEndless(g);
+    state.resumeAvailableEndless = g;
+    resumeEndlessGame();
+  } else {
+    saveActiveGame(g);
+    state.resumeAvailable = g;
+    resumeGame();
+  }
+}
+
+// Einen Stand endgueltig loeschen. Ist es der gerade aktive Slot, wird auch der
+// geraeumt — sonst taucht er ueber „Fortsetzen" sofort wieder auf.
+function deleteSave(g) {
+  if (!g) return;
+  ask(t('saves.deleteTitle'), t('saves.deleteMsg'), () => {
+    state.saves = removeSave(g.id);
+    const act = loadActiveGame();
+    if (act && act.gameId === g.id) saveActiveGame(null);
+    const end = loadActiveGameEndless();
+    if (end && end.gameId === g.id) saveActiveGameEndless(null);
+    log('game', 'Spielstand geloescht', { kind: g.kind || null });
+    refreshResume();
+    showToast(t('saves.deleted'), 'info', 2000);
+  });
+}
+
 function refreshResume() {
   let g = loadActiveGame();
   // Ein bereits VOLLSTÄNDIG gelöstes Brett ist faktisch abgeschlossen und darf
@@ -4298,6 +4389,9 @@ function refreshResume() {
   if (ge && ge.endless && !ge.pending && ge.puzzle && snapshotSolved(ge)) { log('storage', 'Gelösten Endlos-Stand verworfen'); saveActiveGameEndless(null); ge = null; }
   const geValid = ge && ge.endless && (ge.pending || (ge.puzzle && ge.marks));
   state.resumeAvailableEndless = geValid ? ge : null;
+  // Bibliothek mitziehen: pruneSaves wirft dabei geloeste/leere Staende raus,
+  // die Liste bleibt also von selbst sauber.
+  state.saves = loadSaves();
   if (ge && !geValid) saveActiveGameEndless(null);
 }
 function resumeGame() {
@@ -7502,6 +7596,7 @@ const App = {
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
+      openSaves, closeSaves, resumeSave, deleteSave, saveProgress, saveIsEndless, saveDifficulty, saveDim, saveIsCurrent, saveWhen, SAVES_MAX,
       goAiDuel, startAiDuel, aiTargetLabel, aiCalibrated, aiLevels: Object.keys(PRESET_LEVELS), cloneStatus,
       friendClones, readyClones, learningClones, anyCloneReady, pickAiOpponent, setAiMode,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -7587,6 +7682,15 @@ const App = {
             <span class="btn-tx"><b>{{ t('home.resumeCoop') }}</b>
               <small>{{ t('difficulty.'+state.resumeAvailableCoop.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailableCoop.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailableCoop.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailableCoop.elapsed||0) }}</small>
             </span>
+          </button>
+          <!-- Zugang zur Bibliothek: erscheint, sobald es MEHR als den einen
+               prominenten Stand gibt. Bewusst ein schmaler Textlink statt einer
+               weiteren grossen Schaltflaeche — er soll nicht mit „Fortsetzen"
+               konkurrieren, sondern die Frage „was habe ich sonst noch offen?"
+               beantworten. -->
+          <button v-if="state.saves.length > 1" class="saves-link" @click="openSaves">
+            <span class="ei" v-html="ic('save')"></span>
+            {{ t('saves.openN', { n: state.saves.length }) }}
           </button>
         </div>
         <button class="btn btn-primary" @click="coopReset(); navTo('setup')">
@@ -9452,6 +9556,43 @@ const App = {
     <!-- Übersicht „Klone in Ausbildung". Bewusst eine EIGENE Ansicht: in der
          Auswahl würden unfertige Klone nur Platz kosten, und bei inaktiven
          Freunden bliebe der Fortschritt für immer stehen. -->
+    <!-- Bibliothek gespeicherter Partien. Bewusst als Bottom-Sheet: die Liste kann
+         lang werden, und der Daumen erreicht die Eintraege unten am besten.
+         Jede Zeile beantwortet in einem Blick „welcher Stand ist das und lohnt
+         er sich?" — Schwierigkeit, Groesse, FORTSCHRITT als Balken, Restleben,
+         Spielzeit und wie lange er schon liegt. -->
+    <div v-if="state.savesOpen" class="modal-bg saves-bg" @click.self="closeSaves">
+      <div class="modal saves-modal">
+        <h3><span class="ei" v-html="ic('save')"></span> {{ t('saves.title') }}</h3>
+        <p class="saves-intro">{{ t('saves.intro', { max: SAVES_MAX }) }}</p>
+        <div class="saves-list">
+          <div v-for="g in state.saves" :key="g.id" class="save-row" :class="{ current: saveIsCurrent(g) }" :style="diffVars(saveDifficulty(g))">
+            <button class="save-main" @click="resumeSave(g)">
+              <div class="save-head">
+                <span class="save-dot"></span>
+                <b class="save-name">{{ t('difficulty.' + saveDifficulty(g)) }}</b>
+                <span v-if="saveIsEndless(g)" class="save-badge"><span class="ei" v-html="ic('meteor')"></span>{{ t('endless.levelShort', { n: (g.endless && g.endless.level) || 1 }) }}</span>
+                <span v-if="saveIsCurrent(g)" class="save-badge now">{{ t('saves.running') }}</span>
+              </div>
+              <div class="save-bar"><i :style="{ width: saveProgress(g) + '%' }"></i></div>
+              <div class="save-meta">
+                <span>{{ saveProgress(g) }}%</span>
+                <span>{{ saveDim(g) }}</span>
+                <span v-if="!g.pending"><span class="ei" v-html="ic('clock')"></span> {{ fmtTime(g.elapsed || 0) }}</span>
+                <span v-if="g.mistakes"><span class="ei" v-html="ic('close')"></span> {{ g.mistakes }}</span>
+                <span class="save-when">{{ saveWhen(g) }}</span>
+              </div>
+            </button>
+            <button class="save-del" @click.stop="deleteSave(g)" :aria-label="t('saves.delete')" :title="t('saves.delete')">
+              <span class="ei" v-html="ic('trash')"></span>
+            </button>
+          </div>
+          <p v-if="!state.saves.length" class="saves-empty">{{ t('saves.empty') }}</p>
+        </div>
+        <button class="btn btn-primary" @click="closeSaves">{{ t('common.close') }}</button>
+      </div>
+    </div>
+
     <div v-if="state.modal==='aiLearning'" class="modal-bg" @click.self="state.modal=null">
       <div class="modal modal-learning">
         <h3><span class="ei" v-html="ic('robot')"></span> {{ t('aiduel.learningTitle') }}</h3>
