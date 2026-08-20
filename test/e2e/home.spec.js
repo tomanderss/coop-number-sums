@@ -98,6 +98,10 @@ test.describe('home screen', () => {
     });
     await page.waitForFunction(() => window.__cns.state.status === 'won');
     await dismissStreakModal(page);
+    // Der Knopf haengt an abgeleitetem Zustand: er muss SOFORT verschwinden,
+    // nicht erst wenn zufaellig etwas anderes refreshResume() ausloest. Gemeldet
+    // wurde genau das — er blieb bis zum Neustart der App stehen.
+    expect(await page.evaluate(() => window.__cns.state.resumeAvailable)).toBe(null);
     await page.locator('.result-card.win .btn-ghost').click();
     await expect(page.locator('.screen.home')).toBeVisible();
     await expect(page.locator('.resume-row')).toHaveCount(0);

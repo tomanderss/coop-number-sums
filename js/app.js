@@ -4165,6 +4165,10 @@ function completeSoloConversion() {
   } else {
     state.saveSlot = 'coop';
     saveActiveGame(null);
+    // Auch aus der Bibliothek nehmen: die Partie ist nicht weg, sie lebt ab jetzt
+    // im COOP-Slot weiter. Bliebe sie stehen, boete der Fortsetzen-Knopf sie
+    // parallel als Solo-Stand an (der Rueckfall in refreshResume greift sonst).
+    if (state.gameId) state.saves = removeSave(state.gameId);
   }
   state.soloInvite.status = 'converted';
   if (state.modal === 'soloInvite') state.modal = null;
@@ -4268,8 +4272,20 @@ function persistGame() {
   if (state.status === 'idle') return;
   if (state.status !== 'playing') {
     if (state.saveSlot === 'coop') { saveActiveGameCoop(null); clearCoopSession(); }
-    else if (state.saveSlot === 'solo') saveActiveGame(null);
+    else if (state.saveSlot === 'solo') {
+      saveActiveGame(null);
+      // Eine BEENDETE Partie gehoert auch aus der Bibliothek raus. Der letzte
+      // Autosave liegt 400 ms VOR dem Siegzug, der Eintrag sieht dort also noch
+      // ungeloest aus — ohne dieses Aufraeumen wuerde der Fortsetzen-Knopf das
+      // fertige Spiel wieder anbieten (genau das faengt home.spec.js ab).
+      if (state.gameId) state.saves = removeSave(state.gameId);
+    }
     // unbekannter/kein Slot → nichts anfassen (Solo-Slot bleibt unberührt)
+    // Der Fortsetzen-Knopf haengt an ABGELEITETEM Zustand (state.resumeAvailable).
+    // Wird der Slot hier geraeumt, muss der auch neu berechnet werden — sonst
+    // zeigt der Knopf das gerade beendete Spiel weiter an, bis zufaellig etwas
+    // anderes refreshResume() ausloest (gemeldet: „geht erst nach Neustart weg").
+    refreshResume();
     return;
   }
   const now = Date.now();
@@ -4393,6 +4409,19 @@ function refreshResume() {
   // die Liste bleibt also von selbst sauber.
   state.saves = loadSaves();
   if (ge && !geValid) saveActiveGameEndless(null);
+  // RUECKFALL auf die Bibliothek. Der Aktivspiel-Slot haelt nur die zuletzt
+  // gespielte Partie; loescht man ausgerechnet die (und das ist der naheliegendste
+  // Fall, weil der Fortsetzen-Knopf genau sie anbietet), war der Knopf komplett
+  // weg — obwohl weitere Staende in der Bibliothek lagen. Der Knopf bietet
+  // deshalb IMMER den juengsten fortsetzbaren Stand an, egal woher er kommt.
+  if (!state.resumeAvailable) {
+    const next = state.saves.find((x) => !saveIsEndless(x) && x.puzzle && x.marks);
+    if (next) { saveActiveGame(next); state.resumeAvailable = next; }
+  }
+  if (!state.resumeAvailableEndless) {
+    const nextE = state.saves.find((x) => saveIsEndless(x) && (x.pending || (x.puzzle && x.marks)));
+    if (nextE) { saveActiveGameEndless(nextE); state.resumeAvailableEndless = nextE; }
+  }
 }
 function resumeGame() {
   const g = state.resumeAvailable;
