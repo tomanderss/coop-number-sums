@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.205';
-export const BUILD_HASH = '9073988';
+export const BUILD      = '1.206';
+export const BUILD_HASH = 'd53c7aa';
 
 export const CHANGELOG = [
+  {
+    "version": "1.206",
+    "date": "20.08.2026",
+    "changes": [
+      "Neu: mehrere Spielstände. Jede Partie wird ab sofort einzeln gesichert — ein neues Spiel überschreibt keinen alten Stand mehr. Über „Alle Spielstände\" im Hauptmenü siehst du alle offenen Partien mit Fortschrittsbalken, Spielzeit, Fehlern und Alter, kannst gezielt eine davon fortsetzen und einzelne Stände löschen. Platz ist für 12 Partien, die Liste synchronisiert sich zwischen deinen Geräten."
+    ]
+  },
   {
     "version": "1.205",
     "date": "19.08.2026",
