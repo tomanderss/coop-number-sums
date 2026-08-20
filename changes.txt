@@ -1,0 +1,2 @@
+Ein abgeschlossenes Spiel verschwindet jetzt sofort aus den Spielständen und aus dem Fortsetzen-Knopf — bisher blieb es dort liegen und tauchte teilweise erst nach einem Neustart der App richtig auf.
+Nach dem Löschen eines Spielstands bietet der Fortsetzen-Knopf sofort den nächsten vorhandenen Stand an. Bisher verschwand er ganz, obwohl noch Spielstände da waren, und kam erst nach einem Neustart zurück.

@@ -89,4 +89,45 @@ test.describe('Spielstand-Bibliothek', () => {
     await page.waitForSelector('.screen.game');
     expect(await page.evaluate(() => window.__cns.state.gameId)).toBe(older);
   });
+
+  // Regression (gemeldet, reproduzierbar): mit zwei Staenden genau den loeschen,
+  // der gerade im Aktivspiel-Slot liegt — also den, den der Fortsetzen-Knopf
+  // anbietet. Der Knopf verschwand danach KOMPLETT, obwohl der zweite Stand noch
+  // da war; erst ein Neustart brachte ihn zurueck. Ursache: refreshResume las nur
+  // den Slot und fiel nicht auf die Bibliothek zurueck.
+  test('nach dem Loeschen des aktiven Stands bleibt der Fortsetzen-Knopf — mit dem naechsten Stand', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page);
+    await playAFewCells(page);
+    const first = await page.evaluate(() => window.__cns.state.gameId);
+
+    await page.goto('/');
+    await page.waitForFunction(() => !!window.__cns);
+    await startNewGame(page);
+    await playAFewCells(page);
+    const second = await page.evaluate(() => window.__cns.state.gameId);
+
+    // Zurueck ins Menue: der Knopf bietet den zuletzt gespielten Stand an.
+    await page.goto('/');
+    await page.waitForFunction(() => !!window.__cns);
+    await expect(page.locator('.btn-resume').first()).toBeVisible();
+    expect(await page.evaluate(() => window.__cns.state.resumeAvailable.gameId)).toBe(second);
+
+    // Genau diesen Stand ueber die echte Oberflaeche loeschen (ohne Neuladen!).
+    await page.locator('.saves-link').click();
+    await expect(page.locator('.saves-modal')).toBeVisible();
+    // Der laufende/juengste Stand steht oben.
+    await page.locator('.save-row').first().locator('.save-del').click();
+    await page.locator('.confirm-actions .btn-danger').click();
+    await page.waitForTimeout(300);
+
+    const after = await page.evaluate(() => ({
+      resume: window.__cns.state.resumeAvailable && window.__cns.state.resumeAvailable.gameId,
+      saves: window.__cns.state.saves.map((g) => g.id),
+    }));
+    expect(after.saves, 'der geloeschte Stand ist weg').not.toContain(second);
+    expect(after.saves, 'der andere Stand bleibt').toContain(first);
+    expect(after.resume, 'der Knopf muss sofort den verbliebenen Stand anbieten').toBe(first);
+    await expect(page.locator('.btn-resume').first()).toBeVisible();
+  });
 });
