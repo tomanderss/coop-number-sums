@@ -7359,7 +7359,7 @@ const BoardGrid = {
     };
   },
   template: `
-          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused || state.joinFreeze, 'big-num': state.puzzle.bigNumbers, 'tutor-dim': !!state.hintTutor }]" :style="[gridStyle, skinVars]" :data-rc="countRender()">
+          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused || state.joinFreeze, 'mp-colors': state.coop.active || state.team.active, 'big-num': state.puzzle.bigNumbers, 'tutor-dim': !!state.hintTutor }]" :style="[gridStyle, skinVars]" :data-rc="countRender()">
             <div class="corner"></div>
             <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
               <template v-if="!colResolvedR(c-1)">

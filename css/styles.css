@@ -2436,6 +2436,19 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .skin-style-rainbow.skin-removed .cell.removed.coop-mark-removed::after {
   background: conic-gradient(from 0deg, #ff004c, #ff9a00, #ffe600, #43e043, #00c8ff, #6a5cff, #ff00c8, #ff004c);
 }
+/* MULTIPLAYER: die Markierungsfarbe ist hier FUNKTION, nicht Kosmetik — sie sagt,
+   WER welche Zelle gesetzt hat. Der Regenbogen-Stil hat gar kein --markcol, und
+   ein Skin-Preset setzt feste --skin-c*-Farben: beides liess die Markierungen
+   ALLER Spieler identisch aussehen (gemeldet). Im Coop/Team faellt der Ring
+   deshalb auf die Spielerfarbe zurueck — die Rotation, Dicke und der Glow des
+   Skins bleiben erhalten, nur die Farbe gehoert wieder dem Spieler. */
+.board.mp-colors.skin-style-gradient.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
+.board.mp-colors.skin-style-gradient.skin-removed .cell.removed.coop-mark-removed::after,
+.board.mp-colors.skin-style-rainbow.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
+.board.mp-colors.skin-style-rainbow.skin-removed .cell.removed.coop-mark-removed::after {
+  background: conic-gradient(from 0deg, var(--markcol) 0deg, color-mix(in srgb, var(--markcol) 25%, transparent) 150deg, transparent 250deg, var(--markcol) 360deg);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .board.skin-dynamic.skin-spin.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
   .board.skin-dynamic.skin-spin.skin-removed .cell.removed.coop-mark-removed::after { animation: none; }
