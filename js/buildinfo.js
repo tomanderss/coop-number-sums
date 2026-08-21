@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.207';
-export const BUILD_HASH = 'c35d077';
+export const BUILD      = '1.208';
+export const BUILD_HASH = '656c75f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.208",
+    "date": "21.08.2026",
+    "changes": [
+      "Im Coop und im Team-Modus haben die Markierungen wieder die Farbe des jeweiligen Spielers — auch mit einem Regenbogen- oder Preset-Skin. Diese Skins zeichnen alle Markierungen in ihren eigenen Farben; im Mehrspieler-Modus sagt die Farbe aber, WER eine Zelle gesetzt hat, und das ging dadurch verloren. Rotation, Dicke und Leuchten des Skins bleiben erhalten."
+    ]
+  },
   {
     "version": "1.207",
     "date": "20.08.2026",
