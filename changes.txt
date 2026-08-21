@@ -1,0 +1,1 @@
+Im Coop und im Team-Modus haben die Markierungen wieder die Farbe des jeweiligen Spielers — auch mit einem Regenbogen- oder Preset-Skin. Diese Skins zeichnen alle Markierungen in ihren eigenen Farben; im Mehrspieler-Modus sagt die Farbe aber, WER eine Zelle gesetzt hat, und das ging dadurch verloren. Rotation, Dicke und Leuchten des Skins bleiben erhalten.

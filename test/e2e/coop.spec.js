@@ -511,4 +511,63 @@ test.describe('coop', () => {
     // Nach dem Aufbau laeuft die Rotation wieder.
     await page.waitForFunction(() => window.__cns.state.joinFreeze === false, null, { timeout: 5000 });
   });
+
+  // Gemeldet: im Coop sahen die Markierungen ALLER Spieler gleich aus. Ursache
+  // war der Skin — der Regenbogen-Stil hat gar kein --markcol, ein Skin-Preset
+  // setzt feste Farben. Im Multiplayer ist die Markierungsfarbe aber FUNKTION
+  // (wer hat was gesetzt), nicht Kosmetik.
+  test('im Coop behaelt jede Markierung die Farbe ihres Spielers — auch mit Regenbogen-Skin', async ({ page }) => {
+    await gotoApp(page);
+    const PUZZLE = {
+      rows: 4, cols: 4, rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1],
+      values: Array.from({ length: 4 }, () => Array(4).fill(1)),
+      solution: Array.from({ length: 4 }, () => Array(4).fill(true)),
+      regions: [], difficulty: 'leicht',
+    };
+    await page.evaluate((p) => {
+      const s = window.__cns.state;
+      s.settings.skinStyle = 'rainbow'; s.settings.skinApplyTo = 'both'; s.settings.skinOn = true;
+      s.inventory = { ...(s.inventory || {}), dynamicColor: { acquiredAt: Date.now() } };
+      s.coop.active = true; s.coop.role = 'guest'; s.coop.myId = 'me';
+      s.coop.players = [{ id: 'host', name: 'H', color: '#e5679a' }, { id: 'me', name: 'I', color: '#67a3e5' }];
+      const marks = Array.from({ length: 4 }, () => Array(4).fill('none'));
+      const by = Array.from({ length: 4 }, () => Array(4).fill(null));
+      marks[0][0] = 'kept'; by[0][0] = 'host';
+      marks[0][1] = 'kept'; by[0][1] = 'me';
+      window.__cns.handleCoopMsg({ type: 'init', gameId: 'colors', running: true, puzzle: p, marks, markedBy: by, startTime: Date.now(), lives: 3, maxLives: 3 });
+    }, PUZZLE);
+    await page.waitForSelector('.screen.game');
+
+    const bg = await page.evaluate(() => {
+      const cells = [...document.querySelectorAll('.board .cell')];
+      const at = (i) => getComputedStyle(cells[i], '::after').backgroundImage;
+      return { host: at(0), me: at(1), boardCls: document.querySelector('.board').className };
+    });
+    expect(bg.boardCls).toContain('mp-colors');
+    // Die Farben der beiden Spieler muessen im Ring wirklich auftauchen …
+    expect(bg.host).toContain('229, 103, 154');
+    expect(bg.me).toContain('103, 163, 229');
+    // … und sich damit voneinander unterscheiden.
+    expect(bg.host).not.toBe(bg.me);
+  });
+
+  test('im SOLO bleibt der Regenbogen-Skin unveraendert bunt', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page, 'sehrleicht');
+    await page.evaluate(() => {
+      const { state, onCellTap } = window.__cns;
+      state.settings.skinStyle = 'rainbow'; state.settings.skinApplyTo = 'both'; state.settings.skinOn = true;
+      state.inventory = { ...(state.inventory || {}), dynamicColor: { acquiredAt: Date.now() } };
+      state.tool = 'pen';
+      outer: for (let r = 0; r < state.puzzle.rows; r++)
+        for (let c = 0; c < state.puzzle.cols; c++)
+          if (state.puzzle.solution[r][c]) { onCellTap(r, c); break outer; }
+    });
+    await page.waitForTimeout(200);
+    const solo = await page.evaluate(() => {
+      const cell = document.querySelector('.board .cell.kept');
+      return { cls: document.querySelector('.board').className, bg: cell ? getComputedStyle(cell, '::after').backgroundImage : '' };
+    });
+    expect(solo.cls, 'ohne Multiplayer keine Farb-Umlenkung').not.toContain('mp-colors');
+  });
 });
