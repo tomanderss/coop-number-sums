@@ -516,7 +516,7 @@ test.describe('coop', () => {
   // war der Skin — der Regenbogen-Stil hat gar kein --markcol, ein Skin-Preset
   // setzt feste Farben. Im Multiplayer ist die Markierungsfarbe aber FUNKTION
   // (wer hat was gesetzt), nicht Kosmetik.
-  test('im Coop behaelt jede Markierung die Farbe ihres Spielers — auch mit Regenbogen-Skin', async ({ page }) => {
+  test('im Coop: eigener Skin bleibt, Mitspieler tragen ihre zugewiesene Farbe', async ({ page }) => {
     await gotoApp(page);
     const PUZZLE = {
       rows: 4, cols: 4, rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1],
@@ -546,9 +546,12 @@ test.describe('coop', () => {
     expect(bg.boardCls).toContain('mp-colors');
     // Die Farben der beiden Spieler muessen im Ring wirklich auftauchen …
     expect(bg.host).toContain('229, 103, 154');
-    expect(bg.me).toContain('103, 163, 229');
     // … und sich damit voneinander unterscheiden.
     expect(bg.host).not.toBe(bg.me);
+    // Die EIGENE Zelle behaelt dagegen den eigenen Skin in voller Pracht — man
+    // weiss selbst, welche Zellen von einem sind, die Unterscheidung braucht es
+    // nur fuer die Mitspieler.
+    expect(bg.me, 'eigene Markierung zeigt den eigenen Regenbogen-Skin').toContain('255, 0, 76');
   });
 
   test('im SOLO bleibt der Regenbogen-Skin unveraendert bunt', async ({ page }) => {
@@ -569,5 +572,41 @@ test.describe('coop', () => {
       return { cls: document.querySelector('.board').className, bg: cell ? getComputedStyle(cell, '::after').backgroundImage : '' };
     });
     expect(solo.cls, 'ohne Multiplayer keine Farb-Umlenkung').not.toContain('mp-colors');
+  });
+
+  // Nutzerwunsch: auch beim ANNEHMEN einer Einladung soll zuerst der Namensdialog
+  // kommen. Vorher sprang der Beitritt direkt in den Raum und man landete mit dem
+  // zuletzt gespeicherten Namen darin, ohne ihn noch aendern zu koennen.
+  test('eine angenommene Einladung fuehrt ZUERST ins Namens-Gate, nicht direkt in den Raum', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      window.__cns.state.pendingLobbyInvite = { fromUid: 'u-host', code: '123456', mode: 'coop', username: 'Host' };
+    });
+    await page.locator('.modal .btn-primary').first().click();
+
+    // Coop-Screen mit Namens-Gate — und NOCH KEIN Beitritt.
+    await expect(page.locator('.screen.coop-screen')).toBeVisible();
+    const gate = await page.evaluate(() => ({
+      confirmed: window.__cns.state.coop.identityConfirmed,
+      pendingJoin: window.__cns.state.coop.pendingJoin,
+      code: window.__cns.state.coop.code,
+      role: window.__cns.state.coop.role,
+    }));
+    expect(gate.confirmed, 'das Namens-Gate muss offen sein').toBe(false);
+    expect(gate.pendingJoin, 'der Beitritt ist vorgemerkt').toBe(true);
+    expect(gate.code, 'der Raumcode aus der Einladung steht schon fest').toBe('123456');
+    expect(gate.role, 'noch kein Beitritt ausgeloest').toBe(null);
+    await expect(page.locator('.coop-body')).toBeVisible();
+
+    // Namen anpassen und bestaetigen -> jetzt erst geht es in den Raum.
+    await page.evaluate(() => { window.__cns.state.coop.nameDraft = 'Neuer Name'; });
+    await page.locator('.screen.coop-screen .btn-primary').first().click();
+    await page.waitForFunction(() => window.__cns.state.coop.identityConfirmed === true, null, { timeout: 5000 });
+    const after = await page.evaluate(() => ({
+      pendingJoin: window.__cns.state.coop.pendingJoin,
+      name: window.__cns.state.settings.coopName,
+    }));
+    expect(after.pendingJoin, 'die Vormerkung ist verbraucht').toBe(false);
+    expect(after.name, 'der neue Name ist uebernommen').toBe('Neuer Name');
   });
 });

@@ -2441,11 +2441,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    ein Skin-Preset setzt feste --skin-c*-Farben: beides liess die Markierungen
    ALLER Spieler identisch aussehen (gemeldet). Im Coop/Team faellt der Ring
    deshalb auf die Spielerfarbe zurueck — die Rotation, Dicke und der Glow des
-   Skins bleiben erhalten, nur die Farbe gehoert wieder dem Spieler. */
-.board.mp-colors.skin-style-gradient.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
-.board.mp-colors.skin-style-gradient.skin-removed .cell.removed.coop-mark-removed::after,
-.board.mp-colors.skin-style-rainbow.skin-kept .cell.kept.coop-mark:not(.hintmark)::after,
-.board.mp-colors.skin-style-rainbow.skin-removed .cell.removed.coop-mark-removed::after {
+   Skins bleiben erhalten, nur die Farbe gehoert wieder dem Spieler.
+   AUSGENOMMEN die EIGENEN Zellen (.mine): den eigenen Skin sieht man weiterhin in
+   voller Pracht — man weiss ja selbst, welche Zellen von einem sind. Die
+   Unterscheidung braucht es nur fuer die Mitspieler. */
+.board.mp-colors.skin-style-gradient.skin-kept .cell.kept.coop-mark:not(.hintmark):not(.mine)::after,
+.board.mp-colors.skin-style-gradient.skin-removed .cell.removed.coop-mark-removed:not(.mine)::after,
+.board.mp-colors.skin-style-rainbow.skin-kept .cell.kept.coop-mark:not(.hintmark):not(.mine)::after,
+.board.mp-colors.skin-style-rainbow.skin-removed .cell.removed.coop-mark-removed:not(.mine)::after {
   background: conic-gradient(from 0deg, var(--markcol) 0deg, color-mix(in srgb, var(--markcol) 25%, transparent) 150deg, transparent 250deg, var(--markcol) 360deg);
 }
 

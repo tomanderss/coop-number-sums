@@ -139,6 +139,7 @@ const state = reactive({
     players: [],                // [{id, name, color}] — alle bekannten Mitspieler inkl. mir selbst
     nameDraft: '',              // Entwurf im Namens-Gate, bevor er bestätigt wird
     identityConfirmed: false,   // true sobald das Namens-Gate in dieser Coop-Session bestätigt wurde
+    pendingJoin: false,         // Einladung angenommen: nach dem Namens-Gate DIREKT beitreten (Code steht schon fest)
     lifeLossBy: [],              // chronologisch: wer hat welches (gemeinsame) Leben verbraucht
     mistakesByPlayer: {},        // id -> Anzahl Fehler dieses Spielers im laufenden Rätsel
     awaitingStart: false,        // Rätsel ist generiert, aber die Zeit läuft noch nicht — wartet auf Start-Klick
@@ -2850,6 +2851,7 @@ function coopReset({ keepRoom = false } = {}) {
   state.coop.raceMode = false;
   state.coop.ffaMode = false;
   state.coop.invitePickerOpen = false; state.coop.invitedUids = [];
+  state.coop.pendingJoin = false;   // haengt an der gerade verlassenen Einladung
   state.team.active = false; state.team.myTeam = null; state.team.matchOver = false;
   state.team.winningTeam = null; state.team.endReason = null; state.team.opponentPct = 0; state.team.opponentMistakes = 0; state.team.myPct = 0;
   state.team.opponentMistakesByPlayer = {};
@@ -3170,6 +3172,14 @@ function confirmCoopIdentity() {
   const name = (state.coop.nameDraft || '').trim();
   if (!name) return;
   state.settings.coopName = name;
+  // Angenommene Einladung: der Raumcode steht bereits fest, es gibt also keine
+  // Rollenwahl mehr — nach dem Namen geht es DIREKT in den Raum.
+  if (state.coop.pendingJoin) {
+    state.coop.pendingJoin = false;
+    state.coop.identityConfirmed = true;
+    startJoining();
+    return;
+  }
   // Schritt vorwärts (Name → Rollenwahl): Zurück öffnet wieder das Namens-Gate.
   pushNav(() => { state.coop.identityConfirmed = false; });
   state.coop.identityConfirmed = true;
@@ -5186,11 +5196,17 @@ function acceptLobbyInvite(inv) {
   state.coop.teamMode = inv.mode === '2v2';
   state.coop.ffaMode = inv.mode === 'ffa';
   state.coop.raceMode = inv.mode === '1v1' || inv.mode === 'ffa';
-  state.coop.identityConfirmed = true;              // gespeicherten Namen verwenden
+  // Namens-Gate ZUERST — auch bei einer Einladung. Vorher sprang der Beitritt
+  // direkt in den Raum und man landete mit dem zuletzt gespeicherten Namen darin,
+  // ohne ihn noch anpassen zu koennen (Nutzerwunsch). Der Code steht schon fest,
+  // deshalb merkt sich pendingJoin, dass nach dem Bestaetigen sofort beigetreten
+  // wird statt in die Rollenwahl zu gehen (s. confirmCoopIdentity).
+  state.coop.identityConfirmed = false;
+  state.coop.pendingJoin = true;
   state.coop.nameDraft = state.settings.coopName;
   state.coop.code = String(inv.code || '');
+  pushNav(() => { coopReset(); navigate('home'); });
   navigate('coop');
-  startJoining();
 }
 function declineLobbyInviteUI(inv) {
   if (!inv) return;
@@ -10061,6 +10077,10 @@ function cellClasses(r, c) {
     'col-pulse': !!state.justResolved[`col-${c}`],
     strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
     'coop-mark': !!state.markedBy[r][c],
+    // EIGENE Markierung: im Multiplayer behaelt sie den eigenen Skin (Regenbogen,
+    // Preset, Verlauf) — nur die Zellen der MITSPIELER fallen auf deren zugewiesene
+    // Farbe zurueck, damit erkennbar bleibt, wer was gesetzt hat (s. .mp-colors).
+    mine: !!state.markedBy[r][c] && state.markedBy[r][c] === (state.coop.myId || LOCAL_PLAYER_ID),
     'coop-mark-removed': state.coop.active && !!state.markedBy[r][c] && mk === 'removed' && state.settings.coopRemovedOutline,
     'training-highlight': state.isTrainingGame && state.trainingStep?.r === r && state.trainingStep?.c === c,
     'hint-group': inHintGroup(r, c),
