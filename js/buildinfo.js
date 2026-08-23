@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.208';
-export const BUILD_HASH = '656c75f';
+export const BUILD      = '1.209';
+export const BUILD_HASH = '1890aae';
 
 export const CHANGELOG = [
+  {
+    "version": "1.209",
+    "date": "23.08.2026",
+    "changes": [
+      "Deine eigenen Markierungen zeigen im Coop und im Team wieder deinen eigenen Skin in voller Pracht. Nur die Markierungen der Mitspieler tragen ihre zugewiesene Farbe — du weißt ja selbst, welche Zellen von dir sind.",
+      "Beim Annehmen einer Einladung kommt jetzt zuerst die Namensabfrage. Bisher landete man sofort im Raum und konnte den Namen nicht mehr anpassen."
+    ]
+  },
   {
     "version": "1.208",
     "date": "21.08.2026",
