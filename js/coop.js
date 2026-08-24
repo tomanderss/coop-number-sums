@@ -431,6 +431,36 @@ export function sanitizeForFirebase(v) {
   }
   return v;
 }
+// Firebase RTDB speichert KEINE null-Werte: ein null wird beim Schreiben einfach
+// weggelassen. Ein 2D-Raster, dessen Zellen ueberwiegend null sind — genau das ist
+// `markedBy` (wer hat welche Zelle markiert) — kommt beim Empfaenger deshalb LOECHRIG
+// zurueck: komplett leere Zeilen fehlen ganz, und ein Array mit Luecken liefert RTDB
+// als OBJEKT mit numerischen Schluesseln ({"3":{"5":"uid"}}) statt als Array.
+// Der Empfaenger las das Raster bisher unveraendert in den Spielstand; beim Rendern
+// warf dann `markedBy[r][c]` fuer jede fehlende Zeile einen TypeError, Vue brach den
+// Aufbau des Brett-Teilbaums ab — das Brett fehlte komplett im DOM (der gemeldete
+// „Blackscreen beim Beitritt"). Sichtbar wurde es nur beim Beitritt in eine LAUFENDE
+// Runde: ein frisches Brett hat gar keine Markierungen, dann fehlt `markedBy` ganz
+// und der Empfaenger legt ohnehin ein leeres Raster an.
+// normalizeGrid stellt aus einer beliebigen dieser Formen wieder ein dichtes
+// rows×cols-Array her. Fehlende Eintraege (auch '' — so senden wir sie, damit RTDB
+// sie gar nicht erst verwirft) werden zu `fill`.
+export function normalizeGrid(raw, rows, cols, fill = null) {
+  const at = (src, i) => (src && typeof src === 'object')
+    ? (Array.isArray(src) ? src[i] : src[String(i)])
+    : undefined;
+  const out = [];
+  for (let r = 0; r < rows; r++) {
+    const row = at(raw, r);
+    const line = new Array(cols);
+    for (let c = 0; c < cols; c++) {
+      const v = at(row, c);
+      line[c] = (v === undefined || v === null || v === '') ? fill : v;
+    }
+    out.push(line);
+  }
+  return out;
+}
 export async function send(msg) {
   if (!fb || !roomCode) return;
   try {
