@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.209';
-export const BUILD_HASH = '1890aae';
+export const BUILD      = '1.210';
+export const BUILD_HASH = 'c6f0fd3';
 
 export const CHANGELOG = [
+  {
+    "version": "1.210",
+    "date": "24.08.2026",
+    "changes": [
+      "Der Blackscreen beim Beitritt in ein laufendes Spiel ist behoben. Firebase speichert keine leeren Werte — bei einer Runde, in der schon Zellen markiert waren, kam das Raster „wer hat was markiert\" deshalb lückenhaft an, und das Spielfeld wurde gar nicht erst aufgebaut. Betroffen war jeder Beitritt mitten ins Spiel: eingeladene Solo-Partie, Nachzügler in einer Coop-Runde und laufende Endlos-Level."
+    ]
+  },
   {
     "version": "1.209",
     "date": "23.08.2026",
