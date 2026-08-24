@@ -198,10 +198,10 @@ test.describe('endless climb', () => {
     // Endlos-Fortsetzen-Knopf erscheint und ist klar als Endlos gekennzeichnet
     // (eigene .endless-Klasse + „Endlos"-Ecken-Chip).
     expect(await page.evaluate(() => !!window.__cns.state.resumeAvailableEndless)).toBe(true);
-    await expect(page.locator('.resume-row .btn-resume.endless')).toHaveCount(1);
-    await expect(page.locator('.resume-row .btn-resume.endless .badge-endless')).toBeVisible();
+    await expect(page.locator('.resume-stack .btn-resume.endless')).toHaveCount(1);
+    await expect(page.locator('.resume-stack .btn-resume.endless .badge-endless')).toBeVisible();
     // Fortsetzen → derselbe Lauf (Level, Große Zahlen, Seed), Endlos wieder aktiv.
-    await page.locator('.resume-row .btn-resume').click();
+    await page.locator('.resume-stack .btn-resume').click();
     await page.waitForSelector('.screen.game');
     await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating);
     const after = await page.evaluate(() => ({ big: window.__cns.state.puzzle.bigNumbers, seed: window.__cns.state.puzzle.seed, level: window.__cns.state.endless.level, active: window.__cns.state.endless.active }));

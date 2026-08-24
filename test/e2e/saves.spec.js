@@ -53,7 +53,7 @@ test.describe('Spielstand-Bibliothek', () => {
     // Ins Hauptmenue und die Bibliothek oeffnen.
     await page.goto('/');
     await page.waitForFunction(() => !!window.__cns);
-    await page.locator('.saves-link').click();
+    await page.locator('.saves-expand').click();
     await expect(page.locator('.saves-modal')).toBeVisible();
 
     const rows = page.locator('.save-row');
@@ -61,6 +61,19 @@ test.describe('Spielstand-Bibliothek', () => {
     // Jede Zeile traegt einen Fortschrittsbalken mit echter Breite.
     const pct = await page.evaluate(() => Array.from(document.querySelectorAll('.save-bar i')).map((el) => el.style.width));
     expect(pct.every((w) => /^\d+%$/.test(w))).toBe(true);
+
+    // Die Zeile zeigt die verbleibenden LEBEN als Herzen — nicht die Fehlerzahl
+    // (Nutzerwunsch): drei Herzen insgesamt, die verbrauchten als leere Kontur.
+    const hearts = await page.evaluate(() => {
+      const row = document.querySelector('.save-row');
+      const hs = Array.from(row.querySelectorAll('.save-hearts .heart'));
+      const g = window.__cns.state.saves[0];
+      return { total: hs.length, full: hs.filter((h) => !h.classList.contains('empty')).length, lives: g.lives, max: g.maxLives };
+    });
+    expect(hearts.total).toBe(hearts.max);
+    expect(hearts.full).toBe(hearts.lives);
+    // Und die Fehlerzahl steht NICHT mehr in der Zeile.
+    await expect(page.locator('.save-row').first().locator('.save-mistakes')).toHaveCount(0);
 
     // Loeschen fragt nach und entfernt danach genau EINEN Eintrag.
     await rows.first().locator('.save-del').click();
@@ -83,7 +96,7 @@ test.describe('Spielstand-Bibliothek', () => {
 
     await page.goto('/');
     await page.waitForFunction(() => !!window.__cns);
-    await page.locator('.saves-link').click();
+    await page.locator('.saves-expand').click();
     // Den AELTEREN Stand waehlen (er steht hinten, weil neueste zuerst kommen).
     await page.locator('.save-row').last().locator('.save-main').click();
     await page.waitForSelector('.screen.game');
@@ -114,7 +127,7 @@ test.describe('Spielstand-Bibliothek', () => {
     expect(await page.evaluate(() => window.__cns.state.resumeAvailable.gameId)).toBe(second);
 
     // Genau diesen Stand ueber die echte Oberflaeche loeschen (ohne Neuladen!).
-    await page.locator('.saves-link').click();
+    await page.locator('.saves-expand').click();
     await expect(page.locator('.saves-modal')).toBeVisible();
     // Der laufende/juengste Stand steht oben.
     await page.locator('.save-row').first().locator('.save-del').click();

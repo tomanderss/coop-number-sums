@@ -62,7 +62,10 @@ stroke('mail', '<path d="M3.5 6h17v12h-17zM3.5 7l8.5 6 8.5-6"/>');
 stroke('lock', '<path d="M6.5 11V8a5.5 5.5 0 0 1 11 0v3M5 11h14v9H5z"/>');
 stroke('key', '<circle cx="8" cy="8" r="4"/><path d="M11 11l8 8m-3 0l2-2m-4-2l2-2"/>');
 stroke('link', '<path d="M9 15l6-6M9.5 7.5l1.8-1.8a3.5 3.5 0 0 1 5 5L13.5 12M10.5 12L8.7 13.8a3.5 3.5 0 0 1-5-5l1.8-1.8"/>');
-stroke('trash', '<path d="M4 6.5h16M9 6.5V4h6v2.5M6.5 6.5L7.5 20h9l1-13.5M10 10v6M14 10v6"/>');
+// Papierkorb: Deckel nur leicht ueber den Korpus hinaus (vorher 16 breit bei
+// 11 breitem Korpus — das wirkte kopflastig), Korpus leicht konisch, Rippen
+// mittig eingerueckt.
+stroke('trash', '<path d="M5 6.6h14M9.6 6.6V4.4h4.8v2.2M7 6.6l.9 13h8.2l.9-13M10.3 10.2v5.8M13.7 10.2v5.8"/>');
 stroke('warning', '<path d="M12 3.5L22 20H2zM12 9v5M12 17h.01"/>');
 stroke('bulb', '<path d="M8.5 15a5.5 5.5 0 1 1 7 0c-.8.6-1 1-1 2v.5h-5V17c0-1-.2-1.4-1-2zM9.5 20.5h5M10 22.5h4"/>');
 stroke('flag', '<path d="M6 21V4M6 4h11l-2 3.5 2 3.5H6"/>');

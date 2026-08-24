@@ -4351,14 +4351,64 @@ function closeSaves() { state.savesOpen = false; }
 
 // Anzeige-Helfer fuer die Liste. Bewusst hier und nicht im Template, damit das
 // Template lesbar bleibt.
+// Der EINE Solo-Fortsetzen-Knopf auf Home. Klassischer Solo-Stand und Endlos-Lauf
+// teilen sich einen Platz — es gewinnt der ZULETZT gespielte. Der jeweils andere
+// ist nicht verloren, sondern haengt (wie alle weiteren Staende) am
+// Erweiterungs-Knopf darunter. Zwei bis drei gleichrangige Fortsetzen-Knoepfe
+// nebeneinander waren weder lesbar noch beantworteten sie die eigentliche Frage
+// „womit mache ich weiter?".
+const soloResume = computed(() => {
+  const a = state.resumeAvailable, b = state.resumeAvailableEndless;
+  if (a && b) return (Number(b.ts) || 0) > (Number(a.ts) || 0) ? { g: b, endless: true } : { g: a, endless: false };
+  if (b) return { g: b, endless: true };
+  if (a) return { g: a, endless: false };
+  return null;
+});
+function resumeSolo() {
+  const s = soloResume.value;
+  if (!s) return;
+  if (s.endless) resumeEndlessGame(); else resumeGame();
+}
+// Wie viele Staende liegen NEBEN dem, der schon auf dem Knopf steht? Genau diese
+// Zahl steht am Erweiterungs-Knopf — „Weitere Spielstaende (2)" ist ehrlicher als
+// die Gesamtzahl, die den angebotenen Stand mitzaehlte.
+const otherSavesCount = computed(() => {
+  const cur = soloResume.value && soloResume.value.g;
+  const id = cur && (cur.id || cur.gameId);
+  return state.saves.filter((x) => (x.id || x.gameId) !== id).length;
+});
+// Unterzeile des Solo-Knopfs: beim Endlos-Lauf Level (+ Grosse Zahlen), sonst
+// Schwierigkeit · Brettgroesse · bisherige Spielzeit.
+function resumeSubline(s) {
+  const g = s && s.g;
+  if (!g) return '';
+  if (s.endless) {
+    const lv = t('endless.levelShort', { n: (g.endless && g.endless.level) || 1 });
+    return (g.endless && g.endless.bigNumbers) ? `${lv} · ${t('setup.bigNumbers')}` : lv;
+  }
+  return `${t('difficulty.' + saveDifficulty(g))} · ${saveDim(g)} · ${fmtTime(g.elapsed || 0)}`;
+}
+
 function saveProgress(g) { return g && g.pending ? 100 : snapshotProgress(g); }
+// Verbleibende LEBEN eines Stands als Herz-Array (true = noch da). Bewusst die
+// Leben und nicht die Fehlerzahl: „noch 2 von 3 Herzen" beantwortet die Frage
+// „wie brenzlig steht es?" direkt, waehrend eine nackte Fehlerzahl erst gegen die
+// Lebenszahl verrechnet werden musste. Der Endlos-Zwischenmarker traegt seine
+// Leben unter `endless` (kein Brett), daher beide Quellen.
+function saveLivesArr(g) {
+  const max = Math.max(1, Number(g && g.maxLives) || LIVES);
+  const raw = (g && g.endless && g.endless.lives != null) ? g.endless.lives : (g && g.lives);
+  const left = Math.max(0, Math.min(max, Number(raw ?? max)));
+  return Array.from({ length: max }, (_, i) => i < left);
+}
+function saveLivesLeft(g) { return saveLivesArr(g).filter(Boolean).length; }
 function saveIsEndless(g) { return !!(g && (g.kind === 'endless' || g.endless)); }
 function saveDifficulty(g) { return (g && (g.difficulty || (g.puzzle && g.puzzle.difficulty))) || 'mittel'; }
 function saveDim(g) {
   const p = g && g.puzzle;
-  if (p && p.rows) return `${p.rows}x${p.cols}`;
+  if (p && p.rows) return `${p.rows}×${p.cols}`;
   const d = DIFF_BY_ID[saveDifficulty(g)];
-  return d ? `${d.dim.r}x${d.dim.c}` : '';
+  return d ? `${d.dim.r}×${d.dim.c}` : '';
 }
 // Laeuft genau dieser Stand gerade? Dann wird er als solcher markiert statt als
 // „fortsetzbar" angeboten.
@@ -7675,6 +7725,7 @@ const App = {
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
       openSaves, closeSaves, resumeSave, deleteSave, saveProgress, saveIsEndless, saveDifficulty, saveDim, saveIsCurrent, saveWhen, SAVES_MAX,
+      soloResume, resumeSolo, otherSavesCount, resumeSubline, saveLivesArr, saveLivesLeft,
       goAiDuel, startAiDuel, aiTargetLabel, aiCalibrated, aiLevels: Object.keys(PRESET_LEVELS), cloneStatus,
       friendClones, readyClones, learningClones, anyCloneReady, pickAiOpponent, setAiMode,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -7741,34 +7792,34 @@ const App = {
       </div>
 
       <div class="home-actions">
-        <div v-if="state.resumeAvailable || state.resumeAvailableCoop || state.resumeAvailableEndless" class="resume-row">
-          <button v-if="state.resumeAvailable" class="btn btn-resume" @click="resumeGame">
-            <span class="btn-ic">▶</span>
-            <span class="btn-tx"><b>{{ t('home.resume') }}</b>
-              <small>{{ t('difficulty.'+state.resumeAvailable.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailable.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailable.elapsed||0) }}</small>
-            </span>
-          </button>
-          <button v-if="state.resumeAvailableEndless" class="btn btn-resume endless" @click="resumeEndlessGame">
-            <span class="btn-ic"><span class="ei" v-html="ic('meteor')"></span></span>
-            <span class="btn-tx"><b>{{ t('home.resumeEndless') }}</b>
-              <small>{{ t('endless.levelShort', { n: state.resumeAvailableEndless.endless.level }) }}<template v-if="state.resumeAvailableEndless.endless.bigNumbers"> · {{ t('setup.bigNumbers') }}</template></small>
-            </span>
-            <span class="badge-endless">{{ t('endless.badge') }}</span>
-          </button>
-          <button v-if="state.resumeAvailableCoop" class="btn btn-resume" @click="resumeCoopGame">
+        <!-- Fortsetzen-Angebote stehen UNTEREINANDER und pro Bereich gibt es
+             GENAU EINES: ein Knopf fuer Solo (klassisch ODER Endlos — der
+             zuletzt gespielte gewinnt) und einer fuer Coop. Nebeneinander
+             wurden bei drei Angeboten alle drei schmal und unlesbar; alles
+             Weitere haengt jetzt am Erweiterungs-Knopf, der optisch am
+             Solo-Knopf klebt und benannt ist ("Weitere Spielstaende (N)")
+             statt als loser Textlink danebenzustehen. -->
+        <div v-if="soloResume || state.resumeAvailableCoop" class="resume-stack">
+          <div v-if="soloResume" class="resume-group" :class="{ expandable: otherSavesCount > 0 }">
+            <button class="btn btn-resume" :class="{ endless: soloResume.endless }" @click="resumeSolo">
+              <span class="btn-ic"><span class="ei" v-html="ic(soloResume.endless ? 'meteor' : 'play')"></span></span>
+              <span class="btn-tx"><b>{{ soloResume.endless ? t('home.resumeEndless') : t('home.resume') }}</b>
+                <small>{{ resumeSubline(soloResume) }}</small>
+              </span>
+              <span v-if="soloResume.endless" class="badge-endless">{{ t('endless.badge') }}</span>
+            </button>
+            <button v-if="otherSavesCount > 0" class="saves-expand" @click="openSaves"
+                    :aria-label="t('saves.moreN', { n: otherSavesCount })">
+              <span class="ei se-ic" v-html="ic('save')"></span>
+              <span class="se-tx">{{ t('saves.moreN', { n: otherSavesCount }) }}</span>
+              <span class="ei se-chev" v-html="ic('chevron-right')"></span>
+            </button>
+          </div>
+          <button v-if="state.resumeAvailableCoop" class="btn btn-resume coop" @click="resumeCoopGame">
             <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span>
             <span class="btn-tx"><b>{{ t('home.resumeCoop') }}</b>
-              <small>{{ t('difficulty.'+state.resumeAvailableCoop.difficulty) }} · {{ DIFF_BY_ID[state.resumeAvailableCoop.difficulty]?.dim.r }}×{{ DIFF_BY_ID[state.resumeAvailableCoop.difficulty]?.dim.c }} · {{ fmtTime(state.resumeAvailableCoop.elapsed||0) }}</small>
+              <small>{{ t('difficulty.'+state.resumeAvailableCoop.difficulty) }} · {{ saveDim(state.resumeAvailableCoop) }} · {{ fmtTime(state.resumeAvailableCoop.elapsed||0) }}</small>
             </span>
-          </button>
-          <!-- Zugang zur Bibliothek: erscheint, sobald es MEHR als den einen
-               prominenten Stand gibt. Bewusst ein schmaler Textlink statt einer
-               weiteren grossen Schaltflaeche — er soll nicht mit „Fortsetzen"
-               konkurrieren, sondern die Frage „was habe ich sonst noch offen?"
-               beantworten. -->
-          <button v-if="state.saves.length > 1" class="saves-link" @click="openSaves">
-            <span class="ei" v-html="ic('save')"></span>
-            {{ t('saves.openN', { n: state.saves.length }) }}
           </button>
         </div>
         <button class="btn btn-primary" @click="coopReset(); navTo('setup')">
@@ -9646,20 +9697,32 @@ const App = {
         <div class="saves-list">
           <div v-for="g in state.saves" :key="g.id" class="save-row" :class="{ current: saveIsCurrent(g) }" :style="diffVars(saveDifficulty(g))">
             <button class="save-main" @click="resumeSave(g)">
-              <div class="save-head">
-                <span class="save-dot"></span>
-                <b class="save-name">{{ t('difficulty.' + saveDifficulty(g)) }}</b>
-                <span v-if="saveIsEndless(g)" class="save-badge"><span class="ei" v-html="ic('meteor')"></span>{{ t('endless.levelShort', { n: (g.endless && g.endless.level) || 1 }) }}</span>
-                <span v-if="saveIsCurrent(g)" class="save-badge now">{{ t('saves.running') }}</span>
-              </div>
-              <div class="save-bar"><i :style="{ width: saveProgress(g) + '%' }"></i></div>
-              <div class="save-meta">
-                <span>{{ saveProgress(g) }}%</span>
-                <span>{{ saveDim(g) }}</span>
-                <span v-if="!g.pending"><span class="ei" v-html="ic('clock')"></span> {{ fmtTime(g.elapsed || 0) }}</span>
-                <span v-if="g.mistakes"><span class="ei" v-html="ic('close')"></span> {{ g.mistakes }}</span>
-                <span class="save-when">{{ saveWhen(g) }}</span>
-              </div>
+              <!-- Medaillon in der Leitfarbe der Schwierigkeit statt eines nackten
+                   Punktes — dieselbe Bildsprache wie die Schwierigkeitsauswahl. -->
+              <span class="save-medal"><span class="ei" v-html="ic(DIFF_BY_ID[saveDifficulty(g)]?.emoji)"></span></span>
+              <span class="save-body">
+                <span class="save-head">
+                  <b class="save-name">{{ t('difficulty.' + saveDifficulty(g)) }}</b>
+                  <span class="save-dim">{{ saveDim(g) }}</span>
+                  <span v-if="saveIsEndless(g)" class="save-badge"><span class="ei" v-html="ic('meteor')"></span>{{ t('endless.levelShort', { n: (g.endless && g.endless.level) || 1 }) }}</span>
+                  <span v-if="saveIsCurrent(g)" class="save-badge now">{{ t('saves.running') }}</span>
+                </span>
+                <span class="save-barline">
+                  <span class="save-bar"><i :style="{ width: saveProgress(g) + '%' }"></i></span>
+                  <span class="save-pct">{{ saveProgress(g) }}%</span>
+                </span>
+                <span class="save-meta">
+                  <!-- LEBEN, nicht Fehler: „noch 2 von 3 Herzen" sagt direkt, wie
+                       brenzlig der Stand ist. Gleiche Herz-Optik wie im Spiel-HUD. -->
+                  <span class="save-hearts" :aria-label="t('saves.livesLeft', { n: saveLivesLeft(g), max: saveLivesArr(g).length })">
+                    <span v-for="(full,i) in saveLivesArr(g)" :key="i" class="heart" :class="{ empty: !full }">
+                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </span>
+                  </span>
+                  <span v-if="!g.pending" class="save-time"><span class="ei" v-html="ic('clock')"></span>{{ fmtTime(g.elapsed || 0) }}</span>
+                  <span class="save-when">{{ saveWhen(g) }}</span>
+                </span>
+              </span>
             </button>
             <button class="save-del" @click.stop="deleteSave(g)" :aria-label="t('saves.delete')" :title="t('saves.delete')">
               <span class="ei" v-html="ic('trash')"></span>

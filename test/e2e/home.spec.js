@@ -69,13 +69,13 @@ test.describe('home screen', () => {
 
   test('leaving an unfinished solo game shows a resume button that continues the same puzzle', async ({ page }) => {
     await gotoApp(page);
-    await expect(page.locator('.resume-row')).toHaveCount(0);
+    await expect(page.locator('.resume-stack')).toHaveCount(0);
     await startNewGame(page, 'sehrleicht');
     const seedBefore = await page.evaluate(() => window.__cns.state.puzzle.seed);
     await page.locator('.game-top .icon-btn').first().click(); // Pause
     await page.locator('.pause-overlay').getByText('Zum Menü').click();
     await expect(page.locator('.screen.home')).toBeVisible();
-    const resumeRow = page.locator('.resume-row');
+    const resumeRow = page.locator('.resume-stack');
     await expect(resumeRow).toBeVisible();
     await expect(resumeRow.locator('.btn-resume')).toHaveCount(1);
     await resumeRow.locator('.btn-resume').click();
@@ -104,10 +104,10 @@ test.describe('home screen', () => {
     expect(await page.evaluate(() => window.__cns.state.resumeAvailable)).toBe(null);
     await page.locator('.result-card.win .btn-ghost').click();
     await expect(page.locator('.screen.home')).toBeVisible();
-    await expect(page.locator('.resume-row')).toHaveCount(0);
+    await expect(page.locator('.resume-stack')).toHaveCount(0);
   });
 
-  test('solo and coop resume buttons render side by side when both saves exist', async ({ page }) => {
+  test('solo and coop resume buttons stack vertically when both saves exist', async ({ page }) => {
     await gotoApp(page);
     await startNewGame(page, 'sehrleicht');
     await page.locator('.game-top .icon-btn').first().click(); // Pause
@@ -127,11 +127,16 @@ test.describe('home screen', () => {
     });
     await page.reload();
     await page.waitForSelector('.screen.home');
-    const resumeRow = page.locator('.resume-row');
+    const resumeRow = page.locator('.resume-stack');
     await expect(resumeRow).toBeVisible();
     await expect(resumeRow.locator('.btn-resume')).toHaveCount(2);
+    // Untereinander, NICHT nebeneinander (Nutzerwunsch): nebeneinander wurden
+    // beide schmal und die Unterzeile brach um. Gleiche linke Kante, klar
+    // getrennte Zeilen, und jeder Knopf nutzt die volle Breite.
     const box1 = await resumeRow.locator('.btn-resume').nth(0).boundingBox();
     const box2 = await resumeRow.locator('.btn-resume').nth(1).boundingBox();
-    expect(Math.abs(box1.y - box2.y)).toBeLessThan(5); // side by side, not stacked
+    expect(box2.y).toBeGreaterThan(box1.y + box1.height - 1);
+    expect(Math.abs(box1.x - box2.x)).toBeLessThan(2);
+    expect(Math.abs(box1.width - box2.width)).toBeLessThan(2);
   });
 });

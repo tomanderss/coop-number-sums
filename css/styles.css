@@ -550,8 +550,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Bei zwei parallel fortsetzbaren Spielen (Solo + Coop) teilen sich beide
    Buttons die Zeile zu gleichen Hälften statt sich zu stapeln; bei nur einem
    nimmt er von selbst die volle Breite ein (flex:1 auf einem einzigen Kind). */
-.resume-row { display: flex; gap: 8px; }
-.resume-row .btn-resume { flex: 1; min-width: 0; padding: 8px 10px; }
+/* Fortsetzen-Angebote stehen UNTEREINANDER, nicht nebeneinander: pro Bereich
+   genau ein Knopf (Solo / Coop). Nebeneinander wurden bei drei Angeboten alle
+   drei schmal, die Unterzeile brach um und keiner war mehr auf einen Blick
+   lesbar. Der Erweiterungs-Knopf klebt am Solo-Knopf (nur die Kanten dazwischen
+   sind gerade) — er liest sich damit als „mehr davon" und nicht als
+   eigenstaendige Aktion. */
+.resume-stack { display: flex; flex-direction: column; gap: 8px; }
+.resume-group { display: flex; flex-direction: column; gap: 2px; }
+.resume-group.expandable > .btn-resume { border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; }
+.saves-expand {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 14px; border-radius: 5px 5px 14px 14px;
+  background: var(--bg2); color: var(--text2); text-align: left;
+  font-size: .82rem; font-weight: 700; font-family: inherit;
+  box-shadow: 0 2px 10px var(--shadow); transition: transform .12s, filter .12s;
+}
+.saves-expand:active { transform: scale(.985); }
+.saves-expand .se-tx { flex: 1; min-width: 0; }
+.saves-expand .se-ic { font-size: 1rem; opacity: .8; }
+/* Chevron nach UNTEN gedreht = „hier klappt etwas auf". Ein eigenes
+   Abwaerts-Chevron gibt es im Icon-Set nicht, die Drehung ist billiger als ein
+   weiteres Glyph. */
+.saves-expand .se-chev { font-size: .95rem; opacity: .65; transform: rotate(90deg); }
 /* minmax(0,1fr) statt 1fr: ohne das würde der Default min-width:auto eines
    Grid-Items auf dessen min-content (z.B. das unbrechbare Wort "Einstellungen")
    wachsen und die Spalten dadurch wieder ungleich breit machen. */
@@ -585,6 +606,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn:disabled { opacity: .55; }
 .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
 .btn-resume { background: linear-gradient(135deg, var(--good), #10b981); color: #042f1e; }
+.btn-resume.coop {
+  background: color-mix(in srgb, var(--good) 16%, var(--bg2)); color: var(--text);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--good) 42%, transparent), 0 2px 10px var(--shadow);
+}
+.btn-resume.coop .btn-ic { color: var(--good); }
 /* Endlos-Fortsetzen: eigener Akzent-Look (statt Grün) + „Endlos"-Ecken-Chip, damit
    er sich klar vom normalen Solo-/Coop-Fortsetzen abhebt. */
 .btn-resume.endless { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; position: relative; }
@@ -3092,41 +3118,63 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
    abgesetzt rechts, damit es nicht versehentlich getroffen wird. Der farbige
    Punkt und der Balken tragen die Leitfarbe der Schwierigkeit (--dacc, per
    diffVars an der Zeile gesetzt) — dieselbe Sprache wie die Schwierigkeitsauswahl. */
-.saves-link {
-  display: inline-flex; align-items: center; gap: 6px; align-self: center;
-  margin-top: 2px; padding: 6px 10px; background: none; color: var(--text2);
-  font-size: .8rem; font-weight: 700; text-decoration: underline; opacity: .85;
-}
 .saves-modal { max-width: 460px; }
 .saves-intro { margin: 0 0 12px; font-size: .78rem; font-weight: 600; color: var(--text2); opacity: .8; }
 .saves-list { display: flex; flex-direction: column; gap: 8px; max-height: 58vh; overflow-y: auto; margin-bottom: 14px; }
 .save-row {
-  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px;
-  background: var(--bg2); border-radius: 14px; padding: 4px 4px 4px 0;
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px;
+  background: var(--bg3); border-radius: 16px; padding: 4px 6px 4px 4px;
 }
 .save-row.current { outline: 2px solid var(--dacc, var(--accent)); outline-offset: -2px; }
-.save-main { display: flex; flex-direction: column; gap: 5px; padding: 9px 4px 9px 12px; background: none; text-align: left; min-width: 0; }
+.save-main {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 11px;
+  padding: 10px 4px 10px 14px; background: none; text-align: left; min-width: 0;
+}
+/* Schwierigkeits-Glyph in der Leitfarbe — dieselbe Sprache wie die
+   Schwierigkeitsauswahl. Bewusst OHNE getoenten Kasten: die Stufen-Icons sind
+   selbst schon farbige Scheiben, ein Kasten drumherum verdoppelte die Farbe und
+   liess den Punkt verloren wirken. */
+.save-medal {
+  display: grid; place-items: center; width: 30px; height: 30px;
+  color: var(--dacc, var(--accent)); font-size: 1.55rem; flex: 0 0 auto;
+}
+.save-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .save-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.save-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dacc, var(--accent)); flex: 0 0 auto; }
 /* Der Name darf lang sein und wird NICHT abgeschnitten (dieselbe Regel wie auf
    der Ergebniskarte) — lieber umbrechen als unlesbar kuerzen. */
-.save-name { font-size: .9rem; font-weight: 800; overflow-wrap: anywhere; }
+.save-name { font-size: .92rem; font-weight: 800; overflow-wrap: anywhere; }
+.save-dim { font-size: .72rem; font-weight: 700; color: var(--text2); opacity: .8; }
 .save-badge {
   display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 999px;
   background: color-mix(in srgb, var(--dacc, var(--accent)) 22%, transparent);
   font-size: .66rem; font-weight: 800; white-space: nowrap;
 }
 .save-badge.now { background: var(--accent); color: #fff; }
-.save-bar { height: 6px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.save-barline { display: flex; align-items: center; gap: 8px; }
+.save-bar { flex: 1; min-width: 0; height: 7px; border-radius: 999px; background: color-mix(in srgb, var(--text3) 30%, transparent); overflow: hidden; }
 /* Nur width animieren waere Layout-Arbeit; der Balken ist statisch gerendert,
    deshalb reicht die schlichte Fuellung ohne Uebergang. */
 .save-bar i { display: block; height: 100%; border-radius: 999px; background: var(--dacc, var(--accent)); }
+.save-pct { font-size: .72rem; font-weight: 800; color: var(--text2); flex: 0 0 auto; }
 .save-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .72rem; font-weight: 700; color: var(--text2); }
-.save-meta .ei { opacity: .75; }
+/* Verbleibende LEBEN als Herzen (nicht die Fehlerzahl) — gleiche Optik wie im
+   Spiel-HUD, nur kleiner. Verbrauchte Herzen bleiben als leere Kontur stehen,
+   damit „2 von 3" auch ohne Zahl ablesbar ist. */
+.save-hearts { display: inline-flex; align-items: center; gap: 2px; }
+.save-hearts .heart { width: 13px; height: 13px; color: var(--bad); display: inline-flex; }
+.save-hearts .heart svg { width: 100%; height: 100%; }
+.save-hearts .heart.empty { color: var(--text3); opacity: .38; }
+.save-time { display: inline-flex; align-items: center; gap: 4px; }
+.save-time .ei { opacity: .75; }
 .save-when { margin-left: auto; opacity: .7; font-weight: 600; }
+/* Loeschen als richtiger Knopf statt eines nackten Glyphs: eigene runde Flaeche,
+   abgesetzt am Zeilenrand, und erst beim Beruehren rot. Vorher stand das Symbol
+   ohne jede Kontur im Nichts und wirkte wie ein Rendering-Rest. */
 .save-del {
-  display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px;
-  background: none; color: var(--text2); opacity: .6;
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px;
+  background: color-mix(in srgb, var(--text3) 15%, transparent); color: var(--text3); font-size: 1.05rem;
+  transition: background .14s, color .14s, transform .12s;
 }
-.save-del:hover, .save-del:focus { opacity: 1; color: var(--danger, #e5679a); background: var(--bg); }
+.save-del:hover, .save-del:focus-visible { color: var(--bad); background: color-mix(in srgb, var(--bad) 22%, transparent); }
+.save-del:active { transform: scale(.9); }
 .saves-empty { margin: 18px 0; text-align: center; font-size: .82rem; font-weight: 600; color: var(--text2); opacity: .8; }
