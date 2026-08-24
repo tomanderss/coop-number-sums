@@ -10,7 +10,7 @@
 //   altes INIT reaktivierte die Bereit-Lobby.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeJoinAnchor, sanitizeForFirebase } from '../../js/coop.js';
+import { computeJoinAnchor, sanitizeForFirebase, normalizeGrid } from '../../js/coop.js';
 
 const ev = (key, type, extra = {}) => ({ key, val: { type, ...extra } });
 
@@ -117,4 +117,51 @@ test('sanitizeForFirebase behandelt -Infinity und NaN', () => {
   assert.equal(sanitizeForFirebase(0), 0);
   assert.equal(sanitizeForFirebase(-5), -5);
   assert.deepEqual(sanitizeForFirebase([1, Infinity, 3]), [1, null, 3]);
+});
+
+// ── normalizeGrid: Firebase-RTDB-Löcher im markedBy-Raster ───────────────────
+// RTDB speichert keine null-Werte. Ein Raster, dessen Zellen überwiegend null
+// sind (markedBy = wer hat welche Zelle markiert), kommt beim Beitretenden
+// deshalb löchrig zurück: leere Zeilen fehlen ganz, und ein Array mit Lücken
+// wird zum Objekt mit numerischen Schlüsseln. Ungeprüft gelesen warf
+// markedBy[r][c] im Brett-Render einen TypeError → Vue brach den Brett-Teilbaum
+// ab → das Brett fehlte komplett im DOM ("Blackscreen beim Beitritt").
+test('normalizeGrid füllt fehlende Zeilen eines RTDB-Objekt-Rasters auf', () => {
+  // So liefert RTDB ein 4×4-markedBy mit genau zwei Markierungen zurück:
+  const fromRtdb = { 1: { 2: 'uidA' }, 3: { 0: 'uidB' } };
+  const g = normalizeGrid(fromRtdb, 4, 4, null);
+  assert.equal(g.length, 4);
+  for (const row of g) assert.equal(row.length, 4);
+  assert.equal(g[1][2], 'uidA');
+  assert.equal(g[3][0], 'uidB');
+  assert.equal(g[0][0], null);   // fehlende Zeile → aufgefüllt statt undefined
+  assert.equal(g[2][3], null);
+  // Der Zugriff, der vorher warf, geht jetzt über das GANZE Brett durch:
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) assert.doesNotThrow(() => g[r][c]);
+});
+
+test('normalizeGrid behandelt Array mit Löchern wie fehlende Zeilen', () => {
+  const sparse = [];
+  sparse[2] = ['x', null];
+  const g = normalizeGrid(sparse, 3, 2, null);
+  assert.deepEqual(g, [[null, null], [null, null], ['x', null]]);
+});
+
+test("normalizeGrid macht aus den gesendeten '' wieder null", () => {
+  const wire = [['', 'uidA'], ['', '']];
+  assert.deepEqual(normalizeGrid(wire, 2, 2, null), [[null, 'uidA'], [null, null]]);
+});
+
+test('normalizeGrid ohne Eingabe → volles Raster aus dem Füllwert', () => {
+  assert.deepEqual(normalizeGrid(undefined, 2, 3, 'none'), [['none', 'none', 'none'], ['none', 'none', 'none']]);
+  assert.deepEqual(normalizeGrid(null, 1, 2, null), [[null, null]]);
+});
+
+test('normalizeGrid schneidet auf die Brettmaße zu und ignoriert Unsinn', () => {
+  // Zu großes Raster (z.B. Stand eines anderen Bretts) → auf rows×cols beschnitten.
+  const big = [['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h', 'i']];
+  assert.deepEqual(normalizeGrid(big, 2, 2, null), [['a', 'b'], ['d', 'e']]);
+  // Primitive/kaputte Werte dürfen nicht als Raster durchgehen.
+  assert.deepEqual(normalizeGrid('kaputt', 1, 2, null), [[null, null]]);
+  assert.deepEqual(normalizeGrid([42, 'x'], 2, 1, null), [[null], [null]]);
 });

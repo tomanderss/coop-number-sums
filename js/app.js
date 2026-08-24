@@ -1231,7 +1231,7 @@ function finishNewGame(puzzle) {
     state.coop.awaitingStart = true;
     resetReadyFlags();
     startTimer();
-    coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+    coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime: state.startTime });
   } else {
     startTimer();
     syncCloudNow('gameStart'); // Solo-Start: frisches Spiel sofort in die Cloud
@@ -1621,7 +1621,7 @@ function finishCoopEndlessLevel(puzzle) {
   e.advancing = false;
   // Fertiges Level als LAUFENDES INIT an die Gäste (endless-Marker + Level + Leben +
   // kumulierte Herz-Verluste); sie steigen sofort ein (running:true).
-  coopSend({ type: Coop.MSG.INIT, gameId, running: true, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime, lives: e.lives, maxLives: LIVES, endless: true, endlessLevel: e.level, lifeLossBy: carryLoss.map(x => x || '') });
+  coopSend({ type: Coop.MSG.INIT, gameId, running: true, puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime, lives: e.lives, maxLives: LIVES, endless: true, endlessLevel: e.level, lifeLossBy: carryLoss.map(x => x || '') });
   coopSend({ type: Coop.MSG.START, startTime });
   startCoopGame(startTime);
   requestWakeLock();
@@ -1790,8 +1790,26 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.cellMeta = buildCellMeta(puzzle);
   applyMarkSafeRegionColors();   // Cage-Farben meiden die (lokalen) Spielerfarben
   if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
-  state.marks = saved?.marks || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill('none'));
-  state.markedBy = saved?.markedBy || Array.from({ length: puzzle.rows }, () => Array(puzzle.cols).fill(null));
+  // Raster IMMER dicht normalisieren (nie roh uebernehmen): ein per Coop-INIT
+  // empfangenes markedBy kommt aus Firebase RTDB und ist dort loechrig, weil RTDB
+  // null-Werte nicht speichert — leere Zeilen fehlen ganz, Luecken machen aus dem
+  // Array ein Objekt. Ungepruefte Zugriffe `markedBy[r][c]` im Brett-Render warfen
+  // dann einen TypeError, Vue brach den Brett-Teilbaum ab und das Brett fehlte
+  // komplett im DOM (gemeldeter „Blackscreen beim Beitritt", belegt durch das
+  // Beitritts-Render-Protokoll: cells 0 / w 0 / h 0 bei geladenem Spielstand).
+  // Gilt genauso fuer einen alten/beschaedigten Spielstand aus dem Speicher.
+  state.marks = Coop.normalizeGrid(saved?.marks, puzzle.rows, puzzle.cols, 'none');
+  state.markedBy = Coop.normalizeGrid(saved?.markedBy, puzzle.rows, puzzle.cols, null);
+  // Einmal je Brett-Aufbau (nicht pro Zelle) protokollieren, WENN tatsaechlich ein
+  // loechriges Raster geheilt wurde — macht einen erneuten Blackscreen-Bericht
+  // sofort entscheidbar, statt wieder raten zu muessen.
+  if (saved && saved.markedBy && !gridIsDense(saved.markedBy, puzzle.rows, puzzle.cols)) {
+    log('coop', 'Loechriges markedBy-Raster geheilt', {
+      rows: puzzle.rows, cols: puzzle.cols,
+      wasArray: Array.isArray(saved.markedBy),
+      gotRows: Array.isArray(saved.markedBy) ? saved.markedBy.length : Object.keys(saved.markedBy).length,
+    });
+  }
   state.maxLives = saved?.maxLives ?? LIVES;
   state.lives = saved?.lives ?? LIVES;
   // Hinweise sind in ALLEN Modi unbegrenzt (Nutzerwunsch) — auch ein alter
@@ -2738,7 +2756,7 @@ function handleCoopMsg(msg) {
         broadcastRunningInit();
       } else if (state.coop.awaitingStart) {
         log('coop', 'RESYNC-Anfrage → sende Lobby-INIT erneut', { from: msg.author });
-        Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+        Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime: state.startTime });
       }
     }
   } else if (msg.type === Coop.MSG.TEAM_START) {
@@ -3087,7 +3105,7 @@ function broadcastRunningInit() {
   const endlessExtra = e.active ? { endless: true, endlessLevel: e.level, lifeLossBy: (state.coop.lifeLossBy || []).map(x => x || '') } : {};
   Coop.send({
     type: Coop.MSG.INIT, gameId: state.gameId, running: true,
-    puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime,
+    puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime: state.startTime,
     lives: state.lives, maxLives: state.maxLives, hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
     ...endlessExtra,
   });
@@ -3374,7 +3392,7 @@ function startCoopMatch() {
     state.coop.generating = false;
     // gameId mitsenden, damit Gäste sie übernehmen und ein späteres Wiederhol-
     // INIT (Nachzügler-Nachversand, s. broadcastRunningInit) als Duplikat erkennen.
-    Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, startTime: state.startTime });
+    Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime: state.startTime });
   }).catch(e => onLobbyGenFailed(e, 'Coop'));
 }
 // Gemeinsamer Fehlerpfad, falls die Lobby-Generierung (Coop-Host/Race/Team)
@@ -4221,7 +4239,7 @@ function collectHintMarks() {
 }
 function activeSnapshot() {
   return {
-    puzzle: state.puzzle, marks: state.marks, markedBy: state.markedBy, lives: state.lives, maxLives: state.maxLives,
+    puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), lives: state.lives, maxLives: state.maxLives,
     hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
     elapsed: state.elapsed, difficulty: state.puzzle.difficulty,
     hintMarks: collectHintMarks(),
@@ -5370,6 +5388,21 @@ function clearDefunctSolo(showNotice) {
 // wurde — Brettgroesse, Zellenzahl, markierte Zellen, aktiver Skin. Bei einem
 // erneuten Schwarzbild ist damit sofort unterscheidbar, ob das Brett gar nicht
 // aufgebaut wurde (Groesse 0) oder ob es steht und nur nicht gezeichnet wird.
+// Ist ein empfangenes/gespeichertes Raster vollstaendig (rows x cols, echte
+// Arrays)? Nur fuer die Diagnose — die Normalisierung laeuft ohnehin immer.
+function gridIsDense(g, rows, cols) {
+  if (!Array.isArray(g) || g.length !== rows) return false;
+  for (const row of g) if (!Array.isArray(row) || row.length !== cols) return false;
+  return true;
+}
+// markedBy fuer den Versand ueber Firebase RTDB dicht machen: RTDB speichert keine
+// null-Werte, ein Raster aus ueberwiegend null kaeme beim Empfaenger loechrig an
+// (fehlende Zeilen, Array → Objekt). Leere Zellen gehen deshalb als '' raus — der
+// Empfaenger macht daraus per normalizeGrid wieder null. Damit ist schon der
+// PAYLOAD wohlgeformt, unabhaengig davon, welchen Stand der Empfaenger hat.
+function wireMarkedBy() {
+  return (state.markedBy || []).map(row => (row || []).map(v => v || ''));
+}
 let joinFreezeTimer = null;
 function countMarked() {
   let n = 0;

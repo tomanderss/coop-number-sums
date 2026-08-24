@@ -277,6 +277,58 @@ test.describe('coop', () => {
     expect(await page.evaluate(() => window.__cns.state.marks[1][1])).not.toBe('none');
   });
 
+  // BLACKSCREEN-REGRESSION (gemeldet, per Beitritts-Render-Protokoll belegt:
+  // cells 0 / w 0 / h 0 bei korrekt geladenem Spielstand): Firebase RTDB speichert
+  // keine null-Werte. Das markedBy-Raster einer LAUFENDEN Runde ist überwiegend
+  // null, kommt beim Beitretenden also löchrig an — leere Zeilen fehlen ganz und
+  // aus dem Array wird ein Objekt mit numerischen Schlüsseln. Ungeprüft gelesen
+  // warf markedBy[r][c] im Brett-Render einen TypeError, Vue brach den Teilbaum ab
+  // und das Brett fehlte KOMPLETT im DOM. Ein frisches Brett (gar keine
+  // Markierungen) war nie betroffen — deshalb traf es nur den Beitritt mitten ins
+  // Spiel (Solo→Coop-Umwandlung, Nachzügler, laufendes Coop-Endlos-Level).
+  test('joining a running round with an RTDB-sparse markedBy still renders the board', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const puzzle = {
+        rows: 4, cols: 4,
+        rowTargets: [1, 1, 1, 1], colTargets: [1, 1, 1, 1],
+        values: Array.from({ length: 4 }, () => Array(4).fill(1)),
+        solution: Array.from({ length: 4 }, () => Array(4).fill(true)),
+        regions: [], difficulty: 'leicht',
+      };
+      const marks = Array.from({ length: 4 }, () => Array(4).fill('none'));
+      marks[1][2] = 'kept';
+      marks[3][0] = 'removed';
+      // GENAU die Form, die aus der RTDB zurückkommt: Objekt statt Array, und nur
+      // die beiden Zeilen, die überhaupt eine Markierung tragen.
+      const markedBy = { 1: { 2: 'partner-uid' }, 3: { 0: 'partner-uid' } };
+      window.__cns.handleCoopMsg({ type: 'init', puzzle, marks, markedBy, startTime: Date.now() - 5000, running: true });
+    });
+    await page.waitForSelector('.screen.game');
+    // Das Brett muss stehen — vorher war .board gar nicht erst im DOM.
+    await expect(page.locator('.board')).toBeVisible();
+    expect(await page.locator('.board .cell').count()).toBe(16);
+    const box = await page.locator('.board').boundingBox();
+    expect(box.width).toBeGreaterThan(0);
+    expect(box.height).toBeGreaterThan(0);
+    // Der Spielstand ist vollständig angekommen (dichtes Raster, Besitzer erhalten).
+    const s = await page.evaluate(() => ({
+      rows: window.__cns.state.markedBy.length,
+      cols: window.__cns.state.markedBy.map(r => r.length),
+      owner: window.__cns.state.markedBy[1][2],
+      empty: window.__cns.state.markedBy[0][0],
+      mark: window.__cns.state.marks[3][0],
+    }));
+    expect(s.rows).toBe(4);
+    expect(s.cols).toEqual([4, 4, 4, 4]);
+    expect(s.owner).toBe('partner-uid');
+    expect(s.empty).toBe(null);
+    expect(s.mark).toBe('removed');
+    // Und die Runde ist normal spielbar.
+    await page.evaluate(() => window.__cns.onCellTap(0, 0));
+    expect(await page.evaluate(() => window.__cns.state.marks[0][0])).not.toBe('none');
+  });
+
   // Sicherheitsnetz: der Gast bekam ein INIT OHNE running (z.B. alte Host-Version
   // oder verlorenes running/START) und steht in der Bereit-Lobby. Sobald der
   // Partner eine echte Spielaktion (MOVE) macht, MUSS der Gast sofort einsteigen
