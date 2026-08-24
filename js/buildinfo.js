@@ -1,8 +1,18 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.210';
-export const BUILD_HASH = 'c6f0fd3';
+export const BUILD      = '1.211';
+export const BUILD_HASH = 'de3f396';
 
 export const CHANGELOG = [
+  {
+    "version": "1.211",
+    "date": "24.08.2026",
+    "changes": [
+      "Die Fortsetzen-Knöpfe im Hauptmenü stehen jetzt untereinander statt nebeneinander — je einer für Solo und für Coop, beide über die volle Breite und klar voneinander unterscheidbar.",
+      "Alle weiteren Spielstände hängen an einem beschrifteten Erweiterungs-Knopf direkt unter dem Solo-Knopf („Weitere Spielstände (3)\") statt an einem losen Textlink daneben.",
+      "Die Spielstand-Liste ist neu gestaltet: Schwierigkeits-Punkt in der Leitfarbe, ein klarer Fortschrittsbalken mit Prozentwert und ein richtiger Löschen-Knopf statt des nackten Symbols.",
+      "In der Spielstand-Liste stehen jetzt die verbleibenden LEBEN als Herzen statt der Fehlerzahl — „noch 2 von 3\" sieht man damit auf einen Blick."
+    ]
+  },
   {
     "version": "1.210",
     "date": "24.08.2026",
