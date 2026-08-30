@@ -518,13 +518,24 @@ test.describe('coop', () => {
     const host = await page.evaluate(() => {
       const { state, onCellTap } = window.__cns;
       state.tool = 'pen';
-      for (let c = 0; c < state.puzzle.cols; c++) onCellTap(0, c);
+      // NUR korrekte Zellen antippen. Vorher lief der Stift blind ueber die
+      // erste Reihe — jeder Fehlgriff kostet ein Leben, nach dreien ist die
+      // Partie verloren und weitere Taps sind wirkungslos. Bei einem Raetsel,
+      // dessen erste Reihe mit drei Loeschzellen beginnt, blieb der Stand damit
+      // OHNE eine einzige Markierung, und der Test scheiterte an seiner eigenen
+      // Vorbereitung statt an der Sache (in 8 Wiederholungen einmal reproduziert).
+      let n = 0;
+      outer: for (let r = 0; r < state.puzzle.rows; r++)
+        for (let c = 0; c < state.puzzle.cols; c++)
+          if (state.puzzle.solution[r][c]) { onCellTap(r, c); if (++n >= 6) break outer; }
       return {
+        marked: n,
         puzzle: JSON.parse(JSON.stringify(state.puzzle)),
         marks: JSON.parse(JSON.stringify(state.marks)),
         markedBy: JSON.parse(JSON.stringify(state.markedBy)),
       };
     });
+    expect(host.marked, 'die Testvorbereitung muss einen markierten Stand erzeugen').toBeGreaterThan(0);
 
     // Beitretender: frischer Start, NICHT im Spiel.
     await page.reload();
