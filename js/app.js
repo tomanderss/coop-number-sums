@@ -1302,6 +1302,12 @@ function startEndless() {
   state.endlessLevelFlash = null;
   state.endless = {
     active: true, coop: false, advancing: false, level: 1,
+    // Eigene, ueber den GANZEN Lauf stabile Kennung. Jedes Level bekommt eine
+    // neue gameId (loadPuzzleIntoState) — waere die der Bibliotheks-Schluessel,
+    // legte EIN Lauf pro Level einen eigenen „Spielstand" an und die Liste fuellte
+    // sich mit Zwischenmarkern desselben Laufs, von denen jeder einzeln
+    // fortsetzbar aussah. Ein Lauf ist EIN Eintrag.
+    runId: generateId(),
     lives: ENDLESS_CFG.startLives, hints: ENDLESS_CFG.startHints,
     score: 0, coins: 0, best: state.stats.endlessBest || 0,
     bigNumbers: !!state.sel.bigNumbers,   // „Große Zahlen" gilt für den ganzen Lauf (je Level, wo erlaubt)
@@ -1445,9 +1451,9 @@ function endlessLevelSolved(remote) {
     // Münzsumme) den Zwischen-Level-Marker sichern — das gelöste Brett selbst
     // taugt nicht zum Fortsetzen, das Fortsetzen startet frisch bei score+1.
     if (!isCoop) {
-      const marker = { pending: true, ts: Date.now(), gameId: state.gameId, endless: { level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 } };
+      const marker = { pending: true, ts: Date.now(), gameId: state.gameId, endless: { runId: e.runId || null, level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 } };
       saveActiveGameEndless(marker);
-      rememberSave(marker, 'endless');   // auch der Zwischenstand gehoert in die Bibliothek
+      rememberSave(marker, 'endless', endlessSaveId());   // auch der Zwischenstand gehoert in die Bibliothek
     }
     log('game', 'Endlos-Level als Einzelsieg verbucht', { level: e.score, difficulty: diff, coins, mult, newHighscore, perfect, coop: isCoop });
     syncCloudNow('endlessLevel');
@@ -1507,7 +1513,14 @@ function endlessGameOver() {
   state.stats = stats;
   e.active = false;
   state.status = 'lost';   // saveSlot='endless' → persistGame fasst den Solo-Slot nie an
-  saveActiveGameEndless(null); state.resumeAvailableEndless = null;  // Lauf vorbei → Fortsetzen-Slot räumen
+  // Lauf vorbei → Fortsetzen-Slot UND Bibliothekseintrag räumen. persistGame
+  // steigt für den Endlos-Slot ganz oben aus und räumt (anders als beim
+  // klassischen Solo-Spiel) hier nichts auf — ohne das blieb der verlorene Lauf
+  // in der Bibliothek liegen und wurde von deren Rückfall sofort wieder als
+  // fortsetzbar angeboten.
+  const deadRunId = endlessSaveId();
+  saveActiveGameEndless(null); state.resumeAvailableEndless = null;
+  if (deadRunId) state.saves = removeSave(deadRunId);
   state.endlessSummary = { score, best: stats.endlessBest, coins: e.coins || 0, newBest, totalMs: endlessTotalMs() };
   if (state.settings.sfxLose) Music.sfxLose();
   log('game', 'Endlos-Lauf beendet', { score, best: stats.endlessBest, coins: e.coins || 0, newBest });
@@ -1541,7 +1554,11 @@ function endlessAbort() {
   // Solo-Lauf auf Level 5 fortgesetzt, danach Beitritt zu einer fremden
   // Coop-Endlos-Runde, beim Verlassen war der eigene Lauf weg.)
   // endlessCoopGameOver räumt den Slot aus genau demselben Grund nicht.
-  if (!e.coop) { saveActiveGameEndless(null); state.resumeAvailableEndless = null; }
+  if (!e.coop) {
+    const deadRunId = endlessSaveId();
+    saveActiveGameEndless(null); state.resumeAvailableEndless = null;
+    if (deadRunId) state.saves = removeSave(deadRunId);   // aufgegebener Lauf gehört auch aus der Bibliothek
+  }
   recordMissionEvent({ played: true, endlessScore: score });
   checkAchievements();
   log('game', 'Endlos-Lauf abgebrochen', { score, coins: e.coins || 0 });
@@ -1574,6 +1591,12 @@ function closeEndlessSummary() {
   const wasCoop = !!(state.endlessSummary && state.endlessSummary.coop);
   state.endlessSummary = null; state.status = 'idle';
   if (wasCoop) coopReset();   // Coop-Endlos: Raum sauber verlassen
+  // Die Fortsetzen-Knöpfe hängen an ABGELEITETEM Zustand. Anders als der normale
+  // Ergebnis-Screen (quitToHome) lief hier nie ein refreshResume — nach einem
+  // verlorenen Lauf stand Home deshalb ohne jedes Angebot da, obwohl weitere
+  // Stände in der Bibliothek lagen; erst irgendein späteres Spiel brachte sie
+  // zurück (gemeldet).
+  refreshResume();
   navigate('home');
 }
 
@@ -4254,7 +4277,7 @@ function endlessSnapshot() {
   const e = state.endless;
   return {
     ...activeSnapshot(),
-    endless: { level: e.level, lives: state.lives, hints: Math.max(0, state.hintsLeft || 0), score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 },
+    endless: { runId: e.runId || null, level: e.level, lives: state.lives, hints: Math.max(0, state.hintsLeft || 0), score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 },
   };
 }
 function persistGame() {
@@ -4278,7 +4301,7 @@ function persistGame() {
         saveThrottle = now;
         const snap = endlessSnapshot();
         saveActiveGameEndless(snap);
-        rememberSave(snap, 'endless');
+        rememberSave(snap, 'endless', endlessSaveId());
       }
     }
     return;
@@ -4342,9 +4365,13 @@ function persistGame() {
 // ueberschreibt damit nie einen alten Stand — genau der Punkt, an dem frueher
 // Fortschritt verloren ging. Der Aktivspiel-Slot bleibt daneben bestehen: an ihm
 // haengen Cloud-Session und der prominente „Fortsetzen"-Knopf.
-function rememberSave(snap, kind) {
-  if (!snap || !state.gameId) return;
-  state.saves = upsertSave({ ...snap, id: state.gameId, kind, ts: snap.ts || Date.now() });
+// Bibliotheks-Schluessel eines SOLO-Endlos-Laufs: die ueber den ganzen Lauf
+// stabile runId (Fallback fuer Alt-Staende: die gameId des aktuellen Levels).
+function endlessSaveId() { return state.endless.runId || state.gameId; }
+function rememberSave(snap, kind, id) {
+  const key = id || state.gameId;
+  if (!snap || !key) return;
+  state.saves = upsertSave({ ...snap, id: key, kind, ts: snap.ts || Date.now() });
 }
 function openSaves() { state.saves = loadSaves(); state.savesOpen = true; }
 function closeSaves() { state.savesOpen = false; }
@@ -4376,6 +4403,19 @@ const otherSavesCount = computed(() => {
   const cur = soloResume.value && soloResume.value.g;
   const id = cur && (cur.id || cur.gameId);
   return state.saves.filter((x) => (x.id || x.gameId) !== id).length;
+});
+// Beschriftung des Erweiterungs-Knopfs — und zugleich das Signal, ob er ueberhaupt
+// erscheint. Er MUSS auftauchen, sobald ueberhaupt ein Stand existiert:
+// • steht der einzige Stand schon auf dem Knopf, war die Liste frueher gar nicht
+//   erreichbar — und damit liess sich dieser eine Stand NICHT loeschen (gemeldet:
+//   „ich muss erst ein zweites Spiel anlegen, um das eine loeschen zu koennen").
+// • gibt es gar keinen Solo-Knopf (nur ein Coop-Spiel, oder direkt nach einem
+//   verlorenen Endlos-Lauf), hing der Zugang frueher am Solo-Knopf und verschwand
+//   mit ihm — obwohl die Bibliothek voll war.
+const savesLabel = computed(() => {
+  if (!state.saves.length) return '';
+  const n = otherSavesCount.value;
+  return n > 0 ? t('saves.moreN', { n }) : t('saves.manage');
 });
 // Unterzeile des Solo-Knopfs: beim Endlos-Lauf Level (+ Grosse Zahlen), sonst
 // Schwierigkeit · Brettgroesse · bisherige Spielzeit.
@@ -4412,7 +4452,12 @@ function saveDim(g) {
 }
 // Laeuft genau dieser Stand gerade? Dann wird er als solcher markiert statt als
 // „fortsetzbar" angeboten.
-function saveIsCurrent(g) { return !!(g && state.gameId && g.id === state.gameId && state.status === 'playing'); }
+function saveIsCurrent(g) {
+  // Ein Endlos-Lauf liegt unter seiner runId in der Bibliothek, nicht unter der
+  // gameId des gerade laufenden Levels.
+  const id = state.endless.active ? endlessSaveId() : state.gameId;
+  return !!(g && id && g.id === id && state.status === 'playing');
+}
 // Relative Zeit — beim Auswaehlen ist „vor 5 Minuten" nuetzlicher als ein Datum.
 function saveWhen(g) {
   const ts = Number(g && g.ts) || 0;
@@ -4453,7 +4498,7 @@ function deleteSave(g) {
     const act = loadActiveGame();
     if (act && act.gameId === g.id) saveActiveGame(null);
     const end = loadActiveGameEndless();
-    if (end && end.gameId === g.id) saveActiveGameEndless(null);
+    if (end && ((end.endless && end.endless.runId) === g.id || end.gameId === g.id)) saveActiveGameEndless(null);
     log('game', 'Spielstand geloescht', { kind: g.kind || null });
     refreshResume();
     showToast(t('saves.deleted'), 'info', 2000);
@@ -4534,6 +4579,9 @@ function resumeEndlessGame() {
   state.endlessSummary = null;
   state.endless = {
     active: true, coop: false, advancing: false, level: em.level,
+    // Alt-Staende (vor der Lauf-Kennung) erben den Bibliotheks-Schluessel, unter
+    // dem sie liegen — so bleibt ihr Eintrag beim Weiterspielen derselbe.
+    runId: em.runId || g.id || g.gameId || generateId(),
     lives: em.lives, hints: em.hints, score: em.score,
     coins: em.coins || 0,       // bisher im Lauf verdiente Münzen (Summary am Laufende)
     best: state.stats.endlessBest || 0, bigNumbers: !!em.bigNumbers,
@@ -7725,7 +7773,7 @@ const App = {
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
       openSaves, closeSaves, resumeSave, deleteSave, saveProgress, saveIsEndless, saveDifficulty, saveDim, saveIsCurrent, saveWhen, SAVES_MAX,
-      soloResume, resumeSolo, otherSavesCount, resumeSubline, saveLivesArr, saveLivesLeft,
+      soloResume, resumeSolo, otherSavesCount, savesLabel, resumeSubline, saveLivesArr, saveLivesLeft,
       goAiDuel, startAiDuel, aiTargetLabel, aiCalibrated, aiLevels: Object.keys(PRESET_LEVELS), cloneStatus,
       friendClones, readyClones, learningClones, anyCloneReady, pickAiOpponent, setAiMode,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -7799,8 +7847,8 @@ const App = {
              Weitere haengt jetzt am Erweiterungs-Knopf, der optisch am
              Solo-Knopf klebt und benannt ist ("Weitere Spielstaende (N)")
              statt als loser Textlink danebenzustehen. -->
-        <div v-if="soloResume || state.resumeAvailableCoop" class="resume-stack">
-          <div v-if="soloResume" class="resume-group" :class="{ expandable: otherSavesCount > 0 }">
+        <div v-if="soloResume || state.resumeAvailableCoop || state.saves.length" class="resume-stack">
+          <div v-if="soloResume" class="resume-group" :class="{ expandable: !!savesLabel }">
             <button class="btn btn-resume" :class="{ endless: soloResume.endless }" @click="resumeSolo">
               <span class="btn-ic"><span class="ei" v-html="ic(soloResume.endless ? 'meteor' : 'play')"></span></span>
               <span class="btn-tx"><b>{{ soloResume.endless ? t('home.resumeEndless') : t('home.resume') }}</b>
@@ -7808,13 +7856,18 @@ const App = {
               </span>
               <span v-if="soloResume.endless" class="badge-endless">{{ t('endless.badge') }}</span>
             </button>
-            <button v-if="otherSavesCount > 0" class="saves-expand" @click="openSaves"
-                    :aria-label="t('saves.moreN', { n: otherSavesCount })">
+            <button v-if="savesLabel" class="saves-expand attached" @click="openSaves" :aria-label="savesLabel">
               <span class="ei se-ic" v-html="ic('save')"></span>
-              <span class="se-tx">{{ t('saves.moreN', { n: otherSavesCount }) }}</span>
+              <span class="se-tx">{{ savesLabel }}</span>
               <span class="ei se-chev" v-html="ic('chevron-right')"></span>
             </button>
           </div>
+          <!-- Ohne Solo-Knopf steht der Zugang fuer sich (voll gerundet). -->
+          <button v-else-if="savesLabel" class="saves-expand" @click="openSaves" :aria-label="savesLabel">
+            <span class="ei se-ic" v-html="ic('save')"></span>
+            <span class="se-tx">{{ savesLabel }}</span>
+            <span class="ei se-chev" v-html="ic('chevron-right')"></span>
+          </button>
           <button v-if="state.resumeAvailableCoop" class="btn btn-resume coop" @click="resumeCoopGame">
             <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span>
             <span class="btn-tx"><b>{{ t('home.resumeCoop') }}</b>
