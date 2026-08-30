@@ -1,8 +1,18 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.211';
-export const BUILD_HASH = 'de3f396';
+export const BUILD      = '1.212';
+export const BUILD_HASH = 'b57baf2';
 
 export const CHANGELOG = [
+  {
+    "version": "1.212",
+    "date": "30.08.2026",
+    "changes": [
+      "Nach einem verlorenen Endlos-Lauf zeigt das Hauptmenü sofort wieder deine übrigen Spielstände. Bisher stand es leer da, bis man irgendein anderes Spiel gestartet hatte.",
+      "Ein verlorener oder aufgegebener Endlos-Lauf verschwindet jetzt auch aus den Spielständen — vorher blieb er liegen und wurde gleich wieder zum Fortsetzen angeboten.",
+      "Ein Endlos-Lauf belegt jetzt genau EINEN Spielstand statt einen pro Level. Bisher füllte ein einzelner Lauf die Liste mit Zwischenständen, die alle einzeln fortsetzbar aussahen.",
+      "Die Spielstand-Liste ist jetzt immer erreichbar, auch wenn es nur einen einzigen Stand gibt — bisher ließ der sich erst löschen, nachdem man einen zweiten angelegt hatte."
+    ]
+  },
   {
     "version": "1.211",
     "date": "24.08.2026",
