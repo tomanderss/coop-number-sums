@@ -559,9 +559,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .resume-stack { display: flex; flex-direction: column; gap: 8px; }
 .resume-group { display: flex; flex-direction: column; gap: 2px; }
 .resume-group.expandable > .btn-resume { border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; }
+/* Am Solo-Knopf haengend: obere Kanten gerade. Ohne Solo-Knopf steht er allein
+   und bleibt rundum gerundet. */
+.saves-expand.attached { border-radius: 5px 5px 14px 14px; }
 .saves-expand {
   display: flex; align-items: center; gap: 9px; width: 100%;
-  padding: 9px 14px; border-radius: 5px 5px 14px 14px;
+  padding: 9px 14px; border-radius: 14px;
   background: var(--bg2); color: var(--text2); text-align: left;
   font-size: .82rem; font-weight: 700; font-family: inherit;
   box-shadow: 0 2px 10px var(--shadow); transition: transform .12s, filter .12s;

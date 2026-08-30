@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, solveActivePuzzle, dismissStreakModal } from './helpers.js';
+import { gotoApp, solveActivePuzzle, dismissStreakModal, startNewGame } from './helpers.js';
 
 test.describe('endless climb', () => {
   test('setup endless toggle starts a run, clearing a level advances, losing shows the summary', async ({ page }) => {
@@ -207,5 +207,72 @@ test.describe('endless climb', () => {
     const after = await page.evaluate(() => ({ big: window.__cns.state.puzzle.bigNumbers, seed: window.__cns.state.puzzle.seed, level: window.__cns.state.endless.level, active: window.__cns.state.endless.active }));
     expect(after).toEqual({ big: before.big, seed: before.seed, level: before.level, active: true });
     expect(after.big).toBe(true);
+  });
+
+  // Regression (gemeldet): nach einem VERLORENEN Endlos-Lauf stand das Hauptmenue
+  // ohne jedes Fortsetzen-Angebot da, obwohl weitere Staende vorhanden waren —
+  // erst irgendein spaeteres Spiel brachte sie zurueck. Zwei Ursachen:
+  // closeEndlessSummary rief kein refreshResume, und der verlorene Lauf blieb in
+  // der Bibliothek liegen (persistGame raeumt fuer den Endlos-Slot nichts auf).
+  // Zusaetzlich geprueft: EIN Lauf ist EIN Bibliothekseintrag, nicht einer je Level.
+  test('ein verlorener Lauf raeumt sich auf und die uebrigen Staende bleiben sichtbar', async ({ page }) => {
+    await gotoApp(page);
+    // Ein klassischer Solo-Stand als "der andere Spielstand".
+    await startNewGame(page, 'sehrleicht');
+    await page.evaluate(() => {
+      const { state, onCellTap } = window.__cns;
+      state.tool = 'pen';
+      outer: for (let r = 0; r < state.puzzle.rows; r++) for (let c = 0; c < state.puzzle.cols; c++)
+        if (state.puzzle.solution[r][c]) { onCellTap(r, c); break outer; }
+    });
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const { state, onCellTap } = window.__cns; onCellTap(state.puzzle.rows - 1, state.puzzle.cols - 1); });
+    await page.waitForTimeout(300);
+    await page.locator('.game-top .icon-btn').last().click();
+    await page.locator('.pause-overlay').getByText('Zum Menü').click();
+    await page.waitForSelector('.screen.home');
+    const soloId = await page.evaluate(() => window.__cns.state.saves[0].id);
+
+    // Endlos-Lauf ueber ZWEI Level.
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { window.__cns.state.sel.endless = true; window.__cns.state.sel.difficulty = 'sehrleicht'; });
+    await page.locator('.diff-start').click();
+    await page.waitForSelector('.screen.game');
+    await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating);
+    const runId = await page.evaluate(() => window.__cns.state.endless.runId);
+    expect(runId).toBeTruthy();
+
+    await solveActivePuzzle(page);
+    await page.waitForFunction(() => window.__cns.state.status === 'won');
+    await dismissStreakModal(page);
+    await page.locator('.result-card .btn-primary').click({ force: true });
+    await page.waitForFunction(() => window.__cns.state.endless.level === 2 && window.__cns.state.puzzle && !window.__cns.state.generating);
+    // KERN: der Lauf behaelt seine Kennung und belegt GENAU EINEN Eintrag.
+    expect(await page.evaluate(() => window.__cns.state.endless.runId)).toBe(runId);
+    await page.waitForFunction(() => window.__cns.state.saves.length === 2, null, { timeout: 15000 });
+    const ids = await page.evaluate(() => window.__cns.state.saves.map((g) => g.id));
+    expect(ids.sort()).toEqual([runId, soloId].sort());
+
+    // Lauf verlieren.
+    await page.evaluate(() => {
+      const { state, onCellTap } = window.__cns;
+      const p = state.puzzle;
+      let r = -1, c = -1;
+      outer: for (let i = 0; i < p.rows; i++) for (let j = 0; j < p.cols; j++) { if (state.marks[i][j] === 'none') { r = i; c = j; break outer; } }
+      state.tool = p.solution[r][c] ? 'eraser' : 'pen';
+      for (let k = 0; k < 8; k++) onCellTap(r, c);
+    });
+    await expect(page.locator('.endless-reached')).toBeVisible();
+    // Der verlorene Lauf ist sofort aus der Bibliothek raus.
+    expect(await page.evaluate(() => window.__cns.state.saves.map((g) => g.id))).toEqual([soloId]);
+
+    // Ueber „Zum Menue" zurueck: der andere Stand MUSS sofort angeboten werden.
+    await page.locator('.result-card .btn-ghost').click({ force: true });
+    await page.waitForSelector('.screen.home');
+    expect(await page.evaluate(() => window.__cns.state.resumeAvailableEndless)).toBe(null);
+    expect(await page.evaluate(() => window.__cns.state.resumeAvailable && window.__cns.state.resumeAvailable.gameId)).toBe(soloId);
+    await expect(page.locator('.resume-stack .btn-resume')).toHaveCount(1);
+    await expect(page.locator('.saves-expand')).toBeVisible();
   });
 });

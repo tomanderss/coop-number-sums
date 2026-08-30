@@ -143,4 +143,29 @@ test.describe('Spielstand-Bibliothek', () => {
     expect(after.resume, 'der Knopf muss sofort den verbliebenen Stand anbieten').toBe(first);
     await expect(page.locator('.btn-resume').first()).toBeVisible();
   });
+
+  // Regression (gemeldet): mit GENAU EINEM Stand war die Liste gar nicht
+  // erreichbar — der Zugang erschien erst ab zwei Staenden, also liess sich der
+  // eine vorhandene Stand nicht loeschen, ohne vorher einen zweiten anzulegen.
+  test('mit nur EINEM Stand ist die Liste erreichbar und der Stand loeschbar', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page);
+    await playAFewCells(page);
+    await page.goto('/');
+    await page.waitForFunction(() => !!window.__cns);
+    await page.waitForSelector('.screen.home');
+    expect(await page.evaluate(() => window.__cns.state.saves.length)).toBe(1);
+
+    const open = page.locator('.saves-expand');
+    await expect(open).toBeVisible();
+    await open.click();
+    await expect(page.locator('.saves-modal')).toBeVisible();
+    await expect(page.locator('.save-row')).toHaveCount(1);
+
+    await page.locator('.save-row').first().locator('.save-del').click();
+    await page.locator('.confirm-actions .btn-danger').click();
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.__cns.state.saves.length)).toBe(0);
+    expect(await page.evaluate(() => window.__cns.state.resumeAvailable)).toBe(null);
+  });
 });
