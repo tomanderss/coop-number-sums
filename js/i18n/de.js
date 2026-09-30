@@ -83,7 +83,7 @@ export default {
     loading: 'Rätsel wird erstellt…',
     loadingHint: 'Kurzer Moment…',
     coopTag: 'COOP',
-    zoomReset: 'Zoom zurücksetzen',
+    zoomTools: 'Zoom', zoomReset: 'Zoom zurücksetzen',
     coopOfflineSuffix: ' · offline',
     pauseTitle: 'Pause',
     undoTitle: 'Rückgängig',

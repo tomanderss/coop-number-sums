@@ -83,7 +83,7 @@ export default {
     loading: 'Создание головоломки…',
     loadingHint: 'Один момент…',
     coopTag: 'COOP',
-    zoomReset: 'Сбросить масштаб',
+    zoomTools: 'Масштаб', zoomReset: 'Сбросить масштаб',
     coopOfflineSuffix: ' · офлайн',
     pauseTitle: 'Пауза',
     undoTitle: 'Отменить',

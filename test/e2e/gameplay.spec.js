@@ -147,6 +147,56 @@ test.describe('gameplay', () => {
     expect(await page.evaluate(() => window.__cns.state.resumeCountdown)).toBe(null);
     expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
   });
+  // Jede Kopf-Zeile ist auf dem Handy Brettflaeche: die Werkzeuge haben deshalb
+  // KEINE eigene Reihe mehr, sondern sitzen in der Kopfleiste, und die Info-Chips
+  // teilen sich die zweite Zeile mit dem Fortschrittsbalken. Vor dem Umbau begann
+  // das Brett bei 150 px, jetzt bei 88 — auf einem kurzen Display (360x560, dort
+  // ist die HOEHE die bindende Achse) waechst die Zelle dadurch messbar mit.
+  test('die Kopfleiste bleibt einzeilig und laesst dem Brett Platz', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page, 'rip');   // groesstes Brett = der kritische Fall
+    const m = await page.evaluate(() => {
+      const kopf = document.querySelector('.topbar.game-top');
+      const yWerte = [...kopf.children].map((c) => Math.round(c.getBoundingClientRect().y));
+      return {
+        kopfHoehe: Math.round(kopf.getBoundingClientRect().height),
+        // Zwei Kinder auf STARK verschiedenen Hoehen = umgebrochen. Eine kleine
+        // Differenz ist blosse vertikale Zentrierung unterschiedlich hoher Kinder.
+        umbruch: Math.max(...yWerte) - Math.min(...yWerte) > 20,
+        brettOben: Math.round(document.querySelector('.board-wrap').getBoundingClientRect().y),
+        werkzeugeImKopf: !!kopf.querySelector('.zoomctl'),
+        chipsBeimFortschritt: !!document.querySelector('.meta-row .meta-chips') && !!document.querySelector('.meta-row .progress-row'),
+        alteReiheWeg: !document.querySelector('.game-meta'),
+      };
+    });
+    expect(m.werkzeugeImKopf, 'die Werkzeuge sitzen in der Kopfleiste').toBe(true);
+    expect(m.chipsBeimFortschritt, 'Chips teilen die Zeile mit dem Fortschritt').toBe(true);
+    expect(m.alteReiheWeg, 'die eigene Chip-/Werkzeug-Reihe ist weg').toBe(true);
+    expect(m.umbruch, 'die Kopfleiste bricht im Solo nicht um').toBe(false);
+    expect(m.kopfHoehe, 'Kopfleiste bleibt flach').toBeLessThanOrEqual(56);
+    // Vor dem Umbau begann das Brett bei 150 px.
+    expect(m.brettOben, 'das Brett beginnt weit oben').toBeLessThan(120);
+  });
+
+  // Der Zuruecksetzen-Knopf erscheint und verschwindet, sein PLATZ bleibt aber
+  // stehen (.tool-slot fester Breite): sonst wanderten − / + beim ersten Zoom
+  // unter dem Daumen weg und schnelles, wiederholtes Tippen traf daneben.
+  test('der Zoom-Reset verschiebt minus und plus nicht', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page, 'sehrleicht');
+    const kasten = (txt) => page.locator('.zoomctl .zoom-btn', { hasText: txt }).boundingBox();
+    const minusVorher = await kasten('−');
+    const plusVorher = await kasten('+');
+    await page.locator('.zoomctl .zoom-btn', { hasText: '+' }).click();
+    await expect(page.locator('.zoom-reset')).toBeVisible();
+    const minusNachher = await kasten('−');
+    const plusNachher = await kasten('+');
+    expect(Math.abs(minusNachher.x - minusVorher.x), '− bleibt stehen').toBeLessThan(2);
+    expect(Math.abs(plusNachher.x - plusVorher.x), '+ bleibt stehen').toBeLessThan(2);
+    // Und der Reset sitzt links von − (angestammter Platz).
+    const reset = await page.locator('.zoom-reset').boundingBox();
+    expect(reset.x, 'Reset sitzt links von −').toBeLessThan(minusNachher.x);
+  });
 });
 
 // „Big Numbers"-Modus (Zellwerte 10–19): der Umschalter erscheint nur für
@@ -192,4 +242,5 @@ test.describe('big numbers mode', () => {
     await page.evaluate(() => { window.__cns.state.sel.difficulty = 'rip'; }); // 14×14
     await expect(page.locator('.mode-toggle', { hasText: 'Große Zahlen' })).toBeVisible();
   });
+
 });
