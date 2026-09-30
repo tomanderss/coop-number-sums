@@ -978,17 +978,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 /* ─── Game HUD ─── */
-.game-top { padding-bottom: 8px; }
-.hud { display: flex; align-items: center; gap: 14px; }
-.hud-item { font-weight: 800; font-size: 1rem; }
-.lives { display: flex; gap: 3px; align-items: center; }
+/* Die Spiel-Kopfzeile traegt ALLES: Leben, Zeit, Endlos-Chips, Werkzeuge und
+   Pause. Jede eingesparte Kopf-Zeile ist auf dem Handy Brettflaeche — genau
+   darum ist die fruehere zweite Reihe (.game-meta mit Chips + Werkzeugen) hier
+   aufgegangen. flex-wrap ist bewusst erlaubt: in der vollsten Lage (Endlos +
+   Coop + Chat) darf sie lieber umbrechen als ueberlaufen. */
+.game-top { padding: 4px 0 6px; gap: 6px; flex-wrap: wrap; }
+.hud { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; flex-wrap: wrap; }
+.hud-item { font-weight: 800; font-size: .92rem; }
+.lives { display: flex; gap: 2px; align-items: center; }
 .heart { display: block; position: relative; color: var(--bad); transition: color .2s, opacity .2s; }
-.heart svg { display: block; width: 20px; height: 20px; }
+.heart svg { display: block; width: 17px; height: 17px; }
 .heart.empty { color: var(--text3); opacity: .4; padding: 0; text-align: left; }
 /* Coop: zeigt, welcher Mitspieler dieses gemeinsame Leben verbraucht hat —
    Diagonale von oben-links nach unten-rechts in dessen Spielerfarbe. */
 .heart-strike {
-  position: absolute; left: 50%; top: 50%; width: 25px; height: 2.4px; border-radius: 2px;
+  position: absolute; left: 50%; top: 50%; width: 21px; height: 2.2px; border-radius: 2px;
   transform: translate(-50%, -50%) rotate(45deg); opacity: .95;
 }
 .timer { color: var(--text2); font-variant-numeric: tabular-nums; display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
@@ -996,22 +1001,36 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Endlos-Gesamt-Timer: gleiche Optik wie der Level-Timer, aber akzentuiert (Sanduhr)
    → auf den ersten Blick als „Zeit des ganzen Laufs" vom Level-Timer unterscheidbar. */
 .hud-item.timer.total { color: var(--accent); }
-.game-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; flex: 0 0 auto; }
-.chip { background: var(--bg2); color: var(--text2); font-size: .76rem; font-weight: 700; padding: 5px 10px; border-radius: 999px; }
-.zoomctl { margin-left: auto; display: flex; gap: 6px; }
-/* 40x40 statt vormals 30x30 -- liegt jetzt nah an der 44px-Tippflächen-Richtlinie
-   (F6), ohne die schmale HUD-Reihe neben den Chips zu sprengen. */
-.zoom-btn { width: 40px; height: 40px; border-radius: 11px; background: var(--bg2); font-size: 1.2rem; font-weight: 800; color: var(--text2); box-shadow: 0 2px 6px var(--shadow); }
+.chip { background: var(--bg2); color: var(--text2); font-size: .7rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+/* Werkzeugleiste in der Kopfzeile (.top-actions) statt in einer eigenen Reihe.
+   Der Zoom bildet ein ABTEIL (.toolgrp) mit sichtbar eigener Flaeche; der nur
+   zeitweise sichtbare Zuruecksetzen-Knopf sitzt in einem .tool-slot fester
+   Breite, der seinen Platz auch LEER behaelt — beim Ein-/Ausblenden verrutscht
+   daneben nichts. 32px statt 40: immer noch bequem zu treffen, spart aber ueber
+   die ganze Leiste Hoehe, und Hoehe ist auf dem Handy Brettflaeche. */
+.zoomctl { display: flex; gap: 6px; flex: 0 0 auto; }
+.toolgrp {
+  display: flex; gap: 3px; padding: 3px; border-radius: 12px;
+  background: color-mix(in srgb, var(--text2) 9%, transparent);
+}
+.tool-slot { width: 32px; height: 32px; flex: 0 0 auto; display: flex; }
+.zoom-btn { width: 32px; height: 32px; border-radius: 9px; background: var(--bg2); font-size: 1.05rem; font-weight: 800; color: var(--text2); box-shadow: 0 1px 4px var(--shadow); }
 /* Zoom-Reset (↺): nur sichtbar, wenn gezoomt wurde; dezent in Akzentfarbe vom
    +/- abgesetzt, gleiche Tippfläche. */
-.zoom-btn.zoom-reset { color: var(--accent2); font-size: 1.3rem; }
+.zoom-btn.zoom-reset { color: var(--accent2); font-size: 1.1rem; }
 
 /* ─── Fortschrittsanzeige: Prozent + Balken (immer sichtbar im Spiel) ───────── */
 /* Der Balken ist ein leeres, umrandetes Rechteck -- die rechte Kante markiert
    das Ziel (100%), die Füllung wächst von links. Im Race-Modus liegt der
    Gegner-Balken direkt unter dem eigenen (.progress-row als Spalte statt
    Reihe), damit beide ohne Kopfrechnen auf einen Blick vergleichbar sind. */
-.progress-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; flex: 0 0 auto; }
+/* Info-Chips und Fortschritt teilen sich EINE Zeile: der Balken braucht die
+   Breite nicht, und jede eingesparte Kopfzeile ist auf dem Handy Brettflaeche.
+   Im Wettkampf wird die Fortschritts-Spalte hoeher (mehrere Balken) — die Chips
+   bleiben dann oben buendig, statt in der Mitte zu schweben. */
+.meta-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; flex: 0 0 auto; }
+.meta-chips { display: flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0; flex-wrap: wrap; padding-top: 1px; }
+.progress-row { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }
 .progress-line { display: flex; align-items: center; gap: 8px; }
 /* FFA: ausgeschiedener Gegner (Leben verloren/aufgegeben) — gedimmt, Match läuft weiter. */
 .progress-line.ffa-out { opacity: .45; }
@@ -1332,7 +1351,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .round-btn svg { width: 26px; height: 26px; }
 .tool-ic svg { width: 26px; height: 26px; }
 .icon-btn svg { display: block; }
-.top-actions { display: flex; align-items: center; gap: 6px; }
+.top-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+/* Bricht die Kopfzeile in der vollsten Lage doch um (Endlos + Coop + Chat),
+   bleiben die Werkzeuge rechtsbuendig — sonst spraengen sie auf der zweiten
+   Zeile nach links und die Leiste wirkte zerrissen. */
+.game-top .top-actions { margin-left: auto; }
+/* Im Spiel duerfen Pause/Chat kleiner sein als auf den Menue-Screens: hier
+   zaehlt jeder Pixel Hoehe fuers Brett. */
+.game-top .icon-btn { width: 36px; height: 36px; border-radius: 10px; font-size: 1.15rem; }
+.game-top .icon-btn svg { width: 17px; height: 17px; }
 .round-btn:active { transform: scale(.9); }
 .round-btn:disabled { opacity: .4; }
 .round-badge {

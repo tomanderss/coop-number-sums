@@ -83,7 +83,7 @@ export default {
     loading: 'Criando o quebra-cabeça…',
     loadingHint: 'Um momento…',
     coopTag: 'COOP',
-    zoomReset: 'Redefinir zoom',
+    zoomTools: 'Zoom', zoomReset: 'Redefinir zoom',
     coopOfflineSuffix: ' · offline',
     pauseTitle: 'Pausa',
     undoTitle: 'Desfazer',

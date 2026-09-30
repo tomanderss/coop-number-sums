@@ -83,7 +83,7 @@ export default {
     loading: '퍼즐 생성 중…',
     loadingHint: '잠시만 기다려 주세요…',
     coopTag: 'COOP',
-    zoomReset: '줌 초기화',
+    zoomTools: '확대/축소', zoomReset: '줌 초기화',
     coopOfflineSuffix: ' · 오프라인',
     pauseTitle: '일시정지',
     undoTitle: '실행 취소',

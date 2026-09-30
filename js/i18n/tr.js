@@ -83,7 +83,7 @@ export default {
     loading: 'Bulmaca oluşturuluyor…',
     loadingHint: 'Bir saniye…',
     coopTag: 'COOP',
-    zoomReset: 'Yakınlaştırmayı sıfırla',
+    zoomTools: 'Yakınlaştırma', zoomReset: 'Yakınlaştırmayı sıfırla',
     coopOfflineSuffix: ' · çevrimdışı',
     pauseTitle: 'Duraklat',
     undoTitle: 'Geri al',

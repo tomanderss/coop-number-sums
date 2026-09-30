@@ -83,7 +83,7 @@ export default {
     loading: 'Creazione del puzzle…',
     loadingHint: 'Un attimo…',
     coopTag: 'COOP',
-    zoomReset: 'Reimposta zoom',
+    zoomTools: 'Zoom', zoomReset: 'Reimposta zoom',
     coopOfflineSuffix: ' · offline',
     pauseTitle: 'Pausa',
     undoTitle: 'Annulla',

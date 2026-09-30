@@ -8041,6 +8041,23 @@ const App = {
           <div v-if="state.endless.active" class="hud-item endless-lvl" :title="t('solo.endless')"><span class="ei" v-html="ic('meteor')"></span><b>{{ state.endless.level }}</b></div>
         </div>
         <div class="top-actions">
+          <!-- Werkzeuge sitzen in der KOPFLEISTE, nicht in einer eigenen Reihe:
+               jede Kopf-Zeile ist auf dem Handy Brettflaeche. Der Zoom bildet ein
+               eigenes ABTEIL (.toolgrp) mit sichtbarer Flaeche, damit man sieht,
+               was zusammengehoert. Der nur zeitweise sichtbare Zuruecksetzen-Knopf
+               sitzt in einem .tool-slot fester Breite, der IMMER steht — der Knopf
+               darin erscheint und verschwindet, aber − / + verrutschen nie. Bewusst
+               kein ausgegrauter Knopf: was man nicht betaetigen kann, ist weg, nur
+               sein Platz bleibt. Der Reset bleibt links neben − / +. -->
+          <span class="zoomctl">
+            <span class="toolgrp" role="group" :aria-label="t('game.zoomTools')">
+              <span class="tool-slot">
+                <button v-if="state.zoom !== 1" class="zoom-btn zoom-reset" @click="resetZoom" :aria-label="t('game.zoomReset')" :title="t('game.zoomReset')">↺</button>
+              </span>
+              <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
+              <button class="zoom-btn" @click="setZoom(0.15)">+</button>
+            </span>
+          </span>
           <button class="icon-btn chat-btn" v-if="isMultiplayer()" @click="toggleChat" :aria-label="t('chat.title')" :title="typingPlayers().length ? t('chat.typing', { name: typingPlayers()[0].name }) : t('chat.title')">
             <span class="ico-wrap" v-html="ic('chat')"></span>
             <span v-if="state.chat.unread" class="chat-unread">{{ state.chat.unread }}</span>
@@ -8069,7 +8086,12 @@ const App = {
              Im Querformat werden sie zu echten Grid-Feldern neben dem
              Spielfeld (siehe @media ... orientation:landscape). -->
         <div class="game-sidebar-top">
-        <div class="game-meta">
+        <!-- Info-Chips teilen sich die Zeile mit dem Fortschrittsbalken: der
+             braucht die Breite ohnehin nicht, und eine EIGENE Chip-Reihe waere
+             auf dem Handy eine Brettzeile weniger. Die fruehere .game-meta-Reihe
+             (Chips + Werkzeuge) ist damit ersatzlos weg. -->
+        <div class="meta-row">
+        <div class="meta-chips">
           <span class="chip"><span class="ei" v-html="ic(DIFF_BY_ID[state.puzzle.difficulty].emoji)"></span> {{ t('difficulty.'+state.puzzle.difficulty) }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
           <span v-if="state.coop.active" class="chip coop-chip" :class="(state.coop.connected && state.coop.online) ? 'coop-on' : 'coop-off'">
@@ -8077,14 +8099,6 @@ const App = {
           </span>
           <span v-if="state.team.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ t('team.label'+state.team.myTeam) }}</span>
           <span v-if="state.race.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ state.race.ffa ? t('race.ffaTag', { n: state.race.opponents.length + 1 }) : state.race.opponentName }}</span>
-          <span class="zoomctl">
-            <!-- Reset-Knopf bewusst LINKS: die Leiste ist rechtsbündig (margin-left:auto),
-                 d.h. ein links eingeschobener Knopf wächst nach links und lässt − / +
-                 an ihrer Position -- schnelles, wiederholtes Tippen auf + verrutscht so nicht. -->
-            <button v-if="state.zoom !== 1" class="zoom-btn zoom-reset" @click="resetZoom" :aria-label="t('game.zoomReset')" :title="t('game.zoomReset')">↺</button>
-            <button class="zoom-btn" @click="setZoom(-0.15)">−</button>
-            <button class="zoom-btn" @click="setZoom(0.15)">+</button>
-          </span>
         </div>
 
         <!-- Eigener Fortschritt (immer sichtbar); im Race-Modus zusätzlich der
@@ -8138,6 +8152,7 @@ const App = {
               </span>
             </span>
           </div>
+        </div>
         </div>
 
         <div v-if="state.coop.active && state.coop.players.length" class="coop-roster">

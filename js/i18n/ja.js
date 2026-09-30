@@ -83,7 +83,7 @@ export default {
     loading: 'パズルを作成中…',
     loadingHint: '少々お待ちください…',
     coopTag: 'COOP',
-    zoomReset: 'ズームをリセット',
+    zoomTools: 'ズーム', zoomReset: 'ズームをリセット',
     coopOfflineSuffix: ' ・オフライン',
     pauseTitle: '一時停止',
     undoTitle: '元に戻す',
