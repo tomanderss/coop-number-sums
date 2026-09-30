@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.212';
-export const BUILD_HASH = 'a6f41fa';
+export const BUILD      = '1.213';
+export const BUILD_HASH = 'ac28b6e';
 
 export const CHANGELOG = [
+  {
+    "version": "1.213",
+    "date": "30.09.2026",
+    "changes": [
+      "Die Kopfleiste im Spiel ist jetzt kompakt: Leben, Zeit, Zoom und Pause teilen sich eine Zeile, und die Info-Chips sitzen neben dem Fortschrittsbalken. Das Spielfeld beginnt dadurch deutlich weiter oben — auf kleinen Bildschirmen werden die Felder messbar größer.",
+      "Der Zoom hat eine eigene kleine Werkzeugleiste, in der der Zurücksetzen-Knopf seinen Platz freihält: − und + verrutschen beim Zoomen nicht mehr unter dem Finger."
+    ]
+  },
   {
     "version": "1.212",
     "date": "30.08.2026",
