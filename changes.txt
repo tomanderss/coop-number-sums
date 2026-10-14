@@ -1,0 +1,2 @@
+Die Zeitanzeige hat jetzt einen festen Platz: beim Sprung von 9:59 auf 10:00 wurde sie bisher breiter, dadurch verschob sich die ganze Kopfzeile und die Zoom-Leiste rutschte eine Etage tiefer. Jetzt bleibt alles stehen, egal wie lang die Zeit wird.
+Die Kopfzeile bricht nicht mehr um: wird es eng, stapeln sich Leben und Zeiten, aber Zoom und Pause bleiben oben rechts an ihrem Platz.

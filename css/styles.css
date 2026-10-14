@@ -983,7 +983,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    darum ist die fruehere zweite Reihe (.game-meta mit Chips + Werkzeugen) hier
    aufgegangen. flex-wrap ist bewusst erlaubt: in der vollsten Lage (Endlos +
    Coop + Chat) darf sie lieber umbrechen als ueberlaufen. */
-.game-top { padding: 4px 0 6px; gap: 6px; flex-wrap: wrap; }
+/* Die Kopfzeile selbst bricht NICHT um: sonst rutschte die Werkzeugleiste als
+   Ganzes „eine Etage tiefer" und stand nicht mehr buendig (gemeldet, ausgeloest
+   schon durch EIN zusaetzliches Zeichen in der Zeit). Wird es eng, wickelt
+   stattdessen das HUD intern um (es hat sein eigenes flex-wrap) — Leben und
+   Zeiten stapeln sich, die Leiste bleibt oben rechts stehen. */
+.game-top { padding: 4px 0 6px; gap: 6px; flex-wrap: nowrap; }
+/* Reserve der Zeit-Boxen: 6 Zeichen = bis "999:59" (ueber 16 Stunden reiner
+   Spielzeit, praktisch nie erreicht). Darueber waechst der Kasten wieder — das
+   ist der bewusste Kompromiss: eine Reserve fuer dreistellige STUNDEN (= 5
+   Minuten-Stellen) waere ~60 px je Timer und wuerde die Kopfzeile genau dort
+   umbrechen lassen, wo sie es gerade nicht mehr soll. */
+.screen.game { --timebox: 7ch; }
 .hud { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; flex-wrap: wrap; }
 .hud-item { font-weight: 800; font-size: .92rem; }
 .lives { display: flex; gap: 2px; align-items: center; }
@@ -997,6 +1008,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transform: translate(-50%, -50%) rotate(45deg); opacity: .95;
 }
 .timer { color: var(--text2); font-variant-numeric: tabular-nums; display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+/* FESTE Zeit-Box. `tabular-nums` macht alle ZIFFERN gleich breit, aber nicht die
+   ANZAHL: beim Sprung 9:59 -> 10:00 kam ein Zeichen dazu, der Kasten wuchs um
+   ~10 px, die ganze Kopfzeile wurde breiter und die Werkzeugleiste rutschte eine
+   Etage tiefer (gemeldet). Deshalb ein fester Platz, in dem der Text zentriert
+   steht — die Breite aendert sich nie, egal wie lang die Zeit wird.
+   `ch` = Breite der Ziffer 0; der Doppelpunkt ist schmaler, die Reserve liegt
+   also ueber dem tatsaechlichen Bedarf. */
+.hud-item.timer { min-width: var(--timebox); justify-content: center; }
 .timer-icon { font-size: 0.75em; line-height: 1; }
 /* Endlos-Gesamt-Timer: gleiche Optik wie der Level-Timer, aber akzentuiert (Sanduhr)
    → auf den ersten Blick als „Zeit des ganzen Laufs" vom Level-Timer unterscheidbar. */
@@ -1355,7 +1374,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Bricht die Kopfzeile in der vollsten Lage doch um (Endlos + Coop + Chat),
    bleiben die Werkzeuge rechtsbuendig — sonst spraengen sie auf der zweiten
    Zeile nach links und die Leiste wirkte zerrissen. */
-.game-top .top-actions { margin-left: auto; }
+/* Oben-rechts VERANKERT: wickelt das HUD intern um, wird die Kopfzeile hoeher —
+   mittig zentriert wanderte die Leiste dann ein paar Pixel mit. An der Oberkante
+   steht sie unabhaengig von der HUD-Hoehe immer an derselben Stelle. */
+.game-top .top-actions { margin-left: auto; align-self: flex-start; }
 /* Im Spiel duerfen Pause/Chat kleiner sein als auf den Menue-Screens: hier
    zaehlt jeder Pixel Hoehe fuers Brett. */
 .game-top .icon-btn { width: 36px; height: 36px; border-radius: 10px; font-size: 1.15rem; }
@@ -2323,6 +2345,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* ── Endlos-Aufstieg: HUD-Level-Chip, Ergebnis ──────────────────────────────── */
 .hud-item.endless-lvl { display: inline-flex; align-items: center; gap: 4px; font-weight: 900; color: var(--accent); }
+/* Gleiche Krankheit wie beim Timer: Level 9 -> 10 schob die Leiste. Die Zahl
+   bekommt einen festen Platz (bis 99; hoeher reicht ein Lauf mit 3 Leben nie). */
+.hud-item.endless-lvl b { min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; }
 .hud-item.endless-lvl .ei svg { width: 1.05em; height: 1.05em; }
 .endless-reached { font-size: 1.35rem; font-weight: 900; color: var(--accent); }
 .result-card.endless-record { box-shadow: 0 20px 60px var(--shadow), 0 0 0 2px rgba(251,191,36,.55), 0 0 32px rgba(251,191,36,.35); }
