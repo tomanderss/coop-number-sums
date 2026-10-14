@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.213';
-export const BUILD_HASH = 'ac28b6e';
+export const BUILD      = '1.214';
+export const BUILD_HASH = 'fb54c0a';
 
 export const CHANGELOG = [
+  {
+    "version": "1.214",
+    "date": "14.10.2026",
+    "changes": [
+      "Die Zeitanzeige hat jetzt einen festen Platz: beim Sprung von 9:59 auf 10:00 wurde sie bisher breiter, dadurch verschob sich die ganze Kopfzeile und die Zoom-Leiste rutschte eine Etage tiefer. Jetzt bleibt alles stehen, egal wie lang die Zeit wird.",
+      "Die Kopfzeile bricht nicht mehr um: wird es eng, stapeln sich Leben und Zeiten, aber Zoom und Pause bleiben oben rechts an ihrem Platz."
+    ]
+  },
   {
     "version": "1.213",
     "date": "30.09.2026",
