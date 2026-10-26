@@ -698,6 +698,49 @@ export function collectExportData(type = 'manual') {
     profile: (() => { const { role, ...rest } = load(KEYS.PROFILE, {}); return rest; })(),
   };
 }
+// ─── Kontoweite vs. SPIELEIGENE Daten ────────────────────────────────────────
+// Beide Spiele (Coop Number Sums + Coop Math Cross) haengen am SELBEN Firebase-
+// Projekt und schrieben bis hierher denselben Knoten `users/{uid}/data` — mit
+// `set`, also voller Ueberschreibung, und beim Reconcile zusaetzlich inhaltlich
+// gemergt (Zaehler per Maximum, Bestzeiten per Bestwert). Ergebnis: die
+// Statistiken, Bestzeiten und Prestige-Werte der beiden Spiele vermischten sich,
+// und die Bestenliste `leaderboard/{schwierigkeit}/{uid}` hielt nur EINEN Eintrag
+// je Nutzer fuer BEIDE Spiele. Die Schwierigkeits-IDs sind in beiden Spielen
+// identisch, deshalb fiel es nicht auf.
+//
+// Der Schnitt: was dem MENSCHEN gehoert, bleibt gemeinsam (ein Konto, ein Name,
+// ein Guthaben, ein Shop, eine Tagesserie — ausdruecklicher Nutzerwunsch); was
+// dem SPIEL gehoert, bekommt einen eigenen Knoten je Spiel.
+export const GAME_ID = 'numbersums';
+// Kontoweit: gilt fuer ALLE Spiele desselben Kontos.
+export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inventory', 'profile'];
+// Spieleigen: gehoert genau EINEM Spiel und darf sich nie mit einem anderen mischen.
+export const GAME_FIELDS = [
+  'activeGame', 'activeGameCoop', 'activeGameEndless', 'saves', 'stats',
+  'history', 'achievements', 'missions', 'race', 'playSamples', 'completedGames',
+];
+// Einen vollen Snapshot in seine zwei Haelften zerlegen. `ts`/`rev`/`v`/`label`
+// reisen in BEIDEN mit, damit jede Haelfte fuer sich durch mergeSnapshots laufen
+// kann (das entscheidet ueber `rev`, welche Seite die juengere ist).
+export function splitSnapshot(snap = {}) {
+  const head = { ts: snap.ts, v: snap.v, label: snap.label, rev: snap.rev };
+  const pick = (keys) => {
+    const out = { ...head };
+    for (const k of keys) if (snap[k] !== undefined) out[k] = snap[k];
+    return out;
+  };
+  return { account: pick(ACCOUNT_FIELDS), game: pick(GAME_FIELDS) };
+}
+// Die zwei Haelften wieder zu EINEM Snapshot zusammensetzen, wie ihn der Rest der
+// App erwartet. Die spieleigene Haelfte bestimmt `rev` (an ihr haengt die
+// Sync-Basislinie); fehlt eine Haelfte, bleiben ihre Felder schlicht weg.
+export function joinSnapshot(account = {}, game = {}) {
+  const out = { v: 1, label: 'join', ts: Math.max(Number(account.ts) || 0, Number(game.ts) || 0), rev: Number(game.rev) || 0 };
+  for (const k of ACCOUNT_FIELDS) if (account[k] !== undefined) out[k] = account[k];
+  for (const k of GAME_FIELDS) if (game[k] !== undefined) out[k] = game[k];
+  return out;
+}
+
 export async function exportToFile(type = 'manual') {
   const filename = `${type}-coop-number-sums-${buildTimestamp()}.json`;
   const payload = JSON.stringify(collectExportData(type), null, 2);

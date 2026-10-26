@@ -26,6 +26,7 @@ const {
   loadActiveGameEndless, saveActiveGameEndless,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta, dataRev,
   loadPlaySamples, addPlaySample, mergePlaySamples, PLAY_SAMPLES_MAX,
+  splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
 const { todayDateStr, shiftDateStr } = await import('../../js/streak.js');
@@ -962,4 +963,70 @@ describe('storage.playSamples (Spielstil des Nutzers, Basis des eigenen KI-Klons
     importFromFile(JSON.stringify(snap));
     assert.equal(loadPlaySamples().length, 1, 'kommt beim Import zurueck');
   });
+});
+
+// ─── Kontoweite vs. spieleigene Daten ────────────────────────────────────────
+// Beide Spiele haengen am SELBEN Firebase-Projekt und schrieben denselben Knoten
+// `users/{uid}/data` — mit voller Ueberschreibung und beim Reconcile zusaetzlich
+// inhaltlich gemergt (Zaehler per Maximum, Bestzeiten per Bestwert). Dadurch
+// vermischten sich Statistiken und Bestzeiten der beiden Spiele. Der Schnitt
+// trennt, was dem SPIEL gehoert, von dem, was dem KONTO gehoert.
+test('splitSnapshot trennt Konto- von Spieldaten', () => {
+  const snap = {
+    ts: 7, v: 1, label: 'sync', rev: 42,
+    settings: { theme: 'dark' }, wallet: { balance: 5 }, walletLog: [{ id: 'a' }], daily: { currentStreak: 9 },
+    stats: { won: 3 }, saves: [{ id: 's1' }], history: [{ id: 'h' }], race: { '1v1': {} },
+  };
+  const { account, game } = splitSnapshot(snap);
+  assert.deepEqual(account.settings, { theme: 'dark' });
+  assert.deepEqual(account.wallet, { balance: 5 });
+  assert.deepEqual(account.daily, { currentStreak: 9 });
+  assert.equal(account.stats, undefined, 'Statistiken gehoeren dem SPIEL, nicht dem Konto');
+  assert.equal(account.saves, undefined);
+  assert.deepEqual(game.stats, { won: 3 });
+  assert.deepEqual(game.saves, [{ id: 's1' }]);
+  assert.equal(game.wallet, undefined, 'das Guthaben gilt kontoweit, nie je Spiel');
+  assert.equal(game.settings, undefined);
+  // Beide Haelften tragen den Kopf, damit jede fuer sich durch mergeSnapshots kann.
+  assert.equal(account.rev, 42); assert.equal(game.rev, 42);
+});
+
+test('splitSnapshot + joinSnapshot sind verlustfrei', () => {
+  const snap = {
+    ts: 7, v: 1, label: 'sync', rev: 42,
+    settings: { a: 1 }, wallet: { balance: 2 }, walletLog: [], daily: { d: 1 }, inventory: { x: 1 }, profile: { username: 'tom' },
+    activeGame: { gameId: 'g' }, activeGameCoop: null, activeGameEndless: null,
+    saves: [], stats: { w: 1 }, history: [], achievements: { a: 1 }, missions: {}, race: {},
+    playSamples: [], completedGames: ['g1'],
+  };
+  const { account, game } = splitSnapshot(snap);
+  const back = joinSnapshot(account, game);
+  for (const k of [...ACCOUNT_FIELDS, ...GAME_FIELDS]) {
+    assert.deepEqual(back[k], snap[k], `Feld ${k} muss den Rundlauf ueberstehen`);
+  }
+  assert.equal(back.rev, 42, 'die Sync-Basislinie haengt an der SPIEL-Haelfte');
+});
+
+test('joinSnapshot kommt mit fehlenden Haelften klar', () => {
+  // Erstkontakt: nur eine Haelfte liegt in der Cloud.
+  const nurKonto = joinSnapshot({ ts: 3, rev: 0, wallet: { balance: 7 } }, {});
+  assert.deepEqual(nurKonto.wallet, { balance: 7 });
+  assert.equal(nurKonto.stats, undefined);
+  const nurSpiel = joinSnapshot({}, { ts: 4, rev: 9, stats: { w: 2 } });
+  assert.deepEqual(nurSpiel.stats, { w: 2 });
+  assert.equal(nurSpiel.rev, 9);
+  assert.equal(joinSnapshot().rev, 0);
+});
+
+test('die zwei Feldlisten ueberschneiden sich nicht und decken den Snapshot ab', () => {
+  const doppelt = ACCOUNT_FIELDS.filter((k) => GAME_FIELDS.includes(k));
+  assert.deepEqual(doppelt, [], 'kein Feld darf in beiden Haelften stehen');
+  // Jedes Feld des echten Snapshots ist genau einer Seite zugeordnet — sonst
+  // faellt es beim Sync still unter den Tisch.
+  const kopf = new Set(['ts', 'v', 'label', 'rev']);
+  const alle = new Set([...ACCOUNT_FIELDS, ...GAME_FIELDS]);
+  for (const k of Object.keys(collectExportData('test'))) {
+    if (kopf.has(k)) continue;
+    assert.ok(alle.has(k), `Feld ${k} ist keiner Haelfte zugeordnet`);
+  }
 });
