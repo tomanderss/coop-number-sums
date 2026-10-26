@@ -12,10 +12,16 @@
 import { generatePuzzle, remapColorsForMarkVisibility, findHintCell, makeRng } from './generator.js';
 import { buildHintTutorial } from './hinttutor.js';
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
+import * as model from './model.js';
 import { GAME_META } from '../registry.js';
 
 export const GAME = {
   ...GAME_META.numbersums,
+
+  // Das BRETT-MODELL: die Spielregeln als reine Funktionen von (puzzle, marks)
+  // — Summen, Fertig-Status, Fortschritt, Zellen-Metadaten, Struktur-Pruefung.
+  // Das ist der Teil, den ein zweites Spiel komplett anders beantwortet.
+  model,
 
   // ── Raetsel ──
   generatePuzzle,
