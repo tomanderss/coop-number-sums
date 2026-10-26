@@ -1,6 +1,9 @@
 // ja.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
+  games: { numbersums: 'Number Sums' },
+
   coopEndless: { toggle: 'エンドレス・クライム', toggleHint: '協力で登る——共有ライフ3つ、補充なし' },
 
   missions: {

@@ -1,6 +1,9 @@
 // ru.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
+  games: { numbersums: 'Number Sums' },
+
   coopEndless: { toggle: 'Бесконечный подъём', toggleHint: 'Поднимайтесь вместе — 3 общие жизни, без пополнения' },
 
   missions: {

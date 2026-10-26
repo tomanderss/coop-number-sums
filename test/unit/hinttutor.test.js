@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildHintTutorial } from '../../js/hinttutor.js';
-import { generatePuzzle } from '../../js/generator.js';
+import { buildHintTutorial } from '../../js/games/numbersums/hinttutor.js';
+import { generatePuzzle } from '../../js/games/numbersums/generator.js';
 
 const emptyMarks = (rows, cols) => Array.from({ length: rows }, () => Array(cols).fill('none'));
 

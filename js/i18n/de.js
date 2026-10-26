@@ -1,6 +1,9 @@
 // de.js — deutsche Strings (Standardsprache, Fallback für fehlende Keys in anderen Sprachen)
 export default {
 
+  // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
+  games: { numbersums: 'Number Sums' },
+
   coopEndless: { toggle: 'Endlos-Aufstieg', toggleHint: 'Gemeinsam immer schwerer — 3 geteilte Leben, kein Nachschub' },
 
   missions: {

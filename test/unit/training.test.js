@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { findTrainingStep, isFullyTier1Solvable } from '../../js/training.js';
-import { generatePuzzle } from '../../js/generator.js';
+import { findTrainingStep, isFullyTier1Solvable } from '../../js/games/numbersums/training.js';
+import { generatePuzzle } from '../../js/games/numbersums/generator.js';
 
 // Kleines, handgebautes 2x2-Rätsel ohne Regionen, rein über Zeilen/Spalten lösbar.
 // values: [[1,5],[5,1]]   rowTargets: [1,1]   colTargets: [1,1]

@@ -1,6 +1,9 @@
 // ko.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
+  games: { numbersums: 'Number Sums' },
+
   coopEndless: { toggle: '엔드리스 클라임', toggleHint: '함께 오르기 — 공유 목숨 3개, 보충 없음' },
 
   missions: {

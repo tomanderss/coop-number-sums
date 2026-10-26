@@ -4,6 +4,7 @@
 import { DEFAULT_SETTINGS } from './config.js';
 import { log, clearLog } from './debuglog.js';
 import { todayDateStr, sanitizeLastCompleted } from './streak.js';
+import { activeGameId } from './games/registry.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -714,7 +715,13 @@ export function collectExportData(type = 'manual') {
 // Der Schnitt: was dem MENSCHEN gehoert, bleibt gemeinsam (ein Konto, ein Name,
 // ein Guthaben, ein Shop, eine Tagesserie — ausdruecklicher Nutzerwunsch); was
 // dem SPIEL gehoert, bekommt einen eigenen Knoten je Spiel.
-export const GAME_ID = 'numbersums';
+// Kennung des LAUFENDEN Spiels. Kommt aus der Spiel-Registry (js/games/
+// registry.js), damit die Schale spielunabhaengig bleibt — `GAME_ID` war
+// solange eine Konstante, wie es nur ein Spiel gab. Als FUNKTION, weil sich die
+// Auswahl zur Laufzeit aendert (Spielauswahl im Hauptmenue): eine zur Ladezeit
+// eingefrorene Konstante haette nach einem Spielwechsel auf den alten Knoten
+// geschrieben.
+export function gameId() { return activeGameId(); }
 // Kontoweit: gilt fuer ALLE Spiele desselben Kontos.
 export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inventory', 'profile'];
 // Spieleigen: gehoert genau EINEM Spiel und darf sich nie mit einem anderen mischen.
