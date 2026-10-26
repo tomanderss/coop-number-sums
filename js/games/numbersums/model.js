@@ -93,6 +93,21 @@ export function progressPct(p, marks) {
   return total ? Math.round((correct / total) * 100) : 0;
 }
 
+/**
+ * Alle FALSCH markierten Zellen (eingekreist, obwohl sie weg muessen, oder
+ * umgekehrt). Grundlage des „Pruefen"-Knopfes; die Fehler-/Leben-Buchhaltung
+ * drumherum gehoert zur Schale, weil sie in jedem Spiel gleich ist.
+ */
+export function findWrongCells(p, marks) {
+  const wrong = [];
+  for (let r = 0; r < p.rows; r++)
+    for (let c = 0; c < p.cols; c++) {
+      const mk = marks[r][c], sol = p.solution[r][c];
+      if ((mk === 'kept' && !sol) || (mk === 'removed' && sol)) wrong.push([r, c]);
+    }
+  return wrong;
+}
+
 // ── Zellen-Metadaten (Regionen, Raender, Chips) ──────────────────────────────
 /**
  * Pro Zelle: zu welchem Kaefig sie gehoert, seine Farbe, auf welchen Seiten ein

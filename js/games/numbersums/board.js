@@ -22,6 +22,8 @@ import { REGION_COLORS, regionChipInk } from '../../config.js';
 import { SKINPRESET_ITEMS, shopItemById, ownsShopItem, applyPaletteFx } from '../../shopitems.js';
 import { SKIN_ID, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from '../../skins.js';
 import { t } from '../../i18n/index.js';
+import * as Music from '../../music.js';
+import * as Coop from '../../coop.js';
 import * as Model from './model.js';
 
 // ── Von der Schale injizierte Verweise ───────────────────────────────────────
@@ -33,20 +35,22 @@ let state = null;
 let LOCAL_PLAYER_ID = 'local';
 let playerColor = () => null;
 let shopEquippedId = () => '';
-let onCellTap = () => {};
-let onCellPointerDown = () => {};
-let onCellPointerMove = () => {};
-let onCellPointerCancel = () => {};
+// Rueckrufe in die Schale: Leben/Fehlerzaehler, Zug-Log, Persistenz+Sieg-Pruefung
+// und der Coop-Versand bleiben dort, weil sie in jedem Spiel gleich sind.
+let registerMistake = () => {};
+let pushMove = () => {};
+let afterMove = () => {};
+let coopSend = () => {};
 
 export function initBoard(ctx) {
   state = ctx.state;
   LOCAL_PLAYER_ID = ctx.LOCAL_PLAYER_ID;
   playerColor = ctx.playerColor;
   shopEquippedId = ctx.shopEquippedId;
-  onCellTap = ctx.onCellTap;
-  onCellPointerDown = ctx.onCellPointerDown;
-  onCellPointerMove = ctx.onCellPointerMove;
-  onCellPointerCancel = ctx.onCellPointerCancel;
+  registerMistake = ctx.registerMistake;
+  pushMove = ctx.pushMove;
+  afterMove = ctx.afterMove;
+  coopSend = ctx.coopSend;
 }
 
 // ── Brett-Optik (Shop/Skin) ──────────────────────────────────────────────────
@@ -120,6 +124,13 @@ const regionColorVars = computed(() => {
   }
   return map;
 });
+
+// Rohe Fertig-Pruefung (NICHT die gecachten R-Helfer): setMark/applyHintEffect
+// brauchen den Stand VOR und NACH dem Zug, und ein Computed-Cache ist zwischen
+// beiden Abfragen noch nicht neu berechnet.
+const rowResolved = (r) => Model.rowResolved(state.puzzle, state.marks, r);
+const colResolved = (c) => Model.colResolved(state.puzzle, state.marks, c);
+const regionResolved = (i) => Model.regionResolved(state.puzzle, state.marks, i);
 
 // ── Fertig-Puls: welche Seiten einer Zelle leuchten ──────────────────────────
 // Liefert, welche Seiten dieser Zelle zum ÄUSSEREN Rand einer gerade fertig
@@ -289,3 +300,169 @@ export const BoardGrid = {
           </div>
   `,
 };
+
+// ── ZUEGE & GESTEN ───────────────────────────────────────────────────────────
+// Alles, was das Brett VERAENDERT, gehoert zum Spiel: welcher Tap welche
+// Markierung setzt, was ein Fehlgriff ausloest, wie ein Tipp aufgeloest wird.
+// Leben, Fehlerzaehler, Toasts, Persistenz und der Coop-Versand bleiben in der
+// Schale — die sind in jedem Spiel gleich und kommen hier als ctx-Rueckrufe an.
+
+// Kurzer, smoother Leucht-Puls für eine gerade fertig gewordene Reihe/Spalte/Cage.
+export function pulseResolved(kind, idx) {
+  const key = `${kind}-${idx}`;
+  state.justResolved[key] = true;
+  setTimeout(() => { delete state.justResolved[key]; }, 900);
+}
+
+// ─── LANGES DRÜCKEN (Markierung zurücksetzen, nur Solo + "Beim Prüfen") ───────
+// Nur hier kann eine Zelle ohne festen Fehler-Status falsch markiert worden
+// sein (im 'instant'-Modus lehnt setMark falsche Züge sofort ab) — daher ist
+// das Zurückholen per langem Drücken auf diesen Modus beschränkt, und auf
+// Solo, da Coop-Markierungen mit dem Partner synchron bleiben müssen.
+const LONGPRESS_MS = 500;          // Haltedauer bis zum Zurücksetzen auf 'none'
+const LONGPRESS_TOLERANCE_PX = 10; // Bewegungstoleranz während des Haltens
+                                    // (verhindert Fehlauslösung beim Schwenken eines gezoomten Felds)
+let pressState = null;       // { r, c, x, y, timer } während eines Pointer-Holds, sonst null
+let suppressClickUntil = 0;  // Date.now()-Zeitstempel; bis dahin wird der nächste Klick auf der Zelle ignoriert
+
+function canLongPressRestore(r, c) {
+  // Long-Press-Zurücknahme gab es nur im entfernten „Beim Prüfen"-Modus. Fehler
+  // werden jetzt immer sofort aufgedeckt (falsche Markierung greift gar nicht
+  // erst), daher gibt es nichts zurückzunehmen → Feature deaktiviert.
+  return false;
+}
+
+export function onCellPointerDown(e, r, c) {
+  if (!canLongPressRestore(r, c)) return;
+  if (pressState) clearTimeout(pressState.timer);
+  pressState = { r, c, x: e.clientX, y: e.clientY, timer: null };
+  pressState.timer = setTimeout(() => {
+    if (!pressState || pressState.r !== r || pressState.c !== c) return;
+    suppressClickUntil = Date.now() + 400;
+    pressState = null;
+    setMark(r, c, 'none', true);
+  }, LONGPRESS_MS);
+}
+
+export function onCellPointerMove(e) {
+  if (!pressState) return;
+  const dx = e.clientX - pressState.x, dy = e.clientY - pressState.y;
+  if (Math.hypot(dx, dy) > LONGPRESS_TOLERANCE_PX) {
+    clearTimeout(pressState.timer);
+    pressState = null;
+  }
+}
+
+export function onCellPointerCancel() {
+  if (pressState) { clearTimeout(pressState.timer); pressState = null; }
+}
+
+export function onCellTap(r, c) {
+  if (Date.now() < suppressClickUntil) { suppressClickUntil = 0; return; }
+  // Nur-Lese: ein anderes Gerät hat diese Solo-Partie übernommen — Brett gesperrt,
+  // bis der Nutzer im Banner „Hier weiterspielen" wählt (holt den Besitz zurück).
+  if (state.sessionReadonly) return;
+  if (state.status !== 'playing' || state.generating || state.paused) return;
+  // Solange noch erzwungene Schritte existieren, steuert ausschließlich der
+  // "nächster Schritt"-Button -- erst wenn Tier-1-Logik nicht mehr weiterkommt
+  // (trainingDone, sollte dank TRAINING_GEN_BUDGET praktisch nie vorkommen),
+  // darf frei zu Ende getippt werden.
+  if (state.isTrainingGame && !state.trainingDone) return;
+  const cur = state.marks[r][c];
+  if (cur !== 'none') return; // already marked — only undo can reverse
+  const next = state.tool === 'pen' ? 'kept' : 'removed';
+  setMark(r, c, next, true);
+}
+
+export function setMark(r, c, next, user, fromId) {
+  if (user) state.hintTutor = null; // eigene Aktion verwirft den offenen Tipp-Tutor (Zahlen wären veraltet)
+  const cur = state.marks[r][c];
+  if (cur === next) return;
+
+  // Fehler werden IMMER sofort aufgedeckt: eine falsche Markierung wird gar nicht
+  // erst gesetzt, sondern rot geblitzt und als Fehler gezählt.
+  if (user) {
+    const sol = state.puzzle.solution[r][c];
+    const wrong = (next === 'kept' && !sol) || (next === 'removed' && sol);
+    if (wrong) {
+      // Der Fehlgriff gehört MIT ins Zug-Log (nur ein Array-Push): erst dadurch
+      // lässt sich später sagen, WO jemand danebengreift — in welcher Spielphase
+      // und bei welcher Art von Deduktion — statt bloß WIE OFT.
+      pushMove({ r, c, want: next, t: state.elapsed, err: 1 });
+      flashError(r, c); registerMistake(); return;
+    }
+  }
+
+  const region = state.cellMeta[r][c].region;
+  const wasRow = rowResolved(r), wasCol = colResolved(c);
+  const wasRegion = region >= 0 ? regionResolved(region) : false;
+
+  // Spielstil-Aufzeichnung: NUR ein Array-Push (kein localStorage, keine Analyse)
+  // — der Tap-Pfad muss billig bleiben (Board-Render-Regeln in CLAUDE.md). Die
+  // Auswertung läuft einmal am Spielende, s. recordPlaySample().
+  // FREMDE Züge (Coop/Team, geteiltes Brett) wandern MIT ins Log, markiert als
+  // `other`: die Auswertung stellt das Brett Zug für Zug nach, und ohne die Züge
+  // des Partners wäre dieser Nachbau ab dem ersten fremden Zug falsch — die
+  // Deduktions-Einordnung MEINER Züge damit auch. Gemessen werden sie nicht.
+  if (next !== 'none' && (user || state.coop.active || state.team.active)) {
+    pushMove(user ? { r, c, want: next, t: state.elapsed } : { r, c, want: next, t: state.elapsed, other: 1 });
+  }
+
+  state.history = [{ r, c, prev: cur }]; // nur der letzte Zug ist rückgängig machbar
+  state.marks[r][c] = next;
+  // Außerhalb einer aktiven Coop-/Team-/Wettkampf-Lobby ist state.coop.myId
+  // null (keine Firebase-Identität nötig) -- LOCAL_PLAYER_ID markiert eigene
+  // Züge trotzdem als "meine", damit die eigene Farbe (state.settings.coopMyColor)
+  // auch solo greift (siehe cellStyle()).
+  state.markedBy[r][c] = next === 'none' ? null : (user ? (state.coop.myId || LOCAL_PLAYER_ID) : fromId);
+  if (user && state.coop.active) coopSend({ type: Coop.MSG.MOVE, r, c, mark: next, from: state.coop.myId });
+
+  // Aktions-Sound nur für eigene Züge (sonst klingelt jeder Partner-Tap im Coop).
+  if (user) {
+    if (next === 'kept' && state.settings.sfxKeep) Music.sfxKeep();
+    else if (next === 'removed' && state.settings.sfxRemove) Music.sfxRemove();
+  }
+
+  // Wie viele Strukturen löst dieser eine Zug gleichzeitig auf? -> Stufung.
+  let resolved = 0;
+  if (!wasRow && rowResolved(r)) { pulseResolved('row', r); resolved++; }
+  if (!wasCol && colResolved(c)) { pulseResolved('col', c); resolved++; }
+  if (region >= 0 && !wasRegion && regionResolved(region)) { pulseResolved('region', region); resolved++; }
+  if (resolved > 0 && state.settings.sfxComplete) Music.sfxComplete(resolved);
+
+  afterMove();
+}
+
+let lastErrorSfx = 0;
+export function flashError(r, c) {
+  const key = `${r}-${c}`;
+  state.flash[key] = true;
+  setTimeout(() => { delete state.flash[key]; }, 650);
+  // Fehler-Ton — beim Mehrfach-Check (doCheck markiert viele Zellen auf einmal)
+  // nur einmal spielen, nicht pro Zelle.
+  if (state.settings.sfxError && Date.now() - lastErrorSfx > 120) { lastErrorSfx = Date.now(); Music.sfxError(); }
+}
+
+// Wendet einen Hinweis auf eine Zelle an (lokal ausgelöst oder vom Coop-Partner empfangen).
+// user kennzeichnet, wer den Hinweis ausgelöst hat (für die Coop-Farbmarkierung).
+export function applyHintEffect(r, c, mark, user = true, fromId) {
+  const region = state.cellMeta[r][c].region;
+  const wasRow = rowResolved(r), wasCol = colResolved(c);
+  const wasRegion = region >= 0 ? regionResolved(region) : false;
+
+  state.history = [{ r, c, prev: state.marks[r][c] }];
+  state.marks[r][c] = mark;
+  state.markedBy[r][c] = state.coop.active ? (user ? state.coop.myId : fromId) : null;
+  // .hint = kurzer Leucht-Puls (Quadrat), .hintMark = bleibt für den Rest des Rätsels
+  state.cellMeta[r][c].hint = true;
+  state.cellMeta[r][c].hintMark = true;
+  setTimeout(() => { if (state.cellMeta[r]) state.cellMeta[r][c].hint = false; }, 1400);
+
+  let resolved = 0;
+  if (!wasRow && rowResolved(r)) { pulseResolved('row', r); resolved++; }
+  if (!wasCol && colResolved(c)) { pulseResolved('col', c); resolved++; }
+  if (region >= 0 && !wasRegion && regionResolved(region)) { pulseResolved('region', region); resolved++; }
+  if (resolved > 0 && state.settings.sfxComplete) Music.sfxComplete(resolved);
+
+  afterMove();
+}
