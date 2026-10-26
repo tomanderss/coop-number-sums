@@ -6,24 +6,20 @@
       "$code": {
         ".read": "auth != null",
         ".write": "auth != null && $code.matches(/^[0-9]{6}$/)",
-
         "meta": {
           ".validate": "newData.hasChildren(['hostId','createdAt','status'])"
         },
-
         "players": {
           "$uid": {
             ".write": "auth != null && auth.uid === $uid",
             ".validate": "newData.hasChildren(['name','color','role','joinedAt'])"
           }
         },
-
         "events": {
           "$eventId": {
             ".validate": "newData.hasChildren(['type','author','ts']) && newData.child('author').val() === auth.uid"
           }
         },
-
         "teamEvents": {
           "$team": {
             "$eventId": {
@@ -31,14 +27,12 @@
             }
           }
         },
-
         "teamProgress": {
           "$team": {
             ".write": "auth != null",
             ".validate": "newData.hasChildren(['pct','mistakes']) && newData.child('pct').isNumber() && newData.child('mistakes').isNumber() && ($team === 'A' || $team === 'B')"
           }
         },
-
         "raceProgress": {
           "$uid": {
             ".write": "auth != null && auth.uid === $uid",
@@ -47,7 +41,6 @@
         }
       }
     },
-
     "users": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin'",
       "$uid": {
@@ -80,10 +73,16 @@
         },
         "session": {
           ".validate": "newData.hasChildren(['gameId','rev','deviceId','status'])"
+        },
+        "games": {
+          "$game": {
+            "session": {
+              ".validate": "newData.hasChildren(['gameId','rev','deviceId','status'])"
+            }
+          }
         }
       }
     },
-
     "status": {
       ".read": "auth != null",
       "$uid": {
@@ -91,25 +90,26 @@
         ".validate": "newData.hasChildren(['online','lastActive'])"
       }
     },
-
     "leaderboard": {
       ".read": "auth != null",
-      "$diff": {
-        "$uid": {
-          ".write": "auth != null && auth.uid === $uid",
-          ".validate": "newData.hasChildren(['timeMs','username']) && newData.child('timeMs').isNumber()"
+      "$game": {
+        "$diff": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['timeMs','username']) && newData.child('timeMs').isNumber()"
+          }
         }
       }
     },
-
     "aiProfiles": {
       ".read": "auth != null",
-      "$uid": {
-        ".write": "auth != null && auth.uid === $uid",
-        ".validate": "newData.hasChildren(['v','games','profile']) && newData.child('games').isNumber() && newData.child('v').isNumber()"
+      "$game": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['v','games','profile']) && newData.child('games').isNumber() && newData.child('v').isNumber()"
+        }
       }
     },
-
     "usernames": {
       ".read": "auth != null",
       "$key": {

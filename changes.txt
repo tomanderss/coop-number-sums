@@ -1,0 +1,3 @@
+Spielstände, Statistiken und Bestzeiten liegen in der Cloud jetzt getrennt je Spiel. Coop Number Sums und Coop Math Cross teilten sich bisher denselben Speicherplatz und haben sich dadurch gegenseitig Werte überschrieben und vermischt.
+Dein Konto bleibt wie gehabt gemeinsam: ein Benutzername, ein Guthaben, ein Shop, eine Tagesserie — für alle Spiele.
+Die Bestenlisten sind jetzt nach Spiel getrennt. Vorher konkurrierte eine Zeit aus dem einen Spiel mit den Zeiten aus dem anderen.

@@ -24,6 +24,7 @@ import {
   deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, mergeSaves, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
   mergePlaySamples,
+  GAME_ID, splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -272,6 +273,33 @@ export function sortLeaderboard(entries) {
 // ─── Hilfen ───────────────────────────────────────────────────────────────────
 function currentUser(fb) { return fb.auth && fb.auth.currentUser; }
 function userRef(fb, uid, sub) { return fb.ref(fb.db, `users/${uid}${sub ? '/' + sub : ''}`); }
+// Kontoweite Haelfte (ein Knoten je NUTZER) und spieleigene Haelfte (ein Knoten je
+// NUTZER UND SPIEL). Beide Spiele am selben Firebase-Projekt schrieben vorher
+// denselben `data`-Knoten und vermischten damit Statistiken, Bestzeiten und
+// Prestige (s. splitSnapshot in storage.js).
+// Kopf-Felder (ts/v/label/rev) aus einer Snapshot-Haelfte entfernen — beim
+// partiellen Admin-Update sollen NUR die wirklich gesetzten Felder reisen.
+function stripHead(half) {
+  const { ts, v, label, rev, ...rest } = half || {};
+  return rest;
+}
+function accountRef(fb, uid, sub) { return userRef(fb, uid, `account${sub ? '/' + sub : ''}`); }
+function gameRef(fb, uid, sub) { return userRef(fb, uid, `games/${GAME_ID}${sub ? '/' + sub : ''}`); }
+// Beide Haelften lesen und zu EINEM Snapshot fuegen, wie ihn der Rest der App
+// erwartet. UMZUG: existiert die spieleigene Haelfte noch nicht, wird EINMALIG der
+// Alt-Knoten `users/{uid}/data` als Quelle genommen — so geht beim Wechsel nichts
+// verloren. Der Alt-Knoten wird bewusst NICHT geloescht (Sicherheitsnetz).
+async function readCloudSnapshot(fb, uid) {
+  const [acc, game] = await Promise.all([
+    fb.get(accountRef(fb, uid)).then((x) => x.val()),
+    fb.get(gameRef(fb, uid)).then((x) => x.val()),
+  ]);
+  if (acc || game) return { snap: joinSnapshot(acc || {}, game || {}), legacy: false, hadAccount: !!acc, hadGame: !!game };
+  const legacy = (await fb.get(userRef(fb, uid, 'data'))).val();
+  if (!legacy) return { snap: null, legacy: false, hadAccount: false, hadGame: false };
+  log('account', 'Alt-Knoten uebernommen (einmaliger Umzug auf getrennte Spiel-Daten)', { rev: legacy.rev || 0 });
+  return { snap: legacy, legacy: true, hadAccount: false, hadGame: false };
+}
 // Firebase RTDB lehnt Infinity/-Infinity/NaN ab und verwirft dann den GANZEN
 // Schreibvorgang. Ein Solo-Spielstand hält hintsLeft = Infinity (unbegrenzte
 // Hinweise, HINTS in config.js) — landete das ungefiltert im Session-Payload,
@@ -632,7 +660,7 @@ export async function publishBestTime(difficulty, timeMs, username, badge = null
     const fb = await ensureFirebase();
     const u = currentUser(fb);
     if (!u || u.isAnonymous || !difficulty || !(timeMs > 0)) return;
-    const ref = fb.ref(fb.db, `leaderboard/${difficulty}/${u.uid}`);
+    const ref = fb.ref(fb.db, `leaderboard/${GAME_ID}/${difficulty}/${u.uid}`);
     const prev = (await fb.get(ref)).val();
     if (prev && typeof prev.timeMs === 'number' && prev.timeMs <= timeMs) return;
     await fb.set(ref, { username: username || '', timeMs, ts: fb.serverTimestamp(), badge: badge || null });
@@ -653,7 +681,7 @@ export async function updateLeaderboardBadge(diffIds, badge = null) {
     let n = 0;
     for (const diff of diffIds) {
       try {
-        const ref = fb.ref(fb.db, `leaderboard/${diff}/${u.uid}`);
+        const ref = fb.ref(fb.db, `leaderboard/${GAME_ID}/${diff}/${u.uid}`);
         const cur = (await fb.get(ref)).val();
         if (!cur || typeof cur.timeMs !== 'number') continue;   // nur vorhandene Einträge
         if ((cur.badge || null) === (badge || null)) continue;  // schon aktuell
@@ -670,7 +698,7 @@ export async function updateLeaderboardBadge(diffIds, badge = null) {
 export async function watchLeaderboard(difficulty, cb) {
   try {
     const fb = await ensureFirebase();
-    const off = fb.onValue(fb.ref(fb.db, `leaderboard/${difficulty}`), (snap) => {
+    const off = fb.onValue(fb.ref(fb.db, `leaderboard/${GAME_ID}/${difficulty}`), (snap) => {
       const arr = Object.entries(snap.val() || {}).map(([uid, v]) => ({ uid, ...(v || {}) }));
       cb(sortLeaderboard(arr));
     });
@@ -695,7 +723,7 @@ export async function publishAiProfile({ profile, games, avgMs, username, badge 
     const fb = await ensureFirebase();
     const u = currentUser(fb);
     if (!u || u.isAnonymous || !profile || !(games > 0)) return;
-    await fb.set(fb.ref(fb.db, `aiProfiles/${u.uid}`), sanitizeForFirebase({
+    await fb.set(fb.ref(fb.db, `aiProfiles/${GAME_ID}/${u.uid}`), sanitizeForFirebase({
       v: AI_PROFILE_V,
       games,
       updatedAt: fb.serverTimestamp(),
@@ -724,7 +752,7 @@ export async function fetchAiProfiles(uids) {
     if (!u || u.isAnonymous || !Array.isArray(uids) || !uids.length) return out;
     await Promise.all(uids.map(async (uid) => {
       try {
-        const v = (await fb.get(fb.ref(fb.db, `aiProfiles/${uid}`))).val();
+        const v = (await fb.get(fb.ref(fb.db, `aiProfiles/${GAME_ID}/${uid}`))).val();
         if (v && v.profile) out[uid] = v;
       } catch (_) { /* einzelner Freund ohne Profil/ohne Leserecht */ }
     }));
@@ -883,7 +911,14 @@ async function uploadLocal(fb, uid) {
   // während einer laufenden Partie NIE ein Upload durchkam (Symptom: kein
   // „Fortsetzen" auf dem Zweitgerät, veraltete Settings trotz Sync).
   const snap = collectExportData('sync');
-  await fb.set(userRef(fb, uid, 'data'), sanitizeForFirebase(snap));
+  // ZWEI Knoten statt einem: die kontoweite Haelfte teilen sich alle Spiele
+  // desselben Kontos (ein Name, ein Guthaben, ein Shop, eine Tagesserie), die
+  // spieleigene gehoert exklusiv DIESEM Spiel. Vorher lag beides in
+  // `users/{uid}/data`, das beide Spiele voll ueberschrieben — so vermischten
+  // sich Statistiken und Bestzeiten zwischen den Spielen.
+  const halves = splitSnapshot(snap);
+  await fb.set(accountRef(fb, uid), sanitizeForFirebase(halves.account));
+  await fb.set(gameRef(fb, uid), sanitizeForFirebase(halves.game));
   await fb.set(userRef(fb, uid, 'inventory'), loadInventory());  // … dann die Union schreiben
   // Basislinie = GENAU die Revision, die jetzt in der Cloud liegt (snap.rev) —
   // NICHT das inzwischen weitergelaufene dataRev(). Das war ein harter Sync-
@@ -940,7 +975,7 @@ export async function reconcile() {
     const fb = await ensureFirebase();
     const u = currentUser(fb);
     if (!u || u.isAnonymous) return { decision: 'skip' };
-    const snap = (await fb.get(userRef(fb, u.uid, 'data'))).val();
+    const { snap } = await readCloudSnapshot(fb, u.uid);
     const decision = decideSync({
       cloudExists: !!snap,
       localRev: dataRev(),
@@ -1001,7 +1036,7 @@ export async function resolveConflict(choice) {
     const fb = await ensureFirebase();
     const u = currentUser(fb);
     if (!u || u.isAnonymous) return { ok: false, skipped: true };
-    const snap = (await fb.get(userRef(fb, u.uid, 'data'))).val();
+    const { snap } = await readCloudSnapshot(fb, u.uid);
     const localData = collectExportData('conflict-local');
     saveConflictBackup(choice === 'cloud' ? { side: 'local', data: localData } : { side: 'cloud', data: snap });
     const merged = mergeSnapshots(localData, snap || {});
@@ -1038,7 +1073,7 @@ export async function readSession() {
   try {
     const c = await sessionCtx();
     if (!c) return null;
-    return (await c.fb.get(userRef(c.fb, c.uid, 'session'))).val() || null;
+    return (await c.fb.get(gameRef(c.fb, c.uid, 'session'))).val() || null;
   } catch (e) { log('account', 'readSession fehlgeschlagen', e); return null; }
 }
 // Session schreiben per Compare-and-Set (RTDB-Transaktion). baseRev = die für
@@ -1052,7 +1087,7 @@ export async function writeSession({ gameId, status, payload, appBuild, schema, 
     const c = await sessionCtx();
     if (!c) return { ok: false, skipped: true };
     const dev = deviceId();
-    const ref = userRef(c.fb, c.uid, 'session');
+    const ref = gameRef(c.fb, c.uid, 'session');
     const res = await c.fb.runTransaction(ref, (cur) => {
       if (cur && cur.gameId === gameId && (cur.rev || 0) > baseRev && cur.deviceId !== dev) {
         return undefined; // veraltet für dieselbe Partie → abbrechen
@@ -1071,7 +1106,7 @@ export async function watchSession(cb) {
   try {
     const c = await sessionCtx();
     if (!c) return () => {};
-    const ref = userRef(c.fb, c.uid, 'session');
+    const ref = gameRef(c.fb, c.uid, 'session');
     // onValue (modular API) liefert die Unsubscribe-Funktion direkt zurück.
     const unsub = c.fb.onValue(ref, (snap) => { try { cb(snap.val() || null); } catch (_) {} });
     return () => { try { unsub && unsub(); } catch (_) {} };
@@ -1095,7 +1130,7 @@ export async function syncNow() {
     // einen Mini-Read (data/rev), kein voller Snapshot.
     const base = syncedRev();
     if (base != null) {
-      const cloudRev = (await fb.get(userRef(fb, u.uid, 'data/rev'))).val() || 0;
+      const cloudRev = (await fb.get(gameRef(fb, u.uid, 'rev'))).val() || 0;
       if (cloudRev !== base && cloudRev !== dataRev()) {
         log('account', 'Cloud extern geändert — Upload übersprungen (Übernahme beim nächsten Start)');
         return { ok: false, skipped: true, cloudNewer: true };
@@ -1134,8 +1169,8 @@ export async function adminFindUser(username) {
     if (!uid) return { ok: false, err: 'userNotFound' };
     const profile = (await fb.get(userRef(fb, uid, 'profile'))).val() || {};
     const inventory = (await fb.get(userRef(fb, uid, 'inventory'))).val() || {};
-    const data = (await fb.get(userRef(fb, uid, 'data'))).val() || {};
-    return { ok: true, uid, profile, inventory, wallet: data.wallet || { balance: 0 } };
+    const acc = (await fb.get(accountRef(fb, uid))).val() || {};
+    return { ok: true, uid, profile, inventory, wallet: acc.wallet || { balance: 0 } };
   } catch (e) { log('account', 'adminFindUser fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
 // ALLE User für den Admin-Browser laden. Primär via /users (ein Read — braucht
@@ -1150,7 +1185,10 @@ export async function adminListUsers() {
       username: (u.profile && u.profile.username) || '',
       role: (u.profile && u.profile.role) || 'user',
       email: (u.profile && u.profile.email) || '',
-      balance: (u.data && u.data.wallet && u.data.wallet.balance) || 0,
+      // Guthaben ist KONTOWEIT (users/{uid}/account); `data` bleibt Rueckfall fuer
+      // Konten, die seit dem Umzug noch nicht gesynct haben.
+      balance: (u.account && u.account.wallet && u.account.wallet.balance)
+        || (u.data && u.data.wallet && u.data.wallet.balance) || 0,
       hasSkin: !!(u.inventory && u.inventory.dynamicColor),
       createdAt: (u.profile && u.profile.createdAt) || 0,
       itemCount: u.inventory ? Object.keys(u.inventory).length : 0,
@@ -1167,9 +1205,9 @@ export async function adminListUsers() {
       const uids = [...new Set(Object.values(idx))];
       list = await Promise.all(uids.map(async (uid) => {
         const profile = (await fb.get(userRef(fb, uid, 'profile'))).val() || {};
-        const data = (await fb.get(userRef(fb, uid, 'data'))).val() || {};
+        const account = (await fb.get(accountRef(fb, uid))).val() || {};
         const inventory = (await fb.get(userRef(fb, uid, 'inventory'))).val() || {};
-        return shape(uid, { profile, data, inventory });
+        return shape(uid, { profile, account, inventory });
       }));
     }
     // Eigene E-Mail auffüllen: profile.email kann fehlen (z.B. per Console
@@ -1227,8 +1265,8 @@ export async function adminSetRole(uid, role) {
 export async function adminGetUserData(uid) {
   try {
     const fb = await ensureFirebase();
-    const data = (await fb.get(userRef(fb, uid, 'data'))).val() || {};
-    return { ok: true, data };
+    const { snap } = await readCloudSnapshot(fb, uid);
+    return { ok: true, data: snap || {} };
   } catch (e) { log('account', 'adminGetUserData fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
 // Mehrere Felder im Daten-Snapshot setzen. updates = { 'stats/currentStreak': 7, … }
@@ -1240,8 +1278,16 @@ export async function adminGetUserData(uid) {
 export async function adminSetUserData(uid, updates) {
   try {
     const fb = await ensureFirebase();
-    await fb.update(userRef(fb, uid, 'data'), { ...updates, rev: Date.now() });
-    log('account', 'Admin: Nutzerdaten gesetzt', { uid, fields: Object.keys(updates).length });
+    // Jedes Feld in SEINE Haelfte: kontoweite Felder (Guthaben, Einstellungen,
+    // Tagesserie) gelten fuer alle Spiele, spieleigene nur fuer dieses. Ein
+    // Sammel-Update auf den Alt-Knoten hoebe die Trennung sofort wieder auf.
+    const halves = splitSnapshot(updates);
+    const hasAcc = ACCOUNT_FIELDS.some((k) => updates[k] !== undefined);
+    const hasGame = GAME_FIELDS.some((k) => updates[k] !== undefined);
+    const stamp = Date.now();
+    if (hasAcc) await fb.update(accountRef(fb, uid), { ...stripHead(halves.account), rev: stamp });
+    if (hasGame) await fb.update(gameRef(fb, uid), { ...stripHead(halves.game), rev: stamp });
+    log('account', 'Admin: Nutzerdaten gesetzt', { uid, fields: Object.keys(updates).length, konto: hasAcc, spiel: hasGame });
     return { ok: true };
   } catch (e) { log('account', 'adminSetUserData fehlgeschlagen', e); return { ok: false, err: errKey(e) }; }
 }
@@ -1249,11 +1295,11 @@ export async function adminGrantCurrency(uid, amount) {
   const n = Math.max(0, Math.floor(amount || 0));
   try {
     const fb = await ensureFirebase();
-    const data = (await fb.get(userRef(fb, uid, 'data'))).val() || {};
-    const wallet = data.wallet || { balance: 0 };
+    const acc = (await fb.get(accountRef(fb, uid))).val() || {};
+    const wallet = acc.wallet || { balance: 0 };
     wallet.balance = (wallet.balance || 0) + n; wallet.updatedAt = Date.now();
     // rev-Bump wie in adminSetUserData — sonst überschreibt der Client die Gutschrift.
-    await fb.update(userRef(fb, uid, 'data'), { wallet, rev: Date.now() });
+    await fb.update(accountRef(fb, uid), { wallet, rev: Date.now() });
     return { ok: true, balance: wallet.balance };
   } catch (e) { return { ok: false, err: errKey(e) }; }
 }
@@ -1263,7 +1309,7 @@ export async function adminSetCurrency(uid, amount) {
   try {
     const fb = await ensureFirebase();
     // rev-Bump wie in adminSetUserData — sonst überschreibt der Client den Wert wieder.
-    await fb.update(userRef(fb, uid, 'data'), { wallet: { balance: n, updatedAt: Date.now() }, rev: Date.now() });
+    await fb.update(accountRef(fb, uid), { wallet: { balance: n, updatedAt: Date.now() }, rev: Date.now() });
     log('account', 'Admin: Guthaben gesetzt', { uid, n });
     return { ok: true, balance: n };
   } catch (e) { return { ok: false, err: errKey(e) }; }
