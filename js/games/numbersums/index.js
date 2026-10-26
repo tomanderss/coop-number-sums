@@ -13,6 +13,7 @@ import { generatePuzzle, remapColorsForMarkVisibility, findHintCell, makeRng } f
 import { buildHintTutorial } from './hinttutor.js';
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import * as model from './model.js';
+import { BoardGrid, initBoard } from './board.js';
 import { GAME_META } from '../registry.js';
 
 export const GAME = {
@@ -22,6 +23,12 @@ export const GAME = {
   // — Summen, Fertig-Status, Fortschritt, Zellen-Metadaten, Struktur-Pruefung.
   // Das ist der Teil, den ein zweites Spiel komplett anders beantwortet.
   model,
+
+  // Die BRETT-DARSTELLUNG: die Vue-Komponente des Spielbretts samt ihren
+  // Zell-Klassen/-Styles und Render-Caches (js/games/numbersums/board.js).
+  // `initBoard(ctx)` uebergibt ihr einmalig, was sie von der Schale braucht.
+  BoardGrid,
+  initBoard,
 
   // ── Raetsel ──
   generatePuzzle,

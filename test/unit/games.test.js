@@ -45,9 +45,16 @@ describe('Spiel-Registry', () => {
     for (const g of GAMES) {
       assert.ok(isGameId(g.id));
       for (const fn of ['generatePuzzle', 'remapColorsForMarkVisibility', 'buildHintTutorial',
-                        'findTrainingStep', 'isFullyTier1Solvable', 'workerUrl']) {
+                        'findTrainingStep', 'isFullyTier1Solvable', 'workerUrl', 'initBoard']) {
         assert.equal(typeof g[fn], 'function', `${g.id} fehlt die Funktion ${fn}()`);
       }
+      // Das Brett-Modell beantwortet die Spielregeln, die BoardGrid-Komponente
+      // zeichnet das Brett — beides gehoert zum Spiel, nicht zur Schale.
+      for (const fn of ['isSolved', 'progressPct', 'buildCellMeta', 'validPuzzleShape']) {
+        assert.equal(typeof g.model[fn], 'function', `${g.id}: model.${fn}() fehlt`);
+      }
+      assert.ok(g.BoardGrid && typeof g.BoardGrid.setup === 'function' && typeof g.BoardGrid.template === 'string',
+        `${g.id} bringt keine Brett-Komponente mit`);
       // Der Generierungs-Worker gehoert zum Spiel, nicht zur Schale.
       assert.match(String(g.workerUrl()), new RegExp(`js/games/${g.id}/genworker\\.js$`));
     }

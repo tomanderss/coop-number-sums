@@ -11,6 +11,7 @@ import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.j
 import * as Music from './music.js';
 import { activeGame } from './games/index.js';
 import * as Model from './games/numbersums/model.js';
+import * as Board from './games/numbersums/board.js';
 // Die SPIELSPEZIFISCHEN Funktionen kommen aus dem Modul des laufenden Spiels
 // (js/games/<id>/index.js), nicht mehr per direktem Import: der Rest dieser
 // Datei ist die SCHALE, die fuer jedes Spiel dieselbe ist. Als duenne Weiche
@@ -321,6 +322,29 @@ const state = reactive({
   adminNotice: null,             // aktuell angezeigte Admin-Benachrichtigung {id, kind, item|amount, from} (Modal)
   perfectWin: false,         // gradueller Konfetti-/Glanz-Effekt für makellose Siege
 });
+
+// ─── BRETT-SCHICHT (Spielmodul) ───────────────────────────────────────────────
+// Das Brett — Vue-Komponente, Zell-Klassen/-Styles, Kaefig-Farben, Render-Caches
+// und die Skin-Optik — gehoert zum SPIEL und liegt in js/games/numbersums/
+// board.js. Die Schale uebergibt ihm hier einmalig, was es von ihr braucht
+// (den Zustand, die Spielerfarben, die Shop-Auswahl und die Zell-Gesten), und
+// uebernimmt im Gegenzug die Namen, die Schale und Template weiter nutzen —
+// dadurch bleiben alle Aufrufstellen und das komplette Template unveraendert.
+// Die Funktionen unten sind Funktions-Deklarationen und damit hier schon
+// gebunden (hoisting); die computeds im Brett-Modul sind lazy und greifen erst
+// beim ersten Render zu, also nach diesem Aufruf.
+Board.initBoard({
+  state, LOCAL_PLAYER_ID, playerColor, shopEquippedId,
+  onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel,
+});
+const {
+  BoardGrid,
+  boardFontClass, boardFrameClass, activePaletteFx,
+  skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, gridStyle,
+  rowResolvedR, colResolvedR, regionResolvedR, rowSumR, colSumR, rowSumMatch, colSumMatch,
+  cellAriaLabel, cellClasses, cellStyle, resetCellStyleCache, boardRenders,
+} = Board;
+
 
 let timerHandle = null;
 let saveThrottle = 0;
@@ -991,37 +1015,6 @@ function applySkinPreset(it) {
   log('game', 'Skin-Vorlage angewendet', { id: it.id });
   showToast(t('shop.applied'), 'success', 1800);
 }
-// Brett-Klasse des ausgerüsteten Zahlen-Stils ('' = Klassisch).
-function boardFontClass() {
-  const id = shopEquippedId('font');
-  return id && id !== 'classic' ? 'font-' + id : '';
-}
-// Brett-Klasse des ausgerüsteten Rahmens ('' = keiner).
-function boardFrameClass() {
-  const id = shopEquippedId('frame');
-  return id && id !== 'none' ? 'frame-' + id : '';
-}
-// ── Brett-Optik (Modulebene, damit die BoardGrid-Child-Komponente sie nutzt) ──
-// Dynamischer Skin (Cosmetic 'dynamicColor'): mindestens eine gekaufte Skin-
-// Vorlage aktiviert das Skin-Rendering auch OHNE den exklusiven Skin (der
-// schaltet nur den freien Editor frei).
-const skinUnlocked = computed(() => !!state.inventory[SKIN_ID]);
-const skinPresetOwned = computed(() => SKINPRESET_ITEMS.some((p) => ownsShopItem(state.inventory, p)));
-const skinActive = computed(() => (skinUnlocked.value || skinPresetOwned.value) && state.settings.skinEnabled);
-const skinVars = computed(() => skinActive.value ? buildSkinVars(state.settings) : {});
-const skinBoardClasses = computed(() => buildSkinClasses(state.settings, skinActive.value));
-const gridStyle = computed(() => ({
-  gridTemplateColumns: `var(--hdr) repeat(${state.puzzle?.cols || 1}, var(--cell))`,
-  gridTemplateRows: `var(--hdr) repeat(${state.puzzle?.rows || 1}, var(--cell))`,
-  '--cell': state.cellPx + 'px',
-  '--hdr': state.cellPx + 'px',
-  '--fs': Math.max(11, Math.round(state.cellPx * 0.4)) + 'px',
-}));
-// Aktive Paletten-Transformation für cellStyle (null = Klassisch/unverändert).
-function activePaletteFx() {
-  const it = shopItemById(shopEquippedId('palette'));
-  return it ? it.fx : null;
-}
 // Vorschau-Punkte einer Karte: Paletten zeigen 6 transformierte Cage-Farben,
 // Themes ihre 4 Kern-Farben (bg, Karte, Akzent, Text); sonst keine Punkte.
 function shopPreviewDots(it) {
@@ -1144,7 +1137,7 @@ function applyMarkSafeRegionColors() {
     if (idxs[ri] !== ((reg.colorIndex || 0) % REGION_COLORS.length)) remapped++;
     for (const [r, c] of reg.cells) state.cellMeta[r][c].color = color;
   });
-  cellStyleCache = [];   // gecachte --rc-*-Styles gehören zur alten Färbung
+  resetCellStyleCache();   // gecachte --rc-*-Styles gehören zur alten Färbung
   if (remapped) log('game', 'Cage-Farben wegen Spielerfarbe umgelenkt', { remapped });
 }
 
@@ -1779,7 +1772,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   // zurück) in jedem danach gestarteten "normalen" Spiel sichtbar. startTrainingGame()
   // setzt isTrainingGame direkt NACH diesem Aufruf wieder auf true.
   state.isTrainingGame = false;
-  cellStyleCache = [];   // Style-Referenz-Cache gehört zum alten Brett (s. cellStyle)
+  resetCellStyleCache();   // Style-Referenz-Cache gehört zum alten Brett (s. cellStyle)
   state.trainingStep = null;
   state.trainingDone = false;
   state.paused = false;
@@ -1950,43 +1943,6 @@ const regionSum = (i) => Model.regionSum(state.puzzle, state.marks, i);
 const rowResolved = (r) => Model.rowResolved(state.puzzle, state.marks, r);
 const colResolved = (c) => Model.colResolved(state.puzzle, state.marks, c);
 const regionResolved = (i) => Model.regionResolved(state.puzzle, state.marks, i);
-// ── Render-Performance: aufgelöste Zeilen/Spalten/Käfige EINMAL vorberechnen ──
-// Vorher scannte jede der bis zu 196 Zellen (14×14 „R.I.P.") bei JEDEM Render ihren
-// Käfig/ihre Zeile/Spalte neu (regionResolved/…). Das lief nicht nur pro Zug, sondern
-// bei JEDEM Re-Render (z.B. den vielen Puls-Animationen gegen Spielende) → CPU-Dauerlast,
-// Hitze, zunehmendes Ruckeln. Diese Sets rechnen nur neu, wenn sich state.marks ändert
-// (ein Zug); die Render-Nutzung (cellClasses/Template) ist dann ein O(1)-Set-Lookup.
-const resolvedRowSet = computed(() => { const p = state.puzzle; const s = new Set(); if (p) for (let r = 0; r < p.rows; r++) if (rowResolved(r)) s.add(r); return s; });
-const resolvedColSet = computed(() => { const p = state.puzzle; const s = new Set(); if (p) for (let c = 0; c < p.cols; c++) if (colResolved(c)) s.add(c); return s; });
-const resolvedRegionSet = computed(() => { const p = state.puzzle; const s = new Set(); if (p) for (let i = 0; i < p.regions.length; i++) if (regionResolved(i)) s.add(i); return s; });
-// Render-Helfer (O(1)) — NUR im Template/cellClasses verwenden (Spiellogik nutzt
-// weiter die rohen row/col/regionResolved für die punktuelle Vorher/Nachher-Prüfung).
-function rowResolvedR(r) { return resolvedRowSet.value.has(r); }
-function colResolvedR(c) { return resolvedColSet.value.has(c); }
-function regionResolvedR(i) { return resolvedRegionSet.value.has(i); }
-// Zeilen-/Spaltensummen ebenfalls EINMAL pro Zug cachen statt in jedem Header-
-// Render (mehrfach: Wert + Match-Klasse) die ganze Zeile/Spalte neu aufzusummieren.
-const rowSums = computed(() => (state.puzzle ? Model.rowSums(state.puzzle, state.marks) : []));
-const colSums = computed(() => (state.puzzle ? Model.colSums(state.puzzle, state.marks) : []));
-function rowSumR(r) { return rowSums.value[r] || 0; }
-function colSumR(c) { return colSums.value[c] || 0; }
-// aktuelle Summen stimmen (Hilfsanzeige): Summe der eingekreisten == Ziel — aus dem Cache.
-const rowSumMatch = r => rowSums.value[r] === state.puzzle.rowTargets[r];
-const colSumMatch = c => colSums.value[c] === state.puzzle.colTargets[c];
-// Regionfarben-Cache: die (statische) Käfig-Basisfarbe × ausgerüstete Palette EINMAL
-// je distinkter Farbe transformieren — vorher lief applyPaletteFx (HSL-Mathe + 2 Shop-
-// Lookups) in cellStyle PRO ZELLE PRO RENDER (×196 auf dem 14×14). m.color ist eine
-// Referenz in REGION_COLORS, daher als Map-Key nutzbar. Neu nur bei Paletten-Wechsel.
-const colorKey = (c) => c.h + '-' + c.s + '-' + c.l;  // stabiler Key (unabhängig von Objekt-Referenz)
-const regionColorVars = computed(() => {
-  const fx = activePaletteFx();
-  const map = new Map();
-  for (const color of REGION_COLORS) {
-    const col = applyPaletteFx(color, fx);
-    map.set(colorKey(color), { '--rc-h': col.h, '--rc-s': col.s + '%', '--rc-l': col.l + '%', '--rc-ink': regionChipInk(col) });
-  }
-  return map;
-});
 
 // Kurzer, smoother Leucht-Puls für eine gerade fertig gewordene Reihe/Spalte/Cage.
 function pulseResolved(kind, idx) {
@@ -7446,64 +7402,6 @@ const DifficultySlider = {
 // ════════════════════════════════════════════════════════════════════════════
 //  KOMPONENTE / TEMPLATE
 // ════════════════════════════════════════════════════════════════════════════
-// ── BoardGrid: das Spielbrett als EIGENE Child-Komponente ─────────────────────
-// KERN-PERFORMANCEFIX: Vue trackt Render-Abhängigkeiten PRO KOMPONENTE. Solange
-// das Brett im App-Template lag, renderte JEDE reaktive Änderung der App (Tool-
-// Umschalter state.tool, Sekunden-Tick state.elapsed, HUD/Chat/Toasts, …) ALLE
-// ~200 Zellen mit (cellClasses/cellStyle/Aria ×196 auf 14×14) — auf älteren
-// Geräten im Spätspiel spürbare Tap-Latenz („Button reagiert nicht", Züge im
-// falschen Modus). Als Child-Komponente rendert das Brett NUR noch, wenn sich
-// ECHTE Brett-Abhängigkeiten ändern (marks/flash/justResolved/cellMeta/Skin/…).
-// Alle Helfer sind bewusst Modul-Scope — kein Props-Threading nötig.
-// boardRenderCount zählt Brett-Renders (localhost-Debug/E2E-Regressionstest).
-let boardRenderCount = 0;
-const BoardGrid = {
-  setup() {
-    return {
-      state, cellClasses, cellStyle, cellAriaLabel, onCellTap,
-      onCellPointerDown, onCellPointerMove, onCellPointerCancel,
-      rowResolvedR, colResolvedR, regionResolvedR, rowSumR, colSumR, rowSumMatch, colSumMatch,
-      skinBoardClasses, skinVars, gridStyle, boardFontClass, boardFrameClass,
-      countRender: () => { boardRenderCount++; return ''; },
-    };
-  },
-  template: `
-          <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused || state.joinFreeze, 'mp-colors': state.coop.active || state.team.active, 'big-num': state.puzzle.bigNumbers, 'tutor-dim': !!state.hintTutor }]" :style="[gridStyle, skinVars]" :data-rc="countRender()">
-            <div class="corner"></div>
-            <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
-              <template v-if="!colResolvedR(c-1)">
-                <span class="cur" :class="{match: colSumMatch(c-1)}">{{ colSumR(c-1) }}</span>
-                <span class="tgt">{{ state.puzzle.colTargets[c-1] }}</span>
-              </template>
-            </div>
-            <template v-for="r in state.puzzle.rows" :key="'r'+r">
-              <div class="hdr row-hdr" :class="{resolved: rowResolvedR(r-1), pulse: state.justResolved['row-'+(r-1)]}">
-                <template v-if="!rowResolvedR(r-1)">
-                  <span class="cur" :class="{match: rowSumMatch(r-1)}">{{ rowSumR(r-1) }}</span>
-                  <span class="tgt">{{ state.puzzle.rowTargets[r-1] }}</span>
-                </template>
-              </div>
-              <div v-for="c in state.puzzle.cols" :key="r+'-'+c"
-                   class="cell" :class="cellClasses(r-1,c-1)" :style="cellStyle(r-1,c-1)"
-                   role="button" tabindex="0" :aria-label="cellAriaLabel(r-1,c-1)"
-                   @click="onCellTap(r-1,c-1)"
-                   @keydown.enter.prevent="onCellTap(r-1,c-1)"
-                   @keydown.space.prevent="onCellTap(r-1,c-1)"
-                   @pointerdown="onCellPointerDown($event,r-1,c-1)"
-                   @pointermove="onCellPointerMove($event)"
-                   @pointerup="onCellPointerCancel"
-                   @pointerleave="onCellPointerCancel"
-                   @pointercancel="onCellPointerCancel"
-                   @contextmenu.prevent>
-                <span v-if="state.cellMeta[r-1][c-1].chip!=null && !regionResolvedR(state.cellMeta[r-1][c-1].region)" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
-                <span class="cnum">{{ state.puzzle.values[r-1][c-1] }}</span>
-                <i v-if="state.marks[r-1][c-1]==='removed' && state.cellMeta[r-1][c-1].hintMark" class="hint-dot"></i>
-              </div>
-            </template>
-          </div>
-  `,
-};
-
 const App = {
   components: { DifficultySlider, BoardGrid },
   setup() {
@@ -10149,107 +10047,7 @@ function onDesktopKeydown(e) {
   toggleTool();
 }
 
-// Liefert, welche Seiten dieser Zelle zum ÄUSSEREN Rand einer gerade fertig
-// gewordenen Reihe/Spalte/Cage gehören (für den Fertig-Puls, Punkt 3: nur die
-// äußersten Ränder der ganzen Struktur leuchten, keine Querstriche dazwischen).
-const NO_PULSE_EDGES = { t: false, b: false, l: false, r: false };
-const anyPulseActive = computed(() => Object.keys(state.justResolved).length > 0);
-function pulseEdges(r, c) {
-  if (!anyPulseActive.value) return NO_PULSE_EDGES;   // Normalfall: kein Puls → 0 Lookups
-  const p = state.puzzle;
-  let t = false, b = false, l = false, rr = false;
-  if (state.justResolved[`row-${r}`]) { t = true; b = true; if (c === 0) l = true; if (c === p.cols - 1) rr = true; }
-  if (state.justResolved[`col-${c}`]) { l = true; rr = true; if (r === 0) t = true; if (r === p.rows - 1) b = true; }
-  const region = state.cellMeta[r][c].region;
-  if (region >= 0 && state.justResolved[`region-${region}`]) {
-    const e = state.cellMeta[r][c].edges;
-    if (e.t) t = true; if (e.b) b = true; if (e.l) l = true; if (e.r) rr = true;
-  }
-  return { t, b, l, r: rr };
-}
 
-// Aria-Labels je Zelle EINMAL pro Zug/Sprachwechsel berechnen statt ×169 bei
-// JEDEM Render (die t()-Interpolation war ein messbarer Teil des Tick-Renders
-// auf großen Brettern). Computed trackt state.marks + i18n-Locale.
-const cellAriaLabels = computed(() => {
-  const p = state.puzzle; if (!p) return [];
-  const out = new Array(p.rows);
-  for (let r = 0; r < p.rows; r++) {
-    out[r] = new Array(p.cols);
-    for (let c = 0; c < p.cols; c++) {
-      const mk = state.marks[r][c];
-      const status = mk === 'kept' ? t('a11y.cellKept') : mk === 'removed' ? t('a11y.cellRemoved') : t('a11y.cellUnmarked');
-      out[r][c] = t('a11y.cellLabel', { row: r + 1, col: c + 1, value: p.values[r][c], status });
-    }
-  }
-  return out;
-});
-function cellAriaLabel(r, c) { return (cellAriaLabels.value[r] && cellAriaLabels.value[r][c]) || ''; }
-function cellClasses(r, c) {
-  const m = state.cellMeta[r][c];
-  const mk = state.marks[r][c];
-  // Cage-Färbung nur solange die Cage NICHT aufgelöst ist (dann verschwindet sie).
-  const colored = m.region >= 0 && !regionResolvedR(m.region);
-  const pe = pulseEdges(r, c);
-  return {
-    kept: mk === 'kept', removed: mk === 'removed',
-    region: colored,
-    flash: !!state.flash[`${r}-${c}`],
-    hinted: m.hint,
-    hintmark: m.hintMark,
-    'pulse-edge': pe.t || pe.b || pe.l || pe.r,
-    'region-pulse': m.region >= 0 && !!state.justResolved[`region-${m.region}`],
-    'row-pulse': !!state.justResolved[`row-${r}`],
-    'col-pulse': !!state.justResolved[`col-${c}`],
-    strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
-    'coop-mark': !!state.markedBy[r][c],
-    // EIGENE Markierung: im Multiplayer behaelt sie den eigenen Skin (Regenbogen,
-    // Preset, Verlauf) — nur die Zellen der MITSPIELER fallen auf deren zugewiesene
-    // Farbe zurueck, damit erkennbar bleibt, wer was gesetzt hat (s. .mp-colors).
-    mine: !!state.markedBy[r][c] && state.markedBy[r][c] === (state.coop.myId || LOCAL_PLAYER_ID),
-    'coop-mark-removed': state.coop.active && !!state.markedBy[r][c] && mk === 'removed' && state.settings.coopRemovedOutline,
-    'training-highlight': state.isTrainingGame && state.trainingStep?.r === r && state.trainingStep?.c === c,
-    'hint-group': inHintGroup(r, c),
-  };
-}
-// Fokus-Zellen des aktuellen Tutor-Schritts als Set (r*1000+c) — cached
-// computed, damit inHintGroup pro Zelle O(1) bleibt (Brett-Render-Kernregel).
-const tutorFocusSet = computed(() => {
-  const tt = state.hintTutor;
-  if (!tt) return null;
-  const s = tt.steps[tt.i];
-  return new Set(s.cells.map(([r, c]) => r * 1000 + c));
-});
-function inHintGroup(r, c) {
-  const set = tutorFocusSet.value;
-  return !!set && set.has(r * 1000 + c);
-}
-// Style-Objekte je Zelle CACHEN und bei unveränderten Eingaben DIESELBE Referenz
-// zurückgeben: Vue patcht :style nur, wenn sich die Referenz/Werte ändern — bei
-// einem neuen Objekt pro Render setzte es dagegen JEDE CSS-Custom-Property
-// (--rc-*/--markcol) für ALLE ~169 Zellen bei JEDEM Render erneut (setProperty
-// war im Profil ein Top-Posten des Tick-Renders auf großen Brettern).
-let cellStyleCache = [];
-function cellStyle(r, c) {
-  const m = state.cellMeta[r][c];
-  const cv = m.color ? regionColorVars.value.get(colorKey(m.color)) : null;
-  const who = state.markedBy[r][c];
-  const col = who ? (who === LOCAL_PLAYER_ID ? state.settings.coopMyColor : playerColor(who)) : null;
-  const pe = pulseEdges(r, c);
-  const key = `${cv ? cv['--rc-h'] + cv['--rc-s'] + cv['--rc-l'] : ''}|${col || ''}|${pe.t ? 1 : 0}${pe.b ? 1 : 0}${pe.l ? 1 : 0}${pe.r ? 1 : 0}`;
-  const row = cellStyleCache[r] || (cellStyleCache[r] = []);
-  const hit = row[c];
-  if (hit && hit.key === key) return hit.style;
-  const st = { fontSize: 'var(--fs)' };
-  if (cv) { st['--rc-h'] = cv['--rc-h']; st['--rc-s'] = cv['--rc-s']; st['--rc-l'] = cv['--rc-l']; st['--rc-ink'] = cv['--rc-ink']; }
-  if (col) st['--markcol'] = col;
-  if (pe.t) st['--pt'] = '3px';
-  if (pe.b) st['--pb'] = '3px';
-  if (pe.l) st['--pl'] = '3px';
-  if (pe.r) st['--pr'] = '3px';
-  row[c] = { key, style: st };
-  return st;
-}
 
 // ─── BOOTSTRAP ────────────────────────────────────────────────────────────────
 const app = createApp(App);
@@ -10289,7 +10087,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') wind
     onBotEliminated();
     return true;
   },
-  boardRenders: () => boardRenderCount, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+  boardRenders, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');

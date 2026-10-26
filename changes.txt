@@ -1,2 +1,3 @@
 Technischer Umbau: Spiellogik und App-Rahmen getrennt (Grundlage fuer mehrere Spiele in einer App)
 Spielregeln des Bretts in ein eigenes, einzeln getestetes Modul gezogen
+Spielbrett samt Darstellung in ein eigenes Spielmodul gezogen
