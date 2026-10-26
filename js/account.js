@@ -21,7 +21,7 @@ import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
-  deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, mergeSaves, HISTORY_MAX,
+  deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, mergeSaves, mergeSavesGone, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
   mergePlaySamples,
   GAME_ID, splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
@@ -196,7 +196,10 @@ export function mergeSnapshots(local = {}, cloud = {}) {
     activeGame: pickActiveGame(local.activeGame, cloud.activeGame),
     activeGameCoop: pickActiveGame(local.activeGameCoop, cloud.activeGameCoop),
     activeGameEndless: pickEndlessSlot(local.activeGameEndless, cloud.activeGameEndless),
-    saves: mergeSaves(local.saves, cloud.saves),   // Bibliothek beider Geraete vereinigen (Union nach id, juengerer Stand gewinnt)
+    // Grabsteine zuerst: eine auf EINEM Geraet geloeschte/beendete Partie bleibt
+    // weg, sonst holt die Union sie von der anderen Seite zurueck.
+    savesGone: mergeSavesGone(local.savesGone, cloud.savesGone),
+    saves: mergeSaves(local.saves, cloud.saves, mergeSavesGone(local.savesGone, cloud.savesGone)),
     stats: mergeNumericDeep(local.stats || {}, cloud.stats || {}),
     daily: mergeStreak(local.daily || {}, cloud.daily || {}, localNewer),
     history: mergeHistory(local.history, cloud.history),
