@@ -4,7 +4,7 @@
 import { DEFAULT_SETTINGS } from './config.js';
 import { log, clearLog } from './debuglog.js';
 import { todayDateStr, sanitizeLastCompleted } from './streak.js';
-import { activeGameId } from './games/registry.js';
+import { activeGameId, setActiveGameId, DEFAULT_GAME_ID } from './games/registry.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -37,6 +37,7 @@ const KEYS = {
   DEVICE_ID: 'cns_device_id',   // stabile Geräte-Kennung (Multi-Device-Handoff); PER GERÄT, wird NIE synct/als Nutzdaten gezählt
   COMPLETED_GAMES: 'cns_completed_games', // [gameId,…] bereits abgerechnete Partien (Belohnungs-Idempotenz über Geräte), FIFO
   ACTIVE_GAME_BACKUP: 'cns_active_game_backup', // letzter durch Divergenz verdrängter Solo-Stand (nie still gelöscht)
+  GAME: 'cns_game',             // zuletzt gespieltes Spiel (Kennung aus js/games/registry.js); PER GERAET, NIE synct
   PLAY_SAMPLES: 'cns_play_samples', // [{ts,difficulty,think,burstMs,mistakes,…}] — Spielstil-Stichproben je Partie (js/playstyle.js), FIFO, SYNCT
 };
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
@@ -64,16 +65,56 @@ const USER_DATA_KEYS = new Set([
 // praktisch nie funktionierte (Klick lief in eine bereits verfallene Session).
 const COOP_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 export const HISTORY_MAX = 20;
+/** Die logischen Speicher-Schluessel (fuer Tests und Diagnose). */
+export const STORAGE_KEYS = KEYS;
+
+// ─── SPIELSPEZIFISCHE vs. KONTOWEITE Schluessel ──────────────────────────────
+// Sobald mehr als EIN Spiel in der App steckt, duerfen sich ihre Statistiken,
+// Spielstaende, Erfolge und Missionen nicht mehr denselben localStorage-Platz
+// teilen — genau derselbe Fehler, der in der Cloud unter `users/{uid}/data`
+// schon passiert war (s. splitSnapshot). Dieselbe Grenze gilt also lokal.
+//
+// Das STANDARDSPIEL behaelt seine Schluessel UNVERAENDERT ('cns_stats', …),
+// jedes weitere bekommt den Zusatz '__<kennung>' ('cns_stats__mathcross').
+// Dadurch braucht der Bestand keinerlei Migration: wer heute spielt, findet
+// nach dem Update genau seine Daten vor.
+const GAME_SCOPED_KEYS = new Set([
+  'cns_active_game', 'cns_active_game_coop', 'cns_active_game_endless',
+  'cns_saves', 'cns_saves_gone', 'cns_stats', 'cns_history', 'cns_achievements',
+  'cns_missions', 'cns_race', 'cns_play_samples', 'cns_completed_games',
+  // Buchhaltung, die zum SPIEL gehoert: die Sync-Basislinie haengt an der
+  // Spiel-Haelfte des Snapshots, ein Coop-Raum und ein verdraengter Spielstand
+  // gehoeren ebenfalls genau einem Spiel.
+  'cns_synced_rev', 'cns_coop_session', 'cns_active_game_backup',
+]);
+
+/**
+ * Der localStorage-Schluessel eines logischen Schluessels fuer ein bestimmtes
+ * Spiel. Rein, damit ein Test festhalten kann, WELCHE Schluessel spielspezifisch
+ * sind — genau das ist die Stelle, an der ein neues Datenfeld still im falschen
+ * Topf landet.
+ */
+export function gameScopedKey(key, game) {
+  if (!GAME_SCOPED_KEYS.has(key)) return key;
+  return game === DEFAULT_GAME_ID ? key : `${key}__${game}`;
+}
+/**
+ * Derselbe Schluessel fuer das LAUFENDE Spiel. Bewusst innerhalb von
+ * load/save/remove, damit die ~200 Aufrufstellen unveraendert mit den logischen
+ * Namen aus KEYS arbeiten.
+ */
+function k(key) { return gameScopedKey(key, activeGameId()); }
 
 function load(key, fallback) {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  try { const v = localStorage.getItem(k(key)); return v ? JSON.parse(v) : fallback; }
   catch (e) { log('storage', `Laden von "${key}" fehlgeschlagen`, e); return fallback; }
 }
 function save(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(k(key), JSON.stringify(value));
     // Jede Nutzdaten-Änderung stempelt die lokale Daten-Revision (für den
     // Cloud-Konfliktcheck). DATA_REV selbst ist kein Nutzdaten-Key → keine Rekursion.
+    // Geprüft wird der LOGISCHE Name (k() haengt nur den Spiel-Zusatz an).
     if (USER_DATA_KEYS.has(key)) localStorage.setItem(KEYS.DATA_REV, JSON.stringify(Date.now()));
   }
   catch (e) { log('storage', `Speichern von "${key}" fehlgeschlagen`, e); }
@@ -96,7 +137,7 @@ export function hasLocalData() {
   return false;
 }
 function remove(key) {
-  try { localStorage.removeItem(key); }
+  try { localStorage.removeItem(k(key)); }
   catch (e) { log('storage', `Entfernen von "${key}" fehlgeschlagen`, e); }
 }
 
@@ -127,7 +168,7 @@ export function saveActiveGame(g) { if (g) save(KEYS.ACTIVE_GAME, g); else remov
 // Backup des durch echte Cross-Device-Divergenz verdrängten Solo-Stands. Rein
 // lokal, NICHT synct (kein Nutzdaten-Key) — dient nur dem „nie still gelöscht"-Prinzip.
 export function loadActiveGameBackup() { return load(KEYS.ACTIVE_GAME_BACKUP, null); }
-export function saveActiveGameBackup(g) { if (g) localStorage.setItem(KEYS.ACTIVE_GAME_BACKUP, JSON.stringify(g)); else remove(KEYS.ACTIVE_GAME_BACKUP); }
+export function saveActiveGameBackup(g) { if (g) localStorage.setItem(k(KEYS.ACTIVE_GAME_BACKUP), JSON.stringify(g)); else remove(KEYS.ACTIVE_GAME_BACKUP); }
 // Backup der beim Versions-Mismatch UNTERLEGENEN Seite (lokal ODER Cloud) — nie
 // still gelöscht. Rein lokal, NICHT synct (kein Nutzdaten-Key).
 export function saveConflictBackup(data) { try { localStorage.setItem('cns_conflict_backup', JSON.stringify({ ts: Date.now(), data })); } catch (_) {} }
@@ -722,6 +763,23 @@ export function collectExportData(type = 'manual') {
 // eingefrorene Konstante haette nach einem Spielwechsel auf den alten Knoten
 // geschrieben.
 export function gameId() { return activeGameId(); }
+/**
+ * Beim Start das zuletzt gespielte Spiel wiederherstellen. GERAETELOKAL und
+ * bewusst NICHT synct: welches Spiel hier zuletzt offen war, ist Zustand dieses
+ * Geraets — wie SEEN_VERSION. Sonst zwingt ein Spielwechsel auf dem Handy das
+ * Tablet beim naechsten Start in dasselbe Spiel.
+ */
+export function restoreGameChoice() {
+  return setActiveGameId(load(KEYS.GAME, DEFAULT_GAME_ID));
+}
+/** Spiel wechseln und die Wahl fuer den naechsten Start sichern. */
+export function chooseGame(id) {
+  const set = setActiveGameId(id);
+  localStorage.setItem(KEYS.GAME, JSON.stringify(set));
+  return set;
+}
+/** Statistik des LAUFENDEN Spiels zuruecksetzen (Einstellungen ▸ Daten). */
+export function clearStats() { remove(KEYS.STATS); }
 // Kontoweit: gilt fuer ALLE Spiele desselben Kontos.
 export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inventory', 'profile'];
 // Spieleigen: gehoert genau EINEM Spiel und darf sich nie mit einem anderen mischen.
@@ -1031,8 +1089,33 @@ export function deleteAllData() {
   remove(KEYS.LAST_SYNC);
   remove(KEYS.COMPLETED_GAMES);
   remove(KEYS.ACTIVE_GAME_BACKUP);
+  // „Alle Daten loeschen" heisst ALLE Spiele, nicht nur das offene: die
+  // spielspezifischen Schluessel tragen den Zusatz '__<kennung>' (s. k()) und
+  // wuerden von den remove()-Aufrufen oben nur fuer das LAUFENDE Spiel getroffen.
+  for (const key of allGameScopedKeys()) {
+    try { localStorage.removeItem(key); } catch (e) { log('storage', `Entfernen von "${key}" fehlgeschlagen`, e); }
+  }
+  remove(KEYS.GAME);
   // DEVICE_ID bewusst behalten: es ist die Geräte-Identität (Handoff), keine Nutzdaten.
   clearLog();
+}
+
+/**
+ * Alle tatsaechlich vorhandenen spielspezifischen Schluessel — auch die der
+ * NICHT laufenden Spiele. Liest localStorage direkt, damit auch die Daten eines
+ * inzwischen entfernten Spiels mitgeloescht werden.
+ */
+function allGameScopedKeys() {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      const basis = key.includes('__') ? key.slice(0, key.indexOf('__')) : key;
+      if (GAME_SCOPED_KEYS.has(basis)) out.push(key);
+    }
+  } catch (e) { log('storage', 'Durchsuchen von localStorage fehlgeschlagen', e); }
+  return out;
 }
 
 export function generateId() {
