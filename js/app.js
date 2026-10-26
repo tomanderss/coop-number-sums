@@ -10,6 +10,7 @@ import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
 import * as Music from './music.js';
 import { activeGame } from './games/index.js';
+import * as Model from './games/numbersums/model.js';
 // Die SPIELSPEZIFISCHEN Funktionen kommen aus dem Modul des laufenden Spiels
 // (js/games/<id>/index.js), nicht mehr per direktem Import: der Rest dieser
 // Datei ist die SCHALE, die fuer jedes Spiel dieselbe ist. Als duenne Weiche
@@ -1121,32 +1122,8 @@ function startCoopRound() {
 }
 
 // ─── ZELLEN-METADATEN (Regionen, Ränder, Chips) ───────────────────────────────
-function buildCellMeta(puzzle) {
-  const { rows, cols, regions } = puzzle;
-  const meta = Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => ({ region: -1, color: null, edges: {}, chip: null, hint: false, hintMark: false })));
-  // Regions-ID-Gitter aufbauen
-  const rid = Array.from({ length: rows }, () => Array(cols).fill(-1));
-  regions.forEach((reg, ri) => { for (const [r, c] of reg.cells) rid[r][c] = ri; });
-  const same = (r, c, ri) => r >= 0 && r < rows && c >= 0 && c < cols && rid[r][c] === ri;
-
-  regions.forEach((reg, ri) => {
-    const color = REGION_COLORS[reg.colorIndex % REGION_COLORS.length];
-    let chipCell = null;
-    for (const [r, c] of reg.cells) {
-      const m = meta[r][c];
-      m.region = ri; m.color = color;
-      // Rand auf einer Seite, wenn der Nachbar zu einer anderen Region gehört (oder außerhalb)
-      m.edges = {
-        t: !same(r - 1, c, ri), b: !same(r + 1, c, ri),
-        l: !same(r, c - 1, ri), r: !same(r, c + 1, ri),
-      };
-      if (chipCell === null || r < chipCell[0] || (r === chipCell[0] && c < chipCell[1])) chipCell = [r, c];
-    }
-    if (chipCell) meta[chipCell[0]][chipCell[1]].chip = reg.target;
-  });
-  return meta;
-}
+// Der Aufbau selbst liegt im Brett-Modell des Spiels (js/games/numbersums/model.js).
+const buildCellMeta = (puzzle) => Model.buildCellMeta(puzzle);
 
 // Cage-Farben so wählen, dass die eigene(n) Markierungsfarbe(n) darauf sichtbar
 // bleiben — eine pinke Cage macht einen pinken Einkreis-Ring unsichtbar. Läuft
@@ -1962,24 +1939,17 @@ function resetZoom() {
 }
 
 // ─── SUMMEN & FERTIG-STATUS ───────────────────────────────────────────────────
-function rowSum(r) {
-  let s = 0; const p = state.puzzle; for (let c = 0; c < p.cols; c++) if (state.marks[r][c] === 'kept') s += p.values[r][c]; return s;
-}
-function colSum(c) {
-  let s = 0; const p = state.puzzle; for (let r = 0; r < p.rows; r++) if (state.marks[r][c] === 'kept') s += p.values[r][c]; return s;
-}
-function regionSum(i) {
-  let s = 0; const p = state.puzzle; for (const [r, c] of p.regions[i].cells) if (state.marks[r][c] === 'kept') s += p.values[r][c]; return s;
-}
-// Eine Gruppe gilt erst als "aufgelöst", wenn JEDE Zelle korrekt markiert ist
-// (Lösungszellen eingekreist, alle anderen gelöscht) — nicht schon, wenn die
-// Summe stimmt. Kein automatisches Auflösen.
-const cellCorrect = (r, c) => state.puzzle.solution[r][c]
-  ? state.marks[r][c] === 'kept'
-  : state.marks[r][c] === 'removed';
-function rowResolved(r) { const p = state.puzzle; for (let c = 0; c < p.cols; c++) if (!cellCorrect(r, c)) return false; return true; }
-function colResolved(c) { const p = state.puzzle; for (let r = 0; r < p.rows; r++) if (!cellCorrect(r, c)) return false; return true; }
-function regionResolved(i) { const p = state.puzzle; for (const [r, c] of p.regions[i].cells) if (!cellCorrect(r, c)) return false; return true; }
+// Die Regeln selbst stehen im Brett-Modell des Spiels (js/games/numbersums/
+// model.js) und nehmen `puzzle`/`marks` ausdruecklich als Argumente — nur so
+// sind sie austauschbar (zweites Spiel) und einzeln testbar. Hier bleiben
+// duenne Weichen mit denselben Namen und Signaturen, damit die vielen
+// Aufrufstellen in dieser Datei und im Brett-Template unveraendert bleiben.
+const rowSum = (r) => Model.rowSum(state.puzzle, state.marks, r);
+const colSum = (c) => Model.colSum(state.puzzle, state.marks, c);
+const regionSum = (i) => Model.regionSum(state.puzzle, state.marks, i);
+const rowResolved = (r) => Model.rowResolved(state.puzzle, state.marks, r);
+const colResolved = (c) => Model.colResolved(state.puzzle, state.marks, c);
+const regionResolved = (i) => Model.regionResolved(state.puzzle, state.marks, i);
 // ── Render-Performance: aufgelöste Zeilen/Spalten/Käfige EINMAL vorberechnen ──
 // Vorher scannte jede der bis zu 196 Zellen (14×14 „R.I.P.") bei JEDEM Render ihren
 // Käfig/ihre Zeile/Spalte neu (regionResolved/…). Das lief nicht nur pro Zug, sondern
@@ -1996,8 +1966,8 @@ function colResolvedR(c) { return resolvedColSet.value.has(c); }
 function regionResolvedR(i) { return resolvedRegionSet.value.has(i); }
 // Zeilen-/Spaltensummen ebenfalls EINMAL pro Zug cachen statt in jedem Header-
 // Render (mehrfach: Wert + Match-Klasse) die ganze Zeile/Spalte neu aufzusummieren.
-const rowSums = computed(() => { const p = state.puzzle; if (!p) return []; const a = new Array(p.rows); for (let r = 0; r < p.rows; r++) { let s = 0; for (let c = 0; c < p.cols; c++) if (state.marks[r][c] === 'kept') s += p.values[r][c]; a[r] = s; } return a; });
-const colSums = computed(() => { const p = state.puzzle; if (!p) return []; const a = new Array(p.cols); for (let c = 0; c < p.cols; c++) { let s = 0; for (let r = 0; r < p.rows; r++) if (state.marks[r][c] === 'kept') s += p.values[r][c]; a[c] = s; } return a; });
+const rowSums = computed(() => (state.puzzle ? Model.rowSums(state.puzzle, state.marks) : []));
+const colSums = computed(() => (state.puzzle ? Model.colSums(state.puzzle, state.marks) : []));
 function rowSumR(r) { return rowSums.value[r] || 0; }
 function colSumR(c) { return colSums.value[c] || 0; }
 // aktuelle Summen stimmen (Hilfsanzeige): Summe der eingekreisten == Ziel — aus dem Cache.
@@ -2216,26 +2186,14 @@ function applyRemoteMistake(by, n) {
 }
 
 // Gelöst, wenn JEDE Zelle korrekt markiert ist (Lösung eingekreist, Rest gelöscht).
-function isSolved() {
-  const p = state.puzzle; if (!p) return false;
-  for (let r = 0; r < p.rows; r++)
-    for (let c = 0; c < p.cols; c++)
-      if (!cellCorrect(r, c)) return false;
-  return true;
-}
+function isSolved() { return Model.isSolved(state.puzzle, state.marks); }
 
 // ─── TEAM-VS-TEAM / RACE: aggregierter Fortschritt für die Gegenseite ─────────
 // Nur ein Prozentwert + Fehlerzahl wandern über teamProgress/{team} bzw.
 // raceProgress/{uid} -- nie Zellinhalte (sonst Antwort-Leak an die Gegenseite,
 // siehe Plan). progressPct() ist bewusst generisch (kein Team-/Race-Bezug im
 // Namen), da beide Modi denselben reinen Puzzle-Fortschritt brauchen.
-function progressPct() {
-  const p = state.puzzle; if (!p) return 0;
-  let total = 0, correct = 0;
-  for (let r = 0; r < p.rows; r++)
-    for (let c = 0; c < p.cols; c++) { total++; if (cellCorrect(r, c)) correct++; }
-  return total ? Math.round((correct / total) * 100) : 0;
-}
+function progressPct() { return Model.progressPct(state.puzzle, state.marks); }
 let teamProgressThrottle = 0;
 let teamProgressTimer = null;
 // Reines "leading edge"-Throttle (nur sofort senden, sonst verwerfen) ließ
@@ -2586,12 +2544,7 @@ const COOP_LIVE_ACTIVITY = new Set([Coop.MSG.MOVE, Coop.MSG.UNDO, Coop.MSG.CHECK
 // Minimale Struktur-Prüfung eines per INIT empfangenen Puzzles: alles, was das
 // Brett-Template/loadPuzzleIntoState zwingend braucht. Verhindert, dass ein
 // kaputtes INIT die App halb lädt (Spiel-Screen ohne Brett = Blackscreen).
-function validPuzzleShape(p) {
-  return !!(p && Number.isInteger(p.rows) && p.rows > 0 && Number.isInteger(p.cols) && p.cols > 0
-    && Array.isArray(p.values) && p.values.length === p.rows && Array.isArray(p.values[0])
-    && Array.isArray(p.solution) && p.solution.length === p.rows
-    && Array.isArray(p.rowTargets) && Array.isArray(p.colTargets));
-}
+const validPuzzleShape = (p) => Model.validPuzzleShape(p);
 // ── Resync-Watchdog (Gast-Selbstheilung) ──────────────────────────────────────
 // Hängt ein Beitretender verbunden im Raum, hat aber nach ein paar Sekunden kein
 // Brett (INIT verloren/verworfen/fehlgeschlagen), fordert er den Rundenstand

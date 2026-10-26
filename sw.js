@@ -10,6 +10,7 @@ const ASSETS = [
   './js/games/registry.js',
   './js/games/index.js',
   './js/games/numbersums/index.js',
+  './js/games/numbersums/model.js',
   './js/games/numbersums/solver.js',
   './js/games/numbersums/generator.js',
   './js/games/numbersums/genworker.js',
