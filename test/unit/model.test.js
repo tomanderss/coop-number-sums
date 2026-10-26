@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   rowSum, colSum, regionSum, rowSums, colSums,
   cellCorrect, rowResolved, colResolved, regionResolved,
-  isSolved, progressPct, buildCellMeta, validPuzzleShape,
+  isSolved, progressPct, findWrongCells, buildCellMeta, validPuzzleShape,
 } from '../../js/games/numbersums/model.js';
 import { generatePuzzle } from '../../js/games/numbersums/generator.js';
 import { snapshotProgress } from '../../js/storage.js';
@@ -89,6 +89,22 @@ describe('Brett-Modell: Fortschritt', () => {
     for (const marks of [leer(), m('kept', 'none', 'none', 'none'), m('kept', 'removed', 'none', 'kept'), geloest()]) {
       assert.equal(snapshotProgress({ puzzle: p2, marks }), progressPct(p2, marks));
     }
+  });
+});
+
+describe('Brett-Modell: falsch markierte Zellen (Pruefen-Knopf)', () => {
+  test('findet genau die falsch markierten Zellen', () => {
+    assert.deepEqual(findWrongCells(p2, leer()), [], 'unmarkiert ist nicht falsch');
+    assert.deepEqual(findWrongCells(p2, geloest()), [], 'richtig geloest = nichts falsch');
+    // Loesungszelle geloescht + Nicht-Loesungszelle eingekreist.
+    assert.deepEqual(findWrongCells(p2, m('removed', 'kept', 'none', 'none')), [[0, 0], [0, 1]]);
+  });
+
+  test('ein voll falsch markiertes Brett meldet jede Zelle', () => {
+    const p = generatePuzzle({ difficulty: 'leicht', seed: 99 });
+    const verkehrt = p.solution.map((row) => row.map((v) => (v ? 'removed' : 'kept')));
+    assert.equal(findWrongCells(p, verkehrt).length, p.rows * p.cols);
+    assert.equal(progressPct(p, verkehrt), 0);
   });
 });
 
