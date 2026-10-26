@@ -27,6 +27,7 @@ const {
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta, dataRev,
   loadPlaySamples, addPlaySample, mergePlaySamples, PLAY_SAMPLES_MAX,
   splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
+  loadSaves, saveSaves, pruneSaves, mergeSaves, removeSave, loadSavesGone, mergeSavesGone,
 } = await import('../../js/storage.js');
 const { DEFAULT_SETTINGS } = await import('../../js/config.js');
 const { todayDateStr, shiftDateStr } = await import('../../js/streak.js');
@@ -1029,4 +1030,57 @@ test('die zwei Feldlisten ueberschneiden sich nicht und decken den Snapshot ab',
     if (kopf.has(k)) continue;
     assert.ok(alle.has(k), `Feld ${k} ist keiner Haelfte zugeordnet`);
   }
+});
+
+
+// Die Bibliothek wird geraeteuebergreifend als UNION nach id gemergt — ein nur
+// lokal entfernter Eintrag kam damit beim naechsten Sync aus der Cloud zurueck
+// (in Coop Math Cross gemeldet als „geloeschte Spiele sind auch nach dem
+// Loeschen noch da"; dieselbe Union steckt hier). Grabsteine (SAVES_GONE) machen
+// das Loeschen endgueltig; ein Stand OHNE Leben raeumt sich zusaetzlich selbst
+// weg (heilt Alt-Eintraege, die schon vor den Grabsteinen in der Cloud lagen).
+describe('Bibliothek: erledigte Partien bleiben erledigt', () => {
+  const spiel = (id, extra = {}) => ({
+    id, kind: 'solo', ts: 1000, lives: 3,
+    puzzle: { rows: 1, cols: 1, solution: [[1]], difficulty: 'leicht' },
+    marks: [['none']],
+    ...extra,
+  });
+
+  beforeEach(() => { localStorage.clear(); });
+
+  test('ein geloeschter Stand kommt beim Cloud-Merge nicht zurueck', () => {
+    saveSaves([spiel('a'), spiel('b')]);
+    removeSave('a');
+    assert.deepEqual(loadSaves().map(g => g.id), ['b']);
+    // Die Cloud kennt 'a' noch — der Merge darf ihn NICHT wieder hereinlassen.
+    const merged = mergeSaves(loadSaves(), [spiel('a'), spiel('b')]);
+    assert.deepEqual(merged.map(g => g.id), ['b']);
+    assert.ok('a' in loadSavesGone(), 'der Grabstein ist gesetzt');
+  });
+
+  test('ein verlorener Stand (keine Leben) wird gar nicht erst aufbewahrt', () => {
+    assert.deepEqual(pruneSaves([spiel('tot', { lives: 0 }), spiel('lebt')]).map(g => g.id), ['lebt']);
+    // Ein ganz alter Snapshot OHNE lives-Feld bleibt unangetastet.
+    const alt = spiel('alt'); delete alt.lives;
+    assert.deepEqual(pruneSaves([alt]).map(g => g.id), ['alt']);
+    // Der Zwischen-Level-Marker des Endlos-Laufs hat weder Brett noch Leben.
+    assert.deepEqual(pruneSaves([{ id: 'p', pending: true, ts: 5 }]).map(g => g.id), ['p']);
+  });
+
+  test('mergeSavesGone vereinigt beide Seiten, der spaetere Zeitpunkt gewinnt', () => {
+    assert.deepEqual(mergeSavesGone({ a: 5, b: 1 }, { b: 9, c: 3 }), { a: 5, b: 9, c: 3 });
+    assert.deepEqual(mergeSavesGone(null, undefined), {});
+  });
+
+  test('Grabsteine reisen im Export mit und wirken beim Import', () => {
+    saveSaves([spiel('x')]);
+    removeSave('x');
+    const daten = collectExportData('sync');
+    assert.ok(daten.savesGone && 'x' in daten.savesGone, 'savesGone ist Teil des Snapshots');
+    // Ein Import, der den geloeschten Stand noch mitbringt, darf ihn nicht
+    // wiederbeleben — genau dieser Pfad laeuft beim Cloud-Sync.
+    importFromFile(JSON.stringify({ saves: [spiel('x'), spiel('y')] }));
+    assert.deepEqual(loadSaves().map(g => g.id), ['y']);
+  });
 });

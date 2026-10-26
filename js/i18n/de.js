@@ -518,6 +518,7 @@ export default {
         activeGameCoop: { l: 'Laufendes Coop-Spiel', d: 'Zwischengespeicherter Coop-Spielstand (für „Coop fortsetzen“).' },
         activeGameEndless: { l: 'Laufender Endlos-Lauf', d: 'Zwischengespeicherter Solo-Endlos-Lauf (für „Endlos fortsetzen“ – synct geräteübergreifend).' },
         saves: { l: 'Gespeicherte Partien', d: 'Bibliothek der gesicherten Spielstände (max. 12, neueste zuerst). Ein Eintrag je Partie — ein neues Spiel überschreibt keinen alten Stand mehr. Leeren = alle Fortsetzen-Angebote weg.' },
+        savesGone: { l: 'Erledigte Partien (Grabsteine)', d: 'Kennungen gelöschter oder beendeter Partien samt Zeitpunkt. Sie sorgen dafür, dass ein gelöschter Stand beim Geräte-Abgleich nicht zurückkommt. Leeren = zuvor gelöschte Stände können aus der Cloud wieder auftauchen.' },
         playSamples: { l: 'Spielstil-Stichproben', d: 'Die letzten 25 ausgewerteten Partien (nur Kennzahlen wie Tempo, Fehler, Denkpausen — keine Brettinhalte). Grundlage für den persönlichen KI-Klon; ab 8 Partien ist er im KI-Duell spielbar und wird für Freunde veröffentlicht.' },
         'settings/updatedAt': { l: 'Einstellungen geändert am', d: 'Zeitstempel der letzten Einstellungs-Änderung dieses Stands (steuert, welche Seite beim Geräte-Merge gewinnt).' },
         'inventory/dynamicColor': { l: 'Dynamischer Skin (Item)', d: 'Besitz des freischaltbaren Skins.' },
