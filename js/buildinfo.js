@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.217';
-export const BUILD_HASH = 'f8ce63b';
+export const BUILD      = '1.218';
+export const BUILD_HASH = 'ce7f9f4';
 
 export const CHANGELOG = [
+  {
+    "version": "1.218",
+    "date": "26.10.2026",
+    "changes": [
+      "Technischer Umbau: Zuege und Zellgesten des Bretts ins Spielmodul gezogen",
+      "Technischer Umbau: Statistiken und Spielstaende je Spiel getrennt gespeichert (Vorbereitung fuer mehrere Spiele)"
+    ]
+  },
   {
     "version": "1.217",
     "date": "26.10.2026",
