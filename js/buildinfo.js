@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.216';
-export const BUILD_HASH = 'fd7cc28';
+export const BUILD      = '1.217';
+export const BUILD_HASH = 'f8ce63b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.217",
+    "date": "26.10.2026",
+    "changes": [
+      "Technischer Umbau: Spiellogik und App-Rahmen getrennt (Grundlage fuer mehrere Spiele in einer App)",
+      "Spielregeln des Bretts in ein eigenes, einzeln getestetes Modul gezogen",
+      "Spielbrett samt Darstellung in ein eigenes Spielmodul gezogen"
+    ]
+  },
   {
     "version": "1.216",
     "date": "26.10.2026",
