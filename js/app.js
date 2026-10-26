@@ -26,7 +26,7 @@ const isFullyTier1Solvable = (...a) => activeGame().isFullyTier1Solvable(...a);
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
   loadSaves, upsertSave, removeSave, snapshotProgress, SAVES_MAX,
-  loadStats, recordResult, recordEndlessRun, applyEndlessBackfill,
+  loadStats, recordResult, recordEndlessRun, applyEndlessBackfill, clearStats,
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
@@ -39,6 +39,7 @@ import {
   loadWallet, grantCurrency, spendCurrency, loadWalletLog, noteWalletTransaction,
   setDataRev, setSyncedRev,
   generateId, deviceId, isGameCompleted, markGameCompleted, loadActiveGameBackup, saveActiveGameBackup,
+  gameId, restoreGameChoice,
   loadConflictBackup, saveConflictBackup, collectExportData,
 } from './storage.js';
 import { decideSessionSync, sessionIsDead, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
@@ -53,6 +54,14 @@ import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDu
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
 import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessIsRecord, reconstructEndlessRuns } from './endless.js';
 import { currentWeekKey, weeklyMissions, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
+
+// ZUERST das zuletzt gespielte Spiel wiederherstellen — VOR allem anderen.
+// Die spielspezifischen Speicher-Schluessel (Statistik, Spielstaende, Erfolge,
+// Missionen) haengen an der Spiel-Kennung, und `state` unten liest sie bereits
+// beim Anlegen. Liefe das spaeter, lese die App beim Start einmal die Daten des
+// Standardspiels und schriebe sie unter dessen Schluessel zurueck.
+restoreGameChoice();
+log('app', 'Spiel gewaehlt', { spiel: gameId() });
 
 const APP_START = Date.now();
 const splashVersion = document.getElementById('splash-version');
@@ -4918,7 +4927,7 @@ function doImport(ev) {
 }
 function resetStats() {
   ask(t('stats.resetConfirmTitle'), t('stats.resetConfirmMsg'), () => {
-    localStorage.removeItem('cns_stats'); state.stats = loadStats(); showToast(t('stats.resetDone'), 'success');
+    clearStats(); state.stats = loadStats(); showToast(t('stats.resetDone'), 'success');
   });
 }
 function doDeleteAllData() {
