@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.215';
-export const BUILD_HASH = '51ee0d4';
+export const BUILD      = '1.216';
+export const BUILD_HASH = 'fd7cc28';
 
 export const CHANGELOG = [
+  {
+    "version": "1.216",
+    "date": "26.10.2026",
+    "changes": [
+      "Geloeschte und verlorene Spielstaende bleiben jetzt endgueltig weg (kamen beim Geraete-Abgleich zurueck)"
+    ]
+  },
   {
     "version": "1.215",
     "date": "26.10.2026",
