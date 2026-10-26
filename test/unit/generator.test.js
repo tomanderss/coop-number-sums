@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeRng, generatePuzzle, findHintCell, remapColorsForMarkVisibility, MARK_VISIBILITY_THRESHOLD } from '../../js/generator.js';
-import { logicalSolve, countSolutions } from '../../js/solver.js';
+import { makeRng, generatePuzzle, findHintCell, remapColorsForMarkVisibility, MARK_VISIBILITY_THRESHOLD } from '../../js/games/numbersums/generator.js';
+import { logicalSolve, countSolutions } from '../../js/games/numbersums/solver.js';
 import { DIFFICULTIES, REGION_COLORS, regionColorDist, markOnRegionDist, hexToRgb } from '../../js/config.js';
 
 describe('generator.makeRng', () => {

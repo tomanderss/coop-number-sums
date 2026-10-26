@@ -1,17 +1,26 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
-import { createBot, nextAction as botNextAction, applyAction as botApplyAction, botPct, targetMsFor, clampProfile, clampAvgMs, PRESET_LEVELS, PRESET_PROFILES, DEFAULT_AVG_MS } from './duelbot.js';
-import { analyzeGame, buildProfile, MIN_GAMES as CLONE_MIN_GAMES } from './playstyle.js';
+import { createBot, nextAction as botNextAction, applyAction as botApplyAction, botPct, targetMsFor, clampProfile, clampAvgMs, PRESET_LEVELS, PRESET_PROFILES, DEFAULT_AVG_MS } from './games/numbersums/duelbot.js';
+import { analyzeGame, buildProfile, MIN_GAMES as CLONE_MIN_GAMES } from './games/numbersums/playstyle.js';
 import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, bigNumbersAllowed, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
-import { generatePuzzle, remapColorsForMarkVisibility } from './generator.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
-import { findTrainingStep, isFullyTier1Solvable } from './training.js';
-import { buildHintTutorial } from './hinttutor.js';
 import * as Music from './music.js';
+import { activeGame } from './games/index.js';
+// Die SPIELSPEZIFISCHEN Funktionen kommen aus dem Modul des laufenden Spiels
+// (js/games/<id>/index.js), nicht mehr per direktem Import: der Rest dieser
+// Datei ist die SCHALE, die fuer jedes Spiel dieselbe ist. Als duenne Weiche
+// (nicht als Destrukturierung beim Laden), damit ein Spielwechsel zur Laufzeit
+// greift — eingefroren haette die Schale nach dem Wechsel weiter die
+// Funktionen des alten Spiels aufgerufen. Keine davon liegt im Tap-Pfad.
+const generatePuzzle = (...a) => activeGame().generatePuzzle(...a);
+const remapColorsForMarkVisibility = (...a) => activeGame().remapColorsForMarkVisibility(...a);
+const buildHintTutorial = (...a) => activeGame().buildHintTutorial(...a);
+const findTrainingStep = (...a) => activeGame().findTrainingStep(...a);
+const isFullyTier1Solvable = (...a) => activeGame().isFullyTier1Solvable(...a);
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
   loadSaves, upsertSave, removeSave, snapshotProgress, SAVES_MAX,
@@ -1183,7 +1192,7 @@ function initGenWorker() {
   // sichtbar wird.
   if (typeof Worker === 'undefined') { log('perf', 'Kein Web-Worker verfügbar – Rätsel werden SYNCHRON erzeugt (kann UI kurz blockieren)'); return; }
   try {
-    genWorker = new Worker(new URL('./genworker.js', import.meta.url), { type: 'module' });
+    genWorker = new Worker(activeGame().workerUrl(), { type: 'module' });
     genWorker.onmessage = (e) => {
       const { reqId, puzzle, error } = e.data || {};
       if (reqId == null) return;

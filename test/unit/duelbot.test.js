@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 const {
   createBot, nextAction, applyAction, candidateBuckets, botPct, botDone,
   clampProfile, clampAvgMs, AVG_BAND, PRESET_PROFILES, PRESET_LEVELS, TIER, targetMsFor, DEFAULT_AVG_MS,
-} = await import('../../js/duelbot.js');
-const { generatePuzzle } = await import('../../js/generator.js');
+} = await import('../../js/games/numbersums/duelbot.js');
+const { generatePuzzle } = await import('../../js/games/numbersums/generator.js');
 
 // Spielt ein komplettes Bot-Duell durch, ohne echte Zeit zu verbrauchen: die
 // „Wartezeit" wird nur aufsummiert. Genau so hängt app.js später den Scheduler

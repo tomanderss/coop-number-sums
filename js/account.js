@@ -24,7 +24,7 @@ import {
   deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, mergeSaves, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
   mergePlaySamples,
-  GAME_ID, splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
+  gameId, splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -284,7 +284,7 @@ function stripHead(half) {
   return rest;
 }
 function accountRef(fb, uid, sub) { return userRef(fb, uid, `account${sub ? '/' + sub : ''}`); }
-function gameRef(fb, uid, sub) { return userRef(fb, uid, `games/${GAME_ID}${sub ? '/' + sub : ''}`); }
+function gameRef(fb, uid, sub) { return userRef(fb, uid, `games/${gameId()}${sub ? '/' + sub : ''}`); }
 // Beide Haelften lesen und zu EINEM Snapshot fuegen, wie ihn der Rest der App
 // erwartet. UMZUG: existiert die spieleigene Haelfte noch nicht, wird EINMALIG der
 // Alt-Knoten `users/{uid}/data` als Quelle genommen — so geht beim Wechsel nichts
@@ -660,7 +660,7 @@ export async function publishBestTime(difficulty, timeMs, username, badge = null
     const fb = await ensureFirebase();
     const u = currentUser(fb);
     if (!u || u.isAnonymous || !difficulty || !(timeMs > 0)) return;
-    const ref = fb.ref(fb.db, `leaderboard/${GAME_ID}/${difficulty}/${u.uid}`);
+    const ref = fb.ref(fb.db, `leaderboard/${gameId()}/${difficulty}/${u.uid}`);
     const prev = (await fb.get(ref)).val();
     if (prev && typeof prev.timeMs === 'number' && prev.timeMs <= timeMs) return;
     await fb.set(ref, { username: username || '', timeMs, ts: fb.serverTimestamp(), badge: badge || null });
@@ -681,7 +681,7 @@ export async function updateLeaderboardBadge(diffIds, badge = null) {
     let n = 0;
     for (const diff of diffIds) {
       try {
-        const ref = fb.ref(fb.db, `leaderboard/${GAME_ID}/${diff}/${u.uid}`);
+        const ref = fb.ref(fb.db, `leaderboard/${gameId()}/${diff}/${u.uid}`);
         const cur = (await fb.get(ref)).val();
         if (!cur || typeof cur.timeMs !== 'number') continue;   // nur vorhandene Einträge
         if ((cur.badge || null) === (badge || null)) continue;  // schon aktuell
@@ -698,7 +698,7 @@ export async function updateLeaderboardBadge(diffIds, badge = null) {
 export async function watchLeaderboard(difficulty, cb) {
   try {
     const fb = await ensureFirebase();
-    const off = fb.onValue(fb.ref(fb.db, `leaderboard/${GAME_ID}/${difficulty}`), (snap) => {
+    const off = fb.onValue(fb.ref(fb.db, `leaderboard/${gameId()}/${difficulty}`), (snap) => {
       const arr = Object.entries(snap.val() || {}).map(([uid, v]) => ({ uid, ...(v || {}) }));
       cb(sortLeaderboard(arr));
     });
@@ -723,7 +723,7 @@ export async function publishAiProfile({ profile, games, avgMs, username, badge 
     const fb = await ensureFirebase();
     const u = currentUser(fb);
     if (!u || u.isAnonymous || !profile || !(games > 0)) return;
-    await fb.set(fb.ref(fb.db, `aiProfiles/${GAME_ID}/${u.uid}`), sanitizeForFirebase({
+    await fb.set(fb.ref(fb.db, `aiProfiles/${gameId()}/${u.uid}`), sanitizeForFirebase({
       v: AI_PROFILE_V,
       games,
       updatedAt: fb.serverTimestamp(),
@@ -752,7 +752,7 @@ export async function fetchAiProfiles(uids) {
     if (!u || u.isAnonymous || !Array.isArray(uids) || !uids.length) return out;
     await Promise.all(uids.map(async (uid) => {
       try {
-        const v = (await fb.get(fb.ref(fb.db, `aiProfiles/${GAME_ID}/${uid}`))).val();
+        const v = (await fb.get(fb.ref(fb.db, `aiProfiles/${gameId()}/${uid}`))).val();
         if (v && v.profile) out[uid] = v;
       } catch (_) { /* einzelner Freund ohne Profil/ohne Leserecht */ }
     }));

@@ -11,7 +11,7 @@
 //     lösbar?  → dann ist die Lösung BEWEISBAR eindeutig und ohne Raten lösbar.
 
 import { logicalSolve, KEEP, REMOVE, UNK } from './solver.js';
-import { DIFF_BY_ID, REGION_COLORS, MAX_VAL, regionColorDist, markOnRegionDist } from './config.js';
+import { DIFF_BY_ID, REGION_COLORS, MAX_VAL, regionColorDist, markOnRegionDist } from '../../config.js';
 
 // ─── Seedbarer Zufall (mulberry32) ────────────────────────────────────────────
 export function makeRng(seed) {

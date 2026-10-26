@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { logicalSolve, countSolutions, buildModel, UNK, KEEP, REMOVE } from '../../js/solver.js';
+import { logicalSolve, countSolutions, buildModel, UNK, KEEP, REMOVE } from '../../js/games/numbersums/solver.js';
 
 // 2x2 trivial puzzle: keep the diagonal (0,0) and (1,1).
 // values:        1 2

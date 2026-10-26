@@ -1,6 +1,9 @@
 // es.js — maschinell übersetzt, Review durch Muttersprachler vor Store-Release empfohlen
 export default {
 
+  // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
+  games: { numbersums: 'Number Sums' },
+
   coopEndless: { toggle: 'Ascenso sin fin', toggleHint: 'Suban juntos — 3 vidas compartidas, sin recargas' },
 
   missions: {

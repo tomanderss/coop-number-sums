@@ -1,0 +1,1 @@
+Technischer Umbau: Spiellogik und App-Rahmen getrennt (Grundlage fuer mehrere Spiele in einer App)

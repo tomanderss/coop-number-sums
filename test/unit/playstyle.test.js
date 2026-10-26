@@ -2,10 +2,10 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 const { analyzeGame, buildProfile, median, medianF, MIN_GAMES, BURST_MAX_MS, STALL_MIN_MS } =
-  await import('../../js/playstyle.js');
-const { generatePuzzle } = await import('../../js/generator.js');
+  await import('../../js/games/numbersums/playstyle.js');
+const { generatePuzzle } = await import('../../js/games/numbersums/generator.js');
 const { createBot, nextAction, applyAction, botDone, PRESET_PROFILES, targetMsFor } =
-  await import('../../js/duelbot.js');
+  await import('../../js/games/numbersums/duelbot.js');
 
 // Einen „Spieler" mit BEKANNTEM Profil simulieren und dabei aufzeichnen. Damit
 // lässt sich prüfen, ob die Analyse den Stil wirklich zurückgewinnt — das ist

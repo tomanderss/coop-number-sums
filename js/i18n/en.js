@@ -1,6 +1,9 @@
 // en.js — English strings (carefully hand-translated, kept in sync with de.js)
 export default {
 
+  // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
+  games: { numbersums: 'Number Sums' },
+
   coopEndless: { toggle: 'Endless Climb', toggleHint: 'Climb together — 3 shared lives, no refills' },
 
   missions: {
