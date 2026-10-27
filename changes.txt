@@ -1,2 +1,0 @@
-Technischer Umbau: Zuege und Zellgesten des Bretts ins Spielmodul gezogen
-Technischer Umbau: Statistiken und Spielstaende je Spiel getrennt gespeichert (Vorbereitung fuer mehrere Spiele)
