@@ -45,14 +45,25 @@ describe('Spiel-Registry', () => {
     assert.equal(GAMES.length, GAME_IDS.length, 'jede Kennung braucht ein geladenes Modul');
     for (const g of GAMES) {
       assert.ok(isGameId(g.id));
-      for (const fn of ['generatePuzzle', 'remapColorsForMarkVisibility', 'buildHintTutorial',
-                        'findTrainingStep', 'isFullyTier1Solvable', 'workerUrl', 'initBoard']) {
+      for (const fn of ['generatePuzzle', 'isFullyTier1Solvable', 'workerUrl', 'initBoard']) {
         assert.equal(typeof g[fn], 'function', `${g.id} fehlt die Funktion ${fn}()`);
       }
-      // Das Brett-Modell beantwortet die Spielregeln, die BoardGrid-Komponente
-      // zeichnet das Brett — beides gehoert zum Spiel, nicht zur Schale.
-      for (const fn of ['isSolved', 'progressPct', 'buildCellMeta', 'validPuzzleShape']) {
-        assert.equal(typeof g.model[fn], 'function', `${g.id}: model.${fn}() fehlt`);
+      // Vom Brett-Modell braucht die Schale nur noch die Struktur-Pruefung eines
+      // empfangenen Raetsels (Blackscreen-Schutz beim Coop-INIT).
+      assert.equal(typeof g.model.validPuzzleShape, 'function', `${g.id}: model.validPuzzleShape() fehlt`);
+      // Die BRETT-SCHNITTSTELLE: ueber genau diese Namen spricht die Schale den
+      // Brett-Zustand an. Fehlt einer, bricht die Schale erst zur Laufzeit.
+      for (const fn of ['normalizePuzzle', 'loadBoard', 'boardFields', 'boardFieldsFrom', 'boardSolved',
+                        'boardProgressPct', 'boardFilledCount', 'boardProgressCounts', 'playerCorrect',
+                        'wrongCells', 'applyRemoteMove', 'applyRemoteHint', 'undoLast', 'clearStaleTutor',
+                        'buildHint', 'trainingStep', 'applyTrainingStep', 'trainingText',
+                        'onPlayerColorsChanged', 'fitBoard', 'resetCellStyleCache', 'boardRenders', 'historyExtras']) {
+        assert.equal(typeof g.board[fn], 'function', `${g.id}: board.${fn}() fehlt`);
+      }
+      assert.ok(g.board.HistoryBoard && typeof g.board.HistoryBoard.template === 'string', `${g.id}: board.HistoryBoard fehlt`);
+      // Feature-Schalter: jedes Spiel beantwortet ALLE Schalter ausdruecklich.
+      for (const f of ['hints', 'toolToggle', 'aiDuel', 'markTools', 'divStyle', 'dragScale', 'markColor']) {
+        assert.equal(typeof g.features[f], 'boolean', `${g.id}: features.${f} fehlt`);
       }
       assert.ok(g.BoardGrid && typeof g.BoardGrid.setup === 'function' && typeof g.BoardGrid.template === 'string',
         `${g.id} bringt keine Brett-Komponente mit`);

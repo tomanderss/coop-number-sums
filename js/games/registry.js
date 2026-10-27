@@ -22,6 +22,7 @@ import { log } from '../debuglog.js';
  */
 export const GAME_META = {
   numbersums: { id: 'numbersums', nameKey: 'games.numbersums', icon: 'grid' },
+  mathcross: { id: 'mathcross', nameKey: 'games.mathcross', icon: 'plus' },
 };
 
 /** Alle Spiel-Kennungen in Anzeige-Reihenfolge. */

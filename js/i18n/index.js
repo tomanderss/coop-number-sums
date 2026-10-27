@@ -52,9 +52,25 @@ function resolve(path, table) {
   return path.split('.').reduce((o, k) => (o == null ? o : o[k]), table);
 }
 
+// Spieleigene Text-Ebene: ein Spiel kann einzelne Schlüssel ergänzen oder anders
+// fassen (Math Cross erklärt eine andere Spielregel als Number Sums). Sie liegt
+// ÜBER den gemeinsamen Texten und wird einmal beim Start gesetzt (ein
+// Spielwechsel lädt die App neu). Struktur: { de: {…}, en: {…}, … } — fehlt eine
+// Sprache, gilt deren Fallback (de) der Ebene, erst danach die gemeinsamen Texte.
+let gameMessages = null;
+export function setGameMessages(table) { gameMessages = table && typeof table === 'object' ? table : null; }
+
 // t('game.errorsFound', { count: 3 }) -> "3 Fehler gefunden"
 export function t(key, params) {
-  let msg = resolve(key, MESSAGES[i18nState.locale]);
+  let msg;
+  if (gameMessages) {
+    msg = resolve(key, gameMessages[i18nState.locale]);
+    // Fallback innerhalb der Ebene NUR, wenn die aktive Sprache den Schlüssel
+    // auch gemeinsam nicht kennt — sonst überdeckte ein deutscher Spieltext
+    // eine vorhandene Übersetzung.
+    if (msg === undefined && resolve(key, MESSAGES[i18nState.locale]) === undefined) msg = resolve(key, gameMessages[FALLBACK_LOCALE]);
+  }
+  if (msg === undefined) msg = resolve(key, MESSAGES[i18nState.locale]);
   if (msg === undefined) msg = resolve(key, MESSAGES[FALLBACK_LOCALE]);
   if (msg === undefined) return key;
   if (params) {

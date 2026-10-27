@@ -1,0 +1,275 @@
+/* css/games/mathcross.css — die Brett-Optik von „Math Cross".
+   Wird NUR geladen, wenn Math Cross das aktive Spiel ist (index.html, vor dem
+   ersten Zeichnen; ein Spielwechsel lädt die App neu). Liegt ÜBER styles.css:
+   die Regeln hier sind die von Coop Math Cross, die dort fehlen oder anders
+   lauten (erzeugt aus deren styles.css; Werte unverändert). Number Sums sieht
+   diese Datei nie.
+
+   Erst die RÜCKNAHMEN: Regeln aus styles.css, die nur Number Sums kennt, aber
+   auch auf Math-Cross-Zellen greifen würden. */
+.cell { border: 0; }
+.cell:active { filter: none; }
+.board.big-num .cnum { font-size: 1em; letter-spacing: normal; }
+
+/* ── Ab hier: Coop Math Cross ── */
+.game-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; flex: 0 0 auto; }
+
+.zoom-btn.mark-toggle .ei svg { width: 18px; height: 18px; }
+
+.zoom-btn.mark-toggle.on {
+  background: var(--markhl, #f2c024); color: #1b1b1b;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--markhl, #f2c024) 45%, transparent), 0 2px 6px var(--shadow);
+}
+
+.zoom-btn.mark-clear { color: var(--bad, #ef4444); }
+
+.zoom-btn.mark-clear .ei svg { width: 17px; height: 17px; }
+
+.tray.mark-mode { opacity: .5; }
+
+.board-wrap { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; overflow: auto; padding: 3px; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+
+.board { background: transparent; box-shadow: none; overflow: visible; gap: 0; }
+
+.gapcell { background: transparent; }
+
+.cell, .opcell {
+  --ring: 0 0 0 0 transparent;
+  box-shadow: 0 0 0 1px var(--grid), var(--ring);
+}
+
+.opcell {
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--ink) 15%, var(--cell-bg)); color: var(--text);
+  font-weight: 900; font-size: calc(var(--fs) * .9); line-height: 1;
+  user-select: none; transition: color .2s, background .12s;
+}
+
+.op-obelus {
+  display: block; position: relative; width: 1em; height: 1em;
+  background: linear-gradient(currentColor, currentColor) 50% 50% / .8em .13em no-repeat;
+}
+
+.op-obelus::before, .op-obelus::after {
+  content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+  width: .22em; height: .22em; border-radius: 50%; background: currentColor;
+}
+
+.op-obelus::before { top: .02em; }
+
+.op-obelus::after { bottom: .02em; }
+
+.opcell.done { color: var(--good); background: color-mix(in srgb, var(--good) 22%, var(--cell-bg)); }
+
+.opcell.pulse { animation: opPulse .8s ease-out; }
+
+@keyframes opPulse { 0%,100% { transform: scale(1); } 40% { transform: scale(1.35); color: var(--good); } }
+
+.cell {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  background: var(--cell-bg); color: var(--ink); font-weight: 800; font-size: var(--fs);
+  user-select: none; overflow: hidden;
+  transition: background .12s, box-shadow .12s;
+  /* Layout-/Style-Containment: bei einem Zug patcht Vue alle Zellen; so muss der
+     Browser Layout/Style nur pro Zelle isoliert neu rechnen. */
+  contain: layout style;
+}
+
+.cell .cnum { position: relative; z-index: 2; line-height: 1; transition: opacity .15s; }
+
+.cell.d3 .cnum { font-size: .78em; letter-spacing: -.03em; }
+
+.cell.d4 .cnum { font-size: .62em; letter-spacing: -.04em; }
+
+.cell.given { background: color-mix(in srgb, var(--ink) 15%, var(--cell-bg)); color: var(--text); }
+
+.cell.empty { background: var(--cell-bg); }
+
+.cell.empty .cnum { opacity: 0; }
+
+.cell.filled {
+  background: color-mix(in srgb, var(--markcol, var(--accent)) 20%, var(--cell-bg));
+  color: var(--markcol, var(--accent));
+}
+
+.cell.filled .cnum { color: var(--markcol, var(--accent)); }
+
+.cell.done { background: color-mix(in srgb, var(--good) 16%, var(--cell-bg)); --ring: inset 0 0 0 1px color-mix(in srgb, var(--good) 55%, transparent); }
+
+.cell.filled.done { background: color-mix(in srgb, var(--good) 14%, color-mix(in srgb, var(--markcol, var(--accent)) 18%, var(--cell-bg))); }
+
+.cell.picked { --ring: inset 0 0 0 3px var(--accent); z-index: 3; }
+
+.cell.droppable.empty { --ring: inset 0 0 0 2px var(--accent); }
+
+.cell.marked { background: color-mix(in srgb, var(--markhl) 30%, var(--cell-bg)); }
+
+.cell.marked::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--markhl) 75%, transparent);
+  border-radius: inherit;
+}
+
+.cell.drop-hot { --ring: inset 0 0 0 3px var(--accent); z-index: 3; }
+
+@keyframes hintGlow {
+  0%,100% { box-shadow: 0 0 0 1px var(--grid); }
+  50% { box-shadow: 0 0 0 1px var(--grid), inset 0 0 0 3px var(--good); }
+}
+
+.cell.training-highlight { animation: trainingPulse 1.4s ease infinite; z-index: 3; }
+
+@keyframes trainingPulse {
+  0%,100% { box-shadow: 0 0 0 1px var(--grid), inset 0 0 0 3px var(--accent2); }
+  50% { box-shadow: 0 0 0 1px var(--grid), inset 0 0 0 5px var(--accent2); }
+}
+
+@keyframes resolvePulse {
+  0% { box-shadow: 0 0 0 1px var(--grid); }
+  30% { box-shadow: 0 0 0 1px var(--grid), inset 0 0 0 3px var(--good); }
+  100% { box-shadow: 0 0 0 1px var(--grid); }
+}
+
+.tray {
+  flex: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start;
+  gap: var(--tgap, 3px); padding: 4px; margin: 2px 0 0;
+  background: var(--card); border-radius: 10px; box-shadow: 0 2px 10px var(--shadow);
+  /* ALLE Steine sind immer auf einmal sichtbar — kein Scrollen (das war
+     „clunky"), stattdessen bricht die Reihe um. Wie viele Reihen es werden und
+     wie gross die Steine dafuer sein duerfen, rechnet fitTrayTile in app.js aus:
+     es gewinnt die Aufteilung mit der GERINGSTEN Gesamthoehe. */
+  overflow: visible; touch-action: none;
+}
+
+.tray-slot { width: var(--tile, 42px); height: var(--tile, 42px); flex: 0 0 auto; }
+
+.tile {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--good) 18%, var(--card));
+  color: var(--good); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--good) 70%, transparent);
+  border-radius: 5px; font-weight: 800; font-size: var(--tfs, 19px); line-height: 1;
+  cursor: grab; user-select: none;
+  /* Der Vorrat scrollt nicht mehr (alles ist sichtbar), es gibt also keine
+     Browser-Geste, die hier Vorrang braeuchte. Der Zug beginnt trotzdem erst
+     nach DRAG_SLOP px echter Bewegung — sonst blitzt der Ziehschatten schon
+     beim blossen Antippen auf. */
+  touch-action: none;
+  transition: transform .12s, box-shadow .12s;
+}
+
+.tile.d3 { font-size: calc(var(--tfs, 19px) * .8); letter-spacing: -.03em; }
+
+.tile.d4 { font-size: calc(var(--tfs, 19px) * .64); letter-spacing: -.04em; }
+
+.tile:active { cursor: grabbing; }
+
+.tile.picked { transform: scale(1.1); box-shadow: 0 0 0 3px var(--accent); }
+
+.drag-ghost {
+  position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none;
+  display: none; min-width: 46px; height: 46px; padding: 0 8px;
+  align-items: center; justify-content: center;
+  background: var(--good-soft); color: var(--good); border: 2px solid var(--good);
+  border-radius: 8px; font-weight: 800; font-size: 21px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.45);
+}
+
+.drag-ghost::after {
+  content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 7px solid transparent; border-top-color: var(--good);
+}
+
+.cell[data-r] { touch-action: none; }
+
+.app.app-game { padding-left: calc(env(safe-area-inset-left) + 8px); padding-right: calc(env(safe-area-inset-right) + 8px); }
+
+.app.app-game { padding-bottom: env(safe-area-inset-bottom); }
+
+.cell.filled.coop-mark::after { border-color: var(--markcol); }
+
+.cell.filled.hintmark.coop-mark::after { border-color: var(--good); }
+
+.board.skin-dynamic.skin-spin.skin-kept .cell.filled.coop-mark:not(.hintmark)::after,
+.board.skin-dynamic.skin-spin.skin-removed .cell.removed.coop-mark-removed::after {
+  animation: skinSpinCW var(--skin-speed) linear infinite;
+}
+
+.board.skin-dynamic.skin-spin.skin-ccw.skin-kept .cell.filled.coop-mark:not(.hintmark)::after,
+.board.skin-dynamic.skin-spin.skin-ccw.skin-removed .cell.removed.coop-mark-removed::after {
+  animation-name: skinSpinCCW;
+}
+
+.skin-dynamic.skin-kept .cell.filled.coop-mark:not(.hintmark)::after {
+  border: none;
+  -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
+          mask: radial-gradient(farthest-side, #0000 calc(100% - var(--skin-thickness)), #000 calc(100% - var(--skin-thickness)));
+}
+
+.skin-dynamic.skin-kept .cell.filled.coop-mark:not(.hintmark)::before,
+.skin-dynamic.skin-removed .cell.removed.coop-mark-removed::before {
+  content: ''; position: absolute; inset: 11%; border-radius: 50%; z-index: 1; pointer-events: none;
+  box-shadow: 0 0 var(--skin-glow) var(--markcol), inset 0 0 var(--skin-glow) var(--markcol);
+  opacity: .85;
+}
+
+.board.skin-freeze .cell.filled.coop-mark:not(.hintmark)::after,
+.board.skin-freeze .cell.removed.coop-mark-removed::after { animation-play-state: paused; }
+
+.skin-style-solid.skin-kept .cell.filled.coop-mark:not(.hintmark)::after,
+.skin-style-solid.skin-removed .cell.removed.coop-mark-removed::after {
+  background: conic-gradient(from 0deg, var(--markcol) 0deg, color-mix(in srgb, var(--markcol) 25%, transparent) 150deg, transparent 250deg, var(--markcol) 360deg);
+}
+
+.skin-style-gradient.skin-kept .cell.filled.coop-mark:not(.hintmark)::after,
+.skin-style-gradient.skin-removed .cell.removed.coop-mark-removed::after {
+  background: conic-gradient(from 0deg,
+    var(--skin-c1, var(--markcol)),
+    var(--skin-c2, color-mix(in srgb, var(--markcol) 38%, #fff)),
+    var(--skin-c3, color-mix(in srgb, var(--markcol) 60%, #000)),
+    var(--skin-c1, var(--markcol)));
+}
+
+.skin-style-rainbow.skin-kept .cell.filled.coop-mark:not(.hintmark)::after,
+.skin-style-rainbow.skin-removed .cell.removed.coop-mark-removed::after {
+  background: conic-gradient(from 0deg, #ff004c, #ff9a00, #ffe600, #43e043, #00c8ff, #6a5cff, #ff00c8, #ff004c);
+}
+
+.board.mp-colors.skin-style-gradient.skin-kept .cell.filled.coop-mark:not(.hintmark):not(.mine)::after,
+.board.mp-colors.skin-style-gradient.skin-removed .cell.removed.coop-mark-removed:not(.mine)::after,
+.board.mp-colors.skin-style-rainbow.skin-kept .cell.filled.coop-mark:not(.hintmark):not(.mine)::after,
+.board.mp-colors.skin-style-rainbow.skin-removed .cell.removed.coop-mark-removed:not(.mine)::after {
+  background: conic-gradient(from 0deg, var(--markcol) 0deg, color-mix(in srgb, var(--markcol) 25%, transparent) 150deg, transparent 250deg, var(--markcol) 360deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board.skin-dynamic.skin-spin.skin-kept .cell.filled.coop-mark:not(.hintmark)::after,
+    .board.skin-dynamic.skin-spin.skin-removed .cell.removed.coop-mark-removed::after { animation: none; }
+}
+
+.skin-preview .cell, .skin-unlock-preview .cell { box-shadow: none; position: relative; width: 52px; height: 52px; border-radius: 10px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.3rem; }
+
+.shop-demo .cell {
+  box-shadow: none; position: relative; width: 46px; height: 46px; border-radius: 10px; background: var(--bg3);
+  display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem;
+}
+
+.shop-demo .cell.filled, .shop-demo .cell.given { width: 52px; height: 52px; }
+
+.div-choice { display: flex; gap: 8px; width: 100%; }
+
+.div-opt {
+  flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px; border: 0; border-radius: 12px; cursor: pointer;
+  background: var(--bg2); color: var(--text); font: inherit;
+  box-shadow: inset 0 0 0 2px transparent; transition: box-shadow .12s, background .12s;
+}
+
+.div-opt.on { background: color-mix(in srgb, var(--accent) 16%, var(--bg2)); box-shadow: inset 0 0 0 2px var(--accent); }
+
+.div-opt small { color: var(--text2); font-size: .78rem; }
+
+.div-opt .op-obelus, .div-opt .div-sample { color: var(--text); }
+
+.op-obelus-lg { font-size: 1.6rem; }
+
+.div-sample { font-size: 1.6rem; line-height: 1; font-weight: 900; display: block; }

@@ -156,7 +156,7 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey)
     // Firebase-Listener noch die App killen — vorher riss eine Exception hier
     // die komplette Event-Kette ab (Symptom: Beitretender hängt/Blackscreen,
     // Lobby „kaputt"). Der Fehler wird geloggt, die übrigen Events laufen weiter.
-    try { onMessage && onMessage(msg); }
+    try { onMessage && onMessage(msg, snap.key); }
     catch (e) { log('coop', 'Event-Verarbeitung fehlgeschlagen (ignoriert)', { type: msg.type, error: e && (e.message || String(e)) }); }
   });
 }
@@ -489,13 +489,66 @@ export function normalizeGrid(raw, rows, cols, fill = null) {
   }
   return out;
 }
-export async function send(msg) {
-  if (!fb || !roomCode) return;
+// Firebase-push-Schlüssel: 8 Zeichen Zeitstempel + 12 Zufallszeichen aus einem
+// Alphabet, dessen Sortierreihenfolge der numerischen entspricht — lexikografisch
+// sortiert heißt also chronologisch sortiert. Nachbau für den Fall, dass gerade
+// keine Firebase-Verbindung dahintersteht: der Zug soll trotzdem seinen Platz in
+// der globalen Reihenfolge bekommen (gleiches Format ⇒ mit echten Schlüsseln
+// vergleichbar).
+const PUSH_CHARS = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+export function pushKeyLike(now = Date.now(), rnd = Math.random) {
+  let ts = '';
+  let t = now;
+  for (let i = 7; i >= 0; i--) { ts = PUSH_CHARS[t % 64] + ts; t = Math.floor(t / 64); }
+  let out = ts;
+  for (let i = 0; i < 12; i++) out += PUSH_CHARS[Math.floor(rnd() * 64)];
+  return out;
+}
+
+// Reserviert den EREIGNIS-SCHLÜSSEL, unter dem der nächste Zug abgelegt wird —
+// OHNE zu schreiben. Firebase erzeugt push-Schlüssel lokal und sofort; der Zug
+// bekommt seine Stelle in der globalen Reihenfolge damit schon beim Ausführen,
+// nicht erst beim Absenden (wichtig für gepufferte Züge, die erst später
+// rausgehen). Grundlage der Konfliktauflösung, s. winsCell.
+export function nextEventKey() {
+  if (!fb || !roomCode) return pushKeyLike();
   try {
-    await fb.push(fb.ref(fb.db, `rooms/${roomCode}/events`), { ...sanitizeForFirebase(msg), author: fb.uid, ts: fb.serverTimestamp() });
-  } catch (e) {
-    log('coop', `Senden von "${msg.type}" fehlgeschlagen`, e);
-  }
+    const ref = fb.push(fb.ref(fb.db, `rooms/${roomCode}/events`));
+    return (ref && ref.key) || pushKeyLike();
+  } catch (_) { return pushKeyLike(); }
+}
+
+// Schreibt das Ereignis; mit `key` genau an die vorher reservierte Stelle.
+// Rückgabe: der verwendete Schlüssel (null, wenn nicht gesendet werden konnte).
+export function send(msg, key = null) {
+  if (!fb || !roomCode) return null;
+  const payload = { ...sanitizeForFirebase(msg), author: fb.uid, ts: fb.serverTimestamp() };
+  const fail = (e) => log('coop', `Senden von "${msg.type}" fehlgeschlagen`, e);
+  try {
+    if (key) {
+      Promise.resolve(fb.set(fb.ref(fb.db, `rooms/${roomCode}/events/${key}`), payload)).catch(fail);
+      return key;
+    }
+    const ref = fb.push(fb.ref(fb.db, `rooms/${roomCode}/events`), payload);
+    Promise.resolve(ref).catch(fail);
+    return (ref && ref.key) || null;
+  } catch (e) { fail(e); return null; }
+}
+
+/**
+ * Konfliktauflösung für gleichzeitige Züge auf DASSELBE Feld (rein, unit-getestet).
+ *
+ * Beide Spieler wenden ihren eigenen Zug sofort an und erfahren erst danach vom
+ * fremden. Ohne Regel endet jeder beim Zug des ANDEREN — die Bretter laufen
+ * auseinander. Der push-Schlüssel gibt jedem Zug eine Reihenfolge, die BEIDE
+ * Seiten identisch lesen: pro Feld gewinnt der spätere Schlüssel („last writer
+ * wins"). Jeder verwirft damit dieselben Schreibvorgänge, und beide landen auf
+ * demselben Brett — egal, in welcher Reihenfolge die Ereignisse ankommen.
+ */
+export function winsCell(incomingKey, currentKey) {
+  if (!currentKey) return true;         // Feld hat noch keinen Schreiber → jeder Zug zählt
+  if (!incomingKey) return false;       // ohne Ordnung nicht gegen einen bekannten Schreiber
+  return String(incomingKey) > String(currentKey);
 }
 
 // ─── Team-vs-Team: team-skopierte Kanäle innerhalb desselben Raums ────────────
@@ -508,13 +561,19 @@ export async function send(msg) {
 // nie den Client der jeweils anderen Seite. Aggregierter Fortschritt (Prozent/
 // Fehlerzahl, kein Zell-Inhalt) läuft separat über teamProgress/{team}, das
 // gegenseitig sichtbar sein darf.
-export async function sendTeamEvent(team, msg) {
-  if (!fb || !roomCode) return;
+export function sendTeamEvent(team, msg, key = null) {
+  if (!fb || !roomCode) return null;
+  const payload = { ...sanitizeForFirebase(msg), author: fb.uid, ts: fb.serverTimestamp() };
+  const fail = (e) => log('coop', `Senden von Team-Event "${msg.type}" fehlgeschlagen`, e);
   try {
-    await fb.push(fb.ref(fb.db, `rooms/${roomCode}/teamEvents/${team}`), { ...sanitizeForFirebase(msg), author: fb.uid, ts: fb.serverTimestamp() });
-  } catch (e) {
-    log('coop', `Senden von Team-Event "${msg.type}" fehlgeschlagen`, e);
-  }
+    if (key) {
+      Promise.resolve(fb.set(fb.ref(fb.db, `rooms/${roomCode}/teamEvents/${team}/${key}`), payload)).catch(fail);
+      return key;
+    }
+    const ref = fb.push(fb.ref(fb.db, `rooms/${roomCode}/teamEvents/${team}`), payload);
+    Promise.resolve(ref).catch(fail);
+    return (ref && ref.key) || null;
+  } catch (e) { fail(e); return null; }
 }
 
 export function listenTeamEvents(team, onMessage) {
@@ -526,7 +585,7 @@ export function listenTeamEvents(team, onMessage) {
     if (!msg || msg.author === fb.uid) return;
     // Fehlertolerant wie bei den Raum-Events: ein kaputtes Event killt weder
     // Listener noch App (s. attachListeners).
-    try { onMessage && onMessage(msg); }
+    try { onMessage && onMessage(msg, snap.key); }
     catch (e) { log('coop', 'Team-Event-Verarbeitung fehlgeschlagen (ignoriert)', { type: msg.type, error: e && (e.message || String(e)) }); }
   });
 }

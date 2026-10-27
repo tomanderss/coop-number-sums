@@ -10,7 +10,7 @@
 //   altes INIT reaktivierte die Bereit-Lobby.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeJoinAnchor, sanitizeForFirebase, normalizeGrid, safeKey, isFirebaseSentinel } from '../../js/coop.js';
+import { computeJoinAnchor, sanitizeForFirebase, normalizeGrid, safeKey, isFirebaseSentinel, winsCell, pushKeyLike } from '../../js/coop.js';
 import { readFileSync } from 'node:fs';
 
 const ev = (key, type, extra = {}) => ({ key, val: { type, ...extra } });
@@ -212,4 +212,44 @@ test('die Kopie in account.js ist textgleich mit der in coop.js', () => {
   for (const name of ['sanitizeForFirebase', 'safeKey', 'isFirebaseSentinel']) {
     assert.equal(body('account.js', name), body('coop.js', name), `${name} ist in account.js anders als in coop.js`);
   }
+});
+
+test('winsCell: pro Feld gewinnt der spätere Ereignis-Schlüssel', () => {
+  assert.equal(winsCell('-NabcZZ', '-NabcAA'), true, 'späterer Schlüssel überschreibt');
+  assert.equal(winsCell('-NabcAA', '-NabcZZ'), false, 'früherer Schlüssel verliert');
+  assert.equal(winsCell('-NabcAA', ''), true, 'unbeschriebenes Feld nimmt jeden Zug');
+  assert.equal(winsCell('-NabcAA', null), true);
+  assert.equal(winsCell(null, ''), true, 'ohne Schlüssel darf ein unbeschriebenes Feld gefüllt werden');
+  assert.equal(winsCell(null, '-NabcAA'), false, 'ohne Schlüssel nicht gegen einen bekannten Schreiber');
+  assert.equal(winsCell('-NabcAA', '-NabcAA'), false, 'derselbe Schlüssel gewinnt nicht erneut');
+});
+
+test('winsCell ist auf beiden Seiten dieselbe Entscheidung', () => {
+  // A schreibt mit kA, B mit kB — genau EINER der beiden Werte überlebt, und
+  // zwar auf beiden Geräten derselbe.
+  const kA = '-NxxxA0', kB = '-NxxxB0';
+  const aBehaeltSeinen = !winsCell(kB, kA);   // A verwirft B?
+  const bUebernimmtA = winsCell(kA, kB);      // B übernimmt A?
+  assert.equal(aBehaeltSeinen, false);
+  assert.equal(bUebernimmtA, false);
+  // Umgekehrt herum genau spiegelbildlich:
+  assert.equal(winsCell(kB, kA), true);
+  assert.equal(!winsCell(kA, kB), true);
+});
+
+
+// serverTimestamp() ist intern {".sv":"timestamp"} — der Punkt ist ABSICHT.
+// safeKey machte daraus {"_sv":…}, und publishAiProfile schickt
+// `updatedAt: fb.serverTimestamp()` genau durch diese Funktion: statt der
+// Serverzeit laege ein totes Objekt in der Datenbank. Bisher unbemerkt, weil
+// mc/aiProfiles in den Regeln ganz fehlte (jeder Write abgewiesen) — mit den
+// publizierten Regeln waere der Fehler scharf geworden.
+
+test('pushKeyLike: gleiches Format wie Firebase und zeitlich sortierbar', () => {
+  // Ohne Firebase-Verbindung baut nextEventKey den Schluessel selbst — er muss
+  // mit echten push-Schluesseln vergleichbar sein (20 Zeichen, Zeit vorne).
+  const a = pushKeyLike(1_700_000_000_000, () => 0.99);
+  const b = pushKeyLike(1_700_000_000_001, () => 0);
+  assert.equal(a.length, 20);
+  assert.ok(b > a, 'spaeterer Zeitpunkt sortiert hinter frueherem, egal welcher Zufall');
 });

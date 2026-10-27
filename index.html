@@ -13,6 +13,24 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <link rel="stylesheet" href="./css/styles.css" />
+  <!-- Spieleigene Brett-Optik: Number Sums steckt in styles.css, jedes weitere
+       Spiel bringt eine Ebene darüber mit (css/games/<id>.css). Die Wahl liegt
+       geräteweit in localStorage (cns_game, s. storage.js) — synchron hier im
+       Kopf eingehängt, damit schon das erste Zeichnen stimmt. Ein Spielwechsel
+       lädt die App neu. Unbekannte/fehlende Wahl → nichts (= Number Sums). -->
+  <script>
+    (function () {
+      try {
+        var g = JSON.parse(localStorage.getItem('cns_game') || 'null');
+        if (g === 'mathcross') {
+          var l = document.createElement('link');
+          l.rel = 'stylesheet'; l.href = './css/games/' + g + '.css';
+          document.head.appendChild(l);
+        }
+        document.documentElement.setAttribute('data-game', g === 'mathcross' ? g : 'numbersums');
+      } catch (e) { /* ohne localStorage: Standardspiel */ }
+    })();
+  </script>
 
   <title>Coop Number Sums</title>
   <style>

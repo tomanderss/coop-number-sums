@@ -275,6 +275,18 @@ export const DEFAULT_SETTINGS = {
                              // damit z.B. Tab NICHT den Browser-Fokus verschiebt.
   eraseStyle: 'hide',        // gelöschte Zahl: 'hide' (verschwindet) | 'strike' (durchgestrichen)
   coopName: '',              // eigener Anzeigename im Coop-Modus
+  // ── Nur in Math Cross sichtbar (kontoweite Einstellungen, s. features) ──
+  // Farbe der PERSÖNLICHEN Feld-Markierung (langes Drücken auf ein Zahl-Feld).
+  // Rein private Notiz ohne Regel-Bedeutung; bewusst NICHT die Spielerfarbe:
+  // die sagt im Mehrspieler, WER gesetzt hat.
+  markColor: '#f2c024',
+  // Geteilt-Zeichen (s. DIV_STYLES in games/mathcross/model.js). null = noch NIE
+  // gewählt → beim ersten Start von Math Cross fragt ein Pop-up einmalig nach.
+  divStyle: null,
+  // Reichweite beim Ziehen: der gezogene Stein folgt der Fingerbewegung um
+  // DIESEN Faktor verstärkt (1 = aus) — erreicht den oberen Brettrand ohne
+  // Wisch über den ganzen Bildschirm.
+  dragScale: 1,
   coopMyColor: '#3b82f6',    // eigene Spielerfarbe -- gilt für die eigenen Markierungen in JEDEM
                               // Modus (auch solo), nicht nur Coop (Default: Blau). Name des Storage-
                               // Keys bewusst beibehalten, um bestehende Nutzerfarben nicht zu verlieren.

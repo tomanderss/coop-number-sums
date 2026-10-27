@@ -4,6 +4,7 @@ const ASSETS = [
   './privacy.html',
   './imprint.html',
   './css/styles.css',
+  './css/games/mathcross.css',
   './js/vue.esm-browser.prod.js',
   './js/config.js',
   // ── Spiel-Registry + Spielmodule (js/games/<id>/) ──
@@ -31,6 +32,9 @@ const ASSETS = [
   './js/games/mathcross/hinttutor.js',
   './js/games/mathcross/training.js',
   './js/games/mathcross/snapshot.js',
+  './js/games/mathcross/board.js',
+  './js/games/mathcross/index.js',
+  './js/games/mathcross/i18n.js',
   './js/storage.js',
   './js/coop.js',
   './js/firebase.js',
