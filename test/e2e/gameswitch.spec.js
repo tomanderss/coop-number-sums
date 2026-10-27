@@ -45,3 +45,21 @@ test.describe('Spielauswahl', () => {
     expect(await page.evaluate(() => window.__cns.state.stats.played || 0)).toBe(0);
   });
 });
+
+test('ein Beitritt in ein anderes Spiel wird nach dem Wechsel nachgeholt (Namens-Gate mit Code)', async ({ page }) => {
+  // So steht es nach joinInOtherGame() im Speicher: Spiel gewechselt, Auftrag gemerkt.
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('cns_game', JSON.stringify('mathcross'));
+    localStorage.setItem('cns_settings', JSON.stringify({ divStyle: 'obelus', coopName: 'Tom' }));
+    localStorage.setItem('cns_pending_join', JSON.stringify({ code: '654321', mode: 'coop', game: 'mathcross', ts: Date.now() }));
+  });
+  await page.goto('/');
+  await page.waitForFunction(() => window.__cns && window.__cns.gameId === 'mathcross');
+  await page.waitForFunction(() => window.__cns.state.screen === 'coop');
+  const c = await page.evaluate(() => ({ code: window.__cns.state.coop.code, pending: window.__cns.state.coop.pendingJoin, gate: window.__cns.state.coop.identityConfirmed }));
+  expect(c).toEqual({ code: '654321', pending: true, gate: false });
+  // Der Auftrag ist verbraucht — ein erneuter Start fragt nicht wieder.
+  expect(await page.evaluate(() => localStorage.getItem('cns_pending_join'))).toBeNull();
+});

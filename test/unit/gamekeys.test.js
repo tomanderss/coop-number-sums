@@ -113,3 +113,26 @@ describe('Spielauswahl ueberlebt den Neustart', () => {
     assert.equal(localStorage.getItem('cns_data_rev'), null);
   });
 });
+
+describe('Beitritt nach Spielwechsel (cns_pending_join)', () => {
+  test('ein gemerkter Beitritt kommt genau EINMAL zurueck', async () => {
+    const { savePendingJoin, takePendingJoin } = await import('../../js/storage.js');
+    localStorage.clear();
+    savePendingJoin({ code: '123456', mode: 'coop', game: 'mathcross' });
+    const job = takePendingJoin();
+    assert.equal(job.code, '123456');
+    assert.equal(job.game, 'mathcross');
+    assert.equal(takePendingJoin(), null, 'ein zweiter Start tritt nicht ungefragt erneut bei');
+  });
+
+  test('ein alter Auftrag verfaellt', async () => {
+    const { savePendingJoin, takePendingJoin, PENDING_JOIN_TTL_MS } = await import('../../js/storage.js');
+    localStorage.clear();
+    savePendingJoin({ code: '123456', mode: 'coop', game: 'mathcross' });
+    assert.equal(takePendingJoin(Date.now() + PENDING_JOIN_TTL_MS + 1), null);
+  });
+
+  test('der Auftrag ist geraetelokal und spielunabhaengig (kein Spiel-Zusatz)', () => {
+    assert.equal(gameScopedKey('cns_pending_join', 'zweitspiel'), 'cns_pending_join');
+  });
+});
