@@ -50,3 +50,42 @@ describe('database.rules.json', () => {
     assert.match(r['.validate'], /hasChildren\(\['pct','mistakes'\]\)/);
   });
 });
+
+// Coop Number Sums und Coop Math Cross haengen am SELBEN Firebase-Projekt —
+// und ein Projekt hat genau EINEN Regelsatz. Math Cross legt alle Daten unter
+// den Wurzelknoten `mc/` (js/firebase.js, DB_ROOT). Fehlt dieser Teilbaum in den
+// publizierten Regeln, faellt er auf das `.write: false` der Wurzel zurueck und
+// Math Cross kann nichts mehr schreiben: keine Coop-Raeume, kein Sync, keine
+// Bestenliste. Genau das waere passiert, wenn diese Datei ohne `mc/` publiziert
+// worden waere — sie galt bis dahin faelschlich als „in beiden Repos identisch".
+//
+// Der `mc/`-Teilbaum ist deshalb KEINE eigene Pflege, sondern die Wurzel-Regeln
+// gespiegelt; nur die Admin-Pruefung zeigt auf `mc/users`. Driftet er ab (wie
+// beim Umstellen der Bestenliste auf die Spiel-Ebene passiert: die Wurzel bekam
+// `$game`, `mc/` nicht — und die Math-Cross-Bestenliste wurde abgewiesen),
+// schlaegt dieser Test fehl.
+describe('database.rules.json: Teilbaum mc/ (Coop Math Cross)', () => {
+  const spiegel = (v) => {
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, spiegel(x)]));
+    if (typeof v === 'string') return v.replaceAll("root.child('users')", "root.child('mc').child('users')");
+    return v;
+  };
+
+  test('der Teilbaum existiert', () => {
+    assert.ok(rules.rules.mc, 'ohne mc/ verliert Math Cross nach dem Publizieren alle Schreibrechte');
+  });
+
+  test('er spiegelt die Wurzel-Regeln exakt', () => {
+    const erwartet = Object.fromEntries(
+      Object.entries(rules.rules).filter(([k]) => !k.startsWith('.') && k !== 'mc').map(([k, v]) => [k, spiegel(v)]),
+    );
+    assert.deepEqual(rules.rules.mc, erwartet);
+  });
+
+  test('die Admin-Pruefung in mc/ schaut in mc/users, nicht in die Wurzel', () => {
+    // Sonst wuerde ein Number-Sums-Admin automatisch auch Math-Cross-Admin.
+    const text = JSON.stringify(rules.rules.mc);
+    assert.ok(!text.includes("root.child('users')"), 'mc/ darf die Rolle nicht aus der Wurzel lesen');
+    assert.ok(text.includes("root.child('mc').child('users')"));
+  });
+});

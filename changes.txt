@@ -1,0 +1,1 @@
+Datenbank-Regeln fuer Coop Number Sums und Coop Math Cross zusammengefuehrt (beide Apps teilen ein Firebase-Projekt)
