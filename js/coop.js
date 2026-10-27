@@ -457,7 +457,7 @@ export function sanitizeForFirebase(v) {
   // increment(n) = {".sv":{increment:n}} — tragen ABSICHTLICH einen Punkt im
   // Schluessel und muessen unveraendert durch. safeKey machte daraus sonst
   // {"_sv":…}, und statt der Serverzeit laege ein totes Objekt in der Datenbank
-  // (publishAiProfile schickt updatedAt genau so durch diese Funktion).
+  // (z.B. updatedAt in Schreibvorgängen, die einen Zeitstempel tragen).
   if (isFirebaseSentinel(v)) return v;
   if (v && typeof v === 'object') {
     const out = {};

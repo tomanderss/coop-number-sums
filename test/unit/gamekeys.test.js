@@ -34,7 +34,7 @@ describe('Spielspezifische vs. kontoweite Speicher-Schluessel', () => {
     activeGameEndless: 'cns_active_game_endless', saves: 'cns_saves',
     savesGone: 'cns_saves_gone', stats: 'cns_stats', history: 'cns_history',
     achievements: 'cns_achievements', missions: 'cns_missions', race: 'cns_race',
-    playSamples: 'cns_play_samples', completedGames: 'cns_completed_games',
+    completedGames: 'cns_completed_games',
   };
 
   test('das Standardspiel behaelt seine Schluessel unveraendert', () => {

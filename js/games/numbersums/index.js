@@ -7,7 +7,7 @@
 // nichts mehr ueber das einzelne Spiel wissen.
 //
 // Die reine Logik bleibt in den Nachbardateien (solver/generator/hinttutor/
-// training/duelbot/playstyle); diese Datei buendelt sie nur.
+// training); diese Datei buendelt sie nur.
 
 import { generatePuzzle, remapColorsForMarkVisibility, findHintCell, makeRng } from './generator.js';
 import { buildHintTutorial } from './hinttutor.js';
@@ -62,7 +62,6 @@ export const GAME = {
   features: {
     hints: true,
     toolToggle: true,
-    aiDuel: true,
     markTools: false,
     divStyle: false,
     dragScale: false,

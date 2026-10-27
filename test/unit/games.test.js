@@ -62,7 +62,7 @@ describe('Spiel-Registry', () => {
       }
       assert.ok(g.board.HistoryBoard && typeof g.board.HistoryBoard.template === 'string', `${g.id}: board.HistoryBoard fehlt`);
       // Feature-Schalter: jedes Spiel beantwortet ALLE Schalter ausdruecklich.
-      for (const f of ['hints', 'toolToggle', 'aiDuel', 'markTools', 'divStyle', 'dragScale', 'markColor']) {
+      for (const f of ['hints', 'toolToggle', 'markTools', 'divStyle', 'dragScale', 'markColor']) {
         assert.equal(typeof g.features[f], 'boolean', `${g.id}: features.${f} fehlt`);
       }
       assert.ok(g.BoardGrid && typeof g.BoardGrid.setup === 'function' && typeof g.BoardGrid.template === 'string',

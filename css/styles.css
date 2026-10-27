@@ -3166,42 +3166,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .shop-pal-dots { display: flex; gap: 4px; }
 .shop-pal-dots i { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
 
-/* ─── KI-Duell-Setup (Gegnerstärke) ───────────────────────────────────────────
-   Sitzt unter dem Schwierigkeits-Slider im aiduel-Screen. Bewusst kompakt und
-   im Stil der .mode-toggle-Zeilen, damit der Screen genauso aussieht wie das
-   Solo-Setup (Konvention: ALLE Auswahl-Screens sehen gleich aus). */
-.ai-setup { display: flex; flex-direction: column; gap: 10px; background: var(--bg3); border-radius: 14px; padding: 10px 12px; margin: 0 0 10px; }
-.ai-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.ai-label { font-size: .78rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; flex: 0 0 auto; }
-.ai-levels { display: flex; gap: 6px; flex: 1 1 auto; flex-wrap: wrap; }
-.ai-lv, .ai-opp { flex: 1 1 auto; min-width: 64px; padding: 7px 10px; border-radius: 999px; background: var(--bg2); color: var(--text2); font-weight: 800; font-size: .78rem; }
-.ai-lv.on, .ai-opp.on { background: var(--accent); color: #fff; }
-.ai-target { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0; font-size: .82rem; font-weight: 700; color: var(--text2); }
-.ai-target small { font-weight: 600; opacity: .75; }
-/* Gegner-Auswahl im KI-Duell: der eigene Klon darf zweizeilig sein (Name +
-   Kalibrier-Fortschritt), die Standard-Stufen bleiben einzeilig. */
-.ai-opp.ai-clone, .ai-opp.ai-friend { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
-.ai-opp.ai-clone small, .ai-opp.ai-friend small { font-size: .64rem; font-weight: 700; opacity: .75; }
-.ai-opp.locked { opacity: .55; }
-/* Klon-Auswahl: der Name darf lang sein und wird NICHT abgeschnitten (dieselbe
-   Regel wie auf der Ergebniskarte — Namen bleiben vollständig lesbar), deshalb
-   Umbruch als letztes Mittel statt Ellipse. */
-.ai-opp.ai-friend { max-width: 100%; overflow-wrap: anywhere; }
-.ai-hint { margin: 0; font-size: .78rem; font-weight: 700; color: var(--text2); opacity: .8; flex: 1 1 100%; }
-/* Der Weg zu den unfertigen Klonen: bewusst ein unauffälliger Textlink, keine
-   weitere Knopfreihe — er soll nur informieren, nicht die Auswahl zustellen. */
-.ai-learning-link {
-  align-self: flex-start; padding: 2px 0; background: none; color: var(--text2);
-  font-size: .76rem; font-weight: 700; text-decoration: underline; opacity: .8;
-}
-.modal-learning .learn-list { display: flex; flex-direction: column; gap: 10px; margin: 14px 0 16px; }
-.modal-learning .learn-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; }
-.modal-learning .learn-name { font-weight: 800; font-size: .86rem; overflow-wrap: anywhere; }
-.modal-learning .learn-num { font-size: .76rem; font-weight: 700; color: var(--text2); white-space: nowrap; }
-.modal-learning .learn-bar { grid-column: 1 / -1; height: 6px; border-radius: 999px; background: var(--bg2); overflow: hidden; }
-.modal-learning .learn-bar-fill { height: 100%; border-radius: 999px; background: var(--accent); }
-.modal-learning .learn-row.me .learn-name { color: var(--accent); }
-
 /* ── Bibliothek gespeicherter Partien ──────────────────────────────────────
    Ein Bottom-Sheet mit einer Zeile je Stand. Die Zeile ist als GANZES der
    Fortsetzen-Knopf (grosse Trefferflaeche fuer den Daumen), Loeschen sitzt
