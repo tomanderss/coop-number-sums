@@ -58,7 +58,18 @@
         localStorage.setItem(key, JSON.stringify(entries));
       } catch (e) {}
     }
+    // „ResizeObserver loop completed with undelivered notifications" ist KEIN
+    // Fehler: der Browser meldet damit nur, dass er Größen-Benachrichtigungen auf
+    // den nächsten Frame verschoben hat. Nichts ist kaputt, nichts geht verloren.
+    // Der Bildschirm hier ist für FATALE Boot-/Laufzeitfehler gedacht — diese
+    // Warnung legte stattdessen mitten im Spiel die ganze App unter einer roten
+    // Fläche begraben (in Coop Math Cross gemeldet; derselbe Handler steckte
+    // hier). Sie wird protokolliert, aber nicht angezeigt.
+    function cnsIsBenign(msg) {
+      return typeof msg === 'string' && msg.indexOf('ResizeObserver loop') !== -1;
+    }
     window.onerror = function(msg, src, line, col, err) {
+      if (cnsIsBenign(msg)) { cnsLogWindowError(String(msg)); return; }
       var d = document.getElementById('err');
       d.style.display = 'block';
       d.textContent = 'ERROR:\n' + msg + '\n\nFile: ' + src + '\nLine: ' + line + '\n\n' + (err && err.stack ? err.stack : '');

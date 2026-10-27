@@ -3,4 +3,5 @@ Technischer Umbau: Schwierigkeitsstufen je Spiel einstellbar (Vorbereitung fuer 
 Coop-Endlos: ein Mitspieler, der zwischen zwei Leveln die Verbindung verliert, haengt nicht mehr in der Bereit-Lobby fest
 Absicherung: ein einzelnes ungueltiges Feld laesst Cloud-Sync und Coop-Nachrichten nicht mehr komplett scheitern
 1v1: die Schwierigkeitsauswahl fuer die Revanche ist auf niedrigen Bildschirmen wieder vollstaendig erreichbar
+Am Desktop legt sich eine harmlose Browser-Warnung nicht mehr als roter Fehlerbildschirm ueber die Partie
 Spielstaende: was zum Fortsetzen angeboten wird, steht jetzt immer auch in der Liste (und ist damit loeschbar); geloeschte Staende tauchen nicht mehr als Fortsetzen auf
