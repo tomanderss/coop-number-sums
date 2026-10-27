@@ -71,6 +71,8 @@ const ASSETS = [
   './js/i18n/ru.js',
   './manifest.json',
   './icons/icon-192.png',
+  './icons/games/numbersums-192.png',
+  './icons/games/mathcross-192.png',
   './icons/icon-512.png',
   './icons/icon-1024.png',
 ];

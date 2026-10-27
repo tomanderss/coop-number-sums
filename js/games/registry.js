@@ -18,11 +18,12 @@ import { log } from '../debuglog.js';
 /**
  * Stammdaten je Spiel. `id` ist der SCHLUESSEL der spieleigenen Cloud-Daten
  * und der Bestenliste — er darf sich nie mehr aendern. `nameKey` ist der
- * i18n-Schluessel des Anzeigenamens, `icon` ein Name aus js/icons.js.
+ * i18n-Schluessel des Anzeigenamens, `icon` ein Name aus js/icons.js, `logo`
+ * das App-Logo des Spiels (Spielauswahl auf dem Startbildschirm, Splash).
  */
 export const GAME_META = {
-  numbersums: { id: 'numbersums', nameKey: 'games.numbersums', icon: 'grid' },
-  mathcross: { id: 'mathcross', nameKey: 'games.mathcross', icon: 'plus' },
+  numbersums: { id: 'numbersums', nameKey: 'games.numbersums', icon: 'grid', logo: './icons/games/numbersums-192.png' },
+  mathcross: { id: 'mathcross', nameKey: 'games.mathcross', icon: 'plus', logo: './icons/games/mathcross-192.png' },
 };
 
 /** Alle Spiel-Kennungen in Anzeige-Reihenfolge. */

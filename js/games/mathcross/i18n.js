@@ -3,7 +3,7 @@
 // Zieh-Reichweite, Trainings-Schritte …) und abweichende Fassungen (Anleitung,
 // Erfolgs-Beschreibungen, Einladungstexte). Liegt als Ebene ÜBER den gemeinsamen
 // Texten (js/i18n/), solange Math Cross das aktive Spiel ist — s. setGameMessages.
-// Erzeugt aus den Sprachdateien von Coop Math Cross; die Werte sind unverändert.
+// Erzeugt aus den Sprachdateien von Coop Number Games; die Werte sind unverändert.
 
 export default {
   "de": {
@@ -61,7 +61,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "Spiel mit mir Coop Math Cross im Coop-Modus! Code: {code} — {url}"
+      "coopInvite": "Spiel mit mir Coop Number Games im Coop-Modus! Code: {code} — {url}"
     },
     "howto": {
       "rule1": "Setze die Zahlen aus dem <b>Vorrat</b> unten in die leeren Felder — entweder <b>hinziehen</b> oder die Zahl <b>antippen</b> und dann auf das Feld tippen.",
@@ -137,7 +137,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "Play Coop Math Cross with me in co-op mode! Code: {code} — {url}"
+      "coopInvite": "Play Coop Number Games with me in co-op mode! Code: {code} — {url}"
     },
     "howto": {
       "rule1": "Place the numbers from the <b>tray</b> below into the empty cells — either <b>drag</b> them or <b>tap</b> a number and then tap the cell.",
@@ -213,7 +213,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "¡Juega Coop Math Cross conmigo en modo cooperativo! Código: {code} — {url}"
+      "coopInvite": "¡Juega Coop Number Games conmigo en modo cooperativo! Código: {code} — {url}"
     },
     "howto": {
       "rule1": "Coloca los números del <b>montón</b> de abajo en las casillas vacías: <b>arrástralos</b> o <b>toca</b> un número y luego la casilla.",
@@ -289,7 +289,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "Joue à Coop Math Cross avec moi en mode coopératif ! Code : {code} — {url}"
+      "coopInvite": "Joue à Coop Number Games avec moi en mode coopératif ! Code : {code} — {url}"
     },
     "howto": {
       "rule1": "Place les nombres de la <b>réserve</b> en bas dans les cases vides : <b>fais-les glisser</b> ou <b>touche</b> un nombre puis la case.",
@@ -365,7 +365,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "Jogue Coop Math Cross comigo no modo cooperativo! Código: {code} — {url}"
+      "coopInvite": "Jogue Coop Number Games comigo no modo cooperativo! Código: {code} — {url}"
     },
     "howto": {
       "rule1": "Coloque os números da <b>reserva</b> abaixo nas casas vazias: <b>arraste</b> ou <b>toque</b> num número e depois na casa.",
@@ -441,7 +441,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "Gioca a Coop Math Cross con me in modalità co-op! Codice: {code} — {url}"
+      "coopInvite": "Gioca a Coop Number Games con me in modalità co-op! Codice: {code} — {url}"
     },
     "howto": {
       "rule1": "Metti i numeri della <b>riserva</b> in basso nelle caselle vuote: <b>trascinali</b> oppure <b>tocca</b> un numero e poi la casella.",
@@ -517,7 +517,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "Coop Math Crossを一緒にCoopモードで遊ぼう！コード: {code} — {url}"
+      "coopInvite": "Coop Number Gamesを一緒にCoopモードで遊ぼう！コード: {code} — {url}"
     },
     "howto": {
       "rule1": "下の<b>手持ち</b>から数字を空きマスに置きます。<b>ドラッグ</b>するか、数字を<b>タップ</b>してからマスをタップします。",
@@ -593,7 +593,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "Coop Math Cross을 협동 모드로 함께 플레이해요! 코드: {code} — {url}"
+      "coopInvite": "Coop Number Games을 협동 모드로 함께 플레이해요! 코드: {code} — {url}"
     },
     "howto": {
       "rule1": "아래 <b>보유 칸</b>의 숫자를 빈 칸에 놓습니다. <b>끌어다 놓거나</b>, 숫자를 <b>탭한 뒤</b> 칸을 탭하면 됩니다.",
@@ -669,7 +669,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "Coop Math Cross'ı benimle coop modunda oyna! Kod: {code} — {url}"
+      "coopInvite": "Coop Number Games'ı benimle coop modunda oyna! Kod: {code} — {url}"
     },
     "howto": {
       "rule1": "Aşağıdaki <b>stoktaki</b> sayıları boş karelere yerleştir: <b>sürükle</b> ya da bir sayıya <b>dokun</b> ve sonra kareye dokun.",
@@ -745,7 +745,7 @@ export default {
       }
     },
     "share": {
-      "coopInvite": "Сыграй со мной в Coop Math Cross в кооперативном режиме! Код: {code} — {url}"
+      "coopInvite": "Сыграй со мной в Coop Number Games в кооперативном режиме! Код: {code} — {url}"
     },
     "howto": {
       "rule1": "Ставьте числа из <b>запаса</b> внизу в пустые клетки: <b>перетащите</b> их или <b>нажмите</b> на число, а затем на клетку.",
