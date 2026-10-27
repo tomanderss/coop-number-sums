@@ -1,23 +1,20 @@
 name: Tests
 
-# ── Zeit- und kostenbewusst geschnitten ──────────────────────────────────────
-# Gemessen an einem echten Lauf (7:04 gesamt) verteilte sich die Zeit so:
-#   Set-up + checkout + setup-node   3 s
-#   npm ci                           6 s
-#   Chromium installieren (kalt)    23 s
-#   npm test                      6:21   ← 90 % der Laufzeit
-#   Cache speichern + Post-Steps     8 s
-# Der Overhead ist also vernachlässigbar; die Laufzeit steckt praktisch komplett
-# in der Suite. Deshalb wird sie AUFGETEILT statt beschleunigt:
-#   • Unit-Tests laufen als eigener Job PARALLEL zu den E2E-Tests und brauchen
-#     dafür gar keinen Browser (spart dort die Chromium-Installation komplett).
-#   • Die 132 E2E-Tests laufen in DREI Shards gleichzeitig (Playwright `--shard`,
-#     verifiziert exakt 44/44/44 — die Summe ist die vollständige Suite).
-# Erwartete Wanduhrzeit dadurch ~3 min statt ~7, bei identischer Abdeckung.
-# Nebeneffekt auf die QUALITÄT: weniger Tests je Runner heißt weniger Last je
-# Runner. Genau die lastbedingten Timeouts (training.spec.js) werden damit
-# unwahrscheinlicher, nicht wahrscheinlicher — anders als bei mehr Workern im
-# selben Job, weshalb die Worker-Zahl bewusst unverändert bleibt.
+# ── Auf Wanduhrzeit getrimmt (Nutzerwunsch: „CI muss maximal schneller werden") ──
+# Gemessen am Lauf von PR #714 (9 min bis grün):
+#   Chromium + Systempakete installieren   5:00   ← Browser-Cache traf NIE (s.u.)
+#   Tests je Shard (3 Shards, 2 Worker)    3:30–4:00
+#   Checkout, npm ci, Post-Steps           0:15
+# Deshalb:
+#   • E2E im offiziellen Playwright-Container: Browser + Systempakete sind
+#     vorinstalliert, die 5 min Installation entfallen komplett. (Der frühere
+#     actions/cache-Ansatz half nicht: GitHub gibt Caches nur an denselben Branch
+#     oder den Standard-Branch weiter, und auf master läuft dieser Workflow nicht.)
+#   • 4 Worker je Maschine statt 2 (alle Kerne; lokal gemessen 5,8 statt 10,9 min
+#     für die ganze Suite, 0 wackelige Tests) und 8 Shards statt 3.
+#   • Das Repo ist öffentlich — Actions-Minuten kosten nichts, mehr parallele
+#     Maschinen sind also frei.
+# Erwartet: ~2 min bis grün statt ~9.
 
 on:
   # Der frühere zweite Trigger `push: branches: [master]` ist entfallen: er fuhr
@@ -66,53 +63,25 @@ jobs:
       - run: npm run test:unit
 
   e2e:
-    name: E2E ${{ matrix.shard }}/3
+    name: E2E ${{ matrix.shard }}/8
     runs-on: ubuntu-latest
-    # Der JOB braucht Puffer, weil die Systembibliotheken (apt, Schritt unten)
-    # auf manchen Runnern 10–13 Minuten brauchen statt Sekunden — gemessen an
-    # #692/#694: die Tests selbst liefen in ~2 Minuten, der Job riss trotzdem das
-    # alte 15-Minuten-Limit. Das eigentliche Schutzlimit gegen einen HÄNGENDEN
-    # Test sitzt deshalb direkt am Testschritt (s. dort).
-    timeout-minutes: 30
+    # Offizielles Playwright-Image: Chromium UND alle Systempakete sind schon
+    # drin. Vorher kostete die Installation 5 min je Shard, weil der Browser-
+    # Cache praktisch nie traf (GitHub gibt Caches nur an denselben Branch oder
+    # den Standard-Branch weiter, und auf master laeuft dieser Workflow nicht).
+    # Der Tag MUSS zur @playwright/test-Version in package.json passen —
+    # test/unit/ci.test.js erzwingt das.
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --ipc=host
+    timeout-minutes: 15
     strategy:
-      # Ein fehlgeschlagener Shard darf die anderen NICHT abbrechen — sonst sieht
-      # man nur den ersten Fehler und muss für den Rest erneut laufen lassen.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          # npm-Cache: spart den Neu-Download der Abhängigkeiten je Lauf.
-          cache: 'npm'
-
-      - run: npm ci
-
-      # Chromium wog bisher jeden Lauf neu ~120 MB Download. Der Cache-Schlüssel
-      # hängt an package-lock.json — ein Playwright-Versionssprung erzeugt also
-      # automatisch einen neuen Schlüssel, es kann keine veraltete Browser-Version
-      # hängen bleiben. Alle Shards teilen denselben Cache.
-      - name: Playwright-Browser aus dem Cache
-        id: pw-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Chromium installieren (nur bei Cache-Miss)
-        if: steps.pw-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-
-      # Bei Cache-Treffer liegt der Browser schon da; die System-Bibliotheken
-      # gehören zur Runner-Umgebung und müssen trotzdem gesetzt werden.
-      - name: Systemabhängigkeiten (bei Cache-Treffer)
-        if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
-
-      # Ein hängender Test bricht hier nach 12 Minuten ab (die Suite braucht je
-      # Shard ~2–4 Minuten) — unabhängig davon, wie lange apt vorher brauchte.
-      - run: npx playwright test --shard=${{ matrix.shard }}/3
-        timeout-minutes: 12
+      - run: npm ci --no-audit --no-fund
+      # 4 Worker je Maschine (playwright.config.js, CI=true) x 8 Maschinen.
+      - run: npx playwright test --shard=${{ matrix.shard }}/8
+        timeout-minutes: 8
