@@ -10,8 +10,6 @@ import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
 import * as Music from './music.js';
 import { activeGame } from './games/index.js';
-import * as Model from './games/numbersums/model.js';
-import * as Board from './games/numbersums/board.js';
 // Die SPIELSPEZIFISCHEN Funktionen kommen aus dem Modul des laufenden Spiels
 // (js/games/<id>/index.js), nicht mehr per direktem Import: der Rest dieser
 // Datei ist die SCHALE, die fuer jedes Spiel dieselbe ist. Als duenne Weiche
@@ -351,8 +349,9 @@ const state = reactive({
 // Die Funktionen unten sind Funktions-Deklarationen und damit hier schon
 // gebunden (hoisting); die computeds im Brett-Modul sind lazy und greifen erst
 // beim ersten Render zu, also nach diesem Aufruf.
+const Board = activeGame().board;
 Board.initBoard({
-  state, LOCAL_PLAYER_ID, playerColor, shopEquippedId,
+  state, LOCAL_PLAYER_ID, playerColor, shopEquippedId, desktopBoard,
   registerMistake, afterMove, coopSend,
   // Das Zug-Log wird von startPlayLog() neu zugewiesen (null = nicht
   // aufzeichnen), darf also nicht als Referenz uebergeben werden.
@@ -1137,33 +1136,6 @@ function startCoopRound() {
   else coopSend({ type: Coop.MSG.START, startTime });
 }
 
-// ─── ZELLEN-METADATEN (Regionen, Ränder, Chips) ───────────────────────────────
-// Der Aufbau selbst liegt im Brett-Modell des Spiels (js/games/numbersums/model.js).
-const buildCellMeta = (puzzle) => Model.buildCellMeta(puzzle);
-
-// Cage-Farben so wählen, dass die eigene(n) Markierungsfarbe(n) darauf sichtbar
-// bleiben — eine pinke Cage macht einen pinken Einkreis-Ring unsichtbar. Läuft
-// beim Brettaufbau, bei Farb-/Palettenwechsel (setSetting) und wenn im Coop
-// neue Spieler(farben) dazukommen. Bewusst clientseitig: jedes Gerät färbt für
-// SEINE Spielerfarbe sicher (das Puzzle selbst bleibt identisch).
-function applyMarkSafeRegionColors() {
-  const p = state.puzzle;
-  if (!p || !p.regions || !state.cellMeta.length) return;
-  const fx = activePaletteFx();
-  const effectiveColors = REGION_COLORS.map((c) => applyPaletteFx(c, fx));
-  const avoid = [state.settings.coopMyColor, ...(state.coop.active ? state.coop.players.map((pl) => pl.color) : [])]
-    .map(hexToRgb).filter(Boolean);
-  const idxs = remapColorsForMarkVisibility({ regions: p.regions, rows: p.rows, cols: p.cols, effectiveColors, avoidRgbs: avoid });
-  let remapped = 0;
-  p.regions.forEach((reg, ri) => {
-    const color = REGION_COLORS[idxs[ri]];
-    if (idxs[ri] !== ((reg.colorIndex || 0) % REGION_COLORS.length)) remapped++;
-    for (const [r, c] of reg.cells) state.cellMeta[r][c].color = color;
-  });
-  resetCellStyleCache();   // gecachte --rc-*-Styles gehören zur alten Färbung
-  if (remapped) log('game', 'Cage-Farben wegen Spielerfarbe umgelenkt', { remapped });
-}
-
 // ─── OFF-THREAD-GENERIERUNG (on-demand) ───────────────────────────────────────
 // Ein Web Worker generiert Rätsel auf Anfrage auf einem eigenen Thread, sodass die
 // (bei großen Feldern spürbare) Generierung den Haupt-Thread/die UI nie blockiert.
@@ -1233,7 +1205,7 @@ function finishNewGame(puzzle) {
     state.coop.awaitingStart = true;
     resetReadyFlags();
     startTimer();
-    coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime: state.startTime });
+    coopSend({ type: Coop.MSG.INIT, puzzle: state.puzzle, ...Board.boardFields('wire'), markedBy: wireMarkedBy(), startTime: state.startTime });
   } else {
     startTimer();
     syncCloudNow('gameStart'); // Solo-Start: frisches Spiel sofort in die Cloud
@@ -1437,7 +1409,7 @@ function endlessLevelSolved(remote) {
     // Verlauf + Missionen + Achievements/Prestige — exakt wie ein normaler Sieg.
     state.puzzleHistory = recordHistory({
       difficulty: diff, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
-      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+      seed: state.puzzle.seed, ...Board.boardFields('history'),
       timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
     });
     recordMissionEvent({
@@ -1507,7 +1479,7 @@ function endlessGameOver() {
     applyStreakAfterGame();
     state.puzzleHistory = recordHistory({
       difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
-      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+      seed: state.puzzle.seed, ...Board.boardFields('history'),
       timeMs: state.elapsed, outcome: 'lost', coop: false,
     });
   }
@@ -1646,7 +1618,7 @@ function finishCoopEndlessLevel(puzzle) {
   e.advancing = false;
   // Fertiges Level als LAUFENDES INIT an die Gäste (endless-Marker + Level + Leben +
   // kumulierte Herz-Verluste); sie steigen sofort ein (running:true).
-  coopSend({ type: Coop.MSG.INIT, gameId, running: true, puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime, lives: e.lives, maxLives: LIVES, endless: true, endlessLevel: e.level, lifeLossBy: carryLoss.map(x => x || '') });
+  coopSend({ type: Coop.MSG.INIT, gameId, running: true, puzzle: state.puzzle, ...Board.boardFields('wire'), markedBy: wireMarkedBy(), startTime, lives: e.lives, maxLives: LIVES, endless: true, endlessLevel: e.level, lifeLossBy: carryLoss.map(x => x || '') });
   coopSend({ type: Coop.MSG.START, startTime });
   startCoopGame(startTime);
   requestWakeLock();
@@ -1674,7 +1646,7 @@ function endlessCoopGameOver() {
     applyStreakAfterGame();
     state.puzzleHistory = recordHistory({
       difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
-      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+      seed: state.puzzle.seed, ...Board.boardFields('history'),
       timeMs: state.elapsed, outcome: 'lost', coop: true,
     });
   }
@@ -1776,19 +1748,22 @@ function startTrainingGame() {
 // -- die Markierung selbst passiert erst im "anwenden"-Klick (applyTrainingStep),
 // damit die Begründung zuerst gelesen werden kann, bevor sich das Feld ändert.
 function trainingNextStep() {
-  state.trainingStep = findTrainingStep(state.puzzle, state.marks);
+  state.trainingStep = Board.trainingStep();
   state.trainingDone = !state.trainingStep;
 }
 
 function applyTrainingStep() {
   const step = state.trainingStep;
   if (!step) return;
-  setMark(step.r, step.c, step.action, false);
+  Board.applyTrainingStep(step);
   state.trainingStep = null;
   if (state.status === 'playing') trainingNextStep();
 }
 
 function loadPuzzleIntoState(puzzle, saved) {
+  // Rätsel aus Cloud/Coop brauchbar machen (Spielregel; Math Cross heilt hier
+  // sein löchriges slots-Raster, Number Sums braucht nichts).
+  puzzle = Board.normalizePuzzle(puzzle);
   // Genereller Reset-Punkt für alle Spielstart-Pfade (Solo, Coop, Race, Team,
   // Fortsetzen, Daily/Boss) -- ohne den blieb der Trainingsmodus-Banner nach
   // einem Abbruch per Zurück-Button (quitToHome() setzt isTrainingGame nicht
@@ -1812,9 +1787,9 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.sessionRev = 0;
   state.sessionReadonly = false;
   state.puzzle = puzzle;
-  state.cellMeta = buildCellMeta(puzzle);
-  applyMarkSafeRegionColors();   // Cage-Farben meiden die (lokalen) Spielerfarben
-  if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
+  // Der spieleigene Brett-Zustand (Number Sums: Markierungen, Käfig-Farben,
+  // Werkzeug; Math Cross: gelegte Steine + Vorrat) — s. Board.loadBoard.
+  Board.loadBoard(puzzle, saved);
   // Raster IMMER dicht normalisieren (nie roh uebernehmen): ein per Coop-INIT
   // empfangenes markedBy kommt aus Firebase RTDB und ist dort loechrig, weil RTDB
   // null-Werte nicht speichert — leere Zeilen fehlen ganz, Luecken machen aus dem
@@ -1823,7 +1798,6 @@ function loadPuzzleIntoState(puzzle, saved) {
   // komplett im DOM (gemeldeter „Blackscreen beim Beitritt", belegt durch das
   // Beitritts-Render-Protokoll: cells 0 / w 0 / h 0 bei geladenem Spielstand).
   // Gilt genauso fuer einen alten/beschaedigten Spielstand aus dem Speicher.
-  state.marks = Coop.normalizeGrid(saved?.marks, puzzle.rows, puzzle.cols, 'none');
   state.markedBy = Coop.normalizeGrid(saved?.markedBy, puzzle.rows, puzzle.cols, null);
   // Einmal je Brett-Aufbau (nicht pro Zelle) protokollieren, WENN tatsaechlich ein
   // loechriges Raster geheilt wurde — macht einen erneuten Blackscreen-Bericht
@@ -1847,13 +1821,10 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.history = [];
   state.flash = {};
   state.justResolved = {};
-  state.tool = state.settings.confirmTool || 'pen';
   state.status = 'playing';
   state.newHighscore = false;
   state.wouldHaveBeenBest = false;
   state.perfectWin = false;
-  state.hintWarnShown = false;
-  state.hintTutor = null;
   state.elapsed = saved?.elapsed ?? 0;
   // Bei Coop-INIT übernimmt der Gast den exakten Host-Startzeitpunkt, damit beide
   // Seiten dieselbe Zeit anzeigen (sonst Drift durch Verbindungsaufbau-Latenz).
@@ -1883,49 +1854,7 @@ function desktopBoard() {
   try { return window.matchMedia && window.matchMedia('(min-width: 720px) and (pointer: fine)').matches; }
   catch (_) { return false; }
 }
-function computeCellSize() {
-  if (!state.puzzle) return;
-  const cols = state.puzzle.cols;
-  const rows = state.puzzle.rows;
-  const wrap = document.querySelector('.board-wrap');
-  let availW, availH;
-  if (wrap && wrap.clientWidth && wrap.clientHeight) {
-    availW = wrap.clientWidth - 12; // 2*6px Board-Wrap-Padding
-    availH = wrap.clientHeight - 12;
-  } else {
-    availW = Math.min(window.innerWidth - 44, 496); // 2*(14px App-Padding + 6px Board-Wrap-Padding) + Sicherheitspuffer
-    availH = window.innerHeight - 200; // grobe Schätzung für Kopf-/Werkzeugleiste vor dem ersten Render
-  }
-  // Aktiver Brett-Rahmen legt außen einen 10px-Innenabstand um die Spielfläche
-  // (2*10 = 20px je Achse, s. .board[class*="frame-"] in styles.css). Dieser
-  // Platz muss VOR der Zellgröße abgezogen werden, sonst wird das Brett um 20px
-  // breiter/höher als der verfügbare Raum und ragt aus dem Bildschirm.
-  const framePad = boardFrameClass() ? 20 : 0;
-  availW -= framePad; availH -= framePad;
-  const idealW = Math.floor(availW / (cols + 1)); // +1 für Kopfspalte
-  const idealH = Math.floor(availH / (rows + 1)); // +1 für Kopfzeile
-  const ideal = Math.min(idealW, idealH);
-  // Deckel für die Auto-Einpassung: begrenzt die Zellgröße, damit kleine Bretter
-  // auf großen Displays nicht riesig wirken. Skaliert mit der kürzeren Bildschirm-
-  // kante (= bindende Achse, da das Brett in BEIDE Richtungen passen muss), damit
-  // es auf JEDEM Gerät und in JEDER Ausrichtung so groß wie sinnvoll möglich ist:
-  //  • Desktop (Maus + breites Fenster): 128px — .app.app-game ist dort breit.
-  //  • Tablet / großes Querformat (kurze Kante ≥ 600px, z.B. iPad in beiden
-  //    Ausrichtungen): Deckel wächst mit der kurzen Kante (bis 120px), sonst
-  //    begrenzte der alte 56er-Handy-Deckel das Feld auf iPad/Querformat unnötig.
-  //  • Handy (kurze Kante < 600px, inkl. Handy-Querformat mit niedriger Höhe): 56px.
-  // Die tatsächlich verfügbare Fläche kommt weiterhin aus der .board-wrap-Messung
-  // (availW/availH) — der Deckel ist nur die Obergrenze, kein fixer Wert.
-  const shortSide = Math.min(window.innerWidth || 0, window.innerHeight || 0);
-  const cap = desktopBoard() ? 128
-    : (shortSide >= 600 ? Math.min(120, Math.round(shortSide * 0.14)) : 56);
-  // KEIN hoher Mindestwert mehr: Beim Öffnen MUSS das ganze Brett passen — lieber
-  // kleine Zellen als eine abgeschnittene Zeile/Spalte. Der frühere 26px-Boden
-  // ließ das größte Brett (14×14 = 15 Einheiten) auf schmalen Handys eine Spalte
-  // aus dem Bild ragen. Nur ein winziger Boden gegen 0 in Extremfällen.
-  const base = Math.max(10, Math.min(cap, ideal));
-  state.cellPx = Math.round(base * state.zoom);
-}
+function computeCellSize() { Board.fitBoard(); }
 // Beobachtet die tatsächliche Größe von .board-wrap und passt die Zellgröße neu
 // an, sobald sie sich ändert (Layout-Settle nach dem Öffnen, Adressleiste ein-/
 // ausblenden, Rotation, Sidebar). So ist das Brett IMMER sofort vollständig
@@ -1979,35 +1908,16 @@ function resetZoom() {
   computeCellSize();
 }
 
-// ─── SUMMEN & FERTIG-STATUS ───────────────────────────────────────────────────
-// Die Regeln selbst stehen im Brett-Modell des Spiels (js/games/numbersums/
-// model.js) und nehmen `puzzle`/`marks` ausdruecklich als Argumente — nur so
-// sind sie austauschbar (zweites Spiel) und einzeln testbar. Hier bleiben
-// duenne Weichen mit denselben Namen und Signaturen, damit die vielen
-// Aufrufstellen in dieser Datei und im Brett-Template unveraendert bleiben.
-const rowSum = (r) => Model.rowSum(state.puzzle, state.marks, r);
-const colSum = (c) => Model.colSum(state.puzzle, state.marks, c);
-const regionSum = (i) => Model.regionSum(state.puzzle, state.marks, i);
-
-
 // ─── SPIELZÜGE ────────────────────────────────────────────────────────────────
 
 
 function afterMove() {
-  clearStaleTutor();
+  Board.clearStaleTutor();
   persistGame();
   if (state.team.active) pushTeamProgress();
   if (state.race.active) pushRaceProgress();
   if (isSolved()) win();
 }
-// Verwirft den aktiven Tipp-Tutor, sobald seine Zielzelle gelöst ist — egal
-// wodurch (Auflösen, Coop-Partner-Zug): die Erklärung wäre dann veraltet.
-function clearStaleTutor() {
-  const tt = state.hintTutor;
-  if (tt && state.marks[tt.target.r][tt.target.c] !== 'none') state.hintTutor = null;
-}
-
-
 // by: wer den Fehler begangen hat ('me'/Peer-ID im Coop, sonst null). Wird im Coop
 // an den/die Partner gesendet, damit Fehler & gemeinsame Leben bei allen synchron
 // bleiben (eine rein lokale Sofort-Aufdeckung würde der Partner sonst nie erfahren).
@@ -2054,14 +1964,14 @@ function applyRemoteMistake(by, n) {
 }
 
 // Gelöst, wenn JEDE Zelle korrekt markiert ist (Lösung eingekreist, Rest gelöscht).
-function isSolved() { return Model.isSolved(state.puzzle, state.marks); }
+function isSolved() { return Board.boardSolved(); }
 
 // ─── TEAM-VS-TEAM / RACE: aggregierter Fortschritt für die Gegenseite ─────────
 // Nur ein Prozentwert + Fehlerzahl wandern über teamProgress/{team} bzw.
 // raceProgress/{uid} -- nie Zellinhalte (sonst Antwort-Leak an die Gegenseite,
 // siehe Plan). progressPct() ist bewusst generisch (kein Team-/Race-Bezug im
 // Namen), da beide Modi denselben reinen Puzzle-Fortschritt brauchen.
-function progressPct() { return Model.progressPct(state.puzzle, state.marks); }
+function progressPct() { return Board.boardProgressPct(); }
 let teamProgressThrottle = 0;
 let teamProgressTimer = null;
 // Reines "leading edge"-Throttle (nur sofort senden, sonst verwerfen) ließ
@@ -2137,7 +2047,7 @@ function onRaceProgressUpdate(progressByUid) {
 function doCheck(by = state.coop.active ? state.coop.myId : null, broadcast = true) {
   if (state.status !== 'playing') return;
   if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.CHECK, from: by });
-  const wrong = Model.findWrongCells(state.puzzle, state.marks);
+  const wrong = Board.wrongCells();
   if (wrong.length === 0) {
     if (isSolved()) { win(); return; }
     showToast(t('game.stillCorrect'), 'info');
@@ -2181,7 +2091,7 @@ function confirmThenStartHint() {
 }
 function startHint() {
   const t0 = Date.now();
-  const tut = buildHintTutorial(state.puzzle, state.marks);
+  const tut = Board.buildHint();
   if (!tut) return;
   registerHintPenalty();
   if (state.settings.sfxHint) Music.sfxHint();
@@ -2235,9 +2145,7 @@ function undo(broadcast = true) {
   // Ton nur bei eigener Aktion (broadcast=true); ein vom Partner empfangenes
   // UNDO (broadcast=false) soll lokal keinen Sound auslösen.
   if (broadcast && state.settings.sfxUndo) Music.sfxUndo();
-  const last = state.history.pop();
-  state.marks[last.r][last.c] = last.prev;
-  state.markedBy[last.r][last.c] = null; // prev ist immer 'none' (siehe Markier-Sperre)
+  if (!Board.undoLast()) return;
   log('game', `Rückgängig`);
   persistGame();
   if (broadcast && state.coop.active) coopSend({ type: Coop.MSG.UNDO });
@@ -2400,7 +2308,7 @@ const COOP_LIVE_ACTIVITY = new Set([Coop.MSG.MOVE, Coop.MSG.UNDO, Coop.MSG.CHECK
 // Minimale Struktur-Prüfung eines per INIT empfangenen Puzzles: alles, was das
 // Brett-Template/loadPuzzleIntoState zwingend braucht. Verhindert, dass ein
 // kaputtes INIT die App halb lädt (Spiel-Screen ohne Brett = Blackscreen).
-const validPuzzleShape = (p) => Model.validPuzzleShape(p);
+const validPuzzleShape = (p) => activeGame().model.validPuzzleShape(p);
 // ── Resync-Watchdog (Gast-Selbstheilung) ──────────────────────────────────────
 // Hängt ein Beitretender verbunden im Raum, hat aber nach ein paar Sekunden kein
 // Brett (INIT verloren/verworfen/fehlgeschlagen), fordert er den Rundenstand
@@ -2425,7 +2333,7 @@ function startCoopResyncWatchdog() {
 function stopCoopResyncWatchdog() { if (coopResyncTimer) { clearInterval(coopResyncTimer); coopResyncTimer = null; } }
 watch(coopNeedsResync, (stuck) => { if (stuck) startCoopResyncWatchdog(); else stopCoopResyncWatchdog(); });
 
-function handleCoopMsg(msg) {
+function handleCoopMsg(msg, key = null) {
   // Race hält state.coop.active absichtlich false (s. state.race-Kommentar),
   // empfängt aber legitime PAUSE-Events über den Raum → race.active zählt mit.
   if (COOP_GAME_MSGS.has(msg.type) && (!state.puzzle || (!state.coop.active && !state.team.active && !state.race.active))) return;
@@ -2441,7 +2349,7 @@ function handleCoopMsg(msg) {
     // Coop-Endlos: zwischen zwei Leveln (advancing) keine verspäteten Züge des
     // gerade gelösten Bretts mehr anwenden — sie träfen sonst das nächste Level.
     if (state.endless.active && state.endless.coop && state.endless.advancing) return;
-    setMark(msg.r, msg.c, msg.mark, false, msg.from);
+    Board.applyRemoteMove(msg, key);
   } else if (msg.type === Coop.MSG.UNDO) {
     undo(false);
   } else if (msg.type === Coop.MSG.CHECK) {
@@ -2455,7 +2363,7 @@ function handleCoopMsg(msg) {
     // zeigen (das eigentliche RESUME kommt am Balken-Ende vom Drücker).
     if (state.paused && state.screen === 'game') startResumeCountdown(true);
   } else if (msg.type === Coop.MSG.HINT) {
-    applyHintEffect(msg.r, msg.c, msg.mark, false, msg.from);
+    Board.applyRemoteHint(msg, key);
   } else if (msg.type === Coop.MSG.INIT) {
     // Ein ERNEUT gesendetes INIT (der Host holt einen mitten in der Runde
     // Beigetretenen zuverlässig ab, s. broadcastRunningInit) darf eine bereits
@@ -2482,7 +2390,7 @@ function handleCoopMsg(msg) {
     }
     // Coop-Flags ZUERST setzen (VOR loadPuzzleIntoState): der Beitretende lädt so
     // im Coop-Kontext — saveSlot='coop' (nicht versehentlich 'solo', was den
-    // Solo-Slot mit einem Coop-Brett überschrieb) und applyMarkSafeRegionColors
+    // Solo-Slot mit einem Coop-Brett überschrieb) und Board.onPlayerColorsChanged
     // rechnet gleich mit den Coop-Spielerfarben statt erst nachträglich per watch.
     state.coop.active = true;
     state.coop.connected = true;
@@ -2511,7 +2419,7 @@ function handleCoopMsg(msg) {
     // Leben/Hinweisen in eine halb gespielte Runde einsteigen. gameId übernehmen,
     // damit ein späteres Wiederhol-INIT (s.o.) als Duplikat erkannt wird.
     loadPuzzleIntoState(msg.puzzle, {
-      marks: msg.marks, markedBy: msg.markedBy, startTime: msg.startTime, gameId: msg.gameId,
+      ...Board.boardFieldsFrom(msg), markedBy: msg.markedBy, startTime: msg.startTime, gameId: msg.gameId,
       lives: msg.lives, maxLives: msg.maxLives, hintsLeft: msg.hintsLeft, hintsUsed: msg.hintsUsed, mistakes: msg.mistakes,
     });
     // Coop-Endlos: kumulierte Herz-Verluste (wer welches Leben verbrauchte) vom
@@ -2536,7 +2444,7 @@ function handleCoopMsg(msg) {
     // EINEM Frame. Genau diese Konstellation hat WebKit schon einmal zerlegt (s.
     // js/skins.js). Deshalb die Rotation kurz anhalten, bis das Brett steht — die
     // Klasse `.skin-freeze` gibt es dafuer bereits (Pause-Pfad).
-    startJoinFreeze(countMarked());
+    startJoinFreeze(Board.boardFilledCount());
     // running: die Runde LÄUFT bereits (Solo→Coop-Umwandlung / Nachzügler in einer
     // laufenden Coop-Runde) — sofort starten, OHNE auf das separate START-Event zu
     // warten. Damit kann der Beitretende unter keinen Umständen (Event-Reihenfolge,
@@ -2627,7 +2535,7 @@ function handleCoopMsg(msg) {
         broadcastRunningInit();
       } else if (state.coop.awaitingStart) {
         log('coop', 'RESYNC-Anfrage → sende Lobby-INIT erneut', { from: msg.author });
-        Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime: state.startTime });
+        Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, ...Board.boardFields('wire'), markedBy: wireMarkedBy(), startTime: state.startTime });
       } else if (coopEndlessBetweenLevels()) {
         // Zwischen zwei Endlos-Leveln gibt es nichts zu senden — bisher schwieg
         // der Host hier komplett und der Gast hing für immer. Jetzt bekommt er
@@ -2776,7 +2684,7 @@ function pickAvailableColor(requested, others) {
   return `hsl(${hue} 75% 55%)`;
 }
 function upsertPlayer(id, name, requestedColor, username, badge) {
-  queueMicrotask(applyMarkSafeRegionColors);   // neue Spielerfarbe → Cage-Sichtbarkeit neu prüfen
+  queueMicrotask(Board.onPlayerColorsChanged);   // neue Spielerfarbe → Cage-Sichtbarkeit neu prüfen
   const others = state.coop.players.filter(p => p.id !== id);
   const color = pickAvailableColor(requestedColor, others);
   const existing = state.coop.players.find(p => p.id === id);
@@ -3010,7 +2918,7 @@ function broadcastRunningInit() {
   const endlessExtra = e.active ? { endless: true, endlessLevel: e.level, lifeLossBy: (state.coop.lifeLossBy || []).map(x => x || '') } : {};
   Coop.send({
     type: Coop.MSG.INIT, gameId: state.gameId, running: true,
-    puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime: state.startTime,
+    puzzle: state.puzzle, ...Board.boardFields('wire'), markedBy: wireMarkedBy(), startTime: state.startTime,
     lives: state.lives, maxLives: state.maxLives, hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
     ...endlessExtra,
   });
@@ -3301,7 +3209,7 @@ function startCoopMatch() {
     state.coop.generating = false;
     // gameId mitsenden, damit Gäste sie übernehmen und ein späteres Wiederhol-
     // INIT (Nachzügler-Nachversand, s. broadcastRunningInit) als Duplikat erkennen.
-    Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime: state.startTime });
+    Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, ...Board.boardFields('wire'), markedBy: wireMarkedBy(), startTime: state.startTime });
   }).catch(e => onLobbyGenFailed(e, 'Coop'));
 }
 // Gemeinsamer Fehlerpfad, falls die Lobby-Generierung (Coop-Host/Race/Team)
@@ -3761,7 +3669,7 @@ function win(remote) {
     if (!state.isTrainingGame) {
       state.puzzleHistory = recordHistory({
         difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
-        seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+        seed: state.puzzle.seed, ...Board.boardFields('history'),
         timeMs: state.elapsed, outcome: 'won', coop: state.coop.active,
       });
       recordMissionEvent({
@@ -3827,7 +3735,7 @@ function lose(remote) {
   if (!state.isTrainingGame) {
     state.puzzleHistory = recordHistory({
       difficulty: state.puzzle.difficulty, dim: { r: state.puzzle.rows, c: state.puzzle.cols },
-      seed: state.puzzle.seed, marks: state.marks.map(row => row.slice()),
+      seed: state.puzzle.seed, ...Board.boardFields('history'),
       timeMs: state.elapsed, outcome: 'lost', coop: state.coop.active,
     });
     recordMissionEvent({
@@ -3944,7 +3852,7 @@ function continueSoloAlone(silent = false) {
   state.sessionRev = 0;
   state.startTime = Date.now() - elapsedNow;   // lokale Uhr neu verankern
   state.elapsed = elapsedNow;
-  applyMarkSafeRegionColors();
+  Board.onPlayerColorsChanged();
   persistGame();
   refreshResume();
   if (!silent) showToast(t('coop.continueSoloDone'), 'success', 3200);
@@ -4139,19 +4047,11 @@ function cancelSoloInvite() {
 }
 
 // ─── PERSISTENZ DES LAUFENDEN SPIELS ──────────────────────────────────────────
-function collectHintMarks() {
-  const out = [];
-  for (let r = 0; r < state.cellMeta.length; r++)
-    for (let c = 0; c < state.cellMeta[r].length; c++)
-      if (state.cellMeta[r][c].hintMark) out.push([r, c]);
-  return out;
-}
 function activeSnapshot() {
   return {
-    puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), lives: state.lives, maxLives: state.maxLives,
+    puzzle: state.puzzle, ...Board.boardFields('save'), markedBy: wireMarkedBy(), lives: state.lives, maxLives: state.maxLives,
     hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
     elapsed: state.elapsed, difficulty: state.puzzle.difficulty,
-    hintMarks: collectHintMarks(),
     gameId: state.gameId,   // Partie-Identität mitsichern (Multi-Device-Session/Fortsetzen)
     ts: Date.now(),
   };
@@ -4981,7 +4881,7 @@ function setSetting(key, val) {
 // Eigene Markierungsfarbe oder Brett-Palette geändert → Cage-Farben neu auf
 // Sichtbarkeit der Markierung prüfen. Als watch statt setSetting-Hook, weil der
 // Custom-Farbwähler per v-model DIREKT in state.settings schreibt (kein setSetting).
-watch(() => [state.settings.coopMyColor, state.settings.boardPalette], () => applyMarkSafeRegionColors());
+watch(() => [state.settings.coopMyColor, state.settings.boardPalette], () => Board.onPlayerColorsChanged());
 // Settings-Persist ENTPRELLT (Trailing 250 ms): der Werkzeug-Umschalter schreibt
 // bei JEDEM Wechsel state.settings.confirmTool — das synchrone JSON.stringify +
 // localStorage.setItem lag damit mitten im Tap-Pfad (Teil der gemeldeten
@@ -5097,7 +4997,7 @@ function doDeleteAllData() {
 // Undo, siehe state.history), siehe ROADMAP/Plan.
 function openHistoryDetail(entry) {
   const puzzle = generatePuzzle({ difficulty: entry.difficulty, seed: entry.seed, dim: entry.dim });
-  state.historyDetail = { entry, puzzle, cellMeta: buildCellMeta(puzzle) };
+  state.historyDetail = { entry, puzzle, cellMeta: activeGame().model.buildCellMeta(puzzle) };
 }
 function closeHistoryDetail() { state.historyDetail = null; }
 function historyGridStyle(puzzle) {
@@ -5423,12 +5323,6 @@ function wireMarkedBy() {
   return (state.markedBy || []).map(row => (row || []).map(v => v || ''));
 }
 let joinFreezeTimer = null;
-function countMarked() {
-  let n = 0;
-  const m = state.marks || [];
-  for (const row of m) for (const v of (row || [])) if (v && v !== 'none') n++;
-  return n;
-}
 function startJoinFreeze(marked) {
   state.joinFreeze = true;
   if (joinFreezeTimer) clearTimeout(joinFreezeTimer);
@@ -7454,16 +7348,12 @@ const App = {
       const roster = state.team.active ? state.coop.players.filter(pl => pl.team === state.team.myTeam) : state.coop.players;
       if (!roster.length) return [];
       const p = state.puzzle;
+      // „Richtig" ist Spielregel (Number Sums: korrekt markierte Zellen, Math
+      // Cross: Steine am richtigen Platz) — s. Board.playerCorrect.
       const raw = roster.map(pl => {
-        let correctKept = 0, correctRemoved = 0;
-        for (let r = 0; r < p.rows; r++)
-          for (let c = 0; c < p.cols; c++) {
-            if (state.markedBy[r][c] !== pl.id) continue;
-            if (state.marks[r][c] === 'kept' && p.solution[r][c]) correctKept++;
-            else if (state.marks[r][c] === 'removed' && !p.solution[r][c]) correctRemoved++;
-          }
+        const correct = Board.playerCorrect(pl.id);
         const mistakes = state.coop.mistakesByPlayer[pl.id] || 0;
-        return { id: pl.id, name: pl.name, username: pl.username, color: pl.color, correctKept, correctRemoved, mistakes, correct: correctKept + correctRemoved };
+        return { id: pl.id, name: pl.name, username: pl.username, color: pl.color, correct, mistakes };
       });
       const totalCorrect = raw.reduce((s, pl) => s + pl.correct, 0);
       return raw.map(pl => ({
@@ -7493,13 +7383,7 @@ const App = {
         .map(pl => ({ id: pl.id, name: pl.name, username: pl.username, color: pl.color, mistakes: state.team.opponentMistakesByPlayer[pl.id] || 0 }));
     });
     const progress = computed(() => {
-      if (!state.puzzle) return { kept: 0, total: 0 };
-      let kept = 0, total = 0;
-      const p = state.puzzle;
-      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) {
-        if (p.solution[r][c]) { total++; if (state.marks[r][c] === 'kept') kept++; }
-      }
-      return { kept, total };
+      return Board.boardProgressCounts();
     });
     // Eigener Fortschritt (0-100) für die Fortschrittsanzeige im HUD -- reaktiver
     // Wrapper um progressPct(), das dieselbe Berechnung schon fürs Team-/Race-
@@ -7630,7 +7514,7 @@ const App = {
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, navTo, goBack, newGame, setupStart, goNextPuzzle, startEndless, endlessAgain, endlessContinue, endlessTotalMs, closeEndlessSummary, resumeGame, resumeCoopGame, resumeEndlessGame, onCellTap,
       openMissions, claimMissionReward, missionsClaimable, missionProgressVal, missionDone, missionClaimedUI, missionClaimableUI, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, tutorNext, dismissTutor, tutorStepText, doCheck,
-      rowSum, colSum, regionSum, rowSumR, colSumR, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
+      rowSumR, colSumR, rowResolvedR, colResolvedR, regionResolvedR, rowSumMatch, colSumMatch,
       fmtTime, toggleSetting, setSetting, doExport, doExportLog, doImport,
       resetStats, doDeleteAllData, ask, confirmYes, confirmNo, dismissWhatsNew, dismissStreakLostNotice, dismissStreakExtended,
       checkForUpdate, restartForUpdate, dismissUpdateDialog, safetyBackups, restoreSafetyBackup,
@@ -7675,7 +7559,7 @@ const App = {
       openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle, duelBars,
       canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       canContinueSolo, continueSoloAlone, startResumeCountdown,
-      startTrainingGame, applyTrainingStep,
+      startTrainingGame, applyTrainingStep, trainingText: (step) => Board.trainingText(step),
       openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
       isOnline,
       t, i18nState, SUPPORTED_LOCALES,
@@ -8082,8 +7966,8 @@ const App = {
       <div v-if="state.isTrainingGame && state.status==='playing' && !state.paused" class="training-banner">
         <template v-if="state.trainingStep">
           <div class="training-text">
-            <b>{{ t('training.group.'+state.trainingStep.group.kind, { n: state.trainingStep.group.ref+1 }) }} ({{ t('training.target', { n: state.trainingStep.group.target }) }})</b>
-            <span>{{ t('training.reason.'+state.trainingStep.reason) }}</span>
+            <b>{{ trainingText(state.trainingStep).title }}</b>
+            <span>{{ trainingText(state.trainingStep).body }}</span>
           </div>
           <button class="btn btn-primary btn-sm" @click="applyTrainingStep">{{ t('training.apply') }}</button>
         </template>
@@ -8241,7 +8125,7 @@ const App = {
                 <span v-if="pl.id===mvpId" class="perf-mvp"><span class="ei" v-html="ic('crown')"></span>{{ t('win.mvp') }}</span>
               </div>
               <div class="perf-stats">
-                <span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correctKept + pl.correctRemoved }}</span>
+                <span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correct }}</span>
                 <span class="pm bad"><span class="ei" v-html="ic('heart-broken')"></span>{{ pl.mistakes }}</span>
                 <span class="perf-pct">{{ pl.contributionPct }}%</span>
               </div>
@@ -8304,7 +8188,7 @@ const App = {
                 <span v-if="pl.id===mvpId" class="perf-mvp"><span class="ei" v-html="ic('crown')"></span>{{ t('win.mvp') }}</span>
               </div>
               <div class="perf-stats">
-                <span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correctKept + pl.correctRemoved }}</span>
+                <span class="pm good"><span class="ei" v-html="ic('check')"></span>{{ pl.correct }}</span>
                 <span class="pm bad"><span class="ei" v-html="ic('heart-broken')"></span>{{ pl.mistakes }}</span>
                 <span class="perf-pct">{{ pl.contributionPct }}%</span>
               </div>

@@ -5,6 +5,7 @@ import { DEFAULT_SETTINGS } from './config.js';
 import { log, clearLog } from './debuglog.js';
 import { todayDateStr, sanitizeLastCompleted } from './streak.js';
 import { activeGameId, setActiveGameId, DEFAULT_GAME_ID } from './games/registry.js';
+import { snapshotRules } from './games/snapshots.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -163,7 +164,7 @@ export function saveSettings(s) { save(KEYS.SETTINGS, { ...s, updatedAt: Date.no
 // Solo und Coop liegen in getrennten Slots, damit ein laufendes Coop-Spiel nie
 // den Solo-Spielstand überschreibt (und umgekehrt) -- siehe persistGame() in
 // app.js, das je nach state.coop.active in den passenden Slot schreibt.
-export function loadActiveGame() { return load(KEYS.ACTIVE_GAME, null); }
+export function loadActiveGame() { return healSnapshot(load(KEYS.ACTIVE_GAME, null)); }
 export function saveActiveGame(g) { if (g) save(KEYS.ACTIVE_GAME, g); else remove(KEYS.ACTIVE_GAME); }
 // Backup des durch echte Cross-Device-Divergenz verdrängten Solo-Stands. Rein
 // lokal, NICHT synct (kein Nutzdaten-Key) — dient nur dem „nie still gelöscht"-Prinzip.
@@ -211,11 +212,11 @@ export function mergeCompletedGames(cloudList) {
   save(KEYS.COMPLETED_GAMES, a);
   return a;
 }
-export function loadActiveGameCoop() { return load(KEYS.ACTIVE_GAME_COOP, null); }
+export function loadActiveGameCoop() { return healSnapshot(load(KEYS.ACTIVE_GAME_COOP, null)); }
 export function saveActiveGameCoop(g) { if (g) save(KEYS.ACTIVE_GAME_COOP, g); else remove(KEYS.ACTIVE_GAME_COOP); }
 // Fortsetzbarer Solo-Endlos-Lauf (eigener Slot, damit ein Endlos-Lauf und ein
 // klassisches Solo-Spiel parallel fortsetzbar bleiben). Gerätelokal, nie synct.
-export function loadActiveGameEndless() { return load(KEYS.ACTIVE_GAME_ENDLESS, null); }
+export function loadActiveGameEndless() { return healSnapshot(load(KEYS.ACTIVE_GAME_ENDLESS, null)); }
 export function saveActiveGameEndless(g) { if (g) save(KEYS.ACTIVE_GAME_ENDLESS, g); else remove(KEYS.ACTIVE_GAME_ENDLESS); }
 
 // ─── Kurzlebige Coop-Sitzungsdaten (Auto-Reconnect nach Hintergrund) ─────────
@@ -844,18 +845,11 @@ export async function exportToFile(type = 'manual') {
 // nicht beim bloßen Laden). Kann entstehen, wenn ein „done"-Upload einmal
 // scheiterte (z.B. der frühere Infinity-Bug) und ein alter „playing"-Cloud-Stand
 // mit gelöstem Brett wieder übernommen wird. Rein, unit-getestet.
-export function snapshotSolved(g) {
-  const p = g && g.puzzle;
-  if (!p || !Array.isArray(p.solution) || !Array.isArray(g.marks)) return false;
-  for (let r = 0; r < p.rows; r++) {
-    const sol = p.solution[r], m = g.marks[r];
-    if (!sol || !m) return false;
-    for (let c = 0; c < p.cols; c++) {
-      if (m[c] !== (sol[c] ? 'kept' : 'removed')) return false;
-    }
-  }
-  return true;
-}
+// Die Regel selbst ist je Spiel verschieden und steht in js/games/<id>/snapshot.js.
+export function snapshotSolved(g, game = gameId()) { return snapshotRules(game).snapshotSolved(g); }
+// Ein Stand aus Cloud/Coop kann ein löchriges Rätsel-Raster tragen (RTDB
+// speichert keine null-Werte) — jeder Lesepfad heilt ihn über die Spielregel.
+export function healSnapshot(g, game = gameId()) { return snapshotRules(game).healSnapshot(g); }
 // ─── Bibliothek gespeicherter Partien ────────────────────────────────────────
 // Bisher gab es GENAU EINEN Solo-Slot: ein neues Spiel überschrieb den alten
 // Stand ersatzlos. Hier liegt stattdessen je Partie ein eigener Eintrag,
@@ -911,7 +905,7 @@ export function loadSaves() {
   const a = load(KEYS.SAVES, []);
   if (!Array.isArray(a)) return [];
   const gone = loadSavesGone();
-  return a.filter((g) => g && g.id && !(g.id in gone));
+  return a.filter((g) => g && g.id && !(g.id in gone)).map((g) => healSnapshot(g));
 }
 export function saveSaves(list) { save(KEYS.SAVES, pruneSaves(list)); }
 
@@ -954,24 +948,10 @@ export function removeSave(id) {
   return list;
 }
 
-// Fortschritt eines Stands in Prozent — korrekt gesetzte Zellen / Gesamtzellen.
-// Dieselbe Formel wie progressPct() im Spiel, damit die Anzeige in der Liste und
-// im laufenden Spiel dieselbe Zahl zeigt. Rein, damit sie testbar bleibt.
-export function snapshotProgress(g) {
-  const p = g && g.puzzle;
-  if (!p || !Array.isArray(p.solution) || !Array.isArray(g.marks)) return 0;
-  const total = (Number(p.rows) || 0) * (Number(p.cols) || 0);
-  if (!total) return 0;
-  let ok = 0;
-  for (let r = 0; r < p.rows; r++) {
-    const sol = p.solution[r], m = g.marks[r];
-    if (!sol || !m) continue;
-    for (let c = 0; c < p.cols; c++) {
-      if (m[c] && m[c] !== 'none' && m[c] === (sol[c] ? 'kept' : 'removed')) ok++;
-    }
-  }
-  return Math.round((ok / total) * 100);
-}
+// Fortschritt eines Stands in Prozent — dieselbe Zahl, die das laufende Spiel
+// zeigt. Was „Fortschritt" heißt, ist je Spiel verschieden (Number Sums:
+// korrekt markierte Zellen, Math Cross: belegte offene Felder).
+export function snapshotProgress(g, game = gameId()) { return snapshotRules(game).snapshotProgress(g); }
 
 // Zwei Bibliotheken zusammenführen (Geräte-Merge): Union nach id, bei gleicher id
 // gewinnt der JÜNGERE Stand. Nichts geht verloren, solange die Kappung reicht.

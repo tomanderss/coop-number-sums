@@ -9,6 +9,7 @@ const ASSETS = [
   // ── Spiel-Registry + Spielmodule (js/games/<id>/) ──
   './js/games/registry.js',
   './js/games/index.js',
+  './js/games/snapshots.js',
   './js/games/numbersums/index.js',
   './js/games/numbersums/model.js',
   './js/games/numbersums/difficulty.js',
@@ -20,6 +21,7 @@ const ASSETS = [
   './js/games/numbersums/training.js',
   './js/games/numbersums/duelbot.js',
   './js/games/numbersums/playstyle.js',
+  './js/games/numbersums/snapshot.js',
   './js/games/mathcross/difficulty.js',
   './js/games/mathcross/equations.js',
   './js/games/mathcross/model.js',
@@ -28,6 +30,7 @@ const ASSETS = [
   './js/games/mathcross/genworker.js',
   './js/games/mathcross/hinttutor.js',
   './js/games/mathcross/training.js',
+  './js/games/mathcross/snapshot.js',
   './js/storage.js',
   './js/coop.js',
   './js/firebase.js',

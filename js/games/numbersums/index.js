@@ -14,6 +14,7 @@ import { buildHintTutorial } from './hinttutor.js';
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import * as model from './model.js';
 import { DIFFICULTIES, DIFF_BY_ID, bigNumbersAllowed } from './difficulty.js';
+import * as board from './board.js';
 import { BoardGrid, initBoard } from './board.js';
 import { GAME_META } from '../registry.js';
 
@@ -30,6 +31,10 @@ export const GAME = {
   // `initBoard(ctx)` uebergibt ihr einmalig, was sie von der Schale braucht.
   BoardGrid,
   initBoard,
+  // Die BRETT-SCHNITTSTELLE (dasselbe Modul): laden, speichern, gelöst?,
+  // Fortschritt, Züge von Mitspielern, Rückgängig, Training, Zellgröße. Die
+  // Schale spricht den Brett-Zustand NUR hierüber an (s. Ende von board.js).
+  board,
 
   // Die Schwierigkeitsstufen MIT den Brettmassen und Erzeugungs-Parametern
   // dieses Spiels (die Leiter selbst ist in allen Spielen gleich, s. config.js).

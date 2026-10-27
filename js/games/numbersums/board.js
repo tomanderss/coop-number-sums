@@ -18,13 +18,17 @@
 // einfliessen — sonst rendert jeder Werkzeug-Wechsel wieder alle ~200 Zellen.
 
 import { computed } from '../../vue.esm-browser.prod.js';
-import { REGION_COLORS, regionChipInk } from '../../config.js';
+import { REGION_COLORS, regionChipInk, hexToRgb } from '../../config.js';
 import { SKINPRESET_ITEMS, shopItemById, ownsShopItem, applyPaletteFx } from '../../shopitems.js';
 import { SKIN_ID, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from '../../skins.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
 import * as Coop from '../../coop.js';
 import * as Model from './model.js';
+import { remapColorsForMarkVisibility } from './generator.js';
+import { findTrainingStep } from './training.js';
+import { buildHintTutorial } from './hinttutor.js';
+import { log } from '../../debuglog.js';
 
 // ── Von der Schale injizierte Verweise ───────────────────────────────────────
 // Als Modul-Variablen (nicht als Props), damit die Funktionskoerper beim Umzug
@@ -41,6 +45,7 @@ let registerMistake = () => {};
 let pushMove = () => {};
 let afterMove = () => {};
 let coopSend = () => {};
+let desktopBoard = () => false;
 
 export function initBoard(ctx) {
   state = ctx.state;
@@ -51,6 +56,7 @@ export function initBoard(ctx) {
   pushMove = ctx.pushMove;
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
+  if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
 }
 
 // ── Brett-Optik (Shop/Skin) ──────────────────────────────────────────────────
@@ -465,4 +471,194 @@ export function applyHintEffect(r, c, mark, user = true, fromId) {
   if (resolved > 0 && state.settings.sfxComplete) Music.sfxComplete(resolved);
 
   afterMove();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// BRETT-SCHNITTSTELLE — was die Schale über den Brett-ZUSTAND dieses Spiels
+// wissen muss. Jedes Spiel exportiert dieselben Namen; die Schale ruft sie über
+// `activeGame().board` auf und kennt dadurch weder Markierungen (Number Sums)
+// noch gelegte Steine (Math Cross). Leben, Fehler, Zeit, Persistenz, Coop-
+// Versand und Sieg/Niederlage bleiben Schale.
+// ═════════════════════════════════════════════════════════════════════════════
+
+// Ein empfangenes/gespeichertes Rätsel brauchbar machen. Number Sums übersteht
+// die RTDB ohne Löcher im Rätsel selbst, deshalb unverändert.
+export function normalizePuzzle(p) { return p; }
+
+// Der spieleigene Teil des Brett-Aufbaus (der Rest — Leben, Zeit, markedBy —
+// liegt in der Schale). Läuft in loadPuzzleIntoState NACH `state.puzzle = …`.
+export function loadBoard(puzzle, saved) {
+  state.cellMeta = Model.buildCellMeta(puzzle);
+  onPlayerColorsChanged();   // Cage-Farben meiden die (lokalen) Spielerfarben
+  if (saved && saved.hintMarks) for (const [r, c] of saved.hintMarks) state.cellMeta[r][c].hintMark = true;
+  // Raster IMMER dicht normalisieren (s. markedBy in der Schale): ein über die
+  // RTDB gereistes Raster kann Löcher haben.
+  state.marks = Coop.normalizeGrid(saved?.marks, puzzle.rows, puzzle.cols, 'none');
+  state.tool = state.settings.confirmTool || 'pen';
+  state.hintWarnShown = false;
+  state.hintTutor = null;
+}
+
+function collectHintMarks() {
+  const out = [];
+  for (let r = 0; r < state.cellMeta.length; r++)
+    for (let c = 0; c < state.cellMeta[r].length; c++)
+      if (state.cellMeta[r][c].hintMark) out.push([r, c]);
+  return out;
+}
+
+// Die spieleigenen Felder eines Spielstands. `purpose`:
+//   'wire'    — Coop-INIT (Brett für Mitspieler)
+//   'save'    — Aktivspiel-Slot/Bibliothek (zusätzlich die Tipp-Markierungen)
+//   'history' — Verlaufseintrag (eine KOPIE: der Endstand darf sich nicht mehr ändern)
+export function boardFields(purpose) {
+  if (purpose === 'history') return { marks: state.marks.map((row) => row.slice()) };
+  if (purpose === 'save') return { marks: state.marks, hintMarks: collectHintMarks() };
+  return { marks: state.marks };
+}
+
+// Die Brett-Felder aus einem empfangenen Coop-INIT (bzw. einem Spielstand) ziehen.
+export function boardFieldsFrom(src) { return { marks: src.marks }; }
+
+export function boardSolved() { return Model.isSolved(state.puzzle, state.marks); }
+export function boardProgressPct() { return Model.progressPct(state.puzzle, state.marks); }
+// Wie viele Zellen sind schon belegt (Beitritts-Protokoll, Skin-Freeze)?
+export function boardFilledCount() {
+  let n = 0;
+  for (const row of (state.marks || [])) for (const v of (row || [])) if (v && v !== 'none') n++;
+  return n;
+}
+// Fortschritt als Zähler für die Ergebnis-Anzeige: eingekreiste Lösungszellen.
+export function boardProgressCounts() {
+  const p = state.puzzle;
+  if (!p) return { kept: 0, total: 0 };
+  let kept = 0, total = 0;
+  for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) {
+    if (p.solution[r][c]) { total++; if (state.marks[r][c] === 'kept') kept++; }
+  }
+  return { kept, total };
+}
+// Richtig gesetzte Zellen EINES Spielers (Coop-Verteilung auf der Ergebnis-Karte).
+export function playerCorrect(id) {
+  const p = state.puzzle;
+  let n = 0;
+  for (let r = 0; r < p.rows; r++)
+    for (let c = 0; c < p.cols; c++) {
+      if (state.markedBy[r][c] !== id) continue;
+      if (state.marks[r][c] === 'kept' && p.solution[r][c]) n++;
+      else if (state.marks[r][c] === 'removed' && !p.solution[r][c]) n++;
+    }
+  return n;
+}
+// Falsch markierte Zellen (Grundlage des „Prüfen"-Knopfes).
+export function wrongCells() { return Model.findWrongCells(state.puzzle, state.marks); }
+
+// Züge eines Mitspielers anwenden. `key` = Ereignis-Schlüssel (in Number Sums
+// ungenutzt: eine Zelle wird nur einmal gesetzt, gleichzeitige Züge kollidieren nicht).
+export function applyRemoteMove(msg) { setMark(msg.r, msg.c, msg.mark, false, msg.from); }
+export function applyRemoteHint(msg) { applyHintEffect(msg.r, msg.c, msg.mark, false, msg.from); }
+
+// Den letzten Zug zurücknehmen (nur der Brett-Teil; Ton/Persistenz/Versand
+// macht die Schale). Liefert false, wenn es nichts zurückzunehmen gab.
+export function undoLast() {
+  const last = state.history.pop();
+  if (!last) return false;
+  state.marks[last.r][last.c] = last.prev;
+  state.markedBy[last.r][last.c] = null; // prev ist immer 'none' (siehe Markier-Sperre)
+  return true;
+}
+
+// Verwirft den aktiven Tipp-Tutor, sobald seine Zielzelle gelöst ist — egal
+// wodurch (Auflösen, Coop-Partner-Zug): die Erklärung wäre dann veraltet.
+export function clearStaleTutor() {
+  const tt = state.hintTutor;
+  if (tt && state.marks[tt.target.r][tt.target.c] !== 'none') state.hintTutor = null;
+}
+
+// ── Tipp-Tutor ── (null = gerade kein erklärbarer Zug)
+export function buildHint() { return buildHintTutorial(state.puzzle, state.marks); }
+
+// ── Trainingsmodus ──
+export function trainingStep() { return findTrainingStep(state.puzzle, state.marks); }
+export function applyTrainingStep(step) { setMark(step.r, step.c, step.action, false); }
+// Text des Erklär-Banners: Überschrift (Bereich + Zielsumme) und Begründung.
+export function trainingText(step) {
+  return {
+    title: `${t('training.group.' + step.group.kind, { n: step.group.ref + 1 })} (${t('training.target', { n: step.group.target })})`,
+    body: t('training.reason.' + step.reason),
+  };
+}
+
+// Cage-Farben so wählen, dass die eigene(n) Markierungsfarbe(n) darauf sichtbar
+// bleiben — eine pinke Cage macht einen pinken Einkreis-Ring unsichtbar. Läuft
+// beim Brettaufbau, bei Farb-/Palettenwechsel und wenn im Coop neue Spieler(farben)
+// dazukommen. Bewusst clientseitig: jedes Gerät färbt für SEINE Spielerfarbe
+// sicher (das Puzzle selbst bleibt identisch).
+export function onPlayerColorsChanged() {
+  const p = state.puzzle;
+  if (!p || !p.regions || !state.cellMeta.length) return;
+  const fx = activePaletteFx();
+  const effectiveColors = REGION_COLORS.map((c) => applyPaletteFx(c, fx));
+  const avoid = [state.settings.coopMyColor, ...(state.coop.active ? state.coop.players.map((pl) => pl.color) : [])]
+    .map(hexToRgb).filter(Boolean);
+  const idxs = remapColorsForMarkVisibility({ regions: p.regions, rows: p.rows, cols: p.cols, effectiveColors, avoidRgbs: avoid });
+  let remapped = 0;
+  p.regions.forEach((reg, ri) => {
+    const color = REGION_COLORS[idxs[ri]];
+    if (idxs[ri] !== ((reg.colorIndex || 0) % REGION_COLORS.length)) remapped++;
+    for (const [r, c] of reg.cells) state.cellMeta[r][c].color = color;
+  });
+  resetCellStyleCache();   // gecachte --rc-*-Styles gehören zur alten Färbung
+  if (remapped) log('game', 'Cage-Farben wegen Spielerfarbe umgelenkt', { remapped });
+}
+
+// ── Zellgröße (responsiv + Zoom) ──
+// Misst die tatsächlich verfügbare Fläche von .board-wrap (Breite UND Höhe),
+// damit Zellen im Querformat (wo die Höhe statt der Breite limitiert) nicht zu
+// groß werden. Vor dem ersten Render (DOM noch nicht da) greift ein grober
+// Fallback über window.innerWidth/-Height, den der nextTick-Aufruf in
+// loadPuzzleIntoState() danach durch die echte Messung ersetzt. Gehört zum
+// Spiel, weil das Raster es tut: hier Zellen plus EINE Kopfzeile/-spalte.
+export function fitBoard() {
+  if (!state.puzzle) return;
+  const cols = state.puzzle.cols;
+  const rows = state.puzzle.rows;
+  const wrap = document.querySelector('.board-wrap');
+  let availW, availH;
+  if (wrap && wrap.clientWidth && wrap.clientHeight) {
+    availW = wrap.clientWidth - 12; // 2*6px Board-Wrap-Padding
+    availH = wrap.clientHeight - 12;
+  } else {
+    availW = Math.min(window.innerWidth - 44, 496); // 2*(14px App-Padding + 6px Board-Wrap-Padding) + Sicherheitspuffer
+    availH = window.innerHeight - 200; // grobe Schätzung für Kopf-/Werkzeugleiste vor dem ersten Render
+  }
+  // Aktiver Brett-Rahmen legt außen einen 10px-Innenabstand um die Spielfläche
+  // (2*10 = 20px je Achse, s. .board[class*="frame-"] in styles.css). Dieser
+  // Platz muss VOR der Zellgröße abgezogen werden, sonst wird das Brett um 20px
+  // breiter/höher als der verfügbare Raum und ragt aus dem Bildschirm.
+  const framePad = boardFrameClass() ? 20 : 0;
+  availW -= framePad; availH -= framePad;
+  const idealW = Math.floor(availW / (cols + 1)); // +1 für Kopfspalte
+  const idealH = Math.floor(availH / (rows + 1)); // +1 für Kopfzeile
+  const ideal = Math.min(idealW, idealH);
+  // Deckel für die Auto-Einpassung: begrenzt die Zellgröße, damit kleine Bretter
+  // auf großen Displays nicht riesig wirken. Skaliert mit der kürzeren Bildschirm-
+  // kante (= bindende Achse, da das Brett in BEIDE Richtungen passen muss), damit
+  // es auf JEDEM Gerät und in JEDER Ausrichtung so groß wie sinnvoll möglich ist:
+  //  • Desktop (Maus + breites Fenster): 128px — .app.app-game ist dort breit.
+  //  • Tablet / großes Querformat (kurze Kante ≥ 600px, z.B. iPad in beiden
+  //    Ausrichtungen): Deckel wächst mit der kurzen Kante (bis 120px), sonst
+  //    begrenzte der alte 56er-Handy-Deckel das Feld auf iPad/Querformat unnötig.
+  //  • Handy (kurze Kante < 600px, inkl. Handy-Querformat mit niedriger Höhe): 56px.
+  // Die tatsächlich verfügbare Fläche kommt weiterhin aus der .board-wrap-Messung
+  // (availW/availH) — der Deckel ist nur die Obergrenze, kein fixer Wert.
+  const shortSide = Math.min(window.innerWidth || 0, window.innerHeight || 0);
+  const cap = desktopBoard() ? 128
+    : (shortSide >= 600 ? Math.min(120, Math.round(shortSide * 0.14)) : 56);
+  // KEIN hoher Mindestwert mehr: Beim Öffnen MUSS das ganze Brett passen — lieber
+  // kleine Zellen als eine abgeschnittene Zeile/Spalte. Der frühere 26px-Boden
+  // ließ das größte Brett (14×14 = 15 Einheiten) auf schmalen Handys eine Spalte
+  // aus dem Bild ragen. Nur ein winziger Boden gegen 0 in Extremfällen.
+  const base = Math.max(10, Math.min(cap, ideal));
+  state.cellPx = Math.round(base * state.zoom);
 }
