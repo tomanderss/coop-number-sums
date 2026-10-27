@@ -24,7 +24,7 @@ export default {
   },
 
   solo: { title: '솔로', classic: '클래식', classicHint: '퍼즐 하나, 자유 난이도', endless: '엔드리스 클라임', endlessHint: '점점 더 어렵게 — 얼마나 갈 수 있나?', endlessStart: '엔드리스 시작' },
-  endless: { badge: '엔드리스', best: '최고 기록: 레벨 {n}', cleared: '레벨 {n} 클리어!', lifeGained: '+1 목숨', overTitle: '게임 종료', reached: '레벨 {n} 도달', record: '신기록!', levelDone: '레벨 {n} 클리어!', continue: '계속', livesLabel: '목숨', levelShort: '레벨 {n}', levelTime: '이 레벨 시간', totalTime: '전체 런 시간', backfillToast: '과거 엔드리스 런 반영: {runs}회 런의 {wins}승이 통계에 추가되었습니다!' },
+  endless: { badge: '엔드리스', best: '최고 기록: 레벨 {n}', cleared: '레벨 {n} 클리어!', lifeGained: '+1 목숨', overTitle: '게임 종료', reached: '레벨 {n} 도달', record: '신기록!', levelDone: '레벨 {n} 클리어!', continue: '계속', livesLabel: '목숨', levelShort: '레벨 {n}', levelTime: '이 레벨 시간', totalTime: '전체 런 시간', backfillToast: '과거 엔드리스 런 반영: {runs}회 런의 {wins}승이 통계에 추가되었습니다!', waitingForNextLevel: '레벨 {level} 클리어 — 방장이 다음 레벨을 시작하기를 기다리는 중 …' },
 
   saves: { title: '저장된 게임', manage: '저장 게임 관리', moreN: '다른 저장 게임 ({n})', livesLeft: '남은 생명 {n}/{max}', openN: '모든 저장 ({n})', intro: '게임마다 따로 저장됩니다. 새로 시작해도 이전 기록은 남습니다. 최대 {max}개까지 보관됩니다.', running: '진행 중', delete: '삭제', deleteTitle: '저장을 삭제할까요?', deleteMsg: '이 저장은 완전히 삭제됩니다.', deleted: '저장을 삭제했습니다', empty: '저장된 게임이 아직 없습니다.', justNow: '방금', minsAgo: '{n}분 전', hoursAgo: '{n}시간 전', yesterday: '어제', daysAgo: '{n}일 전' },
 

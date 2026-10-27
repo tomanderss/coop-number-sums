@@ -24,7 +24,7 @@ export default {
   },
 
   solo: { title: 'ソロ', classic: 'クラシック', classicHint: '1問、好きな難易度で', endless: 'エンドレス・クライム', endlessHint: 'どんどん難しく——どこまで行ける？', endlessStart: 'エンドレス開始' },
-  endless: { badge: 'エンドレス', best: '最高記録: レベル{n}', cleared: 'レベル{n}クリア！', lifeGained: '+1 ライフ', overTitle: 'ゲーム終了', reached: 'レベル{n}到達', record: '新記録！', levelDone: 'レベル{n}クリア！', continue: '続ける', livesLabel: 'ライフ', levelShort: 'レベル{n}', levelTime: 'このレベルの時間', totalTime: 'ラン全体の時間', backfillToast: '過去のエンドレスランを反映: {runs}回のランの{wins}勝が統計に加算されました！' },
+  endless: { badge: 'エンドレス', best: '最高記録: レベル{n}', cleared: 'レベル{n}クリア！', lifeGained: '+1 ライフ', overTitle: 'ゲーム終了', reached: 'レベル{n}到達', record: '新記録！', levelDone: 'レベル{n}クリア！', continue: '続ける', livesLabel: 'ライフ', levelShort: 'レベル{n}', levelTime: 'このレベルの時間', totalTime: 'ラン全体の時間', backfillToast: '過去のエンドレスランを反映: {runs}回のランの{wins}勝が統計に加算されました！', waitingForNextLevel: 'レベル{level}クリア — ホストが次のレベルを始めるのを待っています …' },
 
   saves: { title: 'セーブデータ', manage: 'セーブデータを管理', moreN: 'ほかのセーブデータ（{n}）', livesLeft: '残りライフ {n}/{max}', openN: 'すべてのセーブ（{n}）', intro: '対局ごとに個別に保存されます。新しく始めても前のデータは残ります。{max}件まで保存できます。', running: '進行中', delete: '削除', deleteTitle: 'セーブを削除しますか？', deleteMsg: 'このセーブは完全に削除されます。', deleted: 'セーブを削除しました', empty: '保存された対局はまだありません。', justNow: 'たった今', minsAgo: '{n}分前', hoursAgo: '{n}時間前', yesterday: '昨日', daysAgo: '{n}日前' },
 

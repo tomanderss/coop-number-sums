@@ -585,4 +585,11 @@ export const MSG = {
   CHAT: 'chat',
   RESYNC: 'resync',   // Gast ohne Brett bittet den Host, den Rundenstand erneut zu senden (Selbstheilung)
   RESUME_COUNT: 'resumeCount', // jemand hat „Fortsetzen" gedrückt → alle zeigen den ablaufenden Countdown-Balken
+  // Coop-Endlos ZWISCHEN zwei Leveln: der Host hat noch kein neues Brett, kann
+  // einem (wieder) beitretenden Gast also weder einen laufenden Rundenstand noch
+  // ein Lobby-INIT schicken. Ohne diese Nachricht antwortete er gar nicht und der
+  // Gast blieb in der Bereit-Lobby haengen (in Coop Math Cross gemeldet und dort
+  // behoben; derselbe Code steckte hier). Sie sagt ihm: Lauf laeuft, Level N ist
+  // geschafft, warte auf den Host.
+  ENDLESS_WAIT: 'endlessWait',
 };
