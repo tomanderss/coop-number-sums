@@ -391,7 +391,7 @@ const boardFontClass = fwd('boardFontClass'), boardFrameClass = fwd('boardFrameC
 const rowResolvedR = fwd('rowResolvedR'), colResolvedR = fwd('colResolvedR'), regionResolvedR = fwd('regionResolvedR'),
   rowSumR = fwd('rowSumR'), colSumR = fwd('colSumR'), rowSumMatch = fwd('rowSumMatch'), colSumMatch = fwd('colSumMatch');
 const cellAriaLabel = fwd('cellAriaLabel'), cellClasses = fwd('cellClasses'), cellStyle = fwd('cellStyle'),
-  resetCellStyleCache = fwd('resetCellStyleCache'), boardRenders = fwd('boardRenders');
+  resetCellStyleCache = fwd('resetCellStyleCache'), boardRenders = fwd('boardRenders'), cellRenders = fwd('cellRenders');
 // Die Skin-/Brett-Computeds des Bretts (Vue-Refs): ein eigener Computed liest
 // die reaktive Spiel-Kennung mit und folgt so dem Wechsel.
 const boardRef = (name) => computed(() => (currentGame.id, Board[name] ? Board[name].value : undefined));
@@ -410,7 +410,20 @@ const HistoryBoardSlot = slotComponent('HistoryBoardSlot', (g) => g.board.Histor
 
 
 let timerHandle = null;
-let saveThrottle = 0;
+// Autosave nach Zügen: GEBÜNDELT und NACH dem Tipp (persistGameSoon), nie im
+// Tipp-Pfad selbst. Vorher lief persistGame bei jedem Zug synchron mit (Snapshot,
+// JSON, localStorage, Bibliothek) und war zusätzlich nur VORNE gedrosselt: der
+// erste Zug einer schnellen Folge wurde gespeichert, alle weiteren innerhalb von
+// 400 ms gar nicht — auch nicht ein Verstecken/Beenden direkt danach (der letzte
+// Zug fehlte dann beim Fortsetzen). Jetzt: persistGame() speichert IMMER sofort
+// (Lebenszyklus, Pause, Sieg, …), persistGameSoon() spätestens 400 ms nach dem
+// ersten ungespeicherten Zug.
+const PERSIST_DELAY_MS = 400;
+let persistTimer = null;
+function persistGameSoon() {
+  if (persistTimer) return;
+  persistTimer = setTimeout(() => { persistTimer = null; persistGame(); }, PERSIST_DELAY_MS);
+}
 let coopIntentionalLeave = false; // unterscheidet bewusstes Verlassen von echtem Verbindungsabbruch
 
 // ─── HELFER ───────────────────────────────────────────────────────────────────
@@ -1965,7 +1978,7 @@ function resetZoom() {
 
 function afterMove() {
   Board.clearStaleTutor();
-  persistGame();
+  persistGameSoon();
   if (state.team.active) pushTeamProgress();
   if (state.race.active) pushRaceProgress();
   if (isSolved()) win();
@@ -4117,6 +4130,7 @@ function endlessSnapshot() {
   };
 }
 function persistGame() {
+  if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; }
   // Slot-Entscheidung über die STABILE state.saveSlot (beim Laden gesetzt), NICHT
   // über state.coop.active — dessen kurzes Flackern bei Rejoin/Rollenwechsel führte
   // sonst dazu, dass ein Coop-/Team-Spiel in den SOLO-Slot geschrieben und der
@@ -4132,13 +4146,9 @@ function persistGame() {
   // Live-Session (kein Fortsetzen hier).
   if (state.saveSlot === 'endless' || state.endless.active) {
     if (state.endless.active && !state.endless.coop && state.status === 'playing' && state.puzzle) {
-      const now = Date.now();
-      if (now - saveThrottle >= 400) {
-        saveThrottle = now;
-        const snap = endlessSnapshot();
-        saveActiveGameEndless(snap);
-        rememberSave(snap, 'endless', endlessSaveId());
-      }
+      const snap = endlessSnapshot();
+      saveActiveGameEndless(snap);
+      rememberSave(snap, 'endless', endlessSaveId());
     }
     return;
   }
@@ -4175,9 +4185,6 @@ function persistGame() {
     refreshResume();
     return;
   }
-  const now = Date.now();
-  if (now - saveThrottle < 400) return;
-  saveThrottle = now;
   if (state.saveSlot === 'coop') {
     saveActiveGameCoop(activeSnapshot());
     // lastEventKey = Wiederaufsetzpunkt: der spätere rejoin() hängt den Event-
@@ -9769,7 +9776,7 @@ app.mount('#app');
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
 if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint,
-  boardRenders, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+  boardRenders, cellRenders, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');
