@@ -543,29 +543,54 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   animation: pop .5s cubic-bezier(.2,1.3,.5,1);
 }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-/* Spielauswahl auf dem Startbildschirm: ein Logo je Spiel. Das laufende Spiel
-   steht groß mit dem Leucht-Schatten des früheren Einzel-Logos, die anderen
-   kleiner und zurückgenommen — ein Tipp wechselt (die App lädt neu). Nur
-   transform/opacity im Übergang (iOS-Compositor-Regel). */
-.game-switch { display: flex; align-items: flex-end; justify-content: center; gap: 18px; }
-.game-tile {
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  background: none; border: 0; padding: 0; color: var(--text2); font: inherit; cursor: pointer;
-  opacity: .62; transition: opacity .2s, transform .2s;
+/* Spielauswahl = rotierende Scheibe (js/gamewheel.js). Die Logos sitzen auf
+   einer gedachten Scheibe: Mitte groß und vorn, Nachbarn kleiner, nach hinten
+   gekippt und blasser. Position/Neigung/Größe setzt die Komponente als
+   transform je Logo; hier nur Bühne, Perspektive und das weiche Einrasten.
+   NUR transform/opacity werden animiert (iOS-Compositor-Regel). */
+.game-wheel {
+  position: relative; width: 100%; height: 168px; margin: 2px 0 0;
+  touch-action: pan-y; user-select: none; -webkit-user-select: none;
+  cursor: grab; outline: none;
 }
-.game-tile:active { transform: scale(.95); }
-.game-tile.on { opacity: 1; color: var(--text); cursor: default; }
-.game-tile-logo {
-  width: 58px; height: 58px; border-radius: 16px; display: block;
-  box-shadow: 0 4px 12px var(--shadow);
+.game-wheel.dragging { cursor: grabbing; }
+.game-wheel:focus-visible .gw-item.on .gw-logo { outline: 3px solid var(--accent); outline-offset: 4px; }
+.gw-stage { position: absolute; inset: 0 0 46px; perspective: 900px; perspective-origin: 50% 45%; }
+.gw-item {
+  position: absolute; left: 50%; top: 50%; width: 112px; height: 112px; margin: -56px 0 0 -56px;
+  padding: 0; border: 0; background: none; cursor: inherit;
+  transform-style: preserve-3d; will-change: transform, opacity;
+  transition: transform .55s cubic-bezier(.22,1,.36,1), opacity .55s cubic-bezier(.22,1,.36,1);
+  -webkit-tap-highlight-color: transparent;
 }
-.game-tile.on .game-tile-logo {
-  width: 88px; height: 88px; border-radius: 24px;
-  box-shadow: 0 12px 38px var(--accent-soft), 0 4px 12px var(--shadow);
-  animation: pop .5s cubic-bezier(.2,1.3,.5,1);
+.game-wheel.dragging .gw-item, .game-wheel.dragging .gw-name, .game-wheel.dragging .gw-glow { transition: none; }
+.gw-logo {
+  position: relative; display: block; width: 100%; height: 100%; border-radius: 28px;
+  box-shadow: 0 10px 26px var(--shadow); pointer-events: none;
 }
-.game-tile-name { font-size: .74rem; font-weight: 800; letter-spacing: .1px; }
-.game-tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 18px; }
+/* Leuchten hinter dem Logo in der Mitte — eigene Ebene, die nur in der
+   Deckkraft blendet (kein animierter box-shadow). */
+.gw-glow {
+  position: absolute; inset: -18px; border-radius: 40px; pointer-events: none;
+  background: radial-gradient(closest-side, var(--accent-soft), transparent 75%);
+  transform: scale(1.25); transition: opacity .55s ease;
+}
+.gw-names { position: absolute; left: 0; right: 0; bottom: 18px; height: 22px; pointer-events: none; }
+.gw-name {
+  position: absolute; left: 0; right: 0; text-align: center;
+  font-size: .95rem; font-weight: 900; letter-spacing: .1px; color: var(--text);
+  transition: opacity .45s ease, transform .55s cubic-bezier(.22,1,.36,1);
+}
+.gw-dots { position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+.gw-dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--text3); opacity: .5; transition: transform .35s, opacity .35s, background-color .35s; }
+.gw-dots i.on { background: var(--accent); opacity: 1; transform: scaleX(2.2); }
+/* Menü unter der Scheibe blendet beim Spielwechsel weich über. */
+.gswap-enter-active, .gswap-leave-active { transition: opacity .2s ease, transform .2s ease; }
+.gswap-enter-from { opacity: 0; transform: translateY(10px); }
+.gswap-leave-to { opacity: 0; transform: translateY(-6px); }
+@media (prefers-reduced-motion: reduce) {
+  .gw-item, .gw-name, .gw-glow, .gswap-enter-active, .gswap-leave-active { transition-duration: .01s; }
+}
 .brand-title { font-size: 1.6rem; font-weight: 900; line-height: 1.05; margin: 4px 0 0; letter-spacing: -.5px; }
 .brand-sub { color: var(--text2); font-size: .9rem; }
 .home-actions { display: flex; flex-direction: column; gap: 8px; }

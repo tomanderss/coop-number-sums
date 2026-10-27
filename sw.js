@@ -40,6 +40,7 @@ const ASSETS = [
   './js/session.js',
   './js/debuglog.js',
   './js/mcmigration.js',
+  './js/gamewheel.js',
   './js/streak.js',
   './js/achievements.js',
   './js/endless.js',

@@ -32,7 +32,7 @@ export const SUPPORTED_LOCALES = [
 
 const FALLBACK_LOCALE = 'de';
 
-export const i18nState = reactive({ locale: FALLBACK_LOCALE });
+export const i18nState = reactive({ locale: FALLBACK_LOCALE, gameRev: 0 });
 
 export function detectLocale() {
   const nav = (navigator.language || FALLBACK_LOCALE);
@@ -54,15 +54,21 @@ function resolve(path, table) {
 
 // Spieleigene Text-Ebene: ein Spiel kann einzelne Schlüssel ergänzen oder anders
 // fassen (Math Cross erklärt eine andere Spielregel als Number Sums). Sie liegt
-// ÜBER den gemeinsamen Texten und wird einmal beim Start gesetzt (ein
-// Spielwechsel lädt die App neu). Struktur: { de: {…}, en: {…}, … } — fehlt eine
-// Sprache, gilt deren Fallback (de) der Ebene, erst danach die gemeinsamen Texte.
+// ÜBER den gemeinsamen Texten und wird beim Start UND bei jedem Spielwechsel
+// gesetzt (der Wechsel lädt nicht neu). Struktur: { de: {…}, en: {…}, … } —
+// fehlt eine Sprache, gilt deren Fallback (de) der Ebene, erst danach die
+// gemeinsamen Texte. `i18nState.gameRev` macht den Austausch reaktiv: t() liest
+// den Zähler mit, also zeichnet sich jeder Text nach dem Wechsel neu.
 let gameMessages = null;
-export function setGameMessages(table) { gameMessages = table && typeof table === 'object' ? table : null; }
+export function setGameMessages(table) {
+  gameMessages = table && typeof table === 'object' ? table : null;
+  i18nState.gameRev = (i18nState.gameRev || 0) + 1;
+}
 
 // t('game.errorsFound', { count: 3 }) -> "3 Fehler gefunden"
 export function t(key, params) {
   let msg;
+  void i18nState.gameRev;   // Abhängigkeit: Spielwechsel tauscht die Text-Ebene
   if (gameMessages) {
     msg = resolve(key, gameMessages[i18nState.locale]);
     // Fallback innerhalb der Ebene NUR, wenn die aktive Sprache den Schlüssel

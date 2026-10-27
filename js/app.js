@@ -1,5 +1,5 @@
 // app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
-import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref } from './vue.esm-browser.prod.js';
+import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref, h } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
 import { todayDateStr } from './streak.js';
@@ -7,8 +7,9 @@ import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
 import * as Music from './music.js';
-import { activeGame, GAME_IDS } from './games/index.js';
-import { gameMeta } from './games/registry.js';
+import { activeGame, GAME_IDS, GAMES, gameById } from './games/index.js';
+import { gameMeta, DEFAULT_GAME_ID } from './games/registry.js';
+import { GameWheel } from './gamewheel.js';
 // Die SPIELSPEZIFISCHEN Funktionen kommen aus dem Modul des laufenden Spiels
 // (js/games/<id>/index.js), nicht mehr per direktem Import: der Rest dieser
 // Datei ist die SCHALE, die fuer jedes Spiel dieselbe ist. Als duenne Weiche
@@ -63,17 +64,24 @@ const mcLocalMigration = runLocalMcMigration();
 
 // Die Schwierigkeitsstufen des LAUFENDEN Spiels (Brettmasse + Parameter kommen
 // aus dem Spielmodul, Name/Icon/Leitfarbe sind in allen Spielen gleich). Bewusst
-// EINMAL beim Laden gebunden: das Spiel steht zu diesem Zeitpunkt schon fest
-// (restoreGameChoice laeuft vor allem anderen), und ein Spielwechsel laedt die
-// App neu — er tauscht Brett, Leiter, Generator und Statistik zugleich aus, ein
-// Neustart ist dafuer der einzig verlaessliche saubere Zustand.
-const { DIFFICULTIES, DIFF_BY_ID, bigNumbersAllowed } = activeGame();
+// Das laufende Spiel als REAKTIVE Kennung: ein Spielwechsel geschieht im
+// laufenden Betrieb (switchGame, ohne Neuladen) und tauscht Leiter, Brett,
+// Texte, Optik und die spieleigenen Daten aus — alles, was das Template davon
+// zeigt, hängt über `currentGame.id` daran und zeichnet sich von selbst neu.
+const currentGame = reactive({ id: activeGame().id });
+// Die Leiter ist in allen Spielen dieselbe (Ids, Namen, Farben); nur Brettmaße
+// und Erzeugungs-Parameter unterscheiden sich. Deshalb EIN reaktives Array, dessen
+// Inhalt beim Wechsel ausgetauscht wird — Aufrufer und Template behalten dieselbe
+// Referenz.
+const DIFFICULTIES = reactive([...activeGame().DIFFICULTIES]);
+const DIFF_BY_ID = reactive({ ...activeGame().DIFF_BY_ID });
+const bigNumbersAllowed = (id) => activeGame().bigNumbersAllowed(id);
 // Spieleigene Texte (Anleitung, Werkzeug-Namen …) als Ebene über die gemeinsamen.
 setGameMessages(activeGame().messages || null);
 // Was die Schale je Spiel ein- oder ausblendet (Tipps, Werkzeug-Umschalter,
-// KI-Duell, Markier-Werkzeuge …) — s. `features` in js/games/<id>/index.js.
-const GAME_FEATURES = activeGame().features || {};
-function gameHas(f) { return !!GAME_FEATURES[f]; }
+// Markier-Werkzeuge …) — s. `features` in js/games/<id>/index.js. Liest die
+// reaktive Kennung, damit das Menü einem Wechsel sofort folgt.
+function gameHas(f) { return !!(gameById(currentGame.id).features || {})[f]; }
 
 const APP_START = Date.now();
 const splashVersion = document.getElementById('splash-version');
@@ -353,26 +361,52 @@ const state = reactive({
 // Die Funktionen unten sind Funktions-Deklarationen und damit hier schon
 // gebunden (hoisting); die computeds im Brett-Modul sind lazy und greifen erst
 // beim ersten Render zu, also nach diesem Aufruf.
-const Board = activeGame().board;
+// Das Brett des LAUFENDEN Spiels. `let`, weil switchGame es im laufenden
+// Betrieb austauscht; alle Aufrufe gehen über `Board.x(...)` bzw. die Weichen
+// unten und treffen damit immer das aktuelle Spiel.
+let Board = activeGame().board;
 // Platzhalter für Steckplätze, die ein Spiel nicht belegt (z.B. der Vorrat unter
 // dem Brett, den es nur in Math Cross gibt).
 const EMPTY_COMPONENT = { render: () => null };
 // Math Cross: Auswahl des Geteilt-Zeichens (reine Anzeige). Leer in Spielen ohne Division.
-const DIV_STYLES = activeGame().divStyles || [];
+const DIV_STYLES = reactive([...(activeGame().divStyles || [])]);
 const DIV_STYLE_DEFAULT = 'obelus';
-Board.initBoard({
-  state, LOCAL_PLAYER_ID, playerColor, shopEquippedId, desktopBoard,
-  registerMistake, afterMove, coopSend, persistGame, ask,
+// ALLE Bretter einmal anbinden (reine Zuweisungen) — dann ist ein Spielwechsel
+// nur noch ein Umhängen von `Board`.
+for (const g of GAMES) {
+  g.board.initBoard({
+    state, LOCAL_PLAYER_ID, playerColor, shopEquippedId, desktopBoard,
+    registerMistake, afterMove, coopSend, persistGame, ask,
+  });
+}
+// Weichen auf das aktuelle Brett (früher eine Destrukturierung beim Laden, die
+// nach einem Wechsel weiter das alte Spiel getroffen hätte). Fehlt eine Funktion
+// in einem Spiel (Math Cross kennt z.B. keine Zeilensummen), liefert die Weiche
+// undefined — so wie vorher die Destrukturierung.
+const fwd = (name) => (...a) => (Board[name] ? Board[name](...a) : undefined);
+const onCellTap = fwd('onCellTap'), onCellPointerDown = fwd('onCellPointerDown'),
+  onCellPointerMove = fwd('onCellPointerMove'), onCellPointerCancel = fwd('onCellPointerCancel');
+const setMark = fwd('setMark'), applyHintEffect = fwd('applyHintEffect'), flashError = fwd('flashError'), pulseResolved = fwd('pulseResolved');
+const boardFontClass = fwd('boardFontClass'), boardFrameClass = fwd('boardFrameClass'), activePaletteFx = fwd('activePaletteFx');
+const rowResolvedR = fwd('rowResolvedR'), colResolvedR = fwd('colResolvedR'), regionResolvedR = fwd('regionResolvedR'),
+  rowSumR = fwd('rowSumR'), colSumR = fwd('colSumR'), rowSumMatch = fwd('rowSumMatch'), colSumMatch = fwd('colSumMatch');
+const cellAriaLabel = fwd('cellAriaLabel'), cellClasses = fwd('cellClasses'), cellStyle = fwd('cellStyle'),
+  resetCellStyleCache = fwd('resetCellStyleCache'), boardRenders = fwd('boardRenders');
+// Die Skin-/Brett-Computeds des Bretts (Vue-Refs): ein eigener Computed liest
+// die reaktive Spiel-Kennung mit und folgt so dem Wechsel.
+const boardRef = (name) => computed(() => (currentGame.id, Board[name] ? Board[name].value : undefined));
+const skinUnlocked = boardRef('skinUnlocked'), skinPresetOwned = boardRef('skinPresetOwned'), skinActive = boardRef('skinActive'),
+  skinVars = boardRef('skinVars'), skinBoardClasses = boardRef('skinBoardClasses'), gridStyle = boardRef('gridStyle');
+// Steckplätze im Template: dünne Hüllen, die das Brett, den Vorrat und das
+// Verlaufs-Brett des aktuellen Spiels zeichnen. Sie hängen nur an der Kennung —
+// die Brett-Komponente darunter behält ihre eigene Render-Isolation (perf.spec.js).
+const slotComponent = (name, pick) => ({
+  name, inheritAttrs: false,
+  setup(_, { attrs }) { return () => h(pick(gameById(currentGame.id)) || EMPTY_COMPONENT, attrs); },
 });
-const {
-  BoardGrid,
-  onCellTap, onCellPointerDown, onCellPointerMove, onCellPointerCancel,
-  setMark, applyHintEffect, flashError, pulseResolved,
-  boardFontClass, boardFrameClass, activePaletteFx,
-  skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, gridStyle,
-  rowResolvedR, colResolvedR, regionResolvedR, rowSumR, colSumR, rowSumMatch, colSumMatch,
-  cellAriaLabel, cellClasses, cellStyle, resetCellStyleCache, boardRenders,
-} = Board;
+const BoardGrid = slotComponent('BoardGridSlot', (g) => g.BoardGrid);
+const BoardBelowSlot = slotComponent('BoardBelowSlot', (g) => g.BoardBelow);
+const HistoryBoardSlot = slotComponent('HistoryBoardSlot', (g) => g.board.HistoryBoard);
 
 
 let timerHandle = null;
@@ -3171,7 +3205,7 @@ function startHosting() {
     code: state.coop.code,
     name: state.settings.coopName,
     color: state.settings.coopMyColor,
-    game: ACTIVE_GAME_ID,
+    game: gameId(),
     onOpen(id) {
       state.coop.myId = id;
       state.coop.hostId = id;
@@ -3414,7 +3448,7 @@ function startJoining() {
     code: state.coop.code,
     name: state.settings.coopName,
     color: state.settings.coopMyColor,
-    game: ACTIVE_GAME_ID,
+    game: gameId(),
     maxPlayers: (state.coop.raceMode && !state.coop.ffaMode) ? 2 : COOP_MAX_PLAYERS,
     onOpen(id) {
       // Eigene ID dieser Session sichern und sofort dem Host die eigene Identität
@@ -3934,7 +3968,7 @@ function inviteToSoloGame(attempt = 0) {
     code,
     name: state.settings.coopName,
     color: state.settings.coopMyColor,
-    game: ACTIVE_GAME_ID,
+    game: gameId(),
     onOpen(id) { onSoloInviteRoomOpen(id, code); },
     onError(e) {
       if (e && e.type === 'code-taken' && attempt < 3) {
@@ -4465,7 +4499,7 @@ function attemptCoopRejoin(sess) {
   state.coop.waitingForGuest = true;
   state.coop.online = true;
   Coop.rejoin({
-    code: sess.code, name: sess.name, color: sess.color, role: sess.role, game: ACTIVE_GAME_ID,
+    code: sess.code, name: sess.name, color: sess.color, role: sess.role, game: gameId(),
     // Nur die während der Abwesenheit verpassten Events nachziehen — ohne den
     // Anker würde die komplette Historie replayed (INIT überschreibt den
     // wiederhergestellten Spielstand und reaktiviert die Bereit-Lobby).
@@ -6608,38 +6642,94 @@ function reloadLoopTripped(reason) {
 // lädt nie mitten in einem Spiel/Coop neu (schiebt auf bis navigate('home')) und
 // bricht Reload-Schleifen ab.
 // ─── SPIELAUSWAHL ────────────────────────────────────────────────────────────
-// Alle Spiele mit Logo für die Auswahl auf dem Startbildschirm. Ein Wechsel
-// lädt die App neu: Brett, Schwierigkeits-Leiter, Generator, Texte, Optik und
-// die spieleigenen Daten hängen alle am beim Laden gebundenen Spiel.
+// Alle Spiele mit Logo für das Karussell auf dem Startbildschirm. Ein Wechsel
+// geschieht im LAUFENDEN Betrieb (früher: Neuladen): Brett, Leiter, Texte,
+// Optik, Generator und die spieleigenen Daten werden umgehängt, das Menü folgt
+// über die reaktive Kennung `currentGame.id` von selbst.
 const GAME_LIST = GAME_IDS.map((id) => gameMeta(id));
-const ACTIVE_GAME_ID = activeGame().id;
+// Spieleigene Optik-Ebene (css/games/<id>.css) ein-/aushängen — dieselbe Regel
+// wie das Skript im <head> von index.html, das sie beim Start synchron setzt.
+function applyGameCss(id) {
+  let link = document.getElementById('game-css');
+  if (id !== DEFAULT_GAME_ID) {
+    const href = './css/games/' + id + '.css';
+    if (!link) { link = document.createElement('link'); link.id = 'game-css'; link.rel = 'stylesheet'; document.head.appendChild(link); }
+    if (!link.href.endsWith(href.slice(1))) link.href = href;
+  } else if (link) link.remove();
+  document.documentElement.setAttribute('data-game', id);
+}
+// Alles, was aus den spieleigenen Speicher-Schlüsseln kommt, neu einlesen.
+function reloadGameScopedState() {
+  state.stats = loadStats();
+  state.raceStats = loadRace();
+  state.puzzleHistory = loadHistory();
+  state.achievements = loadAchievements();
+  initMissions();
+  refreshResume();
+}
+// Liefert true, wenn gewechselt wurde (oder schon das Spiel lief).
 function switchGame(id) {
-  if (id === ACTIVE_GAME_ID) return;
-  // Mitten in einer Partie/Lobby wird nicht gewechselt — der Wechsel lädt neu,
-  // und das darf eine laufende Runde nie abreißen (s. safeReload).
-  if (gameSessionActive()) { showToast(t('games.busy'), 'info', 2500); return; }
-  log('app', 'Spielwechsel angefordert', { von: ACTIVE_GAME_ID, nach: id });
+  if (id === currentGame.id) return true;
+  if (!gameById(id)) return false;
+  // Mitten in einer Partie/Lobby wird nicht gewechselt — das darf eine laufende
+  // Runde nie abreißen.
+  if (gameSessionActive()) { showToast(t('games.busy'), 'info', 2500); return false; }
+  const t0 = performance.now();
+  const von = currentGame.id;
   persistGame();
   flushSettingsSave();
-  chooseGame(id);
-  safeReload('gameSwitch');
+  chooseGame(id);                                  // Speicher-Schlüssel + cns_game
+  const g = activeGame();
+  Board = g.board;
+  DIFFICULTIES.splice(0, DIFFICULTIES.length, ...g.DIFFICULTIES);
+  for (const k of Object.keys(DIFF_BY_ID)) delete DIFF_BY_ID[k];
+  Object.assign(DIFF_BY_ID, g.DIFF_BY_ID);
+  DIV_STYLES.splice(0, DIV_STYLES.length, ...(g.divStyles || []));
+  setGameMessages(g.messages || null);
+  applyGameCss(id);
+  resetCellStyleCache();
+  // Der Generator-Worker gehört zum Spiel: den alten beenden, einen neuen starten.
+  if (genWorker) { try { genWorker.terminate(); } catch (_) {} genWorker = null; }
+  genReqPending.forEach((p) => p.reject(new Error('game switched')));
+  genReqPending.clear();
+  initGenWorker();
+  currentGame.id = id;                             // ab hier zeichnet das Menü das neue Spiel
+  reloadGameScopedState();
+  if (window.__cns) Object.assign(window.__cns, Board.testHooks ? Board.testHooks() : {}, { board: Board });
+  log('app', 'Spiel gewechselt (ohne Neuladen)', { von, nach: id, tookMs: Math.round(performance.now() - t0) });
+  // Konto: die Spiel-Hälfte des neuen Spiels mit der Cloud abgleichen und die
+  // spielbezogenen Beobachter umhängen.
+  if (state.account.status === 'in') {
+    stopSessionWatch();
+    Account.reconcile().then((r) => {
+      if (r.decision === 'conflict') { openVersionMismatch(r); return; }
+      if (r.decision === 'takeCloud' || r.decision === 'merged') {
+        state.wallet = loadWallet(); state.walletLog = loadWalletLog(); state.inventory = loadInventory();
+        reloadGameScopedState();
+      }
+      startSessionWatch();
+      reconcileSession();
+      syncBestTimesToLeaderboard();
+      log('app', 'Spielwechsel: Cloud abgeglichen', { decision: r.decision });
+    });
+  }
+  maybeShowDivStyle();
+  return true;
 }
-// Beitritt in einen Raum, in dem das andere Spiel läuft: Auftrag merken (Code +
-// Modus), Spiel wechseln, neu laden — nach dem Start holt resumePendingJoin()
-// den Beitritt nach, wieder über das Namens-Gate.
+// Beitritt in einen Raum, in dem das andere Spiel läuft: Spiel wechseln (im
+// laufenden Betrieb) und sofort über das Namens-Gate beitreten.
 function joinInOtherGame(game) {
   const mode = state.coop.teamMode ? '2v2' : state.coop.ffaMode ? 'ffa' : state.coop.raceMode ? '1v1' : 'coop';
-  log('coop', 'Raum spielt ein anderes Spiel – wechsle und trete danach bei', { raum: game, eigenes: ACTIVE_GAME_ID, code: state.coop.code, mode });
-  savePendingJoin({ code: state.coop.code, mode, game });
+  const code = state.coop.code;
+  log('coop', 'Raum spielt ein anderes Spiel – wechsle und trete bei', { raum: game, eigenes: currentGame.id, code, mode });
   coopReset();
-  flushSettingsSave();
-  chooseGame(game);
-  safeReload('joinOtherGame');
+  if (!switchGame(game)) return;
+  openJoinGate(code, mode);
 }
 function resumePendingJoin() {
   const job = takePendingJoin();
   if (!job) return;
-  if (job.game && job.game !== ACTIVE_GAME_ID) { log('coop', 'Nachgeholter Beitritt verworfen: falsches Spiel', job); return; }
+  if (job.game && job.game !== currentGame.id) { log('coop', 'Nachgeholter Beitritt verworfen: falsches Spiel', job); return; }
   log('coop', 'Hole Beitritt nach Spielwechsel nach', { code: job.code, mode: job.mode });
   openJoinGate(job.code, job.mode);
 }
@@ -7046,7 +7136,7 @@ const DifficultySlider = {
 //  KOMPONENTE / TEMPLATE
 // ════════════════════════════════════════════════════════════════════════════
 const App = {
-  components: { DifficultySlider, BoardGrid, BoardBelow: activeGame().BoardBelow || EMPTY_COMPONENT, HistoryBoard: Board.HistoryBoard },
+  components: { DifficultySlider, GameWheel, BoardGrid, BoardBelow: BoardBelowSlot, HistoryBoard: HistoryBoardSlot },
   setup() {
     const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
     // Coop/Race/Team: zeigt der Coop-Screen gerade die Host-Schwierigkeitsauswahl?
@@ -7280,7 +7370,7 @@ const App = {
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, friendInRoom, anyFriendOnline, friendActivityText,
       skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
-      GAME_LIST, ACTIVE_GAME_ID, switchGame,
+      GAME_LIST, currentGame, switchGame, gameWheelItems: computed(() => GAME_LIST.map((g) => ({ id: g.id, logo: g.logo, name: t(g.nameKey) }))),
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL, BRAND_LOGO,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
@@ -7289,7 +7379,7 @@ const App = {
       canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       canContinueSolo, continueSoloAlone, startResumeCountdown,
       startTrainingGame, applyTrainingStep, trainingText: (step) => Board.trainingText(step),
-      B: Board, gameHas, divStyles: DIV_STYLES, activeDivStyleId: computed(() => state.settings.divStyle || DIV_STYLE_DEFAULT), chooseDivStyle, dragScaleLabel,
+      B: computed(() => (currentGame.id, Board)), gameHas, divStyles: DIV_STYLES, activeDivStyleId: computed(() => state.settings.divStyle || DIV_STYLE_DEFAULT), chooseDivStyle, dragScaleLabel,
       openHistoryDetail, closeHistoryDetail, replayHistoryEntry,
       isOnline,
       t, i18nState, SUPPORTED_LOCALES,
@@ -7324,13 +7414,10 @@ const App = {
         <!-- Spielauswahl: ein Logo je Spiel, das laufende groß und leuchtend.
              Ein Tipp auf ein anderes Spiel lädt die App mit diesem Spiel neu
              (Brett, Leiter, Generator und Statistik wechseln gemeinsam). -->
-        <div class="game-switch" role="tablist" :aria-label="t('games.choose')">
-          <button v-for="g in GAME_LIST" :key="g.id" class="game-tile" :class="{ on: g.id===ACTIVE_GAME_ID }"
-                  role="tab" :aria-selected="String(g.id===ACTIVE_GAME_ID)" @click="switchGame(g.id)">
-            <img class="game-tile-logo" :src="g.logo" decoding="sync" alt="" />
-            <span class="game-tile-name">{{ t(g.nameKey) }}</span>
-          </button>
-        </div>
+        <!-- Spielauswahl = rotierende Scheibe (js/gamewheel.js): das laufende Spiel
+             groß in der Mitte, ziehen/antippen dreht ein anderes hinein; der
+             Wechsel geschieht ohne Neuladen (switchGame). -->
+        <game-wheel :items="gameWheelItems" :current="currentGame.id" :label="t('games.choose')" @select="switchGame"></game-wheel>
         <h1 class="brand-title">Coop<br>Number Games</h1>
         <!-- Profil-Chip: öffnet den Prestige-Screen. Zeigt das ausgerüstete
              verdiente Abzeichen (oder eine Einladung, eins zu verdienen). -->
@@ -7341,7 +7428,8 @@ const App = {
         </button>
       </div>
 
-      <div class="home-actions">
+      <transition name="gswap" mode="out-in">
+      <div class="home-actions" :key="currentGame.id">
         <!-- Fortsetzen-Angebote stehen UNTEREINANDER und pro Bereich gibt es
              GENAU EINES: ein Knopf fuer Solo (klassisch ODER Endlos — der
              zuletzt gespielte gewinnt) und einer fuer Coop. Nebeneinander
@@ -7393,15 +7481,12 @@ const App = {
           <button class="btn btn-ghost" @click="navTo('history')"><span class="btn-ic"><span class="ei" v-html="ic('clock')"></span></span> {{ t('home.history') }}</button>
         </div>
       </div>
+      </transition>
       <button class="home-version" @click="checkForUpdate" :title="t('update.check')" :aria-label="t('update.check')">v{{ BUILD }}<span v-if="state.updateCheck === 'busy'" class="ei uc-spin" v-html="ic('refresh')"></span></button>
     </section>
 
 
     <!-- ══ SETUP (Slider-Schwierigkeitsauswahl mit morphendem Hintergrund) ══ -->
-    <!-- KI-Duell: Schwierigkeit (wie im Solo-Setup) + Gegnerstaerke. Der Bot
-         orientiert sich an den eigenen DURCHSCHNITTSzeiten (nicht Bestzeiten);
-         die feste Stufe und der Prozent-Regler wirken beide auf dieselbe
-         Zielzeit. Kein Raum/keine Lobby -> laeuft auch offline. -->
     <section v-else-if="state.screen==='setup'" class="screen setup setup-slider" :style="diffVars(state.sel.difficulty)">
       <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
       <header class="topbar setup-top">
@@ -9668,7 +9753,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, board: Board, gameId: activeGame().id, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint,
   boardRenders, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 

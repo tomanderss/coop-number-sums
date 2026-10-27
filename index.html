@@ -32,7 +32,7 @@
         var g = JSON.parse(localStorage.getItem('cns_game') || 'null');
         if (g === 'mathcross') {
           var l = document.createElement('link');
-          l.rel = 'stylesheet'; l.href = './css/games/' + g + '.css';
+          l.id = 'game-css'; l.rel = 'stylesheet'; l.href = './css/games/' + g + '.css';
           document.head.appendChild(l);
         }
         document.documentElement.setAttribute('data-game', g === 'mathcross' ? g : 'numbersums');
