@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.231';
-export const BUILD_HASH = '07d9a1f';
+export const BUILD      = '1.232';
+export const BUILD_HASH = '71c2fe7';
 
 export const CHANGELOG = [
+  {
+    "version": "1.232",
+    "date": "27.10.2026",
+    "changes": [
+      "Startseite fühlt sich jetzt wie eine App an: nichts lässt sich mehr seitlich verschieben, kein Zoomen, keine Scrollbalken — und sie passt auch auf kleine Handys ohne Scrollen"
+    ]
+  },
   {
     "version": "1.231",
     "date": "27.10.2026",
