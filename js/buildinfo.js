@@ -7,7 +7,7 @@ export const CHANGELOG = [
     "version": "1.223",
     "date": "27.10.2026",
     "changes": [
-      "- Training: es wird jetzt zuverlässig ein Rätsel gefunden, das sich Schritt für Schritt erklären lässt (blieb vorher gelegentlich ohne „Anwenden“-Knopf hängen)"
+      "Training: es wird jetzt zuverlässig ein Rätsel gefunden, das sich Schritt für Schritt erklären lässt (blieb vorher gelegentlich ohne „Anwenden“-Knopf hängen)"
     ]
   },
   {
