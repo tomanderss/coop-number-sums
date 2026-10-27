@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.229';
-export const BUILD_HASH = '7c83dbb';
+export const BUILD      = '1.230';
+export const BUILD_HASH = 'b7193aa';
 
 export const CHANGELOG = [
+  {
+    "version": "1.230",
+    "date": "27.10.2026",
+    "changes": [
+      "Spielauswahl als drehbare Scheibe: ziehen oder antippen — das Spiel wechselt flüssig und ohne Neuladen"
+    ]
+  },
   {
     "version": "1.229",
     "date": "27.10.2026",
