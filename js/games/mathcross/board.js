@@ -1139,6 +1139,5 @@ export function testHooks() {
   return {
     placeAt, clearAt, pickTile, dropOn, dragLift: DRAG_LIFT, firstBlank,
     placeOne: () => { const b = firstBlank(); if (b) placeAt(b.r, b.c, b.v); return b; },
-    placedCount: () => boardFilledCount(),
   };
 }

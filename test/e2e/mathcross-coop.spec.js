@@ -229,7 +229,7 @@ test.describe('coop', () => {
       players: window.__cns.state.coop.players.map(p => p.name).sort(),
       markedByFirst: window.__cns.state.markedBy[window.__testFirst.r][window.__testFirst.c],
       gameStatus: window.__cns.state.status,
-      soloSlot: JSON.parse(localStorage.getItem('cmc_active_game') || 'null'),
+      soloSlot: JSON.parse(localStorage.getItem('cns_active_game__mathcross') || 'null'),
     }));
     expect(s.status).toBe('converted');
     expect(s.coopActive).toBe(true);

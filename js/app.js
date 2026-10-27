@@ -1904,6 +1904,14 @@ function onBoardWrapResized() {
     if (box === lastBoardBox) return;      // nichts Neues → keine weitere Runde
     lastBoardBox = box;
     computeCellSize();
+    // Die Spielfläche kann während der Partie wachsen (Math Cross: mit jedem
+    // gelegten Stein verliert der Vorrat irgendwann eine Reihe, .board-wrap
+    // bekommt deren Höhe dazu). WebKit macht den freigewordenen Streifen dabei
+    // nicht immer sauber ungültig — es blieben ALTE Brett-Pixel stehen (in Coop
+    // Math Cross gemeldet, kein DOM-Element). Derselbe Opacity-Stups wie bei der
+    // iOS-Schwarzbild-Prävention erzwingt das Neuzeichnen. Läuft nur bei ECHTER
+    // Größenänderung, ein paar Mal pro Partie, ohne Layout-Änderung.
+    nudgeRepaint('boardResize');
   });
 }
 function observeBoardWrap() {

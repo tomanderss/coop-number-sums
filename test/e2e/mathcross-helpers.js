@@ -1,6 +1,9 @@
 // Helfer für die Math-Cross-E2E-Tests (übernommen aus Coop Math Cross,
 // test/e2e/helpers.js). Einziger Unterschied: gotoApp wählt vorher Math Cross
 // als aktives Spiel, und die Generator-Importe zeigen ins Spielmodul.
+// Speicher-Schlüssel: die spieleigenen Daten von Math Cross liegen hier unter
+// `cns_<name>__mathcross` (in Coop Math Cross waren es `cmc_<name>`), die
+// kontoweiten (Einstellungen, Guthaben …) unter `cns_<name>`.
 // Shared helpers for the Playwright E2E suite. The app exposes a debug hook
 // (window.__cns = { state, placeAt, placeOne, isSolved, … }) gated to localhost/127.0.0.1
 // in js/app.js -- our webServer always runs on 127.0.0.1, so every test can

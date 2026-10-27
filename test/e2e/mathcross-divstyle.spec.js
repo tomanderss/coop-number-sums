@@ -14,6 +14,10 @@ import { gotoApp, startNewGame } from './mathcross-helpers.js';
 test.describe('Geteilt-Zeichen', () => {
   // Wie gotoApp, aber OHNE die Wahl vorzubelegen — hier geht es ja genau darum.
   async function startenOhneVorbelegung(page) {
+    // Math Cross als aktives Spiel (die Frage gehört nur zu diesem Spiel).
+    await page.addInitScript(() => {
+      try { if (!localStorage.getItem('cns_game')) localStorage.setItem('cns_game', JSON.stringify('mathcross')); } catch {}
+    });
     await page.goto('/');
     await page.waitForSelector('#splash', { state: 'hidden', timeout: 15000 });
     const whatsNew = page.locator('.whatsnew-badge');
@@ -62,8 +66,8 @@ test.describe('Geteilt-Zeichen', () => {
   test('ein Bestandsnutzer ohne gespeicherte Wahl wird nach dem Update gefragt', async ({ page }) => {
     test.setTimeout(120000);
     await page.addInitScript(() => {
-      if (!localStorage.getItem('cmc_settings')) {
-        localStorage.setItem('cmc_settings', JSON.stringify({
+      if (!localStorage.getItem('cns_settings')) {
+        localStorage.setItem('cns_settings', JSON.stringify({
           themeMode: 'dark', coopName: 'Alt', markColor: '#f2c024', dragScale: 1,
           appTheme: 'standard', numberFont: 'classic', updatedAt: Date.now() - 86400000,
         }));
@@ -79,6 +83,9 @@ test.describe('Geteilt-Zeichen', () => {
   // beim ersten Start nach einem Update gar nicht.
   test('der Update-Dialog hat Vorrang, die Frage kommt danach', async ({ page }) => {
     test.setTimeout(120000);
+    await page.addInitScript(() => {
+      try { if (!localStorage.getItem('cns_game')) localStorage.setItem('cns_game', JSON.stringify('mathcross')); } catch {}
+    });
     await page.goto('/');
     await page.waitForSelector('#splash', { state: 'hidden', timeout: 15000 });
     // Frischer Kontext: „Was ist neu" liegt obenauf, die Frage wartet dahinter.

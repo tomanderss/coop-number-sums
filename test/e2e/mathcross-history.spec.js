@@ -86,13 +86,13 @@ test.describe('resume', () => {
         markedBy: [[null, null, null]],
         elapsed: 5000, ts: Date.now(),
       };
-      localStorage.setItem('cmc_active_game', JSON.stringify(solved));
+      localStorage.setItem('cns_active_game__mathcross', JSON.stringify(solved));
     });
     await gotoApp(page);
     // Kein Fortsetzen-Button, und der gelöste Slot wurde aufgeräumt.
     await expect(page.locator('.btn-resume')).toHaveCount(0);
     expect(await page.evaluate(() => window.__cns.state.resumeAvailable)).toBeNull();
-    expect(await page.evaluate(() => localStorage.getItem('cmc_active_game'))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('cns_active_game__mathcross'))).toBeNull();
   });
 
   test('an unsolved saved game IS offered as resume', async ({ page }) => {
@@ -110,7 +110,7 @@ test.describe('resume', () => {
         markedBy: [[null, null, null]],
         elapsed: 5000, ts: Date.now(),
       };
-      localStorage.setItem('cmc_active_game', JSON.stringify(unsolved));
+      localStorage.setItem('cns_active_game__mathcross', JSON.stringify(unsolved));
     });
     await gotoApp(page);
     await expect(page.locator('.btn-resume')).toBeVisible();
@@ -134,7 +134,7 @@ test.describe('Fortsetzbares ist immer verwaltbar', () => {
     // muss also NACH pagehide und VOR dem App-Start passieren — genau dafuer ist
     // addInitScript da. So bootet die App mit vollem Aktivspiel-Slot und leerer
     // Bibliothek: die Lage, in der der Verwalten-Knopf verschwand.
-    await page.addInitScript(() => localStorage.setItem('cmc_saves', '[]'));
+    await page.addInitScript(() => localStorage.setItem('cns_saves__mathcross', '[]'));
     await page.reload();
     await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
     await page.waitForFunction(() => window.__cns && window.__cns.state.saves);
@@ -157,12 +157,12 @@ test.describe('Fortsetzbares ist immer verwaltbar', () => {
 
     // Loeschen wie im Bibliotheks-Dialog: Grabstein + Aktivspiel-Slot raeumen.
     await page.evaluate((gid) => {
-      localStorage.setItem('cmc_saves_gone', JSON.stringify({ [gid]: Date.now() }));
+      localStorage.setItem('cns_saves_gone__mathcross', JSON.stringify({ [gid]: Date.now() }));
     }, id);
     // Wie oben: erst nach pagehide leeren, sonst schreibt die App beides zurueck.
     await page.addInitScript(() => {
-      localStorage.setItem('cmc_saves', '[]');
-      localStorage.setItem('cmc_active_game', JSON.stringify(null));
+      localStorage.setItem('cns_saves__mathcross', '[]');
+      localStorage.setItem('cns_active_game__mathcross', JSON.stringify(null));
     });
     await page.reload();
     await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
