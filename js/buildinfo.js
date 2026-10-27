@@ -1,8 +1,22 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.218';
-export const BUILD_HASH = 'ce7f9f4';
+export const BUILD      = '1.219';
+export const BUILD_HASH = 'dfb4df5';
 
 export const CHANGELOG = [
+  {
+    "version": "1.219",
+    "date": "27.10.2026",
+    "changes": [
+      "Datenbank-Regeln fuer Coop Number Sums und Coop Math Cross zusammengefuehrt (beide Apps teilen ein Firebase-Projekt)",
+      "Technischer Umbau: Schwierigkeitsstufen je Spiel einstellbar (Vorbereitung fuer mehrere Spiele)",
+      "Coop-Endlos: ein Mitspieler, der zwischen zwei Leveln die Verbindung verliert, haengt nicht mehr in der Bereit-Lobby fest",
+      "Absicherung: ein einzelnes ungueltiges Feld laesst Cloud-Sync und Coop-Nachrichten nicht mehr komplett scheitern",
+      "1v1: die Schwierigkeitsauswahl fuer die Revanche ist auf niedrigen Bildschirmen wieder vollstaendig erreichbar",
+      "Am Desktop legt sich eine harmlose Browser-Warnung nicht mehr als roter Fehlerbildschirm ueber die Partie",
+      "Spielstaende: was zum Fortsetzen angeboten wird, steht jetzt immer auch in der Liste (und ist damit loeschbar); geloeschte Staende tauchen nicht mehr als Fortsetzen auf",
+      "Startbildschirm zeigt nach dem Anmelden sofort den Benutzernamen; Freunde ohne gespeicherten Namen werden mit ihrem Namen statt einer Kennung angezeigt"
+    ]
+  },
   {
     "version": "1.218",
     "date": "26.10.2026",
