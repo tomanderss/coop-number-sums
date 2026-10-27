@@ -595,6 +595,7 @@ export default {
     historyTitle: 'Historique des pièces',
     historyEmpty: 'Aucune transaction pour l\u2019instant. Gagne des parties ou achète dans la boutique pour remplir ton historique.',
     reason: {
+      migration: 'Transfert depuis Math Cross',
       win: 'Récompense de victoire',
       endless: 'Ascension sans fin',
       mission: 'Récompense de mission',
@@ -801,5 +802,9 @@ export default {
     cellUnmarked: 'non marquée',
   },
   error: {
+  },
+  migration: {
+    localDone: 'Tes données Math Cross ont été transférées.',
+    localDoneCoins: 'Tes données Math Cross ont été transférées — {n} pièces créditées.',
   },
 };

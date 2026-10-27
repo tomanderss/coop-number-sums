@@ -707,6 +707,7 @@ export default {
     historyTitle: 'Geldverlauf',
     historyEmpty: 'Noch keine Buchungen. Gewinne Spiele oder kaufe im Shop, um deinen Verlauf zu füllen.',
     reason: {
+      migration: 'Übernahme aus Math Cross',
       win: 'Sieg-Belohnung',
       endless: 'Endlos-Aufstieg',
       mission: 'Missions-Belohnung',
@@ -913,5 +914,9 @@ export default {
     cellUnmarked: 'unmarkiert',
   },
   error: {
+  },
+  migration: {
+    localDone: 'Deine Math-Cross-Daten wurden übernommen.',
+    localDoneCoins: 'Deine Math-Cross-Daten wurden übernommen — {n} Münzen gutgeschrieben.',
   },
 };

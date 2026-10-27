@@ -595,6 +595,7 @@ export default {
     historyTitle: 'Coin history',
     historyEmpty: 'No transactions yet. Win games or buy in the shop to fill your history.',
     reason: {
+      migration: 'Transferred from Math Cross',
       win: 'Win reward',
       endless: 'Endless Climb',
       mission: 'Mission reward',
@@ -801,5 +802,9 @@ export default {
     cellUnmarked: 'unmarked',
   },
   error: {
+  },
+  migration: {
+    localDone: 'Your Math Cross data has been transferred.',
+    localDoneCoins: 'Your Math Cross data has been transferred — {n} coins credited.',
   },
 };
