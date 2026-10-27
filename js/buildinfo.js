@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.222';
-export const BUILD_HASH = 'a2f71f6';
+export const BUILD      = '1.223';
+export const BUILD_HASH = '2da021b';
 
 export const CHANGELOG = [
+  {
+    "version": "1.223",
+    "date": "27.10.2026",
+    "changes": [
+      "- Training: es wird jetzt zuverlässig ein Rätsel gefunden, das sich Schritt für Schritt erklären lässt (blieb vorher gelegentlich ohne „Anwenden“-Knopf hängen)"
+    ]
+  },
   {
     "version": "1.222",
     "date": "27.10.2026",
