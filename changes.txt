@@ -1,1 +1,0 @@
-Technischer Umbau: Spielstaende und Brett werden ueber eine gemeinsame Schnittstelle angesprochen (Vorbereitung fuer Math Cross)
