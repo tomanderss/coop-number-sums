@@ -1932,12 +1932,37 @@ function computeCellSize() {
 // eingepasst — die erste (evtl. noch nicht ausgemessene) Berechnung wird direkt
 // korrigiert, kein Zeilen/Spalten-Overflow beim Start/Fortsetzen.
 let boardResizeObserver = null;
+let boardResizeRaf = 0;
+let lastBoardBox = '';
+// Der Rückruf darf NICHT synchron rechnen: computeCellSize schreibt cellPx, das
+// Brett ändert daraufhin seine Größe, .board-wrap meldet erneut — im selben Frame.
+// Schafft der Browser die Zustellung nicht, meldet er „ResizeObserver loop
+// completed with undelivered notifications" (harmlos, aber in Coop Math Cross als
+// roter Vollbild-Fehler über der Partie gemeldet; dort kippte das Ablagefach
+// zwischen Zeilenzahlen und die Größe pendelte). Hier reproduziert die Schleife
+// ohne Ablagefach nicht — die Absicherung gilt der Schale, in die Math Cross
+// mitsamt Ablagefach einzieht: einmal pro Frame rechnen (rAF) und nur, wenn sich
+// die gemessene Größe wirklich geändert hat; damit endet die Kette nach dem
+// ersten Durchlauf.
+function onBoardWrapResized() {
+  if (boardResizeRaf) return;
+  boardResizeRaf = requestAnimationFrame(() => {
+    boardResizeRaf = 0;
+    const wrap = document.querySelector('.board-wrap');
+    if (!wrap) return;
+    const box = `${wrap.clientWidth}x${wrap.clientHeight}`;
+    if (box === lastBoardBox) return;      // nichts Neues → keine weitere Runde
+    lastBoardBox = box;
+    computeCellSize();
+  });
+}
 function observeBoardWrap() {
   try {
     if (typeof ResizeObserver !== 'function') return;
     const wrap = document.querySelector('.board-wrap');
     if (!wrap) return;
-    if (!boardResizeObserver) boardResizeObserver = new ResizeObserver(() => computeCellSize());
+    lastBoardBox = '';
+    if (!boardResizeObserver) boardResizeObserver = new ResizeObserver(onBoardWrapResized);
     else boardResizeObserver.disconnect();
     boardResizeObserver.observe(wrap);
   } catch (_) {}
