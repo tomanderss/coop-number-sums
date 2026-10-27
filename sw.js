@@ -20,8 +20,6 @@ const ASSETS = [
   './js/games/numbersums/genworker.js',
   './js/games/numbersums/hinttutor.js',
   './js/games/numbersums/training.js',
-  './js/games/numbersums/duelbot.js',
-  './js/games/numbersums/playstyle.js',
   './js/games/numbersums/snapshot.js',
   './js/games/mathcross/difficulty.js',
   './js/games/mathcross/equations.js',

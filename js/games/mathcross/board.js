@@ -9,8 +9,7 @@
 // lagen sie auf dem einen großen `state` der App. Geändert wurden nur die
 // Anbindungen: was die Schale beisteuert (Zustand, Spielerfarben, Shop-Auswahl,
 // Leben/Fehler, Persistenz, Coop-Versand, Rückfrage-Dialog) kommt einmalig über
-// `initBoard(ctx)`, und das Zug-Log über den `pushMove`-Rückruf (startPlayLog
-// weist es neu zu, eine Referenz wäre sofort veraltet).
+// `initBoard(ctx)`.
 //
 // RENDER-PERFORMANCE (Kernregeln in CLAUDE.md) gilt hier genauso: Brett und
 // Vorrat sind EIGENE Child-Komponenten, alle Ableitungen cachende computeds,
@@ -37,7 +36,6 @@ let LOCAL_PLAYER_ID = 'local';
 let playerColor = () => null;
 let shopEquippedId = () => '';
 let registerMistake = () => {};
-let pushMove = () => {};
 let afterMove = () => {};
 let coopSend = () => null;
 let persistGame = () => {};
@@ -50,7 +48,6 @@ export function initBoard(ctx) {
   playerColor = ctx.playerColor;
   shopEquippedId = ctx.shopEquippedId;
   registerMistake = ctx.registerMistake;
-  pushMove = ctx.pushMove;
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.persistGame) persistGame = ctx.persistGame;
@@ -383,7 +380,6 @@ function applyChanges(changes, { user = true, fromId = null, hint = false, event
     }
     if (bad.length) {
       for (const ch of bad) flashError(ch.r, ch.c);
-      for (const ch of bad) pushMove({ r: ch.r, c: ch.c, v: ch.v, t: state.elapsed, err: 1 });
       registerMistake();
       return false;
     }
@@ -408,7 +404,6 @@ function applyChanges(changes, { user = true, fromId = null, hint = false, event
     if (ch.v != null) taken.push(ch.v);
     state.placed[ch.r][ch.c] = ch.v;
     state.markedBy[ch.r][ch.c] = ch.v == null ? null : (user ? (state.coop.myId || LOCAL_PLAYER_ID) : fromId);
-    if (ch.v != null) pushMove(user ? { r: ch.r, c: ch.c, v: ch.v, t: state.elapsed } : { r: ch.r, c: ch.c, v: ch.v, t: state.elapsed, other: 1 });
   }
   for (const v of freed) returnToTray(state.tray, v);
   for (const v of taken) takeFromTray(state.tray, v);

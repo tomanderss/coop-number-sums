@@ -23,7 +23,6 @@ import {
   dataRev, setDataRev, syncedRev, setSyncedRev, hasLocalData, loadLastSync, saveLastSync,
   deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, mergeSaves, mergeSavesGone, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
-  mergePlaySamples,
   gameId, splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
 } from './storage.js';
 
@@ -209,7 +208,6 @@ export function mergeSnapshots(local = {}, cloud = {}) {
     inventory: { ...(cloud.inventory || {}), ...(local.inventory || {}) },            // Union
     wallet: newer.wallet || (localNewer ? cloud.wallet : local.wallet) || {},
     walletLog: mergeWalletLogs(local.walletLog, cloud.walletLog),   // Herkunfts-Verlauf beider Seiten vereinigen
-    playSamples: mergePlaySamples(local.playSamples, cloud.playSamples),  // Spielstil beider Geräte vereinigen (eigener KI-Klon)
     completedGames: [...new Set([...(local.completedGames || []), ...(cloud.completedGames || [])])],
     profile: newer.profile || (localNewer ? cloud.profile : local.profile) || {},
   };
@@ -318,7 +316,7 @@ function sanitizeForFirebase(v) {
   // increment(n) = {".sv":{increment:n}} — tragen ABSICHTLICH einen Punkt im
   // Schluessel und muessen unveraendert durch. safeKey machte daraus sonst
   // {"_sv":…}, und statt der Serverzeit laege ein totes Objekt in der Datenbank
-  // (publishAiProfile schickt updatedAt genau so durch diese Funktion).
+  // (z.B. updatedAt in Schreibvorgängen, die einen Zeitstempel tragen).
   if (isFirebaseSentinel(v)) return v;
   if (v && typeof v === 'object') {
     const out = {};
@@ -775,61 +773,6 @@ export async function watchLeaderboard(difficulty, cb) {
     });
     return () => { try { off(); } catch (_) {} };
   } catch (e) { log('account', 'watchLeaderboard fehlgeschlagen', e); return () => {}; }
-}
-
-// ─── KI-Klon-Profile (Duell gegen den Klon eines Freundes) ────────────────────
-// Modell exakt wie die Bestenliste: /aiProfiles/{uid} = { v, games, updatedAt,
-// username, badge, avgMs, profile }. Owner schreibt, alle Angemeldeten lesen.
-// Ohne Cloud Functions (wie die Bestenliste) nicht voll cheat-sicher — deshalb
-// laufen fremde Einträge beim Spielen IMMER durch clampProfile/clampAvgMs
-// (js/duelbot.js), bevor daraus ein Gegner wird.
-export const AI_PROFILE_V = 1;
-
-// Den eigenen Klon veröffentlichen, damit Freunde gegen ihn spielen können.
-// `avgMs` = eigene Durchschnittszeiten je Schwierigkeit: SIE machen den Klon
-// eines starken Freundes objektiv stärker, das Profil bestimmt nur die
-// Verteilung der Zeit über die Züge.
-export async function publishAiProfile({ profile, games, avgMs, username, badge } = {}) {
-  try {
-    const fb = await ensureFirebase();
-    const u = currentUser(fb);
-    if (!u || u.isAnonymous || !profile || !(games > 0)) return;
-    await fb.set(fb.ref(fb.db, `aiProfiles/${gameId()}/${u.uid}`), sanitizeForFirebase({
-      v: AI_PROFILE_V,
-      games,
-      updatedAt: fb.serverTimestamp(),
-      username: username || '',
-      badge: badge || null,
-      avgMs: avgMs && Object.keys(avgMs).length ? avgMs : null,
-      profile,
-    }));
-    // `games` mitloggen: daran lässt sich im Diagnoseprotokoll ablesen, ob ein
-    // Klon überhaupt Trainingsmaterial bekommt — genau die Frage, die bei einem
-    // Freund ohne Fortschritt zuerst auftaucht.
-    log('account', 'KI-Klon veröffentlicht', { games });
-  } catch (e) { log('account', 'publishAiProfile fehlgeschlagen', e); }
-}
-
-// Die Klon-Profile mehrerer Freunde EINMALIG lesen. Bewusst kein Live-Listener:
-// ein Profil ändert sich höchstens einmal je gespielter Partie des Freundes, und
-// die Auswahl wird beim Öffnen des Duell-Screens ohnehin frisch geholt — ein
-// Dauer-Listener je Freund wäre reine Verbindungslast. Ein einzelner Fehlschlag
-// darf die übrigen Freunde nicht verschlucken.
-export async function fetchAiProfiles(uids) {
-  const out = {};
-  try {
-    const fb = await ensureFirebase();
-    const u = currentUser(fb);
-    if (!u || u.isAnonymous || !Array.isArray(uids) || !uids.length) return out;
-    await Promise.all(uids.map(async (uid) => {
-      try {
-        const v = (await fb.get(fb.ref(fb.db, `aiProfiles/${gameId()}/${uid}`))).val();
-        if (v && v.profile) out[uid] = v;
-      } catch (_) { /* einzelner Freund ohne Profil/ohne Leserecht */ }
-    }));
-    log('account', 'KI-Klone geladen', { asked: uids.length, found: Object.keys(out).length });
-  } catch (e) { log('account', 'fetchAiProfiles fehlgeschlagen', e); }
-  return out;
 }
 
 // ─── Lobby-Einladungen an Freunde (Coop/Wettkampf) ─────────────────────────────

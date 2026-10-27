@@ -40,13 +40,12 @@ export const GAME = {
   isFullyTier1Solvable,
 
   // Was die Schale je Spiel ein- oder ausblendet. Math Cross hat KEINE
-  // Tipps, keinen Werkzeug-Umschalter und (noch) kein KI-Duell — dafür die
+  // Tipps und keinen Werkzeug-Umschalter — dafür die
   // persönlichen Farb-Markierungen, das wählbare Geteilt-Zeichen und die
   // Zieh-Reichweite.
   features: {
     hints: false,
     toolToggle: false,
-    aiDuel: false,
     markTools: true,
     divStyle: true,
     dragScale: true,

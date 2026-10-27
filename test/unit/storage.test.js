@@ -25,7 +25,6 @@ const {
   collectExportData, pickActiveGame, pickEndlessSlot, snapshotSolved, loadActiveGameBackup,
   loadActiveGameEndless, saveActiveGameEndless,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta, dataRev,
-  loadPlaySamples, addPlaySample, mergePlaySamples, PLAY_SAMPLES_MAX,
   splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
   loadSaves, saveSaves, pruneSaves, mergeSaves, removeSave, loadSavesGone, mergeSavesGone,
 } = await import('../../js/storage.js');
@@ -920,52 +919,6 @@ describe('storage.saveSettings (updatedAt-Stempel für den Geräte-Merge)', () =
   });
 });
 
-describe('storage.playSamples (Spielstil des Nutzers, Basis des eigenen KI-Klons)', () => {
-  beforeEach(() => { globalThis.localStorage.clear(); });
-  const sample = (ts) => ({ ts, difficulty: 'mittel', think: { t1: 2000, t2: 5000, hard: 9000 }, burstMs: 300, mistakes: 1, thinkCount: 20 });
-
-  test('leer am Anfang, Anhaengen behaelt die Reihenfolge', () => {
-    assert.deepEqual(loadPlaySamples(), []);
-    addPlaySample(sample(1));
-    addPlaySample(sample(2));
-    assert.deepEqual(loadPlaySamples().map(s => s.ts), [1, 2]);
-  });
-
-  test('FIFO-Kappung: aelteste Partien fallen raus', () => {
-    for (let i = 1; i <= PLAY_SAMPLES_MAX + 5; i++) addPlaySample(sample(i));
-    const all = loadPlaySamples();
-    assert.equal(all.length, PLAY_SAMPLES_MAX);
-    assert.equal(all[all.length - 1].ts, PLAY_SAMPLES_MAX + 5, 'die neueste bleibt');
-    assert.equal(all[0].ts, 6, 'die aeltesten sind weg');
-  });
-
-  test('Unfug wird ignoriert statt gespeichert', () => {
-    addPlaySample(null); addPlaySample(undefined); addPlaySample(42);
-    assert.deepEqual(loadPlaySamples(), []);
-  });
-
-  test('Merge vereinigt Partien BEIDER Geraete (nie verlieren)', () => {
-    const merged = mergePlaySamples([sample(1), sample(3)], [sample(2), sample(3)]);
-    assert.deepEqual(merged.map(s => s.ts), [1, 2, 3], 'nach ts sortiert, Duplikate entfernt');
-  });
-
-  test('Merge kappt ebenfalls und behaelt die neuesten', () => {
-    const many = Array.from({ length: PLAY_SAMPLES_MAX + 10 }, (_, i) => sample(i + 1));
-    const merged = mergePlaySamples(many, []);
-    assert.equal(merged.length, PLAY_SAMPLES_MAX);
-    assert.equal(merged[merged.length - 1].ts, PLAY_SAMPLES_MAX + 10);
-  });
-
-  test('reist im Sync-Snapshot mit (sonst bliebe der Klon geraetelokal)', () => {
-    addPlaySample(sample(7));
-    const snap = collectExportData('sync');
-    assert.equal(snap.playSamples.length, 1);
-    globalThis.localStorage.clear();
-    importFromFile(JSON.stringify(snap));
-    assert.equal(loadPlaySamples().length, 1, 'kommt beim Import zurueck');
-  });
-});
-
 // ─── Kontoweite vs. spieleigene Daten ────────────────────────────────────────
 // Beide Spiele haengen am SELBEN Firebase-Projekt und schrieben denselben Knoten
 // `users/{uid}/data` — mit voller Ueberschreibung und beim Reconcile zusaetzlich
@@ -998,7 +951,7 @@ test('splitSnapshot + joinSnapshot sind verlustfrei', () => {
     settings: { a: 1 }, wallet: { balance: 2 }, walletLog: [], daily: { d: 1 }, inventory: { x: 1 }, profile: { username: 'tom' },
     activeGame: { gameId: 'g' }, activeGameCoop: null, activeGameEndless: null,
     saves: [], stats: { w: 1 }, history: [], achievements: { a: 1 }, missions: {}, race: {},
-    playSamples: [], completedGames: ['g1'],
+    completedGames: ['g1'],
   };
   const { account, game } = splitSnapshot(snap);
   const back = joinSnapshot(account, game);

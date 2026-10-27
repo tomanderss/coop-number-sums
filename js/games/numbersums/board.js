@@ -42,7 +42,6 @@ let shopEquippedId = () => '';
 // Rueckrufe in die Schale: Leben/Fehlerzaehler, Zug-Log, Persistenz+Sieg-Pruefung
 // und der Coop-Versand bleiben dort, weil sie in jedem Spiel gleich sind.
 let registerMistake = () => {};
-let pushMove = () => {};
 let afterMove = () => {};
 let coopSend = () => {};
 let desktopBoard = () => false;
@@ -53,7 +52,6 @@ export function initBoard(ctx) {
   playerColor = ctx.playerColor;
   shopEquippedId = ctx.shopEquippedId;
   registerMistake = ctx.registerMistake;
-  pushMove = ctx.pushMove;
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
@@ -391,10 +389,6 @@ export function setMark(r, c, next, user, fromId) {
     const sol = state.puzzle.solution[r][c];
     const wrong = (next === 'kept' && !sol) || (next === 'removed' && sol);
     if (wrong) {
-      // Der Fehlgriff gehört MIT ins Zug-Log (nur ein Array-Push): erst dadurch
-      // lässt sich später sagen, WO jemand danebengreift — in welcher Spielphase
-      // und bei welcher Art von Deduktion — statt bloß WIE OFT.
-      pushMove({ r, c, want: next, t: state.elapsed, err: 1 });
       flashError(r, c); registerMistake(); return;
     }
   }
@@ -402,17 +396,6 @@ export function setMark(r, c, next, user, fromId) {
   const region = state.cellMeta[r][c].region;
   const wasRow = rowResolved(r), wasCol = colResolved(c);
   const wasRegion = region >= 0 ? regionResolved(region) : false;
-
-  // Spielstil-Aufzeichnung: NUR ein Array-Push (kein localStorage, keine Analyse)
-  // — der Tap-Pfad muss billig bleiben (Board-Render-Regeln in CLAUDE.md). Die
-  // Auswertung läuft einmal am Spielende, s. recordPlaySample().
-  // FREMDE Züge (Coop/Team, geteiltes Brett) wandern MIT ins Log, markiert als
-  // `other`: die Auswertung stellt das Brett Zug für Zug nach, und ohne die Züge
-  // des Partners wäre dieser Nachbau ab dem ersten fremden Zug falsch — die
-  // Deduktions-Einordnung MEINER Züge damit auch. Gemessen werden sie nicht.
-  if (next !== 'none' && (user || state.coop.active || state.team.active)) {
-    pushMove(user ? { r, c, want: next, t: state.elapsed } : { r, c, want: next, t: state.elapsed, other: 1 });
-  }
 
   state.history = [{ r, c, prev: cur }]; // nur der letzte Zug ist rückgängig machbar
   state.marks[r][c] = next;

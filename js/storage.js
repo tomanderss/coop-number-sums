@@ -40,7 +40,6 @@ const KEYS = {
   ACTIVE_GAME_BACKUP: 'cns_active_game_backup', // letzter durch Divergenz verdrängter Solo-Stand (nie still gelöscht)
   PENDING_JOIN: 'cns_pending_join', // Beitritt, der nach einem Spielwechsel nachgeholt wird; PER GERAET, kurzlebig, NIE synct
   GAME: 'cns_game',             // zuletzt gespieltes Spiel (Kennung aus js/games/registry.js); PER GERAET, NIE synct
-  PLAY_SAMPLES: 'cns_play_samples', // [{ts,difficulty,think,burstMs,mistakes,…}] — Spielstil-Stichproben je Partie (js/playstyle.js), FIFO, SYNCT
 };
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
 // Bewusst OHNE COOP_SESSION (kurzlebiges Reconnect-Token)/Backups (gerätelokale
@@ -436,7 +435,8 @@ export function recordStreakResult(dateStr = todayDateStr()) {
 
 // ─── Race-/Duell-Modus (1v1 und 2v2, einfache Zähler ohne Periodenbindung) ───
 const EMPTY_RACE_MODE = { racesPlayed: 0, racesWon: 0, racesLost: 0, fastestWinMs: null };
-// 'ai' = Duelle gegen den KI-Gegner. Bewusst EIGENE Kategorie (die 1v1-Bilanz
+// 'ai' = Duelle gegen den früheren KI-Gegner (Funktion entfernt, die Bilanz
+// bleibt als Alt-Bestand stehen). Eigene Kategorie (die 1v1-Bilanz
 // bleibt eine reine Menschen-Bilanz), zählt aber über duelWins() für
 // Achievements und Prestige mit — s. js/prestige.js.
 const EMPTY_RACE = { '1v1': { ...EMPTY_RACE_MODE }, '2v2': { ...EMPTY_RACE_MODE }, 'ffa': { ...EMPTY_RACE_MODE }, 'ai': { ...EMPTY_RACE_MODE } };
@@ -474,22 +474,6 @@ export function recordRaceLoss(mode) {
   r[mode].racesPlayed++; r[mode].racesLost++;
   saveRace(r);
   return r;
-}
-
-// Durchschnittliche Lösezeit je Schwierigkeit aus den bereits gesammelten
-// Statistiken: sumTimeMs / won. Grundlage für den KI-Duellgegner, der sich an
-// DURCHSCHNITTS- und nicht an Bestzeiten orientiert (s. js/duelbot.js). Rein,
-// unit-getestet; Schwierigkeiten ohne Sieg fehlen im Ergebnis (dort greift die
-// Vorgabetabelle DEFAULT_AVG_MS).
-export function avgTimesByDifficulty(stats) {
-  const out = {};
-  const by = (stats && stats.byDifficulty) || {};
-  for (const [id, d] of Object.entries(by)) {
-    const won = Number(d && d.won) || 0;
-    const sum = Number(d && d.sumTimeMs) || 0;
-    if (won > 0 && sum > 0) out[id] = Math.round(sum / won);
-  }
-  return out;
 }
 
 // ─── Verlauf gelöster Rätsel (Ringpuffer, neueste zuerst) ─────────────────────
@@ -683,35 +667,6 @@ const EMPTY_PROFILE = { displayName: '', role: 'user', accountId: null, createdA
 export function loadProfile() { return { ...EMPTY_PROFILE, ...load(KEYS.PROFILE, {}) }; }
 export function saveProfile(p) { save(KEYS.PROFILE, { ...loadProfile(), ...p }); return loadProfile(); }
 
-// ─── Spielstil-Stichproben (Basis des eigenen KI-Klons) ──────────────────────
-// Je beendeter Solo-Partie EINE kompakte Stichprobe (nur Aggregate: Denkzeiten
-// je Deduktionstyp, Eintragetempo, Fehler — keine Brettinhalte, keine Zugfolge).
-// Nutzdaten-Key ⇒ synct mit, damit der eigene Klon dem Konto auf jedes Gerät
-// folgt. FIFO gekappt: mehr als PLAY_SAMPLES_MAX Partien verbessern die Mediane
-// nicht mehr nennenswert und blähen nur den Snapshot auf.
-export const PLAY_SAMPLES_MAX = 25;
-export function loadPlaySamples() { const a = load(KEYS.PLAY_SAMPLES, []); return Array.isArray(a) ? a : []; }
-export function addPlaySample(sample) {
-  if (!sample || typeof sample !== 'object') return loadPlaySamples();
-  const a = loadPlaySamples();
-  a.push(sample);
-  while (a.length > PLAY_SAMPLES_MAX) a.shift();
-  save(KEYS.PLAY_SAMPLES, a);
-  return a;
-}
-// Union-Merge nach Zeitstempel (wie der Geldverlauf): Partien, die auf einem
-// anderen Gerät gespielt wurden, gehen beim Sync nicht verloren. Rein/unit-getestet.
-export function mergePlaySamples(a = [], b = []) {
-  const seen = new Set();
-  const all = [...(a || []), ...(b || [])].filter((s) => {
-    const k = s && String(s.ts);
-    if (!k || k === 'undefined' || seen.has(k)) return false;
-    seen.add(k); return true;
-  });
-  all.sort((x, y) => (Number(x.ts) || 0) - (Number(y.ts) || 0));
-  return all.slice(-PLAY_SAMPLES_MAX);
-}
-
 // ─── Datei-Export / Import ────────────────────────────────────────────────────
 function buildTimestamp() {
   const d = new Date(); const pad = n => String(n).padStart(2, '0');
@@ -737,7 +692,6 @@ export function collectExportData(type = 'manual') {
     race: load(KEYS.RACE, {}),
     inventory: load(KEYS.INVENTORY, {}),
     wallet: load(KEYS.WALLET, {}),
-    playSamples: loadPlaySamples(),  // Spielstil des Nutzers (Basis des eigenen KI-Klons)
     walletLog: loadWalletLog(),   // Geldverlauf reist mit (Union-Merge beim Import — Herkunft bleibt geräteübergreifend erhalten)
     completedGames: load(KEYS.COMPLETED_GAMES, []),  // Belohnungs-Idempotenz (Union-Merge beim Import)
     // Rolle NICHT mitsynchronisieren — sie ist serverseitig autoritativ
@@ -803,7 +757,7 @@ export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inve
 // Spieleigen: gehoert genau EINEM Spiel und darf sich nie mit einem anderen mischen.
 export const GAME_FIELDS = [
   'activeGame', 'activeGameCoop', 'activeGameEndless', 'saves', 'savesGone', 'stats',
-  'history', 'achievements', 'missions', 'race', 'playSamples', 'completedGames',
+  'history', 'achievements', 'missions', 'race', 'completedGames',
 ];
 // Einen vollen Snapshot in seine zwei Haelften zerlegen. `ts`/`rev`/`v`/`label`
 // reisen in BEIDEN mit, damit jede Haelfte fuer sich durch mergeSnapshots laufen
@@ -1016,7 +970,6 @@ export function importFromFile(jsonText) {
   if (data.inventory) save(KEYS.INVENTORY, data.inventory);
   if (data.wallet) save(KEYS.WALLET, data.wallet);
   // Geldverlauf: Union (nie schrumpfen) — Einträge beider Seiten bleiben erhalten.
-  if (Array.isArray(data.playSamples)) save(KEYS.PLAY_SAMPLES, mergePlaySamples(loadPlaySamples(), data.playSamples));
   if (Array.isArray(data.walletLog)) save(KEYS.WALLET_LOG, mergeWalletLogs(loadWalletLog(), data.walletLog));
   // Union-Merge (nie schrumpfen): abgerechnete Partien beider Seiten behalten.
   if (data.completedGames) mergeCompletedGames(data.completedGames);
@@ -1079,7 +1032,8 @@ export function deleteAllData() {
   remove(KEYS.INVENTORY);
   remove(KEYS.WALLET);
   remove(KEYS.WALLET_LOG);
-  remove(KEYS.PLAY_SAMPLES);
+  // Spielstil-Stichproben des entfernten KI-Duells (Alt-Bestand) mit aufräumen.
+  localStorage.removeItem('cns_play_samples');
   remove(KEYS.PROFILE);
   remove(KEYS.DATA_REV);
   remove(KEYS.SYNCED_REV);
