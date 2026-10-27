@@ -1,7 +1,7 @@
 {
-  "name": "Coop Number Sums",
-  "short_name": "Coop Number Sums",
-  "description": "Number Sums Rätsel — solo oder gemeinsam im Coop-Modus.",
+  "name": "Coop Number Games",
+  "short_name": "Number Games",
+  "description": "Zahlenrätsel (Number Sums, Math Cross) — solo oder gemeinsam im Coop-Modus.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0b1020",

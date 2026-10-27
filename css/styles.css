@@ -543,6 +543,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   animation: pop .5s cubic-bezier(.2,1.3,.5,1);
 }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* Spielauswahl auf dem Startbildschirm: ein Logo je Spiel. Das laufende Spiel
+   steht groß mit dem Leucht-Schatten des früheren Einzel-Logos, die anderen
+   kleiner und zurückgenommen — ein Tipp wechselt (die App lädt neu). Nur
+   transform/opacity im Übergang (iOS-Compositor-Regel). */
+.game-switch { display: flex; align-items: flex-end; justify-content: center; gap: 18px; }
+.game-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: none; border: 0; padding: 0; color: var(--text2); font: inherit; cursor: pointer;
+  opacity: .62; transition: opacity .2s, transform .2s;
+}
+.game-tile:active { transform: scale(.95); }
+.game-tile.on { opacity: 1; color: var(--text); cursor: default; }
+.game-tile-logo {
+  width: 58px; height: 58px; border-radius: 16px; display: block;
+  box-shadow: 0 4px 12px var(--shadow);
+}
+.game-tile.on .game-tile-logo {
+  width: 88px; height: 88px; border-radius: 24px;
+  box-shadow: 0 12px 38px var(--accent-soft), 0 4px 12px var(--shadow);
+  animation: pop .5s cubic-bezier(.2,1.3,.5,1);
+}
+.game-tile-name { font-size: .74rem; font-weight: 800; letter-spacing: .1px; }
+.game-tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 18px; }
 .brand-title { font-size: 1.6rem; font-weight: 900; line-height: 1.05; margin: 4px 0 0; letter-spacing: -.5px; }
 .brand-sub { color: var(--text2); font-size: .9rem; }
 .home-actions { display: flex; flex-direction: column; gap: 8px; }

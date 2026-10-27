@@ -2,7 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  games: { numbersums: 'Number Sums', mathcross: 'Math Cross' },
+  games: { numbersums: 'Number Sums', mathcross: 'Math Cross', choose: 'Escolher jogo', busy: 'Termine a partida atual antes de trocar de jogo.' },
 
   coopEndless: { toggle: 'Subida infinita', toggleHint: 'Subam juntos — 3 vidas compartilhadas, sem recargas' },
 
@@ -736,7 +736,7 @@ export default {
   },
   share: {
     button: 'Compartilhar',
-    coopInvite: 'Jogue Coop Number Sums comigo no modo cooperativo! Código: {code} — {url}',
+    coopInvite: 'Jogue Coop Number Games comigo no modo cooperativo! Código: {code} — {url}',
   },
   howto: {
     title: 'Como jogar',

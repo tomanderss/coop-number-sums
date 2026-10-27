@@ -9,7 +9,8 @@ import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
 import * as Music from './music.js';
-import { activeGame } from './games/index.js';
+import { activeGame, GAME_IDS } from './games/index.js';
+import { gameMeta } from './games/registry.js';
 // Die SPIELSPEZIFISCHEN Funktionen kommen aus dem Modul des laufenden Spiels
 // (js/games/<id>/index.js), nicht mehr per direktem Import: der Rest dieser
 // Datei ist die SCHALE, die fuer jedes Spiel dieselbe ist. Als duenne Weiche
@@ -34,7 +35,7 @@ import {
   loadWallet, grantCurrency, spendCurrency, loadWalletLog, noteWalletTransaction,
   setDataRev, setSyncedRev,
   generateId, deviceId, isGameCompleted, markGameCompleted, loadActiveGameBackup, saveActiveGameBackup,
-  gameId, restoreGameChoice,
+  gameId, restoreGameChoice, chooseGame,
   loadConflictBackup, saveConflictBackup, collectExportData,
 } from './storage.js';
 import { decideSessionSync, sessionIsDead, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
@@ -6982,6 +6983,23 @@ function reloadLoopTripped(reason) {
 // Zentrale, SICHERE Neuladen-Funktion: protokolliert immer (Grund + Kontext),
 // lädt nie mitten in einem Spiel/Coop neu (schiebt auf bis navigate('home')) und
 // bricht Reload-Schleifen ab.
+// ─── SPIELAUSWAHL ────────────────────────────────────────────────────────────
+// Alle Spiele mit Logo für die Auswahl auf dem Startbildschirm. Ein Wechsel
+// lädt die App neu: Brett, Schwierigkeits-Leiter, Generator, Texte, Optik und
+// die spieleigenen Daten hängen alle am beim Laden gebundenen Spiel.
+const GAME_LIST = GAME_IDS.map((id) => gameMeta(id));
+const ACTIVE_GAME_ID = activeGame().id;
+function switchGame(id) {
+  if (id === ACTIVE_GAME_ID) return;
+  // Mitten in einer Partie/Lobby wird nicht gewechselt — der Wechsel lädt neu,
+  // und das darf eine laufende Runde nie abreißen (s. safeReload).
+  if (gameSessionActive()) { showToast(t('games.busy'), 'info', 2500); return; }
+  log('app', 'Spielwechsel angefordert', { von: ACTIVE_GAME_ID, nach: id });
+  persistGame();
+  flushSettingsSave();
+  chooseGame(id);
+  safeReload('gameSwitch');
+}
 function safeReload(reason) {
   const deferred = gameSessionActive();
   log('sw', 'Neuladen angefordert', { reason, screen: state.screen, status: state.status, coop: state.coop.active, deferred });
@@ -7599,6 +7617,7 @@ const App = {
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, friendInRoom, anyFriendOnline, friendActivityText,
       skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
+      GAME_LIST, ACTIVE_GAME_ID, switchGame,
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL, BRAND_LOGO,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
@@ -7639,8 +7658,17 @@ const App = {
         <button class="icon-btn home-settings-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </div>
       <div class="brand">
-        <img class="brand-logo" :src="BRAND_LOGO" decoding="sync" alt="" />
-        <h1 class="brand-title">Coop<br>Number Sums</h1>
+        <!-- Spielauswahl: ein Logo je Spiel, das laufende groß und leuchtend.
+             Ein Tipp auf ein anderes Spiel lädt die App mit diesem Spiel neu
+             (Brett, Leiter, Generator und Statistik wechseln gemeinsam). -->
+        <div class="game-switch" role="tablist" :aria-label="t('games.choose')">
+          <button v-for="g in GAME_LIST" :key="g.id" class="game-tile" :class="{ on: g.id===ACTIVE_GAME_ID }"
+                  role="tab" :aria-selected="String(g.id===ACTIVE_GAME_ID)" @click="switchGame(g.id)">
+            <img class="game-tile-logo" :src="g.logo" decoding="sync" alt="" />
+            <span class="game-tile-name">{{ t(g.nameKey) }}</span>
+          </button>
+        </div>
+        <h1 class="brand-title">Coop<br>Number Games</h1>
         <!-- Profil-Chip: öffnet den Prestige-Screen. Zeigt das ausgerüstete
              verdiente Abzeichen (oder eine Einladung, eins zu verdienen). -->
         <button class="home-profile-chip" :class="{ master: isMasterEquipped() }" @click="openPrestige">
