@@ -782,7 +782,7 @@ export function joinSnapshot(account = {}, game = {}) {
 }
 
 export async function exportToFile(type = 'manual') {
-  const filename = `${type}-coop-number-sums-${buildTimestamp()}.json`;
+  const filename = `${type}-coop-number-games-${buildTimestamp()}.json`;
   const payload = JSON.stringify(collectExportData(type), null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   if (navigator.canShare) {
