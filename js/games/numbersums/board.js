@@ -17,7 +17,7 @@
 // Brett-Template darf KEINE app-fremde Abhaengigkeit (z.B. `state.tool`)
 // einfliessen — sonst rendert jeder Werkzeug-Wechsel wieder alle ~200 Zellen.
 
-import { computed } from '../../vue.esm-browser.prod.js';
+import { computed, onMounted } from '../../vue.esm-browser.prod.js';
 import { REGION_COLORS, regionChipInk, hexToRgb } from '../../config.js';
 import { SKINPRESET_ITEMS, shopItemById, ownsShopItem, applyPaletteFx } from '../../shopitems.js';
 import { SKIN_ID, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from '../../skins.js';
@@ -95,9 +95,17 @@ export function activePaletteFx() {
 // Re-Render (z.B. den vielen Puls-Animationen gegen Spielende) → CPU-Dauerlast,
 // Hitze, zunehmendes Ruckeln. Diese Sets rechnen nur neu, wenn sich state.marks
 // ändert (ein Zug); die Render-Nutzung ist dann ein O(1)-Set-Lookup.
-const resolvedRowSet = computed(() => { const p = state.puzzle; const s = new Set(); if (p) for (let r = 0; r < p.rows; r++) if (Model.rowResolved(p, state.marks, r)) s.add(r); return s; });
-const resolvedColSet = computed(() => { const p = state.puzzle; const s = new Set(); if (p) for (let c = 0; c < p.cols; c++) if (Model.colResolved(p, state.marks, c)) s.add(c); return s; });
-const resolvedRegionSet = computed(() => { const p = state.puzzle; const s = new Set(); if (p) for (let i = 0; i < p.regions.length; i++) if (Model.regionResolved(p, state.marks, i)) s.add(i); return s; });
+//
+// STABIL: ein Computed, das bei jedem Zug ein NEUES Set liefert, löst bei JEDEM
+// Zug alle Abhängigen aus — also jede Zelle. Deshalb geben die Caches das alte
+// Objekt zurück, solange sich der Inhalt nicht geändert hat (Vue 3.4+ reicht den
+// alten Wert an den Getter durch). So zeichnet ein Zug nur die getroffene Zelle neu.
+const sameSet = (a, b) => !!a && a.size === b.size && [...b].every((x) => a.has(x));
+const sameArr = (a, b) => !!a && a.length === b.length && a.every((x, i) => x === b[i]);
+const stableSet = (s, old) => (sameSet(old, s) ? old : s);
+const resolvedRowSet = computed((old) => { const p = state.puzzle; const s = new Set(); if (p) for (let r = 0; r < p.rows; r++) if (Model.rowResolved(p, state.marks, r)) s.add(r); return stableSet(s, old); });
+const resolvedColSet = computed((old) => { const p = state.puzzle; const s = new Set(); if (p) for (let c = 0; c < p.cols; c++) if (Model.colResolved(p, state.marks, c)) s.add(c); return stableSet(s, old); });
+const resolvedRegionSet = computed((old) => { const p = state.puzzle; const s = new Set(); if (p) for (let i = 0; i < p.regions.length; i++) if (Model.regionResolved(p, state.marks, i)) s.add(i); return stableSet(s, old); });
 // Render-Helfer (O(1)) — NUR im Template/cellClasses verwenden. Die Spiellogik
 // nutzt weiter die rohen Modell-Funktionen für die punktuelle Vorher/Nachher-Prüfung.
 export function rowResolvedR(r) { return resolvedRowSet.value.has(r); }
@@ -106,8 +114,8 @@ export function regionResolvedR(i) { return resolvedRegionSet.value.has(i); }
 
 // Zeilen-/Spaltensummen ebenfalls EINMAL pro Zug cachen statt in jedem Header-
 // Render (mehrfach: Wert + Match-Klasse) die ganze Zeile/Spalte neu aufzusummieren.
-const rowSumsC = computed(() => (state.puzzle ? Model.rowSums(state.puzzle, state.marks) : []));
-const colSumsC = computed(() => (state.puzzle ? Model.colSums(state.puzzle, state.marks) : []));
+const rowSumsC = computed((old) => { const a = state.puzzle ? Model.rowSums(state.puzzle, state.marks) : []; return sameArr(old, a) ? old : a; });
+const colSumsC = computed((old) => { const a = state.puzzle ? Model.colSums(state.puzzle, state.marks) : []; return sameArr(old, a) ? old : a; });
 export function rowSumR(r) { return rowSumsC.value[r] || 0; }
 export function colSumR(c) { return colSumsC.value[c] || 0; }
 // aktuelle Summen stimmen (Hilfsanzeige): Summe der eingekreisten == Ziel — aus dem Cache.
@@ -157,23 +165,16 @@ function pulseEdges(r, c) {
 }
 
 // ── Aria-Labels ──────────────────────────────────────────────────────────────
-// EINMAL pro Zug/Sprachwechsel berechnen statt ×169 bei JEDEM Render (die
-// t()-Interpolation war ein messbarer Teil des Tick-Renders auf großen Brettern).
-// Computed trackt state.marks + i18n-Locale.
-const cellAriaLabels = computed(() => {
-  const p = state.puzzle; if (!p) return [];
-  const out = new Array(p.rows);
-  for (let r = 0; r < p.rows; r++) {
-    out[r] = new Array(p.cols);
-    for (let c = 0; c < p.cols; c++) {
-      const mk = state.marks[r][c];
-      const status = mk === 'kept' ? t('a11y.cellKept') : mk === 'removed' ? t('a11y.cellRemoved') : t('a11y.cellUnmarked');
-      out[r][c] = t('a11y.cellLabel', { row: r + 1, col: c + 1, value: p.values[r][c], status });
-    }
-  }
-  return out;
-});
-export function cellAriaLabel(r, c) { return (cellAriaLabels.value[r] && cellAriaLabels.value[r][c]) || ''; }
+// Je Zelle beim Rendern DIESER Zelle: seit jede Zelle eine eigene Komponente ist,
+// rendert eine Zelle nur noch, wenn sich an ihr etwas ändert. Das frühere
+// Sammel-Computed über ALLE Zellen lief bei jedem Zug komplett neu und zog als
+// gemeinsame Abhängigkeit jede Zelle mit.
+export function cellAriaLabel(r, c) {
+  const p = state.puzzle; if (!p || !state.marks[r]) return '';
+  const mk = state.marks[r][c];
+  const status = mk === 'kept' ? t('a11y.cellKept') : mk === 'removed' ? t('a11y.cellRemoved') : t('a11y.cellUnmarked');
+  return t('a11y.cellLabel', { row: r + 1, col: c + 1, value: p.values[r][c], status });
+}
 
 // ── Klassen je Zelle ─────────────────────────────────────────────────────────
 export function cellClasses(r, c) {
@@ -258,48 +259,80 @@ export function cellStyle(r, c) {
 let boardRenderCount = 0;
 export function boardRenders() { return boardRenderCount; }
 
-export const BoardGrid = {
+const countRender = () => { boardRenderCount++; return ''; };
+// Nur die ZELL-Renders (E2E: ein Zug darf nur die getroffene Zelle neu zeichnen).
+let cellRenderCount = 0;
+export function cellRenders() { return cellRenderCount; }
+const countCellRender = () => { boardRenderCount++; cellRenderCount++; return ''; };
+
+// Eine Zelle = eine Komponente. Vue verfolgt Abhängigkeiten JE KOMPONENTE: ein
+// Zug ändert state.marks[r][c] und damit genau EINE Zelle (plus ihre Zeilen-/
+// Spaltenköpfe). Vorher lag das ganze Raster in einer Komponente, und jeder Tipp
+// zeichnete alle ~200 Zellen neu (cellClasses/cellStyle/Aria/Patch ×196 auf
+// 14×14): auf schwächeren Handys ~100 ms je Tipp (gemessen bei 6-facher CPU-
+// Drosselung) — schnelles Tippen stand im Stau („muss warten, bis eingekreist").
+const BoardCell = {
+  props: { r: Number, c: Number },
   setup() {
+    return { state, cellClasses, cellStyle, cellAriaLabel, regionResolvedR, onCellClick, onCellPointerDown, onCellPointerMove, onCellPointerUp, onCellPointerCancel, onCellTap, countRender: countCellRender };
+  },
+  template: `
+              <div class="cell" :class="cellClasses(r,c)" :style="cellStyle(r,c)" :data-rc="countRender()"
+                   role="button" tabindex="0" :aria-label="cellAriaLabel(r,c)"
+                   @click="onCellClick(r,c)"
+                   @keydown.enter.prevent="onCellTap(r,c)"
+                   @keydown.space.prevent="onCellTap(r,c)"
+                   @pointerdown="onCellPointerDown($event,r,c)"
+                   @pointermove="onCellPointerMove($event)"
+                   @pointerup="onCellPointerUp($event)"
+                   @pointerleave="onCellPointerCancel"
+                   @pointercancel="onCellPointerCancel"
+                   @contextmenu.prevent>
+                <span v-if="state.cellMeta[r][c].chip!=null && !regionResolvedR(state.cellMeta[r][c].region)" class="rchip">{{ state.cellMeta[r][c].chip }}</span>
+                <span class="cnum">{{ state.puzzle.values[r][c] }}</span>
+                <i v-if="state.marks[r][c]==='removed' && state.cellMeta[r][c].hintMark" class="hint-dot"></i>
+              </div>`,
+};
+
+// Zeilen-/Spaltenkopf ebenfalls als eigene Komponente: die Summen ändern sich mit
+// jedem Zug, das darf nur die betroffenen Köpfe neu zeichnen, nicht das Raster.
+const BoardHdr = {
+  props: { kind: String, i: Number },
+  setup(props) {
+    const isRow = props.kind === 'row';
     return {
-      state, cellClasses, cellStyle, cellAriaLabel, onCellTap,
-      onCellPointerDown, onCellPointerMove, onCellPointerCancel,
-      rowResolvedR, colResolvedR, regionResolvedR, rowSumR, colSumR, rowSumMatch, colSumMatch,
-      skinBoardClasses, skinVars, gridStyle, boardFontClass, boardFrameClass,
-      countRender: () => { boardRenderCount++; return ''; },
+      state, countRender,
+      resolved: (i) => (isRow ? rowResolvedR(i) : colResolvedR(i)),
+      sum: (i) => (isRow ? rowSumR(i) : colSumR(i)),
+      match: (i) => (isRow ? rowSumMatch(i) : colSumMatch(i)),
+      target: (i) => (isRow ? state.puzzle.rowTargets[i] : state.puzzle.colTargets[i]),
     };
+  },
+  template: `
+              <div class="hdr" :class="[kind === 'row' ? 'row-hdr' : 'col-hdr', {resolved: resolved(i), pulse: state.justResolved[kind+'-'+i]}]" :data-rc="countRender()">
+                <template v-if="!resolved(i)">
+                  <span class="cur" :class="{match: match(i)}">{{ sum(i) }}</span>
+                  <span class="tgt">{{ target(i) }}</span>
+                </template>
+              </div>`,
+};
+
+export const BoardGrid = {
+  components: { BoardCell, BoardHdr },
+  setup() {
+    // Einmal je Brettaufbau: wie lange der Aufbau der Zell-Komponenten dauert
+    // (Diagnoseprotokoll — nie pro Zug).
+    const t0 = performance.now();
+    onMounted(() => log('perf', 'Brett aufgebaut', { cells: state.puzzle ? state.puzzle.rows * state.puzzle.cols : 0, tookMs: Math.round(performance.now() - t0) }));
+    return { state, skinBoardClasses, skinVars, gridStyle, boardFontClass, boardFrameClass, countRender };
   },
   template: `
           <div class="board" :class="[skinBoardClasses, boardFontClass(), boardFrameClass(), { 'skin-freeze': state.paused || state.joinFreeze, 'mp-colors': state.coop.active || state.team.active, 'big-num': state.puzzle.bigNumbers, 'tutor-dim': !!state.hintTutor }]" :style="[gridStyle, skinVars]" :data-rc="countRender()">
             <div class="corner"></div>
-            <div v-for="c in state.puzzle.cols" :key="'ch'+c" class="hdr col-hdr" :class="{resolved: colResolvedR(c-1), pulse: state.justResolved['col-'+(c-1)]}">
-              <template v-if="!colResolvedR(c-1)">
-                <span class="cur" :class="{match: colSumMatch(c-1)}">{{ colSumR(c-1) }}</span>
-                <span class="tgt">{{ state.puzzle.colTargets[c-1] }}</span>
-              </template>
-            </div>
+            <board-hdr v-for="c in state.puzzle.cols" :key="'ch'+c" kind="col" :i="c-1"></board-hdr>
             <template v-for="r in state.puzzle.rows" :key="'r'+r">
-              <div class="hdr row-hdr" :class="{resolved: rowResolvedR(r-1), pulse: state.justResolved['row-'+(r-1)]}">
-                <template v-if="!rowResolvedR(r-1)">
-                  <span class="cur" :class="{match: rowSumMatch(r-1)}">{{ rowSumR(r-1) }}</span>
-                  <span class="tgt">{{ state.puzzle.rowTargets[r-1] }}</span>
-                </template>
-              </div>
-              <div v-for="c in state.puzzle.cols" :key="r+'-'+c"
-                   class="cell" :class="cellClasses(r-1,c-1)" :style="cellStyle(r-1,c-1)"
-                   role="button" tabindex="0" :aria-label="cellAriaLabel(r-1,c-1)"
-                   @click="onCellTap(r-1,c-1)"
-                   @keydown.enter.prevent="onCellTap(r-1,c-1)"
-                   @keydown.space.prevent="onCellTap(r-1,c-1)"
-                   @pointerdown="onCellPointerDown($event,r-1,c-1)"
-                   @pointermove="onCellPointerMove($event)"
-                   @pointerup="onCellPointerCancel"
-                   @pointerleave="onCellPointerCancel"
-                   @pointercancel="onCellPointerCancel"
-                   @contextmenu.prevent>
-                <span v-if="state.cellMeta[r-1][c-1].chip!=null && !regionResolvedR(state.cellMeta[r-1][c-1].region)" class="rchip">{{ state.cellMeta[r-1][c-1].chip }}</span>
-                <span class="cnum">{{ state.puzzle.values[r-1][c-1] }}</span>
-                <i v-if="state.marks[r-1][c-1]==='removed' && state.cellMeta[r-1][c-1].hintMark" class="hint-dot"></i>
-              </div>
+              <board-hdr kind="row" :i="r-1"></board-hdr>
+              <board-cell v-for="c in state.puzzle.cols" :key="r+'-'+c" :r="r-1" :c="c-1"></board-cell>
             </template>
           </div>
   `,
@@ -318,51 +351,62 @@ export function pulseResolved(kind, idx) {
   setTimeout(() => { delete state.justResolved[key]; }, 900);
 }
 
-// ─── LANGES DRÜCKEN (Markierung zurücksetzen, nur Solo + "Beim Prüfen") ───────
-// Nur hier kann eine Zelle ohne festen Fehler-Status falsch markiert worden
-// sein (im 'instant'-Modus lehnt setMark falsche Züge sofort ab) — daher ist
-// das Zurückholen per langem Drücken auf diesen Modus beschränkt, und auf
-// Solo, da Coop-Markierungen mit dem Partner synchron bleiben müssen.
-const LONGPRESS_MS = 500;          // Haltedauer bis zum Zurücksetzen auf 'none'
-const LONGPRESS_TOLERANCE_PX = 10; // Bewegungstoleranz während des Haltens
-                                    // (verhindert Fehlauslösung beim Schwenken eines gezoomten Felds)
-let pressState = null;       // { r, c, x, y, timer } während eines Pointer-Holds, sonst null
-let suppressClickUntil = 0;  // Date.now()-Zeitstempel; bis dahin wird der nächste Klick auf der Zelle ignoriert
+// ─── TIPPEN ──────────────────────────────────────────────────────────────────
+// Ein Tipp zählt SOFORT beim Berühren (pointerdown), nicht erst beim `click`.
+// Den click erzeugt der Browser erst nach dem Loslassen — und auf Touch-Geräten
+// gar nicht, wenn der Finger dabei ein paar Pixel rutscht, wenn ein zweiter
+// Finger aufsetzt, bevor der erste losgelassen hat (schnelles Tippen mit beiden
+// Daumen), oder wenn der Hauptthread gerade beschäftigt ist. Gemeldet: „muss
+// Zahlen teils doppelt antippen" — und ein zweiter Tipp auf eine Zelle, die der
+// erste in Wahrheit schon gesetzt hatte, wurde dann ein FEHLER.
+//
+// Nur wenn das Brett gezoomt ist (der Brett-Bereich scrollt), kann eine
+// Berührung auch ein Verschieben sein: dann zählt der Tipp beim Loslassen, sofern
+// sich der Finger kaum bewegt hat und der Browser die Geste nicht übernommen hat
+// (pointercancel).
+const TAP_SLOP_PX = 10;
+let pending = null;          // { id, r, c, x, y } — Tipp auf gezoomtem Brett, wartet aufs Loslassen
+let lastPointerTapAt = -1e9; // performance.now() des letzten per Pointer verarbeiteten Tipps
 
-function canLongPressRestore(r, c) {
-  // Long-Press-Zurücknahme gab es nur im entfernten „Beim Prüfen"-Modus. Fehler
-  // werden jetzt immer sofort aufgedeckt (falsche Markierung greift gar nicht
-  // erst), daher gibt es nichts zurückzunehmen → Feature deaktiviert.
-  return false;
+function boardScrolls(el) {
+  const wrap = el && el.closest ? el.closest('.board-wrap') : null;
+  return !!wrap && (wrap.scrollWidth > wrap.clientWidth + 1 || wrap.scrollHeight > wrap.clientHeight + 1);
 }
 
 export function onCellPointerDown(e, r, c) {
-  if (!canLongPressRestore(r, c)) return;
-  if (pressState) clearTimeout(pressState.timer);
-  pressState = { r, c, x: e.clientX, y: e.clientY, timer: null };
-  pressState.timer = setTimeout(() => {
-    if (!pressState || pressState.r !== r || pressState.c !== c) return;
-    suppressClickUntil = Date.now() + 400;
-    pressState = null;
-    setMark(r, c, 'none', true);
-  }, LONGPRESS_MS);
+  if (e.button != null && e.button > 0) return;   // nur Primärtaste/Finger/Stift
+  lastPointerTapAt = performance.now();
+  if (boardScrolls(e.currentTarget)) {
+    pending = { id: e.pointerId, r, c, x: e.clientX, y: e.clientY };
+    return;
+  }
+  pending = null;
+  onCellTap(r, c);
 }
 
 export function onCellPointerMove(e) {
-  if (!pressState) return;
-  const dx = e.clientX - pressState.x, dy = e.clientY - pressState.y;
-  if (Math.hypot(dx, dy) > LONGPRESS_TOLERANCE_PX) {
-    clearTimeout(pressState.timer);
-    pressState = null;
-  }
+  if (!pending || e.pointerId !== pending.id) return;
+  if (Math.hypot(e.clientX - pending.x, e.clientY - pending.y) > TAP_SLOP_PX) pending = null;
 }
 
-export function onCellPointerCancel() {
-  if (pressState) { clearTimeout(pressState.timer); pressState = null; }
+export function onCellPointerUp(e) {
+  if (!pending || e.pointerId !== pending.id) return;
+  const { r, c } = pending;
+  pending = null;
+  lastPointerTapAt = performance.now();
+  onCellTap(r, c);
+}
+
+export function onCellPointerCancel() { pending = null; }
+
+// Der click NACH einem Pointer-Tipp ist derselbe Tipp — verwerfen. Ein click OHNE
+// vorausgehende Berührung (Screenreader, Bedienhilfen) zählt weiter normal.
+export function onCellClick(r, c) {
+  if (performance.now() - lastPointerTapAt < 1000) return;
+  onCellTap(r, c);
 }
 
 export function onCellTap(r, c) {
-  if (Date.now() < suppressClickUntil) { suppressClickUntil = 0; return; }
   // Nur-Lese: ein anderes Gerät hat diese Solo-Partie übernommen — Brett gesperrt,
   // bis der Nutzer im Banner „Hier weiterspielen" wählt (holt den Besitz zurück).
   if (state.sessionReadonly) return;
