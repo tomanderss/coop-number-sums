@@ -58,6 +58,17 @@ export const GAME = {
   // Der Generierungs-Worker gehoert zum SPIEL, nicht zur Schale: jedes Spiel
   // erzeugt seine Raetsel anders. Als Funktion, damit `import.meta.url` erst
   // beim Erzeugen des Workers aufgeloest wird (und relativ zu DIESER Datei).
+  // Was die Schale je Spiel ein- oder ausblendet (s. mathcross/index.js).
+  features: {
+    hints: true,
+    toolToggle: true,
+    aiDuel: true,
+    markTools: false,
+    divStyle: false,
+    dragScale: false,
+    markColor: false,
+  },
+
   workerUrl: () => new URL('./genworker.js', import.meta.url),
 };
 

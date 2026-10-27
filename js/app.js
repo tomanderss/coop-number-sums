@@ -17,9 +17,6 @@ import { activeGame } from './games/index.js';
 // greift — eingefroren haette die Schale nach dem Wechsel weiter die
 // Funktionen des alten Spiels aufgerufen. Keine davon liegt im Tap-Pfad.
 const generatePuzzle = (...a) => activeGame().generatePuzzle(...a);
-const remapColorsForMarkVisibility = (...a) => activeGame().remapColorsForMarkVisibility(...a);
-const buildHintTutorial = (...a) => activeGame().buildHintTutorial(...a);
-const findTrainingStep = (...a) => activeGame().findTrainingStep(...a);
 const isFullyTier1Solvable = (...a) => activeGame().isFullyTier1Solvable(...a);
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
@@ -49,7 +46,7 @@ import { icon as customIcon, hasIcon } from './icons.js';
 import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge, MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge, unlockedTierCodes, newlyUnlockedTiers, headlineUnlock, duelWins } from './prestige.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
-import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES } from './i18n/index.js';
+import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES, setGameMessages } from './i18n/index.js';
 import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessIsRecord, reconstructEndlessRuns } from './endless.js';
 import { currentWeekKey, weeklyMissions, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
 
@@ -68,6 +65,12 @@ log('app', 'Spiel gewaehlt', { spiel: gameId() });
 // App neu — er tauscht Brett, Leiter, Generator und Statistik zugleich aus, ein
 // Neustart ist dafuer der einzig verlaessliche saubere Zustand.
 const { DIFFICULTIES, DIFF_BY_ID, bigNumbersAllowed } = activeGame();
+// Spieleigene Texte (Anleitung, Werkzeug-Namen …) als Ebene über die gemeinsamen.
+setGameMessages(activeGame().messages || null);
+// Was die Schale je Spiel ein- oder ausblendet (Tipps, Werkzeug-Umschalter,
+// KI-Duell, Markier-Werkzeuge …) — s. `features` in js/games/<id>/index.js.
+const GAME_FEATURES = activeGame().features || {};
+function gameHas(f) { return !!GAME_FEATURES[f]; }
 
 const APP_START = Date.now();
 const splashVersion = document.getElementById('splash-version');
@@ -111,6 +114,17 @@ const state = reactive({
   trainingStep: null,         // aktuell erklärter Schritt { r, c, action, reason, group } oder null
   trainingDone: false,        // true, sobald keine weiteren Tier-1-Schritte mehr gefunden wurden
   marks: [],                 // 'none' | 'kept' | 'removed'
+  // ── Math Cross (s. js/games/mathcross/board.js) ──
+  placed: [],                // 2D-Raster der GELEGTEN Zahlen (null = Lücke noch offen)
+  tray: [],                  // Vorrat [{ id, v, used }] — ein benutzter Stein hinterlässt eine Lücke
+  hl: [],                    // eigene Farb-Markierungen als "r-c"-Schlüssel (rein persönlich, nie gesendet)
+  markMode: false,           // Markierungsmodus: ein Tipp markiert, Zahlen sind gesperrt (nicht persistiert)
+  display: null,             // Anzeige-Raster (2*rows-1 × 2*cols-1, Zahl- + Operator-Felder)
+  drag: null,                // laufendes Ziehen eines Steins oder null
+  pick: null,                // per Antippen gewählter Stein oder null
+  trayTile: 42,              // Steingröße des Vorrats (s. fitTrayTile)
+  opRatio: 0.55,             // Breite der Operator-Spuren (s. fitBoard)
+  boardW: 0,                 // gemessene Breite der Spielfläche (Basis der Vorrats-Steingröße)
   cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint, hintMark }
   lives: 0, maxLives: 0,
   hintsLeft: 0,
@@ -253,6 +267,7 @@ const state = reactive({
   modal: null,               // null | 'howto' | 'changelog' | 'confirm'
   confirm: null,             // { title, msg, onYes }
   showWhatsNew: false,
+  showDivStyle: false,       // Math Cross: einmalige Frage nach dem Geteilt-Zeichen
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   updateCheck: 'idle',       // manuelle Update-Prüfung (Klick auf die Version): idle | busy | found (Dialog offen)
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
@@ -350,9 +365,15 @@ const state = reactive({
 // gebunden (hoisting); die computeds im Brett-Modul sind lazy und greifen erst
 // beim ersten Render zu, also nach diesem Aufruf.
 const Board = activeGame().board;
+// Platzhalter für Steckplätze, die ein Spiel nicht belegt (z.B. der Vorrat unter
+// dem Brett, den es nur in Math Cross gibt).
+const EMPTY_COMPONENT = { render: () => null };
+// Math Cross: Auswahl des Geteilt-Zeichens (reine Anzeige). Leer in Spielen ohne Division.
+const DIV_STYLES = activeGame().divStyles || [];
+const DIV_STYLE_DEFAULT = 'obelus';
 Board.initBoard({
   state, LOCAL_PLAYER_ID, playerColor, shopEquippedId, desktopBoard,
-  registerMistake, afterMove, coopSend,
+  registerMistake, afterMove, coopSend, persistGame, ask,
   // Das Zug-Log wird von startPlayLog() neu zugewiesen (null = nicht
   // aufzeichnen), darf also nicht als Referenz uebergeben werden.
   pushMove: (entry) => { if (moveLog) moveLog.push(entry); },
@@ -2184,22 +2205,31 @@ function noteSent(msg) {
 function sendRoom(msg) { noteSent(msg); return Coop.send(msg); }
 function coopSend(msg) {
   noteSent(msg);
-  if (!state.coop.active) return;
+  if (!state.coop.active) return null;
+  // Der Schlüssel wird VORAB reserviert, nicht erst beim Schreiben: der Zug
+  // bekommt seinen Platz in der globalen Reihenfolge damit im Moment des
+  // Ausführens. Ein GEPUFFERTER Zug behält diesen Platz, auch wenn er erst nach
+  // der Roster-Heilung rausgeht — sonst überholte er beim Flush fremde Züge, die
+  // in der Zwischenzeit wirklich später kamen.
+  const key = Coop.nextEventKey();
   if (!state.coop.connected) {
-    coopOutbox.push(msg);
+    coopOutbox.push({ msg, key });
     if (coopOutbox.length > COOP_OUTBOX_MAX) coopOutbox.shift();
-    return;
+    return key;
   }
-  if (state.team.active) Coop.sendTeamEvent(state.team.myTeam, msg);
-  else Coop.send(msg);
+  // Der RESERVIERTE Schlüssel gilt, auch wenn das Schreiben scheitert: er ist die
+  // Stelle dieses Zuges in der Reihenfolge, nicht die Quittung des Servers.
+  if (state.team.active) Coop.sendTeamEvent(state.team.myTeam, msg, key);
+  else Coop.send(msg, key);
+  return key;
 }
 function flushCoopOutbox() {
   if (!coopOutbox.length) return;
   const pending = coopOutbox; coopOutbox = [];
   log('coop', `Sende ${pending.length} gepufferte Züge nach Roster-Heilung nach`);
-  for (const m of pending) {
-    if (state.team.active) Coop.sendTeamEvent(state.team.myTeam, m);
-    else Coop.send(m);
+  for (const { msg, key } of pending) {
+    if (state.team.active) Coop.sendTeamEvent(state.team.myTeam, msg, key);
+    else Coop.send(msg, key);
   }
 }
 
@@ -4877,6 +4907,9 @@ function setSetting(key, val) {
   if (key === 'sfxPack') Music.setSfxPack(shopEquippedId('sfx'));
   if (key === 'musicPack') { Music.setMusicPack(shopEquippedId('music')); updateMusic(); }
   if (key === 'musicVolume') { Music.setVolume(val); updateMusic(); }
+  // Math Cross: das Anzeige-Raster neu bauen (Geteilt-Zeichen ist nur Anzeige)
+  // — auch das Setzen aus den Einstellungen beendet die offene Frage.
+  if (key === 'divStyle') { if (Board.rebuildDisplay) Board.rebuildDisplay(); if (val) state.showDivStyle = false; }
 }
 // Eigene Markierungsfarbe oder Brett-Palette geändert → Cage-Farben neu auf
 // Sichtbarkeit der Markierung prüfen. Als watch statt setSetting-Hook, weil der
@@ -4997,38 +5030,11 @@ function doDeleteAllData() {
 // Undo, siehe state.history), siehe ROADMAP/Plan.
 function openHistoryDetail(entry) {
   const puzzle = generatePuzzle({ difficulty: entry.difficulty, seed: entry.seed, dim: entry.dim });
-  state.historyDetail = { entry, puzzle, cellMeta: activeGame().model.buildCellMeta(puzzle) };
+  // Was das Spiel zum Zeichnen des Endbretts braucht (Number Sums: Käfige,
+  // Math Cross: das Anzeige-Raster mit den Operator-Feldern).
+  state.historyDetail = { entry, puzzle, ...Board.historyExtras(puzzle) };
 }
 function closeHistoryDetail() { state.historyDetail = null; }
-function historyGridStyle(puzzle) {
-  const avail = Math.min(window.innerWidth - 80, 420);
-  const cellPx = Math.max(20, Math.min(40, Math.floor(avail / (puzzle.cols + 1))));
-  return {
-    gridTemplateColumns: `var(--hdr) repeat(${puzzle.cols}, var(--cell))`,
-    gridTemplateRows: `var(--hdr) repeat(${puzzle.rows}, var(--cell))`,
-    '--cell': cellPx + 'px', '--hdr': cellPx + 'px',
-    '--fs': Math.max(9, Math.round(cellPx * 0.4)) + 'px',
-  };
-}
-function historyCellClasses(r, c) {
-  const m = state.historyDetail.cellMeta[r][c];
-  const mk = state.historyDetail.entry.marks?.[r]?.[c] || 'none';
-  return {
-    kept: mk === 'kept', removed: mk === 'removed', region: m.region >= 0,
-    strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
-  };
-}
-function historyCellStyle(r, c) {
-  const m = state.historyDetail.cellMeta[r][c];
-  const st = { fontSize: 'var(--fs)' };
-  if (m.color) {
-    // Ausgerüstete Brett-Palette (Shop): reine HSL-Transformation der Cage-Farbe —
-    // Rotation/Skalierung erhält die optimierten Farb-Abstände (shopitems.js).
-    const col = applyPaletteFx(m.color, activePaletteFx());
-    st['--rc-h'] = col.h; st['--rc-s'] = col.s + '%'; st['--rc-l'] = col.l + '%'; st['--rc-ink'] = regionChipInk(col);
-  }
-  return st;
-}
 // Erzeugt per Seed exakt dasselbe Rätsel neu und startet eine frische,
 // spielbare Partie damit (kein zugweises Fortsetzen — ein neuer Versuch).
 function replayHistoryEntry(entry) {
@@ -6537,6 +6543,24 @@ function maybeShowWhatsNew() {
   }
 }
 function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD); }
+// Math Cross: wie maybeShowWhatsNew, nur an die Einstellung statt an die Version
+// gekoppelt — solange NICHTS gewählt ist, kommt die Frage bei JEDEM Start,
+// beantwortet ist sie für immer weg.
+function maybeShowDivStyle() {
+  if (!gameHas('divStyle') || state.settings.divStyle) return;
+  state.showDivStyle = true;
+  log('game', 'Frage nach dem Geteilt-Zeichen (noch nie gewählt)');
+}
+function chooseDivStyle(id) {
+  setSetting('divStyle', id);
+  state.showDivStyle = false;
+  log('game', 'Geteilt-Zeichen gewählt', { id });
+}
+function dragScaleLabel() {
+  const v = Number(state.settings.dragScale);
+  const f = Number.isFinite(v) ? Math.min(4, Math.max(1, v)) : 1;
+  return f <= 1 ? t('settings.dragScaleOff') : t('settings.dragScaleOn', { f: String(f).replace('.', ',') });
+}
 function dismissStreakLostNotice() { state.streakLostNotice = false; }
 function dismissStreakExtended() { state.streakExtended = null; }
 
@@ -6558,7 +6582,9 @@ let moveLog = null;
 function playSampleEligible() {
   return !state.isTrainingGame;
 }
-function startPlayLog() { moveLog = playSampleEligible() ? [] : null; }
+// Nur Spiele MIT KI-Duell zeichnen auf: die Auswertung (playstyle.js) kennt nur
+// die Deduktionen von Number Sums — ein Math-Cross-Zug ergäbe dort Unsinn.
+function startPlayLog() { moveLog = gameHas('aiDuel') && playSampleEligible() ? [] : null; }
 
 // Am Spielende: Zug-Log auswerten und als kompakte Stichprobe sichern.
 function recordPlaySample() {
@@ -7146,6 +7172,7 @@ function init() {
   }, 20000);
   log('account', 'Präsenz-Heartbeat aktiv', { gameMs: 20000, menuMs: 60000, staleMs: Account.PRESENCE_STALE_MS });
   maybeShowWhatsNew();
+  maybeShowDivStyle();
   maybeUnlockV1Skin();  // 1.0-Feier-Skin beim Versionssprung (vor dismissWhatsNew, das die Version speichert)
   // Alt-Spieler, die bereits ALLE 12 Kategorien gemeistert haben, bekommen die
   // Großmeister-Feier EINMAL beim ersten Start nach dem Update (nur auf Home).
@@ -7316,7 +7343,7 @@ const DifficultySlider = {
 //  KOMPONENTE / TEMPLATE
 // ════════════════════════════════════════════════════════════════════════════
 const App = {
-  components: { DifficultySlider, BoardGrid },
+  components: { DifficultySlider, BoardGrid, BoardBelow: activeGame().BoardBelow || EMPTY_COMPONENT, HistoryBoard: Board.HistoryBoard },
   setup() {
     const livesArr = computed(() => Array.from({ length: state.maxLives }, (_, i) => i < state.lives));
     // Coop/Race/Team: zeigt der Coop-Screen gerade die Host-Schwierigkeitsauswahl?
@@ -7560,7 +7587,8 @@ const App = {
       canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       canContinueSolo, continueSoloAlone, startResumeCountdown,
       startTrainingGame, applyTrainingStep, trainingText: (step) => Board.trainingText(step),
-      openHistoryDetail, closeHistoryDetail, historyGridStyle, historyCellClasses, historyCellStyle, replayHistoryEntry,
+      B: Board, gameHas, divStyles: DIV_STYLES, activeDivStyleId: computed(() => state.settings.divStyle || DIV_STYLE_DEFAULT), chooseDivStyle, dragScaleLabel,
+      openHistoryDetail, closeHistoryDetail, replayHistoryEntry,
       isOnline,
       t, i18nState, SUPPORTED_LOCALES,
     };
@@ -7814,6 +7842,17 @@ const App = {
                kein ausgegrauter Knopf: was man nicht betaetigen kann, ist weg, nur
                sein Platz bleibt. Der Reset bleibt links neben − / +. -->
           <span class="zoomctl">
+            <!-- Math Cross: Markier-Werkzeuge als eigenes ABTEIL links vom Zoom.
+                 Der „alle löschen"-Knopf sitzt in einem .tool-slot fester Breite,
+                 damit beim Ein-/Ausblenden nichts verrutscht. -->
+            <span v-if="gameHas('markTools')" class="toolgrp" role="group" :aria-label="t('game.markTools')">
+              <span class="tool-slot">
+                <button v-if="state.hl.length" class="zoom-btn mark-clear" @click="B.askClearMarks()"
+                        :aria-label="t('game.clearMarks')" :title="t('game.clearMarks')"><span class="ei" v-html="ic('trash')"></span></button>
+              </span>
+              <button class="zoom-btn mark-toggle" :class="{ on: state.markMode }" :aria-pressed="String(state.markMode)"
+                      @click="B.toggleMarkMode()" :aria-label="t('game.markMode')" :title="t('game.markMode')"><span class="ei" v-html="ic('brush')"></span></button>
+            </span>
             <span class="toolgrp" role="group" :aria-label="t('game.zoomTools')">
               <span class="tool-slot">
                 <button v-if="state.zoom !== 1" class="zoom-btn zoom-reset" @click="resetZoom" :aria-label="t('game.zoomReset')" :title="t('game.zoomReset')">↺</button>
@@ -7934,7 +7973,12 @@ const App = {
           <board-grid></board-grid>
         </div>
 
-        <div class="game-sidebar-bottom">
+        <!-- Steckplatz UNTER dem Brett: in Math Cross der Vorrat mit den noch zu
+             legenden Steinen (eigene Child-Komponente, damit ein HUD-/Sekunden-
+             Render die Steine nicht mit neu rendert). -->
+        <board-below v-if="!state.paused && !state.coop.awaitingStart"></board-below>
+
+        <div v-if="gameHas('toolToggle')" class="game-sidebar-bottom">
         <!-- Kein Undo-Knopf mehr (Nutzerwunsch) — Fehlzüge werden ohnehin sofort
              aufgedeckt und nie gesetzt; undo() bleibt nur für Coop-UNDO-Events
              älterer Clients erhalten. -->
@@ -7951,7 +7995,7 @@ const App = {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="11" cy="13" rx="8" ry="7"/><path d="m16.5 7.5 3.2-3.2a1.6 1.6 0 0 1 2.3 2.3l-3.2 3.2-2.3-2.3z"/></svg>
             </span>
           </div>
-          <button v-if="!state.isRaceGame && !state.team.active" class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" :title="t('game.hintTitle')" :aria-label="t('game.hintTitle')">
+          <button v-if="gameHas('hints') && !state.isRaceGame && !state.team.active" class="round-btn" :disabled="state.hintsLeft<=0" @click="useHint" :title="t('game.hintTitle')" :aria-label="t('game.hintTitle')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5"/><path d="M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-4 11.6c.8.7 1.2 1.3 1.3 2.4h5.4c.1-1.1.5-1.7 1.3-2.4A6.5 6.5 0 0 0 12 2.5z"/></svg>
           </button>
         </div>
@@ -8770,6 +8814,16 @@ const App = {
           </div>
 
           <div class="set-group-title">{{ t('settings.a11y') }}</div>
+          <!-- Math Cross: Reichweite beim Ziehen — der Stein folgt der Finger-
+               bewegung verstärkt, damit man den oberen Brettrand ohne Wisch über
+               den ganzen Bildschirm erreicht. -->
+          <div v-if="gameHas('dragScale')" class="set-row col">
+            <span class="set-row-label">{{ t('settings.dragScale') }}<span class="account-role">{{ dragScaleLabel() }}</span></span>
+            <input type="range" class="set-range" min="1" max="4" step="0.5" :value="state.settings.dragScale"
+                   :style="{ '--rangePct': Math.round((state.settings.dragScale-1)/3*100) + '%' }"
+                   @input="setSetting('dragScale', parseFloat($event.target.value))" />
+            <small class="set-hint">{{ t('settings.dragScaleHint') }}</small>
+          </div>
           <div class="set-row" @click="toggleSetting('colorBlindMode')">
             <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
           </div>
@@ -8791,6 +8845,29 @@ const App = {
             </div>
             <small class="set-hint">{{ t('settings.colorHint') }}</small>
           </div>
+
+          <template v-if="gameHas('divStyle')">
+          <div class="set-group-title">{{ t('settings.divStyle') }}</div>
+          <div class="set-row col">
+            <div class="div-choice">
+              <button v-for="d in divStyles" :key="d.id" class="div-opt" :class="{ on: activeDivStyleId===d.id }" @click="chooseDivStyle(d.id)">
+                <span v-if="d.sym==='÷'" class="op-obelus op-obelus-lg"></span><b v-else class="div-sample">{{ d.sym }}</b>
+                <small>{{ t('settings.div_' + d.id) }}</small>
+              </button>
+            </div>
+            <small class="set-hint">{{ t('settings.divStyleHint') }}</small>
+          </div>
+          </template>
+
+          <template v-if="gameHas('markColor')">
+          <div class="set-group-title">{{ t('settings.markColor') }}</div>
+          <div class="set-row col">
+            <div class="coop-swatches">
+              <input type="color" class="swatch-custom" v-model="state.settings.markColor" :title="t('common.pickColorTitle')" />
+            </div>
+            <small class="set-hint">{{ t('settings.markColorHint') }}</small>
+          </div>
+          </template>
 
           <!-- Dynamischer Skin (1.0): Code-Einlösung immer sichtbar; Editor nur, wenn freigeschaltet -->
           <div class="set-group-title skin-editor">{{ t('skin.title') }}</div>
@@ -9466,6 +9543,8 @@ const App = {
           <li v-html="t('howto.rule2')"></li>
           <li v-html="t('howto.rule3')"></li>
           <li v-html="t('howto.rule4')"></li>
+          <li v-if="gameHas('markTools')" v-html="t('howto.ruleTapBack')"></li>
+          <li v-if="gameHas('markTools')" v-html="t('howto.ruleMark')"></li>
           <li v-html="t('howto.rule5')"></li>
           <li v-html="t('howto.rule6')"></li>
           <li v-if="state.coop.active" v-html="t('howto.rule7Coop')"></li>
@@ -9492,10 +9571,26 @@ const App = {
         <button class="btn btn-ghost" :disabled="!coopAvailable || !isOnline()" @click="goRace('2v2')">
           <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('race.choice2v2') }}</b><small>{{ t('team.assignHint') }}</small></span>
         </button>
-        <button class="btn btn-ghost" @click="goAiDuel">
+        <button v-if="gameHas('aiDuel')" class="btn btn-ghost" @click="goAiDuel">
           <span class="btn-ic"><span class="ei" v-html="ic('robot')"></span></span><span class="btn-tx"><b>{{ t('aiduel.title') }}</b><small>{{ t('aiduel.hint') }}</small></span>
         </button>
         <button class="btn btn-ghost" style="margin-top:8px" @click="state.modal=null">{{ t('common.cancel') }}</button>
+      </div>
+    </div>
+
+    <!-- Math Cross: einmalige Frage nach dem Geteilt-Zeichen. Bewusst OHNE
+         Abbrechen und ohne Klick-daneben: eine der drei Schaltflächen IST die
+         Antwort, danach kommt die Frage nie wieder (settings.divStyle) und lässt
+         sich in den Einstellungen jederzeit ändern. „Was ist neu" hat Vorrang. -->
+    <div v-if="state.showDivStyle && !state.showWhatsNew" class="modal-bg">
+      <div class="modal modal-divstyle">
+        <h3>{{ t('settings.divStyle') }}</h3>
+        <p class="coop-tagline">{{ t('settings.divStyleAsk') }}</p>
+        <button v-for="d in divStyles" :key="d.id" class="btn" :class="d.id==='obelus' ? 'btn-primary' : 'btn-ghost'" @click="chooseDivStyle(d.id)">
+          <span class="btn-ic"><span v-if="d.sym==='÷'" class="op-obelus op-obelus-lg"></span><b v-else class="div-sample">{{ d.sym }}</b></span>
+          <span class="btn-tx"><b>{{ t('settings.div_' + d.id) }}</b><small>{{ t('settings.divExample', { sym: d.sym }) }}</small></span>
+        </button>
+        <small class="set-hint">{{ t('settings.divStyleHint') }}</small>
       </div>
     </div>
 
@@ -9638,22 +9733,8 @@ const App = {
       <div class="modal modal-history">
         <h3><span class="ei" v-html="ic(DIFF_BY_ID[state.historyDetail.entry.difficulty]?.emoji)"></span> {{ t('difficulty.'+state.historyDetail.entry.difficulty) }} · {{ state.historyDetail.entry.dim.r }}×{{ state.historyDetail.entry.dim.c }}</h3>
         <div class="board-wrap">
-          <div class="board" :style="historyGridStyle(state.historyDetail.puzzle)">
-            <div class="corner"></div>
-            <div v-for="c in state.historyDetail.puzzle.cols" :key="'hch'+c" class="hdr col-hdr">
-              <span class="tgt">{{ state.historyDetail.puzzle.colTargets[c-1] }}</span>
-            </div>
-            <template v-for="r in state.historyDetail.puzzle.rows" :key="'hr'+r">
-              <div class="hdr row-hdr">
-                <span class="tgt">{{ state.historyDetail.puzzle.rowTargets[r-1] }}</span>
-              </div>
-              <div v-for="c in state.historyDetail.puzzle.cols" :key="'h'+r+'-'+c"
-                   class="cell" :class="historyCellClasses(r-1,c-1)" :style="historyCellStyle(r-1,c-1)">
-                <span v-if="state.historyDetail.cellMeta[r-1][c-1].chip!=null" class="rchip">{{ state.historyDetail.cellMeta[r-1][c-1].chip }}</span>
-                <span class="cnum">{{ state.historyDetail.puzzle.values[r-1][c-1] }}</span>
-              </div>
-            </template>
-          </div>
+          <!-- Das Endbrett zeichnet das SPIEL (s. HistoryBoard in board.js). -->
+          <history-board :detail="state.historyDetail"></history-board>
         </div>
         <button class="btn btn-primary" @click="closeHistoryDetail">{{ t('common.close') }}</button>
       </div>
@@ -9964,7 +10045,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend,
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, board: Board, gameId: activeGame().id, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint, // KI-Duell-Testhaken: spult den Bot bis 100 % vor bzw. lässt ihn ausscheiden,
   // damit E2E beide Match-Enden ohne Echtzeit-Warten prüfen kann.
   aiBotFastForward: () => {
@@ -10023,9 +10104,11 @@ window.addEventListener('pagehide', () => { persistGame(); if (state.account.sta
 // erzeugen (das täte `transform`/`filter`, nicht aber `opacity`). Rein additiv,
 // unsichtbar, nur bei Sichtbarwerden (kein Per-Frame-Kosten).
 let repaintNudgeScheduled = false;
+let repaintNudgeCount = 0;      // nur fuer den E2E-Test sichtbar (window.__cns)
 function nudgeRepaint(reason) {
   if (repaintNudgeScheduled) return;
   repaintNudgeScheduled = true;
+  repaintNudgeCount++;
   requestAnimationFrame(() => {
     const el = document.querySelector('.app') || document.body;
     if (el) {

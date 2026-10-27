@@ -2,7 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  games: { numbersums: 'Number Sums' },
+  games: { numbersums: 'Number Sums', mathcross: 'Math Cross' },
 
   coopEndless: { toggle: 'Endlos-Aufstieg', toggleHint: 'Gemeinsam immer schwerer — 3 geteilte Leben, kein Nachschub' },
 
@@ -476,6 +476,9 @@ export default {
         'settings/eraseStyle': { l: 'Gelöschte Zahlen', d: 'Darstellung gelöschter Zahlen auf dem Brett.' },
         'settings/coopName': { l: 'Anzeigename', d: 'Name, der anderen im Coop/Wettkampf angezeigt wird.' },
         'settings/coopMyColor': { l: 'Persönliche Farbe', d: 'Hex-Farbe der eigenen Markierungen (in allen Modi).' },
+        'settings/dragScale': { l: 'Reichweite beim Ziehen', d: 'Faktor, um den der gezogene Stein der Fingerbewegung verstärkt folgt (1 = aus).' },
+        'settings/markColor': { l: 'Markierungsfarbe', d: 'Farbe der persönlichen Feld-Markierung (Feld lange gedrückt halten). Reine Notiz ohne Regel-Bedeutung, nur für den Besitzer sichtbar.' },
+        'settings/divStyle': { l: 'Geteilt-Zeichen', d: 'Anzeige der Divisions-Felder: obelus (÷), colon (:) oder slash (/). null = noch nie gewählt, dann fragt das Spiel beim ersten Rätsel mit Division einmalig nach.' },
         'settings/coopRemovedOutline': { l: 'Rahmen bei gelöschten Zahlen', d: 'Farbige Umrandung zeigt im Coop, wer eine Zahl gelöscht hat.' },
         'settings/language': { l: 'Sprache', d: 'Sprache der Benutzeroberfläche (leer = automatisch erkennen).' },
         'settings/colorBlindMode': { l: 'Farbenblind-Modus', d: 'Ersetzt Grün/Rot durch Blau/Orange (Markierungen, Leben, Hinweise …).' },

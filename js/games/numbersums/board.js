@@ -662,3 +662,59 @@ export function fitBoard() {
   const base = Math.max(10, Math.min(cap, ideal));
   state.cellPx = Math.round(base * state.zoom);
 }
+
+// ── Verlauf: das Endbrett eines gelösten Rätsels (Einstellungen ▸ Verlauf) ──
+// Das Rätsel wird per Seed neu erzeugt; gezeigt werden die gespeicherten
+// Markierungen des Endstands. Eigene kleine Komponente, weil das Raster
+// spielspezifisch ist (hier: Kopfzeile/-spalte mit Zielsummen + Käfige).
+export function historyExtras(puzzle) { return { cellMeta: Model.buildCellMeta(puzzle) }; }
+function historyGridStyle(puzzle) {
+  const avail = Math.min(window.innerWidth - 80, 420);
+  const cellPx = Math.max(20, Math.min(40, Math.floor(avail / (puzzle.cols + 1))));
+  return {
+    gridTemplateColumns: `var(--hdr) repeat(${puzzle.cols}, var(--cell))`,
+    gridTemplateRows: `var(--hdr) repeat(${puzzle.rows}, var(--cell))`,
+    '--cell': cellPx + 'px', '--hdr': cellPx + 'px',
+    '--fs': Math.max(9, Math.round(cellPx * 0.4)) + 'px',
+  };
+}
+function historyCellClasses(d, r, c) {
+  const m = d.cellMeta[r][c];
+  const mk = d.entry.marks?.[r]?.[c] || 'none';
+  return {
+    kept: mk === 'kept', removed: mk === 'removed', region: m.region >= 0,
+    strike: mk === 'removed' && state.settings.eraseStyle === 'strike',
+  };
+}
+function historyCellStyle(d, r, c) {
+  const m = d.cellMeta[r][c];
+  const st = { fontSize: 'var(--fs)' };
+  if (m.color) {
+    // Ausgerüstete Brett-Palette (Shop): reine HSL-Transformation der Cage-Farbe.
+    const col = applyPaletteFx(m.color, activePaletteFx());
+    st['--rc-h'] = col.h; st['--rc-s'] = col.s + '%'; st['--rc-l'] = col.l + '%'; st['--rc-ink'] = regionChipInk(col);
+  }
+  return st;
+}
+export const HistoryBoard = {
+  props: ['detail'],
+  setup() { return { historyGridStyle, historyCellClasses, historyCellStyle }; },
+  template: `
+          <div class="board" :style="historyGridStyle(detail.puzzle)">
+            <div class="corner"></div>
+            <div v-for="c in detail.puzzle.cols" :key="'hch'+c" class="hdr col-hdr">
+              <span class="tgt">{{ detail.puzzle.colTargets[c-1] }}</span>
+            </div>
+            <template v-for="r in detail.puzzle.rows" :key="'hr'+r">
+              <div class="hdr row-hdr">
+                <span class="tgt">{{ detail.puzzle.rowTargets[r-1] }}</span>
+              </div>
+              <div v-for="c in detail.puzzle.cols" :key="'h'+r+'-'+c"
+                   class="cell" :class="historyCellClasses(detail, r-1, c-1)" :style="historyCellStyle(detail, r-1, c-1)">
+                <span v-if="detail.cellMeta[r-1][c-1].chip!=null" class="rchip">{{ detail.cellMeta[r-1][c-1].chip }}</span>
+                <span class="cnum">{{ detail.puzzle.values[r-1][c-1] }}</span>
+              </div>
+            </template>
+          </div>
+  `,
+};

@@ -2,7 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  games: { numbersums: 'Number Sums' },
+  games: { numbersums: 'Number Sums', mathcross: 'Math Cross' },
 
   coopEndless: { toggle: 'Endless Climb', toggleHint: 'Climb together — 3 shared lives, no refills' },
 
