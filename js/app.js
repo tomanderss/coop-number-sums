@@ -172,6 +172,7 @@ const state = reactive({
     mistakesByPlayer: {},        // id -> Anzahl Fehler dieses Spielers im laufenden Rätsel
     awaitingStart: false,        // Rätsel ist generiert, aber die Zeit läuft noch nicht — wartet auf Start-Klick
     generating: false,           // Rätsel wird gerade (im Worker) für diese Lobby generiert — Start/Bereit ist bis zur Fertigstellung gesperrt
+    endlessWaiting: false,       // Coop-Endlos: der Host steht zwischen zwei Leveln — wir haben (noch) kein Brett und warten auf sein „Fortsetzen"
 
     teamMode: false,               // Host-Lobby-Toggle: Team-vs-Team statt normalem Coop
     ffaMode: false,                // Host-Lobby-Toggle: Free-for-All (jeder gegen jeden, 3–4 Spieler) — Race-Familie mit N Gegnern
@@ -2233,7 +2234,23 @@ const CODE_RE = /^\d{6}$/;
 // Eigene Socket-Ausfälle puffert das Firebase-SDK ohnehin selbst.
 let coopOutbox = [];
 const COOP_OUTBOX_MAX = 300;
+// Ohne Firebase ist Coop.send() ein No-op — eine Host-seitige Sende-Entscheidung
+// („was schickt der Host in DIESER Lage?") liesse sich sonst gar nicht testen,
+// und genau so ist das Zwischen-Level-Fenster im Coop-Endlos unbemerkt tot
+// geblieben. Auf localhost (= Testumgebung, dieselbe Bedingung wie window.__cns)
+// schreiben wir die gesendeten Event-Typen deshalb in einen kleinen Ringpuffer.
+const IS_TEST_HOST = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+let sentLog = [];
+function noteSent(msg) {
+  if (!IS_TEST_HOST || !msg) return;
+  sentLog.push({ type: msg.type, at: Date.now() });
+  if (sentLog.length > 50) sentLog.shift();
+}
+// Room-weites Event senden (Coop.send direkt, ohne die coopSend-Puffer-Logik) —
+// eine Stelle, damit der Mitschrieb oben nichts verpasst.
+function sendRoom(msg) { noteSent(msg); return Coop.send(msg); }
 function coopSend(msg) {
+  noteSent(msg);
   if (!state.coop.active) return;
   if (!state.coop.connected) {
     coopOutbox.push(msg);
@@ -2447,6 +2464,7 @@ function handleCoopMsg(msg) {
     state.coop.waitingForGuest = false;
     state.coop.awaitingStart = true;
     state.coop.generating = false;
+    state.coop.endlessWaiting = false;   // ein Brett ist da — das Warten ist vorbei
     // Coop-Endlos: der endless-Marker im INIT setzt beim Gast den Endlos-Zustand
     // (Level + geteilte Rest-Leben). Jedes Level kommt als eigenes (running-)INIT
     // mit frischer gameId, daher nie durch den Duplikat-Guard oben blockiert.
@@ -2544,6 +2562,35 @@ function handleCoopMsg(msg) {
       const p = state.coop.players.find(pl => pl.id === msg.author);
       if (p) { p.ready = false; broadcastRoster(); }
     }
+  } else if (msg.type === Coop.MSG.ENDLESS_WAIT) {
+    // Der Host steht zwischen zwei Endlos-Leveln. Es gibt (noch) kein Brett, aber
+    // der Lauf lebt: aus der Bereit-Lobby holen, Lauf-Zustand übernehmen und den
+    // Warte-Screen zeigen. Das INIT des nächsten Levels holt uns von dort ab.
+    if (state.coop.role !== 'host') {
+      log('coop', 'Warte-Stand vom Host empfangen (zwischen zwei Endlos-Leveln)', { level: msg.endlessLevel || null });
+      state.coop.active = true;
+      state.coop.connected = true;
+      state.coop.waitingForGuest = false;
+      state.coop.awaitingStart = false;
+      state.coop.generating = false;
+      state.coop.endlessWaiting = true;
+      const lvl = msg.endlessLevel || 1;
+      state.endless = {
+        active: true, coop: true, advancing: false, level: lvl,
+        lives: msg.lives ?? LIVES, hints: HINTS, score: msg.score ?? (lvl - 1),
+        coins: state.endless.coins || 0, best: state.stats.endlessCoopBest || 0,
+        bigNumbers: !!state.endless.bigNumbers, accumMs: msg.accumMs || state.endless.accumMs || 0,
+      };
+      if (Array.isArray(msg.lifeLossBy)) {
+        state.coop.lifeLossBy = msg.lifeLossBy.map(x => x || null);
+        state.endless.lifeLossBy = state.coop.lifeLossBy.slice();
+      }
+      // Ohne Brett rendert der Spiel-Screen den Warte-/Recovery-Screen.
+      state.puzzle = null;
+      state.status = 'playing';
+      state.endlessSummary = null;
+      navigate('game');
+    }
   } else if (msg.type === Coop.MSG.RESYNC) {
     // Ein Gast hängt ohne Brett und bittet um den Rundenstand: der Host sendet
     // erneut — läuft die Runde, den kompletten laufenden Stand (bereits aktive
@@ -2556,6 +2603,12 @@ function handleCoopMsg(msg) {
       } else if (state.coop.awaitingStart) {
         log('coop', 'RESYNC-Anfrage → sende Lobby-INIT erneut', { from: msg.author });
         Coop.send({ type: Coop.MSG.INIT, gameId: state.gameId, puzzle: state.puzzle, marks: state.marks, markedBy: wireMarkedBy(), startTime: state.startTime });
+      } else if (coopEndlessBetweenLevels()) {
+        // Zwischen zwei Endlos-Leveln gibt es nichts zu senden — bisher schwieg
+        // der Host hier komplett und der Gast hing für immer. Jetzt bekommt er
+        // den Warte-Stand.
+        log('coop', 'RESYNC-Anfrage zwischen zwei Endlos-Leveln → sende Warte-Stand', { from: msg.author });
+        broadcastEndlessWait();
       }
     }
   } else if (msg.type === Coop.MSG.TEAM_START) {
@@ -2661,6 +2714,7 @@ function coopReset({ keepRoom = false } = {}) {
   state.coop.lobbyDiffId = keepDiff; state.coop.lobbyBigNumbers = keepBig; state.coop.lobbyEndless = keepEndless; state.coop.error = null;
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
   state.coop.generating = false;
+  state.coop.endlessWaiting = false;
   state.coop.teamMode = false;
   stopBot();
   botState = null;
@@ -2895,6 +2949,33 @@ function broadcastRoster() {
 // dazukommt (hostRegisterPlayer). Bereits aktive Spieler ignorieren dieses INIT
 // (gleiche gameId + schon am Spielen, s. INIT-Handler) — es lädt niemandem das
 // Brett neu, holt aber Nachzügler zuverlässig ins Spiel.
+// Coop-Endlos ZWISCHEN zwei Leveln: das gerade gelöste Level ist vorbei
+// (status 'won'), das nächste gibt es erst, wenn der Host „Fortsetzen" drückt.
+// In diesem Fenster hat der Host NICHTS zu senden — weder einen laufenden
+// Rundenstand (status ist nicht 'playing') noch ein Lobby-INIT (awaitingStart
+// ist false). Genau daran blieb ein zurückkehrender Gast hängen: seine
+// RESYNC-Anfrage blieb unbeantwortet und er stand bis zum Sitzungsende in der
+// Bereit-Lobby (in Coop Math Cross gemeldet; derselbe Code steckte hier). Das
+// Fenster ist lang — der Level-Gewinn-Screen wartet bewusst auf den Host —, also
+// genau das Fenster, in dem ein Handy in den Hintergrund geht und die Verbindung
+// still abreisst.
+function coopEndlessBetweenLevels() {
+  return !!(state.endless.active && state.endless.coop && state.coop.active
+            && state.status !== 'playing' && !state.endlessSummary);
+}
+// Sagt dem Gast: der Lauf lebt, Level N ist geschafft, warte auf den Host. Er
+// verlässt damit die Bereit-Lobby und landet im Warte-Screen; das INIT des
+// nächsten Levels holt ihn von dort regulär ab.
+function broadcastEndlessWait() {
+  const e = state.endless;
+  log('coop', 'Coop-Endlos zwischen den Leveln — sende Warte-Stand', { level: e.level, lives: e.lives });
+  sendRoom({
+    type: Coop.MSG.ENDLESS_WAIT,
+    endlessLevel: e.level, lives: e.lives, maxLives: LIVES,
+    score: e.score, accumMs: e.accumMs || 0,
+    lifeLossBy: (state.coop.lifeLossBy || []).map(x => x || ''),
+  });
+}
 function broadcastRunningInit() {
   log('coop', 'Sende laufenden Rundenstand (INIT running:true + START)', { gameId: state.gameId });
   // Ist es ein (zu Coop umgewandelter) Endlos-Lauf, die Endlos-Marker mitschicken,
@@ -2930,6 +3011,10 @@ function hostRegisterPlayer(id, name, color, username, badge) {
   if (state.coop.active && state.status === 'playing' && !state.coop.awaitingStart) {
     log('coop', 'Neuer Spieler mitten im Spiel – sende laufenden Rundenstand nach', { id });
     broadcastRunningInit();
+  } else if (coopEndlessBetweenLevels()) {
+    // Kein Brett zum Nachschicken, aber auch keine Bereit-Lobby: der Gast muss
+    // erfahren, dass der Lauf lebt und auf den Host wartet.
+    broadcastEndlessWait();
   }
   if (!known) {
     const label = playerLabel({ name, username }) || t('common.defaultPlayerName');
@@ -7736,7 +7821,8 @@ const App = {
       <div class="loading-overlay recover">
         <div class="loading-card">
           <div class="loading-bar"><span></span></div>
-          <p>{{ t('game.loading') }}</p>
+          <p v-if="state.coop.endlessWaiting">{{ t('endless.waitingForNextLevel', { level: state.endless.level }) }}</p>
+          <p v-else>{{ t('game.loading') }}</p>
           <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
         </div>
       </div>
@@ -9918,7 +10004,8 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint, // KI-Duell-Testhaken: spult den Bot bis 100 % vor bzw. lässt ihn ausscheiden,
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { state, onCellTap, isSolved, handleCoopMsg, handleCoopConnection, coopSend,
+  sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint, // KI-Duell-Testhaken: spult den Bot bis 100 % vor bzw. lässt ihn ausscheiden,
   // damit E2E beide Match-Enden ohne Echtzeit-Warten prüfen kann.
   aiBotFastForward: () => {
     if (!botState) return false;
