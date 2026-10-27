@@ -1,1 +1,0 @@
-Vorbereitung der Spielesammlung: die Rechenlogik von Math Cross steckt jetzt mit in der App (noch nicht auswaehlbar)
