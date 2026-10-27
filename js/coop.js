@@ -22,9 +22,21 @@
 // können, ohne dass dafür eigene Server-Logs nötig wären.
 import { log } from './debuglog.js';
 import { COOP_MAX_PLAYERS } from './config.js';
+import { DEFAULT_GAME_ID } from './games/registry.js';
+
+// ─── WELCHES SPIEL läuft im Raum? ──────────────────────────────────────────────
+// Die App enthält mehrere Spiele, aber ein Raum spielt genau EINES: der Host
+// trägt es in `meta.game` ein. Ein Raum ohne Eintrag stammt von einer App-Version
+// vor der Spielauswahl — damals gab es nur Number Sums (Math Cross legte seine
+// Räume unter `mc/rooms` ab, die sieht diese App nie). Rein, unit-getestet.
+export function roomGameOf(meta) {
+  const g = meta && typeof meta.game === 'string' ? meta.game : '';
+  return g || DEFAULT_GAME_ID;
+}
 
 let fb = null;       // { db, uid, ref, push, set, get, remove, onChildAdded, onChildRemoved, onDisconnect, serverTimestamp }
 let roomCode = null;
+let roomGame = null;      // Spiel des aktuellen Raums (meta.game), s. roomGameOf
 let myPlayerRef = null;
 let unsubJoin = null;
 let unsubLeave = null;
@@ -174,7 +186,7 @@ async function healSelfPresence(f) {
     if (selfInfo.role === 'host') {
       const metaRef = f.ref(f.db, `rooms/${roomCode}/meta`);
       const metaSnap = await f.get(metaRef);
-      if (!metaSnap.exists()) await f.set(metaRef, { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active' });
+      if (!metaSnap.exists()) await f.set(metaRef, { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active', game: roomGame || DEFAULT_GAME_ID });
     }
     log('coop', 'Eigene Anwesenheit nach externer Entfernung wiederhergestellt', { role: selfInfo.role });
   } catch (e) { log('coop', 'Presence-Selbstheilung fehlgeschlagen', e); }
@@ -212,7 +224,7 @@ function watchConnection(f, cb) {
             // Löschung) — als Host wiederherstellen, sonst schlägt jeder spätere
             // rejoin() („Coop fortsetzen") mit room-gone fehl.
             currentHostId = f.uid;
-            await f.set(f.ref(f.db, `rooms/${roomCode}/meta`), { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active' });
+            await f.set(f.ref(f.db, `rooms/${roomCode}/meta`), { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active', game: roomGame || DEFAULT_GAME_ID });
             log('coop', 'Fehlendes meta nach Reconnect wiederhergestellt (Host)');
           }
           await f.set(myPlayerRef, { ...selfInfo, joinedAt: f.serverTimestamp() });
@@ -234,7 +246,7 @@ function watchConnection(f, cb) {
 // Der players/$uid-Eintrag muss name+color+role+joinedAt enthalten — die
 // RTDB-Security-Rules validieren genau diese vier Felder; ein Schreibzugriff
 // mit weniger Feldern wird von Firebase mit PERMISSION_DENIED abgelehnt.
-export async function hostGame({ code, name, color, onOpen, onError, onJoin, onLeave, onMessage, onConnection }) {
+export async function hostGame({ code, name, color, game = DEFAULT_GAME_ID, onOpen, onError, onJoin, onLeave, onMessage, onConnection }) {
   try {
     const f = await ensureDb();
     log('coop', `Hoste Raum ${code} – prüfe Verfügbarkeit…`);
@@ -250,7 +262,8 @@ export async function hostGame({ code, name, color, onOpen, onError, onJoin, onL
     // events): seit Räume einen letzten Spieler überleben können (keepRoom/
     // Fortsetzen, s. leave()), lägen sonst auch team-/raceProgress-Reste herum.
     await f.remove(f.ref(f.db, `rooms/${code}`));
-    await f.set(f.ref(f.db, `rooms/${code}/meta`), { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active' });
+    await f.set(f.ref(f.db, `rooms/${code}/meta`), { hostId: f.uid, createdAt: f.serverTimestamp(), status: 'active', game });
+    roomGame = game;
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
     await f.set(myPlayerRef, { name, color, role: 'host', joinedAt: f.serverTimestamp() });
     f.onDisconnect(myPlayerRef).remove();
@@ -290,7 +303,7 @@ export function computeJoinAnchor(events) {
   return { afterKey: roundOpen ? initAnchor : prevKey };
 }
 
-export async function joinGame({ code, name, color, onOpen, onError, onMessage, onClose, onConnection, maxPlayers = COOP_MAX_PLAYERS }) {
+export async function joinGame({ code, name, color, game = DEFAULT_GAME_ID, onOpen, onError, onMessage, onClose, onConnection, maxPlayers = COOP_MAX_PLAYERS }) {
   try {
     const f = await ensureDb();
     log('coop', `Trete Raum ${code} bei – prüfe Existenz…`);
@@ -305,6 +318,19 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
       onError && onError({ type: 'room-full' });
       return;
     }
+    // Läuft im Raum ein ANDERES Spiel, wird NICHT beigetreten: das fremde Rätsel
+    // würde der Struktur-Prüfung (validPuzzleShape) nie genügen, und der Gast
+    // hinge in einer RESYNC-Schleife. Die App wechselt stattdessen das Spiel und
+    // tritt danach erneut bei (s. onError 'other-game' in app.js).
+    let metaGame = DEFAULT_GAME_ID;
+    try { metaGame = roomGameOf((await withTimeout(f.get(f.ref(f.db, `rooms/${code}/meta`)))).val()); }
+    catch (e) { log('coop', 'Raum-Spiel nicht lesbar – nehme das eigene an', e); metaGame = game; }
+    if (metaGame !== game) {
+      log('coop', `Raum ${code} spielt ein anderes Spiel`, { raum: metaGame, eigenes: game });
+      onError && onError({ type: 'other-game', game: metaGame });
+      return;
+    }
+    roomGame = game;
     roomCode = code;
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
     await f.set(myPlayerRef, { name, color, role: 'guest', joinedAt: f.serverTimestamp() });
@@ -338,7 +364,7 @@ export async function joinGame({ code, name, color, onOpen, onError, onMessage, 
 // anders als hostGame()/joinGame() NICHT Kapazität/Belegung erneut, sondern
 // nur, ob der Raum überhaupt noch existiert — wer schon drin war, darf wieder
 // hinein, auch wenn der Raum inzwischen "voll" wäre.
-export async function rejoin({ code, name, color, role, afterEventKey, onOpen, onError, onJoin, onLeave, onMessage, onConnection }) {
+export async function rejoin({ code, name, color, role, game = DEFAULT_GAME_ID, afterEventKey, onOpen, onError, onJoin, onLeave, onMessage, onConnection }) {
   try {
     const f = await ensureDb();
     log('coop', `Verbinde erneut mit Raum ${code}…`);
@@ -359,13 +385,14 @@ export async function rejoin({ code, name, color, role, afterEventKey, onOpen, o
       let firstUid = null;
       playersSnap.forEach((child) => { if (!firstUid) firstUid = child.key; });
       meta = { hostId: role === 'host' ? f.uid : (firstUid || f.uid) };
-      await f.set(f.ref(f.db, `rooms/${code}/meta`), { ...meta, createdAt: f.serverTimestamp(), status: 'active' });
+      await f.set(f.ref(f.db, `rooms/${code}/meta`), { ...meta, createdAt: f.serverTimestamp(), status: 'active', game });
       log('coop', `Raum ${code}: fehlendes meta wiederhergestellt`, { hostId: meta.hostId });
     }
     // Prüfen, ob wir noch der aktuelle Host sind — falls inzwischen ein anderer
     // Spieler die Host-Rolle übernommen hat (meta.hostId wurde von promoteToHost()
     // aktualisiert), treten wir als Gast wieder bei.
     const actualRole = meta.hostId === f.uid ? 'host' : 'guest';
+    roomGame = game;
     roomCode = code;
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
     await f.set(myPlayerRef, { name, color, role: actualRole, joinedAt: f.serverTimestamp() });

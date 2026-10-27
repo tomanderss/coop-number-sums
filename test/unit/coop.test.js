@@ -10,7 +10,7 @@
 //   altes INIT reaktivierte die Bereit-Lobby.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeJoinAnchor, sanitizeForFirebase, normalizeGrid, safeKey, isFirebaseSentinel, winsCell, pushKeyLike } from '../../js/coop.js';
+import { computeJoinAnchor, sanitizeForFirebase, normalizeGrid, safeKey, isFirebaseSentinel, winsCell, pushKeyLike, roomGameOf } from '../../js/coop.js';
 import { readFileSync } from 'node:fs';
 
 const ev = (key, type, extra = {}) => ({ key, val: { type, ...extra } });
@@ -252,4 +252,13 @@ test('pushKeyLike: gleiches Format wie Firebase und zeitlich sortierbar', () => 
   const b = pushKeyLike(1_700_000_000_001, () => 0);
   assert.equal(a.length, 20);
   assert.ok(b > a, 'spaeterer Zeitpunkt sortiert hinter frueherem, egal welcher Zufall');
+});
+
+test('roomGameOf: ein Raum kennt sein Spiel, Alt-Raeume sind Number Sums', () => {
+  assert.equal(roomGameOf({ hostId: 'a', game: 'mathcross' }), 'mathcross');
+  // Vor der Spielauswahl gab es an der Wurzel nur Number-Sums-Raeume (Math Cross
+  // legte seine unter mc/rooms ab).
+  assert.equal(roomGameOf({ hostId: 'a' }), 'numbersums');
+  assert.equal(roomGameOf(null), 'numbersums');
+  assert.equal(roomGameOf({ game: '' }), 'numbersums');
 });

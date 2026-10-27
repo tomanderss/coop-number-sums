@@ -35,7 +35,7 @@ import {
   loadWallet, grantCurrency, spendCurrency, loadWalletLog, noteWalletTransaction,
   setDataRev, setSyncedRev,
   generateId, deviceId, isGameCompleted, markGameCompleted, loadActiveGameBackup, saveActiveGameBackup,
-  gameId, restoreGameChoice, chooseGame,
+  gameId, restoreGameChoice, chooseGame, savePendingJoin, takePendingJoin,
   loadConflictBackup, saveConflictBackup, collectExportData,
 } from './storage.js';
 import { decideSessionSync, sessionIsDead, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
@@ -3199,6 +3199,7 @@ function startHosting() {
     code: state.coop.code,
     name: state.settings.coopName,
     color: state.settings.coopMyColor,
+    game: ACTIVE_GAME_ID,
     onOpen(id) {
       state.coop.myId = id;
       state.coop.hostId = id;
@@ -3441,6 +3442,7 @@ function startJoining() {
     code: state.coop.code,
     name: state.settings.coopName,
     color: state.settings.coopMyColor,
+    game: ACTIVE_GAME_ID,
     maxPlayers: (state.coop.raceMode && !state.coop.ffaMode) ? 2 : COOP_MAX_PLAYERS,
     onOpen(id) {
       // Eigene ID dieser Session sichern und sofort dem Host die eigene Identität
@@ -3452,6 +3454,9 @@ function startJoining() {
     },
     onError(e) {
       state.coop.waitingForGuest = false;
+      // Im Raum läuft das ANDERE Spiel: dorthin wechseln und den Beitritt nach
+      // dem Neustart nachholen (statt an einem fremden Rätsel zu scheitern).
+      if (e.type === 'other-game' && GAME_IDS.includes(e.game)) { joinInOtherGame(e.game); return; }
       state.coop.error =
         e.type === 'code-not-found' ? t('coop.errorCodeNotFound') :
         e.type === 'room-full'      ? t('coop.errorConnection') :
@@ -3970,6 +3975,7 @@ function inviteToSoloGame(attempt = 0) {
     code,
     name: state.settings.coopName,
     color: state.settings.coopMyColor,
+    game: ACTIVE_GAME_ID,
     onOpen(id) { onSoloInviteRoomOpen(id, code); },
     onError(e) {
       if (e && e.type === 'code-taken' && attempt < 3) {
@@ -4500,7 +4506,7 @@ function attemptCoopRejoin(sess) {
   state.coop.waitingForGuest = true;
   state.coop.online = true;
   Coop.rejoin({
-    code: sess.code, name: sess.name, color: sess.color, role: sess.role,
+    code: sess.code, name: sess.name, color: sess.color, role: sess.role, game: ACTIVE_GAME_ID,
     // Nur die während der Abwesenheit verpassten Events nachziehen — ohne den
     // Anker würde die komplette Historie replayed (INIT überschreibt den
     // wiederhergestellten Spielstand und reaktiviert die Bereit-Lobby).
@@ -5156,21 +5162,12 @@ function acceptLobbyInvite(inv) {
   Account.acceptLobbyInvite(inv.fromUid, myUsername());
   state.pendingLobbyInvite = null;
   state.lobbyInvites = state.lobbyInvites.filter(i => i.fromUid !== inv.fromUid);
-  coopReset();
-  state.coop.teamMode = inv.mode === '2v2';
-  state.coop.ffaMode = inv.mode === 'ffa';
-  state.coop.raceMode = inv.mode === '1v1' || inv.mode === 'ffa';
   // Namens-Gate ZUERST — auch bei einer Einladung. Vorher sprang der Beitritt
   // direkt in den Raum und man landete mit dem zuletzt gespeicherten Namen darin,
   // ohne ihn noch anpassen zu koennen (Nutzerwunsch). Der Code steht schon fest,
   // deshalb merkt sich pendingJoin, dass nach dem Bestaetigen sofort beigetreten
   // wird statt in die Rollenwahl zu gehen (s. confirmCoopIdentity).
-  state.coop.identityConfirmed = false;
-  state.coop.pendingJoin = true;
-  state.coop.nameDraft = state.settings.coopName;
-  state.coop.code = String(inv.code || '');
-  pushNav(() => { coopReset(); navigate('home'); });
-  navigate('coop');
+  openJoinGate(inv.code, inv.mode);
 }
 function declineLobbyInviteUI(inv) {
   if (!inv) return;
@@ -7000,6 +6997,39 @@ function switchGame(id) {
   chooseGame(id);
   safeReload('gameSwitch');
 }
+// Beitritt in einen Raum, in dem das andere Spiel läuft: Auftrag merken (Code +
+// Modus), Spiel wechseln, neu laden — nach dem Start holt resumePendingJoin()
+// den Beitritt nach, wieder über das Namens-Gate.
+function joinInOtherGame(game) {
+  const mode = state.coop.teamMode ? '2v2' : state.coop.ffaMode ? 'ffa' : state.coop.raceMode ? '1v1' : 'coop';
+  log('coop', 'Raum spielt ein anderes Spiel – wechsle und trete danach bei', { raum: game, eigenes: ACTIVE_GAME_ID, code: state.coop.code, mode });
+  savePendingJoin({ code: state.coop.code, mode, game });
+  coopReset();
+  flushSettingsSave();
+  chooseGame(game);
+  safeReload('joinOtherGame');
+}
+function resumePendingJoin() {
+  const job = takePendingJoin();
+  if (!job) return;
+  if (job.game && job.game !== ACTIVE_GAME_ID) { log('coop', 'Nachgeholter Beitritt verworfen: falsches Spiel', job); return; }
+  log('coop', 'Hole Beitritt nach Spielwechsel nach', { code: job.code, mode: job.mode });
+  openJoinGate(job.code, job.mode);
+}
+// Gemeinsamer Einstieg für einen Beitritt mit feststehendem Code (Einladung,
+// nachgeholter Beitritt): Namens-Gate ZUERST, danach sofort beitreten.
+function openJoinGate(code, mode) {
+  coopReset();
+  state.coop.teamMode = mode === '2v2';
+  state.coop.ffaMode = mode === 'ffa';
+  state.coop.raceMode = mode === '1v1' || mode === 'ffa';
+  state.coop.identityConfirmed = false;
+  state.coop.pendingJoin = true;
+  state.coop.nameDraft = state.settings.coopName;
+  state.coop.code = String(code || '');
+  pushNav(() => { coopReset(); navigate('home'); });
+  navigate('coop');
+}
 function safeReload(reason) {
   const deferred = gameSessionActive();
   log('sw', 'Neuladen angefordert', { reason, screen: state.screen, status: state.status, coop: state.coop.active, deferred });
@@ -7211,6 +7241,7 @@ function init() {
   log('account', 'Präsenz-Heartbeat aktiv', { gameMs: 20000, menuMs: 60000, staleMs: Account.PRESENCE_STALE_MS });
   maybeShowWhatsNew();
   maybeShowDivStyle();
+  resumePendingJoin();
   maybeUnlockV1Skin();  // 1.0-Feier-Skin beim Versionssprung (vor dismissWhatsNew, das die Version speichert)
   // Alt-Spieler, die bereits ALLE 12 Kategorien gemeistert haben, bekommen die
   // Großmeister-Feier EINMAL beim ersten Start nach dem Update (nur auf Home).

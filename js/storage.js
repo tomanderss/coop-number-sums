@@ -38,6 +38,7 @@ const KEYS = {
   DEVICE_ID: 'cns_device_id',   // stabile Geräte-Kennung (Multi-Device-Handoff); PER GERÄT, wird NIE synct/als Nutzdaten gezählt
   COMPLETED_GAMES: 'cns_completed_games', // [gameId,…] bereits abgerechnete Partien (Belohnungs-Idempotenz über Geräte), FIFO
   ACTIVE_GAME_BACKUP: 'cns_active_game_backup', // letzter durch Divergenz verdrängter Solo-Stand (nie still gelöscht)
+  PENDING_JOIN: 'cns_pending_join', // Beitritt, der nach einem Spielwechsel nachgeholt wird; PER GERAET, kurzlebig, NIE synct
   GAME: 'cns_game',             // zuletzt gespieltes Spiel (Kennung aus js/games/registry.js); PER GERAET, NIE synct
   PLAY_SAMPLES: 'cns_play_samples', // [{ts,difficulty,think,burstMs,mistakes,…}] — Spielstil-Stichproben je Partie (js/playstyle.js), FIFO, SYNCT
 };
@@ -778,6 +779,22 @@ export function chooseGame(id) {
   const set = setActiveGameId(id);
   localStorage.setItem(KEYS.GAME, JSON.stringify(set));
   return set;
+}
+// Ein Beitritt in einen Raum mit einem ANDEREN Spiel lädt die App mit diesem
+// Spiel neu und holt den Beitritt danach nach. Der Auftrag überlebt genau diesen
+// einen Neustart: er verfällt nach PENDING_JOIN_TTL_MS und wird beim Lesen
+// gelöscht (ein zweiter Start tritt nicht ungefragt erneut bei).
+export const PENDING_JOIN_TTL_MS = 2 * 60 * 1000;
+export function savePendingJoin(job) {
+  if (!job) { localStorage.removeItem(KEYS.PENDING_JOIN); return; }
+  localStorage.setItem(KEYS.PENDING_JOIN, JSON.stringify({ ...job, ts: Date.now() }));
+}
+export function takePendingJoin(now = Date.now()) {
+  let job = null;
+  try { job = JSON.parse(localStorage.getItem(KEYS.PENDING_JOIN) || 'null'); } catch (_) { job = null; }
+  localStorage.removeItem(KEYS.PENDING_JOIN);
+  if (!job || !job.code || !(now - (job.ts || 0) < PENDING_JOIN_TTL_MS)) return null;
+  return job;
 }
 /** Statistik des LAUFENDEN Spiels zuruecksetzen (Einstellungen ▸ Daten). */
 export function clearStats() { remove(KEYS.STATS); }
