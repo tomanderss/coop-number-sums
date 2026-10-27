@@ -494,3 +494,57 @@ describe('Freundes-Namen aus dem Namensindex', () => {
     assert.deepEqual(uidToName({}), {});
   });
 });
+
+// Umzug des Math-Cross-Kontos (mc/users/{uid}) ins gemeinsame Konto.
+describe('account.planCloudMcMigration', async () => {
+  const { planCloudMcMigration } = await import('../../js/account.js');
+
+  test('ohne Math-Cross-Konto gibt es nichts zu tun', () => {
+    assert.equal(planCloudMcMigration(null), null);
+    assert.equal(planCloudMcMigration({}), null);
+  });
+
+  test('Guthaben wird vollstaendig uebernommen (addiert wird beim Buchen), Inventar vereinigt', () => {
+    const p = planCloudMcMigration({
+      account: { wallet: { balance: 420.9 }, inventory: { a: { acquiredAt: 1 } } },
+      inventory: { b: { acquiredAt: 2 } },
+    });
+    assert.equal(p.coins, 420);
+    assert.deepEqual(Object.keys(p.inventory).sort(), ['a', 'b']);
+  });
+
+  test('Alt-Knoten data wird gelesen, wenn es die getrennte Ablage noch nicht gibt', () => {
+    const p = planCloudMcMigration({ data: { wallet: { balance: 50 }, stats: { won: 3 } } });
+    assert.equal(p.coins, 50);
+    assert.deepEqual(p.game.stats, { won: 3 });
+  });
+
+  test('Spieldaten: uebernommen, oder mit hier vorhandenen verlustfrei gemergt', () => {
+    const mc = { games: { mathcross: { stats: { won: 5, played: 6 }, achievements: { a1: 1 } } } };
+    assert.deepEqual(planCloudMcMigration(mc).game.stats, { won: 5, played: 6 });
+    const p = planCloudMcMigration(mc, { game: { stats: { won: 2, played: 9 }, achievements: { a2: 1 } } });
+    assert.deepEqual(p.game.stats, { won: 5, played: 9 });   // Zaehler: Maximum
+    assert.deepEqual(Object.keys(p.game.achievements).sort(), ['a1', 'a2']);
+    assert.equal(p.game.settings, undefined);                 // nur die Spiel-Haelfte
+  });
+
+  test('Number Sums gewinnt beim Namen und bei den Einstellungen', () => {
+    const mc = { profile: { username: 'anna_mc' }, account: { settings: { themeMode: 'light' } } };
+    const p = planCloudMcMigration(mc, { profile: { username: 'anna' }, settings: { themeMode: 'dark' } });
+    assert.equal(p.profile, null);
+    assert.equal(p.settings, null);
+  });
+
+  test('ein reines Math-Cross-Konto bringt Namen und Einstellungen mit', () => {
+    const mc = { profile: { username: 'Anna.MC', email: 'a@b.de' }, account: { settings: { themeMode: 'light' } } };
+    const p = planCloudMcMigration(mc, { profile: null, settings: { themeMode: 'dark', sound: true } });
+    assert.equal(p.profile.username, 'Anna.MC');
+    assert.equal(p.profile.usernameKey, 'anna_mc');
+    assert.deepEqual(p.settings, { themeMode: 'light', sound: true });
+  });
+
+  test('Freunde: nur die, die hier noch fehlen', () => {
+    const p = planCloudMcMigration({ friends: { f1: { username: 'x', since: 1 }, f2: { username: 'y', since: 2 } } }, { friends: { f1: { username: 'x' } } });
+    assert.deepEqual(Object.keys(p.friends), ['f2']);
+  });
+});

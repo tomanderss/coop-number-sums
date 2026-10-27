@@ -5552,6 +5552,33 @@ async function refreshAccount() {
     } catch (e) { log('account', 'refreshAccount fehlgeschlagen', e); }
   }
 }
+// Umzug des Math-Cross-Kontos (s. Account.migrateFromMathCross): Guthaben,
+// Inventar, Freunde, Spieldaten. Einmal je Konto; danach Hinweis und — wenn sich
+// Einstellungen, Name oder die Daten des gerade offenen Spiels geändert haben —
+// ein sauberer Neustart (safeReload wartet ein laufendes Spiel ab).
+const PENDING_TOAST_KEY = 'cns_pending_toast';
+async function runMcAccountMigration() {
+  const r = await Account.migrateFromMathCross();
+  if (!r || !r.done) return;
+  state.wallet = loadWallet();
+  state.walletLog = loadWalletLog();
+  state.inventory = loadInventory();
+  const msg = r.coins > 0 ? t('migration.accountDoneCoins', { n: r.coins }) : t('migration.accountDone');
+  if (r.settings || r.name || (r.game && gameId() === 'mathcross')) {
+    try { sessionStorage.setItem(PENDING_TOAST_KEY, msg); } catch (_) {}
+    safeReload('mc-migration');
+    return;
+  }
+  showToast(msg, 'success', 7000);
+}
+function showPendingToast() {
+  try {
+    const msg = sessionStorage.getItem(PENDING_TOAST_KEY);
+    if (!msg) return;
+    sessionStorage.removeItem(PENDING_TOAST_KEY);
+    showToast(msg, 'success', 7000);
+  } catch (_) {}
+}
 // ─── Admin-Benachrichtigungen (Empfängerseite) ────────────────────────────────
 // Persistente Notizen unter /users/{uid}/notices: onValue liefert alle offenen;
 // angezeigt wird eine nach der anderen (Modal), OK löscht sie in der RTDB und
@@ -6791,6 +6818,7 @@ function init() {
   refreshResume();
   initMissions();   // Wochen-Missionen laden / bei Wochenwechsel neu setzen
   runEndlessBackfill();   // einmalig: alte Endlos-Läufe rückwirkend als Einzelspiele anrechnen
+  showPendingToast();
   if (mcLocalMigration) {
     showToast(mcLocalMigration.coins > 0
       ? t('migration.localDoneCoins', { n: mcLocalMigration.coins })
@@ -6816,6 +6844,7 @@ function init() {
       // erscheint eine anderswo laufende Partie als „Fortsetzen").
       startSessionWatch();
       reconcileSession();
+      runMcAccountMigration();   // einmalig: das Konto der alten App „Coop Math Cross" übernehmen
     });
     // …und automatisch alle 30s weiter sichern — AUCH während einer laufenden
     // Partie (Solo/Endlos): sonst sah ein laufendes Spiel die Cloud nur bei den

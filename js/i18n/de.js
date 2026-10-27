@@ -916,6 +916,8 @@ export default {
   error: {
   },
   migration: {
+    accountDone: 'Dein Math-Cross-Konto wurde übernommen.',
+    accountDoneCoins: 'Dein Math-Cross-Konto wurde übernommen — {n} Münzen gutgeschrieben.',
     localDone: 'Deine Math-Cross-Daten wurden übernommen.',
     localDoneCoins: 'Deine Math-Cross-Daten wurden übernommen — {n} Münzen gutgeschrieben.',
   },

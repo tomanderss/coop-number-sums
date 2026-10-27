@@ -804,6 +804,8 @@ export default {
   error: {
   },
   migration: {
+    accountDone: 'Math Cross のアカウントを統合しました。',
+    accountDoneCoins: 'Math Cross のアカウントを統合しました — {n} コインを付与しました。',
     localDone: 'Math Cross のデータを引き継ぎました。',
     localDoneCoins: 'Math Cross のデータを引き継ぎました — {n} コインを付与しました。',
   },

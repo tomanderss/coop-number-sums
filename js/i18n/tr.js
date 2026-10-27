@@ -804,6 +804,8 @@ export default {
   error: {
   },
   migration: {
+    accountDone: 'Math Cross hesabın birleştirildi.',
+    accountDoneCoins: 'Math Cross hesabın birleştirildi — {n} jeton yüklendi.',
     localDone: 'Math Cross verilerin aktarıldı.',
     localDoneCoins: 'Math Cross verilerin aktarıldı — {n} jeton yüklendi.',
   },

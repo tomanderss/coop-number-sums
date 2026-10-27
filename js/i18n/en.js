@@ -804,6 +804,8 @@ export default {
   error: {
   },
   migration: {
+    accountDone: 'Your Math Cross account has been merged.',
+    accountDoneCoins: 'Your Math Cross account has been merged — {n} coins credited.',
     localDone: 'Your Math Cross data has been transferred.',
     localDoneCoins: 'Your Math Cross data has been transferred — {n} coins credited.',
   },
