@@ -11,6 +11,7 @@ const ASSETS = [
   './js/games/index.js',
   './js/games/numbersums/index.js',
   './js/games/numbersums/model.js',
+  './js/games/numbersums/difficulty.js',
   './js/games/numbersums/board.js',
   './js/games/numbersums/solver.js',
   './js/games/numbersums/generator.js',

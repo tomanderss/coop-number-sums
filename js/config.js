@@ -30,34 +30,39 @@ export const MAX_VAL = 9; // Zellwerte sind immer 1–9, nie höher — auch bei
 // (Setup-Screen). accent = Leitfarbe der Stufe (Icon-/Akzentwelt), accentD = dunklere
 // Variante für Verläufe, heat = 0..1 „Hitze" (schwach→stark), steuert das smoothe
 // Morphen des Hintergrunds. Keine Spiellogik — nur UI.
-export const DIFFICULTIES = [
-  { id: 'sehrleicht', name: 'Sehr Leicht', emoji: 'lvl-green', dim: { r: 6,  c: 6  }, keepRatio: 0.50, minSingleDigitSums: 2, maxCageSize: null, maxTier3Steps: 0, genBudget: 2500,  accent: '#3fb27f', accentD: '#2a7d59', heat: 0.02 },
-  { id: 'leicht',     name: 'Leicht',      emoji: 'lvl-yellow', dim: { r: 7,  c: 7  }, keepRatio: 0.48, minSingleDigitSums: 2, maxCageSize: null, maxTier3Steps: 0, genBudget: 2500,  accent: '#f2c024', accentD: '#c99a10', heat: 0.13 },
-  { id: 'mittel',     name: 'Mittel',      emoji: 'lvl-orange', dim: { r: 8,  c: 8  }, keepRatio: 0.46, minSingleDigitSums: 2, maxCageSize: null, maxTier3Steps: 0, genBudget: 2500,  accent: '#f2953b', accentD: '#c96f1e', heat: 0.24 },
-  { id: 'schwer',     name: 'Schwer',      emoji: 'lvl-red', dim: { r: 9,  c: 9  }, keepRatio: 0.46, minSingleDigitSums: 3, maxCageSize: 8,    maxTier3Steps: 0, genBudget: 6000,  accent: '#e7405a', accentD: '#b02a40', heat: 0.37 },
-  { id: 'extrem',     name: 'Extrem',      emoji: 'lvl-purple', dim: { r: 10, c: 10 }, keepRatio: 0.44, minSingleDigitSums: 4, maxCageSize: 8,    maxTier3Steps: 0, genBudget: 8000,  accent: '#9a6bff', accentD: '#6b3fd0', heat: 0.50 },
-  { id: 'mashallah',  name: 'Mashallah',   emoji: 'skull', dim: { r: 11, c: 11 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 12000, accent: '#c7cdd6', accentD: '#7f8a99', heat: 0.64 },
-  // 12×12: schnell generierbar (~65 ms im Schnitt), ohne Raten (Tier ≤ 2.5);
-  // Werte 1–9, Cages auf 9 gekappt.
-  { id: 'dikkawas',   name: 'Dikka was',   emoji: 'ghost', dim: { r: 12, c: 12 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 15000, accent: '#b9a5ff', accentD: '#6b57c0', heat: 0.77 },
-  // 13×13: dank der Hypothese-Sparoptimierung im Generator (siehe generator.js)
-  // weiterhin schnell (~0,27 s im Schnitt, <1 s im Worst Case), ohne Raten.
-  // Zellwerte 1–9, Cages auf 9 gekappt; nur Reihen-/Spaltensummen wachsen moderat.
-  { id: 'bismillah',  name: 'Bismillah',   emoji: 'meteor', dim: { r: 13, c: 13 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 15000, accent: '#ff7a1a', accentD: '#b34e08', heat: 0.89 },
-  // 14×14: das absolute Maximum. Weiterhin ohne Raten generierbar (empirisch
-  // Tier ≤ 2.5), Cages/Werte klein wie gehabt — ABER die Generierung ist spürbar
-  // langsamer (median ~1,3 s, Ausreißer mehrere Sekunden), weil die Akzeptanzrate
-  // mit der Feldgröße sinkt. Tragbar nur dank der Hintergrund-Vorgenerierung
-  // (Prefetch, siehe app.js), die große Felder zuerst erzeugt; der seltene
-  // Kaltstart-Fallback zeigt den Ladebildschirm. genBudget großzügig.
-  { id: 'rip',        name: 'R.I.P.',      emoji: 'grave', dim: { r: 14, c: 14 }, keepRatio: 0.40, minSingleDigitSums: 5, maxCageSize: 9,    maxTier3Steps: 0, genBudget: 20000, accent: '#aab3bd', accentD: '#5a636e', heat: 1.00 },
+// Die Leiter ist in ALLEN Spielen dieselbe: gleiche neun Stufen, gleiche Namen,
+// gleiche Icons, gleiche Leitfarben. Was sich je Spiel unterscheidet, sind die
+// Brettmasse und die Erzeugungs-Parameter — die stehen im Spielmodul
+// (js/games/<id>/difficulty.js) und werden dort per mergeLadder() angehaengt.
+// accent/accentD/heat sind reine Anzeige-Metadaten fuer die Slider-Auswahl:
+// accent = Leitfarbe der Stufe, accentD = dunklere Variante fuer Verlaeufe,
+// heat = 0..1 „Hitze" (schwach→stark) fuer das smoothe Morphen des Hintergrunds.
+export const DIFFICULTY_LADDER = [
+  { id: 'sehrleicht', name: 'Sehr Leicht', emoji: 'lvl-green', accent: '#3fb27f', accentD: '#2a7d59', heat: 0.02 },
+  { id: 'leicht', name: 'Leicht', emoji: 'lvl-yellow', accent: '#f2c024', accentD: '#c99a10', heat: 0.13 },
+  { id: 'mittel', name: 'Mittel', emoji: 'lvl-orange', accent: '#f2953b', accentD: '#c96f1e', heat: 0.24 },
+  { id: 'schwer', name: 'Schwer', emoji: 'lvl-red', accent: '#e7405a', accentD: '#b02a40', heat: 0.37 },
+  { id: 'extrem', name: 'Extrem', emoji: 'lvl-purple', accent: '#9a6bff', accentD: '#6b3fd0', heat: 0.50 },
+  { id: 'mashallah', name: 'Mashallah', emoji: 'skull', accent: '#c7cdd6', accentD: '#7f8a99', heat: 0.64 },
+  { id: 'dikkawas', name: 'Dikka was', emoji: 'ghost', accent: '#b9a5ff', accentD: '#6b57c0', heat: 0.77 },
+  { id: 'bismillah', name: 'Bismillah', emoji: 'meteor', accent: '#ff7a1a', accentD: '#b34e08', heat: 0.89 },
+  { id: 'rip', name: 'R.I.P.', emoji: 'grave', accent: '#aab3bd', accentD: '#5a636e', heat: 1.00 },
 ];
 
-export const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
+/**
+ * Die Leiter mit den Parametern EINES Spiels zusammenfuehren. `params` ist eine
+ * Karte Stufen-Id → Parameter; eine Stufe ohne Eintrag faellt heraus (ein Spiel
+ * darf also auch weniger Stufen anbieten). Rein, damit ein Test die Vollstaendigkeit
+ * pruefen kann.
+ */
+export function mergeLadder(params = {}) {
+  return DIFFICULTY_LADDER.filter((d) => params[d.id]).map((d) => ({ ...d, ...params[d.id] }));
+}
+
 
 // ─── MÜNZ-BELOHNUNG PRO SIEG ──────────────────────────────────────────────────
 // In-Game-Währung (nicht auszahlbar) fürs Shop-/Marktplatz-System. Basiswert je
-// Schwierigkeit (Reihenfolge = DIFFICULTIES). Die Schwierigkeit (und damit die
+// Schwierigkeit (Reihenfolge = DIFFICULTY_LADDER). Die Schwierigkeit (und damit die
 // Ø-Lösezeit) steigt exponentiell, daher wächst die Belohnung mindestens
 // verdoppelnd: bis „Extrem" glatt ×2, ab „Mashallah" bewusst MEHR als das
 // Doppelte (≈×2,2–2,25), weil die Zeit-/Komplexitätssprünge dort am größten sind.
@@ -78,7 +83,7 @@ export const COIN_STREAK_STEP = 0.10;
 export function coinStreakBonus(streak = 0) {
   return COIN_STREAK_STEP * Math.max(0, Math.floor(streak || 0));
 }
-// Basis-Münzen für eine Schwierigkeit (per Index in DIFFICULTIES); dIdx<0 → 0.
+// Basis-Münzen für eine Schwierigkeit (per Index in DIFFICULTY_LADDER); dIdx<0 → 0.
 export function coinBaseForIndex(dIdx) {
   if (dIdx < 0) return 0;
   return COIN_BASE[Math.min(dIdx, COIN_BASE.length - 1)];
@@ -345,10 +350,4 @@ export const DEFAULT_GAME_OPTIONS = {
   endless: false,      // „Endlos-Aufstieg": ein Lauf über immer schwerere Level (ignoriert difficulty/bigNumbers)
 };
 
-// „Big Numbers"-Modus (Zellwerte 10–19) ist für ALLE Feldgrößen freigegeben
-// (6×6–14×14): per Spike verifiziert, dass die Generierung überall eindeutig &
-// ratefrei bleibt (Tier ≤ 2.5) und in vertretbarer Zeit läuft (14×14 ~1,3 s Ø,
-// off-thread mit Ladebalken). Nur ein gültiger Schwierigkeits-Id muss vorliegen.
-export function bigNumbersAllowed(diffId) {
-  return !!DIFF_BY_ID[diffId];
-}
+

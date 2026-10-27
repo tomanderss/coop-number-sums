@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { GAME_META, GAME_IDS, DEFAULT_GAME_ID, isGameId, activeGameId, setActiveGameId, gameMeta } from '../../js/games/registry.js';
 import { GAMES, gameById, activeGame } from '../../js/games/index.js';
 import { hasIcon } from '../../js/icons.js';
+import { DIFFICULTY_LADDER } from '../../js/config.js';
 import de from '../../js/i18n/de.js';
 
 // Die Spiel-Registry ist die Naht, an der die Schale (js/) vom einzelnen Spiel
@@ -55,6 +56,14 @@ describe('Spiel-Registry', () => {
       }
       assert.ok(g.BoardGrid && typeof g.BoardGrid.setup === 'function' && typeof g.BoardGrid.template === 'string',
         `${g.id} bringt keine Brett-Komponente mit`);
+      // Die Leiter ist in allen Spielen dieselbe — jedes Spiel muss sie
+      // vollstaendig belegen, sonst zeigt der Schwierigkeits-Slider Luecken.
+      assert.deepEqual(g.DIFFICULTIES.map((d) => d.id), DIFFICULTY_LADDER.map((d) => d.id), `${g.id}: unvollstaendige Leiter`);
+      for (const d of g.DIFFICULTIES) {
+        assert.ok(d.dim && d.dim.r > 0 && d.dim.c > 0, `${g.id}/${d.id}: keine Brettmasse`);
+        assert.equal(g.DIFF_BY_ID[d.id], d);
+      }
+      assert.equal(typeof g.bigNumbersAllowed, 'function');
       // Der Generierungs-Worker gehoert zum Spiel, nicht zur Schale.
       assert.match(String(g.workerUrl()), new RegExp(`js/games/${g.id}/genworker\\.js$`));
     }

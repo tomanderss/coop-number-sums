@@ -3,7 +3,7 @@ import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { createBot, nextAction as botNextAction, applyAction as botApplyAction, botPct, targetMsFor, clampProfile, clampAvgMs, PRESET_LEVELS, PRESET_PROFILES, DEFAULT_AVG_MS } from './games/numbersums/duelbot.js';
 import { analyzeGame, buildProfile, MIN_GAMES as CLONE_MIN_GAMES } from './games/numbersums/playstyle.js';
-import { DIFFICULTIES, DIFF_BY_ID, REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, bigNumbersAllowed, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
+import { REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
@@ -62,6 +62,14 @@ import { currentWeekKey, weeklyMissions, missionStateFor, missionById, missionVa
 // Standardspiels und schriebe sie unter dessen Schluessel zurueck.
 restoreGameChoice();
 log('app', 'Spiel gewaehlt', { spiel: gameId() });
+
+// Die Schwierigkeitsstufen des LAUFENDEN Spiels (Brettmasse + Parameter kommen
+// aus dem Spielmodul, Name/Icon/Leitfarbe sind in allen Spielen gleich). Bewusst
+// EINMAL beim Laden gebunden: das Spiel steht zu diesem Zeitpunkt schon fest
+// (restoreGameChoice laeuft vor allem anderen), und ein Spielwechsel laedt die
+// App neu — er tauscht Brett, Leiter, Generator und Statistik zugleich aus, ein
+// Neustart ist dafuer der einzig verlaessliche saubere Zustand.
+const { DIFFICULTIES, DIFF_BY_ID, bigNumbersAllowed } = activeGame();
 
 const APP_START = Date.now();
 const splashVersion = document.getElementById('splash-version');
