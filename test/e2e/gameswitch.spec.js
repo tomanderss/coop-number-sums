@@ -1,48 +1,84 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp } from './helpers.js';
+import { gotoApp, startNewGame } from './helpers.js';
 
-// Spielauswahl auf dem Startbildschirm: ein Logo je Spiel, ein Tipp wechselt
-// das Spiel (die App lädt neu — Brett, Leiter, Texte und Optik wechseln mit).
+// Spielauswahl = rotierende Scheibe (js/gamewheel.js): das laufende Spiel groß
+// in der Mitte, ziehen oder ein Seiten-Logo antippen dreht ein anderes hinein.
+// Der Wechsel geschieht OHNE Neuladen — Brett, Leiter, Texte, Optik und die
+// spieleigenen Daten werden im laufenden Betrieb umgehängt.
+const gameOf = (page) => page.evaluate(() => window.__cns.gameId);
+
+async function dragWheel(page, dx) {
+  const box = await page.locator('.game-wheel').boundingBox();
+  const y = box.y + 60, x0 = box.x + box.width / 2;
+  await page.mouse.move(x0, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i++) { await page.mouse.move(x0 + (dx * i) / 12, y); await page.waitForTimeout(16); }
+  await page.mouse.up();
+}
+
 test.describe('Spielauswahl', () => {
-  test('beide Spiele stehen zur Wahl, Number Sums ist voreingestellt', async ({ page }) => {
+  test('beide Spiele stehen auf der Scheibe, Number Sums ist voreingestellt', async ({ page }) => {
     await gotoApp(page);
-    const tiles = page.locator('.game-switch .game-tile');
-    await expect(tiles).toHaveCount(2);
-    await expect(page.locator('.game-tile.on .game-tile-name')).toHaveText('Number Sums');
+    await expect(page.locator('.game-wheel .gw-item')).toHaveCount(2);
+    await expect(page.locator('.gw-item.on')).toHaveAttribute('data-game', 'numbersums');
     await expect(page.locator('.brand-title')).toContainText('Number Games');
   });
 
-  test('ein Tipp auf Math Cross wechselt das Spiel und zurück', async ({ page }) => {
+  test('Antippen wechselt das Spiel ohne Neuladen, Ziehen wechselt zurück', async ({ page }) => {
     await gotoApp(page);
-    await Promise.all([
-      page.waitForEvent('load'),
-      page.locator('.game-tile', { hasText: 'Math Cross' }).click(),
-    ]);
-    await page.waitForFunction(() => window.__cns && window.__cns.gameId === 'mathcross');
-    await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
-    // Math-Cross-Optik ist eingehängt, das Spiel bleibt nach einem Neuladen gewählt.
-    const css = await page.evaluate(() => [...document.styleSheets].some((s) => s.href && s.href.endsWith('/css/games/mathcross.css')));
-    expect(css).toBe(true);
-    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cns_game')))).toBe('mathcross');
-    // Erste Frage nach dem Geteilt-Zeichen gehört zu Math Cross — beantworten.
+    let loads = 0;
+    page.on('load', () => { loads++; });
+    await page.locator('.gw-item[data-game="mathcross"]').click();
+    await page.waitForFunction(() => window.__cns.gameId === 'mathcross');
+    const mc = await page.evaluate(() => ({
+      css: !!document.getElementById('game-css') && document.getElementById('game-css').href.endsWith('/css/games/mathcross.css'),
+      attr: document.documentElement.getAttribute('data-game'),
+      stored: JSON.parse(localStorage.getItem('cns_game')),
+    }));
+    expect(mc).toEqual({ css: true, attr: 'mathcross', stored: 'mathcross' });
     await page.locator('.modal-divstyle .btn-primary').click({ timeout: 3000 }).catch(() => {});
-    await expect(page.locator('.game-tile.on .game-tile-name')).toHaveText('Math Cross');
-    await Promise.all([
-      page.waitForEvent('load'),
-      page.locator('.game-tile', { hasText: 'Number Sums' }).click(),
-    ]);
-    await page.waitForFunction(() => window.__cns && window.__cns.gameId === 'numbersums');
+    await expect(page.locator('.gw-item.on')).toHaveAttribute('data-game', 'mathcross');
+    await expect(page.locator('.home-actions')).toBeVisible();
+    // Zurück per Ziehen nach rechts (Number Sums liegt links).
+    await dragWheel(page, 220);
+    await page.waitForFunction(() => window.__cns.gameId === 'numbersums');
+    expect(await page.evaluate(() => [!!document.getElementById('game-css'), document.documentElement.getAttribute('data-game')])).toEqual([false, 'numbersums']);
+    expect(loads).toBe(0);
   });
 
-  test('die Spiele führen getrennte Statistiken', async ({ page }) => {
-    // Spielspezifische Speicher-Schlüssel: dasselbe Konto, aber Math Cross hat
-    // eigene Statistik (cns_stats__mathcross), Number Sums behält cns_stats.
+  test('ein kurzer Zieher rastet zurück, ohne zu wechseln', async ({ page }) => {
+    await gotoApp(page);
+    await dragWheel(page, -30);
+    await page.waitForTimeout(700);
+    expect(await gameOf(page)).toBe('numbersums');
+  });
+
+  test('nach dem Wechsel laeuft eine echte Partie des neuen Spiels', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => { const s = window.__cns.state.settings; s.divStyle = 'obelus'; });
+    await page.locator('.gw-item[data-game="mathcross"]').click();
+    await page.waitForFunction(() => window.__cns.gameId === 'mathcross');
+    await startNewGame(page, 'sehrleicht');
+    // Math-Cross-Brett samt Vorrat unter dem Brett.
+    await expect(page.locator('.board')).toBeVisible();
+    await expect(page.locator('.tray, .tray-bar').first()).toBeVisible();
+    expect(await page.evaluate(() => Array.isArray(window.__cns.state.puzzle.slots))).toBe(true);
+  });
+
+  test('die Spiele führen getrennte Statistiken (auch ohne Neuladen)', async ({ page }) => {
     await gotoApp(page);
     await page.evaluate(() => localStorage.setItem('cns_stats', JSON.stringify({ played: 7, won: 7, lost: 0, byDifficulty: {} })));
-    await page.evaluate(() => { localStorage.setItem('cns_game', JSON.stringify('mathcross')); });
-    await page.reload();
-    await page.waitForFunction(() => window.__cns && window.__cns.gameId === 'mathcross');
+    await page.evaluate(() => window.__cns.switchGame('mathcross'));
     expect(await page.evaluate(() => window.__cns.state.stats.played || 0)).toBe(0);
+    await page.evaluate(() => window.__cns.switchGame('numbersums'));
+    expect(await page.evaluate(() => window.__cns.state.stats.played)).toBe(7);
+  });
+
+  test('während einer Partie bleibt das Spiel gesperrt', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page, 'sehrleicht');
+    expect(await page.evaluate(() => window.__cns.switchGame('mathcross'))).toBe(false);
+    expect(await gameOf(page)).toBe('numbersums');
   });
 });
 
