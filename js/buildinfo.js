@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.224';
-export const BUILD_HASH = '6ed080e';
+export const BUILD      = '1.225';
+export const BUILD_HASH = 'e4cfba4';
 
 export const CHANGELOG = [
+  {
+    "version": "1.225",
+    "date": "27.10.2026",
+    "changes": [
+      "Coop: Wer einem Raum mit dem anderen Spiel beitritt, wechselt automatisch dorthin und tritt danach bei"
+    ]
+  },
   {
     "version": "1.224",
     "date": "27.10.2026",
