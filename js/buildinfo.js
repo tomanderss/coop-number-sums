@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.223';
-export const BUILD_HASH = '2da021b';
+export const BUILD      = '1.224';
+export const BUILD_HASH = '6ed080e';
 
 export const CHANGELOG = [
+  {
+    "version": "1.224",
+    "date": "27.10.2026",
+    "changes": [
+      "Neu: Spielauswahl auf dem Startbildschirm — die App heisst jetzt Coop Number Games und enthaelt Number Sums und Math Cross"
+    ]
+  },
   {
     "version": "1.223",
     "date": "27.10.2026",
