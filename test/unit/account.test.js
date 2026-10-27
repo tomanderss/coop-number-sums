@@ -14,7 +14,7 @@ const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
   isSignedIn, lastSyncAt, decideSync, isDivergent, friendActivityRank, sortFriends, sortLeaderboard,
   presenceOnline, PRESENCE_STALE_MS, mergeSnapshots, mergeStreak, walletBalanceDiffers,
-  mergeSettingsCloudWins, activeGamesConflict,
+  mergeSettingsCloudWins, activeGamesConflict, uidToName,
 } = await import('../../js/account.js');
 
 describe('account.isDivergent (echter Offline-vs-Cloud-Konflikt)', () => {
@@ -471,5 +471,26 @@ describe('account.activeGamesConflict (Rückfrage nur bei echtem Spielstand-Konf
       { activeGameEndless: { gameId: 'e1' } }, { activeGameEndless: { gameId: 'e2' } }), true);
     assert.equal(activeGamesConflict(
       { activeGameCoop: { gameId: 'c1' } }, { activeGameCoop: { gameId: 'c2' } }), true);
+  });
+});
+
+
+// In Coop Math Cross gemeldet: Freunde erscheinen mit einer „kryptischen"
+// Kennung statt ihrem Namen. Der Name wird beim Handschlag EINMAL in den Eintrag
+// geschrieben und blieb leer, wenn er damals noch nicht bekannt war — hier wird
+// genau das mit dem Umzug der Math-Cross-Konten passieren. Das fremde Profil darf
+// man nicht lesen (Rules), den Namensindex aber schon — also rueckwaerts suchen.
+describe('Freundes-Namen aus dem Namensindex', () => {
+  test('uidToName dreht den Index um', () => {
+    assert.deepEqual(uidToName({ tom: 'u1', anna: 'u2' }), { u1: 'tom', u2: 'anna' });
+  });
+
+  test('bei mehreren Namen je uid gewinnt der erste, Muell wird ignoriert', () => {
+    assert.deepEqual(uidToName({ alt: 'u1', neu: 'u1', kaputt: 42, leer: null }), { u1: 'alt' });
+  });
+
+  test('Leerfaelle liefern eine leere Zuordnung', () => {
+    assert.deepEqual(uidToName(null), {});
+    assert.deepEqual(uidToName({}), {});
   });
 });

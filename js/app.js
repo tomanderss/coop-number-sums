@@ -5634,6 +5634,16 @@ async function startRoleWatch() {
     saveProfile({ role });
   });
 }
+// Freunde ohne hinterlegten Namen nachtragen: der Name wird beim Handschlag
+// EINMAL gespeichert und fehlte, wenn er damals noch nicht bekannt war. Die
+// Liste zeigte dann die nackte uid. Account.resolveFriendNames sucht sie im
+// Namensindex und repariert den gespeicherten Eintrag gleich mit — der Nutzer
+// muss niemanden neu hinzufuegen.
+async function healFriendNames() {
+  const gefunden = await Account.resolveFriendNames(state.friends.list);
+  if (!gefunden) return;
+  state.friends.list = state.friends.list.map((f) => (gefunden[f.uid] ? { ...f, username: gefunden[f.uid] } : f));
+}
 async function refreshAccount() {
   refreshAccountFromLocal();
   // Genaueren Zustand (E-Mail/Rolle) nur holen, wenn lokal schon ein Account
@@ -5646,7 +5656,13 @@ async function refreshAccount() {
         // Rolle lokal persistieren, damit ein frisch (z.B. per Admin) gesetzter
         // Status beim nächsten Start SOFORT sichtbar ist statt erst nach dem
         // asynchronen Cloud-Abgleich (Ursache der gemeldeten Verzögerung).
-        saveProfile({ role: state.account.role });
+        // Benutzernamen MITSICHERN: signIn() legt lokal nur die accountId ab, der
+        // Name kommt erst aus diesem (asynchronen) Cloud-Abruf. Ohne ihn zeigte der
+        // Home-Chip bei jedem Kaltstart erst den Anzeigenamen (Fallback) und sprang
+        // spaeter um (in Coop Math Cross gemeldet; derselbe Code steckte hier).
+        saveProfile(state.account.username
+          ? { role: state.account.role, displayName: state.account.username }
+          : { role: state.account.role });   // leeren Namen NIE speichern — er wuerde den vorhandenen loeschen
         pushPresence();          // Präsenz melden, sobald der Account bestätigt ist
         startFriendsWatch();     // Freundes-/Anfragen-Listener (Badge) starten
         startLobbyInviteWatch(); // eingehende Lobby-Einladungen + Ablehnungen beobachten
@@ -6453,7 +6469,7 @@ function selectLeaderboardDiff(id) {
 async function startFriendsWatch() {
   if (friendsUnwatch) return;   // schon aktiv
   friendsUnwatch = await Account.watchFriends((upd) => {
-    if (upd.friends) state.friends.list = upd.friends;
+    if (upd.friends) { state.friends.list = upd.friends; healFriendNames(); }
     if (upd.requests) state.friends.requests = upd.requests;
     rearmPresenceWatch();
   });

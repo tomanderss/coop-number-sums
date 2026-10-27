@@ -5,3 +5,4 @@ Absicherung: ein einzelnes ungueltiges Feld laesst Cloud-Sync und Coop-Nachricht
 1v1: die Schwierigkeitsauswahl fuer die Revanche ist auf niedrigen Bildschirmen wieder vollstaendig erreichbar
 Am Desktop legt sich eine harmlose Browser-Warnung nicht mehr als roter Fehlerbildschirm ueber die Partie
 Spielstaende: was zum Fortsetzen angeboten wird, steht jetzt immer auch in der Liste (und ist damit loeschbar); geloeschte Staende tauchen nicht mehr als Fortsetzen auf
+Startbildschirm zeigt nach dem Anmelden sofort den Benutzernamen; Freunde ohne gespeicherten Namen werden mit ihrem Namen statt einer Kennung angezeigt
