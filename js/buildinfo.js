@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.233';
-export const BUILD_HASH = 'c280583';
+export const BUILD      = '1.234';
+export const BUILD_HASH = '5c31ee3';
 
 export const CHANGELOG = [
+  {
+    "version": "1.234",
+    "date": "27.10.2026",
+    "changes": [
+      "Startseite: Knöpfe stehen jetzt fest – ein erscheinender Fortsetzen-Knopf, der Offline-Hinweis oder der Spielwechsel verschieben nichts mehr, und keine Beschriftung überlappt eine andere"
+    ]
+  },
   {
     "version": "1.233",
     "date": "27.10.2026",
