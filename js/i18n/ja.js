@@ -595,6 +595,7 @@ export default {
     historyTitle: 'コイン履歴',
     historyEmpty: 'まだ取引がありません。ゲームに勝つかショップで購入すると履歴に表示されます。',
     reason: {
+      migration: 'Math Cross からの移行',
       win: '勝利報酬',
       endless: 'エンドレス・クライム',
       mission: 'ミッション報酬',
@@ -801,5 +802,9 @@ export default {
     cellUnmarked: '未マーク',
   },
   error: {
+  },
+  migration: {
+    localDone: 'Math Cross のデータを引き継ぎました。',
+    localDoneCoins: 'Math Cross のデータを引き継ぎました — {n} コインを付与しました。',
   },
 };

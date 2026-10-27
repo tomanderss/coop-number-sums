@@ -595,6 +595,7 @@ export default {
     historyTitle: 'История монет',
     historyEmpty: 'Пока нет операций. Побеждайте в играх или покупайте в магазине, чтобы заполнить историю.',
     reason: {
+      migration: 'Перенос из Math Cross',
       win: 'Награда за победу',
       endless: 'Бесконечный подъём',
       mission: 'Награда за задание',
@@ -801,5 +802,9 @@ export default {
     cellUnmarked: 'не отмечено',
   },
   error: {
+  },
+  migration: {
+    localDone: 'Данные Math Cross перенесены.',
+    localDoneCoins: 'Данные Math Cross перенесены — начислено {n} монет.',
   },
 };

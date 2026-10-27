@@ -595,6 +595,7 @@ export default {
     historyTitle: 'Cronologia monete',
     historyEmpty: 'Ancora nessuna transazione. Vinci partite o acquista nel negozio per riempire la cronologia.',
     reason: {
+      migration: 'Trasferito da Math Cross',
       win: 'Ricompensa vittoria',
       endless: 'Scalata infinita',
       mission: 'Ricompensa missione',
@@ -801,5 +802,9 @@ export default {
     cellUnmarked: 'non segnata',
   },
   error: {
+  },
+  migration: {
+    localDone: 'I tuoi dati di Math Cross sono stati trasferiti.',
+    localDoneCoins: 'I tuoi dati di Math Cross sono stati trasferiti: {n} monete accreditate.',
   },
 };

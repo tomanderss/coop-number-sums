@@ -595,6 +595,7 @@ export default {
     historyTitle: '코인 내역',
     historyEmpty: '아직 거래가 없습니다. 게임에서 이기거나 상점에서 구매하면 내역이 채워집니다.',
     reason: {
+      migration: 'Math Cross에서 이전',
       win: '승리 보상',
       endless: '엔드리스 클라임',
       mission: '미션 보상',
@@ -801,5 +802,9 @@ export default {
     cellUnmarked: '표시 없음',
   },
   error: {
+  },
+  migration: {
+    localDone: 'Math Cross 데이터를 옮겼습니다.',
+    localDoneCoins: 'Math Cross 데이터를 옮겼습니다 — {n} 코인이 지급되었습니다.',
   },
 };

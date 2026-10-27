@@ -36,6 +36,7 @@ import {
   gameId, restoreGameChoice, chooseGame, savePendingJoin, takePendingJoin,
   loadConflictBackup, saveConflictBackup, collectExportData,
 } from './storage.js';
+import { runLocalMcMigration } from './mcmigration.js';
 import { decideSessionSync, sessionIsDead, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
 import { WIN_EFFECTS, CONFETTI_ID, effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect } from './wineffects.js';
 import { SHOP_CATS, SHOP_CATALOG, SKINPRESET_ITEMS, catItems, shopItemById, shopItemPrice, shopInvKey, ownsShopItem, resolveEquipped, applyPaletteFx } from './shopitems.js';
@@ -56,6 +57,9 @@ import { currentWeekKey, weeklyMissions, missionStateFor, missionById, missionVa
 // Standardspiels und schriebe sie unter dessen Schluessel zurueck.
 restoreGameChoice();
 log('app', 'Spiel gewaehlt', { spiel: gameId() });
+// Umzug aus der alten App „Coop Math Cross" (gleiche Herkunft → gleicher
+// localStorage): ihre Daten EINMALIG übernehmen, bevor `state` sie liest.
+const mcLocalMigration = runLocalMcMigration();
 
 // Die Schwierigkeitsstufen des LAUFENDEN Spiels (Brettmasse + Parameter kommen
 // aus dem Spielmodul, Name/Icon/Leitfarbe sind in allen Spielen gleich). Bewusst
@@ -6787,6 +6791,11 @@ function init() {
   refreshResume();
   initMissions();   // Wochen-Missionen laden / bei Wochenwechsel neu setzen
   runEndlessBackfill();   // einmalig: alte Endlos-Läufe rückwirkend als Einzelspiele anrechnen
+  if (mcLocalMigration) {
+    showToast(mcLocalMigration.coins > 0
+      ? t('migration.localDoneCoins', { n: mcLocalMigration.coins })
+      : t('migration.localDone'), 'success', 6500);
+  }
   refreshAccountFromLocal();
   if (loadProfile().accountId) {
     refreshAccount();  // genauere Cloud-Infos nachladen (nur wenn eingeloggt)

@@ -595,6 +595,7 @@ export default {
     historyTitle: 'Jeton geçmişi',
     historyEmpty: 'Henüz işlem yok. Oyun kazan veya mağazadan satın alarak geçmişini doldur.',
     reason: {
+      migration: 'Math Cross\'tan aktarım',
       win: 'Zafer ödülü',
       endless: 'Sonsuz Tırmanış',
       mission: 'Görev ödülü',
@@ -801,5 +802,9 @@ export default {
     cellUnmarked: 'işaretsiz',
   },
   error: {
+  },
+  migration: {
+    localDone: 'Math Cross verilerin aktarıldı.',
+    localDoneCoins: 'Math Cross verilerin aktarıldı — {n} jeton yüklendi.',
   },
 };
