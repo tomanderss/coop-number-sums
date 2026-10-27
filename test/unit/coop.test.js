@@ -10,7 +10,8 @@
 //   altes INIT reaktivierte die Bereit-Lobby.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeJoinAnchor, sanitizeForFirebase, normalizeGrid } from '../../js/coop.js';
+import { computeJoinAnchor, sanitizeForFirebase, normalizeGrid, safeKey, isFirebaseSentinel } from '../../js/coop.js';
+import { readFileSync } from 'node:fs';
 
 const ev = (key, type, extra = {}) => ({ key, val: { type, ...extra } });
 
@@ -164,4 +165,51 @@ test('normalizeGrid schneidet auf die Brettmaße zu und ignoriert Unsinn', () =>
   // Primitive/kaputte Werte dürfen nicht als Raster durchgehen.
   assert.deepEqual(normalizeGrid('kaputt', 1, 2, null), [[null, null]]);
   assert.deepEqual(normalizeGrid([42, 'x'], 2, 1, null), [[null], [null]]);
+});
+
+
+// ─── Schreibnetz: undefined, verbotene Schluessel, Firebase-Platzhalter ──────
+// Die RTDB verwirft den GESAMTEN Schreibvorgang, sobald irgendwo darin ein
+// undefined-Wert oder ein Schluessel mit . # $ / [ ] steht — kein Teil-Write.
+// In Coop Math Cross liess ein Raetsel-Schluessel "2.5" jeden Upload scheitern.
+test('sanitizeForFirebase laesst undefined weg statt den Write scheitern zu lassen', () => {
+  assert.deepEqual(sanitizeForFirebase({ a: 1, b: undefined, c: { d: undefined, e: 2 } }), { a: 1, c: { e: 2 } });
+  // In Arrays wird undefined zu null (die RTDB laesst die Stelle aus).
+  assert.deepEqual(sanitizeForFirebase([1, undefined, 3]), [1, null, 3]);
+});
+
+test('sanitizeForFirebase entschaerft verbotene Zeichen in Schluesseln', () => {
+  assert.deepEqual(sanitizeForFirebase({ tierCounts: { '2.5': 4, 1: 2 } }), { tierCounts: { '2_5': 4, 1: 2 } });
+  for (const k of ['a.b', 'a#b', 'a$b', 'a/b', 'a[b', 'a]b', 'a\u0001b']) {
+    assert.ok(!/[.#$/[\]\u0000-\u001f]/.test(safeKey(k)), `${JSON.stringify(k)} bleibt verboten`);
+  }
+  assert.equal(safeKey('normal_key-1'), 'normal_key-1', 'harmlose Schluessel bleiben unveraendert');
+});
+
+test('Firebase-Platzhalter (serverTimestamp/increment) bleiben unangetastet', () => {
+  // serverTimestamp() = {".sv":"timestamp"} — der Punkt ist ABSICHT. Ohne die
+  // Ausnahme machte safeKey daraus {"_sv":…}, und statt der Serverzeit laege
+  // ein totes Objekt in der Datenbank (publishAiProfile schickt updatedAt so).
+  const ts = { '.sv': 'timestamp' };
+  const inc = { '.sv': { increment: 1 } };
+  assert.ok(isFirebaseSentinel(ts) && isFirebaseSentinel(inc));
+  assert.equal(isFirebaseSentinel({ sv: 1 }), false);
+  const out = sanitizeForFirebase({ updatedAt: ts, n: inc, x: Infinity });
+  assert.deepEqual(out, { updatedAt: { '.sv': 'timestamp' }, n: { '.sv': { increment: 1 } }, x: null });
+});
+
+test('die Kopie in account.js ist textgleich mit der in coop.js', () => {
+  // Bewusst dupliziert (account.js soll coop.js nicht laden muessen) — dann aber
+  // ohne Auseinanderlaufen: genau so eine Drift waere ein stiller Datenverlust.
+  const body = (file, name) => {
+    const src = readFileSync(new URL(`../../js/${file}`, import.meta.url), 'utf8');
+    const i = src.indexOf(`function ${name}(`);
+    assert.ok(i >= 0, `${name} fehlt in ${file}`);
+    let depth = 0, j = src.indexOf('{', i);
+    for (; j < src.length; j++) { if (src[j] === '{') depth++; else if (src[j] === '}' && --depth === 0) break; }
+    return src.slice(i, j + 1);
+  };
+  for (const name of ['sanitizeForFirebase', 'safeKey', 'isFirebaseSentinel']) {
+    assert.equal(body('account.js', name), body('coop.js', name), `${name} ist in account.js anders als in coop.js`);
+  }
 });

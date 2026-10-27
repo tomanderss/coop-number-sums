@@ -423,13 +423,41 @@ export async function ensurePresence({ name, color, role }) {
 // bleibt unberührt, da nur `msg` bereinigt wird.
 export function sanitizeForFirebase(v) {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
-  if (Array.isArray(v)) return v.map(sanitizeForFirebase);
+  // undefined in einem Array waere ebenso ein harter Fehler; null laesst die
+  // RTDB an dieser Stelle einfach aus (Raster heilt normalizeGrid beim Laden).
+  if (Array.isArray(v)) return v.map((x) => (x === undefined ? null : sanitizeForFirebase(x)));
+  // Firebase-eigene Platzhalter — serverTimestamp() = {".sv":"timestamp"},
+  // increment(n) = {".sv":{increment:n}} — tragen ABSICHTLICH einen Punkt im
+  // Schluessel und muessen unveraendert durch. safeKey machte daraus sonst
+  // {"_sv":…}, und statt der Serverzeit laege ein totes Objekt in der Datenbank
+  // (publishAiProfile schickt updatedAt genau so durch diese Funktion).
+  if (isFirebaseSentinel(v)) return v;
   if (v && typeof v === 'object') {
     const out = {};
-    for (const k in v) out[k] = sanitizeForFirebase(v[k]);
+    for (const k in v) {
+      const val = v[k];
+      // undefined ist fuer die RTDB ein harter Fehler (nicht etwa „weglassen") —
+      // ein einziges solches Feld liesse den GESAMTEN Schreibvorgang scheitern.
+      if (val === undefined) continue;
+      out[safeKey(k)] = sanitizeForFirebase(val);
+    }
     return out;
   }
   return v;
+}
+// Die RTDB verbietet in Schluesseln: . # $ / [ ] und Steuerzeichen — ein
+// einziger solcher Schluessel laesst den GESAMTEN Schreibvorgang scheitern
+// (kein Teil-Write). In Coop Math Cross trug ein Raetsel den Schluessel "2.5":
+// jeder Upload mit einem Raetsel im Snapshot warf, und das Coop-INIT wurde nie
+// geschrieben. Die Raetsel HIER tragen keine solchen Schluessel (geprueft ueber
+// alle Schwierigkeiten); das ist das Netz fuer alles Kuenftige.
+export function safeKey(k) {
+  const s = String(k);
+  // eslint-disable-next-line no-control-regex
+  return /[.#$/[\]\u0000-\u001f\u007f]/.test(s) ? s.replace(/[.#$/[\]\u0000-\u001f\u007f]/g, '_') : s;
+}
+export function isFirebaseSentinel(v) {
+  return !!v && typeof v === 'object' && !Array.isArray(v) && Object.prototype.hasOwnProperty.call(v, '.sv');
 }
 // Firebase RTDB speichert KEINE null-Werte: ein null wird beim Schreiben einfach
 // weggelassen. Ein 2D-Raster, dessen Zellen ueberwiegend null sind — genau das ist
