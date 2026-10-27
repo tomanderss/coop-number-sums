@@ -153,6 +153,9 @@ html, body, #rotate-fix { margin: 0; height: 100%; }
    (.screen senkrecht, das gezoomte Brett, Modals). `touch-action: pan-x pan-y`
    ohne `pinch-zoom` sperrt das Browser-Zoomen (iOS-Safari zusätzlich über
    gesturestart in index.html, weil es user-scalable=no ignoriert). */
+/* Minimalistisches Design (Nutzerwunsch: „schlanker, kleiner, mehr Luft"):
+   ein leichter Schatten für alle Flächen statt des früheren schweren. */
+:root { --soft-shadow: 0 1px 3px color-mix(in srgb, var(--shadow) 40%, transparent); --hairline: color-mix(in srgb, var(--text3) 28%, transparent); }
 html, body { overflow: hidden; width: 100%; overscroll-behavior: none; touch-action: pan-x pan-y; }
 body {
   background: var(--bg); color: var(--text);
@@ -237,11 +240,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Spacer-Span muss exakt so breit wie der Zurück-Button sein, sonst sitzt der
    Titel nicht in der Mitte (justify-content: space-between zentriert sonst
    nur den Abstand, nicht den Titel selbst). */
-.topbar > span:last-child:empty { width: 44px; flex-shrink: 0; }
+.topbar > span:last-child:empty { width: 40px; flex-shrink: 0; }
 .icon-btn {
-  width: 44px; height: 44px; border-radius: 12px; background: var(--bg2);
-  font-size: 1.4rem; font-weight: 700; color: var(--text2);
-  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px var(--shadow);
+  width: 40px; height: 40px; border-radius: 12px; background: var(--bg2);
+  font-size: 1.25rem; font-weight: 700; color: var(--text2);
+  display: flex; align-items: center; justify-content: center; box-shadow: var(--soft-shadow);
 }
 .icon-btn:active { transform: scale(.92); }
 
@@ -279,7 +282,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transform: translate(-50%, -50%);
   z-index: -1; pointer-events: none;
   background: url('../icons/icon-1024.png') center / cover no-repeat;
-  opacity: .08;
+  /* Minimalistisch: nur noch ein Hauch (vorher .08 — die großen Zahlen und
+     Kästen drängten sich in den Vordergrund und schienen durch die flachen Knöpfe). */
+  opacity: .035;
 }
 .home-donate-btn { position: absolute; top: 0; left: 0; z-index: 1; text-decoration: none; }
 .home-topbar-right { position: absolute; top: 0; right: 0; z-index: 1; display: flex; gap: 8px; }
@@ -289,10 +294,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    bewusst UNTER der oberen Icon-Leiste (top: 56px), damit Zähler-Badge + Glüh-
    Ring nicht am oberen Rand des scrollenden .home-Screens abgeschnitten werden. */
 .home-missions-btn {
-  position: absolute; top: 56px; left: 2px; z-index: 2; border-radius: 50%;
+  position: absolute; top: 52px; left: 2px; z-index: 2; border-radius: 50%;
   background: radial-gradient(circle at 50% 38%, color-mix(in oklab, var(--accent) 26%, var(--bg2)), var(--bg2));
   border: 1.5px solid color-mix(in oklab, var(--accent) 55%, var(--line));
-  box-shadow: 0 2px 10px var(--shadow), inset 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent);
+  box-shadow: var(--soft-shadow), inset 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent);
   color: color-mix(in oklab, var(--accent) 70%, var(--text));
 }
 .home-missions-btn.has-claim {
@@ -314,8 +319,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    stört diese Zone nicht.) */
 .home-streak-badge {
   position: absolute; top: 0; left: 56px; right: 150px;
-  display: flex; align-items: center; justify-content: center; gap: 4px; height: 44px;
-  font-size: 1.15rem; font-weight: 800; color: var(--text2); pointer-events: none;
+  display: flex; align-items: center; justify-content: center; gap: 4px; height: 40px;
+  font-size: 1.05rem; font-weight: 800; color: var(--text2); pointer-events: none;
 }
 /* Streak-Flamme deutlich größer als der Zähler (auffälliger). */
 .home-streak-badge .ico { width: 1.6em; height: 1.6em; }
@@ -331,10 +336,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Eigenes Badge auf dem Home-Screen (nur sichtbar, wenn eins ausgerüstet ist) */
 .home-profile-chip {
   display: inline-flex; align-items: center; gap: 8px; margin-top: 4px;
-  padding: 7px 18px; border-radius: 99px; background: var(--bg3);
-  font-weight: 800; font-size: 1.12rem; border: none; color: inherit; cursor: pointer;
+  padding: 5px 14px; border-radius: 99px; background: var(--bg3);
+  font-weight: 700; font-size: .92rem; border: none; color: inherit; cursor: pointer;
 }
-.home-profile-chip .hpc-medal svg, .home-profile-chip .badge-medal-inline svg { width: 1.9em; height: 1.9em; }
+.home-profile-chip .hpc-medal svg, .home-profile-chip .badge-medal-inline svg { width: 1.7em; height: 1.7em; }
 .home-profile-chip .hpc-add { display: inline-flex; opacity: .8; }
 .home-profile-chip .hpc-add svg { width: 1.5em; height: 1.5em; }
 .home-profile-chip:active { transform: translateY(1px); }
@@ -568,7 +573,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
      Handys ohne Scrollen passt. Die Scheibe schneidet an ihrem eigenen Rand ab:
      nichts darf über den Bildschirm hinausragen — der Name des Nachbarspiels
      tat das und machte die ganze Startseite seitlich verschiebbar. */
-  --gw: clamp(76px, 12.5dvh, 112px);
+  --gw: clamp(64px, 10.5dvh, 92px);
   position: relative; width: 100%; align-self: stretch; height: calc(var(--gw) + 56px); flex: 0 0 auto;
   margin: 2px 0 0; overflow: hidden;
   touch-action: pan-y; user-select: none; -webkit-user-select: none;
@@ -599,7 +604,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gw-names { position: absolute; left: 0; right: 0; bottom: 18px; height: 22px; pointer-events: none; }
 .gw-name {
   position: absolute; left: 0; right: 0; text-align: center;
-  font-size: .95rem; font-weight: 900; letter-spacing: .1px; color: var(--text);
+  font-size: .82rem; font-weight: 700; letter-spacing: .2px; color: var(--text2);
   transition: opacity .45s ease, transform .55s cubic-bezier(.22,1,.36,1);
 }
 .gw-dots { position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
@@ -609,7 +614,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    dichter packen, damit sie wie eine native App ohne Scrollen ganz passt. */
 @media (max-height: 620px) {
   .home { padding-top: 52px; }
-  .game-wheel { --gw: 68px; }
+  .game-wheel { --gw: 60px; }
   .screen.home .home-actions .btn { padding-top: 8px; padding-bottom: 8px; }
 }
 /* Menü unter der Scheibe blendet beim Spielwechsel weich über. */
@@ -619,10 +624,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @media (prefers-reduced-motion: reduce) {
   .gw-item, .gw-name, .gw-glow, .gswap-enter-active, .gswap-leave-active { transition-duration: .01s; }
 }
-.brand-title { font-size: clamp(1.3rem, 3.4dvh, 1.6rem); font-weight: 900; line-height: 1.05; margin: 4px 0 0; letter-spacing: -.5px; }
+.brand-title { font-size: clamp(1.05rem, 2.6dvh, 1.3rem); font-weight: 800; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.2px; }
 .brand-sub { color: var(--text2); font-size: .9rem; }
 .home-actions { display: flex; flex-direction: column; gap: 8px; }
-.screen.home .btn { padding: 11px 16px; }
+.screen.home .btn { padding: 11px 14px; }
+/* Minimalistisch: die Knöpfe bilden eine schmale, zentrierte Spalte statt die
+   ganze Breite zu füllen; um sie herum bleibt Luft. Die Modus-Knöpfe zeigen nur
+   noch ihren Namen (die Erklärzeile steht im jeweiligen Bildschirm), die
+   Nebenknöpfe sind flach (Haarlinie statt Schatten), Statistik/Verlauf sind
+   dezente Textknöpfe. Tippflächen bleiben ≥ 44 px hoch. */
+.screen.home .home-actions { width: 100%; max-width: 300px; margin: 0 auto; }
+.screen.home .mode-btn { min-height: 46px; }
+.screen.home .mode-btn .btn-tx small { display: none; }
+.screen.home .btn-coop, .screen.home .race-btn { background: color-mix(in srgb, var(--bg2) 55%, transparent); box-shadow: inset 0 0 0 1px var(--hairline); }
+.screen.home .home-grid .btn { background: transparent; box-shadow: none; color: var(--text2); font-weight: 600; min-height: 44px; }
 /* Bei zwei parallel fortsetzbaren Spielen (Solo + Coop) teilen sich beide
    Buttons die Zeile zu gleichen Hälften statt sich zu stapeln; bei nur einem
    nimmt er von selbst die volle Breite ein (flex:1 auf einem einzigen Kind). */
@@ -656,8 +671,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    Grid-Items auf dessen min-content (z.B. das unbrechbare Wort "Einstellungen")
    wachsen und die Spalten dadurch wieder ungleich breit machen. */
 .home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.home-grid .btn { white-space: nowrap; padding: 10px 10px; font-size: clamp(.74rem, 3.6vw, .95rem); gap: 8px; }
-.home-grid .btn-ic { width: auto; font-size: 1.15rem; }
+.home-grid .btn { white-space: nowrap; padding: 10px 10px; font-size: clamp(.74rem, 3.6vw, .88rem); gap: 6px; }
+.home-grid .btn-ic { width: auto; font-size: 1rem; }
 .wl-detail { display: block; font-size: .72rem; opacity: .7; }
 
 /* Sicherheitskopien-Liste (Einstellungen ▸ Daten). */
@@ -677,8 +692,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ─── Buttons ─── */
 .btn {
   display: flex; align-items: center; gap: 12px; justify-content: center;
-  padding: 14px 16px; border-radius: 14px; font-size: 1rem; font-weight: 700;
-  background: var(--bg2); color: var(--text); box-shadow: 0 2px 10px var(--shadow);
+  padding: 12px 14px; border-radius: 12px; font-size: .95rem; font-weight: 700;
+  background: var(--bg2); color: var(--text); box-shadow: var(--soft-shadow);
   transition: transform .12s, filter .12s; position: relative;
 }
 .btn:active { transform: scale(.97); }
@@ -705,7 +720,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn-sm { min-height: 44px; padding: 8px 14px; font-size: .85rem; }
 /* Fixe Icon-Spaltenbreite, damit unterschiedlich breite Emoji-Icons (z.B. 📡
    vs. 🔗) die Zentrierung des Buttons nicht sichtbar verschieben. */
-.btn .btn-ic { font-size: 1.3rem; width: 28px; flex-shrink: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.btn .btn-ic { font-size: 1.15rem; width: 24px; flex-shrink: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
 .btn .btn-tx { display: flex; flex-direction: column; align-items: center; text-align: center; line-height: 1.2; }
 .btn .btn-tx small { font-weight: 500; color: inherit; opacity: .75; font-size: .76rem; }
 .badge-soon {
@@ -840,6 +855,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    stattdessen scrollt die Section sauber. */
 .setup-slider .diff-picker { flex: 1 1 auto; min-height: min-content; display: flex; flex-direction: column; }
 .setup-startrow { flex: 0 0 auto; display: flex; flex-direction: column; }
+/* Minimalistisch wie die Startseite: Auswahl, Schalter und Start-Knopf stehen in
+   einer schmalen, zentrierten Spalte statt von Rand zu Rand; der morphende
+   Hintergrund bleibt vollflächig. */
+.setup-slider .diff-picker, .setup-slider .mode-toggle, .setup-slider .setup-startrow,
+.setup-slider .setup-coderow { width: 100%; max-width: 320px; margin-left: auto; margin-right: auto; }
 
 /* Modus-Umschalter (Setup/Coop-Host): EXTREM kompakte EINZEILIGE Zeile — nur
    fetter Kurztitel + Info-Glyph (Erklärung als Tooltip) + kleiner Schalter, über
@@ -850,10 +870,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   flex: 0 0 auto; display: flex; align-items: center; gap: 8px; cursor: pointer;
   margin: 4px 0; padding: 6px 12px; border-radius: 12px; position: relative;
   background: color-mix(in srgb, var(--bg2) 78%, transparent);
-  border: 1px solid var(--line); transition: border-color .15s, background .15s;
+  border: 1px solid var(--hairline); transition: border-color .15s, background .15s;
 }
 .mode-toggle.on { border-color: var(--accent, #3b82f6); background: color-mix(in srgb, var(--accent, #3b82f6) 14%, var(--bg2)); }
-.mode-toggle .mt-title { flex: 1; min-width: 0; font-size: .9rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mode-toggle .mt-title { flex: 1; min-width: 0; font-size: .82rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mode-toggle .mt-info { flex: 0 0 auto; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--text3); position: relative; cursor: help; }
 .mode-toggle .mt-info .ei { display: inline-grid; }
 .mode-toggle .mt-info .ei svg { width: 16px; height: 16px; }
@@ -916,10 +936,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border: 1px solid color-mix(in oklab, var(--dacc) 42%, transparent); }
 
 .diff-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin-top: 2px; }
-.ds-tile { background: var(--bg2); border: 1px solid var(--grid); border-radius: 14px; padding: 10px 6px;
-  display: flex; flex-direction: column; align-items: center; gap: 3px; box-shadow: 0 2px 8px var(--shadow); }
+.ds-tile { background: color-mix(in srgb, var(--bg2) 70%, transparent); border: 1px solid var(--hairline); border-radius: 12px; padding: 8px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .ds-k { font-size: .56rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); }
-.ds-v { font-size: 1.12rem; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--text);
+.ds-v { font-size: 1rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text);
   display: inline-flex; align-items: center; gap: 4px; line-height: 1.1; }
 .ds-v .ei { display: inline-flex; }
 .ds-v .ei svg { width: 15px; height: 15px; }
@@ -960,7 +980,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transition: left var(--snapT), box-shadow var(--morphT); }
 .diff-start { margin-top: 12px; width: 100%; border: none; color: #fff; font-weight: 900;
   background: linear-gradient(135deg, var(--dacc), var(--dacc-d));
-  box-shadow: 0 10px 24px color-mix(in oklab, var(--dacc) 38%, transparent);
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--dacc) 30%, transparent);
   transition: background var(--morphT), box-shadow var(--morphT), transform .1s; }
 .diff-start:active { transform: translateY(2px) scale(.99); }
 
@@ -1448,15 +1468,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    (Hinweis-Knopf-Breite, unsichtbar) den Hinweis-Knopf rechts aus; die
    auto-Margins zentrieren den Umschalter auch, wenn der Hinweis-Knopf fehlt
    (Race/Team blenden Spacer UND Hinweis gemeinsam aus). */
-.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 8px 0; margin-bottom: 26px; flex: 0 0 auto; }
-.toolbar-spacer { width: 60px; flex: 0 0 auto; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 8px 0; margin-bottom: 18px; flex: 0 0 auto; }
+.toolbar-spacer { width: 52px; flex: 0 0 auto; }
 .toolbar .tool-toggle { margin-inline: auto; }
 .round-btn {
-  position: relative; width: 60px; height: 60px; border-radius: 50%; background: var(--bg2);
-  box-shadow: 0 3px 12px var(--shadow); display: flex; align-items: center; justify-content: center; color: var(--text2);
+  position: relative; width: 52px; height: 52px; border-radius: 50%; background: var(--bg2);
+  box-shadow: var(--soft-shadow); display: flex; align-items: center; justify-content: center; color: var(--text2);
 }
-.round-btn svg { width: 26px; height: 26px; }
-.tool-ic svg { width: 26px; height: 26px; }
+.round-btn svg { width: 22px; height: 22px; }
+.tool-ic svg { width: 22px; height: 22px; }
 .icon-btn svg { display: block; }
 .top-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 /* Bricht die Kopfzeile in der vollsten Lage doch um (Endlos + Coop + Chat),
@@ -1479,17 +1499,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .tool-toggle {
   position: relative; display: inline-flex; align-items: center; gap: 4px;
-  background: var(--bg3); border-radius: 999px; padding: 5px;
-  box-shadow: inset 0 2px 6px var(--shadow);
+  background: var(--bg3); border-radius: 999px; padding: 4px;
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--shadow) 45%, transparent);
 }
 .tool-pill {
-  position: absolute; top: 5px; left: 5px; width: 60px; height: 60px; border-radius: 50%;
+  position: absolute; top: 4px; left: 4px; width: 52px; height: 52px; border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
-  box-shadow: 0 3px 12px var(--accent-soft), 0 2px 8px var(--shadow);
+  box-shadow: 0 2px 8px var(--accent-soft);
   transition: transform .26s cubic-bezier(.3,1.2,.5,1);
 }
-.tool-pill.pen { transform: translateX(64px); }
-.tool-ic { position: relative; z-index: 1; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--text3); transition: color .2s, opacity .2s; opacity: .65; }
+.tool-pill.pen { transform: translateX(56px); }
+.tool-ic { position: relative; z-index: 1; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--text3); transition: color .2s, opacity .2s; opacity: .65; }
 .tool-ic.active { color: #fff; opacity: 1; }
 .tool-ic.pen { font-weight: 800; }
 
