@@ -232,7 +232,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    eigene Scroll-Grenze erreicht — overscroll-behavior/touch-action allein
    reicht auf manchen mobilen WebViews nicht zuverlässig aus. */
 .app.modal-open > .screen { overflow: hidden; }
-@keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* Nur Deckkraft: ein Bildschirm blendet ein, rutscht aber nicht nach — Knöpfe
+   stehen vom ersten Frame an an ihrem festen Platz. */
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 
 /* ─── Topbar ─── */
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 14px; gap: 8px; }
@@ -255,7 +257,31 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    "Fortsetzen"-Button bei aktivem Spiel) per unsafe centering nach oben in
    die Icon-Zeile. "safe center" fällt zusätzlich auf Start-Ausrichtung
    zurück statt zu überlaufen, sobald der Inhalt nicht mehr reinpasst. */
-.home { position: relative; justify-content: center; justify-content: safe center; gap: clamp(8px, 2dvh, 16px); text-align: center; padding-top: 60px; }
+/* Startseite = festes Raster, von OBEN aufgebaut (Nutzerwunsch: „alle Buttons
+   haben feste Positionen und verschieben sich nie"). Vorher war die Spalte
+   vertikal zentriert: erschien ein Fortsetzen-Knopf (oder wechselte das Spiel
+   und damit das Fortsetzen-Angebot), rutschten Scheibe, Titel und ALLE Knöpfe
+   um ~30 px. Jetzt hängt der Abstand nach oben NUR an der Bildschirmhöhe (nie
+   am Inhalt): auf hohen Geräten rückt die Spalte zur Mitte, auf kleinen steht
+   sie oben. Der Fortsetzen-Bereich folgt UNTER den Modus-Knöpfen und wächst in
+   den freien Platz nach unten; die Version steht unten. Reicht der Platz auf
+   sehr kleinen Geräten nicht, scrollt die Seite — verschoben wird nichts. */
+.home {
+  position: relative; display: grid; text-align: center;
+  padding-top: clamp(52px, calc(52px + (100dvh - 600px) * .4), 220px);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  row-gap: clamp(8px, 2dvh, 16px);
+}
+.home > .brand { grid-row: 1; }
+.home > .home-actions { grid-row: 2; }
+.home > .home-resume { grid-row: 3; }
+.home > .home-foot { grid-row: 5; align-self: end; }
+.home-foot { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; height: 28px; }
+.home-foot .home-version { grid-column: 2; margin-top: 0; }
+.home-foot .offline-chip { grid-column: 1; justify-self: start; }
+.home-resume { width: 100%; max-width: 300px; justify-self: center; }
+.home-resume:empty { display: none; }
 /* Großes App-Icon (Zahlengitter) als dezenter, scharfer Vollbild-Hintergrund
    der Startseite. An .app (dauerhaft vorhanden, wird beim Navigieren NICHT
    animiert) -> Hintergrund ist sofort/statisch da, ohne "Live-Reinzoomen".
@@ -324,12 +350,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 /* Streak-Flamme deutlich größer als der Zähler (auffälliger). */
 .home-streak-badge .ico { width: 1.6em; height: 1.6em; }
-/* Offline-Indikator (Home): dezente Pille oben zentriert, nur wenn kein Netz. */
+/* Offline-Indikator (Home): dezente Pille, nur wenn kein Netz. */
+/* Sitzt in der Fußzeile links neben der Version: oben mittig lag er über dem
+   Serien-Zähler, unter der Icon-Leiste über dem Logo des Nachbarspiels. */
 .offline-chip {
-  position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 4;
-  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px;
-  border-radius: 13px; background: var(--bg3); color: var(--text2); border: 1px solid var(--line);
-  font-size: .76rem; font-weight: 800; letter-spacing: .2px; box-shadow: 0 4px 14px var(--shadow);
+  min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px;
+  border-radius: 11px; background: var(--bg3); color: var(--text2); border: 1px solid var(--hairline);
+  font-size: .7rem; font-weight: 800; letter-spacing: .2px;
 }
 .offline-chip .ei { width: 1.05em; height: 1.05em; opacity: .85; }
 .brand { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 4px; }
@@ -613,14 +641,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Sehr niedrige Bildschirme (z.B. iPhone SE 1. Gen., 568 px): Startseite etwas
    dichter packen, damit sie wie eine native App ohne Scrollen ganz passt. */
 @media (max-height: 620px) {
-  .home { padding-top: 52px; }
   .game-wheel { --gw: 60px; }
   .screen.home .home-actions .btn { padding-top: 8px; padding-bottom: 8px; }
 }
 /* Menü unter der Scheibe blendet beim Spielwechsel weich über. */
-.gswap-enter-active, .gswap-leave-active { transition: opacity .2s ease, transform .2s ease; }
-.gswap-enter-from { opacity: 0; transform: translateY(10px); }
-.gswap-leave-to { opacity: 0; transform: translateY(-6px); }
+.gswap-enter-active, .gswap-leave-active { transition: opacity .2s ease; }
+.gswap-enter-from, .gswap-leave-to { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   .gw-item, .gw-name, .gw-glow, .gswap-enter-active, .gswap-leave-active { transition-duration: .01s; }
 }
@@ -708,10 +734,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Endlos-Fortsetzen: eigener Akzent-Look (statt Grün) + „Endlos"-Ecken-Chip, damit
    er sich klar vom normalen Solo-/Coop-Fortsetzen abhebt. */
 .btn-resume.endless { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; position: relative; }
+/* Ecken-Marken sitzen AUF der Oberkante des Knopfs, nicht in seiner Textzeile:
+   mittig rechts lagen sie in längeren Sprachen über der Beschriftung
+   („Mode coopératif" × „Hors ligne"). */
 .badge-endless {
-  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-  background: rgba(0,0,0,.24); color: #fff; font-size: .68rem; font-weight: 800;
-  padding: 3px 8px; border-radius: 999px; letter-spacing: .02em;
+  position: absolute; right: 10px; top: -8px; line-height: 1.25;
+  background: var(--accent2); color: #fff; font-size: .66rem; font-weight: 800;
+  padding: 2px 8px; border-radius: 999px; letter-spacing: .02em; box-shadow: var(--soft-shadow);
 }
 .btn-coop { background: var(--bg2); }
 .btn-ghost { background: var(--bg2); }
@@ -724,9 +753,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn .btn-tx { display: flex; flex-direction: column; align-items: center; text-align: center; line-height: 1.2; }
 .btn .btn-tx small { font-weight: 500; color: inherit; opacity: .75; font-size: .76rem; }
 .badge-soon {
-  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-  background: var(--accent-soft); color: var(--accent2); font-size: .68rem; font-weight: 800;
-  padding: 3px 8px; border-radius: 999px;
+  position: absolute; right: 10px; top: -8px; line-height: 1.25;
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg2)); color: var(--accent2); font-size: .66rem; font-weight: 800;
+  padding: 2px 8px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hairline);
 }
 
 /* ─── Setup ─── */
@@ -1352,9 +1381,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   /* Home, Setup, Coop-Lobby: Logo/Buttons/Auswahlkarten verkleinert und (wo
      möglich) nebeneinander statt untereinander angeordnet, damit sie auf der
      viel niedrigeren Querformat-Höhe komplett ohne Scrollen passen. */
+  /* Querformat: Marke links, rechts die Knöpfe — darunter der Fortsetzen-
+     Bereich in seiner eigenen Zeile (auch hier verschiebt er nichts). */
   .screen.home {
-    flex-direction: row; justify-content: center; align-items: center; gap: 30px;
+    grid-template-columns: auto minmax(0, 360px); justify-content: center; column-gap: 30px;
+    grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr); padding-top: 52px;
   }
+  .home > .brand { grid-row: 1 / 3; grid-column: 1; align-self: center; }
+  /* Version (+ Offline-Chip) unten in der Marken-Spalte: rechts unten läge sie
+     unter einem langen Fortsetzen-Bereich. */
+  .home > .home-foot { grid-row: 3; grid-column: 1; }
+  .home > .home-actions { grid-row: 2; grid-column: 2; }
+  .home > .home-resume { grid-row: 3; grid-column: 2; max-width: none; align-self: start; padding-top: 8px; }
   .home .brand { margin-top: 0; gap: 4px; }
   .home .brand-logo { width: 64px; height: 64px; border-radius: 18px; }
   .home .brand-title { font-size: 1.05rem; margin-top: 0; }
@@ -1362,7 +1400,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .home .btn { padding: 9px 14px; gap: 10px; }
   .home .btn .btn-tx small { font-size: .66rem; }
   .home-grid .btn { padding: 9px 8px; }
-  .home-version { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); margin-top: 0; }
 
   /* Querformat: knapp in der Höhe -> wieder oben beginnen (justify-content:center
      würde bei hohem Inhalt den oberen Rand abschneiden) und 3 Spalten nutzen. */
