@@ -68,7 +68,12 @@ jobs:
   e2e:
     name: E2E ${{ matrix.shard }}/3
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Der JOB braucht Puffer, weil die Systembibliotheken (apt, Schritt unten)
+    # auf manchen Runnern 10–13 Minuten brauchen statt Sekunden — gemessen an
+    # #692/#694: die Tests selbst liefen in ~2 Minuten, der Job riss trotzdem das
+    # alte 15-Minuten-Limit. Das eigentliche Schutzlimit gegen einen HÄNGENDEN
+    # Test sitzt deshalb direkt am Testschritt (s. dort).
+    timeout-minutes: 30
     strategy:
       # Ein fehlgeschlagener Shard darf die anderen NICHT abbrechen — sonst sieht
       # man nur den ersten Fehler und muss für den Rest erneut laufen lassen.
@@ -107,4 +112,7 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
+      # Ein hängender Test bricht hier nach 12 Minuten ab (die Suite braucht je
+      # Shard ~2–4 Minuten) — unabhängig davon, wie lange apt vorher brauchte.
       - run: npx playwright test --shard=${{ matrix.shard }}/3
+        timeout-minutes: 12

@@ -1740,18 +1740,30 @@ function missionClaimableUI(m) { return isMissionClaimable(m, state.missions.pro
 // mit den einfachen, in Worten erklärbaren Tier-1-Schritten lösen lässt --
 // sonst würde der Durchlauf plötzlich auf ein Rätsel treffen, das v1 nicht
 // erklären kann. Solo, kein Netz, keine eigenen Storage-Keys (siehe Plan).
-const TRAINING_GEN_BUDGET = 40; // Versuche, bis ein voll Tier-1-lösbares Rätsel gefunden ist
+// Gemessen sind nur ~5 % (Number Sums) bzw. ~8,5 % (Math Cross) der „Sehr
+// leicht"-Rätsel voll Tier-1-lösbar: mit fest 40 Versuchen blieb das Training in
+// 3–12 % der Fälle auf einem Rätsel hängen, für das es keinen erklärbaren Schritt
+// gab (Banner ohne „Anwenden"). Deshalb ein ZEIT-Budget statt fester Zahl — ein
+// schnelles Gerät probiert hunderte Rätsel (je 2–7 ms), ein langsames so viele,
+// wie in die Wartezeit passen.
+const TRAINING_GEN_MAX_TRIES = 600;
+const TRAINING_GEN_MAX_MS = 2500;
 function startTrainingGame() {
   coopReset();
   state.generating = true;
   state.screen = 'game';
   setTimeout(() => {
     log('game', `Trainingsrätsel-Generierung gestartet`);
+    const t0 = performance.now();
     let puzzle = generatePuzzle({ difficulty: 'sehrleicht' });
-    for (let i = 0; i < TRAINING_GEN_BUDGET && !isFullyTier1Solvable(puzzle); i++) {
+    let tries = 1;
+    let found = isFullyTier1Solvable(puzzle);
+    while (!found && tries < TRAINING_GEN_MAX_TRIES && performance.now() - t0 < TRAINING_GEN_MAX_MS) {
       puzzle = generatePuzzle({ difficulty: 'sehrleicht' });
+      tries++;
+      found = isFullyTier1Solvable(puzzle);
     }
-    log('game', `Trainingsrätsel generiert`, { rows: puzzle.rows, cols: puzzle.cols });
+    log('game', `Trainingsrätsel generiert`, { rows: puzzle.rows, cols: puzzle.cols, tries, found, tookMs: Math.round(performance.now() - t0) });
     loadPuzzleIntoState(puzzle, null);
     // Erst NACH loadPuzzleIntoState setzen, da dieses isTrainingGame/trainingStep/
     // trainingDone als generischer Reset-Punkt für alle Spielstart-Pfade auf false
