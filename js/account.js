@@ -612,6 +612,46 @@ export async function declineFriendRequest(fromUid) {
 }
 
 // Freund entfernen (beidseitig).
+/**
+ * Repariert Freundes-Eintraege OHNE Namen (rein transportseitig; die Zuordnung
+ * selbst ist `uidToName`, unit-getestet).
+ *
+ * Der Name wird beim Handschlag EINMAL in den Eintrag geschrieben. War er in dem
+ * Moment noch nicht bekannt, blieb er fuer immer leer und die Liste zeigte die
+ * nackte uid (in Coop Math Cross gemeldet: „ganz komischer, kryptischer Name").
+ * Dort lag es an Konten aus der Schwester-App; hier wird genau das mit dem Umzug
+ * der Math-Cross-Konten in diese App passieren. Das Profil eines Freundes darf
+ * man nicht lesen (Rules: nur Besitzer/Admin), wohl aber den Namensindex
+ * `usernames` (.read fuer alle Angemeldeten) — also rueckwaerts darin suchen.
+ * Der gefundene Name wird im eigenen Eintrag nachgetragen, damit die Suche nur
+ * einmal noetig ist. Kein Entfernen/Neu-Hinzufuegen noetig.
+ */
+export function uidToName(index) {
+  const out = {};
+  for (const [name, uid] of Object.entries(index || {})) if (typeof uid === 'string' && !(uid in out)) out[uid] = name;
+  return out;
+}
+export async function resolveFriendNames(friends) {
+  const offen = (friends || []).filter((f) => f && f.uid && !String(f.username || '').trim());
+  if (!offen.length) return null;
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return null;
+    const namen = uidToName((await fb.get(fb.ref(fb.db, 'usernames'))).val());
+    const gefunden = {};
+    for (const f of offen) if (namen[f.uid]) gefunden[f.uid] = namen[f.uid];
+    if (!Object.keys(gefunden).length) return null;
+    // Im eigenen Eintrag nachtragen (fire-and-forget) — beim naechsten Start ist
+    // der Name direkt da, ohne erneute Suche.
+    for (const [uid, name] of Object.entries(gefunden)) {
+      fb.set(userRef(fb, u.uid, `friends/${uid}/username`), name).catch(() => {});
+    }
+    log('account', 'Fehlende Freundes-Namen aus dem Namensindex ergaenzt', { anzahl: Object.keys(gefunden).length });
+    return gefunden;
+  } catch (e) { log('account', 'Freundes-Namen konnten nicht ergaenzt werden', e); return null; }
+}
+
 export async function removeFriend(friendUid) {
   try {
     const fb = await ensureFirebase();
