@@ -147,10 +147,18 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 html, body, #rotate-fix { margin: 0; height: 100%; }
+/* Native-App-Gefühl: die SEITE selbst bewegt sich nie — kein seitliches
+   Verschieben, kein Gummiband, kein Zoom per Zwei-Finger oder Doppeltipp.
+   Gescrollt wird ausschließlich in den Bereichen, die das ausdrücklich dürfen
+   (.screen senkrecht, das gezoomte Brett, Modals). `touch-action: pan-x pan-y`
+   ohne `pinch-zoom` sperrt das Browser-Zoomen (iOS-Safari zusätzlich über
+   gesturestart in index.html, weil es user-scalable=no ignoriert). */
+html, body { overflow: hidden; width: 100%; overscroll-behavior: none; touch-action: pan-x pan-y; }
 body {
   background: var(--bg); color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
 }
 #app { min-height: 100%; }
 /* touch-action: manipulation entfernt die ~300ms-Tap-Verzögerung, die mobile
@@ -189,7 +197,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Jeder Screen bekommt seine eigene Scroll-Box (statt die ganze Seite wachsen zu
    lassen) — sonst könnte z.B. ein gezoomtes Spielfeld die fixe Werkzeugleiste
    nach unten aus dem sichtbaren Bereich schieben. */
-.screen { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overflow-anchor: none; animation: fadein .25s ease; }
+.screen { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; overflow-anchor: none; animation: fadein .25s ease; }
+/* Kein Bildschirm darf seitlich scrollen (overflow-y:auto machte die x-Achse
+   implizit ebenfalls scrollbar — ein einziges überstehendes Element genügte).
+   Auf Touch-Geräten außerdem keine Scrollbalken: eine native App zeigt keine. */
+@media (pointer: coarse) {
+  .screen, .modal, .overlay, .board-wrap { scrollbar-width: none; }
+  .screen::-webkit-scrollbar, .modal::-webkit-scrollbar, .overlay::-webkit-scrollbar, .board-wrap::-webkit-scrollbar { display: none; }
+}
 /* Wird per JS gesetzt, sobald der Inhalt tatsächlich nicht über den
    sichtbaren Bereich hinausgeht (siehe updateScreenScrollLock() in app.js) --
    verhindert das elastische Zieh-/Zurückschnapp-Wabbeln, das iOS auf JEDEM
@@ -237,7 +252,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    "Fortsetzen"-Button bei aktivem Spiel) per unsafe centering nach oben in
    die Icon-Zeile. "safe center" fällt zusätzlich auf Start-Ausrichtung
    zurück statt zu überlaufen, sobald der Inhalt nicht mehr reinpasst. */
-.home { position: relative; justify-content: center; justify-content: safe center; gap: 16px; text-align: center; padding-top: 60px; }
+.home { position: relative; justify-content: center; justify-content: safe center; gap: clamp(8px, 2dvh, 16px); text-align: center; padding-top: 60px; }
 /* Großes App-Icon (Zahlengitter) als dezenter, scharfer Vollbild-Hintergrund
    der Startseite. An .app (dauerhaft vorhanden, wird beim Navigieren NICHT
    animiert) -> Hintergrund ist sofort/statisch da, ohne "Live-Reinzoomen".
@@ -549,7 +564,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    transform je Logo; hier nur Bühne, Perspektive und das weiche Einrasten.
    NUR transform/opacity werden animiert (iOS-Compositor-Regel). */
 .game-wheel {
-  position: relative; width: 100%; height: 168px; margin: 2px 0 0;
+  /* Größe folgt der Bildschirmhöhe, damit der Startbildschirm auch auf kleinen
+     Handys ohne Scrollen passt. Die Scheibe schneidet an ihrem eigenen Rand ab:
+     nichts darf über den Bildschirm hinausragen — der Name des Nachbarspiels
+     tat das und machte die ganze Startseite seitlich verschiebbar. */
+  --gw: clamp(76px, 12.5dvh, 112px);
+  position: relative; width: 100%; align-self: stretch; height: calc(var(--gw) + 56px); flex: 0 0 auto;
+  margin: 2px 0 0; overflow: hidden;
   touch-action: pan-y; user-select: none; -webkit-user-select: none;
   cursor: grab; outline: none;
 }
@@ -557,7 +578,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .game-wheel:focus-visible .gw-item.on .gw-logo { outline: 3px solid var(--accent); outline-offset: 4px; }
 .gw-stage { position: absolute; inset: 0 0 46px; perspective: 900px; perspective-origin: 50% 45%; }
 .gw-item {
-  position: absolute; left: 50%; top: 50%; width: 112px; height: 112px; margin: -56px 0 0 -56px;
+  position: absolute; left: 50%; top: 50%; width: var(--gw); height: var(--gw); margin: calc(var(--gw) / -2) 0 0 calc(var(--gw) / -2);
   padding: 0; border: 0; background: none; cursor: inherit;
   transform-style: preserve-3d; will-change: transform, opacity;
   transition: transform .55s cubic-bezier(.22,1,.36,1), opacity .55s cubic-bezier(.22,1,.36,1);
@@ -565,7 +586,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .game-wheel.dragging .gw-item, .game-wheel.dragging .gw-name, .game-wheel.dragging .gw-glow { transition: none; }
 .gw-logo {
-  position: relative; display: block; width: 100%; height: 100%; border-radius: 28px;
+  position: relative; display: block; width: 100%; height: 100%; border-radius: 25%;
   box-shadow: 0 10px 26px var(--shadow); pointer-events: none;
 }
 /* Leuchten hinter dem Logo in der Mitte — eigene Ebene, die nur in der
@@ -584,6 +605,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gw-dots { position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
 .gw-dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--text3); opacity: .5; transition: transform .35s, opacity .35s, background-color .35s; }
 .gw-dots i.on { background: var(--accent); opacity: 1; transform: scaleX(2.2); }
+/* Sehr niedrige Bildschirme (z.B. iPhone SE 1. Gen., 568 px): Startseite etwas
+   dichter packen, damit sie wie eine native App ohne Scrollen ganz passt. */
+@media (max-height: 620px) {
+  .home { padding-top: 52px; }
+  .game-wheel { --gw: 68px; }
+  .screen.home .home-actions .btn { padding-top: 8px; padding-bottom: 8px; }
+}
 /* Menü unter der Scheibe blendet beim Spielwechsel weich über. */
 .gswap-enter-active, .gswap-leave-active { transition: opacity .2s ease, transform .2s ease; }
 .gswap-enter-from { opacity: 0; transform: translateY(10px); }
@@ -591,7 +619,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @media (prefers-reduced-motion: reduce) {
   .gw-item, .gw-name, .gw-glow, .gswap-enter-active, .gswap-leave-active { transition-duration: .01s; }
 }
-.brand-title { font-size: 1.6rem; font-weight: 900; line-height: 1.05; margin: 4px 0 0; letter-spacing: -.5px; }
+.brand-title { font-size: clamp(1.3rem, 3.4dvh, 1.6rem); font-weight: 900; line-height: 1.05; margin: 4px 0 0; letter-spacing: -.5px; }
 .brand-sub { color: var(--text2); font-size: .9rem; }
 .home-actions { display: flex; flex-direction: column; gap: 8px; }
 .screen.home .btn { padding: 11px 16px; }

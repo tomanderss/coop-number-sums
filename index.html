@@ -19,6 +19,17 @@
        Kopf eingehängt, damit schon das erste Zeichnen stimmt. Ein Spielwechsel
        lädt die App neu. Unbekannte/fehlende Wahl → nichts (= Number Sums). -->
   <script>
+    // Native-App-Gefühl: iOS-Safari ignoriert user-scalable=no — Zwei-Finger-
+    // Zoom und Doppeltipp-Zoom hier abfangen (touch-action in styles.css deckt
+    // die übrigen Browser ab). Spiel-Gesten nutzen Pointer-Events, nicht diese.
+    (function () {
+      var stop = function (e) { e.preventDefault(); };
+      document.addEventListener('gesturestart', stop, { passive: false });
+      document.addEventListener('gesturechange', stop, { passive: false });
+      document.addEventListener('dblclick', stop, { passive: false });
+    })();
+  </script>
+  <script>
     (function () {
       try {
         // Einstieg per Link (?game=mathcross, z.B. vom Umzugs-Hinweis der alten
