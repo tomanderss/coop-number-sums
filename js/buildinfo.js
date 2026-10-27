@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.225';
-export const BUILD_HASH = 'e4cfba4';
+export const BUILD      = '1.226';
+export const BUILD_HASH = 'b1952f6';
 
 export const CHANGELOG = [
+  {
+    "version": "1.226",
+    "date": "27.10.2026",
+    "changes": [
+      "Die Offline-Duelle gegen die KI (inkl. Klone) sind entfernt; Duelle gegen echte Mitspieler bleiben"
+    ]
+  },
   {
     "version": "1.225",
     "date": "27.10.2026",
