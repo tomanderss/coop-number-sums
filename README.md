@@ -1,11 +1,14 @@
-# Coop Number Sums
+# Coop Number Games
 
-Ein Number-Sums-Logikrätsel als Progressive Web App (PWA) — offline spielbar, mit
-Dunkelmodus, mehreren Feldgrößen und Schwierigkeitsgraden. Aufgebaut wie die
-Werwolf-App (Vanilla + Vue 3 via ESM, kein Build-Tooling, Versionierung über
-Commit-Anzahl).
+Eine Sammlung von Zahlenrätseln als Progressive Web App (PWA) — derzeit **Number Sums** und
+**Math Cross**, solo oder gemeinsam im Coop-/Wettkampf-Modus, offline spielbar. Ein Konto
+(Name, Guthaben, Shop) für alle Spiele; Auswahl über die drehbare Scheibe auf dem
+Startbildschirm. Vanilla + Vue 3 via ESM, kein Build-Tooling.
 
-## Spielregeln
+Repo-Name, Speicher-Präfix (`cns_`), Firebase-Projekt und App-ID tragen bewusst weiter den
+alten Namen `coop-number-sums` (s. CLAUDE.md, „Interne Kennungen").
+
+## Spielregeln (Number Sums)
 - Jede Zahl **links neben einer Reihe** und **über einer Spalte** ist die **Zielsumme**.
 - Kreise mit dem **Stift (○)** genau die Zahlen ein, die zusammen die Zielsumme ergeben.
 - Überflüssige Zahlen mit dem **Radierer (⌫)** durchstreichen.

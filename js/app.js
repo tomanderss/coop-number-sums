@@ -1,4 +1,4 @@
-// app.js — Coop Number Sums (Vue 3, esm-browser). Solo-Spiel; Coop folgt später.
+// app.js — Coop Number Games (Vue 3, esm-browser): die Schale um alle Spiele (Menü, Coop, Konto, Shop …).
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref, h } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
