@@ -227,3 +227,50 @@ test.describe('coop robustness', () => {
     expect(await page.evaluate(() => window.__cns.state.resumeCountdown)).toBe(null);
   });
 });
+
+// In Coop Math Cross gemeldet (derselbe Code steckte hier, der Test war ohne
+// Fix auch hier rot): nach einem beendeten 1v1 zeigt die Lobby die Schwierigkeitsauswahl
+// ein zweites Mal (Rematch-Picker) — auf einem nicht sehr hohen Bildschirm war
+// davon nur die obere Haelfte zu sehen. Die Karte ist ein Flex-Kind der
+// scrollenden .coop-body und wurde mit dem Flex-Standard (shrink 1) kleiner als
+// ihr Inhalt; der Rest lief unten aus dem Bild, waehrend die .coop-body KEINEN
+// Scrollbedarf meldete — die untere Haelfte war schlicht nicht erreichbar.
+test.describe('1v1: Rematch-Auswahl bleibt erreichbar', () => {
+  test.use({ viewport: { width: 412, height: 560 } });
+
+  test('auf einem niedrigen Bildschirm ist der Schwierigkeitsregler erreichbar', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const s = window.__cns.state;
+      s.coop.identityConfirmed = true; s.settings.coopName = 'Tom';
+      s.coop.role = 'host'; s.coop.raceMode = true; s.coop.code = '123456';
+      s.coop.myId = 'me'; s.coop.waitingForGuest = true;
+      s.coop.players = [{ id: 'me', name: 'Ich', color: '#67a3e5' }, { id: 'x', name: 'Gegner', color: '#e5679a' }];
+      s.race.rematchPending = true;
+      s.screen = 'coop';
+    });
+    await page.waitForSelector('.diff-card .diff-picker');
+
+    // Die Lobby muss den Ueberhang als Scrollstrecke ANBIETEN — vorher meldete
+    // sie scrollHeight === clientHeight, der Rest war unerreichbar.
+    const scrollbar = await page.evaluate(() => {
+      const b = document.querySelector('.coop-body');
+      return b.scrollHeight > b.clientHeight + 1;
+    });
+    expect(scrollbar, 'die Lobby laesst sich scrollen').toBe(true);
+
+    // Und nach unten gescrollt ist der Regler vollstaendig im Bild.
+    await page.evaluate(() => {
+      const b = document.querySelector('.coop-body');
+      b.scrollTop = b.scrollHeight;
+    });
+    await page.waitForTimeout(120);
+    const sichtbar = await page.evaluate(() => {
+      const el = document.querySelector('.diff-card .diff-picker');
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, vp: window.innerHeight };
+    });
+    expect(sichtbar.bottom, 'der Regler endet im sichtbaren Bereich').toBeLessThanOrEqual(sichtbar.vp);
+    expect(sichtbar.top, 'und faengt nicht oberhalb des Bildschirms an').toBeGreaterThanOrEqual(0);
+  });
+});
