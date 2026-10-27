@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.220';
-export const BUILD_HASH = 'e1007a8';
+export const BUILD      = '1.221';
+export const BUILD_HASH = '1d9a488';
 
 export const CHANGELOG = [
+  {
+    "version": "1.221",
+    "date": "27.10.2026",
+    "changes": [
+      "Technischer Umbau: Spielstaende und Brett werden ueber eine gemeinsame Schnittstelle angesprochen (Vorbereitung fuer Math Cross)"
+    ]
+  },
   {
     "version": "1.220",
     "date": "27.10.2026",
