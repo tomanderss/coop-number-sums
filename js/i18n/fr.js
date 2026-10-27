@@ -804,6 +804,8 @@ export default {
   error: {
   },
   migration: {
+    accountDone: 'Ton compte Math Cross a été fusionné.',
+    accountDoneCoins: 'Ton compte Math Cross a été fusionné — {n} pièces créditées.',
     localDone: 'Tes données Math Cross ont été transférées.',
     localDoneCoins: 'Tes données Math Cross ont été transférées — {n} pièces créditées.',
   },

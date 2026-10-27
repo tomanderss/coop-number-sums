@@ -804,6 +804,8 @@ export default {
   error: {
   },
   migration: {
+    accountDone: 'Sua conta do Math Cross foi unificada.',
+    accountDoneCoins: 'Sua conta do Math Cross foi unificada — {n} moedas creditadas.',
     localDone: 'Seus dados do Math Cross foram transferidos.',
     localDoneCoins: 'Seus dados do Math Cross foram transferidos — {n} moedas creditadas.',
   },

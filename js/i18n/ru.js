@@ -804,6 +804,8 @@ export default {
   error: {
   },
   migration: {
+    accountDone: 'Аккаунт Math Cross объединён.',
+    accountDoneCoins: 'Аккаунт Math Cross объединён — начислено {n} монет.',
     localDone: 'Данные Math Cross перенесены.',
     localDoneCoins: 'Данные Math Cross перенесены — начислено {n} монет.',
   },

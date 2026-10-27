@@ -804,6 +804,8 @@ export default {
   error: {
   },
   migration: {
+    accountDone: 'Math Cross 계정을 통합했습니다.',
+    accountDoneCoins: 'Math Cross 계정을 통합했습니다 — {n} 코인이 지급되었습니다.',
     localDone: 'Math Cross 데이터를 옮겼습니다.',
     localDoneCoins: 'Math Cross 데이터를 옮겼습니다 — {n} 코인이 지급되었습니다.',
   },

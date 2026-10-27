@@ -24,6 +24,7 @@ import {
   deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, mergeSaves, mergeSavesGone, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
   gameId, splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
+  grantCurrency,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -1175,6 +1176,161 @@ export function scheduleSyncUp() {
 
 // ─── Admin (nur wirksam, wenn die eigene Rolle 'admin' ist — RTDB-Rules erzwingen
 // das serverseitig; die UI blendet die Funktionen nur entsprechend ein). ───────
+// ─── Umzug des Math-Cross-Kontos ──────────────────────────────────────────────
+// Die alte App „Coop Math Cross" hängt am SELBEN Firebase-Projekt, legt aber
+// alles unter `mc/` ab (dieselbe uid, getrennte Daten). Mit dem Zusammenlegen
+// gibt es EIN Konto: beim ersten Start mit Anmeldung wird `mc/users/{uid}`
+// einmalig übernommen. Regeln (mit dem Nutzer abgestimmt): Guthaben ADDIEREN,
+// Inventar und Freunde vereinigen, der Number-Sums-Name gewinnt (ein reines
+// Math-Cross-Konto bringt seinen Namen und seine Einstellungen mit), die
+// Math-Cross-Spieldaten landen in `users/{uid}/games/mathcross`. Die Daten unter
+// `mc/` bleiben stehen (die alte App läuft weiter). Einmaligkeit über
+// `users/{uid}/migratedFromMc` (Transaktion → nie doppelt gutgeschrieben, auch
+// wenn zwei Geräte gleichzeitig starten).
+export const MC_GAME_ID = 'mathcross';
+const MC_STALE_CLAIM_MS = 10 * 60 * 1000;   // ein abgebrochener Lauf darf nach 10 min neu starten
+
+/**
+ * Was übernommen wird — rein (unit-getestet). `mc` = Inhalt von `mc/users/{uid}`,
+ * `ns` = { profile, friends, game, settings, daily } dieses Kontos.
+ */
+export function planCloudMcMigration(mc, ns = {}) {
+  if (!mc || typeof mc !== 'object') return null;
+  const mcGame = mc.games && mc.games[MC_GAME_ID];
+  // Neue Ablage (account + games/mathcross) oder der Alt-Knoten `data`.
+  const snap = (mc.account || mcGame) ? joinSnapshot(mc.account || {}, mcGame || {}) : (mc.data || null);
+  const hasAnything = !!(snap || (mc.inventory && Object.keys(mc.inventory).length) || mc.profile || mc.friends);
+  if (!hasAnything) return null;
+  const s = snap || {};
+  const coins = Math.max(0, Math.floor(Number(s.wallet && s.wallet.balance) || 0));
+  const inventory = { ...(s.inventory || {}), ...(mc.inventory || {}) };
+
+  // Spieldaten: gibt es hier schon Math-Cross-Daten (in der neuen App gespielt),
+  // wird verlustfrei gemergt, sonst übernommen.
+  let game = null;
+  const mcHalf = splitSnapshot(s).game;
+  const hasGameData = GAME_FIELDS.some((k) => mcHalf[k] !== undefined);
+  if (hasGameData) {
+    const merged = ns.game ? splitSnapshot(mergeSnapshots(joinSnapshot({}, ns.game), joinSnapshot({}, mcHalf))).game : mcHalf;
+    const { label, v, ...rest } = merged;
+    game = rest;
+  }
+
+  const nsFriends = ns.friends || {};
+  const friends = {};
+  for (const [fUid, f] of Object.entries(mc.friends || {})) {
+    if (!f || nsFriends[fUid]) continue;
+    friends[fUid] = { username: f.username || '', since: f.since || Date.now() };
+  }
+
+  // Name: Number Sums gewinnt. Nur ein Konto, das hier noch KEINEN Namen hat
+  // (reines Math-Cross-Konto), übernimmt Namen und Einstellungen.
+  const nsHasName = !!(ns.profile && ns.profile.username);
+  const mcName = mc.profile && mc.profile.username;
+  const profile = !nsHasName && mcName
+    ? { username: mcName, usernameKey: usernameKey(mcName), email: mc.profile.email || null }
+    : null;
+  const settings = !nsHasName && s.settings ? { ...(ns.settings || {}), ...s.settings } : null;
+  // Tages-Serie: eine Serie je Konto — die zuletzt gepflegte gilt (mergeStreak).
+  const daily = s.daily ? mergeStreak(ns.daily || {}, s.daily, true) : null;
+
+  return { coins, inventory, game, friends, profile, settings, daily };
+}
+
+/**
+ * Den Umzug ausführen (einmal je Konto). Liefert { done, coins, … } oder
+ * { skipped } / { already }. app.js ruft das nach dem Start-Abgleich auf.
+ */
+export async function migrateFromMathCross() {
+  if (!isSignedIn()) return { skipped: true };
+  const t0 = Date.now();
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous) return { skipped: true };
+    const uid = u.uid;
+    const flagRef = userRef(fb, uid, 'migratedFromMc');
+    const flag = (await fb.get(flagRef)).val();
+    if (flag && (flag.state === 'done' || flag.state === 'empty')) return { already: true };
+
+    const mc = (await fb.get(fb.ref(fb.db, `mc/users/${uid}`))).val();
+    if (!mc) {
+      await fb.set(flagRef, { state: 'empty', ts: fb.serverTimestamp() });
+      log('account', 'Math-Cross-Umzug: kein Math-Cross-Konto vorhanden');
+      return { empty: true };
+    }
+    // Anspruch per Transaktion: nur EIN Gerät führt den Umzug aus.
+    const me = deviceId();
+    const claim = await fb.runTransaction(flagRef, (cur) => {
+      if (cur && cur.state !== 'running') return undefined;
+      if (cur && cur.state === 'running' && Date.now() - (cur.claimedAt || 0) < MC_STALE_CLAIM_MS && cur.device !== me) return undefined;
+      return { state: 'running', device: me, claimedAt: Date.now(), coinsDone: !!(cur && cur.coinsDone) };
+    });
+    if (!claim.committed) return { already: true };
+    const coinsDone = !!(claim.snapshot.val() || {}).coinsDone;
+
+    const [nsProfile, nsFriends] = await Promise.all([
+      fb.get(userRef(fb, uid, 'profile')).then((x) => x.val()),
+      fb.get(userRef(fb, uid, 'friends')).then((x) => x.val()),
+    ]);
+    const local = collectExportData('mc');
+    const plan = planCloudMcMigration(mc, { profile: nsProfile, friends: nsFriends, settings: local.settings, daily: local.daily });
+    if (!plan) {
+      await fb.set(flagRef, { state: 'empty', ts: fb.serverTimestamp() });
+      return { empty: true };
+    }
+
+    // 1) Kontoweites lokal buchen (Guthaben mit Geldverlauf-Eintrag, Inventar,
+    //    ggf. Einstellungen/Serie) und hochladen — wie jede andere Änderung.
+    if (plan.coins > 0 && !coinsDone) grantCurrency(plan.coins, 'migration', { from: MC_GAME_ID, cloud: true });
+    mergeInventory(plan.inventory);
+    const partial = {};
+    if (plan.settings) partial.settings = plan.settings;
+    if (plan.daily) partial.daily = plan.daily;
+    if (Object.keys(partial).length) importFromFile(JSON.stringify(partial));
+    await uploadLocal(fb, uid);
+    await fb.update(flagRef, { coinsDone: true });
+
+    // 2) Spieldaten nach users/{uid}/games/mathcross (frische rev, damit jedes
+    //    Gerät sie beim nächsten Start übernimmt).
+    //    Erst JETZT lesen: der Upload eben hat (falls hier gerade Math Cross
+    //    läuft) die lokalen Math-Cross-Daten geschrieben, die nicht verloren gehen dürfen.
+    let game = null;
+    if (plan.game) {
+      const nsGame = (await fb.get(userRef(fb, uid, `games/${MC_GAME_ID}`))).val();
+      game = planCloudMcMigration(mc, { profile: nsProfile, friends: nsFriends, game: nsGame }).game;
+      const now = Date.now();
+      await fb.set(userRef(fb, uid, `games/${MC_GAME_ID}`), sanitizeForFirebase({ ...game, ts: now, rev: now }));
+    }
+    // 3) Freunde (die Gegenseite trägt uns bei IHREM Umzug selbst ein).
+    for (const [fUid, f] of Object.entries(plan.friends)) {
+      await fb.set(userRef(fb, uid, `friends/${fUid}`), f);
+    }
+    // 4) Name für ein reines Math-Cross-Konto — nur, wenn er im gemeinsamen
+    //    Namensindex frei ist (oder schon uns gehört).
+    let nameTaken = false;
+    if (plan.profile) {
+      const owner = (await fb.get(usernameIndexRef(fb, plan.profile.username))).val();
+      if (!owner || owner === uid) {
+        if (!owner) await fb.set(usernameIndexRef(fb, plan.profile.username), uid);
+        await fb.update(userRef(fb, uid, 'profile'), {
+          username: plan.profile.username, usernameKey: plan.profile.usernameKey,
+          ...(nsProfile && nsProfile.role ? {} : { role: 'user', createdAt: fb.serverTimestamp() }),
+          ...(plan.profile.email ? { email: plan.profile.email } : {}),
+        });
+        saveProfile({ displayName: plan.profile.username });
+      } else nameTaken = true;
+    }
+    const result = { coins: coinsDone ? 0 : plan.coins, items: Object.keys(plan.inventory).length, game: !!game, settings: !!plan.settings, friends: Object.keys(plan.friends).length, name: !!plan.profile && !nameTaken, nameTaken };
+    await fb.set(flagRef, { state: 'done', ts: fb.serverTimestamp(), ...result });
+    log('account', 'Math-Cross-Konto uebernommen', { ...result, tookMs: Date.now() - t0 });
+    return { done: true, ...result };
+  } catch (e) {
+    log('account', 'Math-Cross-Umzug fehlgeschlagen', e);
+    return { error: errKey(e) };
+  }
+}
+
 export async function adminFindUser(username) {
   if (!isValidUsername(username)) return { ok: false, err: 'invalidUsername' };
   try {
