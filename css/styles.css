@@ -896,13 +896,25 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transition: --dacc var(--morphT), --dacc-d var(--morphT), --dheat var(--morphT);
   background: color-mix(in oklab, var(--dacc) 8%, var(--card));
   border: 1px solid color-mix(in oklab, var(--dacc) 30%, var(--grid));
-  padding: 12px 14px; box-shadow: 0 2px 10px var(--shadow); }
+  padding: 12px 14px; box-shadow: 0 2px 10px var(--shadow); 
+  /* NIEMALS schrumpfen. Die Karte ist ein Flex-Kind der scrollenden
+     .coop-body; mit dem Flex-Standard (shrink 1) wurde ihr Kasten in einer
+     vollen Rematch-Lobby kleiner als ihr Inhalt. Der Rest lief unten aus dem
+     Bild, die .coop-body meldete dabei KEINEN Scrollbedarf (scrollHeight =
+     clientHeight) — die untere Haelfte war schlicht nicht erreichbar (in Coop
+     Math Cross gemeldet: „man sieht nur die Haelfte des Auswahlscreens";
+     derselbe Code steckte hier). Jetzt behaelt die Karte ihre Hoehe, die
+     Lobby scrollt stattdessen. */
+  flex: 0 0 auto; }
 .diff-card::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
     radial-gradient(120% 80% at 16% 4%,  color-mix(in oklab, var(--dacc) calc(24% + var(--dheat)*24%), transparent), transparent 62%),
     radial-gradient(120% 92% at 90% 10%, color-mix(in oklab, var(--dacc-d) calc(18% + var(--dheat)*22%), transparent), transparent 66%); }
 .diff-card .setup-aura { position: absolute; inset: -30% -20% -10% -20%; opacity: calc(.2 + var(--dheat)*.3); }
-.diff-card .diff-picker { position: relative; z-index: 1; display: flex; flex-direction: column; }
+.diff-card .diff-picker { position: relative; z-index: 1; display: flex; flex-direction: column;
+  /* min-content statt des Flex-Defaults 0 — sonst faellt der Picker unter
+     seinen eigenen Inhalt zusammen (gleiche Regel wie beim Vollflaechen-Slider). */
+  min-height: min-content; }
 .diff-card .setup-hero { flex: 0 0 auto; gap: 8px; }
 .diff-card .diff-medallion { width: 92px; height: 92px; }
 .diff-card .diff-name { font-size: 1.6rem; }
