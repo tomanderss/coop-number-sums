@@ -7394,7 +7394,6 @@ const App = {
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
-      <span v-if="!isOnline()" class="offline-chip" :title="t('offline.chipHint')"><span class="ei" v-html="ic('cloud')"></span> {{ t('offline.chip') }}</span>
       <a class="icon-btn home-donate-btn" :href="DONATE_URL" target="_blank" rel="noopener" :aria-label="t('home.donate')" :title="t('home.donate')"><span class="ico-wrap" v-html="ic('coffee')"></span></a>
       <!-- Missionen-Einstieg: rund + leicht abgehoben, sitzt UNTER der oberen
            Icon-Leiste im Hauptbereich (nicht in der Kopfzeile, sonst würden
@@ -7430,6 +7429,31 @@ const App = {
 
       <transition name="gswap" mode="out-in">
       <div class="home-actions" :key="currentGame.id">
+        <button class="btn btn-primary mode-btn" @click="coopReset(); navTo('setup')">
+          <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
+        </button>
+        <button class="btn btn-coop mode-btn" :disabled="!coopAvailable || !isOnline()" @click="goCoop">
+          <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
+          <span v-if="!isOnline()" class="badge-soon">{{ t('offline.badge') }}</span>
+          <span v-else-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
+        </button>
+        <button class="btn btn-ghost race-btn mode-btn" @click="state.modal='raceChoice'">
+          <span class="btn-ic"><span class="ei" v-html="ic('versus')"></span></span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
+        </button>
+        <div class="home-grid">
+          <button class="btn btn-ghost" @click="navTo('stats')"><span class="btn-ic"><span class="ei" v-html="ic('chart')"></span></span> {{ t('home.stats') }}</button>
+          <button class="btn btn-ghost" @click="navTo('history')"><span class="btn-ic"><span class="ei" v-html="ic('clock')"></span></span> {{ t('home.history') }}</button>
+        </div>
+      </div>
+      </transition>
+      <!-- Fortsetzen-Bereich: eine EIGENE Zone UNTER den Modus-Knoepfen. Er
+           waechst in den freien Platz darunter und verschiebt nichts — vorher
+           stand er oben in der Knopf-Spalte, und weil die Startseite vertikal
+           zentriert war, rutschte beim Erscheinen eines Fortsetzen-Knopfs (oder
+           beim Spielwechsel) ALLES um ~30 px (Nutzerwunsch: feste Positionen).
+           Reicht der Platz nicht, scrollt nur diese Zone. -->
+      <div class="home-resume">
+      <transition name="gswap" mode="out-in">
         <!-- Fortsetzen-Angebote stehen UNTEREINANDER und pro Bereich gibt es
              GENAU EINES: ein Knopf fuer Solo (klassisch ODER Endlos — der
              zuletzt gespielte gewinnt) und einer fuer Coop. Nebeneinander
@@ -7437,7 +7461,7 @@ const App = {
              Weitere haengt jetzt am Erweiterungs-Knopf, der optisch am
              Solo-Knopf klebt und benannt ist ("Weitere Spielstaende (N)")
              statt als loser Textlink danebenzustehen. -->
-        <div v-if="soloResume || state.resumeAvailableCoop || state.saves.length" class="resume-stack">
+        <div v-if="soloResume || state.resumeAvailableCoop || state.saves.length" class="resume-stack" :key="currentGame.id">
           <div v-if="soloResume" class="resume-group" :class="{ expandable: !!savesLabel }">
             <button class="btn btn-resume" :class="{ endless: soloResume.endless }" @click="resumeSolo">
               <span class="btn-ic"><span class="ei" v-html="ic(soloResume.endless ? 'meteor' : 'play')"></span></span>
@@ -7465,24 +7489,14 @@ const App = {
             </span>
           </button>
         </div>
-        <button class="btn btn-primary mode-btn" @click="coopReset(); navTo('setup')">
-          <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
-        </button>
-        <button class="btn btn-coop mode-btn" :disabled="!coopAvailable || !isOnline()" @click="goCoop">
-          <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
-          <span v-if="!isOnline()" class="badge-soon">{{ t('offline.badge') }}</span>
-          <span v-else-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
-        </button>
-        <button class="btn btn-ghost race-btn mode-btn" @click="state.modal='raceChoice'">
-          <span class="btn-ic"><span class="ei" v-html="ic('versus')"></span></span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
-        </button>
-        <div class="home-grid">
-          <button class="btn btn-ghost" @click="navTo('stats')"><span class="btn-ic"><span class="ei" v-html="ic('chart')"></span></span> {{ t('home.stats') }}</button>
-          <button class="btn btn-ghost" @click="navTo('history')"><span class="btn-ic"><span class="ei" v-html="ic('clock')"></span></span> {{ t('home.history') }}</button>
-        </div>
-      </div>
       </transition>
-      <button class="home-version" @click="checkForUpdate" :title="t('update.check')" :aria-label="t('update.check')">v{{ BUILD }}<span v-if="state.updateCheck === 'busy'" class="ei uc-spin" v-html="ic('refresh')"></span></button>
+      </div>
+      <!-- Fußzeile mit festem Raster: Version in der Mitte, Offline-Chip links
+           daneben — erscheint der Chip, bleibt die Version, wo sie ist. -->
+      <div class="home-foot">
+        <span v-if="!isOnline()" class="offline-chip" :title="t('offline.chipHint')"><span class="ei" v-html="ic('cloud')"></span> {{ t('offline.chip') }}</span>
+        <button class="home-version" @click="checkForUpdate" :title="t('update.check')" :aria-label="t('update.check')">v{{ BUILD }}<span v-if="state.updateCheck === 'busy'" class="ei uc-spin" v-html="ic('refresh')"></span></button>
+      </div>
     </section>
 
 
