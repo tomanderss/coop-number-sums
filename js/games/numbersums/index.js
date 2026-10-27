@@ -13,6 +13,7 @@ import { generatePuzzle, remapColorsForMarkVisibility, findHintCell, makeRng } f
 import { buildHintTutorial } from './hinttutor.js';
 import { findTrainingStep, isFullyTier1Solvable } from './training.js';
 import * as model from './model.js';
+import { DIFFICULTIES, DIFF_BY_ID, bigNumbersAllowed } from './difficulty.js';
 import { BoardGrid, initBoard } from './board.js';
 import { GAME_META } from '../registry.js';
 
@@ -29,6 +30,14 @@ export const GAME = {
   // `initBoard(ctx)` uebergibt ihr einmalig, was sie von der Schale braucht.
   BoardGrid,
   initBoard,
+
+  // Die Schwierigkeitsstufen MIT den Brettmassen und Erzeugungs-Parametern
+  // dieses Spiels (die Leiter selbst ist in allen Spielen gleich, s. config.js).
+  DIFFICULTIES,
+  DIFF_BY_ID,
+  // „Grosse Zahlen" (10–19) gibt es nur hier; ein Spiel ohne diesen Modus
+  // liefert immer false, die Schale blendet den Schalter dann aus.
+  bigNumbersAllowed,
 
   // ── Raetsel ──
   generatePuzzle,

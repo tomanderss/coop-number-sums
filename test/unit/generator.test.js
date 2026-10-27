@@ -2,7 +2,8 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeRng, generatePuzzle, findHintCell, remapColorsForMarkVisibility, MARK_VISIBILITY_THRESHOLD } from '../../js/games/numbersums/generator.js';
 import { logicalSolve, countSolutions } from '../../js/games/numbersums/solver.js';
-import { DIFFICULTIES, REGION_COLORS, regionColorDist, markOnRegionDist, hexToRgb } from '../../js/config.js';
+import { REGION_COLORS, regionColorDist, markOnRegionDist, hexToRgb } from '../../js/config.js';
+import { DIFFICULTIES } from '../../js/games/numbersums/difficulty.js';
 
 describe('generator.makeRng', () => {
   test('is deterministic for a given seed', () => {

@@ -1,11 +1,12 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  LIVES, HINTS, MAX_VAL, DIFFICULTIES, DIFF_BY_ID,
+  LIVES, HINTS, MAX_VAL, DIFFICULTY_LADDER, mergeLadder,
   REGION_COLORS, COOP_COLORS, DEFAULT_SETTINGS, DEFAULT_GAME_OPTIONS,
   regionColorDist, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, COIN_BASE,
   coinStreakBonus, COIN_STREAK_STEP,
 } from '../../js/config.js';
+import { DIFFICULTIES, DIFF_BY_ID } from '../../js/games/numbersums/difficulty.js';
 
 describe('config constants', () => {
   test('basic invariants', () => {
@@ -15,7 +16,34 @@ describe('config constants', () => {
   });
 });
 
-describe('config.DIFFICULTIES', () => {
+// Die Leiter (neun Stufen mit Name, Icon, Leitfarbe) ist in ALLEN Spielen
+// dieselbe; die Brettmasse und Erzeugungs-Parameter haengt jedes Spiel selbst an.
+describe('config.DIFFICULTY_LADDER', () => {
+  test('neun Stufen, eindeutige Ids, nur Anzeige-Felder', () => {
+    assert.equal(DIFFICULTY_LADDER.length, 9);
+    assert.equal(new Set(DIFFICULTY_LADDER.map((d) => d.id)).size, 9);
+    for (const d of DIFFICULTY_LADDER) {
+      assert.deepEqual(Object.keys(d).sort(), ['accent', 'accentD', 'emoji', 'heat', 'id', 'name'],
+        `${d.id}: die Leiter traegt KEINE Spiel-Parameter (die gehoeren ins Spielmodul)`);
+    }
+  });
+
+  test('die Hitze steigt von leicht nach schwer', () => {
+    for (let i = 1; i < DIFFICULTY_LADDER.length; i++) {
+      assert.ok(DIFFICULTY_LADDER[i].heat > DIFFICULTY_LADDER[i - 1].heat);
+    }
+  });
+
+  test('mergeLadder haengt Parameter an und laesst Stufen ohne Parameter weg', () => {
+    const teil = mergeLadder({ leicht: { dim: { r: 3, c: 3 } }, rip: { dim: { r: 9, c: 9 } } });
+    assert.deepEqual(teil.map((d) => d.id), ['leicht', 'rip'], 'Reihenfolge der Leiter bleibt erhalten');
+    assert.equal(teil[0].name, 'Leicht', 'die Identitaet kommt aus der Leiter');
+    assert.deepEqual(teil[0].dim, { r: 3, c: 3 }, 'die Parameter kommen vom Spiel');
+    assert.deepEqual(mergeLadder(), []);
+  });
+});
+
+describe('numbersums DIFFICULTIES', () => {
   test('has unique, non-empty ids', () => {
     const ids = DIFFICULTIES.map(d => d.id);
     assert.equal(new Set(ids).size, ids.length);
@@ -40,6 +68,10 @@ describe('config.DIFFICULTIES', () => {
     for (const d of DIFFICULTIES) {
       assert.equal(DIFF_BY_ID[d.id], d);
     }
+  });
+
+  test('bietet ALLE Stufen der Leiter an', () => {
+    assert.deepEqual(DIFFICULTIES.map((d) => d.id), DIFFICULTY_LADDER.map((d) => d.id));
   });
 });
 
@@ -122,13 +154,13 @@ describe('config.DEFAULT_SETTINGS / DEFAULT_GAME_OPTIONS', () => {
   });
 
   test('default difficulty is a valid difficulty id', () => {
-    assert.ok(DIFF_BY_ID[DEFAULT_GAME_OPTIONS.difficulty]);
+    assert.ok(DIFFICULTY_LADDER.some((d) => d.id === DEFAULT_GAME_OPTIONS.difficulty));
   });
 });
 
 describe('config.coinReward', () => {
   test('one base value per difficulty, always whole positive coins', () => {
-    assert.equal(COIN_BASE.length, DIFFICULTIES.length);
+    assert.equal(COIN_BASE.length, DIFFICULTY_LADDER.length);
     for (let i = 0; i < DIFFICULTIES.length; i++) {
       const c = coinReward(i);
       assert.ok(Number.isInteger(c) && c > 0, `base ${i} not a positive integer: ${c}`);
