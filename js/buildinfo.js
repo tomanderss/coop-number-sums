@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.219';
-export const BUILD_HASH = 'dfb4df5';
+export const BUILD      = '1.220';
+export const BUILD_HASH = 'e1007a8';
 
 export const CHANGELOG = [
+  {
+    "version": "1.220",
+    "date": "27.10.2026",
+    "changes": [
+      "Vorbereitung der Spielesammlung: die Rechenlogik von Math Cross steckt jetzt mit in der App (noch nicht auswaehlbar)"
+    ]
+  },
   {
     "version": "1.219",
     "date": "27.10.2026",
