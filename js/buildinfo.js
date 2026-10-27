@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.234';
-export const BUILD_HASH = '5c31ee3';
+export const BUILD      = '1.235';
+export const BUILD_HASH = 'ae4de15';
 
 export const CHANGELOG = [
+  {
+    "version": "1.235",
+    "date": "27.10.2026",
+    "changes": [
+      "Schnelles Tippen: jeder Tipp zählt sofort beim Berühren (auch mit zwei Daumen oder leichtem Rutschen), und das Brett reagiert ohne Verzögerung – auch auf großen Feldern"
+    ]
+  },
   {
     "version": "1.234",
     "date": "27.10.2026",
