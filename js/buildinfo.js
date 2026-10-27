@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.232';
-export const BUILD_HASH = '71c2fe7';
+export const BUILD      = '1.233';
+export const BUILD_HASH = 'c280583';
 
 export const CHANGELOG = [
+  {
+    "version": "1.233",
+    "date": "27.10.2026",
+    "changes": [
+      "Schlankeres, minimalistisches Design: kleinere Knöpfe, mehr Luft, ruhigerer Startbildschirm"
+    ]
+  },
   {
     "version": "1.232",
     "date": "27.10.2026",
