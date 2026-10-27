@@ -25,7 +25,7 @@ const findTrainingStep = (...a) => activeGame().findTrainingStep(...a);
 const isFullyTier1Solvable = (...a) => activeGame().isFullyTier1Solvable(...a);
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
-  loadSaves, upsertSave, removeSave, snapshotProgress, SAVES_MAX,
+  loadSaves, upsertSave, removeSave, isSaveGone, snapshotProgress, SAVES_MAX,
   loadStats, recordResult, recordEndlessRun, applyEndlessBackfill, clearStats,
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
@@ -1932,12 +1932,37 @@ function computeCellSize() {
 // eingepasst — die erste (evtl. noch nicht ausgemessene) Berechnung wird direkt
 // korrigiert, kein Zeilen/Spalten-Overflow beim Start/Fortsetzen.
 let boardResizeObserver = null;
+let boardResizeRaf = 0;
+let lastBoardBox = '';
+// Der Rückruf darf NICHT synchron rechnen: computeCellSize schreibt cellPx, das
+// Brett ändert daraufhin seine Größe, .board-wrap meldet erneut — im selben Frame.
+// Schafft der Browser die Zustellung nicht, meldet er „ResizeObserver loop
+// completed with undelivered notifications" (harmlos, aber in Coop Math Cross als
+// roter Vollbild-Fehler über der Partie gemeldet; dort kippte das Ablagefach
+// zwischen Zeilenzahlen und die Größe pendelte). Hier reproduziert die Schleife
+// ohne Ablagefach nicht — die Absicherung gilt der Schale, in die Math Cross
+// mitsamt Ablagefach einzieht: einmal pro Frame rechnen (rAF) und nur, wenn sich
+// die gemessene Größe wirklich geändert hat; damit endet die Kette nach dem
+// ersten Durchlauf.
+function onBoardWrapResized() {
+  if (boardResizeRaf) return;
+  boardResizeRaf = requestAnimationFrame(() => {
+    boardResizeRaf = 0;
+    const wrap = document.querySelector('.board-wrap');
+    if (!wrap) return;
+    const box = `${wrap.clientWidth}x${wrap.clientHeight}`;
+    if (box === lastBoardBox) return;      // nichts Neues → keine weitere Runde
+    lastBoardBox = box;
+    computeCellSize();
+  });
+}
 function observeBoardWrap() {
   try {
     if (typeof ResizeObserver !== 'function') return;
     const wrap = document.querySelector('.board-wrap');
     if (!wrap) return;
-    if (!boardResizeObserver) boardResizeObserver = new ResizeObserver(() => computeCellSize());
+    lastBoardBox = '';
+    if (!boardResizeObserver) boardResizeObserver = new ResizeObserver(onBoardWrapResized);
     else boardResizeObserver.disconnect();
     boardResizeObserver.observe(wrap);
   } catch (_) {}
@@ -4393,6 +4418,7 @@ function refreshResume() {
   // die Liste bleibt also von selbst sauber.
   state.saves = loadSaves();
   if (ge && !geValid) saveActiveGameEndless(null);
+  reconcileResumeWithLibrary();
   // RUECKFALL auf die Bibliothek. Der Aktivspiel-Slot haelt nur die zuletzt
   // gespielte Partie; loescht man ausgerechnet die (und das ist der naheliegendste
   // Fall, weil der Fortsetzen-Knopf genau sie anbietet), war der Knopf komplett
@@ -4405,6 +4431,40 @@ function refreshResume() {
   if (!state.resumeAvailableEndless) {
     const nextE = state.saves.find((x) => saveIsEndless(x) && (x.pending || (x.puzzle && x.marks)));
     if (nextE) { saveActiveGameEndless(nextE); state.resumeAvailableEndless = nextE; }
+  }
+}
+// Fortsetzen-Knopf und Spielstand-Liste aus EINER Wahrheit. Die beiden Quellen
+// sind getrennt (Aktivspiel-Slot ⟷ Bibliothek), und jede kann der anderen
+// fehlen:
+//  - Ein Stand, den der Knopf anbietet, fehlt in der Liste (Alt-Stand von vor der
+//    Bibliothek, eine uebernommene Cloud-Session, ein weggekappter Eintrag) —
+//    dann gibt es fuer GENAU diesen Stand keinen Weg zum Loeschen (in Coop Math
+//    Cross gemeldet: „ich sehe die Spielstaende-Flaeche nicht"; derselbe Code
+//    steckte hier). → in die Liste nachtragen.
+//  - Der Stand wurde geloescht (Grabstein), der Aktivspiel-Slot haelt ihn aber
+//    noch — typisch auf dem ZWEITgeraet: geloescht wird auf A, der Slot auf B
+//    ueberlebt den Abgleich, weil pickActiveGame ein lokales laufendes Spiel
+//    bewusst vor einem leeren Import schuetzt. Math Cross nimmt so einen Stand
+//    nur nicht wieder in die Liste auf; der Knopf bot das geloeschte Spiel dann
+//    weiter an, und loeschen liess es sich erst recht nicht. → Slot raeumen.
+function reconcileResumeWithLibrary() {
+  const slots = [
+    [state.resumeAvailable, 'solo'],
+    [state.resumeAvailableEndless, 'endless'],
+  ];
+  for (const [g, kind] of slots) {
+    if (!g) continue;
+    const id = kind === 'endless' ? ((g.endless && g.endless.runId) || g.gameId) : g.gameId;
+    if (!id) continue;
+    if (isSaveGone(id)) {
+      log('storage', 'Fortsetzbarer Stand ist als geloescht vermerkt — Aktivspiel-Slot geraeumt', { kind });
+      if (kind === 'endless') { saveActiveGameEndless(null); state.resumeAvailableEndless = null; }
+      else { saveActiveGame(null); state.resumeAvailable = null; }
+      continue;
+    }
+    if (state.saves.some((x) => x.id === id)) continue;
+    state.saves = upsertSave({ ...g, id, kind, ts: g.ts || Date.now() });
+    log('storage', 'Fortsetzbarer Stand fehlte in der Bibliothek — nachgetragen', { kind });
   }
 }
 function resumeGame() {
