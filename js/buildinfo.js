@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.230';
-export const BUILD_HASH = 'b7193aa';
+export const BUILD      = '1.231';
+export const BUILD_HASH = '07d9a1f';
 
 export const CHANGELOG = [
+  {
+    "version": "1.231",
+    "date": "27.10.2026",
+    "changes": [
+      "Impressum, Datenschutz und exportierte Dateien tragen jetzt den Namen „Coop Number Games“"
+    ]
+  },
   {
     "version": "1.230",
     "date": "27.10.2026",
