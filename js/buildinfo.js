@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.226';
-export const BUILD_HASH = 'b1952f6';
+export const BUILD      = '1.227';
+export const BUILD_HASH = 'd574b02';
 
 export const CHANGELOG = [
+  {
+    "version": "1.227",
+    "date": "27.10.2026",
+    "changes": [
+      "Wer bisher Coop Math Cross gespielt hat: Spielstände, Statistik, gekaufte Artikel und Münzen werden beim ersten Start automatisch übernommen"
+    ]
+  },
   {
     "version": "1.226",
     "date": "27.10.2026",
