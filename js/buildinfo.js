@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.228';
-export const BUILD_HASH = '56c1ad0';
+export const BUILD      = '1.229';
+export const BUILD_HASH = '7c83dbb';
 
 export const CHANGELOG = [
+  {
+    "version": "1.229",
+    "date": "27.10.2026",
+    "changes": [
+      "Die native App heißt jetzt ebenfalls „Coop Number Games“"
+    ]
+  },
   {
     "version": "1.228",
     "date": "27.10.2026",
