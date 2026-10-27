@@ -7418,7 +7418,7 @@ const App = {
              groß in der Mitte, ziehen/antippen dreht ein anderes hinein; der
              Wechsel geschieht ohne Neuladen (switchGame). -->
         <game-wheel :items="gameWheelItems" :current="currentGame.id" :label="t('games.choose')" @select="switchGame"></game-wheel>
-        <h1 class="brand-title">Coop<br>Number Games</h1>
+        <h1 class="brand-title">Coop Number Games</h1>
         <!-- Profil-Chip: öffnet den Prestige-Screen. Zeigt das ausgerüstete
              verdiente Abzeichen (oder eine Einladung, eins zu verdienen). -->
         <button class="home-profile-chip" :class="{ master: isMasterEquipped() }" @click="openPrestige">
@@ -7465,15 +7465,15 @@ const App = {
             </span>
           </button>
         </div>
-        <button class="btn btn-primary" @click="coopReset(); navTo('setup')">
+        <button class="btn btn-primary mode-btn" @click="coopReset(); navTo('setup')">
           <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
-        <button class="btn btn-coop" :disabled="!coopAvailable || !isOnline()" @click="goCoop">
+        <button class="btn btn-coop mode-btn" :disabled="!coopAvailable || !isOnline()" @click="goCoop">
           <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
           <span v-if="!isOnline()" class="badge-soon">{{ t('offline.badge') }}</span>
           <span v-else-if="!coopAvailable" class="badge-soon">{{ t('home.comingSoon') }}</span>
         </button>
-        <button class="btn btn-ghost race-btn" @click="state.modal='raceChoice'">
+        <button class="btn btn-ghost race-btn mode-btn" @click="state.modal='raceChoice'">
           <span class="btn-ic"><span class="ei" v-html="ic('versus')"></span></span><span class="btn-tx"><b>{{ t('home.raceMode') }}</b><small>{{ t('home.raceHint') }}</small></span>
         </button>
         <div class="home-grid">
