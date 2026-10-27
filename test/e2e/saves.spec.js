@@ -169,3 +169,52 @@ test.describe('Spielstand-Bibliothek', () => {
     expect(await page.evaluate(() => window.__cns.state.resumeAvailable)).toBe(null);
   });
 });
+
+// Fortsetzen-Knopf und Spielstand-Liste kommen aus zwei getrennten Quellen
+// (Aktivspiel-Slot ⟷ Bibliothek). In Coop Math Cross gemeldet: ein Stand, den
+// der Knopf anbietet, fehlte in der Liste — dann gibt es fuer GENAU diesen Stand
+// keinen Weg zum Loeschen. Derselbe Code steckte hier.
+test.describe('Fortsetzen und Bibliothek bleiben deckungsgleich', () => {
+  // Ein echtes laufendes Spiel erzeugen und seinen Stand als Vorlage abgreifen.
+  async function laufenderStand(page) {
+    await gotoApp(page);
+    await startNewGame(page);
+    await playAFewCells(page);
+    return page.evaluate(() => JSON.parse(localStorage.getItem('cns_active_game')));
+  }
+
+  test('ein Stand, der nur im Fortsetzen-Slot liegt, erscheint in der Liste und laesst sich loeschen', async ({ page }) => {
+    const snap = await laufenderStand(page);
+    // Ausgangslage: Slot belegt, Bibliothek LEER (Alt-Stand / uebernommene Cloud-Session).
+    await page.evaluate((g) => {
+      localStorage.setItem('cns_active_game', JSON.stringify(g));
+      localStorage.setItem('cns_saves', '[]');
+    }, snap);
+    await page.goto('/');
+    await page.waitForFunction(() => !!window.__cns);
+
+    await expect(page.locator('.btn-resume').first(), 'der Knopf bietet den Stand an').toBeVisible();
+    const ids = await page.evaluate(() => window.__cns.state.saves.map((g) => g.id));
+    expect(ids, 'der Stand steht jetzt auch in der Bibliothek').toContain(snap.gameId);
+    await expect(page.locator('.saves-expand'), 'und damit gibt es einen Weg zum Loeschen').toBeVisible();
+  });
+
+  test('ein als geloescht vermerkter Stand wird nicht mehr zum Fortsetzen angeboten', async ({ page }) => {
+    const snap = await laufenderStand(page);
+    // Zweitgeraet-Lage: auf A geloescht (Grabstein kam per Sync), der
+    // Aktivspiel-Slot hier hat den Abgleich ueberlebt.
+    await page.evaluate((g) => {
+      localStorage.setItem('cns_active_game', JSON.stringify(g));
+      localStorage.setItem('cns_saves', '[]');
+      localStorage.setItem('cns_saves_gone', JSON.stringify({ [g.gameId]: Date.now() }));
+    }, snap);
+    await page.goto('/');
+    await page.waitForFunction(() => !!window.__cns);
+
+    expect(await page.evaluate(() => window.__cns.state.resumeAvailable), 'kein Fortsetzen fuer ein geloeschtes Spiel').toBeNull();
+    const slot = await page.evaluate(() => JSON.parse(localStorage.getItem('cns_active_game') || 'null'));
+    expect(slot, 'der Slot ist geraeumt').toBeNull();
+    const ids = await page.evaluate(() => window.__cns.state.saves.map((g) => g.id));
+    expect(ids, 'und es kommt auch nicht ueber die Bibliothek zurueck').not.toContain(snap.gameId);
+  });
+});
