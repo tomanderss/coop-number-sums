@@ -288,3 +288,45 @@ test.describe('big numbers mode', () => {
   });
 
 });
+
+
+// In Coop Math Cross gemeldet (Desktop; derselbe Aufbau steckte hier): nach ein paar Zügen legte sich ein roter Vollbild-Fehler
+// über die laufende Partie — „ResizeObserver loop completed with undelivered
+// notifications". Das ist KEIN Fehler, sondern die Meldung des Browsers, dass er
+// Größen-Benachrichtigungen auf den nächsten Frame verschoben hat. Ursache war
+// eine Rückkopplung (Beobachter → Zellgröße → Brett ändert sich → …).
+test.describe('Desktop: Größen-Rückkopplung', () => {
+  test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
+
+  test('mehrere Züge lösen keinen Vollbild-Fehler aus', async ({ page }) => {
+    const resizeWarnungen = [];
+    page.on('pageerror', (e) => { if (String(e.message).includes('ResizeObserver loop')) resizeWarnungen.push(e.message); });
+
+    await gotoApp(page);
+    await startNewGame(page, 'mittel');
+    for (let i = 0; i < 8; i++) {
+      await page.evaluate(() => {
+        const { state, onCellTap } = window.__cns;
+        const p = state.puzzle;
+        for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) {
+          if (state.marks[r][c] !== 'none') continue;
+          state.tool = p.solution[r][c] ? 'pen' : 'eraser';
+          onCellTap(r, c);
+          return;
+        }
+      });
+      await page.waitForTimeout(60);
+    }
+    await expect(page.locator('#err')).toBeHidden();
+    expect(resizeWarnungen, 'keine Rückkopplungs-Warnung während der Züge').toEqual([]);
+  });
+
+  test('die harmlose Warnung blendet den Fehler-Bildschirm nicht ein, ein echter Fehler schon', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => window.onerror('ResizeObserver loop completed with undelivered notifications', location.href, 0, 0, null));
+    await expect(page.locator('#err'), 'harmlose Warnung bleibt unsichtbar').toBeHidden();
+
+    await page.evaluate(() => window.onerror('Kaputt', location.href, 1, 1, new Error('Kaputt')));
+    await expect(page.locator('#err'), 'ein echter Fehler wird weiterhin gezeigt').toBeVisible();
+  });
+});
