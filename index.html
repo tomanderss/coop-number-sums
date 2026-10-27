@@ -21,6 +21,14 @@
   <script>
     (function () {
       try {
+        // Einstieg per Link (?game=mathcross, z.B. vom Umzugs-Hinweis der alten
+        // Math-Cross-App): die Wahl übernehmen und den Parameter aus der Adresse
+        // nehmen, damit ein späterer Neustart nicht erneut umschaltet.
+        var m = /[?&]game=(numbersums|mathcross)(?:&|$)/.exec(location.search);
+        if (m) {
+          localStorage.setItem('cns_game', JSON.stringify(m[1]));
+          history.replaceState(null, '', location.pathname + location.hash);
+        }
         var g = JSON.parse(localStorage.getItem('cns_game') || 'null');
         if (g === 'mathcross') {
           var l = document.createElement('link');

@@ -63,3 +63,17 @@ test('ein Beitritt in ein anderes Spiel wird nach dem Wechsel nachgeholt (Namens
   // Der Auftrag ist verbraucht — ein erneuter Start fragt nicht wieder.
   expect(await page.evaluate(() => localStorage.getItem('cns_pending_join'))).toBeNull();
 });
+
+// Der Umzugs-Hinweis der alten App „Coop Math Cross" verlinkt mit ?game=mathcross.
+test('?game=mathcross oeffnet die App direkt in Math Cross', async ({ page }) => {
+  await page.goto('/?game=mathcross');
+  await page.waitForFunction(() => window.__cns && window.__cns.state);
+  const r = await page.evaluate(() => ({
+    game: JSON.parse(localStorage.getItem('cns_game')),
+    attr: document.documentElement.getAttribute('data-game'),
+    url: location.search,
+  }));
+  expect(r.game).toBe('mathcross');
+  expect(r.attr).toBe('mathcross');
+  expect(r.url).toBe('');
+});
