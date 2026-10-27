@@ -107,3 +107,88 @@ test.describe('coop endless climb', () => {
     expect(slot.endless.level).toBe(5);
   });
 });
+
+// ─── Das Fenster ZWISCHEN zwei Leveln ────────────────────────────────────────
+// In Coop Math Cross gemeldet (derselbe Code steckte hier): „beim Fortsetzen war der Beitretende nicht mehr im Spiel und beim
+// Reconnect-Versuch war er nur in dem Startbildschirm, wo man sich bereit machen
+// kann und es ging einfach nicht."
+//
+// Ursache: nach dem Lösen eines Levels steht der Host auf dem Gewinn-Screen —
+// status 'won', awaitingStart false. In diesem Fenster passte KEINE der beiden
+// Bedingungen, unter denen der Host einem Gast etwas schickt: weder der laufende
+// Rundenstand (verlangt status 'playing') noch das Lobby-INIT (verlangt
+// awaitingStart). Eine RESYNC-Anfrage blieb damit vollständig unbeantwortet, und
+// da das Fenster bewusst lang ist (es wartet auf den Host), ist es genau das
+// Fenster, in dem ein Handy in den Hintergrund geht und die Verbindung abreisst.
+test.describe('Coop-Endlos zwischen zwei Leveln', () => {
+  async function alsHostZwischenLeveln(page) {
+    await page.evaluate(() => {
+      const s = window.__cns.state;
+      s.coop.active = true; s.coop.role = 'host'; s.coop.myId = 'host';
+      s.coop.players = [{ id: 'host', name: 'H', color: '#e5679a' }, { id: 'gast', name: 'G', color: '#67a3e5' }];
+      s.coop.awaitingStart = false;
+      s.coop.lifeLossBy = ['gast'];
+      s.endless = { active: true, coop: true, advancing: false, level: 3, lives: 2, score: 2, coins: 40, best: 0, accumMs: 90000 };
+      s.status = 'won';           // Level-Gewinn-Screen: wartet auf „Fortsetzen"
+      s.endlessSummary = null;
+      window.__cns.clearSentLog();
+    });
+  }
+
+  test('der Host beantwortet eine RESYNC-Anfrage zwischen zwei Leveln', async ({ page }) => {
+    await gotoApp(page);
+    // Ein Brett muss liegen — der RESYNC-Zweig verlangt state.puzzle (das gerade
+    // geloeste Level). Ohne Brett griffe schon die aeussere Bedingung nicht.
+    await page.evaluate((p) => window.__cns.handleCoopMsg({ type: 'init', gameId: 'lvl3', running: true, puzzle: p, marks: null, markedBy: null, startTime: Date.now(), lives: 2, maxLives: 3, endless: true, endlessLevel: 3 }), PUZZLE('sehrleicht'));
+    await page.waitForSelector('.screen.game');
+    await alsHostZwischenLeveln(page);
+
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'resync', author: 'gast' }));
+    const typen = await page.evaluate(() => window.__cns.sentLog().map((e) => e.type));
+    expect(typen, 'der Host schickt den Warte-Stand statt zu schweigen').toContain('endlessWait');
+  });
+
+  test('ein neu registrierter Spieler bekommt zwischen zwei Leveln den Warte-Stand', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate((p) => window.__cns.handleCoopMsg({ type: 'init', gameId: 'lvl3', running: true, puzzle: p, marks: null, markedBy: null, startTime: Date.now(), lives: 2, maxLives: 3, endless: true, endlessLevel: 3 }), PUZZLE('sehrleicht'));
+    await page.waitForSelector('.screen.game');
+    await alsHostZwischenLeveln(page);
+
+    // Rueckkehrer meldet sich (IDENTITY → hostRegisterPlayer).
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'identity', author: 'neu', name: 'N', color: '#7ad17a' }));
+    const typen = await page.evaluate(() => window.__cns.sentLog().map((e) => e.type));
+    expect(typen, 'der Rueckkehrer bekommt den Warte-Stand').toContain('endlessWait');
+  });
+
+  test('der Warte-Stand holt einen Gast aus der Bereit-Lobby und das naechste Level startet ihn', async ({ page }) => {
+    await gotoApp(page);
+    await asGuest(page);
+    // Ausgangslage: der Gast haengt nach einem Reconnect in der Bereit-Lobby,
+    // ohne Brett — genau der gemeldete Zustand.
+    await page.evaluate(() => {
+      const s = window.__cns.state;
+      s.coop.awaitingStart = true;
+      s.puzzle = null;
+    });
+
+    await page.evaluate(() => window.__cns.handleCoopMsg({
+      type: 'endlessWait', author: 'host', endlessLevel: 3, lives: 2, maxLives: 3,
+      score: 2, accumMs: 90000, lifeLossBy: ['gast', ''],
+    }));
+
+    expect(await page.evaluate(() => window.__cns.state.coop.awaitingStart), 'raus aus der Bereit-Lobby').toBe(false);
+    expect(await page.evaluate(() => window.__cns.state.coop.endlessWaiting)).toBe(true);
+    expect(await page.evaluate(() => window.__cns.state.endless.level)).toBe(3);
+    expect(await page.evaluate(() => window.__cns.state.endless.lives)).toBe(2);
+    expect(await page.evaluate(() => window.__cns.state.endless.accumMs), 'die Gesamtzeit des Laufs bleibt erhalten').toBe(90000);
+    await expect(page.locator('.game-recover')).toBeVisible();
+    await expect(page.locator('.game-recover .loading-card p')).toContainText('Level 3');
+
+    // Der Host drueckt „Fortsetzen" → Level 4 kommt als laufendes INIT.
+    await page.evaluate((p) => window.__cns.handleCoopMsg({ type: 'init', gameId: 'lvl4', running: true, puzzle: p, marks: null, markedBy: null, startTime: Date.now(), lives: 2, maxLives: 3, endless: true, endlessLevel: 4 }), PUZZLE('leicht'));
+    expect(await page.evaluate(() => window.__cns.state.coop.endlessWaiting), 'das Warten ist vorbei').toBe(false);
+    expect(await page.evaluate(() => window.__cns.state.endless.level)).toBe(4);
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+    await expect(page.locator('.board')).toBeVisible();
+  });
+});
