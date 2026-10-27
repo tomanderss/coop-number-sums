@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.227';
-export const BUILD_HASH = 'd574b02';
+export const BUILD      = '1.228';
+export const BUILD_HASH = '56c1ad0';
 
 export const CHANGELOG = [
+  {
+    "version": "1.228",
+    "date": "27.10.2026",
+    "changes": [
+      "Wer ein Coop-Math-Cross-Konto hatte: Münzen, gekaufte Artikel, Freunde und Spielstände werden beim ersten Start mit Anmeldung ins gemeinsame Konto übernommen",
+      "Link mit ?game=mathcross öffnet die App direkt in Math Cross"
+    ]
+  },
   {
     "version": "1.227",
     "date": "27.10.2026",
