@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.239';
-export const BUILD_HASH = '5ed877d';
+export const BUILD      = '1.240';
+export const BUILD_HASH = 'e322397';
 
 export const CHANGELOG = [
+  {
+    "version": "1.240",
+    "date": "28.10.2026",
+    "changes": [
+      "Endlos-Aufstieg im Auswahlscreen: der Schwierigkeits-Slider springt auf Sehr Leicht und ist gesperrt – ein Lauflicht und das wechselnde Stufen-Symbol zeigen, dass es Stufe für Stufe steigt und am Ende wieder von vorn beginnt",
+      "Rectangles: Zieht man in ein bestehendes Rechteck, hält eine sanfte Barriere kurz auf – mit etwas mehr Nachdruck wird es überschrieben"
+    ]
+  },
   {
     "version": "1.239",
     "date": "28.10.2026",
