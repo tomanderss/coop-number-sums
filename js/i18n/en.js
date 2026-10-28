@@ -7,7 +7,7 @@ export default {
   coopEndless: { toggle: 'Endless Climb', toggleHint: 'Climb together — 3 shared lives, no refills' },
 
   missions: {
-    title: 'Missions', hint: 'Weekly quests for bonus coins', intro: 'New quests every week. Complete them and grab the reward!',
+    title: 'Missions', hint: 'Weekly quests for bonus coins', intro: 'New quests every week – they count across all games, every game moves you forward. Complete them and grab the reward!',
     claim: 'Claim', claimed: '+{n} coins claimed!', done: 'Done',
     m: {
       winAny5: 'Win 5 games',

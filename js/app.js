@@ -29,7 +29,7 @@ import {
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
 
-  loadMissions, saveMissions,
+  loadMissions, saveMissions, migrateSharedMissions,
   saveCoopSession, loadCoopSession, clearCoopSession,
   loadProfile, saveProfile, loadInventory, grantInventory, revokeInventory,
   reconcileInventoryFromCloud, applyCloudWallet,
@@ -52,7 +52,7 @@ import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses, gameSkin, withGameSkin } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES, setGameMessages } from './i18n/index.js';
 import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessIsRecord, reconstructEndlessRuns } from './endless.js';
-import { currentWeekKey, weeklyMissions, missionPoolFor, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
+import { currentWeekKey, weeklyMissions, SHARED_MISSION_POOL, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
 
 // ZUERST das zuletzt gespielte Spiel wiederherstellen — VOR allem anderen.
 // Die spielspezifischen Speicher-Schluessel (Statistik, Spielstaende, Erfolge,
@@ -1925,9 +1925,10 @@ function syncMissionsState(m) {
   state.missions.weekKey = m.weekKey;
   state.missions.progress = m.progress;
   state.missions.claimed = m.claimed;
-  state.missions.list = weeklyMissions(m.weekKey, 4, missionPoolFor(gameCaps()));
+  state.missions.list = weeklyMissions(m.weekKey, 4, SHARED_MISSION_POOL);
 }
 function initMissions() {
+  migrateSharedMissions();   // einmalig: früher je Spiel getrennte Stände zusammenführen
   const wk = currentWeekKey();
   const stored = loadMissions();
   const fresh = missionStateFor(stored, wk);              // setzt bei Wochenwechsel zurück
@@ -10208,7 +10209,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint,
   boardRenders, cellRenders, currentGameInfo, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 

@@ -7,7 +7,7 @@ export default {
   coopEndless: { toggle: 'エンドレス・クライム', toggleHint: '協力で登る——共有ライフ3つ、補充なし' },
 
   missions: {
-    title: 'ミッション', hint: 'ボーナスコインの週替わり課題', intro: '毎週新しい課題。達成して報酬を受け取ろう！',
+    title: 'ミッション', hint: 'ボーナスコインの週替わり課題', intro: '毎週新しい課題。すべてのゲーム共通で、どのゲームでも進められます。達成して報酬を受け取ろう！',
     claim: '受け取る', claimed: '+{n}コイン獲得！', done: '完了',
     m: {
       winAny5: '5回勝つ',

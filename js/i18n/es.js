@@ -7,7 +7,7 @@ export default {
   coopEndless: { toggle: 'Ascenso sin fin', toggleHint: 'Suban juntos — 3 vidas compartidas, sin recargas' },
 
   missions: {
-    title: 'Misiones', hint: 'Retos semanales por monedas extra', intro: 'Nuevos retos cada semana. ¡Complétalos y llévate la recompensa!',
+    title: 'Misiones', hint: 'Retos semanales por monedas extra', intro: 'Nuevos retos cada semana: valen para todos los juegos, cada juego te hace avanzar. ¡Complétalos y llévate la recompensa!',
     claim: 'Reclamar', claimed: '¡+{n} monedas obtenidas!', done: 'Hecho',
     m: {
       winAny5: 'Gana 5 partidas',
