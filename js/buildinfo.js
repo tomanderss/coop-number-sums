@@ -1,8 +1,24 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.22';
-export const BUILD_HASH = '53d6ca1';
+export const BUILD      = '2.24';
+export const BUILD_HASH = '1a0bb4e';
 
 export const CHANGELOG = [
+  {
+    "version": "2.24",
+    "date": "28.10.2026",
+    "changes": [
+      "Neues Spiel „Pipes“: Rohre drehen, bis das Wasser von der Quelle jedes Feld erreicht – mit fließender Wasser-Animation"
+    ]
+  },
+  {
+    "version": "2.23",
+    "date": "28.10.2026",
+    "changes": [
+      "Herausforderungen gelten jetzt für alle Spiele: ein gemeinsamer Satz, jedes Spiel bringt dich voran",
+      "Skin je Spiel: an/aus und alle Skin-Einstellungen gelten jetzt nur für das gewählte Spiel",
+      "Mix ist jetzt der Standard und steht in der Mitte der Spielauswahl – die Scheibe dreht endlos in beide Richtungen"
+    ]
+  },
   {
     "version": "2.22",
     "date": "28.10.2026",
