@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.20';
-export const BUILD_HASH = '13de067';
+export const BUILD      = '2.21';
+export const BUILD_HASH = 'ebe00bd';
 
 export const CHANGELOG = [
+  {
+    "version": "2.21",
+    "date": "28.10.2026",
+    "changes": [
+      "Neues Spiel „Gem Hunt“: je Zeile, Spalte und Farbfeld genau ein Edelstein – und keine zwei Steine berühren sich"
+    ]
+  },
   {
     "version": "2.20",
     "date": "28.10.2026",
