@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.16';
-export const BUILD_HASH = 'e322397';
+export const BUILD      = '2.17';
+export const BUILD_HASH = '5622218';
 
 export const CHANGELOG = [
+  {
+    "version": "2.17",
+    "date": "28.10.2026",
+    "changes": [
+      "Neue Hauptversion 2.0: Coop Number Games heißt jetzt rückwirkend ab der Zusammenlegung der Spiele Version 2 (aus 1.224 wurde 2.0, aus 1.240 wurde 2.16) – und wer von einer 1.x kommt, wird einmal mit einer kleinen Feier begrüßt"
+    ]
+  },
   {
     "version": "2.16",
     "formerly": "1.240",
