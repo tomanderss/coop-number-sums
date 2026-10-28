@@ -655,7 +655,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
      nichts darf über den Bildschirm hinausragen — der Name des Nachbarspiels
      tat das und machte die ganze Startseite seitlich verschiebbar. */
   --gw: clamp(64px, 10.5dvh, 92px);
-  position: relative; width: 100%; align-self: stretch; height: calc(var(--gw) + 56px); flex: 0 0 auto;
+  position: relative; width: 100%; align-self: stretch; height: calc(var(--gw) * 1.15 + 56px); flex: 0 0 auto;
   margin: 2px 0 0; overflow: hidden;
   touch-action: pan-y; user-select: none; -webkit-user-select: none;
   cursor: grab; outline: none;
