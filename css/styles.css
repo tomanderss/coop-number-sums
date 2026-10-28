@@ -1008,6 +1008,53 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: radial-gradient(circle at 35% 30%, #fff, var(--dacc) 66%);
   box-shadow: 0 2px 10px rgba(0,0,0,.4), 0 0 0 5px color-mix(in oklab, var(--dacc) 30%, transparent);
   transition: left var(--snapT), box-shadow var(--morphT); }
+/* ── Endlos-Aufstieg im Auswahlscreen ──────────────────────────────────────────
+   Der Slider ist gesperrt (der Lauf startet auf der leichtesten Stufe und steigt
+   selbst). Statt eines Reglers zeigt er die ABFOLGE: die Schiene trägt die
+   Farben aller Stufen, ein Lichtpunkt läuft sie entlang und beginnt am Ende
+   wieder vorn; das Medaillon blendet reihum die Icons aller Stufen ein, der Ring
+   dreht sich in allen Stufenfarben. Nur transform/opacity werden animiert. */
+.diff-picker.endless .dm-ring { animation-duration: 6s; }
+.dm-cycle { position: relative; }
+.dm-cycle .dm-cyc { position: absolute; inset: 21%; width: auto; height: auto; opacity: 0;
+  color: var(--tk); animation: dmcycle calc(var(--n) * 1.1s) linear infinite;
+  animation-delay: calc(var(--i) * 1.1s - 0.05s); }
+/* Neun Stufen à 1,1 s: jedes Icon besitzt genau seinen Neuntel-Abschnitt
+   (11,1 %), blendet kurz ein, steht, und blendet in den Nächsten über — es ist
+   also immer genau eines voll zu sehen. */
+@keyframes dmcycle {
+  0% { opacity: 0; transform: scale(.72) rotate(-14deg); }
+  2% { opacity: 1; transform: scale(1.06) rotate(2deg); }
+  4% { opacity: 1; transform: none; }
+  10% { opacity: 1; transform: none; }
+  12.5% { opacity: 0; transform: scale(.86) rotate(10deg); }
+  100% { opacity: 0; }
+}
+.diff-random.gone { visibility: hidden; }
+.dt-loop { display: inline-flex; align-items: center; gap: 4px; }
+.dt-loop .ei { display: inline-flex; animation: dtloop 2.4s linear infinite; }
+.dt-loop .ei svg { width: 13px; height: 13px; }
+@keyframes dtloop { to { transform: rotate(360deg); } }
+.diff-track.locked { cursor: default; }
+.diff-track.locked .dt-rail { height: 8px; opacity: .9; }
+.diff-track.locked .dt-tick { background: var(--tk); box-shadow: 0 0 0 2px color-mix(in oklab, var(--bg) 70%, transparent); }
+/* Lauflicht: die ganze Bahn (so breit wie die Schiene) wandert von links nach
+   rechts; der Punkt sitzt an ihrem rechten Ende und durchläuft so alle Stufen. */
+.dt-run { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.dt-run i { position: absolute; top: 0; bottom: 0; left: 0; width: 100%;
+  transform: translateX(-100%); animation: dtrun 3.6s cubic-bezier(.45, .05, .55, .95) infinite; }
+.dt-run i::after { content: ''; position: absolute; right: -9px; top: 50%; width: 18px; height: 18px; margin-top: -9px; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 30%, color-mix(in oklab, #fff 40%, transparent) 55%, transparent 72%);
+  box-shadow: 0 0 14px 4px color-mix(in oklab, #fff 45%, transparent); }
+@keyframes dtrun { 0% { transform: translateX(-100%); opacity: 0; } 6% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateX(0); opacity: 0; } }
+.dt-caption { margin: 6px 0 0; text-align: center; font-size: .74rem; color: var(--text2); line-height: 1.3; min-height: 2.6em; }
+@media (prefers-reduced-motion: reduce) {
+  .dm-cycle .dm-cyc { animation: none; opacity: 0; }
+  .dm-cycle .dm-cyc:first-child { opacity: 1; }
+  .dt-run i, .dt-loop .ei { animation: none; }
+  .dt-run { display: none; }
+}
+
 .diff-start { margin-top: 12px; width: 100%; border: none; color: #fff; font-weight: 900;
   background: linear-gradient(135deg, var(--dacc), var(--dacc-d));
   box-shadow: 0 4px 12px color-mix(in oklab, var(--dacc) 30%, transparent);

@@ -72,6 +72,10 @@ export default {
     donate: 'Soutenez-moi',
   },
   setup: {
+    endlessEyebrow: "Niveau 1 à {n} – encore et encore",
+    endlessStartAt: "Départ",
+    endlessBestLabel: "Record",
+    endlessCycle: "Monte niveau après niveau – après le dernier, on recommence",
     bigNumbers: 'Grands nombres (10–19)',
     bigNumbersHint: 'Valeurs de 10 à 19 au lieu de 1 à 9 — même jeu, nouveau défi mental.',
     random: 'Hasard',

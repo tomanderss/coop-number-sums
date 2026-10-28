@@ -276,3 +276,31 @@ test.describe('endless climb', () => {
     await expect(page.locator('.saves-expand')).toBeVisible();
   });
 });
+
+// Nutzerwunsch: im Auswahlscreen ist der Schwierigkeits-Slider im Endlos-Aufstieg
+// sinnlos (der Lauf startet ohnehin auf der leichtesten Stufe) — er springt
+// dorthin, ist gesperrt und zeigt stattdessen die zyklische Abfolge.
+test.describe('Endlos im Auswahlscreen', () => {
+  test('Slider springt auf Sehr Leicht, ist gesperrt, zeigt den Kreislauf; aus = alte Wahl zurück', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .btn-primary').click();
+    await page.waitForSelector('.screen.setup');
+    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'bismillah'; });
+    await page.locator('.mode-toggle', { hasText: 'Endlos' }).click();
+    await expect(page.locator('.diff-picker.endless')).toHaveCount(1);
+    expect(await page.evaluate(() => window.__cns.state.sel.difficulty)).toBe('sehrleicht');
+    await expect(page.locator('.diff-track.locked')).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.locator('.dt-run')).toHaveCount(1);
+    await expect(page.locator('.dm-cycle .dm-cyc')).toHaveCount(await page.evaluate(() => window.__cns.state && document.querySelectorAll('.dt-tick').length));
+    // Ziehen auf dem gesperrten Slider bewirkt nichts.
+    const box = await page.locator('.diff-track').boundingBox();
+    await page.mouse.move(box.x + box.width - 10, box.y + box.height / 2);
+    await page.mouse.down(); await page.mouse.up();
+    expect(await page.evaluate(() => window.__cns.state.sel.difficulty)).toBe('sehrleicht');
+    // Der Zufall-Knopf ist weg, sein Platz bleibt (nichts verrutscht).
+    await expect(page.locator('.diff-random')).toHaveCSS('visibility', 'hidden');
+    await page.locator('.mode-toggle', { hasText: 'Endlos' }).click();
+    expect(await page.evaluate(() => window.__cns.state.sel.difficulty)).toBe('bismillah');
+    await expect(page.locator('.diff-picker.endless')).toHaveCount(0);
+  });
+});

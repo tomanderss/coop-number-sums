@@ -72,6 +72,10 @@ export default {
     donate: '후원하기',
   },
   setup: {
+    endlessEyebrow: "레벨 1~{n} 반복",
+    endlessStartAt: "시작",
+    endlessBestLabel: "최고 기록",
+    endlessCycle: "레벨마다 올라가고, 마지막 단계 다음엔 처음부터",
     bigNumbers: '큰 숫자 (10–19)',
     bigNumbersHint: '칸 값이 1–9 대신 10–19 — 같은 퍼즐, 새로운 두뇌 자극.',
     random: '랜덤',

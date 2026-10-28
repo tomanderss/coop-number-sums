@@ -72,6 +72,10 @@ export default {
     donate: 'Unterstütze mich',
   },
   setup: {
+    endlessEyebrow: "Stufe 1 bis {n} – immer wieder",
+    endlessStartAt: "Start",
+    endlessBestLabel: "Bestwert",
+    endlessCycle: "Steigt Level für Level – nach der letzten Stufe geht es wieder von vorn",
     bigNumbers: 'Große Zahlen (10–19)',
     bigNumbersHint: 'Zellwerte 10–19 statt 1–9 – gleicher Rätseltyp, neuer Denkreiz.',
     random: 'Zufall',
