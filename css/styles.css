@@ -282,7 +282,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   row-gap: clamp(8px, 2dvh, 16px);
 }
 .home > .brand { grid-row: 1; }
-.home > .home-actions { grid-row: 2; }
+.home > .home-menu { grid-row: 2; }
 .home > .home-resume { grid-row: 3; }
 .home > .home-foot { grid-row: 5; align-self: end; }
 .home-foot { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; height: 28px; }
@@ -695,7 +695,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    dichter packen, damit sie wie eine native App ohne Scrollen ganz passt. */
 @media (max-height: 620px) {
   .game-wheel { --gw: 60px; }
-  .screen.home .home-actions .btn { padding-top: 8px; padding-bottom: 8px; }
+  .screen.home .home-actions .btn, .screen.home .home-mix .btn { padding-top: 8px; padding-bottom: 8px; }
 }
 /* Menü unter der Scheibe blendet beim Spielwechsel weich über. */
 /* Fortsetzen-Bereich: erscheint/verschwindet weich, ohne Lücke dazwischen. */
@@ -706,14 +706,38 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .brand-title { font-size: clamp(1.05rem, 2.6dvh, 1.3rem); font-weight: 800; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.2px; }
 .brand-sub { color: var(--text2); font-size: .9rem; }
-.home-actions { display: flex; flex-direction: column; gap: 8px; }
+.home-actions, .home-mix { display: flex; flex-direction: column; gap: 8px; }
+/* Spiel- und Mix-Menü liegen in EINER Rasterzelle übereinander: die Zelle ist
+   immer so hoch wie das größere, beim Drehen der Scheibe blendet nur der Inhalt
+   über (nur opacity) — darunter verschiebt sich nichts. */
+.home-menu { display: grid; min-width: 0; }
+.home-menu > .home-actions, .home-menu > .home-mix { grid-area: 1 / 1; transition: opacity .24s ease, visibility 0s linear 0s; }
+.home-menu > .off { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .24s ease, visibility 0s linear .24s; }
+/* Mix auf der Startseite: Auswahl als Karte (Logos aller Spiele, abgewählte blass)
+   statt der Coop-/Wettkampf-Knöpfe, darunter die Mix-Rekorde. */
+.mix-pool-card { display: flex; flex-direction: column; gap: 7px; width: 100%; text-align: left;
+  padding: 10px 12px; border-radius: 14px; color: var(--text);
+  background: color-mix(in srgb, var(--bg2) 55%, transparent); box-shadow: inset 0 0 0 1px var(--hairline); }
+.mpc-head { display: flex; align-items: center; justify-content: space-between; font-size: .86rem; }
+.mpc-chev svg { width: 16px; height: 16px; opacity: .6; }
+.mpc-logos { display: flex; flex-wrap: wrap; gap: 6px; }
+.mpc-logos img { width: 30px; height: 30px; border-radius: 8px; transition: opacity .2s, filter .2s; }
+.mpc-logos img.off { opacity: .28; filter: grayscale(1); }
+.mpc-sum { font-size: .74rem; color: var(--text2); }
+.mix-records { align-items: stretch; }
+.mix-rec { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; color: var(--text2); font-size: .8rem; }
+.mix-rec b { color: var(--text); font-size: 1rem; font-variant-numeric: tabular-nums; }
+.mix-rec .ei svg { width: 16px; height: 16px; }
+.btn-resume.mix { background: linear-gradient(120deg, #7a5cff, #2f8de4); color: #fff; }
+.mix-resume-logo { width: 26px; height: 26px; border-radius: 7px; display: block; }
+
 .screen.home .btn { padding: 11px 14px; }
 /* Minimalistisch: die Knöpfe bilden eine schmale, zentrierte Spalte statt die
    ganze Breite zu füllen; um sie herum bleibt Luft. Die Modus-Knöpfe zeigen nur
    noch ihren Namen (die Erklärzeile steht im jeweiligen Bildschirm), die
    Nebenknöpfe sind flach (Haarlinie statt Schatten), Statistik/Verlauf sind
    dezente Textknöpfe. Tippflächen bleiben ≥ 44 px hoch. */
-.screen.home .home-actions { width: 100%; max-width: 300px; margin: 0 auto; }
+.screen.home .home-actions, .screen.home .home-mix { width: 100%; max-width: 300px; margin: 0 auto; }
 .screen.home .mode-btn { min-height: 46px; }
 .screen.home .mode-btn .btn-tx small { display: none; }
 .screen.home .btn-coop, .screen.home .race-btn { background: color-mix(in srgb, var(--bg2) 55%, transparent); box-shadow: inset 0 0 0 1px var(--hairline); }
@@ -1495,12 +1519,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   /* Version (+ Offline-Chip) unten in der Marken-Spalte: rechts unten läge sie
      unter einem langen Fortsetzen-Bereich. */
   .home > .home-foot { grid-row: 3; grid-column: 1; }
-  .home > .home-actions { grid-row: 2; grid-column: 2; }
+  .home > .home-menu { grid-row: 2; grid-column: 2; }
   .home > .home-resume { grid-row: 3; grid-column: 2; max-width: none; align-self: start; padding-top: 8px; }
   .home .brand { margin-top: 0; gap: 4px; }
   .home .brand-logo { width: 64px; height: 64px; border-radius: 18px; }
   .home .brand-title { font-size: 1.05rem; margin-top: 0; }
-  .home-actions { width: 360px; flex: 0 0 auto; gap: 8px; }
+  .home-actions, .home-mix { width: 360px; flex: 0 0 auto; gap: 8px; }
   .home .btn { padding: 9px 14px; gap: 10px; }
   .home .btn .btn-tx small { font-size: .66rem; }
   .home-grid .btn { padding: 9px 8px; }
@@ -3446,3 +3470,111 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .save-del:hover, .save-del:focus-visible { color: var(--bad); background: color-mix(in srgb, var(--bad) 22%, transparent); }
 .save-del:active { transform: scale(.9); }
 .saves-empty { margin: 18px 0; text-align: center; font-size: .82rem; font-weight: 600; color: var(--text2); opacity: .8; }
+
+
+/* ══ Zufallsmodus „Mix" (js/mix.js) ══════════════════════════════════════════
+   Auswahl-Screen: vollflächiger, langsam driftender Farbhof in den Farben der
+   Spiele, oben ein Medaillon, durch dessen rundes Fenster die Spiel-Logos ziehen
+   (Spielautomat), darunter die Auswahl je Spiel mit den neun Stufen als
+   Farbpunkte. Animiert wird nur transform/opacity. Wächst mit der Zahl der
+   Spiele nach unten (der Bereich scrollt), nichts überlappt. */
+.screen.mix-screen { position: relative; display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.mix-bg { position: fixed; z-index: 0; pointer-events: none; inset: 0;
+  left: max(0px, calc(50% - var(--apphalf, 270px))); right: max(0px, calc(50% - var(--apphalf, 270px))); overflow: hidden; opacity: .5; }
+.mix-bg b { position: absolute; width: 60%; aspect-ratio: 1; border-radius: 50%; filter: blur(48px); animation: mixdrift 18s ease-in-out infinite alternate; }
+.mix-bg b:nth-child(1) { background: #7a5cff; left: -12%; top: -8%; }
+.mix-bg b:nth-child(2) { background: #2fae6b; right: -14%; top: 12%; animation-delay: -6s; }
+.mix-bg b:nth-child(3) { background: #f0902f; left: -10%; bottom: 8%; animation-delay: -11s; }
+.mix-bg b:nth-child(4) { background: #2f8de4; right: -10%; bottom: -10%; animation-delay: -3s; }
+@keyframes mixdrift { from { transform: translate(0, 0) scale(1); } to { transform: translate(12%, 9%) scale(1.15); } }
+.mix-screen > .topbar, .mix-body, .mix-foot { position: relative; z-index: 1; }
+.icon-btn-spacer { width: 40px; height: 40px; flex: 0 0 auto; }
+.mix-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 4px 16px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.mix-body > * { width: 100%; max-width: 360px; }
+.mix-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.mix-medal { position: relative; width: clamp(92px, 24vw, 124px); aspect-ratio: 1; margin-bottom: 6px; }
+.mm-ring { position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(#7a5cff, #2fae6b, #f0902f, #2f8de4, #7a5cff);
+  -webkit-mask: radial-gradient(closest-side, transparent 84%, #000 86%); mask: radial-gradient(closest-side, transparent 84%, #000 86%);
+  animation: pu-spin 8s linear infinite; }
+.mm-window { position: absolute; inset: 9%; border-radius: 50%; overflow: hidden; background: #141b33; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.mm-strip { position: absolute; top: 18%; bottom: 18%; left: 0; display: flex; gap: 0; height: 64%;
+  animation: mmslide calc(var(--n) * 1.4s) linear infinite; }
+.mm-strip img { height: 100%; aspect-ratio: 1; flex: 0 0 auto; border-radius: 18%; margin: 0 6px; }
+@keyframes mmslide { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.mm-q { position: absolute; right: -2%; bottom: -2%; width: 34%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: #fff; font-weight: 900; font-size: clamp(1rem, 4.4vw, 1.35rem); box-shadow: 0 4px 14px rgba(0,0,0,.3);
+  animation: mmq 2.6s ease-in-out infinite; }
+@keyframes mmq { 0%, 70%, 100% { transform: none; } 78% { transform: rotate(-14deg) scale(1.08); } 88% { transform: rotate(10deg) scale(1.04); } }
+.mix-eyebrow { font-size: .72rem; letter-spacing: .22em; text-transform: uppercase; font-weight: 800; color: var(--accent); }
+.mix-title { margin: 0; font-size: clamp(1.5rem, 7vw, 1.9rem); font-weight: 900; letter-spacing: -.5px; }
+.mix-sub { margin: 0; color: var(--text2); font-size: .86rem; }
+.mix-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mix-tiles > div { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 12px;
+  background: color-mix(in srgb, var(--bg2) 70%, transparent); box-shadow: inset 0 0 0 1px var(--hairline); }
+.mix-tiles b { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.mix-tiles small { font-size: .68rem; color: var(--text2); text-align: center; }
+.mix-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mix-chip { padding: 7px 4px; border-radius: 999px; font-size: .78rem; font-weight: 700; color: var(--text2);
+  background: color-mix(in srgb, var(--bg2) 60%, transparent); box-shadow: inset 0 0 0 1px var(--hairline);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background-color .2s, color .2s; }
+.mix-chip.on { background: var(--accent); color: #fff; box-shadow: none; }
+.mix-pool { display: flex; flex-direction: column; gap: 8px; }
+.mix-row { padding: 8px 10px 10px; border-radius: 14px; background: color-mix(in srgb, var(--bg2) 72%, transparent);
+  box-shadow: inset 0 0 0 1px var(--hairline); transition: opacity .2s; }
+.mix-row.off { opacity: .62; }
+.mix-game { display: flex; align-items: center; gap: 10px; width: 100%; color: var(--text); text-align: left; min-height: 40px; }
+.mix-game img { width: 36px; height: 36px; border-radius: 10px; flex: 0 0 auto; transition: filter .2s; }
+.mix-row.off .mix-game img { filter: grayscale(1); }
+.mg-name { flex: 1 1 auto; min-width: 0; font-weight: 800; font-size: .92rem; overflow-wrap: anywhere; }
+.mg-sw { flex: 0 0 auto; width: 38px; height: 22px; border-radius: 11px; background: var(--hairline); position: relative; transition: background-color .2s; }
+.mg-sw i { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.mg-sw.on { background: var(--accent); }
+.mg-sw.on i { transform: translateX(16px); }
+/* Neun Stufen in festen Spalten (fehlende Stufe = leerer Platz). */
+.mix-dots { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
+.mix-dot { aspect-ratio: 1; max-width: 34px; width: 100%; justify-self: center; border-radius: 50%; display: grid; place-items: center;
+  color: var(--c); background: color-mix(in srgb, var(--c) 10%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 35%, transparent);
+  opacity: .45; filter: grayscale(.8); transition: opacity .18s, filter .18s, transform .18s, background-color .18s; }
+.mix-dot .ei svg { width: 68%; height: 68%; }
+.mix-dot .ei { display: grid; place-items: center; width: 100%; height: 100%; }
+.mix-dot.on { opacity: 1; filter: none; background: color-mix(in srgb, var(--c) 22%, transparent); box-shadow: inset 0 0 0 2px var(--c); }
+.mix-dot:active { transform: scale(.88); }
+.mix-dot.none { visibility: hidden; }
+.mix-hint { margin: 2px 4px 0; font-size: .74rem; color: var(--text2); text-align: center; }
+.mix-foot { padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.mix-foot .mix-start { width: 100%; max-width: 360px; font-size: 1.05rem; padding: 14px; gap: 8px; }
+.mix-empty { margin: 0; font-size: .8rem; color: var(--bad); }
+/* Die Ziehung vor jedem Level: eine senkrechte Walze rastet auf dem gezogenen
+   Spiel ein, dann erscheinen Name und Stufe (in der Stufenfarbe). */
+.mix-reveal { position: fixed; inset: 0; z-index: 97; display: grid; place-items: center; padding: 20px;
+  background: radial-gradient(120% 80% at 50% 30%, color-mix(in srgb, var(--accent) 22%, var(--bg)), var(--bg)); animation: fadein .2s; }
+.mr-card { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.mr-kicker { font-size: .8rem; letter-spacing: .24em; text-transform: uppercase; font-weight: 800; color: var(--text2); }
+.mr-window { --h: clamp(96px, 30vw, 132px); width: calc(var(--h) + 24px); height: calc(var(--h) * 1.9); position: relative; overflow: hidden;
+  -webkit-mask: linear-gradient(transparent, #000 26%, #000 74%, transparent); mask: linear-gradient(transparent, #000 26%, #000 74%, transparent); }
+/* Der Rahmen markiert die Mitte; darüber/darunter ziehen die Nachbarn blass vorbei. */
+.mr-frame { position: absolute; left: 50%; top: 50%; width: var(--h); height: var(--h); margin: calc(var(--h) / -2) 0 0 calc(var(--h) / -2);
+  border-radius: 24%; box-shadow: 0 0 0 3px var(--c), 0 0 34px color-mix(in srgb, var(--c) 55%, transparent); z-index: 1; pointer-events: none;
+  animation: mrland .4s ease-out 1.25s both; }
+.mr-reel { position: absolute; left: 12px; top: calc(var(--h) * .45); display: flex; flex-direction: column; gap: 14px; animation: mrspin 1.3s cubic-bezier(.12, .72, .2, 1.04) both; }
+.mr-reel img { width: var(--h); height: var(--h); flex: 0 0 auto; display: block; border-radius: 24%; }
+@keyframes mrspin { from { transform: translateY(0); } to { transform: translateY(calc((var(--n) - 1) * (var(--h) + 14px) * -1)); } }
+@keyframes mrland { 0% { transform: none; opacity: .7; } 45% { transform: scale(1.1); opacity: 1; } 100% { transform: none; opacity: 1; } }
+.mr-result { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: mrin .4s ease-out 1.3s both; }
+.mr-result b { font-size: 1.4rem; font-weight: 900; }
+.mr-diff { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; font-weight: 800; font-size: .9rem;
+  color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); box-shadow: inset 0 0 0 1.5px var(--c); }
+.mr-diff .ei svg { width: 16px; height: 16px; }
+@keyframes mrin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rc-gamelogo { width: 40px; height: 40px; border-radius: 11px; display: block; }
+.mix-played { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.mix-played-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px;
+  background: color-mix(in srgb, var(--bg2) 70%, transparent); box-shadow: inset 0 0 0 1px var(--hairline); font-variant-numeric: tabular-nums; }
+.mix-played-chip img { width: 24px; height: 24px; border-radius: 7px; }
+@media (prefers-reduced-motion: reduce) {
+  .mix-bg b, .mm-ring, .mm-strip, .mm-q { animation: none !important; }
+  .mr-reel { animation-duration: .01s; }
+  .mr-frame, .mr-result { animation-delay: 0s; animation-duration: .01s; }
+}

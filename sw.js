@@ -9,6 +9,7 @@ const ASSETS = [
   './css/games/numberpath.css',
   './js/vue.esm-browser.prod.js',
   './js/versions.js',
+  './js/mix.js',
   './js/config.js',
   // ── Spiel-Registry + Spielmodule (js/games/<id>/) ──
   './js/games/registry.js',
@@ -96,6 +97,7 @@ const ASSETS = [
   './icons/games/mathcross-192.png',
   './icons/games/rectangles-192.png',
   './icons/games/numberpath-192.png',
+  './icons/games/mix-192.png',
   './icons/icon-512.png',
   './icons/icon-1024.png',
 ];

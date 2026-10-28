@@ -17,6 +17,7 @@
 import { ensureFirebase } from './firebase.js';
 import { log } from './debuglog.js';
 import { todayDateStr, sanitizeLastCompleted } from './streak.js';
+import { mergeMixStats } from './mix.js';
 import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
@@ -211,6 +212,7 @@ export function mergeSnapshots(local = {}, cloud = {}) {
     walletLog: mergeWalletLogs(local.walletLog, cloud.walletLog),   // Herkunfts-Verlauf beider Seiten vereinigen
     completedGames: [...new Set([...(local.completedGames || []), ...(cloud.completedGames || [])])],
     profile: newer.profile || (localNewer ? cloud.profile : local.profile) || {},
+    mixStats: mergeMixStats(local.mixStats, cloud.mixStats),   // Mix-Bestwerte: Maximum je Zähler
   };
 }
 export function decideSync({ cloudExists, localRev, cloudRev, syncedRev, hasLocalData }) {

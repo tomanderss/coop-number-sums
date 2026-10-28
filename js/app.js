@@ -2,7 +2,8 @@
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref, h } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { cmpVersion, canonicalVersion, majorCelebrationFor, MAJORS } from './versions.js';
-import { REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
+import { REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb, DIFFICULTY_LADDER } from './config.js';
+import { MIX_ID, mixCatalog, normalizeMixPool, mixGameOn, mixDiffOn, mixCombos, mixSummary, toggleMixGame, toggleMixDiff, applyMixPreset, activeMixPreset, pickMixLevel, mixReel } from './mix.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
@@ -37,6 +38,7 @@ import {
   generateId, deviceId, isGameCompleted, markGameCompleted, loadActiveGameBackup, saveActiveGameBackup,
   gameId, restoreGameChoice, chooseGame, savePendingJoin, takePendingJoin,
   loadConflictBackup, saveConflictBackup, collectExportData,
+  loadMixStats, recordMixRun, loadMixRun, saveMixRun, loadMixOn, saveMixOn,
 } from './storage.js';
 import { runLocalMcMigration } from './mcmigration.js';
 import { decideSessionSync, sessionIsDead, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
@@ -352,6 +354,13 @@ const state = reactive({
   resumeAvailable: null,     // gespeichertes Solo-Spiel (zum Fortsetzen)
   resumeAvailableCoop: null, // gespeichertes Coop-Spiel (zum Fortsetzen, separater Slot)
   resumeAvailableEndless: null, // gespeicherter Solo-Endlos-Lauf (zum Fortsetzen, eigener Slot)
+  // Zufallsmodus „Mix" (js/mix.js): steht die Scheibe auf Mix? (gerätelokal wie
+  // die Spielwahl), Bestwerte (kontoweit, synct), fortsetzbarer Lauf (gerätelokal)
+  // und die Ziehungs-Animation vor jedem Level.
+  mixOn: loadMixOn(),
+  mixStats: loadMixStats(),
+  resumeAvailableMix: null,
+  mixReveal: null,              // { reel:[{id,logo}], game, diff, level, seq } | null
   saves: [],                 // Bibliothek gespeicherter Partien (neueste zuerst), s. refreshResume
   savesOpen: false,          // Spielstand-Liste (Bottom-Sheet) offen?
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
@@ -1363,6 +1372,7 @@ function startEndless() {
   loadEndlessLevel();
 }
 function loadEndlessLevel() {
+  if (state.endless.mix) { loadMixLevel(); return; }
   const diffId = endlessDiffId(state.endless.level, DIFFICULTIES.map(d => d.id));
   // „Große Zahlen" je Level nur, wo die Feldgröße es erlaubt (kleine Frühlevel
   // fallen automatisch auf 1–9 zurück).
@@ -1393,7 +1403,10 @@ function finishEndlessLevel(puzzle) {
   startTimer();
   requestWakeLock();
   // Solo-Endlos ist ab dem geladenen Level fortsetzbar (auch vor dem ersten Zug).
-  if (!state.endless.coop) saveActiveGameEndless(endlessSnapshot());
+  // Ein Mix-Lauf hat seinen EIGENEN Slot — der Endlos-Slot des Spiels, in dem das
+  // Level gerade liegt, gehört dessen eigenem Endlos-Lauf.
+  if (state.endless.mix) saveMixRun(mixRunSnapshot());
+  else if (!state.endless.coop) saveActiveGameEndless(endlessSnapshot());
 }
 // Level geschafft (aus win(), Solo UND Coop, idempotent): den NORMALEN Gewinn-Screen
 // zeigen (Zeit/Fehler/Hinweise/Schwierigkeit·Größe, Coop-Prozentverteilung,
@@ -1413,6 +1426,7 @@ function endlessLevelSolved(remote) {
   // Timer (status!=='playing') accumMs allein — kein Doppelzählen des Level-Timers.
   e.accumMs = (e.accumMs || 0) + Math.max(0, state.elapsed || 0);
   e.score = e.level;                                    // dieses Level ist geschafft
+  if (e.mix) e.mix.played[currentGame.id] = (e.mix.played[currentGame.id] || 0) + 1;   // Mix: welches Spiel wie oft
   e.hints = Math.max(0, state.hintsLeft || 0);          // Rest-Hinweise mitnehmen
   e.lives = Math.max(0, state.lives);                   // Rest-Leben übertragen (kein Refill)
   if (e.coop) e.lifeLossBy = (state.coop.lifeLossBy || []).slice();  // wer welche Leben verbraucht hat — bewahren
@@ -1458,7 +1472,7 @@ function endlessLevelSolved(remote) {
     const coins = alreadyRewarded ? 0 : coinReward(dIdx, bonus);
     const mult = Math.round(coinMultiplier(bonus) * 100) / 100;
     if (coins) state.wallet = grantCurrency(coins, 'win', {
-      difficulty: diff, mode: isCoop ? 'endlessCoop' : 'endless',
+      difficulty: diff, mode: isCoop ? 'endlessCoop' : (e.mix ? 'mix' : 'endless'), game: currentGame.id,
       base: coinBaseForIndex(dIdx), mult, coopMult: isCoop, perfect, bestTime: newHighscore,
       streakDays: streakDays || 0,
       streakPct: streakDays ? Math.round(coinStreakBonus(streakDays) * 100) : 0,
@@ -1491,7 +1505,8 @@ function endlessLevelSolved(remote) {
     // SOLO-Endlos fortsetzbar halten: JETZT (nach der Buchhaltung, inkl. Lauf-
     // Münzsumme) den Zwischen-Level-Marker sichern — das gelöste Brett selbst
     // taugt nicht zum Fortsetzen, das Fortsetzen startet frisch bei score+1.
-    if (!isCoop) {
+    if (e.mix) saveMixRun({ pending: true, ts: Date.now(), game: currentGame.id, mix: mixRunMeta(e.score + 1) });
+    else if (!isCoop) {
       const marker = { pending: true, ts: Date.now(), gameId: state.gameId, endless: { runId: e.runId || null, level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 } };
       saveActiveGameEndless(marker);
       rememberSave(marker, 'endless', endlessSaveId());   // auch der Zwischenstand gehoert in die Bibliothek
@@ -1547,8 +1562,11 @@ function endlessGameOver() {
       timeMs: state.elapsed, outcome: 'lost', coop: false,
     });
   }
-  const { stats, newBest } = recordEndlessRun(score);
-  state.stats = stats;
+  // Mix wertet in seine EIGENEN Bestwerte (kontoweit) — der Endlos-Bestwert des
+  // Spiels, in dem das letzte Level lag, gehört dessen eigenem Endlos-Modus.
+  let best, newBest;
+  if (e.mix) { const r = recordMixRun(score); state.mixStats = r.stats; best = r.stats.best; newBest = r.newBest; }
+  else { const r = recordEndlessRun(score); state.stats = r.stats; best = r.stats.endlessBest; newBest = r.newBest; }
   e.active = false;
   state.status = 'lost';   // saveSlot='endless' → persistGame fasst den Solo-Slot nie an
   // Lauf vorbei → Fortsetzen-Slot UND Bibliothekseintrag räumen. persistGame
@@ -1556,14 +1574,17 @@ function endlessGameOver() {
   // klassischen Solo-Spiel) hier nichts auf — ohne das blieb der verlorene Lauf
   // in der Bibliothek liegen und wurde von deren Rückfall sofort wieder als
   // fortsetzbar angeboten.
-  const deadRunId = endlessSaveId();
-  saveActiveGameEndless(null); state.resumeAvailableEndless = null;
-  if (deadRunId) state.saves = removeSave(deadRunId);
-  state.endlessSummary = { score, best: stats.endlessBest, coins: e.coins || 0, newBest, totalMs: endlessTotalMs() };
+  if (e.mix) { saveMixRun(null); state.resumeAvailableMix = null; }
+  else {
+    const deadRunId = endlessSaveId();
+    saveActiveGameEndless(null); state.resumeAvailableEndless = null;
+    if (deadRunId) state.saves = removeSave(deadRunId);
+  }
+  state.endlessSummary = { score, best, coins: e.coins || 0, newBest, totalMs: endlessTotalMs(), mix: e.mix ? mixPlayedList(e.mix.played) : null };
   if (state.settings.sfxLose) Music.sfxLose();
-  log('game', 'Endlos-Lauf beendet', { score, best: stats.endlessBest, coins: e.coins || 0, newBest });
+  log('game', e.mix ? 'Mix-Lauf beendet' : 'Endlos-Lauf beendet', { score, best, coins: e.coins || 0, newBest });
   recordMissionEvent({
-    played: true, won: false, endlessScore: score,
+    played: true, won: false, endlessScore: e.mix ? undefined : score,
     difficulty: state.puzzle?.difficulty,
     diffIndex: DIFFICULTIES.findIndex(d => d.id === state.puzzle?.difficulty),
   });
@@ -1581,8 +1602,8 @@ function endlessAbort() {
   const score = e.score;
   // coop-Flag mitgeben: ein abgebrochener COOP-Endlos-Lauf gehört in die Coop-
   // Endlos-Statistik (endlessCoopBest/Runs), nicht in die Solo-Werte.
-  const { stats } = recordEndlessRun(score, { coop: !!e.coop });
-  state.stats = stats;
+  if (e.mix) { state.mixStats = recordMixRun(score).stats; }
+  else { const { stats } = recordEndlessRun(score, { coop: !!e.coop }); state.stats = stats; }
   e.active = false;
   // NUR ein SOLO-Lauf räumt den Fortsetzen-Slot. Ein Coop-Endlos-Lauf liegt dort
   // ohnehin nie (Live-Session, nicht fortsetzbar) — der Slot gehört weiterhin dem
@@ -1592,7 +1613,8 @@ function endlessAbort() {
   // Solo-Lauf auf Level 5 fortgesetzt, danach Beitritt zu einer fremden
   // Coop-Endlos-Runde, beim Verlassen war der eigene Lauf weg.)
   // endlessCoopGameOver räumt den Slot aus genau demselben Grund nicht.
-  if (!e.coop) {
+  if (e.mix) { saveMixRun(null); state.resumeAvailableMix = null; }
+  else if (!e.coop) {
     const deadRunId = endlessSaveId();
     saveActiveGameEndless(null); state.resumeAvailableEndless = null;
     if (deadRunId) state.saves = removeSave(deadRunId);   // aufgegebener Lauf gehört auch aus der Bibliothek
@@ -1624,7 +1646,167 @@ function runEndlessBackfill() {
   }
   setSetting('endlessBackfillDone', true);
 }
-function endlessAgain() { state.endlessSummary = null; startEndless(); }
+function endlessAgain() {
+  const wasMix = !!(state.endlessSummary && state.endlessSummary.mix);
+  state.endlessSummary = null;
+  if (wasMix) startMix(); else startEndless();
+}
+// ─── ZUFALLSMODUS „MIX" ───────────────────────────────────────────────────────
+// Ein Endlos-Lauf über ALLE Spiele: jedes Level ein zufälliges Spiel in einer
+// zufälligen Schwierigkeit (reine Logik in js/mix.js). Mix ist KEIN Spiel der
+// Registry, sondern ein Eintrag mehr auf der Scheibe — zwischen zwei Leveln
+// wechselt der Lauf das echte Spiel (switchGame mit force), das Level selbst ist
+// ein vollwertiges Spiel dieses Spiels (Statistik, Münzen, Bestzeiten, Missionen
+// zählen dort). Leben, Gesamtzeit und Punktzahl laufen über den ganzen Lauf wie im
+// Endlos-Aufstieg (state.endless mit `mix`). Neue Spiele sind automatisch dabei:
+// der Katalog kommt aus GAMES, der Pool speichert nur Ausschlüsse.
+const MIX_CATALOG = mixCatalog(GAMES);
+const MIX_LADDER = DIFFICULTY_LADDER.map((d) => d.id);
+const MIX_LOGO = './icons/games/mix-192.png';
+const MIX_REVEAL_MS = 2300;     // so lange läuft die Ziehung mindestens (die Generierung läuft parallel)
+function mixPool() { return normalizeMixPool(state.settings.mixPool, MIX_CATALOG); }
+function setMixPool(p) { setSetting('mixPool', normalizeMixPool(p, MIX_CATALOG)); }
+function mixToggleGame(id) { setMixPool(toggleMixGame(mixPool(), id, MIX_CATALOG)); }
+function mixToggleDiff(id, d) { setMixPool(toggleMixDiff(mixPool(), id, d, MIX_CATALOG)); }
+function mixPreset(k) { setMixPool(applyMixPreset(mixPool(), k, MIX_LADDER, MIX_CATALOG)); log('game', 'Mix-Schnellwahl', { preset: k }); }
+const mixInfo = computed(() => {
+  const pool = mixPool();
+  return {
+    summary: mixSummary(pool, MIX_CATALOG),
+    preset: activeMixPreset(pool, MIX_LADDER, MIX_CATALOG),
+    games: MIX_CATALOG.map((g) => {
+      const meta = gameMeta(g.id);
+      return {
+        id: g.id, logo: meta.logo, nameKey: meta.nameKey, on: mixGameOn(pool, g.id, MIX_CATALOG),
+        // Volle Leiter je Zeile: fehlt einem Spiel eine Stufe, bleibt ihr Platz
+        // leer — so stehen die Stufen aller Spiele in denselben Spalten.
+        diffs: DIFFICULTY_LADDER.map((d) => ({ id: d.id, icon: d.emoji, accent: d.accent, has: g.diffs.includes(d.id), on: mixDiffOn(pool, g.id, d.id, MIX_CATALOG) })),
+      };
+    }),
+  };
+});
+function ladderStep(id) { return DIFFICULTY_LADDER.find((d) => d.id === id) || DIFFICULTY_LADDER[0]; }
+function mixPlayedList(played) {
+  return MIX_CATALOG.filter((g) => played && played[g.id]).map((g) => ({ id: g.id, logo: gameMeta(g.id).logo, n: played[g.id] }));
+}
+// Die Scheibe: Mix ist ein Eintrag mehr, gerätelokal gemerkt (wie die Spielwahl).
+function selectMix(on) {
+  if (state.mixOn === !!on) return;
+  state.mixOn = !!on;
+  saveMixOn(!!on);
+  log('app', on ? 'Scheibe auf Mix' : 'Scheibe auf ein Spiel', { game: currentGame.id });
+}
+function onWheelSelect(id) {
+  if (id === MIX_ID) { selectMix(true); return; }
+  if (switchGame(id)) selectMix(false);
+}
+function openMix() { navTo('mix'); }
+function refreshMixResume() {
+  const r = loadMixRun();
+  const ok = r && r.mix && r.game && gameById(r.game) && (r.pending || (r.snap && r.snap.puzzle));
+  state.resumeAvailableMix = ok ? r : null;
+  if (r && !ok) { saveMixRun(null); log('storage', 'Ungültigen Mix-Stand verworfen'); }
+}
+function mixRunMeta(level) {
+  const e = state.endless;
+  return {
+    runId: e.runId || null, level: level ?? e.level, lives: e.lives, hints: e.hints, score: e.score,
+    accumMs: e.accumMs || 0, coins: e.coins || 0,
+    prev: e.mix ? e.mix.prev : null, diff: e.mix ? e.mix.diff : null, played: e.mix ? { ...e.mix.played } : {},
+  };
+}
+function mixRunSnapshot() {
+  return { ts: Date.now(), game: currentGame.id, mix: { ...mixRunMeta(), lives: state.lives, hints: Math.max(0, state.hintsLeft || 0) }, snap: activeSnapshot() };
+}
+function freshMixRun(meta = {}) {
+  return {
+    active: true, coop: false, advancing: false, level: meta.level || 1,
+    runId: meta.runId || generateId(),
+    lives: meta.lives ?? ENDLESS_CFG.startLives, hints: meta.hints ?? ENDLESS_CFG.startHints,
+    score: meta.score || 0, coins: meta.coins || 0, best: state.mixStats.best || 0,
+    bigNumbers: false, accumMs: meta.accumMs || 0, lifeLossBy: [],
+    mix: { prev: meta.prev || null, game: null, diff: meta.diff || null, played: { ...(meta.played || {}) } },
+  };
+}
+function startMix() {
+  const combos = mixCombos(mixPool(), MIX_CATALOG);
+  if (!combos.length) { showToast(t('mix.empty'), 'info', 2500); return; }
+  coopReset();
+  state.endlessSummary = null;
+  state.endlessLevelFlash = null;
+  saveMixRun(null); state.resumeAvailableMix = null;
+  state.endless = freshMixRun();
+  navStack = [() => { navigate('home'); }];
+  log('game', 'Mix gestartet', { combos: combos.length, games: mixInfo.value.summary.games });
+  loadMixLevel();
+}
+// Ein Level ziehen und laden: erst läuft die Ziehung (Walze über die Logos), dabei
+// wird — im nächsten Frame, damit die Walze schon läuft — auf das gezogene Spiel
+// gewechselt und das Rätsel off-thread erzeugt. Das Brett erscheint, wenn BEIDES
+// fertig ist; so verdeckt die Ziehung auch die Generierungszeit.
+function loadMixLevel() {
+  const e = state.endless;
+  const m = e.mix;
+  const pool = mixPool();
+  const pick = pickMixLevel(pool, MIX_CATALOG, m.prev) || pickMixLevel({}, MIX_CATALOG, m.prev);
+  m.prev = pick.game; m.game = pick.game; m.diff = pick.diff;
+  const ids = MIX_CATALOG.filter((g) => mixGameOn(pool, g.id, MIX_CATALOG)).map((g) => g.id);
+  state.isTrainingGame = false;
+  state.screen = 'game';
+  state.generating = true;
+  state.mixReveal = {
+    reel: mixReel(ids.length ? ids : [pick.game], pick.game, 12).map((id) => ({ id, logo: gameMeta(id).logo })),
+    game: pick.game, diff: pick.diff, level: e.level, seq: Date.now(),
+  };
+  log('game', 'Mix-Level gezogen', { level: e.level, game: pick.game, difficulty: pick.diff });
+  const reveal = new Promise((r) => setTimeout(r, MIX_REVEAL_MS));
+  const stillMine = () => state.endless.active && state.endless.mix === m;
+  requestAnimationFrame(() => setTimeout(() => {
+    if (!stillMine()) return;
+    if (currentGame.id !== pick.game) switchGame(pick.game, { force: true });
+    const t0 = performance.now();
+    const gen = generateAsync({ difficulty: pick.diff }).catch((err) => {
+      log('game', 'Mix-Generierung fehlgeschlagen, synchroner Versuch', err);
+      return generatePuzzle({ difficulty: pick.diff });
+    });
+    Promise.all([gen, reveal]).then(([puzzle]) => {
+      if (!stillMine()) return;
+      log('game', 'Mix-Level generiert', { level: e.level, game: pick.game, difficulty: pick.diff, tookMs: Math.round(performance.now() - t0) });
+      finishEndlessLevel(puzzle);
+      state.mixReveal = null;
+    }).catch((err) => {
+      log('error', 'Mix-Level konnte nicht geladen werden', err);
+      state.generating = false; state.mixReveal = null;
+      showToast(t('mix.loadFailed'), 'error', 3500);
+    });
+  }, 30));
+}
+function resumeMix() {
+  const r = state.resumeAvailableMix;
+  if (!r) return;
+  coopReset();
+  if (currentGame.id !== r.game && !switchGame(r.game, { force: true })) return;
+  state.endlessSummary = null;
+  state.endless = freshMixRun(r.mix || {});
+  state.endless.mix.game = r.game;
+  navStack = [() => { navigate('home'); }];
+  log('game', 'Mix fortgesetzt', { level: state.endless.level, game: r.game, pending: !!r.pending });
+  if (r.pending || !r.snap || !r.snap.puzzle) { loadMixLevel(); return; }
+  const g = r.snap;
+  if (g.marks) {
+    if (!Array.isArray(g.markedBy)) g.markedBy = g.marks.map((row) => row.map(() => null));
+    for (let i = 0; i < g.marks.length; i++) {
+      if (!Array.isArray(g.markedBy[i])) g.markedBy[i] = g.marks[i].map(() => null);
+      for (let c = 0; c < g.marks[i].length; c++) if (g.marks[i][c] !== 'none' && !g.markedBy[i][c]) g.markedBy[i][c] = LOCAL_PLAYER_ID;
+    }
+  }
+  state.isTrainingGame = false;
+  state.screen = 'game';
+  navigate('game');
+  loadPuzzleIntoState(g.puzzle, g);
+  startTimer();
+  requestWakeLock();
+}
 function closeEndlessSummary() {
   const wasCoop = !!(state.endlessSummary && state.endlessSummary.coop);
   state.endlessSummary = null; state.status = 'idle';
@@ -3854,6 +4036,13 @@ function quitToHome() {
   //  • COOP-Endlos ist eine Live-Session (nicht fortsetzbar) → werten & beenden.
   if (state.endless.active) {
     if (state.endless.coop) { endlessAbort(); }
+    else if (state.endless.mix) {
+      // Mix bleibt fortsetzbar: mitten im Level den Stand sichern; zwischen zwei
+      // Leveln liegt der „nächstes Level"-Marker schon (endlessLevelSolved).
+      if (state.status === 'playing' && state.puzzle && !state.mixReveal) saveMixRun(mixRunSnapshot());
+      state.mixReveal = null;
+      state.endless = { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0, lifeLossBy: [], accumMs: 0 };
+    }
     else {
       if (state.status === 'playing' && state.puzzle) saveActiveGameEndless(endlessSnapshot());
       state.endless = { active: false, coop: false, advancing: false, level: 0, lives: 0, hints: 0, score: 0, coins: 0, best: 0, lifeLossBy: [], accumMs: 0 };
@@ -3953,7 +4142,8 @@ function canInviteToSolo() {
   // Klassische Solo-Partie ODER ein Solo-Endlos-Lauf (noch nicht coop). Beide
   // lassen sich mitten im Spiel live zu Coop umwandeln.
   const soloClassic = state.saveSlot === 'solo';
-  const soloEndless = state.endless.active && !state.endless.coop;
+  // Ein Mix-Lauf springt zwischen den Spielen — als Coop-Runde gibt es ihn (noch) nicht.
+  const soloEndless = state.endless.active && !state.endless.coop && !state.endless.mix;
   return (soloClassic || soloEndless) && !state.isTrainingGame && !state.coop.active
     && !state.race.active && !state.team.active && state.status === 'playing';
 }
@@ -4162,6 +4352,12 @@ function persistGame() {
   // Level"-Marker gespeichert (s. endlessLevelSolved). Coop-Endlos ist eine
   // Live-Session (kein Fortsetzen hier).
   if (state.saveSlot === 'endless' || state.endless.active) {
+    if (state.endless.active && state.endless.mix) {
+      // Während der Ziehung liegt noch das GELÖSTE Brett des letzten Levels im
+      // Zustand — das darf den Marker „nächstes Level" nicht überschreiben.
+      if (state.status === 'playing' && state.puzzle && !state.mixReveal) saveMixRun(mixRunSnapshot());
+      return;
+    }
     if (state.endless.active && !state.endless.coop && state.status === 'playing' && state.puzzle) {
       const snap = endlessSnapshot();
       saveActiveGameEndless(snap);
@@ -4366,6 +4562,7 @@ function deleteSave(g) {
 }
 
 function refreshResume() {
+  refreshMixResume();
   let g = loadActiveGame();
   // Ein bereits VOLLSTÄNDIG gelöstes Brett ist faktisch abgeschlossen und darf
   // nie als „Fortsetzen" erscheinen (sonst lädt man ein 100%-Brett, das keine
@@ -6538,7 +6735,7 @@ function currentGameInfo() {
   if (!gameSessionActive() || !state.puzzle) return null;
   return {
     id: currentGame.id,   // welches Spiel (Freunde-Liste zeigt den Namen)
-    mode: state.coop.active ? (state.race.active ? 'race' : state.team.active ? 'team' : 'coop') : 'solo',
+    mode: state.coop.active ? (state.race.active ? 'race' : state.team.active ? 'team' : 'coop') : (state.endless.mix ? 'mix' : 'solo'),
     difficulty: state.puzzle.difficulty || null,
     size: `${state.puzzle.rows}×${state.puzzle.cols}`,
     pct: progressPct(),
@@ -6722,12 +6919,14 @@ function reloadGameScopedState() {
   refreshResume();
 }
 // Liefert true, wenn gewechselt wurde (oder schon das Spiel lief).
-function switchGame(id) {
+// `force`: nur der Mix-Lauf wechselt mitten in seiner Session das Spiel — ZWISCHEN
+// zwei Leveln, wenn kein Brett offen ist.
+function switchGame(id, opts = {}) {
   if (id === currentGame.id) return true;
   if (!gameById(id)) return false;
   // Mitten in einer Partie/Lobby wird nicht gewechselt — das darf eine laufende
   // Runde nie abreißen.
-  if (gameSessionActive()) { showToast(t('games.busy'), 'info', 2500); return false; }
+  if (!opts.force && gameSessionActive()) { showToast(t('games.busy'), 'info', 2500); return false; }
   const t0 = performance.now();
   const von = currentGame.id;
   persistGame();
@@ -7473,7 +7672,11 @@ const App = {
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, friendInRoom, anyFriendOnline, friendActivityText,
       skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
-      GAME_LIST, currentGame, switchGame, gameWheelItems: computed(() => GAME_LIST.map((g) => ({ id: g.id, logo: g.logo, name: t(g.nameKey) }))),
+      GAME_LIST, currentGame, switchGame, gameMeta,
+      gameWheelItems: computed(() => GAME_LIST.map((g) => ({ id: g.id, logo: g.logo, name: t(g.nameKey) })).concat([{ id: MIX_ID, logo: MIX_LOGO, name: t('mix.name') }])),
+      wheelCurrent: computed(() => (state.mixOn ? MIX_ID : currentGame.id)),
+      onWheelSelect, openMix, startMix, resumeMix, mixInfo, mixToggleGame, mixToggleDiff, mixPreset, ladderStep, MIX_LOGO, ENDLESS_START_LIVES: ENDLESS_CFG.startLives,
+      mixStrip: computed(() => { const g = mixInfo.value.games.filter((x) => x.on); const l = g.length ? g : mixInfo.value.games; return l.concat(l); }),
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL, BRAND_LOGO,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
@@ -7494,6 +7697,21 @@ const App = {
     <!-- Gemeinsame SVG-Defs (Verläufe/Symbole) für alle Abzeichen-Medaillen, EINMAL im Dokument. -->
     <span class="badge-defs-holder" v-html="badgeDefs()" aria-hidden="true"></span>
     <span class="badge-defs-holder" v-html="winShapeDefs()" aria-hidden="true"></span>
+
+    <!-- Mix: die Ziehung vor jedem Level — eine Walze über die Spiel-Logos, die
+         auf dem gezogenen Spiel einrastet, danach erscheinen Name und Stufe.
+         Verdeckt zugleich die Generierung (läuft parallel). -->
+    <div v-if="state.mixReveal" :key="state.mixReveal.seq" class="mix-reveal" role="status"
+         :aria-label="t('mix.levelN', { n: state.mixReveal.level }) + ': ' + t(gameMeta(state.mixReveal.game).nameKey) + ', ' + t('difficulty.' + state.mixReveal.diff)">
+      <div class="mr-card" :style="{ '--c': ladderStep(state.mixReveal.diff).accent }">
+        <div class="mr-kicker">{{ t('mix.levelN', { n: state.mixReveal.level }) }}</div>
+        <div class="mr-window"><span class="mr-frame"></span><div class="mr-reel" :style="{ '--n': state.mixReveal.reel.length }"><img v-for="(r, i) in state.mixReveal.reel" :key="i" :src="r.logo" alt="" draggable="false"></div></div>
+        <div class="mr-result">
+          <b>{{ t(gameMeta(state.mixReveal.game).nameKey) }}</b>
+          <span class="mr-diff"><span class="ei" v-html="ic(ladderStep(state.mixReveal.diff).emoji)"></span>{{ t('difficulty.' + state.mixReveal.diff) }}</span>
+        </div>
+      </div>
+    </div>
 
     <!-- ══ HOME ══ -->
     <section v-if="state.screen==='home'" class="screen home">
@@ -7519,7 +7737,7 @@ const App = {
         <!-- Spielauswahl = rotierende Scheibe (js/gamewheel.js): das laufende Spiel
              groß in der Mitte, ziehen/antippen dreht ein anderes hinein; der
              Wechsel geschieht ohne Neuladen (switchGame). -->
-        <game-wheel :items="gameWheelItems" :current="currentGame.id" :label="t('games.choose')" @select="switchGame"></game-wheel>
+        <game-wheel :items="gameWheelItems" :current="wheelCurrent" :label="t('games.choose')" @select="onWheelSelect"></game-wheel>
         <h1 class="brand-title">Coop Number Games</h1>
         <!-- Profil-Chip: öffnet den Prestige-Screen. Zeigt das ausgerüstete
              verdiente Abzeichen (oder eine Einladung, eins zu verdienen). -->
@@ -7533,7 +7751,12 @@ const App = {
       <!-- KEIN Neuaufbau beim Spielwechsel: die Knöpfe sind in allen Spielen
            dieselben und bleiben einfach stehen (vorher blendete die ganze
            Spalte aus und wieder ein — „ruckartig"). -->
-      <div class="home-actions">
+      <!-- Zwei Menüs in EINER Rasterzelle übereinander: das des Spiels und das
+           von Mix. Die Zelle ist immer so hoch wie das größere — beim Drehen der
+           Scheibe auf Mix (oder zurück) blendet nur der Inhalt über, darunter
+           verschiebt sich nichts (feste Positionen). -->
+      <div class="home-menu">
+      <div class="home-actions" :class="{ off: state.mixOn }" :inert="state.mixOn" :aria-hidden="state.mixOn ? 'true' : null">
         <button class="btn btn-primary mode-btn" @click="coopReset(); navTo('setup')">
           <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
@@ -7549,6 +7772,23 @@ const App = {
           <button class="btn btn-ghost" @click="navTo('stats')"><span class="btn-ic"><span class="ei" v-html="ic('chart')"></span></span> {{ t('home.stats') }}</button>
           <button class="btn btn-ghost" @click="navTo('history')"><span class="btn-ic"><span class="ei" v-html="ic('clock')"></span></span> {{ t('home.history') }}</button>
         </div>
+      </div>
+      <!-- Mix (Zufallsmodus über alle Spiele): Start, die aktuelle Auswahl als
+           Karte mit den Logos aller Spiele, darunter die Mix-Rekorde. -->
+      <div class="home-mix" :class="{ off: !state.mixOn }" :inert="!state.mixOn" :aria-hidden="!state.mixOn ? 'true' : null">
+        <button class="btn btn-primary mode-btn mix-play-btn" @click="openMix">
+          <span class="btn-ic"><span class="ei" v-html="ic('dice')"></span></span><span class="btn-tx"><b>{{ t('mix.play') }}</b><small>{{ t('mix.sub') }}</small></span>
+        </button>
+        <button class="mix-pool-card" @click="openMix">
+          <span class="mpc-head"><b>{{ t('mix.poolTitle') }}</b><span class="ei mpc-chev" v-html="ic('chevron-right')"></span></span>
+          <span class="mpc-logos"><img v-for="g in mixInfo.games" :key="g.id" :src="g.logo" alt="" :class="{ off: !g.on }" draggable="false"></span>
+          <span class="mpc-sum">{{ t('mix.summary', { g: mixInfo.summary.games, n: mixInfo.summary.totalGames, c: mixInfo.summary.combos }) }}</span>
+        </button>
+        <div class="home-grid mix-records">
+          <div class="mix-rec"><span class="ei" v-html="ic('trophy')"></span><b>{{ state.mixStats.best || 0 }}</b><small>{{ t('mix.best') }}</small></div>
+          <div class="mix-rec"><span class="ei" v-html="ic('flag')"></span><b>{{ state.mixStats.runs || 0 }}</b><small>{{ t('mix.runs') }}</small></div>
+        </div>
+      </div>
       </div>
       <!-- Fortsetzen-Bereich: eine EIGENE Zone UNTER den Modus-Knoepfen. Er
            waechst in den freien Platz darunter und verschiebt nichts — vorher
@@ -7568,7 +7808,16 @@ const App = {
              Weitere haengt jetzt am Erweiterungs-Knopf, der optisch am
              Solo-Knopf klebt und benannt ist ("Weitere Spielstaende (N)")
              statt als loser Textlink danebenzustehen. -->
-        <div v-if="soloResume || state.resumeAvailableCoop || state.saves.length" class="resume-stack">
+        <div v-if="state.mixOn && state.resumeAvailableMix" key="mix" class="resume-stack">
+          <button class="btn btn-resume mix" @click="resumeMix">
+            <span class="btn-ic"><img class="mix-resume-logo" :src="gameMeta(state.resumeAvailableMix.game).logo" alt=""></span>
+            <span class="btn-tx"><b>{{ t('mix.resume') }}</b>
+              <small>{{ t('mix.levelN', { n: state.resumeAvailableMix.mix.level || 1 }) }} · {{ t(gameMeta(state.resumeAvailableMix.game).nameKey) }}</small>
+            </span>
+            <span class="badge-endless">{{ t('mix.name') }}</span>
+          </button>
+        </div>
+        <div v-else-if="!state.mixOn && (soloResume || state.resumeAvailableCoop || state.saves.length)" key="game" class="resume-stack">
           <div v-if="soloResume" class="resume-group" :class="{ expandable: !!savesLabel }">
             <button class="btn btn-resume" :class="{ endless: soloResume.endless }" @click="resumeSolo">
               <span class="btn-ic"><span class="ei" v-html="ic(soloResume.endless ? 'meteor' : 'play')"></span></span>
@@ -7608,6 +7857,49 @@ const App = {
 
 
     <!-- ══ SETUP (Slider-Schwierigkeitsauswahl mit morphendem Hintergrund) ══ -->
+    <!-- ══ MIX: Zufallsmodus über alle Spiele ══ -->
+    <section v-else-if="state.screen==='mix'" class="screen mix-screen">
+      <div class="mix-bg" aria-hidden="true"><b></b><b></b><b></b><b></b></div>
+      <header class="topbar"><button class="icon-btn" @click="goBack()" :aria-label="t('common.back')">‹</button><h2>{{ t('mix.name') }}</h2><span class="icon-btn-spacer"></span></header>
+      <div class="mix-body">
+        <div class="mix-hero">
+          <div class="mix-medal" aria-hidden="true">
+            <div class="mm-ring"></div>
+            <div class="mm-window"><div class="mm-strip" :style="{ '--n': mixStrip.length / 2 }"><img v-for="(g, i) in mixStrip" :key="i" :src="g.logo" alt="" draggable="false"></div></div>
+            <span class="mm-q">?</span>
+          </div>
+          <div class="mix-eyebrow">{{ t('mix.eyebrow') }}</div>
+          <h3 class="mix-title">{{ t('mix.name') }}</h3>
+          <p class="mix-sub">{{ t('mix.sub') }}</p>
+        </div>
+        <div class="mix-tiles">
+          <div><b>{{ mixInfo.summary.combos }}</b><small>{{ t('mix.combos') }}</small></div>
+          <div><b>{{ state.mixStats.best || 0 }}</b><small>{{ t('mix.best') }}</small></div>
+          <div><b>{{ ENDLESS_START_LIVES }}</b><small>{{ t('mix.lives') }}</small></div>
+        </div>
+        <div class="mix-presets" role="group" :aria-label="t('mix.presetLabel')">
+          <button v-for="k in ['all', 'easy', 'mid', 'hard']" :key="k" class="mix-chip" :class="{ on: mixInfo.preset === k }" @click="mixPreset(k)">{{ t('mix.preset.' + k) }}</button>
+        </div>
+        <div class="mix-pool">
+          <div v-for="g in mixInfo.games" :key="g.id" class="mix-row" :class="{ off: !g.on }">
+            <button class="mix-game" :aria-pressed="g.on ? 'true' : 'false'" @click="mixToggleGame(g.id)">
+              <img :src="g.logo" alt="" draggable="false"><span class="mg-name">{{ t(g.nameKey) }}</span><span class="mg-sw" :class="{ on: g.on }"><i></i></span>
+            </button>
+            <div class="mix-dots">
+              <button v-for="d in g.diffs" :key="d.id" class="mix-dot" :class="{ on: d.on, none: !d.has }" :disabled="!d.has"
+                      :style="{ '--c': d.accent }" :title="t('difficulty.' + d.id)" :aria-label="t(g.nameKey) + ' – ' + t('difficulty.' + d.id)"
+                      :aria-pressed="d.on ? 'true' : 'false'" @click="mixToggleDiff(g.id, d.id)"><span class="ei" v-html="ic(d.icon)"></span></button>
+            </div>
+          </div>
+          <p class="mix-hint">{{ t('mix.poolHint') }}</p>
+        </div>
+      </div>
+      <footer class="mix-foot">
+        <p v-if="!mixInfo.summary.combos" class="mix-empty">{{ t('mix.empty') }}</p>
+        <button class="btn btn-primary mix-start" :disabled="!mixInfo.summary.combos" @click="startMix"><span class="ei" v-html="ic('dice')"></span> {{ t('mix.start') }}</button>
+      </footer>
+    </section>
+
     <section v-else-if="state.screen==='setup'" class="screen setup setup-slider" :style="diffVars(state.sel.difficulty)">
       <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
       <header class="topbar setup-top">
@@ -7682,7 +7974,7 @@ const App = {
           <div class="hud-item timer" :title="state.endless.active ? t('endless.levelTime') : null"><span class="timer-icon"><span class="ei" v-html="ic('clock')"></span></span><span>{{ fmtTime(state.elapsed) }}</span></div>
           <!-- Endlos: zusätzlich der GESAMT-Timer über den ganzen Lauf (Sanduhr). -->
           <div v-if="state.endless.active" class="hud-item timer total" :title="t('endless.totalTime')"><span class="timer-icon"><span class="ei" v-html="ic('hourglass')"></span></span><span>{{ fmtTime(endlessTotalMs()) }}</span></div>
-          <div v-if="state.endless.active" class="hud-item endless-lvl" :title="t('solo.endless')"><span class="ei" v-html="ic('meteor')"></span><b>{{ state.endless.level }}</b></div>
+          <div v-if="state.endless.active" class="hud-item endless-lvl" :class="{ mix: !!state.endless.mix }" :title="state.endless.mix ? t('mix.name') : t('solo.endless')"><span class="ei" v-html="ic(state.endless.mix ? 'dice' : 'meteor')"></span><b>{{ state.endless.level }}</b></div>
         </div>
         <div class="top-actions">
           <!-- Werkzeuge sitzen in der KOPFLEISTE, nicht in einer eigenen Reihe:
@@ -7970,10 +8262,10 @@ const App = {
       <div v-if="state.status==='won'" class="overlay">
         <div class="result-card win rc" :class="{ perfect: state.perfectWin }">
           <div class="rc-head">
-            <div class="result-emoji"><span class="ei" v-html="ic(state.endless.active ? 'meteor' : 'party')"></span></div>
+            <div class="result-emoji"><img v-if="state.endless.mix" class="rc-gamelogo" :src="gameMeta(currentGame.id).logo" alt=""><span v-else class="ei" v-html="ic(state.endless.active ? 'meteor' : 'party')"></span></div>
             <div class="rc-headtx">
               <h2>{{ state.endless.active ? t('endless.levelDone', { n: state.endless.score }) : winTitle }}</h2>
-              <div v-if="state.puzzle" class="result-diff">{{ t('difficulty.' + state.puzzle.difficulty) }} · {{ state.puzzle.rows }}×{{ state.puzzle.cols }}</div>
+              <div v-if="state.puzzle" class="result-diff"><template v-if="state.endless.mix">{{ t(gameMeta(currentGame.id).nameKey) }} · </template>{{ t('difficulty.' + state.puzzle.difficulty) }} · {{ state.puzzle.rows }}×{{ state.puzzle.cols }}</div>
             </div>
           </div>
           <div v-if="state.perfectWin || state.newHighscore || state.wouldHaveBeenBest" class="rc-badges">
@@ -8110,14 +8402,18 @@ const App = {
       <div v-if="state.endlessSummary" class="overlay">
         <div class="result-card rc" :class="{ 'endless-record': state.endlessSummary.newBest }">
           <div class="rc-head">
-            <div class="result-emoji"><span class="ei" v-html="ic('meteor')"></span></div>
+            <div class="result-emoji"><img v-if="state.endlessSummary.mix" class="rc-gamelogo" :src="MIX_LOGO" alt=""><span v-else class="ei" v-html="ic('meteor')"></span></div>
             <div class="rc-headtx">
-              <h2>{{ t('endless.overTitle') }}</h2>
+              <h2>{{ state.endlessSummary.mix ? t('mix.overTitle') : t('endless.overTitle') }}</h2>
               <div class="endless-reached">{{ t('endless.reached', { n: state.endlessSummary.score }) }}</div>
             </div>
           </div>
+          <!-- Mix: welches Spiel wie oft geschafft wurde -->
+          <div v-if="state.endlessSummary.mix && state.endlessSummary.mix.length" class="mix-played" :aria-label="t('mix.played')">
+            <span v-for="p in state.endlessSummary.mix" :key="p.id" class="mix-played-chip"><img :src="p.logo" alt=""><b>{{ p.n }}</b></span>
+          </div>
           <div v-if="state.endlessSummary.totalMs > 0" class="result-diff"><span class="ei" v-html="ic('hourglass')"></span> {{ t('endless.totalTime') }}: {{ fmtTime(state.endlessSummary.totalMs) }}</div>
-          <div v-if="state.endlessSummary.newBest" class="rc-badges"><div class="highscore-badge">{{ t('endless.record') }}</div></div>
+          <div v-if="state.endlessSummary.newBest" class="rc-badges"><div class="highscore-badge">{{ state.endlessSummary.mix ? t('mix.record') : t('endless.record') }}</div></div>
           <div v-else class="result-msg">{{ t('endless.best', { n: state.endlessSummary.best }) }}</div>
           <div v-if="state.endlessSummary.coins > 0" class="coin-reward"><span class="ei" v-html="ic('coin')"></span> +{{ state.endlessSummary.coins }} <span class="coin-total">({{ t('wallet.total', { n: state.wallet.balance }) }})</span></div>
           <div class="rc-actions">

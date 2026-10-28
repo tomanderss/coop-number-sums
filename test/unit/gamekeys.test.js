@@ -34,7 +34,7 @@ describe('Spielspezifische vs. kontoweite Speicher-Schluessel', () => {
     activeGameEndless: 'cns_active_game_endless', saves: 'cns_saves',
     savesGone: 'cns_saves_gone', stats: 'cns_stats', history: 'cns_history',
     achievements: 'cns_achievements', missions: 'cns_missions', race: 'cns_race',
-    completedGames: 'cns_completed_games',
+    completedGames: 'cns_completed_games', mixStats: 'cns_mix_stats',
   };
 
   test('das Standardspiel behaelt seine Schluessel unveraendert', () => {
@@ -72,7 +72,7 @@ describe('Spielspezifische vs. kontoweite Speicher-Schluessel', () => {
     }
     // Geraete-Identitaet, Revisionszaehler, letzte Sync-Zeit, gesehene Version
     // und die Spielauswahl selbst sind geraete- bzw. kontoweit.
-    for (const key of ['cns_device_id', 'cns_data_rev', 'cns_last_sync', 'cns_seen_version', 'cns_game']) {
+    for (const key of ['cns_device_id', 'cns_data_rev', 'cns_last_sync', 'cns_seen_version', 'cns_game', 'cns_mix_run', 'cns_mix_on']) {
       assert.equal(gameScopedKey(key, 'zweitspiel'), key, `${key} darf sich nicht je Spiel aufspalten`);
     }
   });

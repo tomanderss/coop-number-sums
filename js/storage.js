@@ -40,6 +40,10 @@ const KEYS = {
   ACTIVE_GAME_BACKUP: 'cns_active_game_backup', // letzter durch Divergenz verdrängter Solo-Stand (nie still gelöscht)
   PENDING_JOIN: 'cns_pending_join', // Beitritt, der nach einem Spielwechsel nachgeholt wird; PER GERAET, kurzlebig, NIE synct
   GAME: 'cns_game',             // zuletzt gespieltes Spiel (Kennung aus js/games/registry.js); PER GERAET, NIE synct
+  // ── Zufallsmodus „Mix" (js/mix.js) ──
+  MIX_STATS: 'cns_mix_stats',   // { best, runs, levels } — Mix-Bestwerte, KONTOWEIT (gehört keinem Spiel), SYNCT (Merge per Maximum)
+  MIX_RUN: 'cns_mix_run',       // laufender Mix-Lauf zum Fortsetzen { mix, game, snap|pending }; PER GERAET, NIE synct
+  MIX_ON: 'cns_mix_on',         // steht die Scheibe auf „Mix"? PER GERAET, NIE synct (wie cns_game)
 };
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
 // Bewusst OHNE COOP_SESSION (kurzlebiges Reconnect-Token)/Backups (gerätelokale
@@ -57,6 +61,7 @@ const USER_DATA_KEYS = new Set([
   'cns_stats', 'cns_daily',
   'cns_history', 'cns_achievements', 'cns_missions', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
   'cns_completed_games', 'cns_wallet_log', 'cns_play_samples', 'cns_saves', 'cns_saves_gone',
+  'cns_mix_stats',
 ]);
 // Wie lange „Coop fortsetzen" nach der letzten Sicherung angeboten wird. Der
 // Raum lebt in der RTDB weiter, solange ihn niemand aktiv verlässt (Präsenz-
@@ -694,6 +699,7 @@ export function collectExportData(type = 'manual') {
     wallet: load(KEYS.WALLET, {}),
     walletLog: loadWalletLog(),   // Geldverlauf reist mit (Union-Merge beim Import — Herkunft bleibt geräteübergreifend erhalten)
     completedGames: load(KEYS.COMPLETED_GAMES, []),  // Belohnungs-Idempotenz (Union-Merge beim Import)
+    mixStats: load(KEYS.MIX_STATS, {}),   // Mix-Bestwerte (kontoweit, Merge per Maximum)
     // Rolle NICHT mitsynchronisieren — sie ist serverseitig autoritativ
     // (/users/{uid}/profile/role) und darf nie über den Datensnapshot reisen.
     profile: (() => { const { role, ...rest } = load(KEYS.PROFILE, {}); return rest; })(),
@@ -729,6 +735,26 @@ export function restoreGameChoice() {
   return setActiveGameId(load(KEYS.GAME, DEFAULT_GAME_ID));
 }
 /** Spiel wechseln und die Wahl fuer den naechsten Start sichern. */
+// ─── Zufallsmodus „Mix" ──────────────────────────────────────────────────────
+// Mix ist KEIN Spiel der Registry (kein Brett, keine eigenen Spielstände): ein
+// Lauf springt von Level zu Level zwischen den echten Spielen. Deshalb leben
+// seine Daten ausserhalb der spielspezifischen Schluessel.
+export function loadMixStats() { return load(KEYS.MIX_STATS, {}) || {}; }
+export function saveMixStats(v) { save(KEYS.MIX_STATS, v || {}); }
+/** Einen beendeten Lauf werten. Liefert { stats, newBest }. */
+export function recordMixRun(score) {
+  const s = loadMixStats();
+  const n = Math.max(0, Number(score) || 0);
+  const newBest = n > (Number(s.best) || 0);
+  const stats = { ...s, best: Math.max(Number(s.best) || 0, n), runs: (Number(s.runs) || 0) + 1, levels: (Number(s.levels) || 0) + n };
+  saveMixStats(stats);
+  return { stats, newBest };
+}
+export function loadMixRun() { return load(KEYS.MIX_RUN, null); }
+export function saveMixRun(v) { if (v) save(KEYS.MIX_RUN, v); else remove(KEYS.MIX_RUN); }
+export function loadMixOn() { return !!load(KEYS.MIX_ON, false); }
+export function saveMixOn(v) { if (v) save(KEYS.MIX_ON, true); else remove(KEYS.MIX_ON); }
+
 export function chooseGame(id) {
   const set = setActiveGameId(id);
   localStorage.setItem(KEYS.GAME, JSON.stringify(set));
@@ -753,7 +779,7 @@ export function takePendingJoin(now = Date.now()) {
 /** Statistik des LAUFENDEN Spiels zuruecksetzen (Einstellungen ▸ Daten). */
 export function clearStats() { remove(KEYS.STATS); }
 // Kontoweit: gilt fuer ALLE Spiele desselben Kontos.
-export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inventory', 'profile'];
+export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inventory', 'profile', 'mixStats'];
 // Spieleigen: gehoert genau EINEM Spiel und darf sich nie mit einem anderen mischen.
 export const GAME_FIELDS = [
   'activeGame', 'activeGameCoop', 'activeGameEndless', 'saves', 'savesGone', 'stats',
@@ -963,6 +989,7 @@ export function importFromFile(jsonText) {
   if (data.settings) save(KEYS.SETTINGS, data.settings);
   if (data.stats) save(KEYS.STATS, data.stats);
   if (data.daily) save(KEYS.DAILY, data.daily);
+  if (data.mixStats) save(KEYS.MIX_STATS, data.mixStats);
   if (data.history) save(KEYS.HISTORY, data.history);
   if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
   if (data.missions) save(KEYS.MISSIONS, data.missions);
@@ -1047,6 +1074,9 @@ export function deleteAllData() {
     try { localStorage.removeItem(key); } catch (e) { log('storage', `Entfernen von "${key}" fehlgeschlagen`, e); }
   }
   remove(KEYS.GAME);
+  remove(KEYS.MIX_STATS);
+  remove(KEYS.MIX_RUN);
+  remove(KEYS.MIX_ON);
   // DEVICE_ID bewusst behalten: es ist die Geräte-Identität (Handoff), keine Nutzdaten.
   clearLog();
 }

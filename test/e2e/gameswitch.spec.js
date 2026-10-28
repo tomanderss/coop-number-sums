@@ -19,8 +19,9 @@ async function dragWheel(page, dx) {
 test.describe('Spielauswahl', () => {
   test('alle Spiele stehen auf der Scheibe, Number Sums ist voreingestellt', async ({ page }) => {
     await gotoApp(page);
-    await expect(page.locator('.game-wheel .gw-item')).toHaveCount(4);
-    expect(await page.locator('.game-wheel .gw-item').evaluateAll((els) => els.map((e) => e.dataset.game))).toEqual(['numbersums', 'mathcross', 'rectangles', 'numberpath']);
+    // Alle Spiele, dahinter immer Mix (Zufallsmodus über alle Spiele).
+    await expect(page.locator('.game-wheel .gw-item')).toHaveCount(5);
+    expect(await page.locator('.game-wheel .gw-item').evaluateAll((els) => els.map((e) => e.dataset.game))).toEqual(['numbersums', 'mathcross', 'rectangles', 'numberpath', 'mix']);
     await expect(page.locator('.gw-item.on')).toHaveAttribute('data-game', 'numbersums');
     await expect(page.locator('.brand-title')).toContainText('Number Games');
   });
