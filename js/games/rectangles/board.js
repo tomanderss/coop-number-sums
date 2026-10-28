@@ -185,7 +185,7 @@ export function removeUserRect(rect) {
 // ── Ziehen ───────────────────────────────────────────────────────────────────
 const DRAG_SLOP = 6;        // ab so vielen Pixeln wird aus einem Tipp ein Ziehen
 const OVERSHOOT = 0.35;     // so weit (in Zellen) darf die Vorschau über den Rand gehen
-const BREAK = 0.6;          // so weit (in Zellen) muss man über eine fremde Kante hinaus drücken
+const BREAK = 1;            // eine GANZE fremde Zelle muss überzogen sein, bevor es durchbricht (Nutzerwunsch)
 const GIVE = 0.24;          // so weit (in Zellen) gibt die Kante höchstens gummiartig nach
 let drag = null;            // { id, ar, ac, x0, y0, box, moved, cell, el, pass, q, touch, marks }
 let pan = null;             // { ids:Set, mx, my } — zwei Finger verschieben das gezoomte Brett
