@@ -185,6 +185,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    beim Zoomen erst am Fensterrand — statt am schmalen unsichtbaren Rahmen —
    beschnitten wird. Alle übrigen Screens bleiben bewusst schmal/zentriert.
    Muss zur desktopBoard()-Media-Query in app.js passen. */
+/* Im Spiel steht die Kopfleiste (Leben, Zeit, Zoom) direkt unter der
+   Statusleiste. Neuere iOS-Versionen legen dort einen weichen Unschärfe-/
+   Abblend-Saum über den Seiteninhalt, der ein Stück unter die Statusleiste
+   reicht — die Zeit wirkte dadurch leicht verschwommen (gemeldet). Auf Geräten
+   MIT Statusleisten-Einzug (safe-area-inset-top > 0) rückt die Kopfleiste deshalb
+   bis zu 12 px tiefer; ohne Einzug (Desktop, Android-Browser, Querformat) bleibt
+   alles, wie es war. */
+.app.app-game { padding-top: calc(env(safe-area-inset-top) + 12px + min(12px, env(safe-area-inset-top))); }
 @media (min-width: 720px) and (pointer: fine) {
   .app.app-game { max-width: min(96vw, 1200px); }
 }
@@ -1246,7 +1254,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    `ch` = Breite der Ziffer 0; der Doppelpunkt ist schmaler, die Reserve liegt
    also ueber dem tatsaechlichen Bedarf. */
 .hud-item.timer { min-width: var(--timebox); justify-content: center; }
-.timer-icon { font-size: 0.75em; line-height: 1; }
+.timer-icon { font-size: 0.85em; line-height: 1; }
+/* Uhr/Sanduhr über der Zeit: bei ~12 px wirkt ein dünner Kreis auf dem Handy
+   verwaschen (gemeldet: „die Uhr ist unscharf") — kräftigerer Strich. */
+.timer-icon svg { stroke-width: 2.5; }
 /* Endlos-Gesamt-Timer: gleiche Optik wie der Level-Timer, aber akzentuiert (Sanduhr)
    → auf den ersten Blick als „Zeit des ganzen Laufs" vom Level-Timer unterscheidbar. */
 .hud-item.timer.total { color: var(--accent); }

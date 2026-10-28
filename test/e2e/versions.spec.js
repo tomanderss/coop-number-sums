@@ -25,10 +25,23 @@ test('wer zuletzt 1.240 sah, wird einmal in Version 2 begrüßt — ohne leeres 
   await expect(page.locator('.whatsnew-badge')).toHaveCount(0);
   await modal.locator('.btn-primary').click();
   await expect(modal).toHaveCount(0);
-  // 1.240 = 2.16: inhaltlich nichts Neues, also auch kein leeres Pop-up danach.
-  const build = await page.evaluate(() => window.__cns.state && document.querySelector('.home-version')?.textContent.trim());
-  await expect(page.locator('.whatsnew-badge')).toHaveCount(0);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cns_seen_version')))).toBe(build.replace(/^v/, ''));
+  // 1.240 = 2.16: „Was ist neu" zeigt nur, was NACH 2.16 kam — bei 2.16 selbst
+  // gar nichts (kein leeres Pop-up), bei 2.17+ genau die neueren Einträge.
+  const build = (await page.locator('.home-version').textContent()).trim().replace(/^v/, '');
+  const [maj, min] = build.split('.').map(Number);
+  const newer = maj === 2 ? min - 16 : null;
+  if (newer === 0) {
+    await expect(page.locator('.whatsnew-badge')).toHaveCount(0);
+  } else {
+    await expect(page.locator('.whatsnew-badge')).toBeVisible();
+    if (newer > 1) {
+      const versions = await page.locator('.whatsnew-multi .cl-head b').allTextContents();
+      expect(versions.length).toBe(newer);
+      expect(versions[versions.length - 1]).toBe('v2.17');
+    }
+    await page.locator('.modal-bg .btn-primary').click();
+  }
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cns_seen_version')))).toBe(build);
   await page.reload();
   await page.waitForSelector('#splash', { state: 'hidden', timeout: 10000 });
   await page.waitForTimeout(800);
