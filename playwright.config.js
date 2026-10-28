@@ -17,6 +17,9 @@ export default defineConfig({
     // deterministically lands on German (the app's primary/default market)
     // instead of Playwright's own en-US default.
     locale: 'de-DE',
+    // Seit Mix der Standard der Startseite ist, starten die Tests wie bisher auf
+    // einem Spiel (Number Sums). Tests für den Standard selbst setzen das zurück.
+    storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:8099', localStorage: [{ name: 'cns_mix_on', value: 'false' }] }] },
   },
   webServer: {
     // Node statt Python: im Playwright-Container des CI gibt es garantiert Node.

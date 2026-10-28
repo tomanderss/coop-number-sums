@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { wheelItemStyle, rubberBand, snapTarget } = await import('../../js/gamewheel.js');
+const { wheelItemStyle, snapTarget, wheelSlots, nearestSlot, mod } = await import('../../js/gamewheel.js');
 
 // Die Spielauswahl als rotierende Scheibe: reine Geometrie je Logo.
 describe('gamewheel', () => {
@@ -44,10 +44,23 @@ describe('gamewheel', () => {
     assert.match(s.transform, /scale\(0\.420\)/);
   });
 
-  test('Gummiband: innerhalb unverändert, außerhalb gedämpft', () => {
-    assert.equal(rubberBand(0.4, 1), 0.4);
-    assert.ok(rubberBand(-1, 1) > -1 && rubberBand(-1, 1) < 0);
-    assert.ok(rubberBand(2, 1) < 2 && rubberBand(2, 1) > 1);
+  test('Ring: rechts nach dem letzten Eintrag kommt wieder der erste', () => {
+    const sl = wheelSlots(5, 6);                       // Mitte auf dem letzten von 6
+    const at = (o) => sl.find((x) => Math.abs(x.o - o) < 1e-9);
+    assert.equal(at(0).idx, 5);
+    assert.equal(at(1).idx, 0);                         // rechts daneben: der erste
+    assert.equal(at(-1).idx, 4);
+    // Jeder Eintrag hat genau EIN Haupt-Exemplar (das nächstgelegene).
+    const prim = sl.filter((x) => x.primary).map((x) => x.idx).sort();
+    assert.deepEqual(prim, [0, 1, 2, 3, 4, 5]);
+    assert.equal(mod(-1, 6), 5);
+  });
+
+  test('Ring: der kürzeste Weg zu einem Eintrag', () => {
+    assert.equal(nearestSlot(5, 0, 6), 6);              // vom letzten zum ersten: ein Schritt nach rechts
+    assert.equal(nearestSlot(0, 5, 6), -1);             // vom ersten zum letzten: einer nach links
+    assert.equal(nearestSlot(13, 2, 6), 14);
+    assert.equal(snapTarget(5.6, 0), 6);                // ohne Anzahl: keine Enden
   });
 
   test('Einrasten: nächstes Logo, ein zügiger Wisch reicht für einen Schritt', () => {

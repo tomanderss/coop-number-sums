@@ -6,6 +6,13 @@
 // weich auf das nächste Spiel ein, ERST danach wird gewechselt (`select`) —
 // so stockt die Animation nie an der Arbeit des Wechsels.
 //
+// ENDLOS (Nutzerwunsch): die Scheibe ist ein RING — rechts nach dem letzten
+// Eintrag kommt wieder der erste. `st.pos` ist dafür eine fortlaufende
+// „virtuelle" Position; gerendert werden Plätze rund um sie (`wheelSlots`), jeder
+// Platz zeigt `items[mod(j, n)]`. Ein Spiel kann so links UND rechts auftauchen;
+// das nächstgelegene Exemplar trägt `data-game` (Tests/Antippen), die anderen
+// `data-copy`.
+//
 // Eigene Komponente mit eigenem Zustand: während des Ziehens zeichnet sich NUR
 // die Scheibe neu (ein paar Logos), nicht das Menü darunter. Bewegt werden
 // ausschließlich transform/opacity (Compositor; Lehre aus dem iOS-Skin-Absturz).
@@ -38,18 +45,38 @@ export function wheelItemStyle(o, spacing) {
     zIndex: String(100 - Math.round(a * 10)),
   };
 }
-// Gummiband jenseits der Enden: man spürt den Rand, statt dass die Scheibe hart stoppt.
-export function rubberBand(pos, max) {
-  if (pos < 0) return -Math.sqrt(-pos) * 0.35;
-  if (pos > max) return max + Math.sqrt(pos - max) * 0.35;
-  return pos;
-}
 // Auf welches Spiel die Scheibe nach dem Loslassen einrastet. Ein zügiger Wisch
 // (`velocity` in Logos/ms) reicht für einen Schritt, auch wenn die Hälfte nicht
 // erreicht wurde.
-export function snapTarget(pos, velocity, count) {
+// `count` = null → Ring ohne Enden (keine Begrenzung).
+export function snapTarget(pos, velocity, count = null) {
   const fling = Math.max(-0.6, Math.min(0.6, (velocity || 0) * 150));
-  return Math.max(0, Math.min(count - 1, Math.round(pos + fling)));
+  const t = Math.round(pos + fling);
+  return count == null ? t : Math.max(0, Math.min(count - 1, t));
+}
+export const mod = (j, n) => ((j % n) + n) % n;
+/**
+ * Die sichtbaren Plätze des Rings um die virtuelle Position `pos` (rein,
+ * unit-getestet): je Platz `{ j, idx, o, primary }` — `j` virtuelle Nummer,
+ * `idx` Eintrag, `o` Abstand zur Mitte, `primary` = nächstgelegenes Exemplar
+ * dieses Eintrags.
+ */
+export function wheelSlots(pos, n, visible = WHEEL_VISIBLE) {
+  if (!n) return [];
+  const out = [];
+  const lo = Math.ceil(pos - visible), hi = Math.floor(pos + visible);
+  for (let j = lo; j <= hi; j++) out.push({ j, idx: mod(j, n), o: j - pos, primary: false });
+  const best = new Map();
+  for (const sl of out) { const b = best.get(sl.idx); if (!b || Math.abs(sl.o) < Math.abs(b.o)) best.set(sl.idx, sl); }
+  for (const sl of best.values()) sl.primary = true;
+  return out;
+}
+/** Die virtuelle Nummer des Eintrags `idx`, die `pos` am nächsten liegt. */
+export function nearestSlot(pos, idx, n) {
+  const base = Math.round(pos);
+  let d = mod(idx - base, n);
+  if (d > n / 2) d -= n;
+  return base + d;
 }
 
 export const GameWheel = {
@@ -63,6 +90,9 @@ export const GameWheel = {
   setup(props, { emit }) {
     const root = ref(null);
     const idxOf = (id) => Math.max(0, props.items.findIndex((g) => g.id === id));
+    const n = () => props.items.length;
+    // Virtuelle Position im Ring (wächst beim Weiterdrehen beliebig).
+    const slotOf = (id) => nearestSlot(st.pos, idxOf(id), n());
     const st = reactive({ pos: idxOf(props.current), dragging: false, spacing: 120 });
     let drag = null;          // { x, pos, t, moved, lastX, lastT, v }
     let settleTimer = null;
@@ -77,18 +107,19 @@ export const GameWheel = {
     onBeforeUnmount(() => { if (ro) ro.disconnect(); clearTimeout(settleTimer); });
 
     // Von außen gewechselt (oder ein Wechsel wurde abgelehnt): weich dorthin drehen.
-    watch(() => props.current, (id) => { if (!drag) st.pos = idxOf(id); });
+    watch(() => props.current, (id) => { if (!drag) st.pos = slotOf(id); });
 
     const settleTo = (i) => {
       st.pos = i;
       clearTimeout(settleTimer);
-      const id = props.items[i] && props.items[i].id;
+      const it = props.items[mod(i, n())];
+      const id = it && it.id;
       if (!id || id === props.current) return;
       // Erst nach dem Einrasten wechseln; danach prüfen, ob der Wechsel auch
       // angenommen wurde — sonst zurückdrehen (z.B. während einer Partie gesperrt).
       settleTimer = setTimeout(() => {
         emit('select', id);
-        nextTick(() => { if (props.current !== id) st.pos = idxOf(props.current); });
+        nextTick(() => { if (props.current !== id) st.pos = slotOf(props.current); });
       }, 380);
     };
 
@@ -109,7 +140,7 @@ export const GameWheel = {
       const dt = Math.max(1, e.timeStamp - drag.lastT);
       drag.v = -(e.clientX - drag.lastX) / st.spacing / dt;
       drag.lastX = e.clientX; drag.lastT = e.timeStamp;
-      st.pos = rubberBand(drag.pos - dx / st.spacing, props.items.length - 1);
+      st.pos = drag.pos - dx / st.spacing;   // Ring: keine Enden, kein Gummiband
     };
     const onUp = (e) => {
       if (!drag || (e.pointerId != null && e.pointerId !== drag.id)) return;
@@ -118,15 +149,17 @@ export const GameWheel = {
       if (d.moved < 6) {
         // Tipp: ein Seiten-Logo dreht sich in die Mitte.
         if (d.hit != null) { settleTo(d.hit); return; }
-        st.pos = idxOf(props.current);
+        st.pos = slotOf(props.current);
         return;
       }
-      settleTo(snapTarget(st.pos, d.v, props.items.length));
+      // Schwung zählt erst ab gut einem Drittel Logo Weg — ein kurzer Zieher
+      // rastet zurück, auch wenn er schnell war (im CI wackelte das je nach Takt).
+      settleTo(snapTarget(st.pos, Math.abs(st.pos - d.pos) >= 0.35 ? d.v : 0));
     };
     const onKey = (e) => {
       const cur = Math.round(st.pos);
-      if (e.key === 'ArrowLeft') { e.preventDefault(); settleTo(Math.max(0, cur - 1)); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); settleTo(Math.min(props.items.length - 1, cur + 1)); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); settleTo(cur - 1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); settleTo(cur + 1); }
     };
     // Touchpad/Mausrad seitwärts: ein Schritt je deutlicher Bewegung.
     let wheelAcc = 0, wheelT = 0;
@@ -138,32 +171,34 @@ export const GameWheel = {
       wheelAcc += e.deltaX;
       if (Math.abs(wheelAcc) > 60) {
         const cur = Math.round(st.pos);
-        settleTo(Math.max(0, Math.min(props.items.length - 1, cur + Math.sign(wheelAcc))));
+        settleTo(cur + Math.sign(wheelAcc));
         wheelAcc = 0;
       }
     };
 
-    const styles = computed(() => props.items.map((_, i) => wheelItemStyle(i - st.pos, st.spacing)));
-    const nameStyle = (i) => {
-      const o = i - st.pos;
-      return { opacity: Math.max(0, 1 - Math.abs(o) * 1.8).toFixed(3), transform: `translate3d(${(o * 46).toFixed(1)}px,0,0)` };
-    };
-    const centerIdx = computed(() => Math.max(0, Math.min(props.items.length - 1, Math.round(st.pos))));
-    return { root, st, styles, nameStyle, centerIdx, onDown, onMove, onUp, onKey, onWheel };
+    const slots = computed(() => wheelSlots(st.pos, n()).map((sl) => ({ ...sl, g: props.items[sl.idx], style: wheelItemStyle(sl.o, st.spacing) })));
+    // Namen nur für die Plätze direkt um die Mitte.
+    const names = computed(() => slots.value.filter((sl) => Math.abs(sl.o) < 1).map((sl) => ({
+      j: sl.j, name: sl.g.name,
+      style: { opacity: Math.max(0, 1 - Math.abs(sl.o) * 1.8).toFixed(3), transform: `translate3d(${(sl.o * 46).toFixed(1)}px,0,0)` },
+    })));
+    const centerIdx = computed(() => mod(Math.round(st.pos), n()));
+    return { root, st, slots, names, centerIdx, onDown, onMove, onUp, onKey, onWheel };
   },
   template: `
     <div class="game-wheel" ref="root" :class="{ dragging: st.dragging }" role="tablist" :aria-label="label" tabindex="0"
          @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onUp" @keydown="onKey" @wheel="onWheel">
       <div class="gw-stage">
-        <button v-for="(g, i) in items" :key="g.id" type="button" class="gw-item" :class="{ on: g.id === current }"
-                :data-wheel-index="i" :data-game="g.id" role="tab" :aria-selected="String(g.id === current)" :aria-label="g.name"
-                tabindex="-1" :style="styles[i]">
-          <span class="gw-glow" :style="{ opacity: Math.max(0, 1 - Math.abs(i - st.pos) * 1.5) }"></span>
-          <img class="gw-logo" :src="g.logo" decoding="sync" alt="" draggable="false" />
+        <button v-for="sl in slots" :key="sl.j" type="button" class="gw-item" :class="{ on: sl.primary && sl.g.id === current }"
+                :data-wheel-index="sl.j" :data-game="sl.primary ? sl.g.id : null" :data-copy="sl.primary ? null : sl.g.id"
+                role="tab" :aria-selected="String(sl.primary && sl.g.id === current)" :aria-label="sl.g.name" :aria-hidden="sl.primary ? null : 'true'"
+                tabindex="-1" :style="sl.style">
+          <span class="gw-glow" :style="{ opacity: Math.max(0, 1 - Math.abs(sl.o) * 1.5) }"></span>
+          <img class="gw-logo" :src="sl.g.logo" decoding="sync" alt="" draggable="false" />
         </button>
       </div>
       <div class="gw-names" aria-hidden="true">
-        <span v-for="(g, i) in items" :key="g.id" class="gw-name" :style="nameStyle(i)">{{ g.name }}</span>
+        <span v-for="x in names" :key="x.j" class="gw-name" :style="x.style">{{ x.name }}</span>
       </div>
       <div class="gw-dots" aria-hidden="true">
         <i v-for="(g, i) in items" :key="g.id" :class="{ on: i === centerIdx }"></i>

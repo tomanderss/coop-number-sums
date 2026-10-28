@@ -44,7 +44,7 @@ const KEYS = {
   // ── Zufallsmodus „Mix" (js/mix.js) ──
   MIX_STATS: 'cns_mix_stats',   // { best, runs, levels } — Mix-Bestwerte, KONTOWEIT (gehört keinem Spiel), SYNCT (Merge per Maximum)
   MIX_RUN: 'cns_mix_run',       // laufender Mix-Lauf zum Fortsetzen { mix, game, snap|pending }; PER GERAET, NIE synct
-  MIX_ON: 'cns_mix_on',         // steht die Scheibe auf „Mix"? PER GERAET, NIE synct (wie cns_game)
+  MIX_ON: 'cns_mix_on',         // steht die Scheibe auf „Mix"? PER GERAET, NIE synct (wie cns_game); fehlt = ja (Standard)
 };
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
 // Bewusst OHNE COOP_SESSION (kurzlebiges Reconnect-Token)/Backups (gerätelokale
@@ -776,8 +776,10 @@ export function recordMixRun(score) {
 }
 export function loadMixRun() { return load(KEYS.MIX_RUN, null); }
 export function saveMixRun(v) { if (v) save(KEYS.MIX_RUN, v); else remove(KEYS.MIX_RUN); }
-export function loadMixOn() { return !!load(KEYS.MIX_ON, false); }
-export function saveMixOn(v) { if (v) save(KEYS.MIX_ON, true); else remove(KEYS.MIX_ON); }
+// Mix ist der STANDARD (Nutzerwunsch): ohne gespeicherte Wahl steht die Scheibe auf Mix.
+// Deshalb wird auch „aus" ausdrücklich gespeichert.
+export function loadMixOn() { return load(KEYS.MIX_ON, true) !== false; }
+export function saveMixOn(v) { save(KEYS.MIX_ON, !!v); }
 
 export function chooseGame(id) {
   const set = setActiveGameId(id);
