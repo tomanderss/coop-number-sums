@@ -483,6 +483,7 @@ export default {
     makeUser: 'Quitar admin',
   },
   skin: {
+    forGame: 'Solo se aplica a {game}: cada juego tiene su propio skin.',
     presetOnlyHint: 'Utilizable con cualquier plantilla comprada; el skin dinámico exclusivo desbloquea además el editor libre.',
     title: 'Skin dinámico',
     lockedHint: 'Skin exclusivo de celebración de la 1.0: tu color personal se convierte en una marca giratoria y brillante. Si viviste el salto a la 1.0 se desbloquea automáticamente; si no, con un código.',

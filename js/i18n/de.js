@@ -511,6 +511,7 @@ export default {
         'settings/skinGlow': { l: 'Skin-Leuchten', d: 'Leuchtradius in Pixeln (0 = kein Glow).' },
         'settings/skinThickness': { l: 'Skin-Ringdicke', d: 'Dicke des Markierungs-Rings in Pixeln.' },
         'settings/skinApplyTo': { l: 'Skin gilt für', d: 'Auf welche Markierungsart der Skin angewendet wird.' },
+        'settings/skinByGame': { l: 'Skin je Spiel', d: 'Eigene Skin-Einstellungen pro Spiel (an/aus, Stil, Farben, Tempo …). Fehlende Werte kommen aus den allgemeinen Skin-Feldern.' },
         // Ausgerüstete Shop-Kosmetik (Kategorie-Loadout) — verweisen auf gekaufte Artikel.
         'settings/appTheme': { l: 'App-Theme (ausgerüstet)', d: 'Aktuell ausgerüstetes App-Design aus dem Shop („standard“ = eingebautes Hell/Dunkel).' },
         'settings/profileBadge': { l: 'Profil-Abzeichen (ausgerüstet)', d: 'Neben dem Namen angezeigtes Abzeichen („none“ = keins). Wird verdient/ausgerüstet, nicht frei setzbar.' },
@@ -599,6 +600,7 @@ export default {
     makeUser: 'Admin entziehen',
   },
   skin: {
+    forGame: 'Gilt nur für {game} – jedes Spiel hat seinen eigenen Skin.',
     presetOnlyHint: 'Mit einer gekauften Skin-Vorlage nutzbar — der exklusive dynamische Skin schaltet zusätzlich den freien Editor frei.',
     title: 'Dynamischer Skin',
     lockedHint: 'Exklusiver Feier-Skin zur Version 1.0: deine persönliche Farbe wird zu einer sich drehenden, leuchtenden Markierung. Hast du den Sprung auf 1.0 miterlebt, ist er automatisch freigeschaltet — sonst per Code.',

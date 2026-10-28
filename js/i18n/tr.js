@@ -483,6 +483,7 @@ export default {
     makeUser: 'Yöneticiliği kaldır',
   },
   skin: {
+    forGame: 'Yalnızca {game} için geçerli – her oyunun kendi görünümü var.',
     presetOnlyHint: 'Satın alınan herhangi bir hazır ayarla kullanılabilir — özel dinamik skin ayrıca serbest düzenleyiciyi açar.',
     title: 'Dinamik görünüm',
     lockedHint: '1.0 kutlamasına özel görünüm: kişisel rengin dönen, parlayan bir işarete dönüşür. 1.0 geçişini yaşadıysan otomatik açılır, yoksa kodla.',

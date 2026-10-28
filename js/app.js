@@ -49,7 +49,7 @@ import { winShapeDefs, winShape, dragonMarkup, unicornMarkup, phoenixMarkup, roc
 import { icon as customIcon, hasIcon } from './icons.js';
 import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge, MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge, unlockedTierCodes, newlyUnlockedTiers, headlineUnlock, duelWins } from './prestige.js';
 import * as Account from './account.js';
-import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
+import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses, gameSkin, withGameSkin } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES, setGameMessages } from './i18n/index.js';
 import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessIsRecord, reconstructEndlessRuns } from './endless.js';
 import { currentWeekKey, weeklyMissions, missionPoolFor, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
@@ -1110,15 +1110,16 @@ function buyShopItem(it) {
 function applySkinPreset(it) {
   if (!ownsShop(it)) return;
   const d = it.data || {};
-  setSetting('skinStyle', d.style || 'gradient');
-  setSetting('skinColor1', (d.c && d.c[0]) || '');
-  setSetting('skinColor2', (d.c && d.c[1]) || '');
-  setSetting('skinColor3', (d.c && d.c[2]) || '');
-  if (d.speed != null) setSetting('skinSpeed', d.speed);
-  if (d.glow != null) setSetting('skinGlow', d.glow);
-  if (d.thickness != null) setSetting('skinThickness', d.thickness);
-  setSetting('skinEnabled', true);
-  log('game', 'Skin-Vorlage angewendet', { id: it.id });
+  // Gilt für das GERADE GEWÄHLTE Spiel (Skin je Spiel, s. skins.js gameSkin).
+  setSkin('skinStyle', d.style || 'gradient');
+  setSkin('skinColor1', (d.c && d.c[0]) || '');
+  setSkin('skinColor2', (d.c && d.c[1]) || '');
+  setSkin('skinColor3', (d.c && d.c[2]) || '');
+  if (d.speed != null) setSkin('skinSpeed', d.speed);
+  if (d.glow != null) setSkin('skinGlow', d.glow);
+  if (d.thickness != null) setSkin('skinThickness', d.thickness);
+  setSkin('skinEnabled', true);
+  log('game', 'Skin-Vorlage angewendet', { id: it.id, game: currentGame.id });
   showToast(t('shop.applied'), 'success', 1800);
 }
 // Vorschau-Punkte einer Karte: Paletten zeigen 6 transformierte Cage-Farben,
@@ -5151,6 +5152,11 @@ function toggleSetting(key) {
     else if (key === 'sfxUndo') Music.sfxUndo();
   }
 }
+// Skin JE SPIEL: lesen über curSkin (computed im setup), schreiben nur ins laufende Spiel.
+function setSkin(key, val) {
+  setSetting('skinByGame', withGameSkin(state.settings.skinByGame, currentGame.id, key, val));
+  if (key === 'skinEnabled') log('app', 'Skin je Spiel umgeschaltet', { game: currentGame.id, on: !!val });
+}
 function setSetting(key, val) {
   state.settings[key] = val;
   if (key === 'language') applyLocale();
@@ -5582,7 +5588,7 @@ function startJoinFreeze(marked) {
       log('coop', 'Beitritt gerendert', {
         cells: el ? el.querySelectorAll('.cell').length : 0,
         w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0,
-        marked, skin: state.settings.skinStyle || null,
+        marked, skin: gameSkin(state.settings, currentGame.id).skinStyle || null,
         winfx: !!state.winFx, paused: !!state.paused,
       });
     } catch (e) { log('error', 'Beitritts-Render-Protokoll fehlgeschlagen', e); }
@@ -6791,7 +6797,7 @@ function redeemSkinCode() {
 function dismissSkinUnlock() { state.skinJustUnlocked = false; }
 function openSkinEditor() {
   // Wer den Skin anpassen möchte, will ihn auch sehen → aktivieren (Default ist aus).
-  state.settings.skinEnabled = true;
+  setSkin('skinEnabled', true);
   state.skinJustUnlocked = false;
   navigate('settings'); state.settingsTab = 'farbe';
   nextTick(() => { document.querySelector('.skin-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
@@ -7598,8 +7604,9 @@ const App = {
     // leben auf MODULEBENE (s. Brett-Optik-Block) — hier nur die Editor-Vorschau.
     // Editor-Vorschau: IMMER aktiv (unabhängig vom Master-Schalter), damit man die
     // gerade eingestellte Optik sieht.
-    const skinPreviewVars = computed(() => buildSkinVars(state.settings));
-    const skinPreviewClasses = computed(() => buildSkinClasses(state.settings, true));
+    const curSkin = computed(() => gameSkin(state.settings, currentGame.id));
+    const skinPreviewVars = computed(() => buildSkinVars(curSkin.value));
+    const skinPreviewClasses = computed(() => buildSkinClasses(curSkin.value, true));
 
     // "Was ist neu": alle Changelog-Einträge NEUER als die zuletzt gesehene Version
     // (neueste oben — CHANGELOG ist bereits absteigend sortiert). Bei Erstinstallation
@@ -7675,7 +7682,7 @@ const App = {
       adminSetBalance, adminChangeUsername, adminGrantAnyItem, adminRevokeAnyItem, adminSetField, adminResetPw, dismissAdminNotice, adminNoticeText,
       openFriends, closeFriends, setFriendsTab, selectLeaderboardDiff, addFriend, openAddFriend, closeAddFriend, acceptFriend, declineFriend, removeFriendAsk,
       friendsSorted, friendPresence, friendOnline, friendInGame, friendInRoom, anyFriendOnline, friendActivityText,
-      skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
+      skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, curSkin, setSkin, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       GAME_LIST, currentGame, switchGame, gameMeta,
       gameWheelItems: computed(() => GAME_LIST.map((g) => ({ id: g.id, logo: g.logo, name: t(g.nameKey) })).concat([{ id: MIX_ID, logo: MIX_LOGO, name: t('mix.name') }])),
       wheelCurrent: computed(() => (state.mixOn ? MIX_ID : currentGame.id)),
@@ -9028,6 +9035,8 @@ const App = {
 
           <!-- Dynamischer Skin (1.0): Code-Einlösung immer sichtbar; Editor nur, wenn freigeschaltet -->
           <div class="set-group-title skin-editor">{{ t('skin.title') }}</div>
+          <!-- Skin JE SPIEL: alles hier gilt nur für das gerade gewählte Spiel. -->
+          <small v-if="skinUnlocked || skinPresetOwned" class="set-hint skin-game-hint">{{ t('skin.forGame', { game: t(gameMeta(currentGame.id).nameKey) }) }}</small>
           <!-- Vorschau + An/Aus: für Besitzer des exklusiven Skins ODER einer
                gekauften Skin-Vorlage. Der freie EDITOR darunter bleibt exklusiv. -->
           <template v-if="skinUnlocked || skinPresetOwned">
@@ -9037,8 +9046,8 @@ const App = {
                 <div class="cell removed coop-mark-removed" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">3</span></div>
               </div>
             </div>
-            <div class="set-row" @click="toggleSetting('skinEnabled')">
-              <span>{{ t('skin.enabled') }}</span><span class="switch" :class="{on:state.settings.skinEnabled}"><i></i></span>
+            <div class="set-row" @click="setSkin('skinEnabled', !curSkin.skinEnabled)">
+              <span>{{ t('skin.enabled') }}</span><span class="switch" :class="{on:curSkin.skinEnabled}"><i></i></span>
             </div>
             <small v-if="!skinUnlocked" class="set-hint">{{ t('skin.presetOnlyHint') }} <button class="btn-link" @click="openShop('skinpreset')">{{ t('shop.title') }} ›</button></small>
           </template>
@@ -9046,49 +9055,49 @@ const App = {
             <div class="set-row col">
               <span class="set-row-label">{{ t('skin.style') }}</span>
               <div class="seg">
-                <button :class="{active:state.settings.skinStyle==='solid'}" @click="setSetting('skinStyle','solid')">{{ t('skin.styleSolid') }}</button>
-                <button :class="{active:state.settings.skinStyle==='gradient'}" @click="setSetting('skinStyle','gradient')">{{ t('skin.styleGradient') }}</button>
-                <button :class="{active:state.settings.skinStyle==='rainbow'}" @click="setSetting('skinStyle','rainbow')">{{ t('skin.styleRainbow') }}</button>
+                <button :class="{active:curSkin.skinStyle==='solid'}" @click="setSkin('skinStyle','solid')">{{ t('skin.styleSolid') }}</button>
+                <button :class="{active:curSkin.skinStyle==='gradient'}" @click="setSkin('skinStyle','gradient')">{{ t('skin.styleGradient') }}</button>
+                <button :class="{active:curSkin.skinStyle==='rainbow'}" @click="setSkin('skinStyle','rainbow')">{{ t('skin.styleRainbow') }}</button>
               </div>
             </div>
-            <div class="set-row col" v-if="state.settings.skinStyle==='gradient'">
+            <div class="set-row col" v-if="curSkin.skinStyle==='gradient'">
               <span class="set-row-label">{{ t('skin.colors') }}</span>
               <div class="coop-swatches">
-                <input type="color" class="swatch-custom" :value="state.settings.skinColor1 || state.settings.coopMyColor" @input="setSetting('skinColor1', $event.target.value)" />
-                <input type="color" class="swatch-custom" :value="state.settings.skinColor2 || '#ffffff'" @input="setSetting('skinColor2', $event.target.value)" />
-                <input type="color" class="swatch-custom" :value="state.settings.skinColor3 || '#000000'" @input="setSetting('skinColor3', $event.target.value)" />
-                <button class="btn-link" @click="setSetting('skinColor1',''); setSetting('skinColor2',''); setSetting('skinColor3','')">{{ t('skin.resetColors') }}</button>
+                <input type="color" class="swatch-custom" :value="curSkin.skinColor1 || state.settings.coopMyColor" @input="setSkin('skinColor1', $event.target.value)" />
+                <input type="color" class="swatch-custom" :value="curSkin.skinColor2 || '#ffffff'" @input="setSkin('skinColor2', $event.target.value)" />
+                <input type="color" class="swatch-custom" :value="curSkin.skinColor3 || '#000000'" @input="setSkin('skinColor3', $event.target.value)" />
+                <button class="btn-link" @click="setSkin('skinColor1',''); setSkin('skinColor2',''); setSkin('skinColor3','')">{{ t('skin.resetColors') }}</button>
               </div>
               <small class="set-hint">{{ t('skin.colorsHint') }}</small>
             </div>
             <div class="set-row col">
               <span class="set-row-label">{{ t('skin.speed') }}</span>
-              <input type="range" class="set-range" min="0" max="12" step="1" :value="state.settings.skinSpeed"
-                     :style="{ '--rangePct': Math.round(state.settings.skinSpeed/12*100) + '%' }"
-                     @input="setSetting('skinSpeed', parseFloat($event.target.value))" />
-              <small class="set-hint">{{ state.settings.skinSpeed>0 ? t('skin.speedOn', { s: skinSpeedToDuration(state.settings.skinSpeed).toFixed(1) }) : t('skin.speedOff') }}</small>
+              <input type="range" class="set-range" min="0" max="12" step="1" :value="curSkin.skinSpeed"
+                     :style="{ '--rangePct': Math.round(curSkin.skinSpeed/12*100) + '%' }"
+                     @input="setSkin('skinSpeed', parseFloat($event.target.value))" />
+              <small class="set-hint">{{ curSkin.skinSpeed>0 ? t('skin.speedOn', { s: skinSpeedToDuration(curSkin.skinSpeed).toFixed(1) }) : t('skin.speedOff') }}</small>
             </div>
-            <div class="set-row" v-if="state.settings.skinSpeed>0" @click="setSetting('skinDirection', state.settings.skinDirection==='cw' ? 'ccw' : 'cw')">
-              <span>{{ t('skin.direction') }}</span><span class="account-role">{{ state.settings.skinDirection==='ccw' ? t('skin.ccw') : t('skin.cw') }}</span>
+            <div class="set-row" v-if="curSkin.skinSpeed>0" @click="setSkin('skinDirection', curSkin.skinDirection==='cw' ? 'ccw' : 'cw')">
+              <span>{{ t('skin.direction') }}</span><span class="account-role">{{ curSkin.skinDirection==='ccw' ? t('skin.ccw') : t('skin.cw') }}</span>
             </div>
             <div class="set-row col">
               <span class="set-row-label">{{ t('skin.glow') }}</span>
-              <input type="range" class="set-range" min="0" max="16" step="1" :value="state.settings.skinGlow"
-                     :style="{ '--rangePct': Math.round(state.settings.skinGlow/16*100) + '%' }"
-                     @input="setSetting('skinGlow', parseFloat($event.target.value))" />
+              <input type="range" class="set-range" min="0" max="16" step="1" :value="curSkin.skinGlow"
+                     :style="{ '--rangePct': Math.round(curSkin.skinGlow/16*100) + '%' }"
+                     @input="setSkin('skinGlow', parseFloat($event.target.value))" />
             </div>
             <div class="set-row col">
               <span class="set-row-label">{{ t('skin.thickness') }}</span>
-              <input type="range" class="set-range" min="1" max="5" step="0.5" :value="state.settings.skinThickness"
-                     :style="{ '--rangePct': Math.round((state.settings.skinThickness-1)/4*100) + '%' }"
-                     @input="setSetting('skinThickness', parseFloat($event.target.value))" />
+              <input type="range" class="set-range" min="1" max="5" step="0.5" :value="curSkin.skinThickness"
+                     :style="{ '--rangePct': Math.round((curSkin.skinThickness-1)/4*100) + '%' }"
+                     @input="setSkin('skinThickness', parseFloat($event.target.value))" />
             </div>
             <div class="set-row col">
               <span class="set-row-label">{{ t('skin.applyTo') }}</span>
               <div class="seg">
-                <button :class="{active:state.settings.skinApplyTo==='kept'}" @click="setSetting('skinApplyTo','kept')">{{ t('skin.applyKept') }}</button>
-                <button :class="{active:state.settings.skinApplyTo==='removed'}" @click="setSetting('skinApplyTo','removed')">{{ t('skin.applyRemoved') }}</button>
-                <button :class="{active:state.settings.skinApplyTo==='both'}" @click="setSetting('skinApplyTo','both')">{{ t('skin.applyBoth') }}</button>
+                <button :class="{active:curSkin.skinApplyTo==='kept'}" @click="setSkin('skinApplyTo','kept')">{{ t('skin.applyKept') }}</button>
+                <button :class="{active:curSkin.skinApplyTo==='removed'}" @click="setSkin('skinApplyTo','removed')">{{ t('skin.applyRemoved') }}</button>
+                <button :class="{active:curSkin.skinApplyTo==='both'}" @click="setSkin('skinApplyTo','both')">{{ t('skin.applyBoth') }}</button>
               </div>
               <small class="set-hint">{{ t('skin.applyHint') }}</small>
             </div>

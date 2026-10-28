@@ -1,1 +1,1 @@
-Math Cross: Markierungen bleiben auf gelegten Zahlen und gelösten Rechnungen sichtbar
+Skin je Spiel: an/aus und alle Skin-Einstellungen gelten jetzt nur für das gewählte Spiel
