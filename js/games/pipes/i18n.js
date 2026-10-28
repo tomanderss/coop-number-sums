@@ -1,0 +1,137 @@
+// games/pipes/i18n.js — die TEXTE, die „Pipes" anders braucht als die gemeinsame
+// Schale: eigene Schlüssel (pipe.*) und abweichende Fassungen (Anleitung,
+// Einladungstext, Meister-Abzeichen). Ebene ÜBER den gemeinsamen Texten, solange
+// Pipes aktiv ist (s. setGameMessages). Jede Sprache trägt dieselben Schlüssel.
+
+export default {
+  de: {
+    pipe: { boardLabel: "Spielfeld: Rohre drehen", train: { title: "Nächstes Rohr", edge: "Dieses Stück passt nur noch in EINER Lage: jede andere würde Wasser über den Rand oder gegen ein schon festes Nachbarrohr laufen lassen.", net: "Dieses Stück steht durch das Netz fest: jede andere Lage würde einen Kreis schließen oder ein Teilnetz von der Quelle abschneiden." } },
+    howto: {
+      rule1: "Drehe die Rohre so, dass das <b>Wasser von der Quelle</b> (blauer Punkt) <b>jedes Feld</b> erreicht.",
+      rule2: "<b>Antippen</b> dreht ein Stück um 90°. Am Computer dreht ein <b>Rechtsklick</b> zurück.",
+      rule3: "Kein Rohr darf <b>ins Leere</b> zeigen – offene Enden spritzen rot.",
+      rule4: "Es gibt Geraden, Bögen, T-Stücke und <b>Endstücke</b>. Jedes Endstück muss versorgt sein.",
+      rule5: "<b>Lange drücken</b> sperrt ein Stück, das sicher richtig liegt – es dreht sich dann nicht mehr versehentlich mit.",
+      rule6: "Drehen kostet nichts. Jedes Rätsel ist <b>ohne Raten</b> lösbar. Ist das Brett gezoomt, verschiebst du es mit <b>zwei Fingern</b>.",
+    },
+    soloInvite: { shareText: "Spiel mit mir Pipes! Tritt meinem laufenden Spiel bei – Raumcode: {code}" },
+    prestige: { master: { desc: "Das ultimative Abzeichen — freigeschaltet, wenn ALLE 12 Abzeichen auf Legendär stehen. Der Beweis, dass du Pipes gemeistert hast." } },
+  },
+  en: {
+    pipe: { boardLabel: "Board: rotate the pipes", train: { title: "Next pipe", edge: "This piece fits in only ONE position: any other would spill water over the edge or against a neighbour that is already fixed.", net: "The network fixes this piece: any other position would close a loop or cut part of the network off from the source." } },
+    howto: {
+      rule1: "Rotate the pipes so the <b>water from the source</b> (blue dot) reaches <b>every cell</b>.",
+      rule2: "<b>Tap</b> rotates a piece by 90°. On a computer, a <b>right-click</b> turns it back.",
+      rule3: "No pipe may point <b>into nothing</b> – open ends spray red.",
+      rule4: "There are straights, bends, T-pieces and <b>end pieces</b>. Every end piece must be supplied.",
+      rule5: "<b>Long-press</b> locks a piece you are sure about – it won’t turn by accident any more.",
+      rule6: "Rotating is free. Every puzzle can be solved <b>without guessing</b>. When the board is zoomed, move it with <b>two fingers</b>.",
+    },
+    soloInvite: { shareText: "Play Pipes with me! Join my running game – room code: {code}" },
+    prestige: { master: { desc: "The ultimate badge — unlocked when ALL 12 badges are Legendary. Proof that you have mastered Pipes." } },
+  },
+  es: {
+    pipe: { boardLabel: "Tablero: gira las tuberías", train: { title: "Siguiente tubería", edge: "Esta pieza solo encaja en UNA posición: cualquier otra derramaría agua por el borde o contra una vecina ya fija.", net: "La red fija esta pieza: cualquier otra posición cerraría un círculo o separaría parte de la red de la fuente." } },
+    howto: {
+      rule1: "Gira las tuberías para que el <b>agua de la fuente</b> (punto azul) llegue a <b>todas las casillas</b>.",
+      rule2: "<b>Toca</b> para girar una pieza 90°. En el ordenador, el <b>clic derecho</b> la gira hacia atrás.",
+      rule3: "Ninguna tubería puede apuntar <b>al vacío</b>: los extremos abiertos salpican en rojo.",
+      rule4: "Hay rectas, codos, piezas en T y <b>terminales</b>. Cada terminal debe recibir agua.",
+      rule5: "<b>Mantén pulsado</b> para bloquear una pieza que seguro está bien: ya no girará por accidente.",
+      rule6: "Girar no cuesta nada. Cada puzle se resuelve <b>sin adivinar</b>. Con el tablero ampliado, muévelo con <b>dos dedos</b>.",
+    },
+    soloInvite: { shareText: "¡Juega a Pipes conmigo! Únete a mi partida – código de sala: {code}" },
+    prestige: { master: { desc: "La insignia definitiva: se desbloquea cuando las 12 insignias son legendarias. La prueba de que dominas Pipes." } },
+  },
+  fr: {
+    pipe: { boardLabel: "Plateau : tourner les tuyaux", train: { title: "Tuyau suivant", edge: "Cette pièce ne tient que dans UNE position : toute autre ferait couler l’eau hors du bord ou contre un voisin déjà fixé.", net: "Le réseau fixe cette pièce : toute autre position fermerait une boucle ou couperait une partie du réseau de la source." } },
+    howto: {
+      rule1: "Tournez les tuyaux pour que <b>l’eau de la source</b> (point bleu) atteigne <b>chaque case</b>.",
+      rule2: "<b>Touchez</b> pour tourner une pièce de 90°. Sur ordinateur, un <b>clic droit</b> la tourne en arrière.",
+      rule3: "Aucun tuyau ne doit pointer <b>dans le vide</b> – les bouts ouverts giclent en rouge.",
+      rule4: "Il y a des droits, des coudes, des T et des <b>embouts</b>. Chaque embout doit être alimenté.",
+      rule5: "Un <b>appui long</b> verrouille une pièce dont vous êtes sûr – elle ne tourne plus par erreur.",
+      rule6: "Tourner ne coûte rien. Chaque grille se résout <b>sans deviner</b>. Plateau zoomé : déplacez-le avec <b>deux doigts</b>.",
+    },
+    soloInvite: { shareText: "Joue à Pipes avec moi ! Rejoins ma partie – code du salon : {code}" },
+    prestige: { master: { desc: "Le badge ultime — débloqué quand les 12 badges sont légendaires. La preuve que vous maîtrisez Pipes." } },
+  },
+  it: {
+    pipe: { boardLabel: "Tabellone: ruota i tubi", train: { title: "Prossimo tubo", edge: "Questo pezzo entra in UNA sola posizione: qualsiasi altra farebbe uscire l’acqua dal bordo o contro un vicino già fissato.", net: "La rete fissa questo pezzo: qualsiasi altra posizione chiuderebbe un anello o staccherebbe parte della rete dalla sorgente." } },
+    howto: {
+      rule1: "Ruota i tubi in modo che <b>l’acqua della sorgente</b> (punto blu) raggiunga <b>ogni casella</b>.",
+      rule2: "<b>Tocca</b> per ruotare un pezzo di 90°. Al computer il <b>clic destro</b> lo riporta indietro.",
+      rule3: "Nessun tubo può puntare <b>nel vuoto</b>: le estremità aperte spruzzano di rosso.",
+      rule4: "Ci sono dritti, curve, pezzi a T e <b>terminali</b>. Ogni terminale deve ricevere acqua.",
+      rule5: "<b>Tieni premuto</b> per bloccare un pezzo di cui sei sicuro: non girerà più per sbaglio.",
+      rule6: "Ruotare non costa nulla. Ogni puzzle si risolve <b>senza tirare a indovinare</b>. Con il tabellone ingrandito spostalo con <b>due dita</b>.",
+    },
+    soloInvite: { shareText: "Gioca a Pipes con me! Entra nella mia partita – codice stanza: {code}" },
+    prestige: { master: { desc: "Il distintivo definitivo: si sblocca quando tutti i 12 distintivi sono leggendari. La prova che hai padroneggiato Pipes." } },
+  },
+  ja: {
+    pipe: { boardLabel: "盤面：パイプを回す", train: { title: "次のパイプ", edge: "このピースは1つの向きにしか合いません。他の向きでは水が盤の外や固定済みの隣に漏れます。", net: "ネットワークでこのピースが決まります。他の向きではループができるか、一部が水源から切り離されます。" } },
+    howto: {
+      rule1: "パイプを回して、<b>水源</b>（青い点）の水を<b>すべてのマス</b>に届けよう。",
+      rule2: "<b>タップ</b>でピースを90°回転。パソコンでは<b>右クリック</b>で逆回転。",
+      rule3: "どのパイプも<b>何もない方向</b>を向いてはいけません。開いた端は赤くしぶきます。",
+      rule4: "直線・カーブ・T字・<b>端ピース</b>があります。端ピースにはすべて水を届けること。",
+      rule5: "<b>長押し</b>で確実なピースをロック。うっかり回らなくなります。",
+      rule6: "回転はノーコスト。どの問題も<b>推測なし</b>で解けます。拡大中は<b>2本指</b>で盤を動かせます。",
+    },
+    soloInvite: { shareText: "一緒にPipesで遊ぼう！進行中のゲームに参加してね – ルームコード: {code}" },
+    prestige: { master: { desc: "究極のバッジ — 12個すべてのバッジがレジェンダリーになると解放。Pipesを極めた証。" } },
+  },
+  ko: {
+    pipe: { boardLabel: "보드: 파이프 돌리기", train: { title: "다음 파이프", edge: "이 조각은 한 방향에만 맞습니다. 다른 방향이면 물이 테두리 밖이나 이미 고정된 이웃 쪽으로 샙니다.", net: "네트워크가 이 조각을 결정합니다. 다른 방향이면 고리가 생기거나 일부가 수원에서 끊깁니다." } },
+    howto: {
+      rule1: "파이프를 돌려 <b>수원</b>(파란 점)의 물이 <b>모든 칸</b>에 닿게 하세요.",
+      rule2: "<b>탭</b>하면 조각이 90° 돌아갑니다. 컴퓨터에서는 <b>오른쪽 클릭</b>으로 되돌립니다.",
+      rule3: "어떤 파이프도 <b>빈 곳</b>을 향하면 안 됩니다. 열린 끝은 빨갛게 물이 튑니다.",
+      rule4: "직선, 곡선, T자, <b>끝 조각</b>이 있습니다. 모든 끝 조각에 물이 닿아야 합니다.",
+      rule5: "<b>길게 누르면</b> 확실한 조각을 잠가 실수로 돌아가지 않게 합니다.",
+      rule6: "돌리기는 무료입니다. 모든 퍼즐은 <b>추측 없이</b> 풀 수 있어요. 확대했을 때는 <b>두 손가락</b>으로 보드를 움직이세요.",
+    },
+    soloInvite: { shareText: "나랑 Pipes 하자! 진행 중인 게임에 참여해 – 방 코드: {code}" },
+    prestige: { master: { desc: "최고의 배지 — 12개 배지가 모두 전설이 되면 해금. Pipes를 정복했다는 증거." } },
+  },
+  "pt-BR": {
+    pipe: { boardLabel: "Tabuleiro: gire os canos", train: { title: "Próximo cano", edge: "Esta peça só encaixa em UMA posição: qualquer outra derramaria água pela borda ou contra um vizinho já fixo.", net: "A rede fixa esta peça: qualquer outra posição fecharia um ciclo ou separaria parte da rede da fonte." } },
+    howto: {
+      rule1: "Gire os canos para que a <b>água da fonte</b> (ponto azul) chegue a <b>todas as casas</b>.",
+      rule2: "<b>Toque</b> para girar uma peça 90°. No computador, o <b>clique direito</b> gira de volta.",
+      rule3: "Nenhum cano pode apontar <b>para o nada</b> – pontas abertas espirram em vermelho.",
+      rule4: "Há retas, curvas, peças em T e <b>terminais</b>. Todo terminal precisa receber água.",
+      rule5: "<b>Pressione e segure</b> para travar uma peça que você tem certeza – ela não gira mais sem querer.",
+      rule6: "Girar não custa nada. Todo quebra-cabeça se resolve <b>sem chutar</b>. Com o tabuleiro ampliado, mova-o com <b>dois dedos</b>.",
+    },
+    soloInvite: { shareText: "Jogue Pipes comigo! Entre na minha partida – código da sala: {code}" },
+    prestige: { master: { desc: "O emblema definitivo — liberado quando TODOS os 12 emblemas são lendários. A prova de que você domina Pipes." } },
+  },
+  ru: {
+    pipe: { boardLabel: "Поле: поверните трубы", train: { title: "Следующая труба", edge: "Эта деталь подходит только в ОДНОМ положении: в любом другом вода выльется за край или упрётся в уже закреплённого соседа.", net: "Сеть определяет эту деталь: любое другое положение замкнёт кольцо или отрежет часть сети от источника." } },
+    howto: {
+      rule1: "Поворачивайте трубы так, чтобы <b>вода из источника</b> (синяя точка) дошла до <b>каждой клетки</b>.",
+      rule2: "<b>Касание</b> поворачивает деталь на 90°. На компьютере <b>правый клик</b> поворачивает обратно.",
+      rule3: "Ни одна труба не должна смотреть <b>в пустоту</b> — открытые концы брызгают красным.",
+      rule4: "Есть прямые, изгибы, тройники и <b>заглушки</b>. Вода должна дойти до каждой заглушки.",
+      rule5: "<b>Долгое нажатие</b> закрепляет деталь, в которой вы уверены, — она больше не повернётся случайно.",
+      rule6: "Повороты ничего не стоят. Каждую головоломку можно решить <b>без угадывания</b>. При увеличении двигайте поле <b>двумя пальцами</b>.",
+    },
+    soloInvite: { shareText: "Сыграй со мной в Pipes! Присоединяйся к моей игре — код комнаты: {code}" },
+    prestige: { master: { desc: "Высшая награда — открывается, когда ВСЕ 12 значков легендарные. Доказательство, что вы покорили Pipes." } },
+  },
+  tr: {
+    pipe: { boardLabel: "Oyun alanı: boruları çevir", train: { title: "Sıradaki boru", edge: "Bu parça yalnızca TEK bir konuma uyuyor: diğerlerinde su kenardan ya da sabit bir komşuya taşar.", net: "Ağ bu parçayı belirliyor: başka her konum bir döngü kapatır ya da ağın bir kısmını kaynaktan koparır." } },
+    howto: {
+      rule1: "Boruları çevir ki <b>kaynaktaki su</b> (mavi nokta) <b>her hücreye</b> ulaşsın.",
+      rule2: "<b>Dokunmak</b> parçayı 90° çevirir. Bilgisayarda <b>sağ tık</b> geri çevirir.",
+      rule3: "Hiçbir boru <b>boşluğa</b> bakamaz – açık uçlar kırmızı fışkırır.",
+      rule4: "Düz, dirsek, T parça ve <b>uç parçalar</b> var. Her uç parçaya su ulaşmalı.",
+      rule5: "<b>Uzun basmak</b> emin olduğun bir parçayı kilitler – artık yanlışlıkla dönmez.",
+      rule6: "Çevirmek bedava. Her bulmaca <b>tahmin etmeden</b> çözülür. Alan yakınlaştırılmışsa <b>iki parmakla</b> kaydır.",
+    },
+    soloInvite: { shareText: "Benimle Pipes oyna! Devam eden oyunuma katıl – oda kodu: {code}" },
+    prestige: { master: { desc: "Nihai rozet — 12 rozetin TAMAMI efsanevi olduğunda açılır. Pipes'ı ustalıkla çözdüğünün kanıtı." } },
+  },
+};

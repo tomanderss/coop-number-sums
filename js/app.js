@@ -156,6 +156,9 @@ const state = reactive({
   // wer welchen Stein setzte, Ereignis-Schlüssel je Feld (später gewinnt) und
   // die Rückmeldung bei vollem, falschem Brett.
   gemCells: [], gemBy: [], gemKeys: {}, gemsFullWrong: false, gemsShake: false,
+  // Pipes (js/games/pipes): Drehzahl je Stück (fortlaufend, mod 4 zählt), wer
+  // zuletzt drehte, gesperrte Stücke und Ereignis-Schlüssel je Stück (später gewinnt).
+  pipeRot: [], pipeBy: [], pipeLock: [], pipeKeys: {},
   rectsFullWrong: false,     // Brett voll, geht aber nicht auf (Hinweiszeile unter dem Brett)
   rectsShake: false,         // kurzes Wackeln des Bretts nach einem vollen, falschen Brett
   cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint, hintMark }

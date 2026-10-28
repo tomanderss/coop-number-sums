@@ -2,7 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', choose: 'Spiel wählen', busy: 'Erst die laufende Partie beenden, dann das Spiel wechseln.' },
+  games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: 'Spiel wählen', busy: 'Erst die laufende Partie beenden, dann das Spiel wechseln.' },
 
   coopEndless: { toggle: 'Endlos-Aufstieg', toggleHint: 'Gemeinsam immer schwerer — 3 geteilte Leben, kein Nachschub' },
 

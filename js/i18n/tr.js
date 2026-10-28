@@ -2,7 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', choose: 'Oyun seç', busy: 'Oyunu değiştirmeden önce mevcut oyunu bitir.' },
+  games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: 'Oyun seç', busy: 'Oyunu değiştirmeden önce mevcut oyunu bitir.' },
 
   coopEndless: { toggle: 'Sonsuz Tırmanış', toggleHint: 'Birlikte tırmanın — 3 ortak can, takviye yok' },
 

@@ -1,2 +1,1 @@
-Herausforderungen gelten jetzt für alle Spiele: ein gemeinsamer Satz, jedes Spiel bringt dich voran
-Skin je Spiel: an/aus und alle Skin-Einstellungen gelten jetzt nur für das gewählte Spiel
+Neues Spiel „Pipes“: Rohre drehen, bis das Wasser von der Quelle jedes Feld erreicht – mit fließender Wasser-Animation
