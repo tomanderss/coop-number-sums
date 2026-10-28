@@ -1,1 +1,0 @@
-Neu: Zufallsmodus „Mix“ – ein eigener Eintrag auf der Spielscheibe. Jedes Level ist ein zufälliges Spiel in zufälliger Schwierigkeit, angekündigt von einer kleinen Ziehung. Welche Spiele und Stufen vorkommen, lässt sich pro Spiel eingrenzen (Standard: alles); neue Spiele sind automatisch dabei. Mit eigenem Bestwert, Leben über den ganzen Lauf und Fortsetzen
