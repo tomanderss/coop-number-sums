@@ -36,9 +36,9 @@ export const ACHIEVEMENTS = [
   // Mashallah (11×11) ab; der echte Gipfel bekommt ein eigenes Abzeichen.
   { id: 'ripWin', icon: 'grave', check: (ctx) => ctx.outcome === 'won' && ctx.difficulty === 'rip' },
   // „Große Zahlen"-Modus (Zellwerte 10–19).
-  { id: 'bigFirstWin', icon: 'digits', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers },
-  { id: 'bigPerfect', icon: 'digits', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers && ctx.perfect },
-  { id: 'bigRip', icon: 'digits', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers && ctx.difficulty === 'rip' },
+  { id: 'bigFirstWin', icon: 'digits', requires: 'bigNumbers', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers },
+  { id: 'bigPerfect', icon: 'digits', requires: 'bigNumbers', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers && ctx.perfect },
+  { id: 'bigRip', icon: 'digits', requires: 'bigNumbers', check: (ctx) => ctx.outcome === 'won' && ctx.bigNumbers && ctx.difficulty === 'rip' },
   // „Endlos-Aufstieg"-Solo-Modus (js/endless.js): Meilensteine am höchsten je
   // erreichten Level (endlessBest wird nach jedem Lauf gebucht).
   { id: 'endlessFirst', icon: 'runner', check: (ctx) => (ctx.endlessBest || 0) >= 1 },
@@ -50,6 +50,13 @@ export const ACHIEVEMENTS = [
   // Wochen-Missionen: alle Aufträge einer Woche geschafft (js/missions.js).
   { id: 'missionsWeek', icon: 'flag', check: (ctx) => !!ctx.missionsAllDone },
 ];
+
+// Erfolge, die das laufende Spiel erreichen KANN (s. missionPoolFor): ohne die
+// Fähigkeit `requires` erscheint ein Erfolg dort weder in der Liste noch in der
+// Gesamtzahl. Bereits verdiente bleiben gespeichert.
+export function achievementsFor(caps = {}, list = ACHIEVEMENTS) {
+  return list.filter((a) => !a.requires || caps[a.requires]);
+}
 
 export function evaluate(ctx, unlockedIds) {
   const unlocked = new Set(unlockedIds);

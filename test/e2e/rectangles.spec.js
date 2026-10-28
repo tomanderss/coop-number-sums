@@ -209,3 +209,29 @@ test('Wettkampf/Team: dasselbe Rätsel aus demselben Seed, Endlos startet', asyn
   await page.waitForFunction(() => window.__cns.state.status === 'won');
   await expect(page.locator('.endless-lives-row')).toBeVisible();
 });
+
+// ── Alle Ebenen der App ──────────────────────────────────────────────────────
+
+test('Erfolge, Missionen und Einstellungen zeigen nur, was es in Rectangles gibt', async ({ page }) => {
+  await gotoApp(page);
+  // Erfolge: keine „Große Zahlen"-Erfolge, und die Gesamtzahl passt zur Liste.
+  await page.evaluate(() => { window.__cns.state.screen = 'achievements'; });
+  await page.waitForSelector('.achievement-row');
+  const rows = await page.locator('.achievement-row').count();
+  expect(await page.locator('.achievements-progress-label').textContent()).toContain(String(rows));
+  expect(await page.evaluate(() => [...document.querySelectorAll('.achievement-row')].some((r) => /Große Zahlen/i.test(r.textContent)))).toBe(false);
+  expect(rows).toBeGreaterThan(30);
+  // Missionen: über viele Wochen nie die Große-Zahlen-Mission.
+  expect(await page.evaluate(() => window.__cns.state.missions.list.some((m) => m.id === 'bigWin2'))).toBe(false);
+  // Einstellungen: Löschstil (nur Number Sums) fehlt.
+  await page.evaluate(() => { window.__cns.state.screen = 'settings'; window.__cns.state.settingsTab = 'spiel'; });
+  await page.waitForSelector('.set-howto-btn');
+  await expect(page.locator('.screen.settings', { hasText: 'Durchstreichen' })).toHaveCount(0);
+});
+
+test('Freunde sehen, dass ich gerade Rectangles spiele', async ({ page }) => {
+  await gotoApp(page);
+  await startGame(page, 'leicht');
+  const info = await page.evaluate(() => window.__cns.currentGameInfo && window.__cns.currentGameInfo());
+  expect(info && info.id).toBe('rectangles');
+});
