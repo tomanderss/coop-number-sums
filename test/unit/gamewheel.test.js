@@ -13,19 +13,28 @@ describe('gamewheel', () => {
   });
 
   test('Nachbarn sind kleiner, blasser, nach hinten gekippt und spiegelbildlich', () => {
-    const l = wheelItemStyle(-1, 120), r = wheelItemStyle(1, 120);
-    assert.match(l.transform, /translate3d\(-120\.0px/);
-    assert.match(r.transform, /translate3d\(120\.0px/);
-    assert.match(l.transform, /rotateY\(36\.0deg\)/);
-    assert.match(r.transform, /rotateY\(-36\.0deg\)/);
+    const l = wheelItemStyle(-1, 100), r = wheelItemStyle(1, 100);
+    assert.match(l.transform, /translate3d\(-100\.0px/);
+    assert.match(r.transform, /translate3d\(100\.0px/);
+    assert.match(l.transform, /rotateY\(30\.0deg\)/);
+    assert.match(r.transform, /rotateY\(-30\.0deg\)/);
     assert.ok(Number(l.opacity) < 1 && l.opacity === r.opacity);
     assert.ok(Number(r.zIndex) < 100);
   });
 
+  test('eng gefächert: auch das übernächste und drittnächste Logo bleiben sichtbar', () => {
+    const one = wheelItemStyle(1, 100), two = wheelItemStyle(2, 100), three = wheelItemStyle(3, 100);
+    const x = (s) => Number(/translate3d\((-?[\d.]+)px/.exec(s.transform)[1]);
+    assert.ok(x(two) - x(one) < x(one), 'weitere Logos rücken enger zusammen');
+    assert.ok(Number(two.opacity) > 0.5);
+    assert.ok(Number(three.opacity) > 0.3);
+    assert.ok(Number(three.zIndex) < Number(two.zIndex));
+  });
+
   test('weit entfernte Logos verschwinden, statt endlos zu schrumpfen', () => {
-    const s = wheelItemStyle(4, 120);
+    const s = wheelItemStyle(4, 100);
     assert.equal(s.opacity, '0.000');
-    assert.match(s.transform, /scale\(0\.500\)/);
+    assert.match(s.transform, /scale\(0\.420\)/);
   });
 
   test('Gummiband: innerhalb unverändert, außerhalb gedämpft', () => {

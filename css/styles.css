@@ -645,10 +645,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .screen.home .home-actions .btn { padding-top: 8px; padding-bottom: 8px; }
 }
 /* Menü unter der Scheibe blendet beim Spielwechsel weich über. */
-.gswap-enter-active, .gswap-leave-active { transition: opacity .2s ease; }
-.gswap-enter-from, .gswap-leave-to { opacity: 0; }
+/* Fortsetzen-Bereich: erscheint/verschwindet weich, ohne Lücke dazwischen. */
+.rfade-enter-active, .rfade-leave-active { transition: opacity .25s ease; }
+.rfade-enter-from, .rfade-leave-to { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
-  .gw-item, .gw-name, .gw-glow, .gswap-enter-active, .gswap-leave-active { transition-duration: .01s; }
+  .gw-item, .gw-name, .gw-glow, .rfade-enter-active, .rfade-leave-active { transition-duration: .01s; }
 }
 .brand-title { font-size: clamp(1.05rem, 2.6dvh, 1.3rem); font-weight: 800; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.2px; }
 .brand-sub { color: var(--text2); font-size: .9rem; }
