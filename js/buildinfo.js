@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.17';
-export const BUILD_HASH = '5622218';
+export const BUILD      = '2.18';
+export const BUILD_HASH = 'da90315';
 
 export const CHANGELOG = [
+  {
+    "version": "2.18",
+    "date": "28.10.2026",
+    "changes": [
+      "Rectangles: die Barriere hält jetzt ein ganzes Kästchen lang – erst wenn das fremde Kästchen komplett überzogen ist, wird überschrieben",
+      "Die Uhr über der Spielzeit ist jetzt gestochen scharf: kräftiger gezeichnet, und die Kopfleiste sitzt auf iPhones etwas tiefer, außerhalb des unscharfen Saums unter der Statusleiste"
+    ]
+  },
   {
     "version": "2.17",
     "date": "28.10.2026",
