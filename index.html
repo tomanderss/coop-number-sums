@@ -42,6 +42,8 @@
         if (m && GAMES.indexOf(m[1]) < 0) m = null;
         if (m) {
           localStorage.setItem('cns_game', JSON.stringify(m[1]));
+          // Ein Link auf ein Spiel öffnet DIESES Spiel, nicht den Standard „Mix".
+          localStorage.setItem('cns_mix_on', 'false');
           history.replaceState(null, '', location.pathname + location.hash);
         }
         var g = JSON.parse(localStorage.getItem('cns_game') || 'null');
