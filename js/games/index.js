@@ -14,9 +14,10 @@
 import numbersums from './numbersums/index.js';
 import mathcross from './mathcross/index.js';
 import rectangles from './rectangles/index.js';
+import numberpath from './numberpath/index.js';
 import { activeGameId, setActiveGameId, DEFAULT_GAME_ID, GAME_IDS, isGameId } from './registry.js';
 
-const BY_ID = { numbersums, mathcross, rectangles };
+const BY_ID = { numbersums, mathcross, rectangles, numberpath };
 
 /** Alle Spiele in Anzeige-Reihenfolge. */
 export const GAMES = GAME_IDS.map((id) => BY_ID[id]).filter(Boolean);

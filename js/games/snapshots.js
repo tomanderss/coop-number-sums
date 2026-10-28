@@ -11,8 +11,9 @@ import { DEFAULT_GAME_ID } from './registry.js';
 import * as numbersums from './numbersums/snapshot.js';
 import * as mathcross from './mathcross/snapshot.js';
 import * as rectangles from './rectangles/snapshot.js';
+import * as numberpath from './numberpath/snapshot.js';
 
-const RULES = { numbersums, mathcross, rectangles };
+const RULES = { numbersums, mathcross, rectangles, numberpath };
 
 // Unbekannte Kennung → Standardspiel (wie setActiveGameId): nie ohne Regeln.
 export function snapshotRules(id) { return RULES[id] || RULES[DEFAULT_GAME_ID]; }
