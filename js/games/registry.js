@@ -27,6 +27,7 @@ export const GAME_META = {
   rectangles: { id: 'rectangles', nameKey: 'games.rectangles', icon: 'box', logo: './icons/games/rectangles-192.png' },
   numberpath: { id: 'numberpath', nameKey: 'games.numberpath', icon: 'route', logo: './icons/games/numberpath-192.png' },
   gems: { id: 'gems', nameKey: 'games.gems', icon: 'gem', logo: './icons/games/gems-192.png' },
+  pipes: { id: 'pipes', nameKey: 'games.pipes', icon: 'wave', logo: './icons/games/pipes-192.png' },
 };
 
 /** Alle Spiel-Kennungen in Anzeige-Reihenfolge. */

@@ -21,9 +21,9 @@ test.describe('Spielauswahl', () => {
     await gotoApp(page);
     // Alle Spiele plus Mix, jedes genau einmal als Haupt-Exemplar (der Ring zeigt
     // weiter entfernte Einträge zusätzlich als Kopien).
-    await expect(page.locator('.game-wheel .gw-item[data-game]')).toHaveCount(6);
+    await expect(page.locator('.game-wheel .gw-item[data-game]')).toHaveCount(7);
     expect((await page.locator('.game-wheel .gw-item[data-game]').evaluateAll((els) => els.map((e) => e.dataset.game))).sort())
-      .toEqual(['gems', 'mathcross', 'mix', 'numberpath', 'numbersums', 'rectangles']);
+      .toEqual(['gems', 'mathcross', 'mix', 'numberpath', 'numbersums', 'pipes', 'rectangles']);
     await expect(page.locator('.gw-item.on')).toHaveAttribute('data-game', 'numbersums');
     await expect(page.locator('.brand-title')).toContainText('Number Games');
   });
@@ -131,7 +131,7 @@ test('auf dem ersten Spiel sind auch die übernächsten Logos sichtbar', async (
     return { game: el.dataset.game, opacity: Number(getComputedStyle(el).opacity), inView: r.right > 0 && r.left < innerWidth };
   }));
   // Endlos-Ring: von jedem Eintrag aus liegt JEDES Spiel in Sichtweite (links oder rechts).
-  expect(vis.length).toBe(6);
+  expect(vis.length).toBe(7);
   for (const v of vis) {
     expect(v.inView, v.game).toBe(true);
     expect(v.opacity, v.game).toBeGreaterThan(0.3);
@@ -157,16 +157,17 @@ test.describe('Mix als Standard', () => {
   test('die Scheibe dreht endlos: immer weiter nach rechts kommt man wieder an', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.game-wheel').focus();
+    const n = await page.locator('.game-wheel .gw-item[data-game]').count();
     const seen = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i <= n; i++) {
       await page.keyboard.press('ArrowRight');
       await page.waitForTimeout(550);
       seen.push(await page.evaluate(() => (window.__cns.state.mixOn ? 'mix' : window.__cns.gameId)));
     }
-    // Sechs Einträge: nach sechs Schritten wieder auf Mix, der siebte wie der erste.
-    expect(seen[5]).toBe('mix');
-    expect(seen[6]).toBe(seen[0]);
-    expect(new Set(seen).size).toBe(6);
+    // n Einträge: nach n Schritten wieder auf Mix, der nächste wie der erste.
+    expect(seen[n - 1]).toBe('mix');
+    expect(seen[n]).toBe(seen[0]);
+    expect(new Set(seen).size).toBe(n);
   });
 });
 
@@ -183,9 +184,9 @@ test('beim Spielwechsel bleibt das Menü stehen (kein Aus- und Einblenden)', asy
     };
     requestAnimationFrame(f);
   });
-  // Gem Hunt liegt im Ring direkt links neben Number Sums.
-  await page.locator('.gw-item[data-game="gems"]').click();
-  await page.waitForFunction(() => window.__cns.gameId === 'gems');
+  // Das letzte Spiel liegt im Ring direkt links neben Number Sums.
+  await page.locator('.gw-item[data-game="pipes"]').click();
+  await page.waitForFunction(() => window.__cns.gameId === 'pipes');
   await page.waitForTimeout(1200);
   expect(await page.evaluate(() => document.querySelector('.home-actions').dataset.keep)).toBe('1');
   expect(await page.evaluate(() => window.__minOpacity)).toBe(1);

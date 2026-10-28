@@ -1,0 +1,132 @@
+/* games/pipes.css — die Optik von „Pipes". Wird nur eingehängt, solange dieses
+   Spiel aktiv ist (s. applyGameCss / index.html).
+
+   Ein Stück = Rohr (SVG: Wandung + dunkle Bohrung) in einer drehenden Ebene;
+   darüber, in derselben Ebene, das WASSER: je Arm ein Streifen, in dem helle
+   Wellen in Flussrichtung laufen (nur transform), dazu die Nabe. Erreichte
+   Stücke füllen sich mit Verzögerung nach ihrer Entfernung von der Quelle
+   (--dl) — das Wasser läuft sichtbar durch das Netz.
+   Animiert wird AUSSCHLIESSLICH transform/opacity. */
+
+.board.pp-board {
+  display: block; position: relative; padding: 0; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    color-mix(in srgb, var(--text) 7%, var(--bg2));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 22%, transparent), var(--soft-shadow);
+  --pp-wall: color-mix(in srgb, var(--text) 34%, var(--bg2));
+  --pp-bore: color-mix(in srgb, var(--text) 62%, var(--bg2));
+  --pp-water: #2fb5ff;
+  --pp-water-hi: #c9f1ff;
+  --pp-src: #1e88ff;
+  --pp-period: calc(var(--cell) * .3);
+}
+.pp-tiles, .pp-focus { position: absolute; inset: 0; pointer-events: none; }
+.pp-tile {
+  position: absolute;
+  box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--text) 14%, transparent);
+}
+/* Im Coop: das zuletzt von einem Mitspieler gedrehte Stück trägt seine Farbe als Rahmen. */
+.pp-tile[style*="--pb"]::before {
+  content: ''; position: absolute; inset: 7%; border-radius: 22%;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pb) 70%, transparent);
+}
+/* Gesperrt („liegt richtig"): sanft getönt, kleine Ecke. */
+.pp-tile.locked { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.pp-tile.locked::after {
+  content: ''; position: absolute; right: 7%; top: 7%; width: 13%; height: 13%; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 75%, transparent);
+}
+
+.pp-rot {
+  position: absolute; inset: 0;
+  transition: transform .2s cubic-bezier(.3, 1.45, .55, 1);
+  will-change: transform;
+}
+.pp-pipe, .pp-pipe svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.pp-wall { fill: none; stroke: var(--pp-wall); stroke-width: 40; stroke-linecap: butt; }
+.pp-bore { fill: none; stroke: var(--pp-bore); stroke-width: 22; stroke-linecap: butt; }
+.pp-joint { fill: var(--pp-wall); }
+.pp-end-ring { fill: var(--pp-bore); stroke: var(--pp-wall); stroke-width: 9; }
+.pp-src-ring { fill: var(--pp-src); opacity: .25; }
+.pp-src-core { fill: var(--pp-src); stroke: #fff; stroke-width: 4; }
+
+/* ── Wasser ──────────────────────────────────────────────────────────────── */
+/* Ein Arm zeigt in der Grundlage nach oben und wird um seine Wurzel (die Mitte)
+   gedreht; seine Breite = die Bohrung. */
+.pp-arm {
+  position: absolute; left: 39%; width: 22%; top: -1%; height: 51%;
+  transform-origin: 50% 100%; overflow: hidden;
+  opacity: 0; transition: opacity .28s ease-out;
+}
+.pp-arm.d1 { transform: rotate(90deg); }
+.pp-arm.d2 { transform: rotate(180deg); }
+.pp-arm.d3 { transform: rotate(270deg); }
+.pp-arm i {
+  position: absolute; left: 0; right: 0; top: 0; height: calc(100% + var(--pp-period));
+  background:
+    repeating-linear-gradient(to top, var(--pp-water-hi) 0 18%, transparent 18% 100%) 0 0 / 100% var(--pp-period),
+    linear-gradient(90deg, #1678d8, var(--pp-water) 45%, #6fd2ff 70%, #1678d8);
+  animation: pp-out .7s linear infinite;
+}
+/* Arm, aus dem das Wasser kommt: Wellen laufen zur Mitte. */
+.pp-arm.inn i { animation-direction: reverse; }
+@keyframes pp-out { from { transform: translateY(0); } to { transform: translateY(calc(-1 * var(--pp-period))); } }
+.pp-hub {
+  position: absolute; left: 33%; top: 33%; width: 34%; height: 34%; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, var(--pp-water-hi), var(--pp-water) 55%, #1678d8);
+  opacity: 0; transform: scale(.4);
+  transition: opacity .28s ease-out, transform .32s cubic-bezier(.3, 1.6, .5, 1);
+}
+.pp-tile.pipe .pp-hub { left: 39%; top: 39%; width: 22%; height: 22%; }
+.pp-tile.wet .pp-arm, .pp-tile.wet .pp-hub { opacity: 1; transition-delay: var(--dl); }
+.pp-tile.wet .pp-hub { transform: none; }
+/* Ein Arm, der ins Leere führt, spritzt (rote Spitze, pulsiert). */
+.pp-arm.leak::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 26%;
+  background: linear-gradient(to bottom, var(--bad), transparent);
+  animation: pp-leak .9s ease-in-out infinite;
+}
+@keyframes pp-leak { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+/* Quelle: pulsierender Hof. */
+.pp-tile.src .pp-hub { left: 30%; top: 30%; width: 40%; height: 40%; opacity: 1; transform: none; }
+.pp-tile.src::after {
+  content: ''; position: absolute; inset: 14%; border-radius: 50%;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pp-src) 70%, transparent);
+  animation: pp-src 1.8s ease-out infinite;
+}
+@keyframes pp-src { from { transform: scale(.6); opacity: .9; } to { transform: scale(1.25); opacity: 0; } }
+/* Endstück versorgt: kurzer Lichtblitz. */
+.pp-tile.end.wet .pp-hub { animation: pp-fill .5s ease-out both; animation-delay: var(--dl); }
+@keyframes pp-fill { 0% { transform: scale(.3); } 60% { transform: scale(1.25); } 100% { transform: none; } }
+
+/* Gelöst: eine Welle läuft von der Quelle durch das ganze Netz. */
+.board.pp-board.done .pp-tile.wet .pp-pipe { animation: pp-win .6s ease-out both; animation-delay: var(--dl); }
+@keyframes pp-win { 0%, 100% { transform: none; } 40% { transform: scale(1.1); } }
+.board.pp-board.done .pp-tile.wet .pp-hub { animation: pp-fill .55s ease-out both; animation-delay: var(--dl); }
+.board.pp-board.done { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pp-water) 70%, transparent), 0 0 24px color-mix(in srgb, var(--pp-water) 35%, transparent); }
+
+/* Pause / nicht laufend: die Wellen stehen. */
+.board.pp-board.still .pp-arm i, .board.pp-board.still .pp-tile.src::after, .board.pp-board.still .pp-arm.leak::after { animation-play-state: paused; }
+
+/* Training: das Stück, das als Nächstes feststeht. */
+.pp-train {
+  position: absolute; border-radius: 8px;
+  box-shadow: inset 0 0 0 2.5px var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  animation: pp-pulse 1.3s ease-in-out infinite;
+}
+@keyframes pp-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-arm i, .pp-tile.src::after, .pp-arm.leak::after, .pp-train,
+  .pp-tile.end.wet .pp-hub, .board.pp-board.done .pp-tile.wet .pp-hub { animation: none; }
+  .pp-rot { transition: none; }
+}
+
+.history-board.pp-board { margin: 0 auto; }
+.history-board.pp-board .pp-arm, .history-board.pp-board .pp-hub { display: none; }
+.history-board.pp-board .pp-bore { stroke: var(--pp-water); }
