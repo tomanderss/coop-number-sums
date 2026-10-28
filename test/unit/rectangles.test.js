@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   rectFromCorners, rectValid, isSolved, isFull, progressPct, addRect, rectAt, ownerGrid,
-  validPuzzleShape, normalizePuzzle, normalizeRects, cluesIn,
+  validPuzzleShape, normalizePuzzle, normalizeRects, cluesIn, clampToFree,
 } from '../../js/games/rectangles/model.js';
 import { candidates, solveLogic, countSolutions } from '../../js/games/rectangles/solver.js';
 import { generatePuzzle, partition, mulberry32 } from '../../js/games/rectangles/generator.js';
@@ -66,6 +66,29 @@ describe('Rectangles: Regeln', () => {
     assert.deepEqual(normalizePuzzle(fromDb).clues, P.clues);
     assert.equal(normalizePuzzle(P), P);
     assert.deepEqual(normalizeRects({ 1: P.solution[1], 0: P.solution[0], 2: null }), [P.solution[0], P.solution[1]]);
+  });
+});
+
+describe('Rectangles: Barriere beim Ziehen (clampToFree)', () => {
+  const A = { id: 'a', r: 0, c: 3, h: 2, w: 1 };
+  test('ohne Hindernis = das volle Ziel', () => {
+    assert.deepEqual(clampToFree([], 0, 0, 2, 4), { r: 0, c: 0, h: 3, w: 5 });
+  });
+  test('waagerecht: bleibt an der Kante des fremden Rechtecks stehen', () => {
+    assert.deepEqual(clampToFree([A], 0, 0, 0, 5), { r: 0, c: 0, h: 1, w: 3 });
+    // rückwärts gezogen
+    assert.deepEqual(clampToFree([A], 1, 5, 1, 0), { r: 1, c: 4, h: 1, w: 2 });
+  });
+  test('diagonal: die größte freie Fläche, bei Gleichstand näher am Ziel', () => {
+    // Ziel (3,4): A blockiert die Zeilen 0–1 ab Spalte 3 — die Zeilen 0..3 bis
+    // Spalte 2 (12 Zellen) schlagen Zeile 0 allein bis Spalte 2.
+    assert.deepEqual(clampToFree([A], 0, 0, 3, 4), { r: 0, c: 0, h: 4, w: 3 });
+  });
+  test('durchbrochene Rechtecke halten nicht mehr auf', () => {
+    assert.deepEqual(clampToFree([A], 0, 0, 0, 5, new Set(['a'])), { r: 0, c: 0, h: 1, w: 6 });
+  });
+  test('Anker selbst blockiert = null', () => {
+    assert.equal(clampToFree([A], 0, 3, 0, 5), null);
   });
 });
 

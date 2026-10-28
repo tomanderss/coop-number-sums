@@ -67,6 +67,30 @@
   z-index: 4;
 }
 
+/* Barriere beim Überziehen (s. board.js): das Rechteck, gegen das man drückt,
+   federt einmal kurz ein und bekommt einen Ring; die Vorschau stockt
+   (gestrichelter Rand). Bricht man durch, federt die Vorschau nach, ein Ring
+   läuft aus, und was ersetzt wird, wird blass. Nur transform/opacity. */
+.rrect { transition: opacity .15s ease; }
+.rrect::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: max(5px, calc(var(--cell) * 0.18));
+  box-shadow: 0 0 0 2.5px var(--accent), 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
+  opacity: 0; transition: opacity .14s ease; pointer-events: none;
+}
+.rrect.blocking { animation: rect-bump .34s cubic-bezier(.3, 1.6, .5, 1); }
+.rrect.blocking::after { opacity: 1; }
+.rrect.doomed { opacity: .38; }
+@keyframes rect-bump { 0% { transform: none; } 30% { transform: scale(.94); } 100% { transform: none; } }
+.rb-preview.held { border-style: dashed; }
+.rb-preview.give { transition: transform .2s cubic-bezier(.34, 1.56, .64, 1), width .2s cubic-bezier(.34, 1.56, .64, 1), height .2s cubic-bezier(.34, 1.56, .64, 1), opacity .12s ease; }
+.rb-preview::after {
+  content: ''; position: absolute; inset: -2px; border-radius: inherit;
+  box-shadow: 0 0 0 3px var(--accent); opacity: 0; pointer-events: none;
+}
+.rb-preview.give::after { animation: rect-give .26s ease-out; }
+@keyframes rect-give { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.12); } }
+
 /* Brett voll, geht nicht auf: rote Kontur + einmaliges Wackeln. */
 .board.rect-board.full-wrong { box-shadow: 0 0 0 2px var(--bad), var(--soft-shadow); }
 .board.rect-board.shake { animation: rect-shake .5s ease; }
@@ -77,7 +101,8 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .rrect::before, .board.rect-board.shake { animation: none; }
-  .rb-preview.snap { transition: opacity .12s ease; }
+  .rb-preview.snap, .rb-preview.give { transition: opacity .12s ease; }
+  .rrect.blocking, .rb-preview.give::after { animation: none; }
 }
 
 /* Training: das Rechteck, das der nächste Schritt legt, gestrichelt vorgezeichnet. */
