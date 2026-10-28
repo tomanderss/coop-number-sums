@@ -489,6 +489,51 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   animation: pu-spin 14s linear infinite;
 }
 @keyframes pu-spin { to { transform: rotate(360deg); } }
+
+/* ── Neue HAUPTVERSION (versions.js): große, einmalige Feier ─────────────────
+   Riesige Versionszahl im Verlauf, darunter die Spiel-Logos und die Highlights,
+   die nacheinander hereinkommen. Nur transform/opacity animiert; die Strahlen
+   drehen langsam hinter der Zahl (eine Instanz, nur solange das Pop-up offen ist). */
+.major-modal {
+  position: relative; overflow: hidden auto; text-align: center; align-items: center;
+  gap: 8px; max-width: 380px; padding-top: 22px;
+  background: radial-gradient(340px 240px at 50% 12%, color-mix(in srgb, var(--accent) 26%, transparent), var(--bg2));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 16px 60px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.major-modal > *:not(.mj-rays) { position: relative; z-index: 1; }
+.mj-rays {
+  position: absolute; left: 50%; top: 92px; width: 260px; height: 260px; margin: -130px 0 0 -130px;
+  pointer-events: none; opacity: .5;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--accent) 45%, transparent) 0 7deg, transparent 7deg 30deg);
+  -webkit-mask: radial-gradient(closest-side, #000 40%, transparent 72%); mask: radial-gradient(closest-side, #000 40%, transparent 72%);
+  animation: pu-spin 24s linear infinite;
+}
+.mj-kicker { font-size: .74rem; letter-spacing: .26em; text-transform: uppercase; font-weight: 800; color: var(--accent); }
+.mj-num {
+  font-size: clamp(84px, 26vw, 116px); font-weight: 900; line-height: .95; letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(160deg, #fff 0%, var(--accent) 55%, color-mix(in srgb, var(--accent) 60%, #000) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: mj-in .7s cubic-bezier(.2, 1.5, .45, 1) both;
+}
+.mj-num small { font-size: .42em; letter-spacing: 0; }
+.mj-title { margin: 2px 0 0; font-size: 1.2rem; }
+.mj-sub { margin: 0; color: var(--text2); font-size: .9rem; }
+.mj-games { display: flex; justify-content: center; gap: 12px; margin: 8px 0 4px; flex-wrap: wrap; }
+.mj-game { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; animation: mj-pop .45s cubic-bezier(.2, 1.5, .5, 1) both; animation-delay: calc(.45s + var(--i) * .09s); }
+.mj-game img { width: 48px; height: 48px; border-radius: 13px; box-shadow: var(--soft-shadow); }
+.mj-game span { font-size: .68rem; font-weight: 700; color: var(--text2); line-height: 1.15; }
+.mj-list { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 7px; text-align: left; width: 100%; }
+.mj-list li {
+  display: flex; align-items: center; gap: 10px; font-size: .88rem; line-height: 1.3;
+  padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, transparent);
+  animation: mj-slide .4s ease-out both; animation-delay: calc(.85s + var(--i) * .1s);
+}
+.mj-list li .ei { color: var(--accent); flex: 0 0 auto; display: inline-flex; }
+@keyframes mj-in { from { transform: scale(.4) translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes mj-pop { from { transform: scale(.5); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes mj-slide { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .mj-rays, .mj-num, .mj-game, .mj-list li { animation: none !important; } }
 @media (prefers-reduced-motion: reduce) { .pu-rays, .prestige-unlock-modal.pu-t4 .pu-name { animation: none !important; } }
 
 /* ── Multiplayer-Chat ───────────────────────────────────────────────────────── */

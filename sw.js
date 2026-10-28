@@ -1,4 +1,4 @@
-const CACHE = 'coop-number-sums-v1.240';
+const CACHE = 'coop-number-sums-v2.16';
 const ASSETS = [
   './index.html',
   './privacy.html',
@@ -8,6 +8,7 @@ const ASSETS = [
   './css/games/rectangles.css',
   './css/games/numberpath.css',
   './js/vue.esm-browser.prod.js',
+  './js/versions.js',
   './js/config.js',
   // ── Spiel-Registry + Spielmodule (js/games/<id>/) ──
   './js/games/registry.js',
