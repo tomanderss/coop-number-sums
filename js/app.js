@@ -3,7 +3,7 @@ import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref
 import { BUILD, CHANGELOG } from './buildinfo.js';
 import { cmpVersion, canonicalVersion, majorCelebrationFor, MAJORS } from './versions.js';
 import { REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb, DIFFICULTY_LADDER } from './config.js';
-import { MIX_ID, mixCatalog, normalizeMixPool, mixGameOn, mixDiffOn, mixCombos, mixSummary, toggleMixGame, toggleMixDiff, applyMixPreset, activeMixPreset, pickMixLevel, mixReel } from './mix.js';
+import { MIX_ID, mixCatalog, normalizeMixPool, mixGameOn, mixDiffOn, mixCombos, mixSummary, toggleMixGame, toggleMixDiff, applyMixPreset, activeMixPreset, pickMixLevel, mixReel, mixDuelPlan, duelRanking, duelGoalReached, normalizeDuelGoal, DUEL_COUNTS, DUEL_MINUTES } from './mix.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
@@ -131,6 +131,10 @@ const state = reactive({
 
   // Spiel
   puzzle: null,
+  // Mix im Mehrspieler: Modus-Wahl auf dem Mix-Screen, Duell-Ziel und der
+  // laufende Duell-Zustand (s. startMixDuel).
+  mixScreenMode: 'solo', mixDuelGoal: { type: 'count', n: 5 },
+  mixDuel: { active: false },
   isRaceGame: false,          // true, während ein Race-/Duell-Match (1v1) läuft
   isTrainingGame: false,      // true, während der Trainingsmodus (Schritt-für-Schritt-Erklärung) läuft
   trainingStep: null,         // aktuell erklärter Schritt { r, c, action, reason, group } oder null
@@ -203,6 +207,7 @@ const state = reactive({
     // Bearbeiten-Sperre (Spiele mit features.editLock, s. editLockActive):
     // edit = { uid, name, at, req? } aus Coop.onEdit; live = Entwürfe der anderen.
     edit: null, live: {}, editAsked: 0, editReqSeen: null,
+    mixMode: null,             // 'coop' | 'duel': der Raum spielt Mix (meta.game = 'mix')
     active: false,             // aktive Session
     role: null,                // 'host' | 'guest'
     code: '',                  // Host: gewählter Code; Gast: eingegebener Zielcode
@@ -1519,7 +1524,7 @@ function endlessLevelSolved(remote) {
     // SOLO-Endlos fortsetzbar halten: JETZT (nach der Buchhaltung, inkl. Lauf-
     // Münzsumme) den Zwischen-Level-Marker sichern — das gelöste Brett selbst
     // taugt nicht zum Fortsetzen, das Fortsetzen startet frisch bei score+1.
-    if (e.mix) saveMixRun({ pending: true, ts: Date.now(), game: currentGame.id, mix: mixRunMeta(e.score + 1) });
+    if (e.mix && !isCoop) saveMixRun({ pending: true, ts: Date.now(), game: currentGame.id, mix: mixRunMeta(e.score + 1) });
     else if (!isCoop) {
       const marker = { pending: true, ts: Date.now(), gameId: state.gameId, endless: { runId: e.runId || null, level: e.score + 1, lives: e.lives, hints: e.hints, score: e.score, bigNumbers: !!e.bigNumbers, accumMs: e.accumMs || 0, coins: e.coins || 0 } };
       saveActiveGameEndless(marker);
@@ -1627,7 +1632,7 @@ function endlessAbort() {
   // Solo-Lauf auf Level 5 fortgesetzt, danach Beitritt zu einer fremden
   // Coop-Endlos-Runde, beim Verlassen war der eigene Lauf weg.)
   // endlessCoopGameOver räumt den Slot aus genau demselben Grund nicht.
-  if (e.mix) { saveMixRun(null); state.resumeAvailableMix = null; }
+  if (e.mix && !e.coop) { saveMixRun(null); state.resumeAvailableMix = null; }
   else if (!e.coop) {
     const deadRunId = endlessSaveId();
     saveActiveGameEndless(null); state.resumeAvailableEndless = null;
@@ -1821,6 +1826,259 @@ function resumeMix() {
   startTimer();
   requestWakeLock();
 }
+// ─── MIX IM MEHRSPIELER ──────────────────────────────────────────────────────
+// Nutzerwunsch: Mix auch als Coop und als Duell. Einstieg ist der Mix-Screen
+// (Modus-Wahl Solo/Coop/Duell); der Raum trägt meta.game = 'mix', jeder darf
+// beitreten. COOP = Coop-Endlos, nur zieht der Host je Level ein Spiel (die
+// Ziehung läuft per MIX_PICK bei allen), das INIT bringt Spiel + Stufe mit.
+// DUELL = Race-Familie: alle spielen DIESELBEN Rätsel in DERSELBEN Reihenfolge
+// (mixDuelPlan aus dem gemeinsamen Seed), Ziel „zuerst N gelöst" oder „die
+// meisten in M Minuten".
+const MIX_DUEL_PLAN = 80;
+function setMixScreenMode(m) { if (['solo', 'coop', 'duel'].includes(m)) state.mixScreenMode = m; }
+function setDuelGoal(g) { state.mixDuelGoal = normalizeDuelGoal(g); }
+function duelGoalLabel(g = state.mixDuelGoal) {
+  const x = normalizeDuelGoal(g);
+  return x.type === 'count' ? t('mix.duelGoalCount', { n: x.n }) : t('mix.duelGoalTime', { n: x.min });
+}
+function startMixFromScreen() {
+  const mode = state.mixScreenMode;
+  if (mode === 'solo') { startMix(); return; }
+  if (!mixCombos(mixPool(), MIX_CATALOG).length) { showToast(t('mix.empty'), 'info', 2500); return; }
+  if (mode === 'coop') goCoop(); else goRace('ffa');
+  if (state.screen !== 'coop') return;   // offline o.Ä. — goCoop/goRace haben es gemeldet
+  state.coop.mixMode = mode;
+  log('game', 'Mix im Mehrspieler: Raum einrichten', { mode, goal: mode === 'duel' ? state.mixDuelGoal : null });
+}
+function mixInitExtra() {
+  const e = state.endless;
+  return e.active && e.mix ? { game: currentGame.id, mix: { diff: e.mix.diff || '', played: { ...(e.mix.played || {}) } } } : {};
+}
+function showMixReveal(game, diff, level, reel) {
+  state.mixReveal = {
+    reel: (reel || [game]).filter((id) => GAME_IDS.includes(id)).map((id) => ({ id, logo: gameMeta(id).logo })),
+    game, diff, level, seq: Date.now(),
+  };
+}
+// ── Coop-Mix (host-autoritativ) ──
+function startCoopMix() {
+  if (!canStartCoopMatch()) return;
+  state.coop.active = true;
+  state.coop.waitingForGuest = false;
+  state.coop.awaitingStart = false;
+  state.endless = { active: true, coop: true, advancing: false, level: 1, lives: LIVES, hints: HINTS, score: 0, coins: 0, best: state.stats.endlessCoopBest || 0, bigNumbers: false, accumMs: 0,
+    mix: { prev: null, game: null, diff: null, played: {}, pool: mixPool() } };
+  navigate('game');
+  log('coop', 'Coop-Mix gestartet', { players: state.coop.players.length, combos: mixCombos(mixPool(), MIX_CATALOG).length });
+  loadCoopMixLevel();
+}
+function loadCoopMixLevel() {
+  const e = state.endless, m = e.mix;
+  const pool = m.pool || mixPool();
+  const pick = pickMixLevel(pool, MIX_CATALOG, m.prev) || pickMixLevel({}, MIX_CATALOG, m.prev);
+  m.prev = pick.game; m.game = pick.game; m.diff = pick.diff;
+  const ids = MIX_CATALOG.filter((g) => mixGameOn(pool, g.id, MIX_CATALOG)).map((g) => g.id);
+  const reel = mixReel(ids.length ? ids : [pick.game], pick.game, 12);
+  state.generating = true;
+  e.advancing = true;
+  state.screen = 'game';
+  showMixReveal(pick.game, pick.diff, e.level, reel);
+  coopSend({ type: Coop.MSG.MIX_PICK, game: pick.game, diff: pick.diff, level: e.level, reel });
+  log('coop', 'Coop-Mix-Level gezogen', { level: e.level, game: pick.game, difficulty: pick.diff });
+  const reveal = new Promise((r) => setTimeout(r, MIX_REVEAL_MS));
+  const stillMine = () => state.endless.active && state.endless.mix === m;
+  requestAnimationFrame(() => setTimeout(() => {
+    if (!stillMine()) return;
+    if (currentGame.id !== pick.game) switchGame(pick.game, { force: true });
+    const t0 = performance.now();
+    const gen = generateAsync({ difficulty: pick.diff }).catch((err) => {
+      log('coop', 'Coop-Mix-Generierung fehlgeschlagen, synchroner Versuch', err);
+      return generatePuzzle({ difficulty: pick.diff });
+    });
+    Promise.all([gen, reveal]).then(([puzzle]) => {
+      if (!stillMine()) return;
+      log('coop', 'Coop-Mix-Level generiert', { level: e.level, game: pick.game, tookMs: Math.round(performance.now() - t0) });
+      finishCoopEndlessLevel(puzzle);
+      state.mixReveal = null;
+    }).catch((err) => { state.mixReveal = null; onLobbyGenFailed(err, 'Coop-Mix'); });
+  }, 30));
+}
+// Gast: der Host hat gezogen → dieselbe Ziehung zeigen, schon mal das Spiel wechseln.
+let mixPickTimer = null;
+function onMixPick(msg) {
+  if (!state.coop.active || !GAME_IDS.includes(msg.game)) return;
+  showMixReveal(msg.game, msg.diff, msg.level, msg.reel);
+  state.generating = true;
+  log('coop', 'Coop-Mix: Ziehung vom Host', { level: msg.level, game: msg.game });
+  requestAnimationFrame(() => setTimeout(() => {
+    if (currentGame.id !== msg.game) switchGame(msg.game, { force: true });
+  }, 30));
+  // Kommt das Level nicht (Host weg), hängt die Ziehung nicht ewig.
+  clearTimeout(mixPickTimer);
+  mixPickTimer = setTimeout(() => { if (state.mixReveal) { state.mixReveal = null; state.generating = false; } }, 15000);
+}
+
+// ── Mix-Duell ──
+function startMixDuel() {
+  resetReadyFlags();
+  const cfg = { seed: Math.floor(Math.random() * 2 ** 31), goal: normalizeDuelGoal(state.mixDuelGoal), pool: mixPool() };
+  log('game', 'Mix-Duell gestartet', { goal: cfg.goal, players: state.coop.players.length });
+  applyMixDuelStart(cfg);
+  sendRoom({ type: Coop.MSG.RACE_START, seed: cfg.seed, difficulty: null, mixDuel: cfg });
+}
+function applyMixDuelStart(cfg) {
+  const pool = normalizeMixPool(cfg.pool, MIX_CATALOG);
+  const goal = normalizeDuelGoal(cfg.goal);
+  const others = state.coop.players.filter((p) => p.id !== state.coop.myId);
+  state.race.ffa = true;
+  state.race.opponents = others.map((p) => ({ id: p.id, name: playerLabel(p) || '', color: p.color || '#888', pct: 0, mistakes: 0, out: false, solved: 0, level: 1, doneAt: null }));
+  state.race.opponentId = others[0] ? others[0].id : null;
+  state.race.opponentName = playerLabel(others[0]) || '';
+  state.race.opponentColor = (others[0] && others[0].color) || '#888';
+  Object.assign(state.race, { active: true, matchOver: false, winner: null, winnerName: '', endReason: null, myPct: 0, opponentPct: 0, opponentMistakes: 0 });
+  state.isRaceGame = true;
+  state.mixDuel = { active: true, seed: cfg.seed >>> 0, goal, pool, level: 1, solved: 0, deadline: null, doneAt: null, over: false, ranking: null, now: Date.now(),
+    plan: mixDuelPlan(cfg.seed >>> 0, MIX_DUEL_PLAN, pool, MIX_CATALOG) };
+  state.coop.waitingForGuest = false;
+  state.coop.awaitingStart = true;
+  state.coop.generating = true;
+  raceProgressThrottle = 0;
+  if (raceProgressTimer) { clearTimeout(raceProgressTimer); raceProgressTimer = null; }
+  Coop.setRaceProgress(state.coop.myId, raceProgressPayload());
+  Coop.listenRaceProgress(onRaceProgressUpdate);
+  navigate('game');
+  startMixDuelTicker();
+  loadMixDuelLevel(true);
+}
+function mixDuelLevelInfo(level) {
+  const d = state.mixDuel;
+  if (level > d.plan.length) d.plan = mixDuelPlan(d.seed, level + MIX_DUEL_PLAN, d.pool, MIX_CATALOG);
+  return d.plan[level - 1];
+}
+function loadMixDuelLevel(first) {
+  const d = state.mixDuel;
+  const lv = mixDuelLevelInfo(d.level);
+  const run = d;
+  state.generating = true;
+  if (!first) {
+    const ids = MIX_CATALOG.filter((g) => mixGameOn(d.pool, g.id, MIX_CATALOG)).map((g) => g.id);
+    showMixReveal(lv.game, lv.diff, d.level, mixReel(ids.length ? ids : [lv.game], lv.game, 10));
+  }
+  log('game', 'Mix-Duell: Level laden', { level: d.level, game: lv.game, difficulty: lv.diff });
+  const reveal = new Promise((r) => setTimeout(r, first ? 0 : MIX_REVEAL_MS - 600));
+  requestAnimationFrame(() => setTimeout(() => {
+    if (state.mixDuel !== run || run.over) return;
+    if (currentGame.id !== lv.game) switchGame(lv.game, { force: true });
+    const gen = generateAsync({ difficulty: lv.diff, seed: lv.seed }).catch(() => generatePuzzle({ difficulty: lv.diff, seed: lv.seed }));
+    Promise.all([gen, reveal]).then(([puzzle]) => {
+      if (state.mixDuel !== run || run.over) return;
+      if (first) {
+        if (!state.coop.awaitingStart) return;
+        loadPuzzleIntoState(puzzle, null);
+        state.coop.generating = false;
+        state.generating = false;
+        return;
+      }
+      loadPuzzleIntoState(puzzle, null);
+      state.generating = false;
+      state.mixReveal = null;
+      startTimer();
+      pushRaceProgress();
+    }).catch((err) => { state.mixReveal = null; onLobbyGenFailed(err, 'Mix-Duell'); });
+  }, 30));
+}
+// Ein Level ist vorbei (gelöst oder alle Leben weg): weiterzählen, Ziel prüfen,
+// sonst sofort das nächste Rätsel.
+function mixDuelLevelDone(solved) {
+  const d = state.mixDuel;
+  if (!d.active || d.over || state.status !== 'playing' || state.generating) return;
+  stopTimer();
+  // Zwischen zwei Duell-Leveln KEIN Ergebnis-Screen (der kommt erst am Ende).
+  state.status = 'idle';
+  if (solved) {
+    d.solved++;
+    if (state.settings.sfxWin) Music.sfxWin();
+  } else if (state.settings.sfxLose) Music.sfxLose();
+  d.level++;
+  log('game', 'Mix-Duell: Level beendet', { solved, total: d.solved, next: d.level });
+  if (solved && d.goal.type === 'count' && d.solved >= d.goal.n) {
+    d.doneAt = Coop.serverNow();
+    Coop.setRaceProgress(state.coop.myId, raceProgressPayload());
+    const ranking = mixDuelRanking();
+    sendRoom({ type: Coop.MSG.RACE_DONE, from: state.coop.myId, outcome: 'won', mixDuel: true, winner: state.coop.myId, ranking: ranking.map((p) => p.id) });
+    finishMixDuel(state.coop.myId, ranking);
+    return;
+  }
+  showToast(solved ? t('mix.duelSolvedToast', { n: d.solved }) : t('mix.duelFailedToast'), solved ? 'success' : 'info', 1600);
+  Coop.setRaceProgress(state.coop.myId, raceProgressPayload());
+  loadMixDuelLevel(false);
+}
+function mixDuelRanking() {
+  const d = state.mixDuel;
+  const me = { id: state.coop.myId, name: myUsername() || t('common.you'), color: state.settings.coopMyColor, solved: d.solved, pct: state.status === 'playing' ? progressPct() : 0, doneAt: d.doneAt, me: true };
+  return duelRanking([me, ...state.race.opponents.map((o) => ({ id: o.id, name: o.name, color: o.color, solved: o.solved || 0, pct: o.pct || 0, doneAt: o.doneAt || null }))]);
+}
+function finishMixDuel(winnerId, ranking) {
+  const d = state.mixDuel;
+  if (d.over) return;
+  d.over = true;
+  d.ranking = ranking;
+  stopMixDuelTicker();
+  stopTimer();
+  state.generating = false;
+  state.mixReveal = null;
+  const iWon = winnerId === state.coop.myId;
+  const w = ranking.find((p) => p.id === winnerId);
+  Object.assign(state.race, { matchOver: true, winner: iWon ? 'me' : 'opponent', winnerName: (w && w.name) || '', endReason: 'won' });
+  state.status = iWon ? 'won' : 'lost';
+  state.raceStats = iWon ? recordRaceWin('ffa', state.elapsed || 0) : recordRaceLoss('ffa');
+  recordMissionEvent({ played: true, won: iWon, race: true });
+  checkAchievements();
+  if (iWon) launchWinFx();
+  log('game', 'Mix-Duell beendet', { iWon, solved: d.solved, goal: d.goal });
+  syncCloudNow('mixDuel');
+}
+function onMixDuelDone(msg) {
+  const d = state.mixDuel;
+  if (d.over) return;
+  const ids = Array.isArray(msg.ranking) ? msg.ranking : Object.values(msg.ranking || {});
+  const mine = mixDuelRanking();
+  const ranking = ids.length ? ids.map((id) => mine.find((p) => p.id === id)).filter(Boolean) : mine;
+  for (const p of mine) if (!ranking.includes(p)) ranking.push(p);
+  finishMixDuel(msg.winner || msg.from, ranking);
+}
+// Sekundentakt: Restzeit (Zeit-Modus) und das Spielende nach Ablauf.
+let mixDuelTimer = null;
+function startMixDuelTicker() {
+  stopMixDuelTicker();
+  mixDuelTimer = setInterval(() => {
+    const d = state.mixDuel;
+    if (!d.active || d.over) { stopMixDuelTicker(); return; }
+    d.now = Coop.serverNow();
+    if (d.goal.type !== 'time') return;
+    if (!d.deadline && state.status === 'playing' && state.startTime) d.deadline = state.startTime + d.goal.min * 60000;
+    if (!d.deadline || d.now < d.deadline) return;
+    // Zeit um: der Host wertet aus und verkündet; ohne Host (weg) wertet jeder selbst.
+    stopTimer();
+    if (state.status === 'playing') state.status = 'idle';
+    const decide = () => {
+      if (d.over) return;
+      const ranking = mixDuelRanking();
+      sendRoom({ type: Coop.MSG.RACE_DONE, from: state.coop.myId, outcome: 'won', mixDuel: true, winner: ranking[0].id, ranking: ranking.map((p) => p.id) });
+      finishMixDuel(ranking[0].id, ranking);
+    };
+    if (state.coop.role === 'host') decide();
+    else if (!d.waitT) d.waitT = setTimeout(decide, 5000);
+  }, 1000);
+}
+function stopMixDuelTicker() { clearInterval(mixDuelTimer); mixDuelTimer = null; }
+function mixDuelRemainingMs() {
+  const d = state.mixDuel;
+  if (!d.active || d.goal.type !== 'time') return 0;
+  const end = d.deadline || (d.now + d.goal.min * 60000);
+  return Math.max(0, end - (d.now || Date.now()));
+}
+
 function closeEndlessSummary() {
   const wasCoop = !!(state.endlessSummary && state.endlessSummary.coop);
   state.endlessSummary = null; state.status = 'idle';
@@ -1852,6 +2110,7 @@ function startCoopEndless() {
   loadCoopEndlessLevel();
 }
 function loadCoopEndlessLevel() {
+  if (state.endless.mix) { loadCoopMixLevel(); return; }
   const e = state.endless;
   const diffId = endlessDiffId(e.level, DIFFICULTIES.map(d => d.id));
   const bigNumbers = !!e.bigNumbers && bigNumbersAllowed(diffId);
@@ -1878,7 +2137,7 @@ function finishCoopEndlessLevel(puzzle) {
   e.advancing = false;
   // Fertiges Level als LAUFENDES INIT an die Gäste (endless-Marker + Level + Leben +
   // kumulierte Herz-Verluste); sie steigen sofort ein (running:true).
-  coopSend({ type: Coop.MSG.INIT, gameId, running: true, puzzle: state.puzzle, ...Board.boardFields('wire'), markedBy: wireMarkedBy(), startTime, lives: e.lives, maxLives: LIVES, endless: true, endlessLevel: e.level, lifeLossBy: carryLoss.map(x => x || '') });
+  coopSend({ type: Coop.MSG.INIT, gameId, running: true, puzzle: state.puzzle, ...Board.boardFields('wire'), markedBy: wireMarkedBy(), startTime, lives: e.lives, maxLives: LIVES, endless: true, endlessLevel: e.level, lifeLossBy: carryLoss.map(x => x || ''), ...mixInitExtra() });
   coopSend({ type: Coop.MSG.START, startTime });
   startCoopGame(startTime);
   requestWakeLock();
@@ -1913,7 +2172,8 @@ function endlessCoopGameOver() {
   state.stats = stats;
   e.active = false;
   state.status = 'lost';
-  state.endlessSummary = { score, best: stats.endlessCoopBest, coins: e.coins || 0, newBest, coop: true, totalMs: endlessTotalMs() };
+  if (e.mix) state.mixStats = recordMixRun(score).stats;
+  state.endlessSummary = { score, best: stats.endlessCoopBest, coins: e.coins || 0, newBest, coop: true, totalMs: endlessTotalMs(), mix: e.mix ? mixPlayedList(e.mix.played) : null };
   if (state.settings.sfxLose) Music.sfxLose();
   log('coop', 'Coop-Endlos beendet', { score, best: stats.endlessCoopBest, coins: e.coins || 0, newBest });
   recordMissionEvent({
@@ -2440,17 +2700,23 @@ let raceProgressTimer = null;
 // einfrieren, sobald keine weiteren Züge mehr außerhalb des Zeitfensters
 // kamen. Der Timer garantiert, dass der letzte Stand spätestens nach Ablauf
 // des Throttle-Fensters nachgereicht wird.
+// Mix-Duell: zusätzlich gelöste Rätsel + Level (Rangfolge, s. duelRanking).
+function raceProgressPayload() {
+  const d = state.mixDuel;
+  return d.active ? { pct: progressPct(), mistakes: state.mistakes, solved: d.solved, level: d.level, doneAt: d.doneAt || null }
+    : { pct: progressPct(), mistakes: state.mistakes };
+}
 function pushRaceProgress() {
   const now = Date.now();
   const elapsed = now - raceProgressThrottle;
   if (elapsed >= 2000) {
     raceProgressThrottle = now;
-    Coop.setRaceProgress(state.coop.myId, { pct: progressPct(), mistakes: state.mistakes });
+    Coop.setRaceProgress(state.coop.myId, raceProgressPayload());
   } else if (!raceProgressTimer) {
     raceProgressTimer = setTimeout(() => {
       raceProgressTimer = null;
       raceProgressThrottle = Date.now();
-      Coop.setRaceProgress(state.coop.myId, { pct: progressPct(), mistakes: state.mistakes });
+      Coop.setRaceProgress(state.coop.myId, raceProgressPayload());
     }, 2000 - elapsed);
   }
 }
@@ -2461,7 +2727,7 @@ function onRaceProgressUpdate(progressByUid) {
   if (state.race.ffa) {
     for (const o of state.race.opponents) {
       const p = progressByUid[o.id];
-      if (p) { o.pct = p.pct || 0; o.mistakes = p.mistakes || 0; }
+      if (p) { o.pct = p.pct || 0; o.mistakes = p.mistakes || 0; o.solved = p.solved || 0; o.level = p.level || 1; o.doneAt = p.doneAt || null; }
     }
   }
   const opp = progressByUid[state.race.opponentId];
@@ -2813,6 +3079,9 @@ function handleCoopMsg(msg, key = null) {
       return;
     }
     log('coop', 'INIT empfangen', { running: !!msg.running, gameId: msg.gameId || null, hasStart: msg.startTime != null });
+    // Coop-Mix: jedes Level kann ein anderes Spiel sein — VOR der Prüfung wechseln
+    // (validPuzzleShape gehört dem Spiel des Rätsels).
+    if (msg.game && GAME_IDS.includes(msg.game) && msg.game !== currentGame.id) switchGame(msg.game, { force: true });
     // BLACKSCREEN-PRÄVENTION: das Puzzle VOR jeder Zustandsänderung prüfen. Ein
     // kaputtes/beschnittenes INIT (Versionsversatz, sanitize-Verlust, Schreib-
     // abbruch) lud sonst halb — die App landete auf dem Spiel-Screen ohne Brett
@@ -2844,6 +3113,8 @@ function handleCoopMsg(msg, key = null) {
       // beendeten Levels in endlessLevelSolved summiert; ein frischer INIT darf
       // sie nicht zurücksetzen.
       state.endless = { active: true, coop: true, advancing: false, level: msg.endlessLevel || 1, lives: msg.lives ?? LIVES, hints: HINTS, score: (msg.endlessLevel || 1) - 1, coins: state.endless.coins || 0, best: state.stats.endlessCoopBest || 0, bigNumbers: !!(msg.puzzle && msg.puzzle.bigNumbers), accumMs: state.endless.accumMs || 0 };
+      // Coop-Mix: Spiel + Stufe dieses Levels und der gemeinsame Zähler „welches Spiel wie oft".
+      if (msg.mix) state.endless.mix = { prev: msg.game || null, game: msg.game || null, diff: msg.mix.diff || null, played: { ...(msg.mix.played || {}) } };
     } else if (state.endless.active) {
       state.endless.active = false;
     }
@@ -2864,6 +3135,9 @@ function handleCoopMsg(msg, key = null) {
       state.coop.lifeLossBy = msg.lifeLossBy.map(x => x || null);
       state.endless.lifeLossBy = state.coop.lifeLossBy.slice();
     }
+    clearTimeout(mixPickTimer);
+    state.mixReveal = null;
+    state.generating = false;   // Coop-Mix: die Ziehung (onMixPick) hatte „wird erzeugt" gesetzt
     navigate('game');
     // iOS-Schwarzbild: HIER baut der Beitretende ein komplett neues Brett auf,
     // OHNE dass ein visibilitychange oder pageshow davor lag — und genau an diesen
@@ -3001,10 +3275,12 @@ function handleCoopMsg(msg, key = null) {
       else lose(remote);
     }
   } else if (msg.type === Coop.MSG.RACE_START) {
+    if (msg.mixDuel) { applyMixDuelStart(msg.mixDuel); return; }
     applyRaceStart(msg.seed, msg.difficulty, !!msg.bigNumbers);
   } else if (msg.type === Coop.MSG.RACE_DONE) {
     if (!state.race.active) return;
     if (msg.from === state.coop.myId) return; // eigenes Ergebnis wird lokal in win()/lose() behandelt
+    if (state.mixDuel.active) { onMixDuelDone(msg); return; }
     // Endstand des Melders für die Ergebnis-Balken festhalten.
     const fin = state.race.opponents.find(o => o.id === msg.from);
     if (fin) { fin.pct = msg.finalPct ?? fin.pct; fin.mistakes = msg.finalMistakes ?? fin.mistakes; }
@@ -3051,6 +3327,8 @@ function handleCoopMsg(msg, key = null) {
       if (state.race.winner === 'me') win(remote);
       else lose(remote);
     }
+  } else if (msg.type === Coop.MSG.MIX_PICK) {
+    onMixPick(msg);
   } else if (msg.type === Coop.MSG.CHAT) {
     receiveChat(msg);
   }
@@ -3078,11 +3356,12 @@ function coopReset({ keepRoom = false } = {}) {
   const keepDiff = state.coop.lobbyDiffId;
   const keepBig = state.coop.lobbyBigNumbers;
   const keepEndless = state.coop.lobbyEndless;
+  const keepMix = state.coop.mixMode;
   // Ein laufender Coop-Endlos-Lauf wird beim Verlassen der Coop-Session beendet.
   if (state.endless.active && state.endless.coop) state.endless.active = false;
   state.coop.active = false; state.coop.role = null; state.coop.code = '';
   state.coop.connected = false; state.coop.waitingForGuest = false;
-  state.coop.lobbyDiffId = keepDiff; state.coop.lobbyBigNumbers = keepBig; state.coop.lobbyEndless = keepEndless; state.coop.error = null;
+  state.coop.lobbyDiffId = keepDiff; state.coop.lobbyBigNumbers = keepBig; state.coop.lobbyEndless = keepEndless; state.coop.mixMode = keepMix; state.coop.error = null;
   state.coop.myId = null; state.coop.hostId = null; state.coop.players = []; state.coop.awaitingStart = false;
   state.coop.generating = false;
   state.coop.endlessWaiting = false;
@@ -3100,6 +3379,8 @@ function coopReset({ keepRoom = false } = {}) {
   state.race.ffa = false; state.race.opponents = []; state.race.winnerName = '';
   state.race.rematchPending = false;
   state.isRaceGame = false;
+  stopMixDuelTicker();
+  state.mixDuel = { active: false };
 }
 
 // ─── SPIELER-IDENTITÄT (Namen & Farben) ────────────────────────────────────────
@@ -3350,7 +3631,7 @@ function broadcastRunningInit() {
   // damit der Beitretende als Coop-Endlos-Spieler landet (Level-Chip, geteilte
   // Leben, Herz-Verlust-Farben) statt in einer normalen Coop-Runde.
   const e = state.endless;
-  const endlessExtra = e.active ? { endless: true, endlessLevel: e.level, lifeLossBy: (state.coop.lifeLossBy || []).map(x => x || '') } : {};
+  const endlessExtra = e.active ? { endless: true, endlessLevel: e.level, lifeLossBy: (state.coop.lifeLossBy || []).map(x => x || ''), ...mixInitExtra() } : {};
   Coop.send({
     type: Coop.MSG.INIT, gameId: state.gameId, running: true,
     puzzle: state.puzzle, ...Board.boardFields('wire'), markedBy: wireMarkedBy(), startTime: state.startTime,
@@ -3453,6 +3734,8 @@ function confirmCoopIdentity() {
   // Schritt vorwärts (Name → Rollenwahl): Zurück öffnet wieder das Namens-Gate.
   pushNav(() => { state.coop.identityConfirmed = false; });
   state.coop.identityConfirmed = true;
+  // Mix im Mehrspieler kommt vom Mix-Screen: dort wurde „einrichten" gewählt.
+  if (state.coop.mixMode && state.coop.role == null) coopChooseHost();
 }
 // Rollenwahl → Host- bzw. Gast-Einrichtung. Zurück führt zur Rollenwahl.
 function coopChooseHost() {
@@ -3485,6 +3768,7 @@ function coopTeardownWaiting() {
 function goCoop() {
   if (!isOnline()) { showToast(t('offline.unavailable'), 'error', 2600); return; }
   coopReset();
+  state.coop.mixMode = null;
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
   pushNav(() => { coopReset(); navigate('home'); });
@@ -3496,6 +3780,7 @@ function goCoop() {
 function goRace(mode) {
   if (!isOnline()) { showToast(t('offline.unavailable'), 'error', 2600); return; }
   coopReset();
+  state.coop.mixMode = null;
   state.coop.nameDraft = state.settings.coopName;
   state.coop.identityConfirmed = false;
   // Race-Familie (eigenes Gitter, geteilter Seed): 1v1 UND ffa. teamMode ist die
@@ -3583,7 +3868,7 @@ function startHosting() {
     code: state.coop.code,
     name: state.settings.coopName,
     color: state.settings.coopMyColor,
-    game: gameId(),
+    game: state.coop.mixMode ? MIX_ID : gameId(),
     onOpen(id) {
       state.coop.myId = id;
       state.coop.hostId = id;
@@ -3623,6 +3908,7 @@ function canStartCoopMatch() {
 function startCoopMatch() {
   if (!canStartCoopMatch()) return;
   // Coop-Endlos-Aufstieg: eigener Pfad (host-autoritativ, geteilte Leben, kein Refill).
+  if (state.coop.mixMode === 'coop') { startCoopMix(); return; }
   if (state.coop.lobbyEndless) { startCoopEndless(); return; }
   const difficulty = state.coop.lobbyDiffId;
   const bigNumbers = !!state.coop.lobbyBigNumbers && bigNumbersAllowed(difficulty);
@@ -3723,6 +4009,7 @@ function applyTeamStart(seed, difficulty, bigNumbers = false) {
 // begrenzt sie auf genau 2 Spieler (siehe startJoining()/joinGame()).
 function canStartRaceMatch() {
   if (state.coop.role !== 'host') return false;
+  if (state.coop.mixMode === 'duel') return state.coop.players.length >= 2;
   // FFA (jeder gegen jeden): mind. 3 Spieler; strikt 1v1: genau 2.
   return state.coop.ffaMode ? state.coop.players.length >= 3 : state.coop.players.length === 2;
 }
@@ -3731,6 +4018,7 @@ function canStartRaceMatch() {
 // seed}) -- kein Antwort-Leak, da nie das fertige Puzzle verschickt wird.
 function startRaceMatch() {
   if (!canStartRaceMatch()) return;
+  if (state.coop.mixMode === 'duel') { startMixDuel(); return; }
   resetReadyFlags();
   const seed = Math.floor(Math.random() * 2 ** 31);
   const difficulty = state.coop.lobbyDiffId;
@@ -3806,6 +4094,8 @@ function rematchRace() {
   state.race.opponentMistakes = 0;
   state.race.rematchPending = true;
   state.isRaceGame = false;
+  stopMixDuelTicker();
+  state.mixDuel = { active: false };
   state.coop.awaitingStart = false;
   state.coop.waitingForGuest = true;
   navigate('coop');
@@ -3993,6 +4283,7 @@ function win(remote) {
   // remote-agnostisch (beide erkennen das Lösen übers synchrone Brett) + idempotent
   // (Guard auf status==='won').
   if (state.endless.active) { endlessLevelSolved(remote); return; }
+  if (state.mixDuel.active) { if (!remote) mixDuelLevelDone(true); return; }
   if (state.status === 'won') return;
   cancelSoloInvite(); // unbeantwortete Solo-Einladung? Raum abbauen (no-op sonst)
   // Exakte Endzeit stempeln: der Timer schreibt elapsed nur noch sekundenweise
@@ -4128,6 +4419,7 @@ function win(remote) {
 }
 
 function lose(remote) {
+  if (state.mixDuel.active && !state.mixDuel.over) { if (!remote) mixDuelLevelDone(false); return; }
   // Endlos-Aufstieg: Leben aufgebraucht → Lauf endet mit Ergebnis-Screen.
   // Coop-Endlos remote-agnostisch (beide Clients erreichen 0 Leben via MISTAKE-Sync)
   // + idempotent (endlessCoopGameOver guardet auf endlessSummary).
@@ -4518,7 +4810,7 @@ function persistGame() {
   // Level"-Marker gespeichert (s. endlessLevelSolved). Coop-Endlos ist eine
   // Live-Session (kein Fortsetzen hier).
   if (state.saveSlot === 'endless' || state.endless.active) {
-    if (state.endless.active && state.endless.mix) {
+    if (state.endless.active && state.endless.mix && !state.endless.coop) {
       // Während der Ziehung liegt noch das GELÖSTE Brett des letzten Levels im
       // Zustand — das darf den Marker „nächstes Level" nicht überschreiben.
       if (state.status === 'playing' && state.puzzle && !state.mixReveal) saveMixRun(mixRunSnapshot());
@@ -7698,6 +7990,11 @@ const App = {
       // FFA (jeder gegen jeden): kein 1v1-„Du vs {name}"-Text, sondern Platz/
       // Sieger unter N Spielern. `winner==='out'` = selbst ausgeschieden, Match
       // läuft für die Übrigen weiter.
+      if (state.mixDuel.active && state.mixDuel.ranking) {
+        const d = state.mixDuel;
+        const w = d.ranking[0];
+        return w && w.me ? t('mix.duelYouWon', { n: d.solved }) : t('mix.duelYouLost', { name: (w && w.name) || name, n: (w && w.solved) || 0, mine: d.solved });
+      }
       if (r.ffa) {
         const n = r.opponents.length + 1;
         if (r.winner === 'me') return t('race.ffaYouWon', { n, myPct: r.myPct });
@@ -7734,6 +8031,13 @@ const App = {
     // (Fehler je Partei, soweit bekannt) erscheint als kleiner Zähler je Zeile.
     const duelBars = computed(() => {
       const bars = [];
+      const md = state.mixDuel;
+      if (md.active && md.ranking) {
+        const top = Math.max(1, ...md.ranking.map((p) => p.solved || 0));
+        const goal = md.goal.type === 'count' ? md.goal.n : top;
+        for (const p of md.ranking) bars.push({ id: p.id, name: p.name, color: p.color || null, me: !!p.me, solved: p.solved || 0, pct: Math.round(Math.min(1, (p.solved || 0) / goal) * 100), winner: p.id === md.ranking[0].id });
+        return bars;
+      }
       if (state.race.active) {
         const r = state.race;
         bars.push({ id: 'me', name: myUsername() || t('common.you'), color: state.settings.coopMyColor, pct: r.myPct, me: true, winner: r.winner === 'me', out: r.winner === 'out', mistakes: state.mistakes });
@@ -7854,6 +8158,7 @@ const App = {
         return games.slice(0, half).concat([{ id: MIX_ID, logo: MIX_LOGO, name: t('mix.name') }], games.slice(half));
       }),
       wheelCurrent: computed(() => (state.mixOn ? MIX_ID : currentGame.id)),
+      setMixScreenMode, setDuelGoal, duelGoalLabel, startMixFromScreen, mixDuelRemainingMs, DUEL_COUNTS, DUEL_MINUTES,
       editChip, onEditChip, editRequestPending, grantEdit, denyEdit, EDIT_ASK_MS, editLockedByOther,
       onWheelSelect, openMix, startMix, resumeMix, mixInfo, mixToggleGame, mixToggleDiff, mixPreset, ladderStep, MIX_LOGO, ENDLESS_START_LIVES: ENDLESS_CFG.startLives,
       mixStrip: computed(() => { const g = mixInfo.value.games.filter((x) => x.on); const l = g.length ? g : mixInfo.value.games; return l.concat(l); }),
@@ -8052,10 +8357,35 @@ const App = {
           <h3 class="mix-title">{{ t('mix.name') }}</h3>
           <p class="mix-sub">{{ t('mix.sub') }}</p>
         </div>
+        <!-- Wie wird gespielt? Allein, gemeinsam auf einem Brett, oder gegeneinander. -->
+        <div class="mix-modes" role="radiogroup" :aria-label="t('mix.modeLabel')">
+          <button v-for="m in ['solo', 'coop', 'duel']" :key="m" class="mix-mode" :class="{ on: state.mixScreenMode === m }" role="radio"
+                  :aria-checked="state.mixScreenMode === m ? 'true' : 'false'" @click="setMixScreenMode(m)">
+            <span class="ei" v-html="ic(m === 'solo' ? 'user' : m === 'coop' ? 'users' : 'versus')"></span>
+            <b>{{ t('mix.mode.' + m) }}</b><small>{{ t('mix.modeHint.' + m) }}</small>
+          </button>
+        </div>
+        <div v-if="state.mixScreenMode === 'duel'" class="mix-duel-cfg">
+          <div class="mdc-row">
+            <span class="mdc-label"><span class="ei" v-html="ic('flag')"></span>{{ t('mix.duelFirstTo') }}</span>
+            <div class="mdc-chips">
+              <button v-for="n in DUEL_COUNTS" :key="'c' + n" class="mix-chip" :class="{ on: state.mixDuelGoal.type === 'count' && state.mixDuelGoal.n === n }" @click="setDuelGoal({ type: 'count', n })">{{ n }}</button>
+            </div>
+          </div>
+          <div class="mdc-or">{{ t('mix.duelOr') }}</div>
+          <div class="mdc-row">
+            <span class="mdc-label"><span class="ei" v-html="ic('hourglass')"></span>{{ t('mix.duelMostIn') }}</span>
+            <div class="mdc-chips">
+              <button v-for="n in DUEL_MINUTES" :key="'t' + n" class="mix-chip" :class="{ on: state.mixDuelGoal.type === 'time' && state.mixDuelGoal.min === n }" @click="setDuelGoal({ type: 'time', min: n })">{{ n }}′</button>
+            </div>
+          </div>
+          <p class="mdc-sum">{{ duelGoalLabel() }}</p>
+        </div>
         <div class="mix-tiles">
           <div><b>{{ mixInfo.summary.combos }}</b><small>{{ t('mix.combos') }}</small></div>
           <div><b>{{ state.mixStats.best || 0 }}</b><small>{{ t('mix.best') }}</small></div>
-          <div><b>{{ ENDLESS_START_LIVES }}</b><small>{{ t('mix.lives') }}</small></div>
+          <div v-if="state.mixScreenMode === 'duel'"><b>{{ state.mixDuelGoal.type === 'count' ? state.mixDuelGoal.n : state.mixDuelGoal.min + '′' }}</b><small>{{ state.mixDuelGoal.type === 'count' ? t('mix.duelTarget') : t('mix.duelMinutes') }}</small></div>
+          <div v-else><b>{{ ENDLESS_START_LIVES }}</b><small>{{ t('mix.lives') }}</small></div>
         </div>
         <div class="mix-presets" role="group" :aria-label="t('mix.presetLabel')">
           <button v-for="k in ['all', 'easy', 'mid', 'hard']" :key="k" class="mix-chip" :class="{ on: mixInfo.preset === k }" @click="mixPreset(k)">{{ t('mix.preset.' + k) }}</button>
@@ -8076,7 +8406,7 @@ const App = {
       </div>
       <footer class="mix-foot">
         <p v-if="!mixInfo.summary.combos" class="mix-empty">{{ t('mix.empty') }}</p>
-        <button class="btn btn-primary mix-start" :disabled="!mixInfo.summary.combos" @click="startMix"><span class="ei" v-html="ic('dice')"></span> {{ t('mix.start') }}</button>
+        <button class="btn btn-primary mix-start" :disabled="!mixInfo.summary.combos" @click="startMixFromScreen"><span class="ei" v-html="ic(state.mixScreenMode === 'solo' ? 'dice' : state.mixScreenMode === 'coop' ? 'users' : 'versus')"></span> {{ t('mix.startMode.' + state.mixScreenMode) }}</button>
       </footer>
     </section>
 
@@ -8231,7 +8561,11 @@ const App = {
             <span class="ei" v-html="ic('users')"></span> {{ t('game.coopTag') }}{{ (state.coop.connected && state.coop.online) ? '' : t('game.coopOfflineSuffix') }}
           </span>
           <span v-if="state.team.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ t('team.label'+state.team.myTeam) }}</span>
-          <span v-if="state.race.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ state.race.ffa ? t('race.ffaTag', { n: state.race.opponents.length + 1 }) : state.race.opponentName }}</span>
+          <span v-if="state.mixDuel.active" class="chip duel-chip"><span class="ei" v-html="ic(state.mixDuel.goal.type === 'count' ? 'flag' : 'hourglass')"></span>
+            <template v-if="state.mixDuel.goal.type === 'count'">{{ state.mixDuel.solved }}/{{ state.mixDuel.goal.n }}</template>
+            <template v-else>{{ fmtTime(mixDuelRemainingMs()) }} · {{ state.mixDuel.solved }}</template>
+          </span>
+          <span v-if="state.race.active && !state.mixDuel.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ state.race.ffa ? t('race.ffaTag', { n: state.race.opponents.length + 1 }) : state.race.opponentName }}</span>
         </div>
 
         <!-- Eigener Fortschritt (immer sichtbar); im Race-Modus zusätzlich der
@@ -8265,7 +8599,7 @@ const App = {
           <!-- FFA (jeder gegen jeden): ein Fortschrittsbalken je Gegner. -->
           <template v-if="state.race.active && state.race.ffa">
             <div class="progress-line" v-for="o in state.race.opponents" :key="o.id" :class="{ 'ffa-out': o.out }" :aria-label="t('race.opponentProgress', { pct: o.pct })">
-              <span class="progress-label">{{ o.name }}<template v-if="o.out"> · {{ t('race.ffaOutTag') }}</template></span>
+              <span class="progress-label">{{ o.name }}<template v-if="state.mixDuel.active"> · {{ t('mix.duelSolvedN', { n: o.solved || 0 }) }}</template><template v-if="o.out"> · {{ t('race.ffaOutTag') }}</template></span>
               <span class="progress-pct">{{ o.pct }}%</span>
               <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: o.pct + '%', background: o.color }"></span></span>
             </div>
@@ -8479,8 +8813,8 @@ const App = {
             <div v-for="b in duelBars" :key="b.id" class="duel-row" :class="{ winner: b.winner, out: b.out, mine: b.me }">
               <span class="duel-name"><span v-if="b.winner" class="ei duel-trophy" v-html="ic('trophy')"></span>{{ b.name }}</span>
               <span class="duel-bar"><span class="duel-fill" :class="{ mine: b.me && !b.color }" :style="{ width: Math.max(b.pct, 2) + '%', background: b.color || null }"></span></span>
-              <span class="duel-mist" :title="t('win.mistakesLabel')"><span class="ei" v-html="ic('heart-broken')"></span>{{ b.mistakes ?? 0 }}</span>
-              <span class="duel-pct">{{ b.pct }}%</span>
+              <span v-if="b.solved == null" class="duel-mist" :title="t('win.mistakesLabel')"><span class="ei" v-html="ic('heart-broken')"></span>{{ b.mistakes ?? 0 }}</span>
+              <span class="duel-pct">{{ b.solved != null ? t('mix.duelSolvedN', { n: b.solved }) : b.pct + '%' }}</span>
             </div>
             <p class="duel-msg">{{ state.team.active ? teamResultMsg : raceResultMsg }}</p>
           </div>
@@ -8759,7 +9093,7 @@ const App = {
       <div v-if="isCoopDiffView" class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
       <header class="topbar setup-top">
         <button class="icon-btn" @click="goBack()">‹</button>
-        <h2>{{ t('coop.title') }}</h2>
+        <h2>{{ state.coop.mixMode ? t('mix.lobbyTitle.' + state.coop.mixMode) : t('coop.title') }}</h2>
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
 
@@ -8797,10 +9131,16 @@ const App = {
           <input id="coopcode" class="setup-codeinput" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
                  :placeholder="t('common.codePlaceholder')" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
         </div>
-        <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true" :endless="!!state.coop.lobbyEndless && !state.coop.raceMode && !state.coop.teamMode" @randomstart="startHosting()"></difficulty-slider>
+        <div v-if="state.coop.mixMode" class="mix-lobby">
+          <div class="ml-logos"><img v-for="g in mixInfo.games.filter((x) => x.on)" :key="g.id" :src="g.logo" alt="" draggable="false"></div>
+          <b class="ml-title">{{ t('mix.lobbyTitle.' + state.coop.mixMode) }}</b>
+          <small>{{ t('mix.summary', { g: mixInfo.summary.games, n: mixInfo.summary.totalGames, c: mixInfo.summary.combos }) }}</small>
+          <small v-if="state.coop.mixMode === 'duel'" class="ml-goal"><span class="ei" v-html="ic('flag')"></span>{{ duelGoalLabel() }}</small>
+        </div>
+        <difficulty-slider v-else v-model="state.coop.lobbyDiffId" :coop="true" :endless="!!state.coop.lobbyEndless && !state.coop.raceMode && !state.coop.teamMode" @randomstart="startHosting()"></difficulty-slider>
         <!-- „Große Zahlen" (10–19) für die Mehrspieler-Runde: gilt für alle
              Mitspieler (Host generiert/sendet den Modus mit). -->
-        <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="mode-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
+        <label v-if="!state.coop.mixMode && bigNumbersAllowed(state.coop.lobbyDiffId)" class="mode-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
           <b class="mt-title">{{ t('setup.bigNumbers') }}</b>
           <span class="mt-info" tabindex="0" role="button" :aria-label="t('setup.bigNumbersHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
             <span class="ei" v-html="ic('info')"></span>
@@ -8811,7 +9151,7 @@ const App = {
         </label>
         <!-- „Endlos-Aufstieg" gemeinsam: geteilte Leben (3), kein Refill. Nur für
              reines Coop (nicht Race/Team). Die Schwierigkeit wird dabei ignoriert. -->
-        <label v-if="!state.coop.raceMode && !state.coop.teamMode" class="mode-toggle" :class="{ on: state.coop.lobbyEndless }">
+        <label v-if="!state.coop.mixMode && !state.coop.raceMode && !state.coop.teamMode" class="mode-toggle" :class="{ on: state.coop.lobbyEndless }">
           <b class="mt-title">{{ t('coopEndless.toggle') }}</b>
           <span class="mt-info" tabindex="0" role="button" :aria-label="t('coopEndless.toggleHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
             <span class="ei" v-html="ic('info')"></span>
@@ -10394,7 +10734,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, onEditState, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, startCoopGame, startCoopMatch, startRaceMatch, endlessContinue, onEditState, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint,
   boardRenders, cellRenders, currentGameInfo, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
