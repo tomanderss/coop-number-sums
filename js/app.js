@@ -7677,7 +7677,12 @@ const App = {
       friendsSorted, friendPresence, friendOnline, friendInGame, friendInRoom, anyFriendOnline, friendActivityText,
       skinUnlocked, skinPresetOwned, skinActive, skinVars, skinBoardClasses, skinPreviewVars, skinPreviewClasses, redeemSkinCode, dismissSkinUnlock, openSkinEditor, skinSpeedToDuration,
       GAME_LIST, currentGame, switchGame, gameMeta,
-      gameWheelItems: computed(() => GAME_LIST.map((g) => ({ id: g.id, logo: g.logo, name: t(g.nameKey) })).concat([{ id: MIX_ID, logo: MIX_LOGO, name: t('mix.name') }])),
+      // Mix steht in der MITTE der Scheibe (Nutzerwunsch), die Spiele links und rechts davon.
+      gameWheelItems: computed(() => {
+        const games = GAME_LIST.map((g) => ({ id: g.id, logo: g.logo, name: t(g.nameKey) }));
+        const half = Math.floor(games.length / 2);
+        return games.slice(0, half).concat([{ id: MIX_ID, logo: MIX_LOGO, name: t('mix.name') }], games.slice(half));
+      }),
       wheelCurrent: computed(() => (state.mixOn ? MIX_ID : currentGame.id)),
       onWheelSelect, openMix, startMix, resumeMix, mixInfo, mixToggleGame, mixToggleDiff, mixPreset, ladderStep, MIX_LOGO, ENDLESS_START_LIVES: ENDLESS_CFG.startLives,
       mixStrip: computed(() => { const g = mixInfo.value.games.filter((x) => x.on); const l = g.length ? g : mixInfo.value.games; return l.concat(l); }),

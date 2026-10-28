@@ -19,9 +19,11 @@ async function dragWheel(page, dx) {
 test.describe('Spielauswahl', () => {
   test('alle Spiele stehen auf der Scheibe, Number Sums ist voreingestellt', async ({ page }) => {
     await gotoApp(page);
-    // Alle Spiele, dahinter immer Mix (Zufallsmodus über alle Spiele).
-    await expect(page.locator('.game-wheel .gw-item')).toHaveCount(6);
-    expect(await page.locator('.game-wheel .gw-item').evaluateAll((els) => els.map((e) => e.dataset.game))).toEqual(['numbersums', 'mathcross', 'rectangles', 'numberpath', 'gems', 'mix']);
+    // Alle Spiele plus Mix, jedes genau einmal als Haupt-Exemplar (der Ring zeigt
+    // weiter entfernte Einträge zusätzlich als Kopien).
+    await expect(page.locator('.game-wheel .gw-item[data-game]')).toHaveCount(6);
+    expect((await page.locator('.game-wheel .gw-item[data-game]').evaluateAll((els) => els.map((e) => e.dataset.game))).sort())
+      .toEqual(['gems', 'mathcross', 'mix', 'numberpath', 'numbersums', 'rectangles']);
     await expect(page.locator('.gw-item.on')).toHaveAttribute('data-game', 'numbersums');
     await expect(page.locator('.brand-title')).toContainText('Number Games');
   });
@@ -41,8 +43,9 @@ test.describe('Spielauswahl', () => {
     await page.locator('.modal-divstyle .btn-primary').click({ timeout: 3000 }).catch(() => {});
     await expect(page.locator('.gw-item.on')).toHaveAttribute('data-game', 'mathcross');
     await expect(page.locator('.home-actions')).toBeVisible();
-    // Zurück per Ziehen nach rechts (Number Sums liegt links).
-    await dragWheel(page, 220);
+    // Zurück per Ziehen nach rechts (Number Sums liegt links). Ein Schritt —
+    // der Ring hat keine Enden mehr, ein langer Zieher drehte weiter.
+    await dragWheel(page, 80);
     await page.waitForFunction(() => window.__cns.gameId === 'numbersums');
     expect(await page.evaluate(() => [!!document.getElementById('game-css'), document.documentElement.getAttribute('data-game')])).toEqual([false, 'numbersums']);
     expect(loads).toBe(0);
@@ -110,8 +113,10 @@ test('?game=mathcross oeffnet die App direkt in Math Cross', async ({ page }) =>
     game: JSON.parse(localStorage.getItem('cns_game')),
     attr: document.documentElement.getAttribute('data-game'),
     url: location.search,
+    mix: window.__cns.state.mixOn,
   }));
   expect(r.game).toBe('mathcross');
+  expect(r.mix).toBe(false);   // der Link öffnet das Spiel, nicht den Standard Mix
   expect(r.attr).toBe('mathcross');
   expect(r.url).toBe('');
 });
@@ -121,15 +126,48 @@ test('?game=mathcross oeffnet die App direkt in Math Cross', async ({ page }) =>
 test('auf dem ersten Spiel sind auch die übernächsten Logos sichtbar', async ({ page }) => {
   await gotoApp(page);
   await page.waitForTimeout(500);
-  const vis = await page.evaluate(() => [...document.querySelectorAll('.gw-item')].map((el) => {
+  const vis = await page.evaluate(() => [...document.querySelectorAll('.gw-item[data-game]')].map((el) => {
     const r = el.getBoundingClientRect();
     return { game: el.dataset.game, opacity: Number(getComputedStyle(el).opacity), inView: r.right > 0 && r.left < innerWidth };
   }));
-  // Sichtbar bis zum vierten Nachbarn (WHEEL_VISIBLE), dahinter blendet die Scheibe aus.
-  for (const v of vis.slice(0, 5)) {
+  // Endlos-Ring: von jedem Eintrag aus liegt JEDES Spiel in Sichtweite (links oder rechts).
+  expect(vis.length).toBe(6);
+  for (const v of vis) {
     expect(v.inView, v.game).toBe(true);
     expect(v.opacity, v.game).toBeGreaterThan(0.3);
   }
+});
+
+// Nutzerwunsch: Mix ist der Standard, steht in der Mitte, die Scheibe ist endlos.
+test.describe('Mix als Standard', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test('ohne gespeicherte Wahl steht die Scheibe auf Mix, die Spiele links und rechts', async ({ page }) => {
+    await gotoApp(page);
+    expect(await page.evaluate(() => window.__cns.state.mixOn)).toBe(true);
+    await expect(page.locator('.gw-item.on')).toHaveAttribute('data-game', 'mix');
+    await expect(page.locator('.home-mix')).toBeVisible();
+    const xs = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.gw-item[data-game]')].map((el) => {
+      const r = el.getBoundingClientRect(); return [el.dataset.game, r.left + r.width / 2];
+    })));
+    const others = Object.entries(xs).filter(([g]) => g !== 'mix');
+    expect(others.some(([, x]) => x < xs.mix)).toBe(true);
+    expect(others.some(([, x]) => x > xs.mix)).toBe(true);
+  });
+
+  test('die Scheibe dreht endlos: immer weiter nach rechts kommt man wieder an', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.game-wheel').focus();
+    const seen = [];
+    for (let i = 0; i < 7; i++) {
+      await page.keyboard.press('ArrowRight');
+      await page.waitForTimeout(550);
+      seen.push(await page.evaluate(() => (window.__cns.state.mixOn ? 'mix' : window.__cns.gameId)));
+    }
+    // Sechs Einträge: nach sechs Schritten wieder auf Mix, der siebte wie der erste.
+    expect(seen[5]).toBe('mix');
+    expect(seen[6]).toBe(seen[0]);
+    expect(new Set(seen).size).toBe(6);
+  });
 });
 
 test('beim Spielwechsel bleibt das Menü stehen (kein Aus- und Einblenden)', async ({ page }) => {
@@ -145,8 +183,9 @@ test('beim Spielwechsel bleibt das Menü stehen (kein Aus- und Einblenden)', asy
     };
     requestAnimationFrame(f);
   });
-  await page.locator('.gw-item[data-game="rectangles"]').click();
-  await page.waitForFunction(() => window.__cns.gameId === 'rectangles');
+  // Gem Hunt liegt im Ring direkt links neben Number Sums.
+  await page.locator('.gw-item[data-game="gems"]').click();
+  await page.waitForFunction(() => window.__cns.gameId === 'gems');
   await page.waitForTimeout(1200);
   expect(await page.evaluate(() => document.querySelector('.home-actions').dataset.keep)).toBe('1');
   expect(await page.evaluate(() => window.__minOpacity)).toBe(1);
