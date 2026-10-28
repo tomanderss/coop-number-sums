@@ -162,3 +162,59 @@ export function mergeMixStats(a, b) {
   }
   return out;
 }
+
+// ── Mix im Mehrspieler ───────────────────────────────────────────────────────
+// COOP: der Host zieht je Level (pickMixLevel) und schickt das fertige Rätsel.
+// DUELL: alle bekommen DIESELBEN Rätsel in DERSELBEN Reihenfolge — jeder Client
+// berechnet die Folge selbst aus dem gemeinsamen Seed (kein Rätsel-Versand, kein
+// Antwort-Leck). Gewonnen hat, wer zuerst N Rätsel löst, oder wer nach Ablauf
+// der Zeit die meisten gelöst hat.
+
+export function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/**
+ * Die Level 1..n eines Duells: [{ level, game, diff, seed }]. Deterministisch aus
+ * `seed` + Pool — jeder Client kommt auf dieselbe Folge.
+ */
+export function mixDuelPlan(seed, n, pool, catalog) {
+  const rnd = mulberry32((seed >>> 0) ^ 0x9e3779b9);
+  const out = [];
+  let prev = null;
+  for (let k = 1; k <= n; k++) {
+    const pick = pickMixLevel(pool, catalog, prev, rnd) || pickMixLevel({}, catalog, prev, rnd);
+    if (!pick) break;
+    prev = pick.game;
+    out.push({ level: k, game: pick.game, diff: pick.diff, seed: ((seed >>> 0) + k * 7919) >>> 0 });
+  }
+  return out;
+}
+/** Ziele zur Auswahl: zuerst N gelöst, oder die meisten in M Minuten. */
+export const DUEL_COUNTS = [3, 5, 7, 10];
+export const DUEL_MINUTES = [5, 10, 15, 20];
+export function normalizeDuelGoal(g) {
+  if (g && g.type === 'time' && DUEL_MINUTES.includes(Number(g.min))) return { type: 'time', min: Number(g.min) };
+  if (g && g.type === 'count' && DUEL_COUNTS.includes(Number(g.n))) return { type: 'count', n: Number(g.n) };
+  return { type: 'count', n: 5 };
+}
+/**
+ * Reihenfolge der Spieler: mehr gelöst vor weniger; bei Gleichstand im
+ * Zähl-Modus wer FRÜHER fertig war (doneAt), sonst wer im laufenden Rätsel
+ * weiter ist (pct). `players` = [{ id, solved, pct, doneAt }].
+ */
+export function duelRanking(players) {
+  return (players || []).slice().sort((a, b) =>
+    (b.solved || 0) - (a.solved || 0)
+    || ((a.doneAt || Infinity) - (b.doneAt || Infinity))
+    || ((b.pct || 0) - (a.pct || 0)));
+}
+/** Ist das Ziel erreicht? Zähl-Modus: N gelöst; Zeit-Modus: Zeit abgelaufen. */
+export function duelGoalReached(goal, solved, now, deadline) {
+  const g = normalizeDuelGoal(goal);
+  return g.type === 'count' ? (solved || 0) >= g.n : !!deadline && now >= deadline;
+}

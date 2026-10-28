@@ -3624,3 +3624,31 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .live-path polyline { fill: none; stroke: var(--lc, var(--accent)); stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
 .live-cell { position: absolute; display: grid; place-items: center; color: var(--lc, var(--accent)); font-weight: 800; opacity: .8; }
 @media (prefers-reduced-motion: reduce) { .live-cursor, .chip.edit-chip.asked .ec-label, .edit-req .er-bar i { animation: none; } }
+
+/* ── Mix im Mehrspieler: Spielweise, Duell-Ziel, Lobby-Karte, Duell-Chip ── */
+.mix-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mix-mode {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px 9px; border-radius: 14px;
+  color: var(--text2); background: color-mix(in srgb, var(--bg2) 70%, transparent); box-shadow: inset 0 0 0 1px var(--hairline);
+  transition: background-color .2s, color .2s, transform .2s;
+}
+.mix-mode .ei svg { width: 20px; height: 20px; }
+.mix-mode b { font-size: .86rem; color: var(--text); }
+.mix-mode small { font-size: .62rem; line-height: 1.2; text-align: center; min-height: 2.4em; }
+.mix-mode.on { background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent)); color: #fff; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent); transform: translateY(-1px); }
+.mix-mode.on b { color: #fff; }
+.mix-duel-cfg { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg2)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+.mdc-row { display: flex; flex-direction: column; gap: 5px; }
+.mdc-label { display: flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; color: var(--text2); }
+.mdc-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mdc-or { text-align: center; font-size: .66rem; color: var(--text3, var(--text2)); text-transform: uppercase; letter-spacing: .08em; }
+.mdc-sum { margin: 2px 0 0; font-size: .72rem; text-align: center; color: var(--text); font-weight: 600; }
+.mix-lobby { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 10px auto 4px; padding: 14px 14px 12px; max-width: 320px; width: calc(100% - 32px);
+  border-radius: 18px; background: color-mix(in srgb, var(--card) 85%, transparent); box-shadow: var(--soft-shadow), inset 0 0 0 1px var(--hairline); text-align: center; }
+.ml-logos { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.ml-logos img { width: 38px; height: 38px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
+.ml-title { font-size: 1.05rem; }
+.mix-lobby small { font-size: .74rem; color: var(--text2); }
+.ml-goal { display: inline-flex; align-items: center; gap: 4px; color: var(--accent) !important; font-weight: 700; }
+.chip.duel-chip { background: color-mix(in srgb, var(--accent) 16%, var(--bg2)); color: var(--text); font-variant-numeric: tabular-nums; min-width: 5.5em; text-align: center; }

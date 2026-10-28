@@ -87,3 +87,33 @@ describe('Mix: echte Spiele', () => {
     assert.deepEqual(mergeMixStats({ best: 4, runs: 2 }, { best: 7, levels: 9 }), { best: 7, runs: 2, levels: 9 });
   });
 });
+
+import { mixDuelPlan, duelRanking, duelGoalReached, normalizeDuelGoal } from '../../js/mix.js';
+describe('Mix: Duell', () => {
+  test('dieselbe Folge für alle (aus dem Seed), nie zweimal dasselbe Spiel hintereinander', () => {
+    const a = mixDuelPlan(1234, 12, {}, CAT), b = mixDuelPlan(1234, 12, {}, CAT);
+    assert.deepEqual(a, b);
+    assert.equal(a.length, 12);
+    for (let i = 1; i < a.length; i++) assert.notEqual(a[i].game, a[i - 1].game);
+    assert.notDeepEqual(mixDuelPlan(99, 12, {}, CAT).map((x) => x.game), a.map((x) => x.game));
+    // Die ersten k Level hängen nicht davon ab, wie viele man plant.
+    assert.deepEqual(mixDuelPlan(1234, 5, {}, CAT), a.slice(0, 5));
+    // Der Pool gilt.
+    assert.ok(mixDuelPlan(7, 20, { off: { a: true } }, CAT).every((x) => x.game !== 'a'));
+  });
+  test('Rangfolge: gelöst, dann früher fertig, dann weiter im laufenden Rätsel', () => {
+    const r = duelRanking([
+      { id: 'x', solved: 2, pct: 90 }, { id: 'y', solved: 3, pct: 0, doneAt: 500 },
+      { id: 'z', solved: 3, pct: 50, doneAt: 400 }, { id: 'w', solved: 2, pct: 95 },
+    ]);
+    assert.deepEqual(r.map((p) => p.id), ['z', 'y', 'w', 'x']);
+  });
+  test('Ziel: N gelöst oder Zeit abgelaufen; unbekannte Ziele fallen auf 5 Rätsel zurück', () => {
+    assert.equal(duelGoalReached({ type: 'count', n: 3 }, 3, 0, 0), true);
+    assert.equal(duelGoalReached({ type: 'count', n: 5 }, 4, 0, 0), false);
+    assert.equal(duelGoalReached({ type: 'time', min: 5 }, 0, 1000, 999), true);
+    assert.equal(duelGoalReached({ type: 'time', min: 5 }, 9, 998, 999), false);
+    assert.deepEqual(normalizeDuelGoal({ type: 'count', n: 4 }), { type: 'count', n: 5 });
+    assert.deepEqual(normalizeDuelGoal({ type: 'time', min: 10 }), { type: 'time', min: 10 });
+  });
+});

@@ -417,12 +417,14 @@ export async function joinGame({ code, name, color, game = DEFAULT_GAME_ID, onOp
     let metaGame = DEFAULT_GAME_ID;
     try { metaGame = roomGameOf((await withTimeout(f.get(f.ref(f.db, `rooms/${code}/meta`)))).val()); }
     catch (e) { log('coop', 'Raum-Spiel nicht lesbar – nehme das eigene an', e); metaGame = game; }
-    if (metaGame !== game) {
+    // Ein Mix-Raum (meta.game = 'mix') spielt wechselnde Spiele: jeder darf
+    // beitreten, das Spiel je Level bringt das INIT bzw. die Duell-Folge mit.
+    if (metaGame !== game && metaGame !== 'mix') {
       log('coop', `Raum ${code} spielt ein anderes Spiel`, { raum: metaGame, eigenes: game });
       onError && onError({ type: 'other-game', game: metaGame });
       return;
     }
-    roomGame = game;
+    roomGame = metaGame === 'mix' ? 'mix' : game;
     roomCode = code;
     myPlayerRef = f.ref(f.db, `rooms/${code}/players/${f.uid}`);
     await f.set(myPlayerRef, { name, color, role: 'guest', joinedAt: f.serverTimestamp() });
@@ -793,6 +795,7 @@ export const MSG = {
   TEAM_START: 'teamStart', TEAM_DONE: 'teamDone',
   RACE_START: 'raceStart', RACE_DONE: 'raceDone',
   CHAT: 'chat',
+  MIX_PICK: 'mixPick',   // Coop-Mix: der Host hat das nächste Spiel gezogen (Ziehung bei allen zeigen)
   RESYNC: 'resync',   // Gast ohne Brett bittet den Host, den Rundenstand erneut zu senden (Selbstheilung)
   RESUME_COUNT: 'resumeCount', // jemand hat „Fortsetzen" gedrückt → alle zeigen den ablaufenden Countdown-Balken
   // Coop-Endlos ZWISCHEN zwei Leveln: der Host hat noch kein neues Brett, kann
