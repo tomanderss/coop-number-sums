@@ -39,7 +39,7 @@ async function touchDrag(page, cdp, a, z, steps = 8) {
 }
 const rectsOf = (page) => page.evaluate(() => window.__cns.state.rects.map((q) => `${q.r},${q.c},${q.h},${q.w}`));
 
-test('Ziehen zeichnet ein Rechteck, Antippen löscht es, Rückgängig holt es zurück', async ({ page, context }) => {
+test('Ziehen zeichnet ein Rechteck, Antippen löscht es; kein Rückgängig, keine Leiste, kein Tipp', async ({ page, context }) => {
   await gotoApp(page);
   expect(await page.evaluate(() => window.__cns.gameId)).toBe('rectangles');
   await startGame(page);
@@ -55,8 +55,9 @@ test('Ziehen zeichnet ein Rechteck, Antippen löscht es, Rückgängig holt es zu
 
   await page.touchscreen.tap(a.x, a.y);
   await expect(page.locator('.rb-rects .rrect')).toHaveCount(0);
-  await page.locator('.rt-undo').click();
-  expect(await rectsOf(page)).toEqual([`${q.r},${q.c},${q.h},${q.w}`]);
+  // Nutzerwunsch: kein Rückgängig-Knopf, keine Erklärleiste unter dem Brett, kein Tipp.
+  await expect(page.locator('.rect-tools, .rt-undo, .rt-hint, .rect-status')).toHaveCount(0);
+  await expect(page.locator('.screen.game .round-btn')).toHaveCount(0);
 });
 
 test('ein neues Rechteck über bestehende ersetzt sie', async ({ page }) => {
@@ -78,7 +79,6 @@ test('ein falsch volles Brett kostet ein Leben, ein richtiges gewinnt', async ({
     for (let r = 0; r < p.rows; r++) window.__cns.drawRect(r, 0, r, p.cols - 1);
   });
   expect(await page.evaluate(() => window.__cns.state.lives)).toBe(lives - 1);
-  await expect(page.locator('.rect-status.bad')).toBeVisible();
   await expect(page.locator('.rect-board.full-wrong')).toBeVisible();
   // Löschen nimmt den Hinweis zurück; die Lösung gewinnt.
   await page.evaluate(() => window.__cns.solveRects());
@@ -99,41 +99,7 @@ test('ein angefangenes Spiel lässt sich nach dem Neuladen fortsetzen', async ({
   expect(await rectsOf(page)).toEqual([`${q.r},${q.c},${q.h},${q.w}`]);
 });
 
-// ── Tipps & Training ─────────────────────────────────────────────────────────
-
-test('der Tipp-Tutor erklärt den nächsten Schluss und legt dann das Rechteck', async ({ page }) => {
-  await gotoApp(page);
-  await startGame(page, 'mittel');
-  await page.locator('.rt-hint').click();
-  await page.locator('.modal-bg .confirm-actions .btn-danger').click();   // einmalige Bestzeit-Warnung
-  await expect(page.locator('.tutor-card')).toBeVisible();
-  await expect(page.locator('.rb-focus .rfocus').first()).toBeVisible();
-  await expect(page.locator('.rect-board.tutor-dim')).toHaveCount(1);
-  for (let i = 0; i < 6 && await page.locator('.tutor-card').isVisible(); i++) {
-    await page.locator('.tutor-card .btn-primary').click();
-  }
-  await expect(page.locator('.tutor-card')).toHaveCount(0);
-  const ok = await page.evaluate(() => {
-    const s = window.__cns.state;
-    return s.rects.length === 1 && s.puzzle.solution.some((q) => q.r === s.rects[0].r && q.c === s.rects[0].c && q.h === s.rects[0].h && q.w === s.rects[0].w);
-  });
-  expect(ok).toBe(true);
-  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1);
-});
-
-test('nur mit Tipps lässt sich jedes Rätsel bis zum Sieg lösen (auch neben falschen Rechtecken)', async ({ page }) => {
-  await gotoApp(page);
-  await startGame(page, 'extrem');
-  // Ein falsches Rechteck im Weg darf den Tutor nicht aus der Bahn werfen.
-  await page.evaluate(() => { window.__cns.state.hintWarnShown = true; window.__cns.drawRect(0, 0, 0, 1); });
-  const steps = await page.evaluate(async () => {
-    let n = 0;
-    while (window.__cns.state.status === 'playing' && n < 400) { window.__cns.useHint(); n++; await new Promise((r) => setTimeout(r, 0)); }
-    return n;
-  });
-  await page.waitForFunction(() => window.__cns.state.status === 'won');
-  expect(steps).toBeLessThan(400);
-});
+// ── Training ─────────────────────────────────────────────────────────
 
 test('Training legt Schritt für Schritt alle Rechtecke mit Begründung', async ({ page }) => {
   await gotoApp(page);
