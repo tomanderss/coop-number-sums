@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.235';
-export const BUILD_HASH = 'ae4de15';
+export const BUILD      = '1.236';
+export const BUILD_HASH = '5c180d4';
 
 export const CHANGELOG = [
+  {
+    "version": "1.236",
+    "date": "28.10.2026",
+    "changes": [
+      "Neues Spiel „Rectangles“ (Shikaku): das Feld in Rechtecke zerlegen – jede Zahl ist die Fläche ihres Rechtecks. Ziehen zeichnet, Antippen löscht, Rückgängig-Knopf, neun Schwierigkeitsstufen von 5×5 bis 13×13"
+    ]
+  },
   {
     "version": "1.235",
     "date": "27.10.2026",

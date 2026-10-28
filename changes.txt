@@ -1,1 +1,0 @@
-Neues Spiel „Rectangles“ (Shikaku): das Feld in Rechtecke zerlegen – jede Zahl ist die Fläche ihres Rechtecks. Ziehen zeichnet, Antippen löscht, Rückgängig-Knopf, neun Schwierigkeitsstufen von 5×5 bis 13×13
