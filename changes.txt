@@ -1,1 +1,0 @@
-Der Fortsetzen-Knopf erscheint jetzt in allen Spielen zuverlässig – in Math Cross, Rectangles und Number Path fehlte er, obwohl Spielstände vorhanden waren, und Endlos-Läufe dieser Spiele ließen sich nach einem Neustart nicht fortsetzen

@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.18';
-export const BUILD_HASH = 'da90315';
+export const BUILD      = '2.19';
+export const BUILD_HASH = '1e8a267';
 
 export const CHANGELOG = [
+  {
+    "version": "2.19",
+    "date": "28.10.2026",
+    "changes": [
+      "Der Fortsetzen-Knopf erscheint jetzt in allen Spielen zuverlässig – in Math Cross, Rectangles und Number Path fehlte er, obwohl Spielstände vorhanden waren, und Endlos-Läufe dieser Spiele ließen sich nach einem Neustart nicht fortsetzen"
+    ]
+  },
   {
     "version": "2.18",
     "date": "28.10.2026",
