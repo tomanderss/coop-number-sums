@@ -6,6 +6,7 @@ import { log, clearLog } from './debuglog.js';
 import { todayDateStr, sanitizeLastCompleted } from './streak.js';
 import { activeGameId, setActiveGameId, DEFAULT_GAME_ID } from './games/registry.js';
 import { snapshotRules } from './games/snapshots.js';
+import { mergeMissions } from './missions.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -87,7 +88,7 @@ export const STORAGE_KEYS = KEYS;
 const GAME_SCOPED_KEYS = new Set([
   'cns_active_game', 'cns_active_game_coop', 'cns_active_game_endless',
   'cns_saves', 'cns_saves_gone', 'cns_stats', 'cns_history', 'cns_achievements',
-  'cns_missions', 'cns_race', 'cns_play_samples', 'cns_completed_games',
+  'cns_race', 'cns_play_samples', 'cns_completed_games',
   // Buchhaltung, die zum SPIEL gehoert: die Sync-Basislinie haengt an der
   // Spiel-Haelfte des Snapshots, ein Coop-Raum und ein verdraengter Spielstand
   // gehoeren ebenfalls genau einem Spiel.
@@ -357,6 +358,29 @@ export function recordEndlessRun(score, { coop = false } = {}) {
 // ─── Wochen-Missionen (js/missions.js) ────────────────────────────────────────
 export function loadMissions() { return load(KEYS.MISSIONS, { weekKey: null, progress: {}, claimed: {} }); }
 export function saveMissions(s) { save(KEYS.MISSIONS, s); }
+/**
+ * Einmaliger Umzug: früher hatte jedes Spiel seine eigenen Missionen
+ * (`cns_missions__<spiel>`). Jetzt gibt es EINEN kontoweiten Stand (`cns_missions`)
+ * — die Alt-Stände werden verlustfrei hineingemischt und danach entfernt.
+ */
+export function migrateSharedMissions() {
+  const old = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(KEYS.MISSIONS + '__')) old.push(k);
+    }
+  } catch (_) { return 0; }
+  if (!old.length) return 0;
+  let merged = loadMissions();
+  for (const k of old) {
+    try { merged = mergeMissions(merged, JSON.parse(localStorage.getItem(k) || 'null') || {}); } catch (_) { /* kaputter Alt-Stand */ }
+  }
+  save(KEYS.MISSIONS, merged);
+  for (const k of old) localStorage.removeItem(k);
+  log('storage', 'Missionen spielübergreifend zusammengeführt', { from: old.length });
+  return old.length;
+}
 
 // ─── "Was ist neu"-Tracking ───────────────────────────────────────────────────
 export function loadSeenVersion() { return load(KEYS.SEEN_VERSION, null); }
@@ -781,11 +805,12 @@ export function takePendingJoin(now = Date.now()) {
 /** Statistik des LAUFENDEN Spiels zuruecksetzen (Einstellungen ▸ Daten). */
 export function clearStats() { remove(KEYS.STATS); }
 // Kontoweit: gilt fuer ALLE Spiele desselben Kontos.
-export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inventory', 'profile', 'mixStats'];
+// `missions` ist kontoweit: EIN Satz Wochen-Missionen für alle Spiele (Nutzerwunsch).
+export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inventory', 'profile', 'mixStats', 'missions'];
 // Spieleigen: gehoert genau EINEM Spiel und darf sich nie mit einem anderen mischen.
 export const GAME_FIELDS = [
   'activeGame', 'activeGameCoop', 'activeGameEndless', 'saves', 'savesGone', 'stats',
-  'history', 'achievements', 'missions', 'race', 'completedGames',
+  'history', 'achievements', 'race', 'completedGames',
 ];
 // Einen vollen Snapshot in seine zwei Haelften zerlegen. `ts`/`rev`/`v`/`label`
 // reisen in BEIDEN mit, damit jede Haelfte fuer sich durch mergeSnapshots laufen
@@ -806,6 +831,8 @@ export function joinSnapshot(account = {}, game = {}) {
   const out = { v: 1, label: 'join', ts: Math.max(Number(account.ts) || 0, Number(game.ts) || 0), rev: Number(game.rev) || 0 };
   for (const k of ACCOUNT_FIELDS) if (account[k] !== undefined) out[k] = account[k];
   for (const k of GAME_FIELDS) if (game[k] !== undefined) out[k] = game[k];
+  // Alt-Bestand: Missionen lagen früher in der Spiel-Hälfte — verlustfrei einmischen.
+  if (game.missions) out.missions = mergeMissions(account.missions, game.missions);
   return out;
 }
 
@@ -994,7 +1021,8 @@ export function importFromFile(jsonText) {
   if (data.mixStats) save(KEYS.MIX_STATS, data.mixStats);
   if (data.history) save(KEYS.HISTORY, data.history);
   if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
-  if (data.missions) save(KEYS.MISSIONS, data.missions);
+  // Missionen sind kontoweit: mergen statt überschreiben (Einlösungen nie verlieren).
+  if (data.missions) save(KEYS.MISSIONS, mergeMissions(loadMissions(), data.missions));
   if (data.race) save(KEYS.RACE, data.race);
   if (data.inventory) save(KEYS.INVENTORY, data.inventory);
   if (data.wallet) save(KEYS.WALLET, data.wallet);

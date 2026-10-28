@@ -7,7 +7,7 @@ export default {
   coopEndless: { toggle: 'Ascension sans fin', toggleHint: 'Montez ensemble — 3 vies partagées, sans recharge' },
 
   missions: {
-    title: 'Missions', hint: 'Défis hebdomadaires pour des pièces bonus', intro: 'De nouveaux défis chaque semaine. Réussissez-les et récupérez la récompense !',
+    title: 'Missions', hint: 'Défis hebdomadaires pour des pièces bonus', intro: 'De nouveaux défis chaque semaine – ils valent pour tous les jeux, chaque jeu vous fait progresser. Réussissez-les et récupérez la récompense !',
     claim: 'Récupérer', claimed: '+{n} pièces récupérées !', done: 'Terminé',
     m: {
       winAny5: 'Gagnez 5 parties',
@@ -483,6 +483,7 @@ export default {
     makeUser: 'Retirer admin',
   },
   skin: {
+    forGame: 'S’applique uniquement à {game} – chaque jeu a son propre skin.',
     presetOnlyHint: 'Utilisable avec un préréglage acheté — le skin dynamique exclusif débloque en plus l\'éditeur libre.',
     title: 'Skin dynamique',
     lockedHint: 'Skin exclusif pour la 1.0 : ta couleur personnelle devient une marque tournante et lumineuse. Si tu as vécu le passage à la 1.0, il se débloque automatiquement, sinon via un code.',

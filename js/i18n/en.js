@@ -7,7 +7,7 @@ export default {
   coopEndless: { toggle: 'Endless Climb', toggleHint: 'Climb together — 3 shared lives, no refills' },
 
   missions: {
-    title: 'Missions', hint: 'Weekly quests for bonus coins', intro: 'New quests every week. Complete them and grab the reward!',
+    title: 'Missions', hint: 'Weekly quests for bonus coins', intro: 'New quests every week – they count across all games, every game moves you forward. Complete them and grab the reward!',
     claim: 'Claim', claimed: '+{n} coins claimed!', done: 'Done',
     m: {
       winAny5: 'Win 5 games',
@@ -483,6 +483,7 @@ export default {
     makeUser: 'Remove admin',
   },
   skin: {
+    forGame: 'Applies to {game} only – every game has its own skin.',
     presetOnlyHint: 'Usable with any purchased skin preset — the exclusive dynamic skin additionally unlocks the free editor.',
     title: 'Dynamic skin',
     lockedHint: 'Exclusive 1.0 celebration skin: your personal color becomes a spinning, glowing mark. If you witnessed the jump to 1.0 it unlocks automatically — otherwise via code.',

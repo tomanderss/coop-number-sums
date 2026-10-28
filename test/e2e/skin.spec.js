@@ -59,4 +59,32 @@ test.describe('dynamic skin', () => {
     });
     expect(bg).toContain('conic-gradient');
   });
+
+  // Nutzerwunsch: der Skin ist je Spiel einstellbar und separat aktivierbar.
+  test('der Skin gilt je Spiel: in Math Cross aus, in Number Sums an', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => {
+      const s = window.__cns.state;
+      s.inventory = { dynamicColor: { acquiredAt: 1, source: 'test' } };
+      s.screen = 'settings'; s.settingsTab = 'farbe';
+    });
+    await expect(page.locator('.skin-game-hint')).toContainText('Number Sums');
+    // In Number Sums einschalten (Einstellungen-Schalter).
+    const sw = page.locator('.set-row', { hasText: 'Skin aktiv' }).first();
+    await sw.click();
+    expect(await page.evaluate(() => window.__cns.state.settings.skinByGame.numbersums.skinEnabled)).toBe(true);
+    expect(await page.evaluate(() => window.__cns.board.skinActive.value)).toBe(true);
+    // Math Cross hat seinen eigenen Stand: aus.
+    await page.evaluate(() => { window.__cns.state.screen = 'home'; window.__cns.setSetting('divStyle', 'obelus'); });
+    await page.evaluate(() => window.__cns.switchGame('mathcross'));
+    expect(await page.evaluate(() => window.__cns.board.skinActive.value)).toBe(false);
+    await page.evaluate(() => { const s = window.__cns.state; s.screen = 'settings'; s.settingsTab = 'farbe'; });
+    await expect(page.locator('.skin-game-hint')).toContainText('Math Cross');
+    await expect(page.locator('.set-row', { hasText: 'Skin aktiv' }).first().locator('.switch')).not.toHaveClass(/\bon\b/);
+    // Ein Stil-Wechsel in Math Cross ändert Number Sums nicht.
+    await page.locator('.seg button', { hasText: 'Regenbogen' }).click();
+    const sb = await page.evaluate(() => window.__cns.state.settings.skinByGame);
+    expect(sb.mathcross.skinStyle).toBe('rainbow');
+    expect(sb.numbersums.skinStyle).toBeUndefined();
+  });
 });

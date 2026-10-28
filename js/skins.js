@@ -75,3 +75,26 @@ export function skinClasses(s, active) {
     ['skin-style-' + style]: true,
   };
 }
+
+// ── Skin JE SPIEL (Nutzerwunsch: „von Spiel zu Spiel einstellbar und separat
+// aktivierbar") ──────────────────────────────────────────────────────────────
+// Die Skin-Einstellungen eines Spiels liegen in `settings.skinByGame[spiel]`.
+// Was dort fehlt, kommt aus den bisherigen kontoweiten Feldern (`skinEnabled`,
+// `skinStyle`, …) — das ist der Alt-Stand und die Vorgabe für jedes Spiel, das
+// noch nie eigens eingestellt wurde. Geschrieben wird immer nur ins Spiel.
+export const SKIN_KEYS = ['skinEnabled', 'skinStyle', 'skinColor1', 'skinColor2', 'skinColor3',
+  'skinSpeed', 'skinDirection', 'skinGlow', 'skinThickness', 'skinApplyTo'];
+export function gameSkin(settings, gameId) {
+  const s = settings || {};
+  const out = {};
+  for (const k of SKIN_KEYS) out[k] = s[k];
+  const own = s.skinByGame && typeof s.skinByGame === 'object' ? s.skinByGame[gameId] : null;
+  if (own && typeof own === 'object') for (const k of SKIN_KEYS) if (own[k] !== undefined) out[k] = own[k];
+  return out;
+}
+/** Neues `skinByGame` mit einem geänderten Wert für ein Spiel (rein, unverändert die Eingabe). */
+export function withGameSkin(skinByGame, gameId, key, value) {
+  if (!SKIN_KEYS.includes(key)) return skinByGame || {};
+  const all = skinByGame && typeof skinByGame === 'object' ? skinByGame : {};
+  return { ...all, [gameId]: { ...(all[gameId] || {}), [key]: value } };
+}

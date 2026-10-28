@@ -7,7 +7,7 @@ export default {
   coopEndless: { toggle: 'Subida infinita', toggleHint: 'Subam juntos — 3 vidas compartilhadas, sem recargas' },
 
   missions: {
-    title: 'Missões', hint: 'Desafios semanais por moedas extras', intro: 'Novos desafios toda semana. Complete-os e pegue a recompensa!',
+    title: 'Missões', hint: 'Desafios semanais por moedas extras', intro: 'Novos desafios toda semana – valem para todos os jogos, qualquer jogo faz você avançar. Complete-os e pegue a recompensa!',
     claim: 'Resgatar', claimed: '+{n} moedas resgatadas!', done: 'Concluído',
     m: {
       winAny5: 'Vença 5 partidas',
@@ -483,6 +483,7 @@ export default {
     makeUser: 'Remover admin',
   },
   skin: {
+    forGame: 'Vale só para {game} – cada jogo tem sua própria skin.',
     presetOnlyHint: 'Utilizável com qualquer modelo comprado — a skin dinâmica exclusiva desbloqueia também o editor livre.',
     title: 'Skin dinâmico',
     lockedHint: 'Skin exclusivo de comemoração da 1.0: sua cor pessoal vira uma marca giratória e brilhante. Se você viveu o salto para a 1.0, é desbloqueado automaticamente; senão, por código.',

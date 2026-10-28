@@ -7,7 +7,7 @@ export default {
   coopEndless: { toggle: 'Scalata infinita', toggleHint: 'Scalate insieme — 3 vite condivise, senza ricariche' },
 
   missions: {
-    title: 'Missioni', hint: 'Sfide settimanali per monete bonus', intro: 'Nuove sfide ogni settimana. Completale e prendi la ricompensa!',
+    title: 'Missioni', hint: 'Sfide settimanali per monete bonus', intro: 'Nuove sfide ogni settimana: valgono per tutti i giochi, ogni gioco ti fa avanzare. Completale e prendi la ricompensa!',
     claim: 'Riscuoti', claimed: '+{n} monete ottenute!', done: 'Fatto',
     m: {
       winAny5: 'Vinci 5 partite',
@@ -483,6 +483,7 @@ export default {
     makeUser: 'Rimuovi admin',
   },
   skin: {
+    forGame: 'Vale solo per {game}: ogni gioco ha la sua skin.',
     presetOnlyHint: 'Utilizzabile con un preset acquistato — la skin dinamica esclusiva sblocca in più l\'editor libero.',
     title: 'Skin dinamica',
     lockedHint: 'Skin esclusiva per la 1.0: il tuo colore personale diventa un segno rotante e luminoso. Se hai vissuto il passaggio alla 1.0 si sblocca automaticamente, altrimenti con un codice.',

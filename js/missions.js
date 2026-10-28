@@ -32,6 +32,12 @@ export const MISSION_POOL = [
   { id: 'streak3',  icon: 'flame',    target: 1, reward: 250, inc: c => (c.streak || 0) >= 3 ? 1 : 0 },
 ];
 const BY_ID = Object.fromEntries(MISSION_POOL.map(m => [m.id, m]));
+// EIN Satz Wochen-Missionen für ALLE Spiele (Nutzerwunsch: „einmal
+// Herausforderungen, die von allen Spielen erledigt werden können"). Der Topf
+// enthält nur Missionen, die JEDES Spiel voranbringen kann — `requires`-Einträge
+// (z.B. Große Zahlen, nur Number Sums) bleiben draußen.
+export const SHARED_MISSION_POOL = MISSION_POOL.filter((m) => !m.requires);
+
 export function missionById(id) { return BY_ID[id] || null; }
 
 // Missionen, die das laufende Spiel überhaupt erfüllen KANN. `requires` nennt
@@ -82,4 +88,20 @@ export function applyMissionEvent(missions, progress, ctx) {
     if (add > 0) out[m.id] = Math.min(m.target, (out[m.id] || 0) + add);
   }
   return out;
+}
+
+// Zwei Missions-Stände zusammenführen (Geräte-Merge UND der Umzug der früher je
+// Spiel getrennten Stände): dieselbe Woche → Fortschritt je Mission = Maximum,
+// „eingelöst" = Vereinigung (nie doppelt einlösen); verschiedene Wochen → die
+// NEUERE Woche (größerer weekKey) gewinnt komplett.
+const nz = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+export function mergeMissions(a = {}, b = {}) {
+  const ak = a && a.weekKey, bk = b && b.weekKey;
+  if (ak == null) return b || {};
+  if (bk == null) return a || {};
+  if (ak !== bk) return (ak > bk ? a : b);
+  const progress = {};
+  const ap = a.progress || {}, bp = b.progress || {};
+  for (const k of new Set([...Object.keys(ap), ...Object.keys(bp)])) progress[k] = Math.max(nz(ap[k]), nz(bp[k]));
+  return { weekKey: ak, progress, claimed: { ...(b.claimed || {}), ...(a.claimed || {}) } };
 }
