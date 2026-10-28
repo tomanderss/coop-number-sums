@@ -19,7 +19,7 @@ export const GAME = {
   },
 
   BoardGrid,
-  // Unter dem Brett: eine Zeile fester Höhe mit Bedienhinweis bzw. „geht nicht auf".
+  // Unter dem Brett: Werkzeugzeile fester Höhe — Rückgängig, Hinweis/„geht nicht auf", Tipp.
   BoardBelow: RectStatus,
   initBoard,
   board,
@@ -31,16 +31,17 @@ export const GAME = {
   generatePuzzle,
   isFullyTier1Solvable,
 
-  // Kein Werkzeug-Umschalter (Ziehen und Tippen genügen), dafür Rückgängig.
-  // Tipps folgen mit dem Tipp-Tutor.
+  // Kein Werkzeug-Umschalter (Ziehen und Tippen genügen). Rückgängig und Tipp
+  // sitzen in der eigenen Werkzeugzeile unter dem Brett (RectStatus) — in der
+  // Kopfleiste brach die Zeile sonst auf schmalen Handys um. Der Tipp-Tutor
+  // erklärt den nächsten Schluss Schritt für Schritt (buildHint in board.js).
   features: {
-    hints: false,
+    hints: true,
     toolToggle: false,
     markTools: false,
     divStyle: false,
     dragScale: false,
     markColor: false,
-    undo: true,
   },
 
   messages,

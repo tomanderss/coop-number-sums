@@ -50,7 +50,6 @@ export const GAME = {
     divStyle: true,
     dragScale: true,
     markColor: true,
-    undo: false,
   },
 
   // Auswahl des Geteilt-Zeichens (Einstellungen + einmalige Frage).

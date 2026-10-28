@@ -25,6 +25,7 @@ import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
+import { icon } from '../../icons.js';
 import {
   rectFromCorners, rectsOverlap, sameRect, addRect, rectAt, isFull, isSolved,
   progressPct, coveredCount, normalizePuzzle as healPuzzle, normalizeRects, rectArea,
@@ -40,6 +41,7 @@ let registerMistake = () => {};
 let afterMove = () => {};
 let coopSend = () => null;
 let desktopBoard = () => false;
+let useHint = () => {};
 
 export function initBoard(ctx) {
   state = ctx.state;
@@ -50,6 +52,7 @@ export function initBoard(ctx) {
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
+  if (ctx.useHint) useHint = ctx.useHint;
 }
 
 // Shop-Optik, die es in diesem Spiel (noch) nicht gibt: Skins betreffen
@@ -146,8 +149,9 @@ function checkFull() {
 }
 
 /** Ein Rechteck einfügen (Kern-Zug). Gibt das eingefügte Rechteck zurück. */
-export function addUserRect(box, { record = true } = {}) {
-  if (!playable()) return null;
+export function addUserRect(box, { record = true, force = false } = {}) {
+  if (!force && !playable()) return null;
+  if (!state.puzzle || state.status !== 'playing') return null;
   const p = state.puzzle;
   const q = { r: Math.max(0, box.r), c: Math.max(0, box.c), h: box.h, w: box.w };
   q.h = Math.min(q.h, p.rows - q.r); q.w = Math.min(q.w, p.cols - q.c);
@@ -344,6 +348,21 @@ const ClueLayer = {
               <span v-for="(k, i) in state.puzzle.clues" :key="i" class="rclue" :style="clueStyle(k)">{{ k.n }}</span>
             </div>`,
 };
+// Hervorhebung für Tipp-Tutor und Training: die Zellen des aktuellen Schritts
+// bzw. das Rechteck, das das Training gleich legt. Eigene Ebene, damit ein
+// Tutor-Schritt nicht die Rechtecke neu zeichnet.
+const FocusLayer = {
+  setup() {
+    const cellBox = (rc) => { const p = state.puzzle; return { left: pct(rc[1], p.cols), top: pct(rc[0], p.rows), width: pct(1, p.cols), height: pct(1, p.rows) }; };
+    const trainRect = computed(() => (state.isTrainingGame && state.trainingStep ? state.trainingStep.rect : null));
+    return { state, tutorCells, cellBox, trainRect, rectStyle };
+  },
+  template: `
+            <div class="rb-focus" aria-hidden="true">
+              <div v-for="(rc, i) in tutorCells" :key="'f'+i+'-'+rc[0]+'-'+rc[1]" class="rfocus" :style="cellBox(rc)"></div>
+              <div v-if="trainRect" class="rtrain" :style="rectStyle({ ...trainRect, col: 0 })"></div>
+            </div>`,
+};
 // Die gezogenen Rechtecke: rendert bei jedem Zug (wenige Elemente).
 const RectLayer = {
   setup() { return { state, rectStyle, countRender }; },
@@ -354,7 +373,7 @@ const RectLayer = {
 };
 
 export const BoardGrid = {
-  components: { ClueLayer, RectLayer },
+  components: { ClueLayer, RectLayer, FocusLayer },
   setup() {
     const preview = ref(null), ghost = ref(null), size = ref(null);
     const t0 = performance.now();
@@ -366,11 +385,12 @@ export const BoardGrid = {
     return { state, gridStyle, boardFontClass, preview, ghost, size, onDown, onMove, onUp, onCancel, t };
   },
   template: `
-          <div class="board rect-board" :class="[boardFontClass(), { 'full-wrong': state.rectsFullWrong, shake: state.rectsShake }]" :style="gridStyle"
+          <div class="board rect-board" :class="[boardFontClass(), { 'full-wrong': state.rectsFullWrong, shake: state.rectsShake, 'tutor-dim': !!state.hintTutor }]" :style="gridStyle"
                role="application" :aria-label="t('rect.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
                @contextmenu.prevent>
             <rect-layer></rect-layer>
+            <focus-layer></focus-layer>
             <clue-layer></clue-layer>
             <div ref="ghost" class="rb-ghost"></div>
             <div ref="preview" class="rb-preview"></div>
@@ -379,13 +399,25 @@ export const BoardGrid = {
   `,
 };
 
-// Unter dem Brett: EINE Zeile fester Höhe — Bedienhinweis, oder nach einem
-// vollen, falschen Brett der Hinweis, dass es nicht aufgeht.
+// Unter dem Brett: EINE Werkzeugzeile fester Höhe — links Rückgängig, in der
+// Mitte der Bedienhinweis (bzw. nach einem vollen, falschen Brett „geht nicht
+// auf"), rechts der Tipp. Beide Knöpfe behalten ihren Platz auch dort, wo es
+// keinen Tipp gibt (Wettkampf/Team/Training: leerer Platz statt Verrutschen).
 export const RectStatus = {
-  setup() { return { state, t }; },
+  setup() {
+    const hintOk = computed(() => !state.isRaceGame && !state.team.active && !state.isTrainingGame);
+    const ic = (n) => icon(n);
+    return { state, t, undoMove, useHint, hintOk, ic };
+  },
   template: `
-        <div class="rect-status" :class="{ bad: state.rectsFullWrong }" aria-live="polite">
-          {{ state.rectsFullWrong ? t('rect.fullWrong') : t('rect.howto') }}
+        <div class="rect-tools">
+          <button class="round-btn rt-undo" @click="undoMove()" :aria-label="t('rect.undo')" :title="t('rect.undo')"><span class="ei" v-html="ic('undo')"></span></button>
+          <div class="rect-status" :class="{ bad: state.rectsFullWrong }" aria-live="polite">
+            {{ state.rectsFullWrong ? t('rect.fullWrong') : t('rect.howto') }}
+          </div>
+          <span class="rt-slot">
+            <button v-if="hintOk" class="round-btn rt-hint" :class="{ on: !!state.hintTutor }" @click="useHint()" :aria-label="t('game.hintTitle')" :title="t('game.hintTitle')"><span class="ei" v-html="ic('bulb')"></span></button>
+          </span>
         </div>`,
 };
 
@@ -458,13 +490,76 @@ export function applyRemoteHint() {}
 // als normaler Zug (undoMove), deshalb nichts zu tun.
 export function undoLast() { return false; }
 
-// Tipps und Training folgen (Schritt 3); bis dahin aus.
-export function buildHint() { return null; }
-export function clearStaleTutor() {}
+// ── Tipps & Training ─────────────────────────────────────────────────────────
+// Beide fragen den Löser, ausgehend von den RICHTIG gezogenen Rechtecken des
+// Spielers (falsche zählen nicht — sie würden den Löser in die Irre führen).
+// Der nächste erklärbare Zug ist das erste Rechteck, das der Löser festlegt
+// und das noch nicht richtig auf dem Brett liegt.
+function correctKnown() {
+  const p = state.puzzle;
+  const out = [];
+  p.solution.forEach((s, k) => { if (state.rects.some((q) => sameRect(q, s))) out.push({ k, ...s }); });
+  return out;
+}
+const cellRC = (id) => [Math.floor(id / state.puzzle.cols), id % state.puzzle.cols];
+function nextDeduction(maxTier) {
+  const p = state.puzzle;
+  if (!p) return null;
+  const known = correctKnown();
+  const placed = new Set(known.map((x) => x.k));
+  const res = solveLogic(p, { maxTier, known });
+  const idx = res.steps.findIndex((st) => st.kind === 'single' && !placed.has(st.k));
+  if (idx < 0) return null;
+  const fin = res.steps[idx];
+  // Die Schritte DAVOR, die genau diese Zahl betrafen, erklären den Weg dorthin.
+  const lead = res.steps.slice(0, idx).filter((st) => st.k === fin.k && st.kind !== 'single').slice(-2);
+  return { k: fin.k, rect: p.solution[fin.k], lead, fin };
+}
+
+/** Tipp-Tutor: kleine Schritte mit den konkreten Zahlen, der letzte legt das Rechteck. */
+export function buildHint() {
+  const d = nextDeduction(2);
+  if (!d) return null;
+  const k = state.puzzle.clues[d.k];
+  const clue = [k.r, k.c];
+  const steps = d.lead.map((st) => ({
+    cells: [clue, ...st.cells.map(cellRC)],
+    key: st.kind === 'onlyclue' ? 'rectOnlyClue' : 'rectCore',
+    params: { n: k.n },
+  }));
+  steps.push({ cells: d.fin.cells.map(cellRC), key: 'rectSingle', params: { n: k.n }, final: true });
+  return { steps, target: { r: k.r, c: k.c, want: { ...d.rect } }, reason: d.lead.length ? d.lead[d.lead.length - 1].kind : 'single' };
+}
+// Den erklärten Zug ausführen (lokal ausgelöst, s. doRevealCell in der Schale).
+// Das Rechteck geht als normaler Zug an die Mitspieler — die zusätzliche
+// HINT-Nachricht der Schale braucht es deshalb nicht (applyRemoteHint = nichts).
+export function applyHintEffect(r, c, want) {
+  if (want && typeof want === 'object') addUserRect(want, { force: true });
+}
+// Den offenen Tutor verwerfen, sobald sein Ziel richtig auf dem Brett liegt.
+export function clearStaleTutor() {
+  const tt = state.hintTutor;
+  if (tt && tt.target && tt.target.want && state.rects.some((q) => sameRect(q, tt.target.want))) state.hintTutor = null;
+}
+// Fokus-Zellen des aktuellen Tutor-Schritts (Hervorhebung auf dem Brett).
+export const tutorCells = computed(() => {
+  const tt = state.hintTutor;
+  if (!tt || !tt.steps || !tt.steps[tt.i]) return [];
+  return tt.steps[tt.i].cells || [];
+});
+
+// Training: nur die einfachsten Schlüsse (Tier 1).
 export function isFullyTier1Solvable(p) { return solveLogic(p, { maxTier: 1 }).solved; }
-export function trainingStep() { return null; }
-export function applyTrainingStep() {}
-export function trainingText() { return { title: '', body: '' }; }
+export function trainingStep() {
+  const d = nextDeduction(1);
+  if (!d) return null;
+  const k = state.puzzle.clues[d.k];
+  return { r: k.r, c: k.c, n: k.n, rect: { ...d.rect }, reason: d.lead.some((st) => st.kind === 'onlyclue') ? 'onlyclue' : 'single' };
+}
+export function applyTrainingStep(step) { if (step && step.rect) addUserRect(step.rect, { record: false, force: true }); }
+export function trainingText(step) {
+  return { title: t('rect.train.title', { n: step.n }), body: t('rect.train.' + step.reason, { n: step.n }) };
+}
 export function onPlayerColorsChanged() {}
 // Kein Zell-Style-Cache (keine Zell-Elemente).
 export function resetCellStyleCache() {}

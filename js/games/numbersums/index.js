@@ -66,7 +66,6 @@ export const GAME = {
     divStyle: false,
     dragScale: false,
     markColor: false,
-    undo: false,
   },
 
   workerUrl: () => new URL('./genworker.js', import.meta.url),
