@@ -57,4 +57,33 @@ test.describe('weekly missions', () => {
     expect(p.winAny5 || 0).toBe(1);
     expect(p.perfect3 || 0).toBe(1);
   });
+
+  // Nutzerwunsch: EIN Satz Herausforderungen für alle Spiele.
+  test('Missionen gelten spielübergreifend: Fortschritt aus einem Spiel zählt im anderen', async ({ page }) => {
+    // Alt-Bestand: Math Cross hatte früher seinen eigenen Stand — er wird eingemischt.
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('seeded')) return;
+      sessionStorage.setItem('seeded', '1');
+      const wk = Math.floor((Math.floor(Date.now() / 86400000) + 4) / 7);
+      localStorage.setItem('cns_missions__mathcross', JSON.stringify({ weekKey: wk, progress: { play8: 3 }, claimed: {} }));
+    });
+    await gotoApp(page);
+    const wk = await page.evaluate(() => window.__cns.state.missions.weekKey);
+    // Der Alt-Stand ist umgezogen (falls die Woche stimmt) und der Spiel-Schlüssel entfernt.
+    expect(await page.evaluate(() => localStorage.getItem('cns_missions__mathcross'))).toBeNull();
+    const merged = await page.evaluate(() => JSON.parse(localStorage.getItem('cns_missions')));
+    if (merged.weekKey === wk) expect(merged.progress.play8).toBeGreaterThanOrEqual(3);
+    // Kein Wochen-Auftrag verlangt eine Fähigkeit, die nicht jedes Spiel hat.
+    expect(await page.evaluate(() => window.__cns.state.missions.list.some((m) => m.requires))).toBe(false);
+    const listNs = await page.evaluate(() => window.__cns.state.missions.list.map((m) => m.id));
+    // Eine Partie, die jede Mission voranbringt (Sieg, makellos, Coop, Duell, R.I.P., Endlos, Serie).
+    await page.evaluate(() => window.__cns.recordMissionEvent({ won: true, played: true, perfect: true, coop: true, race: true, diffIndex: 8, difficulty: 'rip', endlessScore: 3, streak: 3 }));
+    const prog = await page.evaluate(() => ({ ...window.__cns.state.missions.progress }));
+    for (const id of listNs) expect(prog[id], id).toBeGreaterThan(0);
+    await page.evaluate(() => window.__cns.switchGame('rectangles'));
+    // Im anderen Spiel: dieselbe Liste, derselbe Fortschritt.
+    expect(await page.evaluate(() => window.__cns.state.missions.list.map((m) => m.id))).toEqual(listNs);
+    expect(await page.evaluate(() => ({ ...window.__cns.state.missions.progress }))).toEqual(prog);
+    expect(await page.evaluate(() => localStorage.getItem('cns_missions__rectangles'))).toBeNull();
+  });
 });

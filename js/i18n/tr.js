@@ -7,7 +7,7 @@ export default {
   coopEndless: { toggle: 'Sonsuz Tırmanış', toggleHint: 'Birlikte tırmanın — 3 ortak can, takviye yok' },
 
   missions: {
-    title: 'Görevler', hint: 'Bonus para için haftalık görevler', intro: 'Her hafta yeni görevler. Tamamla ve ödülü kap!',
+    title: 'Görevler', hint: 'Bonus para için haftalık görevler', intro: 'Her hafta yeni görevler – tüm oyunlarda geçerli, her oyun seni ilerletir. Tamamla ve ödülü kap!',
     claim: 'Al', claimed: '+{n} para alındı!', done: 'Tamam',
     m: {
       winAny5: '5 oyun kazan',

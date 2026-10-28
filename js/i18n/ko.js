@@ -7,7 +7,7 @@ export default {
   coopEndless: { toggle: '엔드리스 클라임', toggleHint: '함께 오르기 — 공유 목숨 3개, 보충 없음' },
 
   missions: {
-    title: '미션', hint: '보너스 코인을 위한 주간 과제', intro: '매주 새로운 과제! 완료하고 보상을 받으세요.',
+    title: '미션', hint: '보너스 코인을 위한 주간 과제', intro: '매주 새로운 과제! 모든 게임에 공통으로 적용되며 어떤 게임으로도 진행할 수 있어요. 완료하고 보상을 받으세요.',
     claim: '받기', claimed: '+{n} 코인 획득!', done: '완료',
     m: {
       winAny5: '5게임 승리',
