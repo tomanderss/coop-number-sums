@@ -136,6 +136,10 @@ const state = reactive({
   trayTile: 42,              // Steingröße des Vorrats (s. fitTrayTile)
   opRatio: 0.55,             // Breite der Operator-Spuren (s. fitBoard)
   boardW: 0,                 // gemessene Breite der Spielfläche (Basis der Vorrats-Steingröße)
+  // ── Rectangles (s. js/games/rectangles/board.js) ──
+  rects: [],                 // gezogene Rechtecke [{ id, r, c, h, w, by, col, k }]
+  rectsFullWrong: false,     // Brett voll, geht aber nicht auf (Hinweiszeile unter dem Brett)
+  rectsShake: false,         // kurzes Wackeln des Bretts nach einem vollen, falschen Brett
   cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint, hintMark }
   lives: 0, maxLives: 0,
   hintsLeft: 0,
@@ -7604,6 +7608,10 @@ const App = {
               </span>
               <button class="zoom-btn mark-toggle" :class="{ on: state.markMode }" :aria-pressed="String(state.markMode)"
                       @click="B.toggleMarkMode()" :aria-label="t('game.markMode')" :title="t('game.markMode')"><span class="ei" v-html="ic('brush')"></span></button>
+            </span>
+            <!-- Rectangles: Rückgängig als eigenes Abteil (immer an derselben Stelle). -->
+            <span v-if="gameHas('undo')" class="toolgrp" role="group">
+              <button class="zoom-btn undo-btn" @click="B.undoMove()" :aria-label="t('rect.undo')" :title="t('rect.undo')"><span class="ei" v-html="ic('undo')"></span></button>
             </span>
             <span class="toolgrp" role="group" :aria-label="t('game.zoomTools')">
               <span class="tool-slot">

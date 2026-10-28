@@ -35,18 +35,23 @@
         // Einstieg per Link (?game=mathcross, z.B. vom Umzugs-Hinweis der alten
         // Math-Cross-App): die Wahl übernehmen und den Parameter aus der Adresse
         // nehmen, damit ein späterer Neustart nicht erneut umschaltet.
-        var m = /[?&]game=(numbersums|mathcross)(?:&|$)/.exec(location.search);
+        // Bekannte Spiele (muss zu GAME_IDS in js/games/registry.js passen; ein
+        // Unit-Test hält beide Listen gleich).
+        var GAMES = ['numbersums', 'mathcross', 'rectangles'];
+        var m = /[?&]game=([a-z]+)(?:&|$)/.exec(location.search);
+        if (m && GAMES.indexOf(m[1]) < 0) m = null;
         if (m) {
           localStorage.setItem('cns_game', JSON.stringify(m[1]));
           history.replaceState(null, '', location.pathname + location.hash);
         }
         var g = JSON.parse(localStorage.getItem('cns_game') || 'null');
-        if (g === 'mathcross') {
+        if (GAMES.indexOf(g) < 0) g = 'numbersums';
+        if (g !== 'numbersums') {
           var l = document.createElement('link');
           l.id = 'game-css'; l.rel = 'stylesheet'; l.href = './css/games/' + g + '.css';
           document.head.appendChild(l);
         }
-        document.documentElement.setAttribute('data-game', g === 'mathcross' ? g : 'numbersums');
+        document.documentElement.setAttribute('data-game', g);
       } catch (e) { /* ohne localStorage: Standardspiel */ }
     })();
   </script>
@@ -77,7 +82,7 @@
         <div id="splash-title">Coop Number Games</div>
         <!-- Splash zeigt das Logo des zuletzt gewählten Spiels (s. data-game im Kopf). -->
         <script>
-          if (document.documentElement.getAttribute('data-game') === 'mathcross') document.getElementById('splash-logo').src = './icons/games/mathcross-192.png';
+          (function () { var g = document.documentElement.getAttribute('data-game'); if (g && g !== 'numbersums') document.getElementById('splash-logo').src = './icons/games/' + g + '-192.png'; })();
         </script>
         <div id="splash-version"></div>
       </div>

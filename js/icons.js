@@ -30,6 +30,7 @@ stroke('share', '<path d="M12 14V4M8.5 7.5 12 4l3.5 3.5M7 10H5.5A1.5 1.5 0 0 0 4
 stroke('refresh', '<path d="M20 11a8 8 0 0 0-14-4.5L4 8m0 0V4m0 4h4M4 13a8 8 0 0 0 14 4.5L20 16m0 0v4m0-4h-4"/>');
 stroke('shuffle', '<path d="M4 6h4l9 12h3m0 0l-2.5-2.5M20 18l-2.5 2.5M4 18h4l2.5-3.4M14 8l2.5-2H20m0 0l-2.5-2.5M20 6l-2.5 2.5"/>');
 stroke('back', '<path d="M11 5l-7 7 7 7M4 12h16"/>');
+stroke('undo', '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>');
 stroke('info', '<circle cx="12" cy="12" r="9"/><path d="M12 11.5v4.5"/><path d="M12 8.2v.01"/>');
 
 // ── Bereiche / Tabs ──────────────────────────────────────────────────────────

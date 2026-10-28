@@ -41,6 +41,14 @@ describe('Spiel-Registry', () => {
     assert.equal(gameMeta('gibtsnicht').id, DEFAULT_GAME_ID);
   });
 
+  test('index.html kennt dieselben Spiele wie die Registry (Spiel-CSS + Splash beim Start)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+    const m = /var GAMES = \[([^\]]*)\]/.exec(html);
+    assert.ok(m, 'GAMES-Liste in index.html fehlt');
+    assert.deepEqual(m[1].split(',').map((x) => x.trim().replace(/'/g, '')), GAME_IDS);
+  });
+
   test('jedes gelistete Spiel bringt die Funktionen mit, die die Schale aufruft', () => {
     assert.equal(GAMES.length, GAME_IDS.length, 'jede Kennung braucht ein geladenes Modul');
     for (const g of GAMES) {
@@ -62,7 +70,7 @@ describe('Spiel-Registry', () => {
       }
       assert.ok(g.board.HistoryBoard && typeof g.board.HistoryBoard.template === 'string', `${g.id}: board.HistoryBoard fehlt`);
       // Feature-Schalter: jedes Spiel beantwortet ALLE Schalter ausdruecklich.
-      for (const f of ['hints', 'toolToggle', 'markTools', 'divStyle', 'dragScale', 'markColor']) {
+      for (const f of ['hints', 'toolToggle', 'markTools', 'divStyle', 'dragScale', 'markColor', 'undo']) {
         assert.equal(typeof g.features[f], 'boolean', `${g.id}: features.${f} fehlt`);
       }
       assert.ok(g.BoardGrid && typeof g.BoardGrid.setup === 'function' && typeof g.BoardGrid.template === 'string',
