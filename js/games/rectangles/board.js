@@ -33,6 +33,7 @@ import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
+import { LiveLayer } from '../livelayer.js';
 import {
   rectFromCorners, rectsOverlap, sameRect, addRect, rectAt, isFull, isSolved,
   progressPct, coveredCount, normalizePuzzle as healPuzzle, normalizeRects, rectArea, clampToFree,
@@ -49,6 +50,11 @@ let afterMove = () => {};
 let coopSend = () => null;
 let desktopBoard = () => false;
 
+// Bearbeiten-Sperre (Schale, s. app.js editAllowed): im Coop zeichnet nur, wer die
+// Sperre hält; sendLive schickt den laufenden Entwurf an die anderen.
+let editAllowed = () => true;
+let sendLive = () => {};
+
 export function initBoard(ctx) {
   state = ctx.state;
   LOCAL_PLAYER_ID = ctx.LOCAL_PLAYER_ID;
@@ -58,6 +64,8 @@ export function initBoard(ctx) {
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
+  if (ctx.editAllowed) editAllowed = ctx.editAllowed;
+  if (ctx.sendLive) sendLive = ctx.sendLive;
 }
 
 // Shop-Optik, die es in diesem Spiel (noch) nicht gibt: Skins betreffen
@@ -132,7 +140,7 @@ const wire = (q) => ({ id: q.id, r: q.r, c: q.c, h: q.h, w: q.w, by: q.by || '',
 
 function playable() {
   return state.puzzle && state.status === 'playing' && !state.generating && !state.paused && !state.sessionReadonly
-    && !(state.isTrainingGame && !state.trainingDone);
+    && !(state.isTrainingGame && !state.trainingDone) && editAllowed();
 }
 
 // Nach JEDER eigenen Änderung: ist das Brett voll und geht nicht auf, kostet das
@@ -271,6 +279,7 @@ function showPreview(e) {
   previewEl.style.height = (y1 - y0) + 'px';
   previewEl.style.opacity = '1';
   previewEl.classList.toggle('held', d.touch);
+  sendLive({ box: { r: q.r, c: q.c, h: q.h, w: q.w } });
   // Eingerastetes Ziel als zarter Schatten + Größen-Blase am Finger.
   ghostEl.style.transform = `translate(${q.c * cw}px, ${q.r * ch}px)`;
   ghostEl.style.width = q.w * cw + 'px';
@@ -327,6 +336,7 @@ function onUp(e) {
   // Letzte Position auswerten (Barriere/Durchbruch), dann loslassen.
   if (d.moved) showPreview(e);
   drag = null;
+  sendLive(null);
   clearMarks(d);
   previewEl.classList.remove('held');
   if (!d.moved) {
@@ -354,8 +364,10 @@ function onUp(e) {
 function onCancel(e) {
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pan = null;
-  if (drag && e.pointerId === drag.id) { clearMarks(drag); drag = null; hidePreview(); }
+  if (drag && e.pointerId === drag.id) { clearMarks(drag); drag = null; hidePreview(); sendLive(null); }
 }
+/** Die Sperre wechselt mitten im Ziehen (abgegeben): Entwurf verwerfen. */
+export function cancelLiveGesture() { if (drag) { clearMarks(drag); drag = null; hidePreview(); } }
 
 // ── Darstellung ──────────────────────────────────────────────────────────────
 const pct = (v, n) => `${(v / n) * 100}%`;
@@ -412,7 +424,7 @@ const RectLayer = {
 };
 
 export const BoardGrid = {
-  components: { ClueLayer, RectLayer, FocusLayer },
+  components: { ClueLayer, RectLayer, FocusLayer, LiveLayer },
   setup() {
     const preview = ref(null), ghost = ref(null), size = ref(null);
     const t0 = performance.now();
@@ -430,6 +442,7 @@ export const BoardGrid = {
                @contextmenu.prevent>
             <rect-layer></rect-layer>
             <focus-layer></focus-layer>
+            <live-layer></live-layer>
             <clue-layer></clue-layer>
             <div ref="ghost" class="rb-ghost"></div>
             <div ref="preview" class="rb-preview"></div>

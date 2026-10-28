@@ -2,6 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
+  edit: { free: "Свободно", me: "Рисуете вы", asked: "Запрошено …", blocked: "Сейчас рисует {name} — коснитесь значка сверху, чтобы попросить ход.", yourTurn: "Ваша очередь — рисуйте!", reqTitle: "{name} хочет рисовать", give: "Передать", keep: "Продолжить", aria: { free: "Никто не рисует — коснитесь, чтобы взять", me: "Вы рисуете — коснитесь, чтобы освободить", other: "Рисует {name} — коснитесь, чтобы попросить", asked: "Запрос отправлен" } },
   games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: 'Выбрать игру', busy: 'Сначала заверши текущую партию, затем меняй игру.' },
 
   coopEndless: { toggle: 'Бесконечный подъём', toggleHint: 'Поднимайтесь вместе — 3 общие жизни, без пополнения' },

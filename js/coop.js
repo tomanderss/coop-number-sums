@@ -117,6 +117,86 @@ export async function setTyping(active) {
   } catch (e) { log('coop', 'Tipp-Status senden fehlgeschlagen', e); }
 }
 
+// ── Bearbeiten-Sperre („wer zeichnet gerade") + Live-Zeichnen ────────────────
+// Für Spiele, in denen gleichzeitiges Bearbeiten schwer ist (Rectangles, Number
+// Path, Gem Hunt, Pipes): EINER hält die Sperre, die anderen sehen live, was er
+// zeichnet. Beides sind TRANSIENTE Knoten neben den Events (wie typing):
+//   rooms/{code}/edit = { uid, name, at, req?: { uid, name, at } }
+//   rooms/{code}/live/{uid} = Entwurf des Zeichnenden (Spiel-spezifisch)
+// Die Sperre wird per Transaktion (Compare-and-Set) genommen; wer sie hält und
+// verschwindet, gibt sie per onDisconnect frei; wer sie hält, aber länger als
+// EDIT_STALE_MS kein Lebenszeichen gab (App im Hintergrund), verliert sie an
+// den Nächsten, der zugreift.
+export const EDIT_STALE_MS = 30000;
+let unsubEdit = null, onEditCb = null;
+let unsubLive = null, onLiveCb = null;
+let liveArmed = false;
+export function onEdit(cb) { onEditCb = cb; }
+export function onLive(cb) { onLiveCb = cb; }
+/** Rein, unit-getestet: darf `uid` die Sperre jetzt nehmen? */
+export function canTakeEdit(cur, uid, now) {
+  return !cur || !cur.uid || cur.uid === uid || now - (Number(cur.at) || 0) >= EDIT_STALE_MS;
+}
+const editRef = () => fb.ref(fb.db, `rooms/${roomCode}/edit`);
+export async function claimEdit(name) {
+  if (!fb || !roomCode) return false;
+  const now = serverNow(), me = fb.uid;
+  try {
+    const res = await fb.runTransaction(editRef(), (cur) => (canTakeEdit(cur, me, now) ? { uid: me, name: name || '', at: now } : undefined));
+    if (res && res.committed) { fb.onDisconnect(editRef()).remove(); log('coop', 'Bearbeiten-Sperre genommen'); return true; }
+    return false;
+  } catch (e) { log('coop', 'Bearbeiten-Sperre nehmen fehlgeschlagen', e); return false; }
+}
+// Die Sperre wurde mir ÜBERGEBEN (grantEdit des Vorgängers): eigenes Aufräumen setzen.
+export function adoptEdit() {
+  if (!fb || !roomCode) return;
+  try { fb.onDisconnect(editRef()).remove(); } catch (_) {}
+}
+export async function releaseEdit() {
+  if (!fb || !roomCode) return false;
+  const me = fb.uid;
+  try {
+    const res = await fb.runTransaction(editRef(), (cur) => (cur && cur.uid === me ? null : undefined));
+    try { await fb.onDisconnect(editRef()).cancel(); } catch (_) {}
+    if (res && res.committed) log('coop', 'Bearbeiten-Sperre freigegeben');
+    return !!(res && res.committed);
+  } catch (e) { log('coop', 'Bearbeiten-Sperre freigeben fehlgeschlagen', e); return false; }
+}
+export async function grantEdit() {
+  if (!fb || !roomCode) return false;
+  const me = fb.uid, now = serverNow();
+  try {
+    const res = await fb.runTransaction(editRef(), (cur) => (cur && cur.uid === me && cur.req && cur.req.uid
+      ? { uid: cur.req.uid, name: cur.req.name || '', at: now } : undefined));
+    if (res && res.committed) { try { await fb.onDisconnect(editRef()).cancel(); } catch (_) {} log('coop', 'Bearbeiten-Sperre übergeben'); }
+    return !!(res && res.committed);
+  } catch (e) { log('coop', 'Bearbeiten-Sperre übergeben fehlgeschlagen', e); return false; }
+}
+export async function requestEdit(name) {
+  if (!fb || !roomCode) return;
+  try { await fb.set(fb.ref(fb.db, `rooms/${roomCode}/edit/req`), { uid: fb.uid, name: name || '', at: serverNow() }); log('coop', 'Übernahme angefragt'); }
+  catch (e) { log('coop', 'Übernahme anfragen fehlgeschlagen', e); }
+}
+export async function denyEdit() {
+  if (!fb || !roomCode) return;
+  try { await fb.remove(fb.ref(fb.db, `rooms/${roomCode}/edit/req`)); } catch (e) { log('coop', 'Anfrage ablehnen fehlgeschlagen', e); }
+}
+// Lebenszeichen des Halters (gedrosselt vom Aufrufer).
+export async function touchEdit() {
+  if (!fb || !roomCode) return;
+  try { await fb.set(fb.ref(fb.db, `rooms/${roomCode}/edit/at`), serverNow()); } catch (_) { /* nächster Versuch kommt */ }
+}
+// Entwurf des Zeichnenden (null = fertig). Der Aufrufer drosselt.
+export async function setLive(data) {
+  if (!fb || !roomCode) return;
+  try {
+    const ref = fb.ref(fb.db, `rooms/${roomCode}/live/${fb.uid}`);
+    if (data == null) { await fb.remove(ref); return; }
+    if (!liveArmed) { fb.onDisconnect(ref).remove(); liveArmed = true; }
+    await fb.set(ref, sanitizeForFirebase(data));
+  } catch (e) { /* Live ist Komfort — ein verlorener Frame schadet nicht */ }
+}
+
 function attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey) {
   // Defensive: falls eine vorherige Session (derselbe Tab, neue Lobby ohne
   // zwischenzeitlichen leave()-Aufruf) noch Listener auf dem alten Raum hängen
@@ -127,6 +207,18 @@ function attachListeners(f, code, { onJoin, onLeave, onMessage }, afterEventKey)
   // Lobby-Verlassen-und-wieder-Beitreten.
   unsubJoin && unsubJoin(); unsubLeave && unsubLeave(); unsubEvents && unsubEvents();
   unsubTyping && unsubTyping();
+  unsubEdit && unsubEdit(); unsubLive && unsubLive();
+  liveArmed = false;
+  // Bearbeiten-Sperre + Live-Entwürfe der anderen beobachten.
+  unsubEdit = f.onValue(f.ref(f.db, `rooms/${code}/edit`), (snap) => {
+    try { onEditCb && onEditCb(snap.val() || null); } catch (_) {}
+  });
+  unsubLive = f.onValue(f.ref(f.db, `rooms/${code}/live`), (snap) => {
+    const v = snap.val() || {};
+    const out = {};
+    for (const k of Object.keys(v)) if (k !== f.uid) out[k] = v[k];
+    try { onLiveCb && onLiveCb(out); } catch (_) {}
+  });
   // Tipp-Status aller Mitspieler live beobachten (eigene uid rausfiltern).
   unsubTyping = f.onValue(f.ref(f.db, `rooms/${code}/typing`), (snap) => {
     const v = snap.val() || {};
@@ -666,6 +758,7 @@ export async function leave({ keepRoom = false } = {}) {
   unsubTeamEvents && unsubTeamEvents(); unsubTeamProgress && unsubTeamProgress();
   unsubRaceProgress && unsubRaceProgress(); unsubConn && unsubConn();
   unsubTyping && unsubTyping(); unsubTyping = null;
+  unsubEdit && unsubEdit(); unsubEdit = null; unsubLive && unsubLive(); unsubLive = null;
   unsubJoin = unsubLeave = unsubEvents = unsubTeamEvents = unsubTeamProgress = unsubRaceProgress = unsubConn = null;
   selfInfo = null; everOnline = false; sawDisconnect = false; lastEventKey = null;
   roomCode = null; myPlayerRef = null;
@@ -673,6 +766,9 @@ export async function leave({ keepRoom = false } = {}) {
   try {
     // Eigenen Tipp-Status mitnehmen (sonst tippt ein „Geist" ewig weiter).
     try { await f.remove(f.ref(f.db, `rooms/${code}/typing/${f.uid}`)); } catch (_) {}
+    // Live-Entwurf und eine gehaltene Bearbeiten-Sperre mitnehmen.
+    try { await f.remove(f.ref(f.db, `rooms/${code}/live/${f.uid}`)); } catch (_) {}
+    try { await f.runTransaction(f.ref(f.db, `rooms/${code}/edit`), (cur) => (cur && cur.uid === f.uid ? null : undefined)); } catch (_) {}
     await f.onDisconnect(playerRef).cancel();
     await f.remove(playerRef);
     if (keepRoom) { log('coop', `Raum ${code} verlassen – bleibt für Fortsetzen bestehen`); return; }

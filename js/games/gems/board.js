@@ -23,6 +23,7 @@ import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
+import { LiveLayer } from '../livelayer.js';
 import {
   EMPTY, CROSS, GEM, gemsOf, conflicts, isFull, isSolved, progressPct,
   normalizePuzzle as healPuzzle, normalizeCells, rcOf,
@@ -39,6 +40,11 @@ let afterMove = () => {};
 let coopSend = () => null;
 let desktopBoard = () => false;
 
+// Bearbeiten-Sperre (Schale, s. app.js editAllowed): im Coop zeichnet nur, wer die
+// Sperre hält; sendLive schickt den laufenden Entwurf an die anderen.
+let editAllowed = () => true;
+let sendLive = () => {};
+
 export function initBoard(ctx) {
   state = ctx.state;
   LOCAL_PLAYER_ID = ctx.LOCAL_PLAYER_ID;
@@ -48,6 +54,8 @@ export function initBoard(ctx) {
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
+  if (ctx.editAllowed) editAllowed = ctx.editAllowed;
+  if (ctx.sendLive) sendLive = ctx.sendLive;
 }
 
 // Shop-Optik, die es hier (noch) nicht gibt (s. rectangles/board.js).
@@ -104,7 +112,7 @@ const me = () => state.coop.myId || LOCAL_PLAYER_ID;
 const isMultiplayer = () => state.coop.active || state.team.active;
 function playable() {
   return state.puzzle && state.status === 'playing' && !state.generating && !state.paused && !state.sessionReadonly
-    && !(state.isTrainingGame && !state.trainingDone);
+    && !(state.isTrainingGame && !state.trainingDone) && editAllowed();
 }
 
 // Erst ein VOLLES Brett (so viele Steine wie Zeilen), das nicht aufgeht, kostet
@@ -174,6 +182,7 @@ function paint(i) {
   if (to == null) return;
   drag.changes.set(i, to);
   setCells([[i, to]], { send: false });
+  sendLive({ cells: [...drag.changes], cur: i });
 }
 function onDown(e) {
   if (e.button != null && e.button > 0) return;
@@ -190,6 +199,7 @@ function onDown(e) {
   const box = e.currentTarget.getBoundingClientRect();
   const i = cellAt(box, e.clientX, e.clientY);
   drag = { id: e.pointerId, box, start: i, v0: state.gemCells[i], mode: null, last: i, changes: new Map() };
+  sendLive({ cur: i });
 }
 function onMove(e) {
   if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -217,13 +227,16 @@ function onUp(e) {
   if (pan) { if (pointers.size < 2) pan = null; return; }
   if (!drag || e.pointerId !== drag.id) return;
   const d = drag; drag = null;
+  sendLive(null);
   if (!d.mode) { setCells([[d.start, nextOnTap(state.gemCells[d.start])]]); return; }
   sendCells([...d.changes]);
 }
+/** Die Sperre wechselt mitten im Wischen (abgegeben): Gemaltes senden, Wischen beenden. */
+export function cancelLiveGesture() { if (drag) { sendCells([...drag.changes]); drag = null; } }
 function onCancel(e) {
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pan = null;
-  if (drag && e.pointerId === drag.id) { sendCells([...drag.changes]); drag = null; }
+  if (drag && e.pointerId === drag.id) { sendCells([...drag.changes]); drag = null; sendLive(null); }
 }
 
 // ── Darstellung ──────────────────────────────────────────────────────────────
@@ -311,7 +324,7 @@ const FocusLayer = {
 };
 
 export const BoardGrid = {
-  components: { RegionLayer, MarkLayer, FocusLayer },
+  components: { RegionLayer, MarkLayer, FocusLayer, LiveLayer },
   setup() {
     const t0 = performance.now();
     onMounted(() => log('perf', 'Brett aufgebaut', { game: 'gems', cells: state.puzzle ? state.puzzle.rows * state.puzzle.cols : 0, tookMs: Math.round(performance.now() - t0) }));
@@ -325,6 +338,7 @@ export const BoardGrid = {
                @contextmenu.prevent>
             <region-layer></region-layer>
             <focus-layer></focus-layer>
+            <live-layer></live-layer>
             <mark-layer></mark-layer>
           </div>
   `,

@@ -22,6 +22,7 @@ import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
+import { LiveLayer } from '../livelayer.js';
 import {
   canStep, isSolved, progressPct, clueMap, wallSet, lastClue, reachedClue,
   normalizePuzzle as healPuzzle, normalizePath, rcOf,
@@ -37,6 +38,11 @@ let afterMove = () => {};
 let coopSend = () => null;
 let desktopBoard = () => false;
 
+// Bearbeiten-Sperre (Schale, s. app.js editAllowed): im Coop zeichnet nur, wer die
+// Sperre hält; sendLive schickt den laufenden Entwurf an die anderen.
+let editAllowed = () => true;
+let sendLive = () => {};
+
 export function initBoard(ctx) {
   state = ctx.state;
   LOCAL_PLAYER_ID = ctx.LOCAL_PLAYER_ID;
@@ -45,6 +51,8 @@ export function initBoard(ctx) {
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
+  if (ctx.editAllowed) editAllowed = ctx.editAllowed;
+  if (ctx.sendLive) sendLive = ctx.sendLive;
 }
 
 // Shop-Optik, die es hier (noch) nicht gibt (s. rectangles/board.js).
@@ -95,7 +103,7 @@ function rules() {
 }
 function playable() {
   return state.puzzle && state.status === 'playing' && !state.generating && !state.paused && !state.sessionReadonly
-    && !(state.isTrainingGame && !state.trainingDone);
+    && !(state.isTrainingGame && !state.trainingDone) && editAllowed();
 }
 
 /** Neue Linie übernehmen (lokal). Gibt true zurück, wenn sich etwas geändert hat. */
@@ -176,6 +184,7 @@ function onDown(e) {
   else if (!state.path.length) { if (!extend(cell)) return; }
   else if (!extend(cell)) return;
   drag = { id: e.pointerId, box };
+  sendLive({ path: state.path.slice(), cur: cell });
 }
 
 function onMove(e) {
@@ -193,8 +202,9 @@ function onMove(e) {
   const end = state.path[state.path.length - 1];
   if (cell === end) return;
   const idx = state.path.indexOf(cell);
-  if (idx >= 0) { truncate(idx); return; }   // zurückgezogen: Linie kürzen
-  stepToward(cell);
+  if (idx >= 0) truncate(idx);   // zurückgezogen: Linie kürzen
+  else stepToward(cell);
+  sendLive({ path: state.path.slice(), cur: cell });
 }
 
 function onUp(e) {
@@ -203,12 +213,15 @@ function onUp(e) {
   if (!drag || e.pointerId !== drag.id) return;
   drag = null;
   sendPath();
+  sendLive(null);
 }
 function onCancel(e) {
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pan = null;
-  if (drag && e.pointerId === drag.id) { drag = null; sendPath(); }
+  if (drag && e.pointerId === drag.id) { drag = null; sendPath(); sendLive(null); }
 }
+/** Die Sperre wechselt mitten im Ziehen (abgegeben): den Stand senden, Ziehen beenden. */
+export function cancelLiveGesture() { if (drag) { drag = null; sendPath(); } }
 
 // ── Darstellung ──────────────────────────────────────────────────────────────
 const pct = (v, n) => `${(v / n) * 100}%`;
@@ -274,7 +287,7 @@ const FocusLayer = {
 };
 
 export const BoardGrid = {
-  components: { WallLayer, PathLayer, ClueLayer, FocusLayer },
+  components: { WallLayer, PathLayer, ClueLayer, FocusLayer, LiveLayer },
   setup() {
     const t0 = performance.now();
     onMounted(() => log('perf', 'Brett aufgebaut', { game: 'numberpath', cells: state.puzzle ? state.puzzle.rows * state.puzzle.cols : 0, tookMs: Math.round(performance.now() - t0) }));
@@ -289,6 +302,7 @@ export const BoardGrid = {
             <path-layer></path-layer>
             <wall-layer></wall-layer>
             <focus-layer></focus-layer>
+            <live-layer></live-layer>
             <clue-layer></clue-layer>
           </div>
   `,
