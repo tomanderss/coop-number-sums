@@ -1254,7 +1254,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    `ch` = Breite der Ziffer 0; der Doppelpunkt ist schmaler, die Reserve liegt
    also ueber dem tatsaechlichen Bedarf. */
 .hud-item.timer { min-width: var(--timebox); justify-content: center; }
-.timer-icon { font-size: 0.75em; line-height: 1; }
+.timer-icon { font-size: 0.85em; line-height: 1; }
+/* Uhr/Sanduhr über der Zeit: bei ~12 px wirkt ein dünner Kreis auf dem Handy
+   verwaschen (gemeldet: „die Uhr ist unscharf") — kräftigerer Strich. */
+.timer-icon svg { stroke-width: 2.5; }
 /* Endlos-Gesamt-Timer: gleiche Optik wie der Level-Timer, aber akzentuiert (Sanduhr)
    → auf den ersten Blick als „Zeit des ganzen Laufs" vom Level-Timer unterscheidbar. */
 .hud-item.timer.total { color: var(--accent); }
