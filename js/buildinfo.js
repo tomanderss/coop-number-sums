@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.238';
-export const BUILD_HASH = '76bc020';
+export const BUILD      = '1.239';
+export const BUILD_HASH = '5ed877d';
 
 export const CHANGELOG = [
+  {
+    "version": "1.239",
+    "date": "28.10.2026",
+    "changes": [
+      "Neues Spiel „Number Path“: eine durchgehende Linie über jedes Feld ziehen und dabei die Zahlen der Reihe nach verbinden – mit Wänden ab mittleren Stufen, 5×5 bis 10×10, jede Aufgabe eindeutig und ohne Raten lösbar"
+    ]
+  },
   {
     "version": "1.238",
     "date": "28.10.2026",
