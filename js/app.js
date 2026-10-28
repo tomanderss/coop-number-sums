@@ -7450,8 +7450,10 @@ const App = {
         </button>
       </div>
 
-      <transition name="gswap" mode="out-in">
-      <div class="home-actions" :key="currentGame.id">
+      <!-- KEIN Neuaufbau beim Spielwechsel: die Knöpfe sind in allen Spielen
+           dieselben und bleiben einfach stehen (vorher blendete die ganze
+           Spalte aus und wieder ein — „ruckartig"). -->
+      <div class="home-actions">
         <button class="btn btn-primary mode-btn" @click="coopReset(); navTo('setup')">
           <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
@@ -7468,7 +7470,6 @@ const App = {
           <button class="btn btn-ghost" @click="navTo('history')"><span class="btn-ic"><span class="ei" v-html="ic('clock')"></span></span> {{ t('home.history') }}</button>
         </div>
       </div>
-      </transition>
       <!-- Fortsetzen-Bereich: eine EIGENE Zone UNTER den Modus-Knoepfen. Er
            waechst in den freien Platz darunter und verschiebt nichts — vorher
            stand er oben in der Knopf-Spalte, und weil die Startseite vertikal
@@ -7476,7 +7477,10 @@ const App = {
            beim Spielwechsel) ALLES um ~30 px (Nutzerwunsch: feste Positionen).
            Reicht der Platz nicht, scrollt nur diese Zone. -->
       <div class="home-resume">
-      <transition name="gswap" mode="out-in">
+      <!-- Ändert sich nur der INHALT (anderes Spiel, anderer Stand), wird er an
+           Ort und Stelle aktualisiert; nur wenn der Bereich ganz erscheint oder
+           verschwindet, blendet er weich (ohne out-in-Lücke). -->
+      <transition name="rfade">
         <!-- Fortsetzen-Angebote stehen UNTEREINANDER und pro Bereich gibt es
              GENAU EINES: ein Knopf fuer Solo (klassisch ODER Endlos — der
              zuletzt gespielte gewinnt) und einer fuer Coop. Nebeneinander
@@ -7484,7 +7488,7 @@ const App = {
              Weitere haengt jetzt am Erweiterungs-Knopf, der optisch am
              Solo-Knopf klebt und benannt ist ("Weitere Spielstaende (N)")
              statt als loser Textlink danebenzustehen. -->
-        <div v-if="soloResume || state.resumeAvailableCoop || state.saves.length" class="resume-stack" :key="currentGame.id">
+        <div v-if="soloResume || state.resumeAvailableCoop || state.saves.length" class="resume-stack">
           <div v-if="soloResume" class="resume-group" :class="{ expandable: !!savesLabel }">
             <button class="btn btn-resume" :class="{ endless: soloResume.endless }" @click="resumeSolo">
               <span class="btn-ic"><span class="ei" v-html="ic(soloResume.endless ? 'meteor' : 'play')"></span></span>

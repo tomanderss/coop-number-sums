@@ -114,3 +114,38 @@ test('?game=mathcross oeffnet die App direkt in Math Cross', async ({ page }) =>
   expect(r.attr).toBe('mathcross');
   expect(r.url).toBe('');
 });
+
+// Nutzerwunsch: die Scheibe enger, mehrere Spiele je Seite sichtbar — und beim
+// Wechsel soll sich das Menü nicht ab- und wieder aufbauen („ruckartig").
+test('auf dem ersten Spiel sind auch die übernächsten Logos sichtbar', async ({ page }) => {
+  await gotoApp(page);
+  await page.waitForTimeout(500);
+  const vis = await page.evaluate(() => [...document.querySelectorAll('.gw-item')].map((el) => {
+    const r = el.getBoundingClientRect();
+    return { game: el.dataset.game, opacity: Number(getComputedStyle(el).opacity), inView: r.right > 0 && r.left < innerWidth };
+  }));
+  for (const v of vis) {
+    expect(v.inView, v.game).toBe(true);
+    expect(v.opacity, v.game).toBeGreaterThan(0.3);
+  }
+});
+
+test('beim Spielwechsel bleibt das Menü stehen (kein Aus- und Einblenden)', async ({ page }) => {
+  await gotoApp(page);
+  await page.evaluate(() => {
+    document.querySelector('.home-actions').dataset.keep = '1';
+    window.__minOpacity = 1;
+    const t0 = performance.now();
+    const f = () => {
+      const el = document.querySelector('.home-actions');
+      window.__minOpacity = Math.min(window.__minOpacity, el ? Number(getComputedStyle(el).opacity) : 0);
+      if (performance.now() - t0 < 1500) requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  });
+  await page.locator('.gw-item[data-game="rectangles"]').click();
+  await page.waitForFunction(() => window.__cns.gameId === 'rectangles');
+  await page.waitForTimeout(1200);
+  expect(await page.evaluate(() => document.querySelector('.home-actions').dataset.keep)).toBe('1');
+  expect(await page.evaluate(() => window.__minOpacity)).toBe(1);
+});

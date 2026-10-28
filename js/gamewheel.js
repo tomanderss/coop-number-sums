@@ -13,15 +13,23 @@ import { reactive, computed, watch, onMounted, onBeforeUnmount, ref, nextTick } 
 
 // Reine Geometrie je Logo, unit-getestet: `o` = Abstand zur Mitte in Logo-Schritten
 // (0 = Mitte, ±1 = Nachbar, Zwischenwerte während des Ziehens).
+// Eng wie ein Kartenfächer: die Nachbarn rücken dicht an die Mitte, weiter
+// entfernte werden gestaucht statt ausgeblendet — so sieht man auf JEDER Seite,
+// wie viele Spiele dort liegen (Nutzerwunsch: vorher war auf dem ersten Spiel
+// nur das rechte Nachbarlogo zu sehen, das übernächste war unsichtbar).
+export const WHEEL_VISIBLE = 3.5;   // ab diesem Abstand (in Logos) ausgeblendet
 export function wheelItemStyle(o, spacing) {
-  const a = Math.min(Math.abs(o), 2.5);
-  const x = o * spacing;
-  const z = -a * 140;
-  const rot = Math.max(-60, Math.min(60, -o * 36));
-  const scale = Math.max(0.5, 1 - a * 0.32);
+  const a = Math.min(Math.abs(o), WHEEL_VISIBLE);
+  // Erster Schritt voll, jeder weitere gestaucht (Fächer).
+  const dist = a <= 1 ? a : 1 + (a - 1) * 0.6;
+  const x = Math.sign(o) * dist * spacing;
+  const z = -a * 90;
+  const rot = Math.max(-55, Math.min(55, -o * 30));
+  const scale = Math.max(0.42, 1 - a * 0.2);
+  const opacity = a <= 3 ? 1 - a * 0.22 : Math.max(0, 0.34 * (WHEEL_VISIBLE - a) / (WHEEL_VISIBLE - 3));
   return {
     transform: `translate3d(${x.toFixed(1)}px, 0, ${z.toFixed(1)}px) rotateY(${rot.toFixed(1)}deg) scale(${scale.toFixed(3)})`,
-    opacity: Math.max(0, 1 - a * 0.5).toFixed(3),
+    opacity: Math.max(0, opacity).toFixed(3),
     zIndex: String(100 - Math.round(a * 10)),
   };
 }
@@ -56,7 +64,8 @@ export const GameWheel = {
 
     const measure = () => {
       const w = root.value ? root.value.clientWidth : 360;
-      st.spacing = Math.max(96, Math.min(170, w * 0.36));
+      // Enger als früher (0.36 · Breite): die Nachbarn überlappen die Mitte leicht.
+      st.spacing = Math.max(62, Math.min(118, w * 0.24));
     };
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
     onMounted(() => { measure(); if (ro && root.value) ro.observe(root.value); });
