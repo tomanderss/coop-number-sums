@@ -776,6 +776,18 @@ export default {
     title: 'バージョン {version}',
     start: 'スタート',
   },
+  major: {
+    kicker: "新しいメジャーバージョン",
+    title: "バージョン {v} へようこそ",
+    cta: "はじめよう",
+    v2: {
+      sub: "Coop Number Sums は Coop Number Games になりました。ひとつのアプリでいろいろなパズル。",
+      h1: "4つのゲームがひとつのアプリに。スタート画面のホイールで切り替え",
+      h2: "すべてのゲームで共通のアカウント・残高・ショップ",
+      h3: "どのゲームでも協力、対戦、エンドレス、トレーニング",
+      h4: "新登場：Math Cross、Rectangles、Number Path",
+    },
+  },
   update: {
     check: '更新を確認',
     latest: '最新の状態です（v{v}）',

@@ -776,6 +776,18 @@ export default {
     title: '버전 {version}',
     start: '시작하기',
   },
+  major: {
+    kicker: "새 메이저 버전",
+    title: "버전 {v}에 오신 것을 환영합니다",
+    cta: "시작하기",
+    v2: {
+      sub: "Coop Number Sums가 Coop Number Games가 되었어요 – 하나의 앱, 여러 퍼즐.",
+      h1: "하나의 앱에 네 가지 게임 – 시작 화면의 휠로 바로 전환",
+      h2: "모든 게임에서 하나의 계정, 하나의 잔액, 하나의 상점",
+      h3: "모든 게임에서 협동, 대결, 무한 등반, 훈련",
+      h4: "새로 추가: Math Cross, Rectangles, Number Path",
+    },
+  },
   update: {
     check: '업데이트 확인',
     latest: '최신 버전입니다 (v{v})',

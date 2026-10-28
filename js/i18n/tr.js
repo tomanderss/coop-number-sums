@@ -776,6 +776,18 @@ export default {
     title: 'Sürüm {version}',
     start: 'Hadi başlayalım',
   },
+  major: {
+    kicker: "Yeni ana sürüm",
+    title: "{v} sürümüne hoş geldin",
+    cta: "Hadi başlayalım",
+    v2: {
+      sub: "Coop Number Sums artık Coop Number Games – tek uygulama, birçok bulmaca.",
+      h1: "Tek uygulamada dört oyun – başlangıç ekranındaki çarkla geçiş yap",
+      h2: "Tüm oyunlar için tek hesap, tek bakiye, tek mağaza",
+      h3: "Her oyunda co-op, düellolar, Sonsuz Tırmanış ve antrenman",
+      h4: "Yeni: Math Cross, Rectangles ve Number Path",
+    },
+  },
   update: {
     check: 'Güncellemeleri denetle',
     latest: 'Güncelsin (v{v})',

@@ -776,6 +776,18 @@ export default {
     title: 'Versión {version}',
     start: 'Vamos',
   },
+  major: {
+    kicker: "Nueva versión principal",
+    title: "Bienvenido a la versión {v}",
+    cta: "¡Vamos!",
+    v2: {
+      sub: "Coop Number Sums ahora es Coop Number Games: una app, muchos acertijos.",
+      h1: "Cuatro juegos en una app: cambia con la rueda de la pantalla de inicio",
+      h2: "Una cuenta, un saldo y una tienda para todos los juegos",
+      h3: "Cooperativo, duelos, Ascenso infinito y entrenamiento en cada juego",
+      h4: "Novedades: Math Cross, Rectangles y Number Path",
+    },
+  },
   update: {
     check: 'Buscar actualizaciones',
     latest: 'Estás al día (v{v})',

@@ -1,6 +1,7 @@
 // app.js — Coop Number Games (Vue 3, esm-browser): die Schale um alle Spiele (Menü, Coop, Konto, Shop …).
 import { createApp, reactive, computed, watch, nextTick, onMounted, markRaw, ref, h } from './vue.esm-browser.prod.js';
 import { BUILD, CHANGELOG } from './buildinfo.js';
+import { cmpVersion, canonicalVersion, majorCelebrationFor, MAJORS } from './versions.js';
 import { REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES, HINTS, COOP_MAX_PLAYERS, DONATE_URL, regionChipInk, coinReward, coinMultiplier, coinBaseForIndex, coinStreakBonus, COIN_STREAK_STEP, hexToRgb } from './config.js';
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
@@ -279,6 +280,7 @@ const state = reactive({
   modal: null,               // null | 'howto' | 'changelog' | 'confirm'
   confirm: null,             // { title, msg, onYes }
   showWhatsNew: false,
+  majorCelebration: null,    // Hauptzahl einer frisch erreichten Hauptversion (Feier-Pop-up, s. versions.js)
   showDivStyle: false,       // Math Cross: einmalige Frage nach dem Geteilt-Zeichen
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   updateCheck: 'idle',       // manuelle Update-Prüfung (Klick auf die Version): idle | busy | found (Dialog offen)
@@ -6589,23 +6591,44 @@ function openSkinEditor() {
 }
 
 // ─── WAS IST NEU ──────────────────────────────────────────────────────────────
-// Semver-artiger Vergleich ("0.155" > "0.154"): teilstückweise numerisch.
-function cmpVersion(a, b) {
-  const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const d = (pa[i] || 0) - (pb[i] || 0);
-    if (d) return d;
-  }
-  return 0;
-}
+// Versionsvergleich + rückwirkende Umnummerierung (1.224–1.240 → 2.0–2.16)
+// leben in versions.js: die GESPEICHERTE zuletzt gesehene Nummer kann noch die
+// alte sein und wird vor jedem Vergleich übersetzt (canonicalVersion).
 function maybeShowWhatsNew() {
   const seen = loadSeenVersion();
+  const major = majorCelebrationFor(seen, BUILD);
+  if (major) openMajorCelebration(major, seen);
   if (seen !== BUILD && CHANGELOG.length) {
     state.whatsNewSince = seen; // zuletzt gesehene Version festhalten (siehe whatsNewEntries)
+    // Nur umnummeriert, inhaltlich nichts Neues (z.B. „1.240" gesehen, jetzt 2.16):
+    // kein leeres Pop-up, die neue Nummer still merken.
+    if (seen && !CHANGELOG.some((e) => cmpVersion(e.version, canonicalVersion(seen)) > 0)) {
+      if (!major) saveSeenVersion(BUILD);
+      return;
+    }
     state.showWhatsNew = true;
   }
 }
 function dismissWhatsNew() { state.showWhatsNew = false; saveSeenVersion(BUILD); }
+// ── Feier einer neuen HAUPTVERSION ───────────────────────────────────────────
+// Einmal je Gerät, wenn die zuletzt gesehene Version eine kleinere Hauptzahl
+// hatte (versions.js majorCelebrationFor). Liegt VOR „Was ist neu"; gemerkt wird
+// die neue Version beim Schließen des letzten der beiden Pop-ups.
+function openMajorCelebration(major, seen) {
+  state.majorCelebration = major;
+  log('app', 'Hauptversion erreicht — Feier', { major, seen, build: BUILD });
+  setTimeout(() => { if (state.majorCelebration) { try { launchWinFx(true); } catch (_) {} } }, 700);
+}
+function majorInfo() {
+  const m = MAJORS[state.majorCelebration];
+  if (!m) return { games: [], highlights: [] };
+  return { games: m.games.filter((id) => GAME_IDS.includes(id)).map((id) => gameMeta(id)), highlights: m.highlights };
+}
+function dismissMajorCelebration() {
+  log('app', 'Hauptversions-Feier geschlossen', { major: state.majorCelebration });
+  state.majorCelebration = null;
+  if (!state.showWhatsNew) saveSeenVersion(BUILD);
+}
 // Math Cross: wie maybeShowWhatsNew, nur an die Einstellung statt an die Version
 // gekoppelt — solange NICHTS gewählt ist, kommt die Frage bei JEDEM Start,
 // beantwortet ist sie für immer weg.
@@ -7376,7 +7399,8 @@ const App = {
     const whatsNewEntries = computed(() => {
       const since = state.whatsNewSince;
       if (!since) return CHANGELOG.slice(0, 1);
-      return CHANGELOG.filter(e => cmpVersion(e.version, since) > 0);
+      const from = canonicalVersion(since);
+      return CHANGELOG.filter(e => cmpVersion(e.version, from) > 0);
     });
 
     // Modusübergreifender Überblick für den "Allgemein"-Reiter der Statistik.
@@ -7402,7 +7426,7 @@ const App = {
     });
 
     return {
-      generalStats, fmtDuration, whatsNewEntries,
+      generalStats, fmtDuration, whatsNewEntries, majorInfo, dismissMajorCelebration,
       state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS: gameAchievements, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, navTo, goBack, newGame, setupStart, goNextPuzzle, startEndless, endlessAgain, endlessContinue, endlessTotalMs, closeEndlessSummary, resumeGame, resumeCoopGame, resumeEndlessGame, onCellTap,
@@ -9622,7 +9646,27 @@ const App = {
       </div>
     </div>
 
-    <div v-if="state.showWhatsNew" class="modal-bg">
+    <!-- Neue HAUPTVERSION: einmalige Feier vor „Was ist neu" (versions.js) -->
+    <div v-if="state.majorCelebration" class="modal-bg major-bg">
+      <div class="modal major-modal" role="dialog" aria-modal="true">
+        <div class="mj-rays" aria-hidden="true"></div>
+        <div class="mj-kicker">{{ t('major.kicker') }}</div>
+        <div class="mj-num" aria-hidden="true">{{ state.majorCelebration }}<small>.0</small></div>
+        <h3 class="mj-title">{{ t('major.title', { v: state.majorCelebration + '.0' }) }}</h3>
+        <p class="mj-sub">{{ t('major.v' + state.majorCelebration + '.sub') }}</p>
+        <div class="mj-games">
+          <div v-for="(g, i) in majorInfo().games" :key="g.id" class="mj-game" :style="{ '--i': i }">
+            <img :src="g.logo" alt="" draggable="false"><span>{{ t(g.nameKey) }}</span>
+          </div>
+        </div>
+        <ul class="mj-list">
+          <li v-for="(h, i) in majorInfo().highlights" :key="h.key" :style="{ '--i': i }"><span class="ei" v-html="ic(h.icon)"></span><span>{{ t(h.key) }}</span></li>
+        </ul>
+        <button class="btn btn-primary" @click="dismissMajorCelebration">{{ t('major.cta') }}</button>
+      </div>
+    </div>
+
+    <div v-if="state.showWhatsNew && !state.majorCelebration" class="modal-bg">
       <div class="modal">
         <div class="whatsnew-badge">{{ t('whatsnew.badge') }}</div>
         <h3>{{ t('whatsnew.title', { version: CHANGELOG[0]?.version }) }}</h3>
@@ -9641,7 +9685,7 @@ const App = {
 
     <!-- Feier-Modal: dynamischer Skin zur 1.0 freigeschaltet (erst NACH „Was ist neu",
          damit nicht zwei Modals übereinander liegen). -->
-    <div v-if="state.skinJustUnlocked && !state.showWhatsNew" class="modal-bg">
+    <div v-if="state.skinJustUnlocked && !state.showWhatsNew && !state.majorCelebration" class="modal-bg">
       <div class="modal skin-unlock-modal">
         <div class="whatsnew-badge">{{ t('skin.unlockBadge') }}</div>
         <div class="skin-unlock-preview board" :class="skinPreviewClasses" :style="skinPreviewVars">

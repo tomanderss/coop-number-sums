@@ -1,10 +1,11 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.240';
+export const BUILD      = '2.16';
 export const BUILD_HASH = 'e322397';
 
 export const CHANGELOG = [
   {
-    "version": "1.240",
+    "version": "2.16",
+    "formerly": "1.240",
     "date": "28.10.2026",
     "changes": [
       "Endlos-Aufstieg im Auswahlscreen: der Schwierigkeits-Slider springt auf Sehr Leicht und ist gesperrt – ein Lauflicht und das wechselnde Stufen-Symbol zeigen, dass es Stufe für Stufe steigt und am Ende wieder von vorn beginnt",
@@ -12,14 +13,16 @@ export const CHANGELOG = [
     ]
   },
   {
-    "version": "1.239",
+    "version": "2.15",
+    "formerly": "1.239",
     "date": "28.10.2026",
     "changes": [
       "Neues Spiel „Number Path“: eine durchgehende Linie über jedes Feld ziehen und dabei die Zahlen der Reihe nach verbinden – mit Wänden ab mittleren Stufen, 5×5 bis 10×10, jede Aufgabe eindeutig und ohne Raten lösbar"
     ]
   },
   {
-    "version": "1.238",
+    "version": "2.14",
+    "formerly": "1.238",
     "date": "28.10.2026",
     "changes": [
       "Rectangles: keine unerreichbaren Missionen oder Erfolge mehr (Große Zahlen gibt es dort nicht), Number-Sums-Einstellungen nur noch, wo sie wirken, und Freunde sehen, welches Spiel du gerade spielst",
@@ -28,70 +31,80 @@ export const CHANGELOG = [
     ]
   },
   {
-    "version": "1.237",
+    "version": "2.13",
+    "formerly": "1.237",
     "date": "28.10.2026",
     "changes": [
       "Rectangles: Tipp-Tutor erklärt den nächsten Schluss Schritt für Schritt, Trainingsmodus, Rückgängig und Tipp in einer festen Werkzeugzeile unter dem Brett"
     ]
   },
   {
-    "version": "1.236",
+    "version": "2.12",
+    "formerly": "1.236",
     "date": "28.10.2026",
     "changes": [
       "Neues Spiel „Rectangles“ (Shikaku): das Feld in Rechtecke zerlegen – jede Zahl ist die Fläche ihres Rechtecks. Ziehen zeichnet, Antippen löscht, Rückgängig-Knopf, neun Schwierigkeitsstufen von 5×5 bis 13×13"
     ]
   },
   {
-    "version": "1.235",
+    "version": "2.11",
+    "formerly": "1.235",
     "date": "27.10.2026",
     "changes": [
       "Schnelles Tippen: jeder Tipp zählt sofort beim Berühren (auch mit zwei Daumen oder leichtem Rutschen), und das Brett reagiert ohne Verzögerung – auch auf großen Feldern"
     ]
   },
   {
-    "version": "1.234",
+    "version": "2.10",
+    "formerly": "1.234",
     "date": "27.10.2026",
     "changes": [
       "Startseite: Knöpfe stehen jetzt fest – ein erscheinender Fortsetzen-Knopf, der Offline-Hinweis oder der Spielwechsel verschieben nichts mehr, und keine Beschriftung überlappt eine andere"
     ]
   },
   {
-    "version": "1.233",
+    "version": "2.9",
+    "formerly": "1.233",
     "date": "27.10.2026",
     "changes": [
       "Schlankeres, minimalistisches Design: kleinere Knöpfe, mehr Luft, ruhigerer Startbildschirm"
     ]
   },
   {
-    "version": "1.232",
+    "version": "2.8",
+    "formerly": "1.232",
     "date": "27.10.2026",
     "changes": [
       "Startseite fühlt sich jetzt wie eine App an: nichts lässt sich mehr seitlich verschieben, kein Zoomen, keine Scrollbalken — und sie passt auch auf kleine Handys ohne Scrollen"
     ]
   },
   {
-    "version": "1.231",
+    "version": "2.7",
+    "formerly": "1.231",
     "date": "27.10.2026",
     "changes": [
       "Impressum, Datenschutz und exportierte Dateien tragen jetzt den Namen „Coop Number Games“"
     ]
   },
   {
-    "version": "1.230",
+    "version": "2.6",
+    "formerly": "1.230",
     "date": "27.10.2026",
     "changes": [
       "Spielauswahl als drehbare Scheibe: ziehen oder antippen — das Spiel wechselt flüssig und ohne Neuladen"
     ]
   },
   {
-    "version": "1.229",
+    "version": "2.5",
+    "formerly": "1.229",
     "date": "27.10.2026",
     "changes": [
       "Die native App heißt jetzt ebenfalls „Coop Number Games“"
     ]
   },
   {
-    "version": "1.228",
+    "version": "2.4",
+    "formerly": "1.228",
     "date": "27.10.2026",
     "changes": [
       "Wer ein Coop-Math-Cross-Konto hatte: Münzen, gekaufte Artikel, Freunde und Spielstände werden beim ersten Start mit Anmeldung ins gemeinsame Konto übernommen",
@@ -99,28 +112,32 @@ export const CHANGELOG = [
     ]
   },
   {
-    "version": "1.227",
+    "version": "2.3",
+    "formerly": "1.227",
     "date": "27.10.2026",
     "changes": [
       "Wer bisher Coop Math Cross gespielt hat: Spielstände, Statistik, gekaufte Artikel und Münzen werden beim ersten Start automatisch übernommen"
     ]
   },
   {
-    "version": "1.226",
+    "version": "2.2",
+    "formerly": "1.226",
     "date": "27.10.2026",
     "changes": [
       "Die Offline-Duelle gegen die KI (inkl. Klone) sind entfernt; Duelle gegen echte Mitspieler bleiben"
     ]
   },
   {
-    "version": "1.225",
+    "version": "2.1",
+    "formerly": "1.225",
     "date": "27.10.2026",
     "changes": [
       "Coop: Wer einem Raum mit dem anderen Spiel beitritt, wechselt automatisch dorthin und tritt danach bei"
     ]
   },
   {
-    "version": "1.224",
+    "version": "2.0",
+    "formerly": "1.224",
     "date": "27.10.2026",
     "changes": [
       "Neu: Spielauswahl auf dem Startbildschirm — die App heisst jetzt Coop Number Games und enthaelt Number Sums und Math Cross"
