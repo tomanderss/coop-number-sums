@@ -1,0 +1,63 @@
+/* games/numberpath.css — die Optik von „Number Path". Wird nur eingehängt,
+   solange dieses Spiel aktiv ist (s. applyGameCss / index.html).
+
+   Gitter = Hintergrund; darüber die Linie (SVG), die Wände und die Zahlen als
+   prozentual positionierte Ebenen. Animiert wird nur opacity/transform. */
+
+.board.np-board {
+  display: block; position: relative; padding: 0; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  background-color: var(--bg2);
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--text3) 30%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--text3) 30%, transparent) 1px, transparent 1px);
+  background-size: calc(100% / var(--cols)) calc(100% / var(--rows));
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--text3) 45%, transparent), var(--soft-shadow);
+  border-radius: 10px;
+}
+.np-walls, .np-clues, .np-focus { position: absolute; inset: 0; pointer-events: none; }
+.np-path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+
+/* Belegte Zellen: zarte Tönung in der Linienfarbe. */
+.np-visited { fill: hsl(var(--lh) 85% 60% / .16); }
+.np-line {
+  fill: none; stroke: hsl(var(--lh) 80% 58%); stroke-width: .42;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.np-head { fill: hsl(var(--lh) 85% 66%); stroke: #fff; stroke-width: .06; }
+
+/* Wände: dicke Balken auf der Zellgrenze. */
+.np-wall {
+  position: absolute; background: var(--text); border-radius: 3px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg2) 60%, transparent);
+}
+.np-wall.v { width: max(4px, calc(var(--cell) * 0.1)); transform: translateX(-50%); }
+.np-wall.h { height: max(4px, calc(var(--cell) * 0.1)); transform: translateY(-50%); }
+
+/* Zahlen als Kreise; erreichte leuchten in der Linienfarbe, die nächste ist umrandet. */
+.np-clue { position: absolute; display: flex; align-items: center; justify-content: center; }
+.np-clue b {
+  width: 64%; height: 64%; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--text); color: var(--bg2);
+  font-size: var(--fs); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums;
+  transition: background-color .2s ease, color .2s ease;
+}
+.np-clue.on b { background: hsl(var(--lh) 80% 52%); color: #fff; }
+.np-clue.next b { box-shadow: 0 0 0 3px hsl(var(--lh) 85% 62% / .55); }
+
+/* Training: die Zielzelle des nächsten Schritts pulsiert. */
+.np-train {
+  position: absolute; border-radius: 6px;
+  box-shadow: inset 0 0 0 2.5px var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  animation: np-pulse 1.3s ease-in-out infinite;
+}
+@keyframes np-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+.board.np-board.done .np-line { stroke: var(--good); }
+.board.np-board.done .np-clue.on b { background: var(--good); }
+
+@media (prefers-reduced-motion: reduce) { .np-train { animation: none; } .np-clue b { transition: none; } }
+
+.history-board.np-board { margin: 0 auto; }

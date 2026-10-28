@@ -143,6 +143,10 @@ const state = reactive({
   trayTile: 42,              // Steingröße des Vorrats (s. fitTrayTile)
   opRatio: 0.55,             // Breite der Operator-Spuren (s. fitBoard)
   boardW: 0,                 // gemessene Breite der Spielfläche (Basis der Vorrats-Steingröße)
+  // ── Number Path (s. js/games/numberpath/board.js) ──
+  path: [],                  // gezogene Linie als Zell-Indizes ab der 1
+  pathBy: [],                // wer welche Zelle angehängt hat (Coop-Verteilung)
+  pathKey: null,             // Ereignis-Schlüssel der zuletzt übernommenen Linie (später gewinnt)
   // ── Rectangles (s. js/games/rectangles/board.js) ──
   rects: [],                 // gezogene Rechtecke [{ id, r, c, h, w, by, col, k }]
   rectsFullWrong: false,     // Brett voll, geht aber nicht auf (Hinweiszeile unter dem Brett)

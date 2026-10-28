@@ -2,7 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', choose: 'Выбрать игру', busy: 'Сначала заверши текущую партию, затем меняй игру.' },
+  games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', choose: 'Выбрать игру', busy: 'Сначала заверши текущую партию, затем меняй игру.' },
 
   coopEndless: { toggle: 'Бесконечный подъём', toggleHint: 'Поднимайтесь вместе — 3 общие жизни, без пополнения' },
 
