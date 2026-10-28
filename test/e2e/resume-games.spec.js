@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp } from './helpers.js';
+import { GAME_IDS } from '../../js/games/registry.js';
 
 // Der Fortsetzen-Knopf gilt für JEDES Spiel. Die Prüfung „hat ein Brett" darf
 // nicht an Number-Sums-Feldern (`marks`) hängen: Math Cross speichert `placed`,
@@ -7,7 +8,8 @@ import { gotoApp } from './helpers.js';
 // dem Cloud-Abgleich ganz. Gemeldet: Rectangles zeigte „Weitere Spielstände",
 // aber keinen Fortsetzen-Knopf.
 
-const GAMES = ['numbersums', 'mathcross', 'rectangles', 'numberpath'];
+// Aus der Registry: jedes neue Spiel ist automatisch mitgeprüft.
+const GAMES = GAME_IDS;
 
 async function boot(page, game) {
   await page.addInitScript((g) => { try { localStorage.setItem('cns_game', JSON.stringify(g)); } catch {} }, game);

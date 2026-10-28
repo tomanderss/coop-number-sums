@@ -20,8 +20,8 @@ test.describe('Spielauswahl', () => {
   test('alle Spiele stehen auf der Scheibe, Number Sums ist voreingestellt', async ({ page }) => {
     await gotoApp(page);
     // Alle Spiele, dahinter immer Mix (Zufallsmodus über alle Spiele).
-    await expect(page.locator('.game-wheel .gw-item')).toHaveCount(5);
-    expect(await page.locator('.game-wheel .gw-item').evaluateAll((els) => els.map((e) => e.dataset.game))).toEqual(['numbersums', 'mathcross', 'rectangles', 'numberpath', 'mix']);
+    await expect(page.locator('.game-wheel .gw-item')).toHaveCount(6);
+    expect(await page.locator('.game-wheel .gw-item').evaluateAll((els) => els.map((e) => e.dataset.game))).toEqual(['numbersums', 'mathcross', 'rectangles', 'numberpath', 'gems', 'mix']);
     await expect(page.locator('.gw-item.on')).toHaveAttribute('data-game', 'numbersums');
     await expect(page.locator('.brand-title')).toContainText('Number Games');
   });
@@ -125,7 +125,8 @@ test('auf dem ersten Spiel sind auch die übernächsten Logos sichtbar', async (
     const r = el.getBoundingClientRect();
     return { game: el.dataset.game, opacity: Number(getComputedStyle(el).opacity), inView: r.right > 0 && r.left < innerWidth };
   }));
-  for (const v of vis) {
+  // Sichtbar bis zum vierten Nachbarn (WHEEL_VISIBLE), dahinter blendet die Scheibe aus.
+  for (const v of vis.slice(0, 5)) {
     expect(v.inView, v.game).toBe(true);
     expect(v.opacity, v.game).toBeGreaterThan(0.3);
   }

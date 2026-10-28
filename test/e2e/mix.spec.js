@@ -30,6 +30,7 @@ async function solveLevel(page) {
     const c = window.__cns;
     if (c.gameId === 'rectangles') c.solveRects();
     else if (c.gameId === 'numberpath') c.solvePath();
+    else if (c.gameId === 'gems') c.solveGems();
     else throw new Error('kein Löse-Haken für ' + c.gameId);
   });
   await page.waitForFunction(() => window.__cns.state.status === 'won');
@@ -45,7 +46,7 @@ test('Scheibe: Mix ist ein eigener Eintrag — das Menü blendet um, nichts vers
   await page.waitForFunction(() => window.__cns.state.mixOn === true);
   await expect(page.locator('.home-mix')).toBeVisible();
   await expect(page.locator('.home-actions')).toHaveCSS('visibility', 'hidden');
-  await expect(page.locator('.mix-pool-card .mpc-logos img')).toHaveCount(4);
+  await expect(page.locator('.mix-pool-card .mpc-logos img')).toHaveCount(5);
   const after = await layout();
   for (let i = 0; i < 3; i++) expect(Math.abs(after[i] - before[i])).toBeLessThanOrEqual(1);
   // Die Wahl ist gerätelokal gemerkt.
@@ -65,10 +66,10 @@ test('Auswahl eingrenzen, Lauf spielen, fortsetzen und beenden', async ({ page }
   await page.locator('.mix-play-btn').click();
   await page.waitForSelector('.screen.mix-screen');
   // Standard: alles drin.
-  await expect(page.locator('.mix-tiles b').first()).toHaveText('36');
+  await expect(page.locator('.mix-tiles b').first()).toHaveText('45');
   // Nur Rectangles, nur die leichten Stufen.
-  for (const name of ['Number Sums', 'Math Cross', 'Number Path']) await page.locator('.mix-game', { hasText: name }).click();
-  await expect(page.locator('.mix-row.off')).toHaveCount(3);
+  for (const name of ['Number Sums', 'Math Cross', 'Number Path', 'Gem Hunt']) await page.locator('.mix-game', { hasText: name }).click();
+  await expect(page.locator('.mix-row.off')).toHaveCount(4);
   await expect(page.locator('.mix-tiles b').first()).toHaveText('9');
   await page.locator('.mix-chip', { hasText: 'Leicht' }).click();
   await expect(page.locator('.mix-tiles b').first()).toHaveText('3');
@@ -120,7 +121,7 @@ test('Auswahl eingrenzen, Lauf spielen, fortsetzen und beenden', async ({ page }
 
 test('mit zwei Spielen wechselt jedes Level das Spiel', async ({ page }) => {
   await boot(page, { mix: true });
-  await page.evaluate(() => window.__cns.setSetting('mixPool', { off: { numbersums: true, mathcross: true } }));
+  await page.evaluate(() => window.__cns.setSetting('mixPool', { off: { numbersums: true, mathcross: true, gems: true } }));
   await page.locator('.mix-play-btn').click();
   await page.locator('.mix-chip', { hasText: 'Leicht' }).click();
   await page.locator('.mix-start').click();

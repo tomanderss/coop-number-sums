@@ -26,6 +26,7 @@ export const GAME_META = {
   mathcross: { id: 'mathcross', nameKey: 'games.mathcross', icon: 'plus', logo: './icons/games/mathcross-192.png' },
   rectangles: { id: 'rectangles', nameKey: 'games.rectangles', icon: 'box', logo: './icons/games/rectangles-192.png' },
   numberpath: { id: 'numberpath', nameKey: 'games.numberpath', icon: 'route', logo: './icons/games/numberpath-192.png' },
+  gems: { id: 'gems', nameKey: 'games.gems', icon: 'gem', logo: './icons/games/gems-192.png' },
 };
 
 /** Alle Spiel-Kennungen in Anzeige-Reihenfolge. */

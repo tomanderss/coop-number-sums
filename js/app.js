@@ -152,6 +152,10 @@ const state = reactive({
   pathKey: null,             // Ereignis-Schlüssel der zuletzt übernommenen Linie (später gewinnt)
   // ── Rectangles (s. js/games/rectangles/board.js) ──
   rects: [],                 // gezogene Rechtecke [{ id, r, c, h, w, by, col, k }]
+  // Gem Hunt (js/games/gems): Feld-Stand je Zelle (0 leer, 1 Kreuz, 2 Edelstein),
+  // wer welchen Stein setzte, Ereignis-Schlüssel je Feld (später gewinnt) und
+  // die Rückmeldung bei vollem, falschem Brett.
+  gemCells: [], gemBy: [], gemKeys: {}, gemsFullWrong: false, gemsShake: false,
   rectsFullWrong: false,     // Brett voll, geht aber nicht auf (Hinweiszeile unter dem Brett)
   rectsShake: false,         // kurzes Wackeln des Bretts nach einem vollen, falschen Brett
   cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint, hintMark }

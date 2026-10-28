@@ -37,7 +37,7 @@
         // nehmen, damit ein späterer Neustart nicht erneut umschaltet.
         // Bekannte Spiele (muss zu GAME_IDS in js/games/registry.js passen; ein
         // Unit-Test hält beide Listen gleich).
-        var GAMES = ['numbersums', 'mathcross', 'rectangles', 'numberpath'];
+        var GAMES = ['numbersums', 'mathcross', 'rectangles', 'numberpath', 'gems'];
         var m = /[?&]game=([a-z]+)(?:&|$)/.exec(location.search);
         if (m && GAMES.indexOf(m[1]) < 0) m = null;
         if (m) {
