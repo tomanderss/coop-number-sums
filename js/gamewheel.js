@@ -152,7 +152,9 @@ export const GameWheel = {
         st.pos = slotOf(props.current);
         return;
       }
-      settleTo(snapTarget(st.pos, d.v));
+      // Schwung zählt erst ab gut einem Drittel Logo Weg — ein kurzer Zieher
+      // rastet zurück, auch wenn er schnell war (im CI wackelte das je nach Takt).
+      settleTo(snapTarget(st.pos, Math.abs(st.pos - d.pos) >= 0.35 ? d.v : 0));
     };
     const onKey = (e) => {
       const cur = Math.round(st.pos);
