@@ -836,7 +836,7 @@ export const BoardGrid = {
       // Zell-Gesten: langes Drücken (markieren), Tippen (auswählen/tauschen),
       // dreimal tippen (zurück in den Vorrat). Siehe handleCellTap.
       onCellDown, onCellMove, onCellUp, onCellCancel,
-      eqSolvedR, skinBoardClasses, skinVars, gridStyle, boardFontClass, boardFrameClass,
+      eqSolvedR, skinBoardClasses, skinVars, gridStyle, boardFontClass, boardFrameClass, hlSet,
       countRender: () => { boardRenderCount++; return ''; },
     };
   },
@@ -857,6 +857,7 @@ export const BoardGrid = {
                      @pointerup="onCellUp($event, cell)"
                      @pointercancel="onCellCancel()"
                      @contextmenu.prevent>
+                  <i v-if="hlSet.has(cell.r + '-' + cell.c)" class="hlm" aria-hidden="true"></i>
                   <span class="cnum">{{ cellValue(cell) }}</span>
                 </div>
               </template>
