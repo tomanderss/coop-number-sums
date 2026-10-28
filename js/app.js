@@ -4386,7 +4386,13 @@ function refreshResume() {
   // verworfen (sonst 100%-Brett ohne Interaktion, wie im Solo-Slot).
   let ge = loadActiveGameEndless();
   if (ge && ge.endless && !ge.pending && ge.puzzle && snapshotSolved(ge)) { log('storage', 'Gelösten Endlos-Stand verworfen'); saveActiveGameEndless(null); ge = null; }
-  const geValid = ge && ge.endless && (ge.pending || (ge.puzzle && ge.marks));
+  // „Hat ein Brett" heißt NUR „hat ein Rätsel": jedes Spiel speichert sein Brett
+  // anders (Number Sums `marks`, Math Cross `placed`, Rectangles `rects`, Number
+  // Path `path`), und ein noch leeres Brett fehlt nach dem Cloud-Abgleich ganz
+  // (die RTDB kennt keine leeren Arrays). Die Prüfung auf `marks` liess Endlos-
+  // Läufe der anderen Spiele verwerfen und den Fortsetzen-Knopf verschwinden
+  // (gemeldet in Rectangles: Stände in der Liste, aber kein Knopf).
+  const geValid = ge && ge.endless && (ge.pending || ge.puzzle);
   state.resumeAvailableEndless = geValid ? ge : null;
   // Bibliothek mitziehen: pruneSaves wirft dabei geloeste/leere Staende raus,
   // die Liste bleibt also von selbst sauber.
@@ -4399,11 +4405,11 @@ function refreshResume() {
   // weg — obwohl weitere Staende in der Bibliothek lagen. Der Knopf bietet
   // deshalb IMMER den juengsten fortsetzbaren Stand an, egal woher er kommt.
   if (!state.resumeAvailable) {
-    const next = state.saves.find((x) => !saveIsEndless(x) && x.puzzle && x.marks);
+    const next = state.saves.find((x) => !saveIsEndless(x) && x.puzzle);
     if (next) { saveActiveGame(next); state.resumeAvailable = next; }
   }
   if (!state.resumeAvailableEndless) {
-    const nextE = state.saves.find((x) => saveIsEndless(x) && (x.pending || (x.puzzle && x.marks)));
+    const nextE = state.saves.find((x) => saveIsEndless(x) && (x.pending || x.puzzle));
     if (nextE) { saveActiveGameEndless(nextE); state.resumeAvailableEndless = nextE; }
   }
 }
