@@ -80,12 +80,12 @@ test('Barriere: ein bestehendes Rechteck hält zuerst auf, mit Nachdruck wird es
   const box = await page.locator('.rect-board').boundingBox();
   const cw = box.width / cols;
 
-  // 1) Bis knapp hinter die Kante (Fingermitte in Spalte 2 = halbe Zelle drüber):
+  // 1) Fast eine ganze Zelle über die Kante (0,9 Zelle — erst die GANZE bricht durch):
   //    die Vorschau stockt, das Rechteck leuchtet auf; Loslassen legt nur bis zur Kante.
   const a = at(0, 0), edge = at(0, 2);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [a] });
   for (let i = 1; i <= 8; i++) {
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a.x + ((edge.x - cw * 0.1 - a.x) * i) / 8, y: a.y }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a.x + ((edge.x + cw * 0.4 - a.x) * i) / 8, y: a.y }] });
   }
   await expect(page.locator('.rb-rects .rrect.blocking')).toHaveCount(1);
   await expect(page.locator('.rb-preview.held')).toHaveCount(1);

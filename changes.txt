@@ -1,0 +1,1 @@
+Rectangles: die Barriere hält jetzt ein ganzes Kästchen lang – erst wenn das fremde Kästchen komplett überzogen ist, wird überschrieben
