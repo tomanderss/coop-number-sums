@@ -1,0 +1,78 @@
+/* games/gems.css — die Optik von „Gem Hunt". Wird nur eingehängt, solange
+   dieses Spiel aktiv ist (s. applyGameCss / index.html).
+
+   Käfige = Zellen in ihrer Farbe mit dicken Grenzen, wo ein anderer Käfig
+   beginnt; darüber Kreuze und facettierte Edelsteine in der Käfigfarbe.
+   Animiert wird nur transform/opacity. */
+
+.board.gm-board {
+  display: block; position: relative; padding: 0; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  background-color: var(--bg2); border-radius: 10px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 70%, transparent), var(--soft-shadow);
+  --gm-line: color-mix(in srgb, var(--text) 72%, transparent);
+}
+.gm-regions, .gm-marks, .gm-focus { position: absolute; inset: 0; pointer-events: none; }
+.gm-cell {
+  position: absolute;
+  background: color-mix(in srgb, hsl(var(--gh) 72% 62%) 52%, var(--bg2));
+  box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--text3) 35%, transparent);
+}
+/* Dicke Käfiggrenzen. */
+.gm-cell::after { content: ''; position: absolute; inset: 0; border: 0 solid var(--gm-line); }
+.gm-cell.bt::after { border-top-width: 2px; }
+.gm-cell.bb::after { border-bottom-width: 2px; }
+.gm-cell.bl::after { border-left-width: 2px; }
+.gm-cell.br::after { border-right-width: 2px; }
+
+.gm-mark { position: absolute; display: grid; place-items: center; }
+/* Kreuz = Notiz „hier nicht". */
+.gm-mark.cross::before {
+  content: '×'; font-size: calc(var(--cell) * .5); line-height: 1; font-weight: 700;
+  color: color-mix(in srgb, var(--text) 50%, transparent);
+}
+/* Edelstein: facettiert, in der Farbe seines Käfigs; im Coop ein Ring in der
+   Farbe des Spielers, der ihn gesetzt hat. */
+.gm-mark.gem { border-radius: 30%; box-shadow: inset 0 0 0 2px var(--gb, transparent); }
+.gm-mark.gem i { display: block; width: 76%; height: 76%; animation: gem-pop .34s cubic-bezier(.2, 1.6, .4, 1); }
+.gm-mark.gem svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.35)); }
+.gm-mark .g-body { fill: hsl(var(--gh) 78% 46%); }
+.gm-mark .g-top { fill: hsl(var(--gh) 88% 64%); }
+.gm-mark .g-facet { fill: none; stroke: rgba(255,255,255,.55); stroke-width: .9; stroke-linejoin: round; }
+.gm-mark .g-shine { fill: none; stroke: #fff; stroke-width: 1.5; stroke-linecap: round; opacity: .9; }
+@keyframes gem-pop { from { transform: scale(.3) rotate(-25deg); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Widerspruch: roter Hof, der sanft pulsiert (nur opacity). */
+.gm-mark.gem.bad::before {
+  content: ''; position: absolute; inset: 6%; border-radius: 50%;
+  background: color-mix(in srgb, var(--bad) 28%, transparent); box-shadow: 0 0 0 2px var(--bad);
+  animation: gem-bad 1.1s ease-in-out infinite;
+}
+@keyframes gem-bad { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+/* Gelöst: alle Steine funkeln einmal auf. */
+.board.gm-board.done .gm-mark.gem i { animation: gem-win .8s ease-out; }
+@keyframes gem-win { 0% { transform: none; } 35% { transform: scale(1.22) rotate(8deg); } 100% { transform: none; } }
+
+/* Brett voll, geht nicht auf: rote Kontur + einmaliges Wackeln (wie Rectangles). */
+.board.gm-board.full-wrong { box-shadow: 0 0 0 2.5px var(--bad), var(--soft-shadow); }
+.board.gm-board.shake { animation: gm-shake .5s ease; }
+@keyframes gm-shake {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-6px); } 40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
+}
+
+/* Training: die Einheit, in der nur noch ein Feld frei ist, und das Zielfeld. */
+.gm-unit { position: absolute; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.gm-train {
+  position: absolute; border-radius: 6px;
+  box-shadow: inset 0 0 0 2.5px var(--accent);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  animation: gm-pulse 1.3s ease-in-out infinite;
+}
+@keyframes gm-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-mark.gem i, .gm-mark.gem.bad::before, .board.gm-board.shake, .board.gm-board.done .gm-mark.gem i, .gm-train { animation: none; }
+}
+
+.history-board.gm-board { margin: 0 auto; }

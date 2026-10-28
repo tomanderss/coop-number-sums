@@ -2,7 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', choose: 'Scegli il gioco', busy: 'Termina la partita in corso prima di cambiare gioco.' },
+  games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', choose: 'Scegli il gioco', busy: 'Termina la partita in corso prima di cambiare gioco.' },
 
   coopEndless: { toggle: 'Scalata infinita', toggleHint: 'Scalate insieme — 3 vite condivise, senza ricariche' },
 
