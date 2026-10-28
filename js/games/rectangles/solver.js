@@ -48,7 +48,7 @@ export function candidates(p) {
  * des Spielers), die als Ausgangslage gelten.
  *
  * Liefert { solved, contradiction, rects (je Zahl das Rechteck oder null),
- *           steps: [{ tier, kind, k, cell? }], maxTierUsed, tier2Steps }.
+ *           steps: [{ tier, kind, k, cells }], maxTierUsed, tier2Steps }.
  */
 export function solveLogic(p, { maxTier = 2, known = null, maxSteps = Infinity } = {}) {
   const N = p.rows * p.cols, K = p.clues.length;
@@ -75,11 +75,17 @@ export function solveLogic(p, { maxTier = 2, known = null, maxSteps = Infinity }
     cands[k].forEach((q, j) => { if (alive[k][j] && !q.cells.includes(id)) kill(k, j); });
     return true;
   };
-  const note = (tier, kind, k, cell) => {
-    steps.push(cell == null ? { tier, kind, k } : { tier, kind, k, cell });
+  // Jeder Schritt trägt die betroffenen Zellen (Index r*cols+c) — Tipps und
+  // Training heben genau diese hervor.
+  const note = (tier, kind, k, cells) => {
+    steps.push({ tier, kind, k, cells });
     if (tier > maxTierUsed) maxTierUsed = tier;
     if (tier === 2) tier2Steps++;
   };
+
+  // Die Zelle einer Zahl gehört trivial zu ihr (fremde Formen schließen sie nie
+  // ein) — vorab vergeben, sonst „erklärte" der Löser genau das als ersten Schritt.
+  p.clues.forEach((k, i) => { owner[k.r * p.cols + k.c] = i; });
 
   if (known) {
     for (const q of known) {
@@ -101,7 +107,7 @@ export function solveLogic(p, { maxTier = 2, known = null, maxSteps = Infinity }
       const j = alive[k].indexOf(1);
       let changed = false;
       for (const id of cands[k][j].cells) changed = own(id, k) || changed;
-      note(1, 'single', k);
+      note(1, 'single', k, cands[k][j].cells.slice());
       return true;
     }
     // Tier 1b: eine Zelle kann nur eine Zahl erreichen.
@@ -114,7 +120,7 @@ export function solveLogic(p, { maxTier = 2, known = null, maxSteps = Infinity }
         if (only < 0) only = cv[t]; else if (cv[t] !== only) { many = true; break; }
       }
       if (only < 0) { contradiction = true; return false; }
-      if (!many) { own(id, only); note(1, 'onlyclue', only, id); return true; }
+      if (!many) { own(id, only); note(1, 'onlyclue', only, [id]); return true; }
     }
     if (maxTier < 2) return false;
     // Tier 2: sicherer Kern einer Zahl.
@@ -130,7 +136,7 @@ export function solveLogic(p, { maxTier = 2, known = null, maxSteps = Infinity }
       const fresh = [...core].filter((id) => owner[id] !== k);
       if (!fresh.length) continue;
       for (const id of fresh) own(id, k);
-      note(2, 'core', k, fresh[0]);
+      note(2, 'core', k, [...core]);
       return true;
     }
     return false;

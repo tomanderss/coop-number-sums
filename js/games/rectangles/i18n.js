@@ -6,11 +6,22 @@
 
 export default {
   de: {
+    tutor: {
+      rectOnlyClue: "Diese Zelle kann keine andere Zahl mehr erreichen – sie gehört also zum Rechteck der {n}.",
+      rectCore: "Egal wie das Rechteck der {n} liegt: diese Zellen gehören immer dazu – keine andere Zahl kann sie nehmen.",
+      rectSingle: "Damit passt für die {n} nur noch genau ein Rechteck – dieses hier.",
+    },
     rect: {
       howto: 'Ziehen zeichnet ein Rechteck · Tippen entfernt es',
       fullWrong: 'Geht nicht auf – irgendein Rechteck liegt falsch',
       boardLabel: 'Spielfeld: Rechtecke ziehen',
       undo: 'Rückgängig',
+      hint: "Tipp",
+      train: {
+        title: "Die {n}",
+        single: "Für die {n} passt nur noch ein einziges Rechteck – jede andere Form stößt an eine andere Zahl, an den Rand oder an ein fertiges Rechteck.",
+        onlyclue: "Eine Zelle hier kann nur noch die {n} erreichen. Nur eine Form der {n} schließt sie ein – also liegt das Rechteck genau so.",
+      },
     },
     howto: {
       rule1: 'Teile das ganze Feld in <b>Rechtecke</b> (auch Quadrate) auf: auf einer Zelle <b>aufsetzen und ziehen</b> – beim Loslassen rastet das Rechteck auf den Zellen ein.',
@@ -24,11 +35,22 @@ export default {
     prestige: { master: { desc: 'Das ultimative Abzeichen — freigeschaltet, wenn ALLE 12 Abzeichen auf Legendär stehen. Der Beweis, dass du Rectangles gemeistert hast.' } },
   },
   en: {
+    tutor: {
+      rectOnlyClue: "No other number can reach this cell any more – so it belongs to the rectangle of the {n}.",
+      rectCore: "However the rectangle of the {n} lies, these cells are always part of it – no other number can take them.",
+      rectSingle: "That leaves exactly one rectangle for the {n} – this one.",
+    },
     rect: {
       howto: 'Drag to draw a rectangle · tap to remove it',
       fullWrong: "Doesn't add up – some rectangle is wrong",
       boardLabel: 'Board: drag rectangles',
       undo: 'Undo',
+      hint: "Hint",
+      train: {
+        title: "The {n}",
+        single: "Only one rectangle still fits the {n} – every other shape runs into another number, the edge or a finished rectangle.",
+        onlyclue: "One cell here can only be reached by the {n}. Only one shape of the {n} covers it – so that is where the rectangle goes.",
+      },
     },
     howto: {
       rule1: 'Split the whole board into <b>rectangles</b> (squares count too): <b>touch a cell and drag</b> – when you let go, the rectangle snaps to the cells.',
@@ -42,11 +64,22 @@ export default {
     prestige: { master: { desc: 'The ultimate badge — unlocked when ALL 12 badges are Legendary. Proof that you have mastered Rectangles.' } },
   },
   es: {
+    tutor: {
+      rectOnlyClue: "Ningún otro número puede alcanzar ya esta celda, así que pertenece al rectángulo del {n}.",
+      rectCore: "Esté como esté el rectángulo del {n}, estas celdas siempre forman parte de él: ningún otro número puede tomarlas.",
+      rectSingle: "Así al {n} solo le queda un rectángulo: este.",
+    },
     rect: {
       howto: 'Arrastra para dibujar un rectángulo · toca para quitarlo',
       fullWrong: 'No cuadra: algún rectángulo está mal',
       boardLabel: 'Tablero: arrastra rectángulos',
       undo: 'Deshacer',
+      hint: "Pista",
+      train: {
+        title: "El {n}",
+        single: "Al {n} solo le cabe un rectángulo: cualquier otra forma choca con otro número, con el borde o con un rectángulo terminado.",
+        onlyclue: "Una celda de aquí solo la alcanza el {n}. Solo una forma del {n} la incluye, así que el rectángulo va justo ahí.",
+      },
     },
     howto: {
       rule1: 'Divide todo el tablero en <b>rectángulos</b> (también cuadrados): <b>toca una celda y arrastra</b>; al soltar, el rectángulo se ajusta a las celdas.',
@@ -60,11 +93,22 @@ export default {
     prestige: { master: { desc: 'La insignia definitiva: se desbloquea cuando TODAS las 12 insignias son legendarias. La prueba de que dominas Rectangles.' } },
   },
   fr: {
+    tutor: {
+      rectOnlyClue: "Aucun autre nombre ne peut plus atteindre cette case : elle appartient donc au rectangle du {n}.",
+      rectCore: "Quelle que soit la position du rectangle du {n}, ces cases en font toujours partie : aucun autre nombre ne peut les prendre.",
+      rectSingle: "Il ne reste donc qu’un seul rectangle pour le {n} : celui-ci.",
+    },
     rect: {
       howto: 'Glisse pour tracer un rectangle · touche pour le retirer',
       fullWrong: 'Ça ne tombe pas juste – un rectangle est faux',
       boardLabel: 'Grille : trace des rectangles',
       undo: 'Annuler',
+      hint: "Indice",
+      train: {
+        title: "Le {n}",
+        single: "Un seul rectangle convient encore au {n} : toute autre forme bute sur un autre nombre, le bord ou un rectangle terminé.",
+        onlyclue: "Une case ici ne peut plus être atteinte que par le {n}. Une seule forme du {n} la contient : le rectangle se place donc ainsi.",
+      },
     },
     howto: {
       rule1: 'Découpe toute la grille en <b>rectangles</b> (les carrés comptent aussi) : <b>pose le doigt sur une case et glisse</b> – en relâchant, le rectangle se cale sur les cases.',
@@ -78,11 +122,22 @@ export default {
     prestige: { master: { desc: 'Le badge ultime — débloqué quand LES 12 badges sont Légendaires. La preuve que tu maîtrises Rectangles.' } },
   },
   'pt-BR': {
+    tutor: {
+      rectOnlyClue: "Nenhum outro número alcança mais esta célula – ela pertence ao retângulo do {n}.",
+      rectCore: "Não importa como o retângulo do {n} fique, estas células sempre fazem parte dele – nenhum outro número pode pegá-las.",
+      rectSingle: "Assim sobra exatamente um retângulo para o {n} – este aqui.",
+    },
     rect: {
       howto: 'Arraste para desenhar um retângulo · toque para removê-lo',
       fullWrong: 'Não fecha – algum retângulo está errado',
       boardLabel: 'Tabuleiro: arraste retângulos',
       undo: 'Desfazer',
+      hint: "Dica",
+      train: {
+        title: "O {n}",
+        single: "Só cabe mais um retângulo para o {n} – qualquer outra forma esbarra em outro número, na borda ou num retângulo pronto.",
+        onlyclue: "Uma célula aqui só pode ser alcançada pelo {n}. Só uma forma do {n} a inclui – então o retângulo fica exatamente assim.",
+      },
     },
     howto: {
       rule1: 'Divida o tabuleiro inteiro em <b>retângulos</b> (quadrados também valem): <b>toque numa célula e arraste</b> – ao soltar, o retângulo se encaixa nas células.',
@@ -96,11 +151,22 @@ export default {
     prestige: { master: { desc: 'O emblema definitivo — liberado quando TODOS os 12 emblemas estão Lendários. A prova de que você domina Rectangles.' } },
   },
   it: {
+    tutor: {
+      rectOnlyClue: "Nessun altro numero può più raggiungere questa cella: appartiene al rettangolo del {n}.",
+      rectCore: "Comunque si disponga il rettangolo del {n}, queste celle ne fanno sempre parte: nessun altro numero può prenderle.",
+      rectSingle: "Così per il {n} resta esattamente un rettangolo: questo.",
+    },
     rect: {
       howto: 'Trascina per disegnare un rettangolo · tocca per toglierlo',
       fullWrong: 'Non torna: qualche rettangolo è sbagliato',
       boardLabel: 'Griglia: trascina rettangoli',
       undo: 'Annulla',
+      hint: "Suggerimento",
+      train: {
+        title: "Il {n}",
+        single: "Per il {n} resta un solo rettangolo possibile: ogni altra forma urta un altro numero, il bordo o un rettangolo già fatto.",
+        onlyclue: "Una cella qui può essere raggiunta solo dal {n}. Una sola forma del {n} la include: il rettangolo va proprio così.",
+      },
     },
     howto: {
       rule1: 'Dividi tutta la griglia in <b>rettangoli</b> (valgono anche i quadrati): <b>tocca una cella e trascina</b> – al rilascio il rettangolo si aggancia alle celle.',
@@ -114,11 +180,22 @@ export default {
     prestige: { master: { desc: 'Il distintivo definitivo — si sblocca quando TUTTI i 12 distintivi sono Leggendari. La prova che padroneggi Rectangles.' } },
   },
   ja: {
+    tutor: {
+      rectOnlyClue: "このマスに届く数字はもうほかにありません。だから {n} の長方形に属します。",
+      rectCore: "{n} の長方形がどう置かれても、これらのマスは必ず含まれます。ほかの数字は取れません。",
+      rectSingle: "これで {n} の長方形はちょうど1つ、これだけになります。",
+    },
     rect: {
       howto: 'ドラッグで長方形を描く・タップで消す',
       fullWrong: '合いません ― どこかの長方形が違います',
       boardLabel: '盤面：長方形をドラッグ',
       undo: '元に戻す',
+      hint: "ヒント",
+      train: {
+        title: "{n}",
+        single: "{n} に入る長方形は1つしか残っていません。ほかの形はどれも別の数字・端・完成した長方形にぶつかります。",
+        onlyclue: "ここのマスに届くのは {n} だけです。そのマスを含む {n} の形は1つしかないので、長方形はこの位置です。",
+      },
     },
     howto: {
       rule1: '盤面全体を<b>長方形</b>（正方形も可）に分けます。<b>マスに触れてドラッグ</b>し、指を離すとマスにぴったり合わせて確定します。',
@@ -132,11 +209,22 @@ export default {
     prestige: { master: { desc: '究極のバッジ — 12個すべてのバッジがレジェンドになると解除。Rectangles を極めた証です。' } },
   },
   ko: {
+    tutor: {
+      rectOnlyClue: "이 칸에 닿을 수 있는 다른 숫자가 더 이상 없습니다. 그래서 {n}의 직사각형에 속합니다.",
+      rectCore: "{n}의 직사각형이 어떻게 놓이든 이 칸들은 항상 포함됩니다. 다른 숫자는 가져갈 수 없습니다.",
+      rectSingle: "그러면 {n}에 남는 직사각형은 정확히 하나, 바로 이것입니다.",
+    },
     rect: {
       howto: '끌어서 직사각형 그리기 · 탭하면 지우기',
       fullWrong: '맞지 않아요 – 어딘가 직사각형이 틀렸어요',
       boardLabel: '판: 직사각형 끌기',
       undo: '되돌리기',
+      hint: "힌트",
+      train: {
+        title: "{n}",
+        single: "{n}에 맞는 직사각형은 하나뿐입니다. 다른 모양은 모두 다른 숫자, 가장자리, 완성된 직사각형에 부딪힙니다.",
+        onlyclue: "여기 한 칸은 {n}만 닿을 수 있습니다. 그 칸을 포함하는 {n}의 모양은 하나뿐이니, 직사각형은 바로 여기입니다.",
+      },
     },
     howto: {
       rule1: '판 전체를 <b>직사각형</b>(정사각형 포함)으로 나누세요. <b>칸을 누르고 끌면</b> 되고, 손을 떼면 칸에 맞춰 고정됩니다.',
@@ -150,11 +238,22 @@ export default {
     prestige: { master: { desc: '궁극의 배지 — 12개 배지가 모두 전설이 되면 해제됩니다. Rectangles를 정복했다는 증거입니다.' } },
   },
   tr: {
+    tutor: {
+      rectOnlyClue: "Bu hücreye artık başka bir sayı ulaşamıyor – yani {n} sayısının dikdörtgenine ait.",
+      rectCore: "{n} sayısının dikdörtgeni nasıl yerleşirse yerleşsin bu hücreler hep içinde – başka sayı onları alamaz.",
+      rectSingle: "Böylece {n} için tam bir dikdörtgen kalıyor – bu.",
+    },
     rect: {
       howto: 'Sürükle: dikdörtgen çiz · Dokun: kaldır',
       fullWrong: 'Tutmuyor – bir dikdörtgen yanlış',
       boardLabel: 'Tahta: dikdörtgen sürükle',
       undo: 'Geri al',
+      hint: "İpucu",
+      train: {
+        title: "{n}",
+        single: "{n} için yalnızca tek bir dikdörtgen kaldı – başka her şekil başka bir sayıya, kenara ya da bitmiş bir dikdörtgene çarpıyor.",
+        onlyclue: "Buradaki bir hücreye yalnızca {n} ulaşabiliyor. Onu içeren tek bir {n} şekli var – dikdörtgen tam burada.",
+      },
     },
     howto: {
       rule1: 'Tüm tahtayı <b>dikdörtgenlere</b> (kareler de olur) böl: <b>bir hücreye dokun ve sürükle</b> – bırakınca dikdörtgen hücrelere oturur.',
@@ -168,11 +267,22 @@ export default {
     prestige: { master: { desc: 'Nihai rozet — 12 rozetin TAMAMI Efsanevi olduğunda açılır. Rectangles’ta ustalaştığının kanıtı.' } },
   },
   ru: {
+    tutor: {
+      rectOnlyClue: "Ни одно другое число уже не достаёт до этой клетки — значит, она принадлежит прямоугольнику {n}.",
+      rectCore: "Как бы ни лёг прямоугольник {n}, эти клетки всегда входят в него — другое число их не возьмёт.",
+      rectSingle: "Значит, для {n} остаётся ровно один прямоугольник — вот этот.",
+    },
     rect: {
       howto: 'Тяни, чтобы нарисовать прямоугольник · касание удаляет',
       fullWrong: 'Не сходится — какой-то прямоугольник неверный',
       boardLabel: 'Поле: рисуй прямоугольники',
       undo: 'Отменить',
+      hint: "Подсказка",
+      train: {
+        title: "Число {n}",
+        single: "Для {n} подходит лишь один прямоугольник — любая другая форма упирается в другое число, в край или в готовый прямоугольник.",
+        onlyclue: "До одной клетки здесь может дотянуться только {n}. Её включает лишь одна форма для {n} — значит, прямоугольник лежит именно так.",
+      },
     },
     howto: {
       rule1: 'Раздели всё поле на <b>прямоугольники</b> (квадраты тоже подходят): <b>коснись клетки и тяни</b> — когда отпустишь, прямоугольник встанет точно по клеткам.',

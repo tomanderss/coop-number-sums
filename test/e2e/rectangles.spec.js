@@ -55,7 +55,7 @@ test('Ziehen zeichnet ein Rechteck, Antippen löscht es, Rückgängig holt es zu
 
   await page.touchscreen.tap(a.x, a.y);
   await expect(page.locator('.rb-rects .rrect')).toHaveCount(0);
-  await page.locator('.undo-btn').click();
+  await page.locator('.rt-undo').click();
   expect(await rectsOf(page)).toEqual([`${q.r},${q.c},${q.h},${q.w}`]);
 });
 
@@ -97,4 +97,115 @@ test('ein angefangenes Spiel lässt sich nach dem Neuladen fortsetzen', async ({
   await page.locator('.resume-stack .btn-resume').click();
   await page.waitForSelector('.screen.game .rect-board');
   expect(await rectsOf(page)).toEqual([`${q.r},${q.c},${q.h},${q.w}`]);
+});
+
+// ── Tipps & Training ─────────────────────────────────────────────────────────
+
+test('der Tipp-Tutor erklärt den nächsten Schluss und legt dann das Rechteck', async ({ page }) => {
+  await gotoApp(page);
+  await startGame(page, 'mittel');
+  await page.locator('.rt-hint').click();
+  await page.locator('.modal-bg .confirm-actions .btn-danger').click();   // einmalige Bestzeit-Warnung
+  await expect(page.locator('.tutor-card')).toBeVisible();
+  await expect(page.locator('.rb-focus .rfocus').first()).toBeVisible();
+  await expect(page.locator('.rect-board.tutor-dim')).toHaveCount(1);
+  for (let i = 0; i < 6 && await page.locator('.tutor-card').isVisible(); i++) {
+    await page.locator('.tutor-card .btn-primary').click();
+  }
+  await expect(page.locator('.tutor-card')).toHaveCount(0);
+  const ok = await page.evaluate(() => {
+    const s = window.__cns.state;
+    return s.rects.length === 1 && s.puzzle.solution.some((q) => q.r === s.rects[0].r && q.c === s.rects[0].c && q.h === s.rects[0].h && q.w === s.rects[0].w);
+  });
+  expect(ok).toBe(true);
+  expect(await page.evaluate(() => window.__cns.state.hintsUsed)).toBe(1);
+});
+
+test('nur mit Tipps lässt sich jedes Rätsel bis zum Sieg lösen (auch neben falschen Rechtecken)', async ({ page }) => {
+  await gotoApp(page);
+  await startGame(page, 'extrem');
+  // Ein falsches Rechteck im Weg darf den Tutor nicht aus der Bahn werfen.
+  await page.evaluate(() => { window.__cns.state.hintWarnShown = true; window.__cns.drawRect(0, 0, 0, 1); });
+  const steps = await page.evaluate(async () => {
+    let n = 0;
+    while (window.__cns.state.status === 'playing' && n < 400) { window.__cns.useHint(); n++; await new Promise((r) => setTimeout(r, 0)); }
+    return n;
+  });
+  await page.waitForFunction(() => window.__cns.state.status === 'won');
+  expect(steps).toBeLessThan(400);
+});
+
+test('Training legt Schritt für Schritt alle Rechtecke mit Begründung', async ({ page }) => {
+  await gotoApp(page);
+  await page.evaluate(() => { window.__cns.state.modal = 'howto'; });
+  await page.locator('.training-btn').click();
+  await page.waitForSelector('.training-banner');
+  await expect(page.locator('.rb-focus .rtrain')).toHaveCount(1);
+  const title = await page.locator('.training-banner b').textContent();
+  expect(title).toMatch(/\d/);
+  for (let i = 0; i < 60 && await page.evaluate(() => window.__cns.state.status === 'playing'); i++) {
+    await page.locator('.training-banner .btn-primary').click();
+  }
+  await page.waitForFunction(() => window.__cns.state.status === 'won');
+});
+
+// ── Coop ─────────────────────────────────────────────────────────────────────
+
+test('Coop: Rechtecke des Partners kommen an, gleichzeitige Überdeckung — das spätere gewinnt', async ({ page }) => {
+  await gotoApp(page);
+  const p = await page.evaluate(async () => {
+    const { generatePuzzle } = await import('/js/games/rectangles/generator.js');
+    return generatePuzzle({ difficulty: 'mittel', seed: 4242 });
+  });
+  await page.evaluate((puzzle) => {
+    const s = window.__cns.state;
+    s.coop.active = true; s.coop.role = 'guest'; s.coop.myId = 'me';
+    s.coop.players = [{ id: 'host', name: 'H', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' }];
+    window.__cns.handleCoopMsg({
+      type: 'init', gameId: 'rc1', running: true, puzzle,
+      rects: [{ id: 'h1', r: puzzle.solution[0].r, c: puzzle.solution[0].c, h: puzzle.solution[0].h, w: puzzle.solution[0].w, by: 'host', col: 2 }],
+      startTime: Date.now() - 5000, lives: 3, maxLives: 3, mistakes: 0,
+    });
+  }, p);
+  await page.waitForSelector('.screen.game .rect-board');
+  await expect(page.locator('.rb-rects .rrect')).toHaveCount(1);
+  // Fremdes Rechteck trägt die Spielerfarbe als Rand.
+  expect(await page.locator('.rb-rects .rrect').first().evaluate((el) => el.style.getPropertyValue('--rb'))).toBe('#e5679a');
+
+  // Partner zieht ein weiteres Rechteck.
+  const q1 = p.solution[1];
+  await page.evaluate((q) => window.__cns.handleCoopMsg({ type: 'move', op: 'add', rect: { id: 'h2', ...q, by: 'host', col: 4 }, from: 'host' }, '-M0000000000000002'), q1);
+  await expect(page.locator('.rb-rects .rrect')).toHaveCount(2);
+
+  // Ich ziehe über beide; ein FRÜHERER Partner-Zug, der meinen überdeckt, wird verworfen …
+  await page.evaluate((q) => window.__cns.drawRect(q.r, q.c, q.r, q.c + 1 < 7 ? q.c + 1 : q.c - 1), p.solution[0]);
+  const mine = await page.evaluate(() => window.__cns.state.rects.find((x) => x.by === 'me'));
+  expect(mine).toBeTruthy();
+  await page.evaluate((m) => window.__cns.handleCoopMsg({ type: 'move', op: 'add', rect: { id: 'old', r: m.r, c: m.c, h: 1, w: 1, by: 'host', col: 1 }, from: 'host' }, '-A0000000000000000'), mine);
+  expect(await page.evaluate((id) => window.__cns.state.rects.some((x) => x.id === id), mine.id)).toBe(true);
+  // … ein SPÄTERER ersetzt meinen.
+  await page.evaluate((m) => window.__cns.handleCoopMsg({ type: 'move', op: 'add', rect: { id: 'new', r: m.r, c: m.c, h: 1, w: 1, by: 'host', col: 1 }, from: 'host' }, '~~~~zzzz'), mine);
+  expect(await page.evaluate((id) => window.__cns.state.rects.some((x) => x.id === id), mine.id)).toBe(false);
+  // Löschen durch den Partner.
+  await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'move', op: 'del', id: 'new', from: 'host' }, '~~~~zzzz1'));
+  expect(await page.evaluate(() => window.__cns.state.rects.some((x) => x.id === 'new'))).toBe(false);
+});
+
+test('Wettkampf/Team: dasselbe Rätsel aus demselben Seed, Endlos startet', async ({ page }) => {
+  await gotoApp(page);
+  const same = await page.evaluate(async () => {
+    const { generatePuzzle } = await import('/js/games/rectangles/generator.js');
+    const a = generatePuzzle({ difficulty: 'schwer', seed: 99 }), b = generatePuzzle({ difficulty: 'schwer', seed: 99 });
+    return JSON.stringify(a.clues) === JSON.stringify(b.clues);
+  });
+  expect(same).toBe(true);
+  await page.locator('.home-actions .btn-primary').click();
+  await page.waitForSelector('.screen.setup');
+  await page.evaluate(() => { window.__cns.state.sel.endless = true; });
+  await page.locator('.diff-start').click();
+  await page.waitForSelector('.screen.game .rect-board');
+  await page.waitForFunction(() => window.__cns.state.puzzle && window.__cns.state.endless.active);
+  await page.evaluate(() => window.__cns.solveRects());
+  await page.waitForFunction(() => window.__cns.state.status === 'won');
+  await expect(page.locator('.endless-lives-row')).toBeVisible();
 });
