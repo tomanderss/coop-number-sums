@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.21';
-export const BUILD_HASH = 'ebe00bd';
+export const BUILD      = '2.22';
+export const BUILD_HASH = '53d6ca1';
 
 export const CHANGELOG = [
+  {
+    "version": "2.22",
+    "date": "28.10.2026",
+    "changes": [
+      "Math Cross: Markierungen bleiben auf gelegten Zahlen und gelösten Rechnungen sichtbar"
+    ]
+  },
   {
     "version": "2.21",
     "date": "28.10.2026",
