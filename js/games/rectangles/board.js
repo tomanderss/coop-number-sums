@@ -9,6 +9,14 @@
 //   • Kurz auf ein Rechteck tippen entfernt es. Ein neues Rechteck über
 //     bestehende ersetzt die überdeckten. (Bewusst KEIN Rückgängig-Knopf, keine
 //     Erklärleiste und keine Tipps — Nutzerwunsch: unnötig.)
+//   • Zieht man ein neues Rechteck in ein bestehendes hinein, spürt man eine
+//     sanfte BARRIERE: die Vorschau bleibt an dessen Kante hängen und gibt nur
+//     gummiartig nach, das Rechteck leuchtet kurz auf. Erst wer deutlich weiter
+//     drückt (BREAK), bricht mit einem kleinen Federn und kurzem Vibrieren
+//     durch — dann wird es beim Loslassen ersetzt (es wird dafür blass).
+//     Loslassen vorher legt nur das Rechteck bis zur Kante. Ein Merker, kein
+//     Verbot: Überschreiben bleibt möglich, nur mit einem Ruck mehr. Das
+//     Rechteck, in dem man das Ziehen beginnt, ist ausgenommen.
 //   • Zwei Finger verschieben ein gezoomtes Brett.
 // Fehler: beim Zeichnen nie. Erst wenn jede Zelle bedeckt ist und es nicht
 // aufgeht, kostet das ein Leben (rote Kontur + Wackeln).
@@ -27,7 +35,7 @@ import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import {
   rectFromCorners, rectsOverlap, sameRect, addRect, rectAt, isFull, isSolved,
-  progressPct, coveredCount, normalizePuzzle as healPuzzle, normalizeRects, rectArea,
+  progressPct, coveredCount, normalizePuzzle as healPuzzle, normalizeRects, rectArea, clampToFree,
 } from './model.js';
 import { solveLogic } from './solver.js';
 
@@ -177,7 +185,9 @@ export function removeUserRect(rect) {
 // ── Ziehen ───────────────────────────────────────────────────────────────────
 const DRAG_SLOP = 6;        // ab so vielen Pixeln wird aus einem Tipp ein Ziehen
 const OVERSHOOT = 0.35;     // so weit (in Zellen) darf die Vorschau über den Rand gehen
-let drag = null;            // { id, ar, ac, x0, y0, box, moved, cell }
+const BREAK = 0.6;          // so weit (in Zellen) muss man über eine fremde Kante hinaus drücken
+const GIVE = 0.24;          // so weit (in Zellen) gibt die Kante höchstens gummiartig nach
+let drag = null;            // { id, ar, ac, x0, y0, box, moved, cell, el, pass, q, touch, marks }
 let pan = null;             // { ids:Set, mx, my } — zwei Finger verschieben das gezoomte Brett
 const pointers = new Map(); // aktive Pointer (für zwei Finger)
 let previewEl = null, ghostEl = null, sizeEl = null;
@@ -195,23 +205,73 @@ function hidePreview() {
   for (const el of [previewEl, ghostEl, sizeEl]) if (el) el.style.opacity = '0';
 }
 
+// Gummiband: nähert sich GIVE·size, ohne es je zu erreichen.
+const rubber = (o, size) => size * GIVE * (1 - Math.exp(-o / (size * GIVE * 1.4)));
+
+function vibrate(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} }
+
+// Markiert bestehende Rechtecke direkt am DOM (kein reaktiver Zustand pro
+// Pointer-Bewegung): .blocking = man drückt gerade dagegen, .doomed = wird beim
+// Loslassen ersetzt. Schreibt nur, wenn sich etwas ändert.
+function markRects(d, blocking, doomed) {
+  const key = blocking.map((x) => x.id).join(',') + '|' + doomed.map((x) => x.id).join(',');
+  if (key === d.marks || !d.el) return;
+  d.marks = key;
+  const b = new Set(blocking.map((x) => x.id)), m = new Set(doomed.map((x) => x.id));
+  for (const el of d.el.querySelectorAll('.rb-rects .rrect')) {
+    el.classList.toggle('blocking', b.has(el.dataset.id));
+    el.classList.toggle('doomed', m.has(el.dataset.id));
+  }
+}
+function clearMarks(d) { if (d) markRects(d, [], []); }
+
 function showPreview(e) {
-  const p = state.puzzle, b = drag.box;
+  const p = state.puzzle, b = drag.box, d = drag;
   const cw = b.width / p.cols, ch = b.height / p.rows;
   // Freie Form: von der Ankerzelle bis zum Finger, ohne Einrasten.
-  const ax0 = drag.ac * cw, ay0 = drag.ar * ch;
-  const px = Math.min(b.width + cw * OVERSHOOT, Math.max(-cw * OVERSHOOT, e.clientX - b.left));
-  const py = Math.min(b.height + ch * OVERSHOOT, Math.max(-ch * OVERSHOOT, e.clientY - b.top));
+  const ax0 = d.ac * cw, ay0 = d.ar * ch;
+  let px = Math.min(b.width + cw * OVERSHOOT, Math.max(-cw * OVERSHOOT, e.clientX - b.left));
+  let py = Math.min(b.height + ch * OVERSHOOT, Math.max(-ch * OVERSHOOT, e.clientY - b.top));
+  const cell = cellAt(b, e.clientX, e.clientY);
+  d.cell = cell;
+  let q = rectFromCorners(d.ar, d.ac, cell.r, cell.c);
+  // Barriere: berührt das Ziel ein (noch nicht durchbrochenes) Rechteck?
+  let blocking = state.rects.filter((x) => !d.pass.has(x.id) && rectsOverlap(x, q));
+  if (blocking.length) {
+    const free = clampToFree(state.rects, d.ar, d.ac, cell.r, cell.c, d.pass) || rectFromCorners(d.ar, d.ac, d.ar, d.ac);
+    // Wie weit drückt der Finger über die freie Kante hinaus (je Achse)?
+    const right = cell.c >= d.ac, down = cell.r >= d.ar;
+    const limX = free.w < q.w ? (right ? (free.c + free.w) * cw : free.c * cw) : null;
+    const limY = free.h < q.h ? (down ? (free.r + free.h) * ch : free.r * ch) : null;
+    const ox = limX == null ? 0 : Math.max(0, right ? px - limX : limX - px);
+    const oy = limY == null ? 0 : Math.max(0, down ? py - limY : limY - py);
+    if (Math.max(ox / cw, oy / ch) > BREAK) {
+      // Durchgebrochen: diese Rechtecke halten nicht mehr auf.
+      for (const x of blocking) d.pass.add(x.id);
+      blocking = [];
+      d.touch = false;
+      vibrate(16);
+      previewEl.classList.remove('give');
+      previewEl.classList.add('give');
+      clearTimeout(d.giveT);
+      d.giveT = setTimeout(() => { if (previewEl) previewEl.classList.remove('give'); }, 260);
+    } else {
+      if (!d.touch) { d.touch = true; vibrate(6); }
+      q = free;
+      if (limX != null) px = limX + (right ? 1 : -1) * rubber(ox, cw);
+      if (limY != null) py = limY + (down ? 1 : -1) * rubber(oy, ch);
+    }
+  } else d.touch = false;
+  d.q = q;
+  markRects(d, blocking, state.rects.filter((x) => rectsOverlap(x, q)));
   const x0 = Math.min(ax0, px), x1 = Math.max(ax0 + cw, px);
   const y0 = Math.min(ay0, py), y1 = Math.max(ay0 + ch, py);
   previewEl.style.transform = `translate(${x0}px, ${y0}px)`;
   previewEl.style.width = (x1 - x0) + 'px';
   previewEl.style.height = (y1 - y0) + 'px';
   previewEl.style.opacity = '1';
+  previewEl.classList.toggle('held', d.touch);
   // Eingerastetes Ziel als zarter Schatten + Größen-Blase am Finger.
-  const cell = cellAt(b, e.clientX, e.clientY);
-  drag.cell = cell;
-  const q = rectFromCorners(drag.ar, drag.ac, cell.r, cell.c);
   ghostEl.style.transform = `translate(${q.c * cw}px, ${q.r * ch}px)`;
   ghostEl.style.width = q.w * cw + 'px';
   ghostEl.style.height = q.h * ch + 'px';
@@ -227,7 +287,7 @@ function onDown(e) {
   try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
   if (pointers.size >= 2) {
     // Zweiter Finger: Ziehen abbrechen, stattdessen das Brett verschieben.
-    drag = null; hidePreview();
+    clearMarks(drag); drag = null; hidePreview();
     const pts = [...pointers.values()];
     pan = { mx: (pts[0].x + pts[1].x) / 2, my: (pts[0].y + pts[1].y) / 2 };
     return;
@@ -235,7 +295,12 @@ function onDown(e) {
   if (!playable()) return;
   const box = e.currentTarget.getBoundingClientRect();
   const cell = cellAt(box, e.clientX, e.clientY);
-  drag = { id: e.pointerId, ar: cell.r, ac: cell.c, x0: e.clientX, y0: e.clientY, box, moved: false, cell };
+  // Das Rechteck, in dem man aufsetzt, will man neu ziehen — es hält nicht auf.
+  const own = rectAt(state.rects, cell.r, cell.c);
+  drag = {
+    id: e.pointerId, ar: cell.r, ac: cell.c, x0: e.clientX, y0: e.clientY, box, moved: false, cell,
+    el: e.currentTarget, pass: new Set(own ? [own.id] : []), q: null, touch: false, marks: '',
+  };
 }
 
 function onMove(e) {
@@ -258,7 +323,12 @@ function onUp(e) {
   pointers.delete(e.pointerId);
   if (pan) { if (pointers.size < 2) pan = null; return; }
   if (!drag || e.pointerId !== drag.id) return;
-  const d = drag; drag = null;
+  const d = drag;
+  // Letzte Position auswerten (Barriere/Durchbruch), dann loslassen.
+  if (d.moved) showPreview(e);
+  drag = null;
+  clearMarks(d);
+  previewEl.classList.remove('held');
   if (!d.moved) {
     // Tipp: ein Rechteck darunter entfernen.
     hidePreview();
@@ -266,8 +336,8 @@ function onUp(e) {
     if (hit) removeUserRect(hit);
     return;
   }
-  const cell = cellAt(d.box, e.clientX, e.clientY);
-  const q = rectFromCorners(d.ar, d.ac, cell.r, cell.c);
+  const q = d.q;
+  if (d.pass.size > (rectAt(state.rects, d.ar, d.ac) ? 1 : 0)) log('game', 'Rechteck-Barriere durchbrochen', { n: d.pass.size });
   // Die Vorschau rastet sichtbar auf ihr Ziel ein und blendet dann aus.
   const p = state.puzzle, cw = d.box.width / p.cols, ch = d.box.height / p.rows;
   previewEl.classList.add('snap');
@@ -284,7 +354,7 @@ function onUp(e) {
 function onCancel(e) {
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pan = null;
-  if (drag && e.pointerId === drag.id) { drag = null; hidePreview(); }
+  if (drag && e.pointerId === drag.id) { clearMarks(drag); drag = null; hidePreview(); }
 }
 
 // ── Darstellung ──────────────────────────────────────────────────────────────
@@ -337,7 +407,7 @@ const RectLayer = {
   setup() { return { state, rectStyle, countRender }; },
   template: `
             <div class="rb-rects" :data-rc="countRender()">
-              <div v-for="q in state.rects" :key="q.id" class="rrect" :class="{ mine: q.by === state.coop.myId || q.by === 'local' }" :style="rectStyle(q)"></div>
+              <div v-for="q in state.rects" :key="q.id" :data-id="q.id" class="rrect" :class="{ mine: q.by === state.coop.myId || q.by === 'local' }" :style="rectStyle(q)"></div>
             </div>`,
 };
 

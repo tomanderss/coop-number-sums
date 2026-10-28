@@ -69,6 +69,49 @@ test('ein neues Rechteck über bestehende ersetzt sie', async ({ page }) => {
   expect(await rectsOf(page)).toEqual(['0,0,2,1']);
 });
 
+test('Barriere: ein bestehendes Rechteck hält zuerst auf, mit Nachdruck wird es ersetzt', async ({ page, context }) => {
+  await gotoApp(page);
+  await startGame(page);
+  const cdp = await context.newCDPSession(page);
+  const at = await geometry(page);
+  const { cols } = await page.evaluate(() => window.__cns.state.puzzle);
+  expect(cols).toBeGreaterThanOrEqual(5);
+  await page.evaluate(() => window.__cns.drawRect(0, 2, 1, 2)); // senkrechtes Rechteck in Spalte 2
+  const box = await page.locator('.rect-board').boundingBox();
+  const cw = box.width / cols;
+
+  // 1) Bis knapp hinter die Kante (Fingermitte in Spalte 2 = halbe Zelle drüber):
+  //    die Vorschau stockt, das Rechteck leuchtet auf; Loslassen legt nur bis zur Kante.
+  const a = at(0, 0), edge = at(0, 2);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [a] });
+  for (let i = 1; i <= 8; i++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a.x + ((edge.x - cw * 0.1 - a.x) * i) / 8, y: a.y }] });
+  }
+  await expect(page.locator('.rb-rects .rrect.blocking')).toHaveCount(1);
+  await expect(page.locator('.rb-preview.held')).toHaveCount(1);
+  // Die Vorschau gibt nur gummiartig nach: ihr rechter Rand bleibt nahe der Kante.
+  const pv = await page.locator('.rb-preview').boundingBox();
+  expect(pv.x + pv.width).toBeLessThan(box.x + 2.3 * cw);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  expect((await rectsOf(page)).sort()).toEqual(['0,0,1,2', '0,2,2,1']);
+  await expect(page.locator('.rb-rects .rrect.blocking, .rb-rects .rrect.doomed')).toHaveCount(0);
+
+  // 2) Mit Nachdruck durch: das Rechteck wird blass und beim Loslassen ersetzt.
+  const b = at(1, 0), far = at(1, 3);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [b] });
+  for (let i = 1; i <= 10; i++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: b.x + ((far.x - b.x) * i) / 10, y: b.y }] });
+  }
+  await expect(page.locator('.rb-rects .rrect.doomed')).toHaveCount(1);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  expect((await rectsOf(page)).sort()).toEqual(['0,0,1,2', '1,0,1,4']);
+
+  // 3) Wer IN einem Rechteck aufsetzt, zieht es ohne Barriere neu.
+  const c = at(1, 1), d = at(1, 4);
+  await touchDrag(page, cdp, c, d);
+  expect((await rectsOf(page)).sort()).toEqual(['0,0,1,2', '1,1,1,4']);
+});
+
 test('ein falsch volles Brett kostet ein Leben, ein richtiges gewinnt', async ({ page }) => {
   await gotoApp(page);
   await startGame(page, 'sehrleicht');

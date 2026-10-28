@@ -102,6 +102,33 @@ export function addRect(rects, q) {
   return { rects: rects.filter((x) => !rectsOverlap(x, q)).concat([q]), removed };
 }
 
+/**
+ * Die „Barriere" beim Ziehen: das größte Rechteck von der Ankerzelle (ar, ac)
+ * in Richtung der Zielzelle (tr, tc), das KEIN Rechteck aus `rects` berührt,
+ * außer denen, deren id in `pass` steht (schon durchbrochen bzw. das, in dem
+ * das Ziehen begann). Bei gleicher Fläche gewinnt das, dessen Ecke näher am
+ * Ziel liegt. Liefert null, wenn schon die Ankerzelle blockiert ist.
+ */
+export function clampToFree(rects, ar, ac, tr, tc, pass = null) {
+  const block = rects.filter((x) => !(pass && pass.has(x.id)));
+  const sr = tr >= ar ? 1 : -1, sc = tc >= ac ? 1 : -1;
+  let best = null, bestArea = 0, bestDist = Infinity;
+  for (let r = ar; sr > 0 ? r <= tr : r >= tr; r += sr) {
+    for (let c = ac; sc > 0 ? c <= tc : c >= tc; c += sc) {
+      const q = rectFromCorners(ar, ac, r, c);
+      const area = rectArea(q);
+      const dist = Math.abs(tr - r) + Math.abs(tc - c);
+      if (area < bestArea || (area === bestArea && dist >= bestDist)) continue;
+      if (block.some((x) => rectsOverlap(x, q))) {
+        // Wächst die Spalte weiter, bleibt die Überlappung: Zeile abbrechen.
+        break;
+      }
+      best = q; bestArea = area; bestDist = dist;
+    }
+  }
+  return best;
+}
+
 /** Das Rechteck, das eine Zelle bedeckt (oder null). */
 export function rectAt(rects, r, c) {
   for (let i = rects.length - 1; i >= 0; i--) if (rectContains(rects[i], r, c)) return rects[i];
