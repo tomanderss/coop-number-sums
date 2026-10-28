@@ -72,6 +72,10 @@ export default {
     donate: 'Beni destekle',
   },
   setup: {
+    endlessEyebrow: "Seviye 1–{n}, tekrar tekrar",
+    endlessStartAt: "Başlangıç",
+    endlessBestLabel: "Rekor",
+    endlessCycle: "Seviye seviye yükselir – son kademeden sonra baştan başlar",
     bigNumbers: 'Büyük sayılar (10–19)',
     bigNumbersHint: 'Hücre değerleri 1–9 yerine 10–19 — aynı bulmaca, yeni zihinsel uyaran.',
     random: 'Rastgele',

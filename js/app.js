@@ -7052,10 +7052,16 @@ const DifficultySlider = {
   props: {
     modelValue: { type: String, required: true },
     coop: { type: Boolean, default: false },
+    // Endlos-Aufstieg: der Slider springt auf die leichteste Stufe und ist
+    // GESPERRT — der Lauf steigt Level für Level selbst und beginnt nach der
+    // letzten Stufe wieder vorn. Statt eines Reglers zeigt ein Lauflicht die
+    // Abfolge, das Medaillon wechselt reihum durch alle Stufen.
+    endless: { type: Boolean, default: false },
   },
   emits: ['update:modelValue', 'randomstart'],
   setup(props, { emit }) {
     const coin = ref(0);
+    let beforeEndless = null;   // Auswahl vor dem Einschalten — beim Ausschalten zurück
     const list = DIFFICULTIES;
     let raf = 0, dragging = false;
     const curDiff = () => DIFF_BY_ID[props.modelValue] || list[0];
@@ -7100,10 +7106,11 @@ const DifficultySlider = {
       const p = Math.max(0, Math.min(1, (clientX - r.left - pad) / span));
       return Math.round(p * (list.length - 1));
     }
-    function down(e) { dragging = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setIdx(idxFromX(e.clientX, e.currentTarget)); }
-    function move(e) { if (dragging) setIdx(idxFromX(e.clientX, e.currentTarget)); }
+    function down(e) { if (props.endless) return; dragging = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setIdx(idxFromX(e.clientX, e.currentTarget)); }
+    function move(e) { if (dragging && !props.endless) setIdx(idxFromX(e.clientX, e.currentTarget)); }
     function up() { dragging = false; }
     function key(e) {
+      if (props.endless) return;
       const k = e.key;
       if (k === 'ArrowRight' || k === 'ArrowUp') { setIdx(idxOf() + 1); e.preventDefault(); }
       else if (k === 'ArrowLeft' || k === 'ArrowDown') { setIdx(idxOf() - 1); e.preventDefault(); }
@@ -7111,16 +7118,47 @@ const DifficultySlider = {
       else if (k === 'End') { setIdx(list.length - 1); e.preventDefault(); }
     }
     watch(() => props.modelValue, (nv) => animCoin(coinVal(nv)));
-    onMounted(() => { coin.value = coinVal(props.modelValue); });
-    return { t, ic, fmtTime, DIFFICULTIES: list, coin, curDiff, idxOf, pct, avgFor, bestFor, down, move, up, key, randomize };
+    // Endlos an → auf die leichteste Stufe (dort startet der Lauf); aus → zurück
+    // zur vorherigen Wahl.
+    function syncEndless(on) {
+      if (on) {
+        if (props.modelValue !== list[0].id) { beforeEndless = props.modelValue; emit('update:modelValue', list[0].id); }
+      } else if (beforeEndless) {
+        emit('update:modelValue', beforeEndless); beforeEndless = null;
+      }
+    }
+    watch(() => props.endless, (on) => { syncEndless(on); log('game', 'Endlos-Auswahl', { on, coop: props.coop }); });
+    onMounted(() => { coin.value = coinVal(props.modelValue); if (props.endless) syncEndless(true); });
+    // Ring in den Farben ALLER Stufen (Kreislauf) und je Stufe ein Icon im Medaillon.
+    const cycleRing = computed(() => `conic-gradient(from -90deg, ${list.map((d) => d.accent).join(', ')}, ${list[0].accent})`);
+    const railGradient = computed(() => `linear-gradient(90deg, ${list.map((d) => d.accent).join(', ')})`);
+    const endlessBest = () => (props.coop ? state.stats.endlessCoopBest : state.stats.endlessBest) || 0;
+    return { t, ic, fmtTime, DIFFICULTIES: list, coin, curDiff, idxOf, pct, avgFor, bestFor, down, move, up, key, randomize, cycleRing, railGradient, endlessBest, LIVES };
   },
   template: `
-  <div class="diff-picker">
+  <div class="diff-picker" :class="{ endless }">
     <div class="setup-hero">
       <div class="diff-medallion">
-        <div class="dm-ring"></div>
-        <div class="dm-disc" :key="modelValue"><span class="dm-ic" v-html="ic(curDiff().emoji)"></span></div>
+        <div class="dm-ring" :style="endless ? { background: cycleRing } : null"></div>
+        <!-- Endlos: alle Stufen-Icons liegen übereinander und blenden reihum ein
+             (nur Deckkraft/transform) — man sieht, dass es Stufe für Stufe
+             weitergeht und dann von vorn beginnt. -->
+        <div v-if="endless" class="dm-disc dm-cycle" :style="{ '--n': DIFFICULTIES.length }">
+          <span v-for="(d, i) in DIFFICULTIES" :key="d.id" class="dm-ic dm-cyc" :style="{ '--i': i, '--tk': d.accent }" v-html="ic(d.emoji)"></span>
+        </div>
+        <div v-else class="dm-disc" :key="modelValue"><span class="dm-ic" v-html="ic(curDiff().emoji)"></span></div>
       </div>
+      <template v-if="endless">
+        <div class="diff-eyebrow">{{ t('setup.endlessEyebrow', { n: DIFFICULTIES.length }) }}</div>
+        <h3 class="diff-name">{{ coop ? t('coopEndless.toggle') : t('solo.endless') }}</h3>
+        <div class="diff-dim">{{ DIFFICULTIES[0].dim.r }} × {{ DIFFICULTIES[0].dim.c }} → {{ DIFFICULTIES[DIFFICULTIES.length-1].dim.r }} × {{ DIFFICULTIES[DIFFICULTIES.length-1].dim.c }}</div>
+        <div class="diff-stats">
+          <div class="ds-tile"><div class="ds-k">{{ t('setup.endlessStartAt') }}</div><div class="ds-v">{{ t('difficulty.'+DIFFICULTIES[0].id) }}</div></div>
+          <div class="ds-tile"><div class="ds-k">{{ t('setup.endlessBestLabel') }}</div><div class="ds-v">{{ endlessBest() ? t('endless.levelShort', { n: endlessBest() }) : '–' }}</div></div>
+          <div class="ds-tile"><div class="ds-k">{{ t('endless.livesLabel') }}</div><div class="ds-v"><span class="ei" v-html="ic('heart')"></span> {{ LIVES }}</div></div>
+        </div>
+      </template>
+      <template v-else>
       <div class="diff-eyebrow">{{ t('setup.step') }} {{ idxOf()+1 }} / {{ DIFFICULTIES.length }}</div>
       <h3 class="diff-name" :key="'n-'+modelValue">{{ t('difficulty.'+modelValue) }}</h3>
       <div class="diff-dim">{{ curDiff().dim.r }} × {{ curDiff().dim.c }}</div>
@@ -7138,21 +7176,29 @@ const DifficultySlider = {
           <div class="ds-v">{{ bestFor(modelValue)!=null ? fmtTime(bestFor(modelValue)) : '–:––' }}</div>
         </div>
       </div>
+      </template>
     </div>
     <div class="setup-controls">
       <div class="diff-slabel"><span>{{ t('common.difficulty') }}</span>
-        <button type="button" class="diff-random" @click="randomize" :title="t('setup.randomTitle')" :aria-label="t('setup.randomTitle')">
+        <!-- Im Endlos-Aufstieg gibt es nichts zu würfeln: der Knopf behält seinen
+             Platz (nichts verrutscht), ist aber unsichtbar. -->
+        <button type="button" class="diff-random" :class="{ gone: endless }" :disabled="endless" @click="randomize" :title="t('setup.randomTitle')" :aria-label="t('setup.randomTitle')" :aria-hidden="endless ? 'true' : null">
           <span class="ei" v-html="ic('dice')"></span> {{ t('setup.random') }}
         </button>
-        <b>{{ idxOf()+1 }} / {{ DIFFICULTIES.length }}</b></div>
-      <div class="diff-track" tabindex="0" role="slider" :aria-valuemin="1" :aria-valuemax="DIFFICULTIES.length" :aria-valuenow="idxOf()+1" :aria-label="t('common.difficulty')" :aria-valuetext="t('difficulty.'+modelValue)"
+        <b v-if="endless" class="dt-loop" :title="t('setup.endlessCycle')"><span class="ei" v-html="ic('refresh')"></span> 1 – {{ DIFFICULTIES.length }}</b>
+        <b v-else>{{ idxOf()+1 }} / {{ DIFFICULTIES.length }}</b></div>
+      <div class="diff-track" :class="{ locked: endless }" :tabindex="endless ? -1 : 0" role="slider" :aria-disabled="endless ? 'true' : null" :aria-valuemin="1" :aria-valuemax="DIFFICULTIES.length" :aria-valuenow="idxOf()+1" :aria-label="t('common.difficulty')" :aria-valuetext="endless ? t('setup.endlessCycle') : t('difficulty.'+modelValue)"
            @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @keydown="key">
         <div class="dt-inner">
-          <div class="dt-rail"><div class="dt-fill" :style="{width: pct()+'%'}"></div></div>
-          <i v-for="(d,i) in DIFFICULTIES" :key="d.id" class="dt-tick" :class="{on:i<=idxOf(), cur:i===idxOf()}" :style="{left: (DIFFICULTIES.length>1 ? i/(DIFFICULTIES.length-1)*100 : 0)+'%', '--tk': d.accent}"></i>
-          <div class="dt-thumb" :style="{left: pct()+'%'}"></div>
+          <div class="dt-rail" :style="endless ? { background: railGradient } : null"><div v-if="!endless" class="dt-fill" :style="{width: pct()+'%'}"></div></div>
+          <i v-for="(d,i) in DIFFICULTIES" :key="d.id" class="dt-tick" :class="{on: endless || i<=idxOf(), cur: !endless && i===idxOf()}" :style="{left: (DIFFICULTIES.length>1 ? i/(DIFFICULTIES.length-1)*100 : 0)+'%', '--tk': d.accent, '--i': i}"></i>
+          <!-- Endlos: ein Lichtpunkt läuft die Stufen entlang und beginnt am Ende
+               wieder vorn (nur transform — die ganze Bahn wird verschoben). -->
+          <div v-if="endless" class="dt-run" aria-hidden="true"><i></i></div>
+          <div v-else class="dt-thumb" :style="{left: pct()+'%'}"></div>
         </div>
       </div>
+      <p v-if="endless" class="dt-caption">{{ t('setup.endlessCycle') }}</p>
     </div>
   </div>`,
 };
@@ -7540,7 +7586,7 @@ const App = {
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
 
-      <difficulty-slider v-model="state.sel.difficulty" @randomstart="setupStart($event)"></difficulty-slider>
+      <difficulty-slider v-model="state.sel.difficulty" :endless="!!state.sel.endless" @randomstart="setupStart($event)"></difficulty-slider>
 
       <!-- „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9. Ein anderer kognitiver
            Reiz bei identischer Logik/Eindeutigkeit. Kombinierbar MIT Endlos
@@ -8228,7 +8274,7 @@ const App = {
           <input id="coopcode" class="setup-codeinput" v-model="state.coop.code" maxlength="6" inputmode="numeric" pattern="[0-9]*"
                  :placeholder="t('common.codePlaceholder')" @input="state.coop.code=state.coop.code.replace(/\D/g,'')" />
         </div>
-        <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true" @randomstart="startHosting()"></difficulty-slider>
+        <difficulty-slider v-model="state.coop.lobbyDiffId" :coop="true" :endless="!!state.coop.lobbyEndless && !state.coop.raceMode && !state.coop.teamMode" @randomstart="startHosting()"></difficulty-slider>
         <!-- „Große Zahlen" (10–19) für die Mehrspieler-Runde: gilt für alle
              Mitspieler (Host generiert/sendet den Modus mit). -->
         <label v-if="bigNumbersAllowed(state.coop.lobbyDiffId)" class="mode-toggle" :class="{ on: state.coop.lobbyBigNumbers }">

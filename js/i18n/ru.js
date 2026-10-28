@@ -72,6 +72,10 @@ export default {
     donate: 'Поддержать меня',
   },
   setup: {
+    endlessEyebrow: "Уровни 1–{n} по кругу",
+    endlessStartAt: "Старт",
+    endlessBestLabel: "Рекорд",
+    endlessCycle: "Растёт уровень за уровнем — после последней ступени всё сначала",
     bigNumbers: 'Большие числа (10–19)',
     bigNumbersHint: 'Значения клеток 10–19 вместо 1–9 — та же логика, новый вызов.',
     random: 'Случайно',

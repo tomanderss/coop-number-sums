@@ -72,6 +72,10 @@ export default {
     donate: '支援する',
   },
   setup: {
+    endlessEyebrow: "レベル1〜{n}を繰り返し",
+    endlessStartAt: "スタート",
+    endlessBestLabel: "最高記録",
+    endlessCycle: "1レベルずつ上がり、最後の段階のあとは最初から",
     bigNumbers: '大きな数字（10〜19）',
     bigNumbersHint: 'マスの数字が1〜9ではなく10〜19に。ルールは同じで新しい刺激。',
     random: 'ランダム',

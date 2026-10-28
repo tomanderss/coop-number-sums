@@ -72,6 +72,10 @@ export default {
     donate: 'Apóyame',
   },
   setup: {
+    endlessEyebrow: "Nivel 1 a {n}, una y otra vez",
+    endlessStartAt: "Inicio",
+    endlessBestLabel: "Récord",
+    endlessCycle: "Sube nivel a nivel: tras el último vuelve a empezar",
     bigNumbers: 'Números grandes (10–19)',
     bigNumbersHint: 'Valores de celda 10–19 en vez de 1–9: mismo puzle, nuevo reto mental.',
     random: 'Azar',

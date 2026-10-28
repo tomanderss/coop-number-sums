@@ -72,6 +72,10 @@ export default {
     donate: 'Support me',
   },
   setup: {
+    endlessEyebrow: "Level 1 to {n} – again and again",
+    endlessStartAt: "Start",
+    endlessBestLabel: "Best",
+    endlessCycle: "Climbs level by level – after the last tier it starts over",
     bigNumbers: 'Big numbers (10–19)',
     bigNumbersHint: 'Cell values 10–19 instead of 1–9 — same puzzle, new mental twist.',
     random: 'Random',
