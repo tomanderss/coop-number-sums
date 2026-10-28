@@ -5,7 +5,7 @@
 import { generatePuzzle } from './generator.js';
 import { validPuzzleShape as shapeOk, normalizePuzzle } from './model.js';
 import * as board from './board.js';
-import { BoardGrid, RectStatus, initBoard, isFullyTier1Solvable } from './board.js';
+import { BoardGrid, initBoard, isFullyTier1Solvable } from './board.js';
 import { DIFFICULTIES, DIFF_BY_ID, bigNumbersAllowed } from './difficulty.js';
 import { GAME_META } from '../registry.js';
 import messages from './i18n.js';
@@ -19,8 +19,8 @@ export const GAME = {
   },
 
   BoardGrid,
-  // Unter dem Brett: Werkzeugzeile fester Höhe — Rückgängig, Hinweis/„geht nicht auf", Tipp.
-  BoardBelow: RectStatus,
+  // Nichts unter dem Brett: kein Rückgängig, keine Erklärleiste, keine Tipps
+  // (Nutzerwunsch — Ziehen und Antippen genügen).
   initBoard,
   board,
 
@@ -31,12 +31,9 @@ export const GAME = {
   generatePuzzle,
   isFullyTier1Solvable,
 
-  // Kein Werkzeug-Umschalter (Ziehen und Tippen genügen). Rückgängig und Tipp
-  // sitzen in der eigenen Werkzeugzeile unter dem Brett (RectStatus) — in der
-  // Kopfleiste brach die Zeile sonst auf schmalen Handys um. Der Tipp-Tutor
-  // erklärt den nächsten Schluss Schritt für Schritt (buildHint in board.js).
+  // Kein Werkzeug-Umschalter, keine Tipps. Das Training bleibt (Trainingsmodus).
   features: {
-    hints: true,
+    hints: false,
     toolToggle: false,
     markTools: false,
     divStyle: false,

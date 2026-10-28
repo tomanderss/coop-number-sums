@@ -387,7 +387,7 @@ const DIV_STYLE_DEFAULT = 'obelus';
 for (const g of GAMES) {
   g.board.initBoard({
     state, LOCAL_PLAYER_ID, playerColor, shopEquippedId, desktopBoard,
-    registerMistake, afterMove, coopSend, persistGame, ask, useHint,
+    registerMistake, afterMove, coopSend, persistGame, ask,
   });
 }
 // Weichen auf das aktuelle Brett (früher eine Destrukturierung beim Laden, die

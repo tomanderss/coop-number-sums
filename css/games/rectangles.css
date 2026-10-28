@@ -80,30 +80,6 @@
   .rb-preview.snap { transition: opacity .12s ease; }
 }
 
-/* Unter dem Brett: Werkzeugzeile fester Höhe (nichts verschiebt sich, wenn der
-   Text wechselt oder der Tipp-Knopf fehlt — sein Platz bleibt). */
-.rect-tools {
-  flex: 0 0 auto; height: 56px; display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px;
-  align-items: center; gap: 8px; padding: 0 4px;
-}
-.rt-slot { width: 52px; height: 52px; display: flex; }
-.rect-tools .round-btn { width: 52px; height: 52px; }
-.rect-status {
-  text-align: center; font-size: .78rem; line-height: 1.25; color: var(--text2);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.rect-status.bad { color: var(--bad); font-weight: 700; }
-.rect-tools .ei { width: 1.35em; height: 1.35em; }
-.rt-hint.on { color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
-
-/* Tipp-Tutor: Fokus-Zellen leuchten, der Rest tritt zurück (nur opacity). */
-.rb-focus { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-.rfocus {
-  position: absolute; border-radius: 4px;
-  background: color-mix(in srgb, var(--accent) 24%, transparent);
-  box-shadow: inset 0 0 0 2px var(--accent);
-}
-.rect-board.tutor-dim .rb-rects { opacity: .45; transition: opacity .2s ease; }
 /* Training: das Rechteck, das der nächste Schritt legt, gestrichelt vorgezeichnet. */
 .rtrain {
   position: absolute; border-radius: max(4px, calc(var(--cell) * 0.16));

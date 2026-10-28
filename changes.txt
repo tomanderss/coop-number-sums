@@ -1,1 +1,2 @@
 Rectangles: keine unerreichbaren Missionen oder Erfolge mehr (Große Zahlen gibt es dort nicht), Number-Sums-Einstellungen nur noch, wo sie wirken, und Freunde sehen, welches Spiel du gerade spielst
+Rectangles schlanker: kein Rückgängig-Knopf, keine Erklärleiste unter dem Brett und keine Tipps mehr – ziehen und antippen genügen

@@ -7,11 +7,11 @@
 //     Ziehens folgt es dem Finger FREI (auch über Zellgrenzen und leicht über
 //     den Rand hinaus), erst beim Loslassen rastet es auf die Zellen ein.
 //   • Kurz auf ein Rechteck tippen entfernt es. Ein neues Rechteck über
-//     bestehende ersetzt die überdeckten.
-//   • Rückgängig nimmt den letzten EIGENEN Zug zurück.
+//     bestehende ersetzt die überdeckten. (Bewusst KEIN Rückgängig-Knopf, keine
+//     Erklärleiste und keine Tipps — Nutzerwunsch: unnötig.)
 //   • Zwei Finger verschieben ein gezoomtes Brett.
 // Fehler: beim Zeichnen nie. Erst wenn jede Zelle bedeckt ist und es nicht
-// aufgeht, kostet das ein Leben und ein Hinweis erscheint.
+// aufgeht, kostet das ein Leben (rote Kontur + Wackeln).
 //
 // RENDER-PERFORMANCE: Das Brett hat KEINE Zell-Elemente. Gitterlinien sind ein
 // Hintergrund, Zahlen und Rechtecke liegen als zwei Ebenen darüber, prozentual
@@ -25,7 +25,6 @@ import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
-import { icon } from '../../icons.js';
 import {
   rectFromCorners, rectsOverlap, sameRect, addRect, rectAt, isFull, isSolved,
   progressPct, coveredCount, normalizePuzzle as healPuzzle, normalizeRects, rectArea,
@@ -41,7 +40,6 @@ let registerMistake = () => {};
 let afterMove = () => {};
 let coopSend = () => null;
 let desktopBoard = () => false;
-let useHint = () => {};
 
 export function initBoard(ctx) {
   state = ctx.state;
@@ -52,7 +50,6 @@ export function initBoard(ctx) {
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
-  if (ctx.useHint) useHint = ctx.useHint;
 }
 
 // Shop-Optik, die es in diesem Spiel (noch) nicht gibt: Skins betreffen
@@ -123,9 +120,6 @@ let idSeq = 0;
 const newId = () => `${(state.coop.myId || LOCAL_PLAYER_ID).slice(-6)}${Date.now().toString(36)}${(idSeq++).toString(36)}`;
 const me = () => state.coop.myId || LOCAL_PLAYER_ID;
 const isMultiplayer = () => state.coop.active || state.team.active;
-// Rückgängig: nur EIGENE Züge, mehrere Schritte.
-let undoStack = [];
-const UNDO_MAX = 60;
 const wire = (q) => ({ id: q.id, r: q.r, c: q.c, h: q.h, w: q.w, by: q.by || '', col: q.col | 0 });
 
 function playable() {
@@ -149,7 +143,7 @@ function checkFull() {
 }
 
 /** Ein Rechteck einfügen (Kern-Zug). Gibt das eingefügte Rechteck zurück. */
-export function addUserRect(box, { record = true, force = false } = {}) {
+export function addUserRect(box, { force = false } = {}) {
   if (!force && !playable()) return null;
   if (!state.puzzle || state.status !== 'playing') return null;
   const p = state.puzzle;
@@ -158,9 +152,8 @@ export function addUserRect(box, { record = true, force = false } = {}) {
   if (q.h < 1 || q.w < 1) return null;
   if (state.rects.some((x) => sameRect(x, q))) return null;
   const rect = { id: newId(), ...q, by: me(), col: pickColor(q, state.rects.filter((x) => !rectsOverlap(x, q))), k: null };
-  const { rects, removed } = addRect(state.rects, rect);
+  const { rects } = addRect(state.rects, rect);
   state.rects = rects;
-  if (record) { undoStack.push({ type: 'add', rect, removed }); if (undoStack.length > UNDO_MAX) undoStack.shift(); }
   if (isMultiplayer()) rect.k = coopSend({ type: Coop.MSG.MOVE, op: 'add', rect: wire(rect), from: state.coop.myId }) || null;
   if (state.settings.sfxKeep) Music.sfxKeep();
   checkFull();
@@ -169,11 +162,10 @@ export function addUserRect(box, { record = true, force = false } = {}) {
 }
 
 /** Ein Rechteck entfernen (Antippen). */
-export function removeUserRect(rect, { record = true } = {}) {
+export function removeUserRect(rect) {
   if (!playable() || !rect) return false;
   if (!state.rects.some((x) => x.id === rect.id)) return false;
   state.rects = state.rects.filter((x) => x.id !== rect.id);
-  if (record) { undoStack.push({ type: 'del', rect }); if (undoStack.length > UNDO_MAX) undoStack.shift(); }
   if (isMultiplayer()) coopSend({ type: Coop.MSG.MOVE, op: 'del', id: rect.id, from: state.coop.myId });
   if (state.settings.sfxRemove) Music.sfxRemove();
   state.rectsFullWrong = false;
@@ -181,26 +173,6 @@ export function removeUserRect(rect, { record = true } = {}) {
   return true;
 }
 
-/** Den letzten eigenen Zug zurücknehmen (Knopf in der Kopfleiste). */
-export function undoMove() {
-  if (!playable()) return false;
-  const last = undoStack.pop();
-  if (!last) return false;
-  if (last.type === 'add') {
-    const cur = state.rects.find((x) => x.id === last.rect.id);
-    if (cur) removeUserRect(cur, { record: false });
-    // Die ersetzten Rechtecke zurückholen, sofern ihr Platz frei ist.
-    for (const old of last.removed) {
-      if (!state.rects.some((x) => rectsOverlap(x, old))) addUserRect(old, { record: false });
-    }
-  } else {
-    addUserRect(last.rect, { record: false });
-  }
-  if (state.settings.sfxUndo) Music.sfxUndo();
-  log('game', 'Rectangles: Rückgängig', { type: last.type });
-  return true;
-}
-export function canUndo() { return undoStack.length > 0; }
 
 // ── Ziehen ───────────────────────────────────────────────────────────────────
 const DRAG_SLOP = 6;        // ab so vielen Pixeln wird aus einem Tipp ein Ziehen
@@ -348,18 +320,15 @@ const ClueLayer = {
               <span v-for="(k, i) in state.puzzle.clues" :key="i" class="rclue" :style="clueStyle(k)">{{ k.n }}</span>
             </div>`,
 };
-// Hervorhebung für Tipp-Tutor und Training: die Zellen des aktuellen Schritts
-// bzw. das Rechteck, das das Training gleich legt. Eigene Ebene, damit ein
-// Tutor-Schritt nicht die Rechtecke neu zeichnet.
+// Hervorhebung im Training: das Rechteck, das der nächste Schritt legt. Eigene
+// Ebene, damit ein Trainingsschritt nicht die Rechtecke neu zeichnet.
 const FocusLayer = {
   setup() {
-    const cellBox = (rc) => { const p = state.puzzle; return { left: pct(rc[1], p.cols), top: pct(rc[0], p.rows), width: pct(1, p.cols), height: pct(1, p.rows) }; };
     const trainRect = computed(() => (state.isTrainingGame && state.trainingStep ? state.trainingStep.rect : null));
-    return { state, tutorCells, cellBox, trainRect, rectStyle };
+    return { trainRect, rectStyle };
   },
   template: `
             <div class="rb-focus" aria-hidden="true">
-              <div v-for="(rc, i) in tutorCells" :key="'f'+i+'-'+rc[0]+'-'+rc[1]" class="rfocus" :style="cellBox(rc)"></div>
               <div v-if="trainRect" class="rtrain" :style="rectStyle({ ...trainRect, col: 0 })"></div>
             </div>`,
 };
@@ -385,7 +354,7 @@ export const BoardGrid = {
     return { state, gridStyle, boardFontClass, preview, ghost, size, onDown, onMove, onUp, onCancel, t };
   },
   template: `
-          <div class="board rect-board" :class="[boardFontClass(), { 'full-wrong': state.rectsFullWrong, shake: state.rectsShake, 'tutor-dim': !!state.hintTutor }]" :style="gridStyle"
+          <div class="board rect-board" :class="[boardFontClass(), { 'full-wrong': state.rectsFullWrong, shake: state.rectsShake}]" :style="gridStyle"
                role="application" :aria-label="t('rect.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
                @contextmenu.prevent>
@@ -399,28 +368,6 @@ export const BoardGrid = {
   `,
 };
 
-// Unter dem Brett: EINE Werkzeugzeile fester Höhe — links Rückgängig, in der
-// Mitte der Bedienhinweis (bzw. nach einem vollen, falschen Brett „geht nicht
-// auf"), rechts der Tipp. Beide Knöpfe behalten ihren Platz auch dort, wo es
-// keinen Tipp gibt (Wettkampf/Team/Training: leerer Platz statt Verrutschen).
-export const RectStatus = {
-  setup() {
-    const hintOk = computed(() => !state.isRaceGame && !state.team.active && !state.isTrainingGame);
-    const ic = (n) => icon(n);
-    return { state, t, undoMove, useHint, hintOk, ic };
-  },
-  template: `
-        <div class="rect-tools">
-          <button class="round-btn rt-undo" @click="undoMove()" :aria-label="t('rect.undo')" :title="t('rect.undo')"><span class="ei" v-html="ic('undo')"></span></button>
-          <div class="rect-status" :class="{ bad: state.rectsFullWrong }" aria-live="polite">
-            {{ state.rectsFullWrong ? t('rect.fullWrong') : t('rect.howto') }}
-          </div>
-          <span class="rt-slot">
-            <button v-if="hintOk" class="round-btn rt-hint" :class="{ on: !!state.hintTutor }" @click="useHint()" :aria-label="t('game.hintTitle')" :title="t('game.hintTitle')"><span class="ei" v-html="ic('bulb')"></span></button>
-          </span>
-        </div>`,
-};
-
 // ═════════════════════════════════════════════════════════════════════════════
 // BRETT-SCHNITTSTELLE — dieselben Namen wie in games/numbersums/board.js.
 // ═════════════════════════════════════════════════════════════════════════════
@@ -431,7 +378,6 @@ export function loadBoard(puzzle, saved) {
   state.rects = normalizeRects(saved && saved.rects).map((q) => ({
     id: q.id || newId(), r: q.r, c: q.c, h: q.h, w: q.w, by: q.by || LOCAL_PLAYER_ID, col: q.col | 0, k: q.k || null,
   }));
-  undoStack = [];
   drag = null; pan = null; pointers.clear();
   state.rectsFullWrong = false;
   state.rectsShake = false;
@@ -486,12 +432,11 @@ export function applyRemoteMove(msg, eventKey = null) {
 }
 export function applyRemoteHint() {}
 
-// Die Schale ruft das für alte UNDO-Nachrichten — Rückgängig läuft hier selbst
-// als normaler Zug (undoMove), deshalb nichts zu tun.
+// Rückgängig gibt es in diesem Spiel nicht (auch keine alten UNDO-Nachrichten).
 export function undoLast() { return false; }
 
-// ── Tipps & Training ─────────────────────────────────────────────────────────
-// Beide fragen den Löser, ausgehend von den RICHTIG gezogenen Rechtecken des
+// ── Training ─────────────────────────────────────────────────────────────────
+// Fragt den Löser, ausgehend von den RICHTIG gezogenen Rechtecken des
 // Spielers (falsche zählen nicht — sie würden den Löser in die Irre führen).
 // Der nächste erklärbare Zug ist das erste Rechteck, das der Löser festlegt
 // und das noch nicht richtig auf dem Brett liegt.
@@ -516,37 +461,10 @@ function nextDeduction(maxTier) {
   return { k: fin.k, rect: p.solution[fin.k], lead, fin };
 }
 
-/** Tipp-Tutor: kleine Schritte mit den konkreten Zahlen, der letzte legt das Rechteck. */
-export function buildHint() {
-  const d = nextDeduction(2);
-  if (!d) return null;
-  const k = state.puzzle.clues[d.k];
-  const clue = [k.r, k.c];
-  const steps = d.lead.map((st) => ({
-    cells: [clue, ...st.cells.map(cellRC)],
-    key: st.kind === 'onlyclue' ? 'rectOnlyClue' : 'rectCore',
-    params: { n: k.n },
-  }));
-  steps.push({ cells: d.fin.cells.map(cellRC), key: 'rectSingle', params: { n: k.n }, final: true });
-  return { steps, target: { r: k.r, c: k.c, want: { ...d.rect } }, reason: d.lead.length ? d.lead[d.lead.length - 1].kind : 'single' };
-}
-// Den erklärten Zug ausführen (lokal ausgelöst, s. doRevealCell in der Schale).
-// Das Rechteck geht als normaler Zug an die Mitspieler — die zusätzliche
-// HINT-Nachricht der Schale braucht es deshalb nicht (applyRemoteHint = nichts).
-export function applyHintEffect(r, c, want) {
-  if (want && typeof want === 'object') addUserRect(want, { force: true });
-}
-// Den offenen Tutor verwerfen, sobald sein Ziel richtig auf dem Brett liegt.
-export function clearStaleTutor() {
-  const tt = state.hintTutor;
-  if (tt && tt.target && tt.target.want && state.rects.some((q) => sameRect(q, tt.target.want))) state.hintTutor = null;
-}
-// Fokus-Zellen des aktuellen Tutor-Schritts (Hervorhebung auf dem Brett).
-export const tutorCells = computed(() => {
-  const tt = state.hintTutor;
-  if (!tt || !tt.steps || !tt.steps[tt.i]) return [];
-  return tt.steps[tt.i].cells || [];
-});
+// Tipps gibt es in diesem Spiel nicht (Nutzerwunsch).
+export function buildHint() { return null; }
+export function applyHintEffect() {}
+export function clearStaleTutor() {}
 
 // Training: nur die einfachsten Schlüsse (Tier 1).
 export function isFullyTier1Solvable(p) { return solveLogic(p, { maxTier: 1 }).solved; }
@@ -556,7 +474,7 @@ export function trainingStep() {
   const k = state.puzzle.clues[d.k];
   return { r: k.r, c: k.c, n: k.n, rect: { ...d.rect }, reason: d.lead.some((st) => st.kind === 'onlyclue') ? 'onlyclue' : 'single' };
 }
-export function applyTrainingStep(step) { if (step && step.rect) addUserRect(step.rect, { record: false, force: true }); }
+export function applyTrainingStep(step) { if (step && step.rect) addUserRect(step.rect, { force: true }); }
 export function trainingText(step) {
   return { title: t('rect.train.title', { n: step.n }), body: t('rect.train.' + step.reason, { n: step.n }) };
 }
@@ -593,7 +511,6 @@ export function testHooks() {
   return {
     drawRect: (r0, c0, r1, c1) => addUserRect(rectFromCorners(r0, c0, r1, c1)),
     tapRect: (r, c) => removeUserRect(rectAt(state.rects, r, c)),
-    undoMove,
     solveRects: () => { for (const q of state.puzzle.solution) addUserRect(q); },
   };
 }
