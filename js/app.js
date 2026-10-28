@@ -5,7 +5,7 @@ import { REGION_COLORS, COOP_COLORS, COOP_COLORS_CB, DEFAULT_GAME_OPTIONS, LIVES
 import { todayDateStr } from './streak.js';
 import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
-import { ACHIEVEMENTS, evaluate as evaluateAchievements } from './achievements.js';
+import { ACHIEVEMENTS, achievementsFor, evaluate as evaluateAchievements } from './achievements.js';
 import * as Music from './music.js';
 import { activeGame, GAME_IDS, GAMES, gameById } from './games/index.js';
 import { gameMeta, DEFAULT_GAME_ID } from './games/registry.js';
@@ -49,7 +49,7 @@ import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from './skins.js';
 import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES, setGameMessages } from './i18n/index.js';
 import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessIsRecord, reconstructEndlessRuns } from './endless.js';
-import { currentWeekKey, weeklyMissions, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
+import { currentWeekKey, weeklyMissions, missionPoolFor, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
 
 // ZUERST das zuletzt gespielte Spiel wiederherstellen — VOR allem anderen.
 // Die spielspezifischen Speicher-Schluessel (Statistik, Spielstaende, Erfolge,
@@ -82,6 +82,13 @@ setGameMessages(activeGame().messages || null);
 // Markier-Werkzeuge …) — s. `features` in js/games/<id>/index.js. Liest die
 // reaktive Kennung, damit das Menü einem Wechsel sofort folgt.
 function gameHas(f) { return !!(gameById(currentGame.id).features || {})[f]; }
+// Fähigkeiten des laufenden Spiels, an denen Missionen und Erfolge hängen
+// (`requires` in missions.js/achievements.js). Liest currentGame.id mit, damit
+// die Listen einem Spielwechsel folgen.
+function gameCaps() {
+  const g = gameById(currentGame.id);
+  return { bigNumbers: g.DIFFICULTIES.some((d) => g.bigNumbersAllowed(d.id)) };
+}
 
 const APP_START = Date.now();
 const splashVersion = document.getElementById('splash-version');
@@ -1725,7 +1732,7 @@ function syncMissionsState(m) {
   state.missions.weekKey = m.weekKey;
   state.missions.progress = m.progress;
   state.missions.claimed = m.claimed;
-  state.missions.list = weeklyMissions(m.weekKey);
+  state.missions.list = weeklyMissions(m.weekKey, 4, missionPoolFor(gameCaps()));
 }
 function initMissions() {
   const wk = currentWeekKey();
@@ -6506,9 +6513,11 @@ function friendActivityText(uid) {
   }
   if (!p.game) return t('friends.online');
   const g = p.game;
+  // Welches Spiel? Ältere Clients schicken keine Kennung — dann ohne Namen.
+  const game = g.id && GAME_IDS.includes(g.id) ? t(gameMeta(g.id).nameKey) : '';
   const mode = t('friends.mode.' + (g.mode || 'solo'));
   const diff = g.difficulty ? t('difficulty.' + g.difficulty) : '';
-  const parts = [mode, diff, g.size].filter(Boolean).join(' · ');
+  const parts = [game, mode, diff, g.size].filter(Boolean).join(' · ');
   return t('friends.inGame', { info: parts });
 }
 // ── Eigene Präsenz veröffentlichen ──
@@ -6516,6 +6525,7 @@ function friendActivityText(uid) {
 function currentGameInfo() {
   if (!gameSessionActive() || !state.puzzle) return null;
   return {
+    id: currentGame.id,   // welches Spiel (Freunde-Liste zeigt den Namen)
     mode: state.coop.active ? (state.race.active ? 'race' : state.team.active ? 'team' : 'coop') : 'solo',
     difficulty: state.puzzle.difficulty || null,
     size: `${state.puzzle.rows}×${state.puzzle.cols}`,
@@ -7298,7 +7308,9 @@ const App = {
       if (state.team.active && state.team.endReason && state.team.endReason !== 'won') return t('team.winTitleAuto');
       return t('win.title');
     });
-    const achievementsUnlockedCount = computed(() => Object.keys(state.achievements).length);
+    // Nur die Erfolge, die das laufende Spiel erreichen kann (s. gameCaps).
+    const gameAchievements = computed(() => achievementsFor(gameCaps()));
+    const achievementsUnlockedCount = computed(() => gameAchievements.value.filter((a) => state.achievements[a.id]).length);
 
     // ── Dynamischer Skin: skinUnlocked/skinActive/skinVars/skinBoardClasses
     // leben auf MODULEBENE (s. Brett-Optik-Block) — hier nur die Editor-Vorschau.
@@ -7341,7 +7353,7 @@ const App = {
 
     return {
       generalStats, fmtDuration, whatsNewEntries,
-      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS, achievementsUnlockedCount,
+      state, BUILD, CHANGELOG, DIFFICULTIES, DIFF_BY_ID, ACHIEVEMENTS: gameAchievements, achievementsUnlockedCount,
       livesArr, lifeLossColor, opponentLivesArr, opponentTeamLivesArr, coopPerformance, mvpId, opponentTeamPerformance, progress, myProgressPct, gridStyle, coopAvailable,
       navigate, navTo, goBack, newGame, setupStart, goNextPuzzle, startEndless, endlessAgain, endlessContinue, endlessTotalMs, closeEndlessSummary, resumeGame, resumeCoopGame, resumeEndlessGame, onCellTap,
       openMissions, claimMissionReward, missionsClaimable, missionProgressVal, missionDone, missionClaimedUI, missionClaimableUI, onCellPointerDown, onCellPointerMove, onCellPointerCancel, undo, useHint, tutorNext, dismissTutor, tutorStepText, doCheck,
@@ -8490,6 +8502,8 @@ const App = {
           </button>
           <div v-if="state.settingsTab==='spiel'" class="admin-acc-body">
           <button class="btn btn-ghost set-howto-btn" @click="state.modal='howto'"><span class="btn-ic"><span class="ei" v-html="ic('book')"></span></span> {{ t('home.howto') }}</button>
+          <!-- Nur in Spielen mit Einkreisen/Löschen (Number Sums): woanders wirkungslos. -->
+          <template v-if="gameHas('toolToggle')">
           <div class="set-row col">
             <span class="set-row-label">{{ t('settings.eraseStyle') }}</span>
             <div class="seg">
@@ -8501,11 +8515,13 @@ const App = {
             <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
           </div>
           <small class="set-hint">{{ t('settings.coopRemovedOutlineHint') }}</small>
+          </template>
           </div>
         </div>
 
-        <!-- 🖥️ Desktop (Tastatur-Kürzel) -->
-        <div class="admin-acc">
+        <!-- 🖥️ Desktop (Tastatur-Kürzel) — schaltet das Werkzeug um, gibt es
+             also nur in Spielen mit Werkzeug-Umschalter. -->
+        <div v-if="gameHas('toolToggle')" class="admin-acc">
           <button class="admin-acc-head" @click="toggleSettingsCard('desktop')">
             <span><span class="ico-lead" v-html="ic('keyboard')"></span>{{ t('settings.secDesktop') }}</span>
             <span class="admin-acc-chev" :class="{ open: state.settingsTab==='desktop' }">▾</span>
@@ -9781,7 +9797,7 @@ app.mount('#app');
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
 if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint,
-  boardRenders, cellRenders, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
+  boardRenders, cellRenders, currentGameInfo, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
 nextTick(() => {
   const splash = document.getElementById('splash');

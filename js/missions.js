@@ -25,7 +25,7 @@ export const MISSION_POOL = [
   { id: 'coopWin3', icon: 'users',    target: 3, reward: 350, inc: c => c.won && c.coop ? 1 : 0 },
   { id: 'raceWin2', icon: 'versus',   target: 2, reward: 350, inc: c => c.won && c.race ? 1 : 0 },
   { id: 'hardWin1', icon: 'skull',    target: 1, reward: 300, inc: c => c.won && (c.diffIndex || 0) >= 3 ? 1 : 0 },
-  { id: 'bigWin2',  icon: 'digits',   target: 2, reward: 300, inc: c => c.won && c.bigNumbers ? 1 : 0 },
+  { id: 'bigWin2',  icon: 'digits',   target: 2, reward: 300, requires: 'bigNumbers', inc: c => c.won && c.bigNumbers ? 1 : 0 },
   { id: 'play8',    icon: 'runner',   target: 8, reward: 250, inc: c => c.played ? 1 : 0 },
   { id: 'ripWin1',  icon: 'grave',    target: 1, reward: 500, inc: c => c.won && c.difficulty === 'rip' ? 1 : 0 },
   { id: 'endless3', icon: 'meteor',   target: 1, reward: 350, inc: c => (c.endlessScore || 0) >= 3 ? 1 : 0 },
@@ -33,6 +33,15 @@ export const MISSION_POOL = [
 ];
 const BY_ID = Object.fromEntries(MISSION_POOL.map(m => [m.id, m]));
 export function missionById(id) { return BY_ID[id] || null; }
+
+// Missionen, die das laufende Spiel überhaupt erfüllen KANN. `requires` nennt
+// eine Fähigkeit des Spiels (z. B. 'bigNumbers'); ohne sie fällt die Mission
+// aus dem Topf — sonst lost Rectangles (keine „Großen Zahlen") einen Auftrag
+// aus, den niemand je schafft. Spiele mit allen Fähigkeiten behalten exakt den
+// bisherigen Topf und damit dieselbe Wochenauswahl.
+export function missionPoolFor(caps = {}, pool = MISSION_POOL) {
+  return pool.filter((m) => !m.requires || caps[m.requires]);
+}
 
 // Deterministische Auswahl von `count` Missionen für eine Woche (stabil pro
 // weekKey, keine Wiederholung; einfache Hash-Sortierung).
