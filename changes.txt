@@ -1,3 +1,0 @@
-Rectangles: keine unerreichbaren Missionen oder Erfolge mehr (Große Zahlen gibt es dort nicht), Number-Sums-Einstellungen nur noch, wo sie wirken, und Freunde sehen, welches Spiel du gerade spielst
-Rectangles schlanker: kein Rückgängig-Knopf, keine Erklärleiste unter dem Brett und keine Tipps mehr – ziehen und antippen genügen
-Startseite: die Spiel-Scheibe zeigt die Spiele enger gefächert – auf jeder Seite sieht man, wie viele Spiele dort liegen – und ein Spielwechsel passt das Menü ohne Aus- und Einblenden an

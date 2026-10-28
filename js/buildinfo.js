@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.237';
-export const BUILD_HASH = '455d389';
+export const BUILD      = '1.238';
+export const BUILD_HASH = '76bc020';
 
 export const CHANGELOG = [
+  {
+    "version": "1.238",
+    "date": "28.10.2026",
+    "changes": [
+      "Rectangles: keine unerreichbaren Missionen oder Erfolge mehr (Große Zahlen gibt es dort nicht), Number-Sums-Einstellungen nur noch, wo sie wirken, und Freunde sehen, welches Spiel du gerade spielst",
+      "Rectangles schlanker: kein Rückgängig-Knopf, keine Erklärleiste unter dem Brett und keine Tipps mehr – ziehen und antippen genügen",
+      "Startseite: die Spiel-Scheibe zeigt die Spiele enger gefächert – auf jeder Seite sieht man, wie viele Spiele dort liegen – und ein Spielwechsel passt das Menü ohne Aus- und Einblenden an"
+    ]
+  },
   {
     "version": "1.237",
     "date": "28.10.2026",
