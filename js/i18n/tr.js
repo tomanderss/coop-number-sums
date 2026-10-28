@@ -2,6 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
+  edit: { free: "Boş", me: "Sen çiziyorsun", asked: "İstendi …", blocked: "{name} şu an çiziyor – devralmak için üstteki çipe dokun.", yourTurn: "Sıra sende – çizmeye başla!", reqTitle: "{name} çizmek istiyor", give: "Devret", keep: "Devam et", aria: { free: "Kimse çizmiyor – devralmak için dokun", me: "Çiziyorsun – bırakmak için dokun", other: "{name} çiziyor – istemek için dokun", asked: "İstek gönderildi" } },
   games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: 'Oyun seç', busy: 'Oyunu değiştirmeden önce mevcut oyunu bitir.' },
 
   coopEndless: { toggle: 'Sonsuz Tırmanış', toggleHint: 'Birlikte tırmanın — 3 ortak can, takviye yok' },

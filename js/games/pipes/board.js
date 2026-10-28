@@ -24,6 +24,7 @@ import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
+import { LiveLayer } from '../livelayer.js';
 import {
   flow, isSolved, progressPct, normalizePuzzle as healPuzzle, normalizeRot,
   rotMask, mod4, has, degree, neighbor, opp,
@@ -39,6 +40,11 @@ let afterMove = () => {};
 let coopSend = () => null;
 let desktopBoard = () => false;
 
+// Bearbeiten-Sperre (Schale, s. app.js editAllowed): im Coop zeichnet nur, wer die
+// Sperre hält; sendLive schickt den laufenden Entwurf an die anderen.
+let editAllowed = () => true;
+let sendLive = () => {};
+
 export function initBoard(ctx) {
   state = ctx.state;
   LOCAL_PLAYER_ID = ctx.LOCAL_PLAYER_ID;
@@ -47,6 +53,8 @@ export function initBoard(ctx) {
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
+  if (ctx.editAllowed) editAllowed = ctx.editAllowed;
+  if (ctx.sendLive) sendLive = ctx.sendLive;
 }
 
 // Shop-Optik, die es hier (noch) nicht gibt (s. rectangles/board.js).
@@ -86,7 +94,7 @@ const me = () => state.coop.myId || LOCAL_PLAYER_ID;
 const isMultiplayer = () => state.coop.active || state.team.active;
 function playable() {
   return state.puzzle && state.status === 'playing' && !state.generating && !state.paused && !state.sessionReadonly
-    && !(state.isTrainingGame && !state.trainingDone);
+    && !(state.isTrainingGame && !state.trainingDone) && editAllowed();
 }
 const endpoints = (p, f) => p.tiles.reduce((n, m, i) => n + (i !== p.source && degree(m) === 1 && f.depth[i] >= 0 ? 1 : 0), 0);
 
@@ -133,7 +141,9 @@ function cellAt(box, x, y) {
   const r = Math.floor((y - box.top) / (box.height / rows)), c = Math.floor((x - box.left) / (box.width / cols));
   return r < 0 || c < 0 || r >= rows || c >= cols ? -1 : r * cols + c;
 }
-function endPress() { if (press) clearTimeout(press.timer); press = null; }
+function endPress() { if (press) { clearTimeout(press.timer); sendLive(null); } press = null; }
+/** Die Sperre wechselt (abgegeben): laufendes Drücken verwerfen. */
+export function cancelLiveGesture() { endPress(); }
 function onDown(e) {
   if (e.button != null && e.button > 0) return;
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -148,6 +158,7 @@ function onDown(e) {
   const i = cellAt(e.currentTarget.getBoundingClientRect(), e.clientX, e.clientY);
   if (i < 0) return;
   press = { id: e.pointerId, i, x: e.clientX, y: e.clientY, long: false, timer: null };
+  sendLive({ cur: i });
   press.timer = setTimeout(() => {
     if (!press) return;
     press.long = true;
@@ -282,7 +293,7 @@ const FocusLayer = {
 };
 
 export const BoardGrid = {
-  components: { TileLayer, FocusLayer },
+  components: { TileLayer, FocusLayer, LiveLayer },
   setup() {
     const t0 = performance.now();
     onMounted(() => log('perf', 'Brett aufgebaut', { game: 'pipes', cells: state.puzzle ? state.puzzle.rows * state.puzzle.cols : 0, tookMs: Math.round(performance.now() - t0) }));
@@ -297,6 +308,7 @@ export const BoardGrid = {
                @contextmenu.prevent="onContext">
             <tile-layer></tile-layer>
             <focus-layer></focus-layer>
+            <live-layer></live-layer>
           </div>
   `,
 };

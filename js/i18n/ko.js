@@ -2,6 +2,7 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
+  edit: { free: "비어 있음", me: "내가 그리는 중", asked: "요청함 …", blocked: "{name} 님이 그리는 중이에요. 위의 칩을 눌러 넘겨받기를 요청하세요.", yourTurn: "내 차례! 그리기 시작하세요.", reqTitle: "{name} 님이 그리고 싶어 해요", give: "넘겨주기", keep: "계속 그리기", aria: { free: "아무도 그리지 않음 – 눌러서 맡기", me: "그리는 중 – 눌러서 해제", other: "{name} 님이 그리는 중 – 눌러서 요청", asked: "넘겨받기 요청함" } },
   games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: '게임 선택', busy: '게임을 바꾸기 전에 진행 중인 게임을 끝내세요.' },
 
   coopEndless: { toggle: '엔드리스 클라임', toggleHint: '함께 오르기 — 공유 목숨 3개, 보충 없음' },
