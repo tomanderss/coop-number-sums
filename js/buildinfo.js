@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.23';
-export const BUILD_HASH = '41fdcd9';
+export const BUILD      = '2.24';
+export const BUILD_HASH = '1a0bb4e';
 
 export const CHANGELOG = [
+  {
+    "version": "2.24",
+    "date": "28.10.2026",
+    "changes": [
+      "Neues Spiel „Pipes“: Rohre drehen, bis das Wasser von der Quelle jedes Feld erreicht – mit fließender Wasser-Animation"
+    ]
+  },
   {
     "version": "2.23",
     "date": "28.10.2026",
