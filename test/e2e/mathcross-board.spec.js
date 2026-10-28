@@ -475,4 +475,36 @@ test.describe('Gesten auf dem Brett', () => {
     await expect(zelle).not.toHaveClass(/picked/);
     expect(await page.evaluate(({ r, c }) => window.__cns.state.placed[r][c], a), 'die Zahl liegt unveraendert').toBe(a.v);
   });
+  // Gemeldet: auf einer gelegten Zahl verschwand die Markierung hinter dem
+  // Zellhintergrund (Spielerfarbe / gelöste Rechnung / Skin). Sie ist jetzt eine
+  // eigene Ebene (.hlm) über dem Hintergrund und unter der Zahl.
+  test('die Markierung bleibt auf gelegten Zahlen und geloesten Rechnungen sichtbar', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page, 'mittel');
+    // Steine legen, bis eine Rechnung gelöst ist (Vue zeichnet zwischen den Zügen).
+    for (let i = 0; i < 40; i++) {
+      if (await page.locator('.cell.filled.done').count()) break;
+      await page.evaluate(() => window.__cns.placeOne());
+      await page.waitForTimeout(30);
+    }
+    expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+    const ziel = await page.evaluate(() => {
+      const el = document.querySelector('.cell.filled.done') || document.querySelector('.cell.filled');
+      const r = Number(el.dataset.r), c = Number(el.dataset.c);
+      window.__cns.state.hl.push(r + '-' + c);
+      return { r, c };
+    });
+    const zelle = feld(page, ziel);
+    await expect(zelle).toHaveClass(/marked/);
+    const m = zelle.locator('.hlm');
+    await expect(m).toBeVisible();
+    const st = await m.evaluate((el) => {
+      const cs = getComputedStyle(el), num = getComputedStyle(el.parentElement.querySelector('.cnum'));
+      return { z: Number(cs.zIndex), numZ: Number(num.zIndex), bg: cs.backgroundColor, w: el.getBoundingClientRect().width, cw: el.parentElement.getBoundingClientRect().width };
+    });
+    expect(st.z).toBeGreaterThan(0);
+    expect(st.z).toBeLessThan(st.numZ);          // die Zahl bleibt lesbar
+    expect(st.bg).not.toBe('rgba(0, 0, 0, 0)');
+    expect(Math.abs(st.w - st.cw)).toBeLessThan(1);
+  });
 });
