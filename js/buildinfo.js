@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.25';
-export const BUILD_HASH = '2d1636f';
+export const BUILD      = '2.26';
+export const BUILD_HASH = '0e4d7b4';
 
 export const CHANGELOG = [
+  {
+    "version": "2.26",
+    "date": "28.10.2026",
+    "changes": [
+      "Mix jetzt auch als Coop und als Duell: im Coop zieht jedes Level ein neues Spiel für alle, im Duell bekommen alle dieselben Rätsel – wer zuerst N löst oder in der Zeit die meisten schafft, gewinnt",
+      "Das gewählte Spiel auf der Scheibe ist etwas größer"
+    ]
+  },
   {
     "version": "2.25",
     "date": "28.10.2026",
