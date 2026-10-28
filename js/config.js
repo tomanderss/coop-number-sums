@@ -355,7 +355,8 @@ export const DEFAULT_SETTINGS = {
   skinDirection: 'cw',       // 'cw' | 'ccw'
   skinGlow: 6,               // Leuchtradius px; 0 = kein Glow
   skinThickness: 2.5,        // Ring-/Rahmendicke px
-  skinApplyTo: 'both',       // 'kept' (Einkreisen) | 'removed' (Coop-Umrandung) | 'both'
+  skinApplyTo: 'both',
+  skinByGame: {},            // { [spiel]: { skinEnabled, skinStyle, … } } — Skin je Spiel (skins.js gameSkin); fehlende Felder = die Werte oben       // 'kept' (Einkreisen) | 'removed' (Coop-Umrandung) | 'both'
 };
 
 // Standard-Spieloption (Start-Screen Vorauswahl)

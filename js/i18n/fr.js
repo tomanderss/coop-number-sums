@@ -483,6 +483,7 @@ export default {
     makeUser: 'Retirer admin',
   },
   skin: {
+    forGame: 'S’applique uniquement à {game} – chaque jeu a son propre skin.',
     presetOnlyHint: 'Utilisable avec un préréglage acheté — le skin dynamique exclusif débloque en plus l\'éditeur libre.',
     title: 'Skin dynamique',
     lockedHint: 'Skin exclusif pour la 1.0 : ta couleur personnelle devient une marque tournante et lumineuse. Si tu as vécu le passage à la 1.0, il se débloque automatiquement, sinon via un code.',

@@ -483,6 +483,7 @@ export default {
     makeUser: 'Remove admin',
   },
   skin: {
+    forGame: 'Applies to {game} only – every game has its own skin.',
     presetOnlyHint: 'Usable with any purchased skin preset — the exclusive dynamic skin additionally unlocks the free editor.',
     title: 'Dynamic skin',
     lockedHint: 'Exclusive 1.0 celebration skin: your personal color becomes a spinning, glowing mark. If you witnessed the jump to 1.0 it unlocks automatically — otherwise via code.',

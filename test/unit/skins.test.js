@@ -122,3 +122,30 @@ describe('skins.skinClasses', () => {
     assert.deepEqual(SKIN_STYLES, ['solid', 'gradient', 'rainbow']);
   });
 });
+
+// Skin JE SPIEL: an/aus und alle Einstellungen getrennt je Spiel.
+const { gameSkin, withGameSkin, SKIN_KEYS } = await import('../../js/skins.js');
+describe('skins: je Spiel', () => {
+  const base = { skinEnabled: true, skinStyle: 'gradient', skinSpeed: 6, coopMyColor: '#fff' };
+  test('ohne eigenen Eintrag gilt der Alt-Stand (kontoweite Felder)', () => {
+    assert.equal(gameSkin(base, 'mathcross').skinEnabled, true);
+    assert.equal(gameSkin(base, 'mathcross').skinStyle, 'gradient');
+    assert.equal(gameSkin(base, 'mathcross').coopMyColor, undefined);   // nur Skin-Felder
+  });
+  test('ein Spiel lässt sich getrennt ausschalten und umstellen', () => {
+    const byGame = withGameSkin(withGameSkin({}, 'mathcross', 'skinEnabled', false), 'mathcross', 'skinStyle', 'rainbow');
+    const s = { ...base, skinByGame: byGame };
+    assert.equal(gameSkin(s, 'mathcross').skinEnabled, false);
+    assert.equal(gameSkin(s, 'mathcross').skinStyle, 'rainbow');
+    assert.equal(gameSkin(s, 'numbersums').skinEnabled, true);
+    assert.equal(gameSkin(s, 'numbersums').skinStyle, 'gradient');
+  });
+  test('withGameSkin ist rein und kennt nur Skin-Felder', () => {
+    const a = { numbersums: { skinSpeed: 2 } };
+    const b = withGameSkin(a, 'numbersums', 'skinGlow', 9);
+    assert.deepEqual(a, { numbersums: { skinSpeed: 2 } });
+    assert.deepEqual(b, { numbersums: { skinSpeed: 2, skinGlow: 9 } });
+    assert.equal(withGameSkin(a, 'numbersums', 'language', 'en'), a);
+    assert.ok(SKIN_KEYS.includes('skinEnabled'));
+  });
+});

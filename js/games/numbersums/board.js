@@ -20,7 +20,7 @@
 import { computed, onMounted } from '../../vue.esm-browser.prod.js';
 import { REGION_COLORS, regionChipInk, hexToRgb } from '../../config.js';
 import { SKINPRESET_ITEMS, shopItemById, ownsShopItem, applyPaletteFx } from '../../shopitems.js';
-import { SKIN_ID, skinVars as buildSkinVars, skinClasses as buildSkinClasses } from '../../skins.js';
+import { SKIN_ID, skinVars as buildSkinVars, skinClasses as buildSkinClasses, gameSkin } from '../../skins.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
 import * as Coop from '../../coop.js';
@@ -73,9 +73,11 @@ export function boardFrameClass() {
 // schaltet nur den freien Editor frei).
 export const skinUnlocked = computed(() => !!state.inventory[SKIN_ID]);
 export const skinPresetOwned = computed(() => SKINPRESET_ITEMS.some((p) => ownsShopItem(state.inventory, p)));
-export const skinActive = computed(() => (skinUnlocked.value || skinPresetOwned.value) && state.settings.skinEnabled);
-export const skinVars = computed(() => skinActive.value ? buildSkinVars(state.settings) : {});
-export const skinBoardClasses = computed(() => buildSkinClasses(state.settings, skinActive.value));
+// Skin-Einstellungen DIESES Spiels (je Spiel einstellbar, s. skins.js gameSkin).
+const mySkin = computed(() => gameSkin(state.settings, 'numbersums'));
+export const skinActive = computed(() => (skinUnlocked.value || skinPresetOwned.value) && !!mySkin.value.skinEnabled);
+export const skinVars = computed(() => skinActive.value ? buildSkinVars(mySkin.value) : {});
+export const skinBoardClasses = computed(() => buildSkinClasses(mySkin.value, skinActive.value));
 export const gridStyle = computed(() => ({
   gridTemplateColumns: `var(--hdr) repeat(${state.puzzle?.cols || 1}, var(--cell))`,
   gridTemplateRows: `var(--hdr) repeat(${state.puzzle?.rows || 1}, var(--cell))`,
