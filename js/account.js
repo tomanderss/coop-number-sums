@@ -14,6 +14,7 @@
 //    bei Settings/Stats führend, Inventar wird vereinigt (kein Unlock geht verloren),
 //    Wallet nimmt das höhere Guthaben. Reicht für ein Hobby-Spiel; später verfeinerbar.
 
+import { mergeMissions } from './missions.js';
 import { ensureFirebase } from './firebase.js';
 import { log } from './debuglog.js';
 import { todayDateStr, sanitizeLastCompleted } from './streak.js';
@@ -116,19 +117,9 @@ function mergeNumericDeep(a, b) {
   }
   return out;
 }
-// Wochen-Missionen (cns_missions): dieselbe Woche → Fortschritt je Mission =
-// Maximum, „eingelöst" = Vereinigung; verschiedene Wochen → die NEUERE Woche
-// (größerer weekKey) gewinnt komplett (ihr Stand ist für diese Woche maßgeblich).
-export function mergeMissions(a = {}, b = {}) {
-  const ak = a && a.weekKey, bk = b && b.weekKey;
-  if (ak == null) return b || {};
-  if (bk == null) return a || {};
-  if (ak !== bk) return (ak > bk ? a : b);
-  const progress = {};
-  const ap = a.progress || {}, bp = b.progress || {};
-  for (const k of new Set([...Object.keys(ap), ...Object.keys(bp)])) progress[k] = Math.max(nz(ap[k]), nz(bp[k]));
-  return { weekKey: ak, progress, claimed: { ...(b.claimed || {}), ...(a.claimed || {}) } };
-}
+// Wochen-Missionen: Merge-Regel liegt (rein) in missions.js — auch storage.js
+// braucht sie für den Umzug der früher je Spiel getrennten Stände.
+export { mergeMissions };
 // Streak (cns_daily): Der Anker der Serie ist das JÜNGSTE echte Spieldatum —
 // die Seite mit dem späteren (GÜLTIGEN, per sanitizeLastCompleted geheilten)
 // Datum trägt die aktuellste Aktivität, also gilt IHR currentStreak; nur bei
