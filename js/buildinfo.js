@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.19';
-export const BUILD_HASH = '1e8a267';
+export const BUILD      = '2.20';
+export const BUILD_HASH = '13de067';
 
 export const CHANGELOG = [
+  {
+    "version": "2.20",
+    "date": "28.10.2026",
+    "changes": [
+      "Neu: Zufallsmodus „Mix“ – ein eigener Eintrag auf der Spielscheibe. Jedes Level ist ein zufälliges Spiel in zufälliger Schwierigkeit, angekündigt von einer kleinen Ziehung. Welche Spiele und Stufen vorkommen, lässt sich pro Spiel eingrenzen (Standard: alles); neue Spiele sind automatisch dabei. Mit eigenem Bestwert, Leben über den ganzen Lauf und Fortsetzen"
+    ]
+  },
   {
     "version": "2.19",
     "date": "28.10.2026",
