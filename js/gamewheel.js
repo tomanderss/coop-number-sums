@@ -17,16 +17,21 @@ import { reactive, computed, watch, onMounted, onBeforeUnmount, ref, nextTick } 
 // entfernte werden gestaucht statt ausgeblendet — so sieht man auf JEDER Seite,
 // wie viele Spiele dort liegen (Nutzerwunsch: vorher war auf dem ersten Spiel
 // nur das rechte Nachbarlogo zu sehen, das übernächste war unsichtbar).
-export const WHEEL_VISIBLE = 3.5;   // ab diesem Abstand (in Logos) ausgeblendet
+export const WHEEL_VISIBLE = 4.5;   // ab diesem Abstand (in Logos) ausgeblendet
 export function wheelItemStyle(o, spacing) {
   const a = Math.min(Math.abs(o), WHEEL_VISIBLE);
-  // Erster Schritt voll, jeder weitere gestaucht (Fächer).
-  const dist = a <= 1 ? a : 1 + (a - 1) * 0.6;
+  // Erster Schritt voll, jeder weitere stark gestaucht (Fächer). Seit Mix als
+  // fünfter Eintrag dazukam, muss vom ersten Spiel aus auch das VIERTnächste
+  // Logo noch im Bild liegen.
+  // Die ersten beiden Schritte bleiben antippbar weit (wie bisher), erst danach
+  // rücken die Logos eng zusammen.
+  const dist = a <= 1 ? a : a <= 2 ? 1 + (a - 1) * 0.6 : 1.6 + (a - 2) * 0.33;
   const x = Math.sign(o) * dist * spacing;
   const z = -a * 90;
   const rot = Math.max(-55, Math.min(55, -o * 30));
   const scale = Math.max(0.42, 1 - a * 0.2);
-  const opacity = a <= 3 ? 1 - a * 0.22 : Math.max(0, 0.34 * (WHEEL_VISIBLE - a) / (WHEEL_VISIBLE - 3));
+  // Bis zum viertnächsten Logo deutlich sichtbar (mind. 0,34), danach blendet es aus.
+  const opacity = a <= 4 ? Math.max(0.34, 1 - a * 0.2) : 0.34 * (WHEEL_VISIBLE - a) / (WHEEL_VISIBLE - 4);
   return {
     transform: `translate3d(${x.toFixed(1)}px, 0, ${z.toFixed(1)}px) rotateY(${rot.toFixed(1)}deg) scale(${scale.toFixed(3)})`,
     opacity: Math.max(0, opacity).toFixed(3),

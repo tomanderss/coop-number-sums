@@ -310,6 +310,9 @@ export const DEFAULT_SETTINGS = {
                             // sonst Fallback auf Confetti (resolveActiveEffect).
   masterCelebrated: false,  // wurde die einmalige „Großmeister"-Feier (alle 12
                             // Prestige-Kategorien auf Legendär) schon gezeigt?
+  mixPool: {},              // Zufallsmodus Mix: AUSGESCHLOSSENE Spiele/Stufen
+                            // ({ off: { spiel: true | [stufen] } }, js/mix.js) —
+                            // was nicht drinsteht, ist dabei (auch neue Spiele).
   endlessBackfillDone: false, // einmalige Migration gelaufen? (alte Endlos-Läufe
                             // aus dem Geldverlauf rückwirkend als Einzelspiele
                             // verbucht — cloud-synct, damit Zweitgeräte nicht

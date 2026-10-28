@@ -31,8 +31,15 @@ describe('gamewheel', () => {
     assert.ok(Number(three.zIndex) < Number(two.zIndex));
   });
 
+  test('auch das viertnächste Logo ist noch zu sehen (fünf Einträge mit Mix)', () => {
+    const four = wheelItemStyle(4, 100), three = wheelItemStyle(3, 100);
+    const x = (s) => Number(/translate3d\((-?[\d.]+)px/.exec(s.transform)[1]);
+    assert.ok(Number(four.opacity) > 0.3);
+    assert.ok(x(four) > x(three) && x(four) < 2.5 * 100, 'eng genug, um noch im Bild zu liegen');
+  });
+
   test('weit entfernte Logos verschwinden, statt endlos zu schrumpfen', () => {
-    const s = wheelItemStyle(4, 100);
+    const s = wheelItemStyle(5, 100);
     assert.equal(s.opacity, '0.000');
     assert.match(s.transform, /scale\(0\.420\)/);
   });
