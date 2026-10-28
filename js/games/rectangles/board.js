@@ -581,6 +581,9 @@ export function testHooks() {
   return {
     drawRect: (r0, c0, r1, c1) => addUserRect(rectFromCorners(r0, c0, r1, c1)),
     tapRect: (r, c) => removeUserRect(rectAt(state.rects, r, c)),
-    solveRects: () => { for (const q of state.puzzle.solution) addUserRect(q); },
+    // Erst leeren: auf einem vollen, falschen Brett könnte ein Zwischenstand
+    // (Lösungs-Rechteck ersetzt genau die überdeckten) wieder voll und falsch
+    // sein und ein weiteres Leben kosten — im CI je nach Rätsel wackelig.
+    solveRects: () => { for (const q of state.rects.slice()) removeUserRect(q); for (const q of state.puzzle.solution) addUserRect(q); },
   };
 }
