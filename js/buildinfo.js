@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '1.236';
-export const BUILD_HASH = '5c180d4';
+export const BUILD      = '1.237';
+export const BUILD_HASH = '455d389';
 
 export const CHANGELOG = [
+  {
+    "version": "1.237",
+    "date": "28.10.2026",
+    "changes": [
+      "Rectangles: Tipp-Tutor erklärt den nächsten Schluss Schritt für Schritt, Trainingsmodus, Rückgängig und Tipp in einer festen Werkzeugzeile unter dem Brett"
+    ]
+  },
   {
     "version": "1.236",
     "date": "28.10.2026",
