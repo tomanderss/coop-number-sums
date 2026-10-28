@@ -24,7 +24,8 @@ import { reactive, computed, watch, onMounted, onBeforeUnmount, ref, nextTick } 
 // entfernte werden gestaucht statt ausgeblendet — so sieht man auf JEDER Seite,
 // wie viele Spiele dort liegen (Nutzerwunsch: vorher war auf dem ersten Spiel
 // nur das rechte Nachbarlogo zu sehen, das übernächste war unsichtbar).
-export const WHEEL_VISIBLE = 4.5;   // ab diesem Abstand (in Logos) ausgeblendet
+export const WHEEL_VISIBLE = 4.5;
+export const WHEEL_CENTER_SCALE = 1.15;   // ab diesem Abstand (in Logos) ausgeblendet
 export function wheelItemStyle(o, spacing) {
   const a = Math.min(Math.abs(o), WHEEL_VISIBLE);
   // Erster Schritt voll, jeder weitere stark gestaucht (Fächer). Seit Mix als
@@ -36,7 +37,10 @@ export function wheelItemStyle(o, spacing) {
   const x = Math.sign(o) * dist * spacing;
   const z = -a * 90;
   const rot = Math.max(-55, Math.min(55, -o * 30));
-  const scale = Math.max(0.42, 1 - a * 0.2);
+  // Das gewählte Spiel steht etwas größer da (Nutzerwunsch: „etwas größer,
+  // aber nicht überdimensional"): 1,15 in der Mitte, beim ersten Nachbarn wie
+  // bisher 0,8 — dazwischen gleitend, damit das Drehen nicht springt.
+  const scale = a <= 1 ? WHEEL_CENTER_SCALE - a * (WHEEL_CENTER_SCALE - 0.8) : Math.max(0.42, 1 - a * 0.2);
   // Bis zum viertnächsten Logo deutlich sichtbar (mind. 0,34), danach blendet es aus.
   const opacity = a <= 4 ? Math.max(0.34, 1 - a * 0.2) : 0.34 * (WHEEL_VISIBLE - a) / (WHEEL_VISIBLE - 4);
   return {

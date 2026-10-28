@@ -1,1 +1,2 @@
 Mix jetzt auch als Coop und als Duell: im Coop zieht jedes Level ein neues Spiel für alle, im Duell bekommen alle dieselben Rätsel – wer zuerst N löst oder in der Zeit die meisten schafft, gewinnt
+Das gewählte Spiel auf der Scheibe ist etwas größer

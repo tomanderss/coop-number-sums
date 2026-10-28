@@ -7,7 +7,7 @@ const { wheelItemStyle, snapTarget, wheelSlots, nearestSlot, mod } = await impor
 describe('gamewheel', () => {
   test('die Mitte steht groß, voll sichtbar und vorn', () => {
     const s = wheelItemStyle(0, 120);
-    assert.match(s.transform, /translate3d\(0\.0px, 0, -?0\.0px\) rotateY\(-?0\.0deg\) scale\(1\.000\)/);
+    assert.match(s.transform, /translate3d\(0\.0px, 0, -?0\.0px\) rotateY\(-?0\.0deg\) scale\(1\.150\)/);
     assert.equal(s.opacity, '1.000');
     assert.equal(s.zIndex, '100');
   });
