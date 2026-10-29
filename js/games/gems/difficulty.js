@@ -37,5 +37,5 @@ export function bigNumbersAllowed() { return false; }
 
 export function genOptionsFor(diffId) {
   const d = DIFF_BY_ID[diffId] || DIFFICULTIES[0];
-  return { difficulty: d.id, size: d.size, maxTier: d.maxTier, blocks: d.blocks, minBlocks: d.minBlocks, minTier2: d.minTier2, entry: d.entry, maxMs: 5000 };
+  return { difficulty: d.id, size: d.size, maxTier: d.maxTier, blocks: d.blocks, minBlocks: d.minBlocks, minTier2: d.minTier2, entry: d.entry, tries: 30 };
 }

@@ -143,8 +143,13 @@ export function generatePuzzle(input = {}) {
   const entry = opts.entry ?? 1;
   const seed = (opts.seed ?? Math.floor(Math.random() * 2 ** 31)) >>> 0;
   const rnd = mulberry32(seed);
-  const deadline = Date.now() + (opts.maxMs ?? 6000);
-  const tries = opts.tries ?? 400;
+  // Abbruch nach einer festen ZAHL von Versuchen, nicht nach Zeit: Wettkampf/
+  // Team/Mix-Duell erzeugen dasselbe Rätsel aus demselben Seed auf JEDEM Gerät —
+  // ein Zeitlimit lieferte auf einem langsamen Gerät ein anderes Rätsel (in der
+  // CI aufgefallen). Gemessen braucht 11×11 höchstens ~13 Versuche; die Zeit
+  // ist nur noch ein fernes Sicherheitsnetz.
+  const deadline = Date.now() + (opts.maxMs ?? 30000);
+  const tries = opts.tries ?? 30;
   let best = null;
   for (let t = 0; t < tries; t++) {
     const cols = randomSolution(n, rnd);
@@ -166,5 +171,5 @@ export function generatePuzzle(input = {}) {
   if (best) return best;
   // Notausgang (praktisch nie): ohne Zusatzforderung, Stufe 2 erlaubt — der
   // Einstieg (mindestens ein Stein) bleibt.
-  return generatePuzzle({ ...opts, size: n, minTier2: 0, minBlocks: 0, maxTier: 2, blocks: true, entry: 1, seed: seed + 1, maxMs: 4000 });
+  return generatePuzzle({ ...opts, size: n, minTier2: 0, minBlocks: 0, maxTier: 2, blocks: true, entry: 1, seed: seed + 1 });
 }
