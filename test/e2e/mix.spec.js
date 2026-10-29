@@ -137,3 +137,33 @@ test('mit zwei Spielen wechselt jedes Level das Spiel', async ({ page }) => {
   expect(new Set(games)).toEqual(new Set(['rectangles', 'numberpath']));
   for (let i = 1; i < games.length; i++) expect(games[i]).not.toBe(games[i - 1]);
 });
+
+test('erstes Level: die Ziehung startet erst, wenn sie zu sehen ist, und läuft voll durch', async ({ page }) => {
+  // Gemeldet: beim allerersten Level war die Walze „verschluckt" — der Spiel-
+  // Screen und der Spielwechsel liefen im selben Moment an, man sah nur noch
+  // das Ergebnis. Jetzt: Walze angehalten, bis die Ebene gezeichnet ist; Spiel-
+  // Screen und Spielwechsel kommen erst, wenn die Walze steht.
+  await boot(page, { mix: true });
+  await page.locator('.mix-play-btn').click();
+  await page.waitForSelector('.screen.mix-screen');
+  await page.evaluate(() => {
+    window.__rv = { go: null, game: null, first: null };
+    const t0 = performance.now();
+    const tick = () => {
+      const s = window.__cns.state, now = performance.now() - t0;
+      if (s.mixReveal && window.__rv.first == null) window.__rv.first = now;
+      if (document.querySelector('.mix-reveal.go') && window.__rv.go == null) window.__rv.go = now;
+      if (s.screen === 'game' && window.__rv.game == null) window.__rv.game = now;
+      if (now < 6000) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    document.querySelector('.mix-start').click();
+  });
+  await levelReady(page);
+  const rv = await page.evaluate(() => window.__rv);
+  expect(rv.go).not.toBeNull();
+  // Der Spiel-Screen kommt erst, nachdem die Walze ausgedreht hat.
+  expect(rv.game - rv.go).toBeGreaterThanOrEqual(1500);
+  // Und die Ziehung bleibt, bis das Brett da ist (kein leerer Moment).
+  expect(await page.evaluate(() => !!window.__cns.state.puzzle)).toBe(true);
+});

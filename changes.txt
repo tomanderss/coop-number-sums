@@ -1,0 +1,1 @@
+- Mix: Die Lotterie-Ziehung läuft jetzt auch beim allerersten Level komplett sichtbar ab

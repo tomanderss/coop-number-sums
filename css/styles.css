@@ -3560,6 +3560,8 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   animation: mrland .4s ease-out 1.25s both; }
 .mr-reel { position: absolute; left: 12px; top: calc(var(--h) * .45); display: flex; flex-direction: column; gap: 14px; animation: mrspin 1.3s cubic-bezier(.12, .72, .2, 1.04) both; }
 .mr-reel img { width: var(--h); height: var(--h); flex: 0 0 auto; display: block; border-radius: 24%; }
+/* Bis die Ebene wirklich gezeichnet ist (runMixReveal setzt .go), steht alles still. */
+.mix-reveal:not(.go) .mr-reel, .mix-reveal:not(.go) .mr-frame, .mix-reveal:not(.go) .mr-result { animation-play-state: paused; }
 @keyframes mrspin { from { transform: translateY(0); } to { transform: translateY(calc((var(--n) - 1) * (var(--h) + 14px) * -1)); } }
 @keyframes mrland { 0% { transform: none; opacity: .7; } 45% { transform: scale(1.1); opacity: 1; } 100% { transform: none; opacity: 1; } }
 .mr-result { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: mrin .4s ease-out 1.3s both; }
