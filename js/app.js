@@ -161,6 +161,7 @@ const state = reactive({
   // wer welchen Stein setzte, Ereignis-Schlüssel je Feld (später gewinnt) und
   // die Rückmeldung bei vollem, falschem Brett.
   gemCells: [], gemBy: [], gemKeys: {}, gemsFullWrong: false, gemsShake: false,
+  gemTool: 'gem',              // Gem Hunt: Werkzeug unter dem Brett ('gem' | 'cross'), bleibt über Partien erhalten
   // Pipes (js/games/pipes): Drehzahl je Stück (fortlaufend, mod 4 zählt), wer
   // zuletzt drehte, gesperrte Stücke und Ereignis-Schlüssel je Stück (später gewinnt).
   pipeRot: [], pipeBy: [], pipeLock: [], pipeKeys: {},

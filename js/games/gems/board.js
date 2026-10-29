@@ -2,11 +2,13 @@
 // Wischen, Züge, und am Dateiende dieselbe Brett-Schnittstelle wie die anderen
 // Spiele.
 //
-// Bedienung (wie das bekannte „Queens"):
-//   • Antippen schaltet ein Feld weiter: leer → Kreuz (Notiz „hier nicht") →
-//     Edelstein → leer.
-//   • Über Felder WISCHEN setzt Kreuze auf alle leeren Felder unterwegs; beginnt
-//     das Wischen auf einem Kreuz, radiert es stattdessen Kreuze weg.
+// Bedienung:
+//   • WERKZEUG unter dem Brett (`GemTools`, state.gemTool), wie Einkreisen/Löschen
+//     in Number Sums (Nutzerwunsch statt des früheren Tipp-Zyklus leer → Kreuz →
+//     Stein): „Stein" setzt/entfernt per Tippen einen Edelstein, „Kreuz" eine
+//     Notiz „hier nicht" (s. tapResult in model.js). Rechtsklick = immer Kreuz.
+//   • Mit „Kreuz" setzt WISCHEN Kreuze auf alle leeren Felder unterwegs; beginnt
+//     es auf einem Kreuz, radiert es stattdessen. Mit „Stein" zählt nur das Tippen.
 //   • Zwei Finger verschieben ein gezoomtes Brett.
 // Fehler: beim Setzen nie (Konflikte werden nur rot gezeigt). Erst wenn so viele
 // Edelsteine liegen, wie es Zeilen gibt, und es nicht aufgeht, kostet das ein
@@ -25,7 +27,7 @@ import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
 import {
-  EMPTY, CROSS, GEM, gemsOf, conflicts, isFull, isSolved, progressPct,
+  EMPTY, CROSS, GEM, gemsOf, conflicts, isFull, isSolved, progressPct, tapResult,
   normalizePuzzle as healPuzzle, normalizeCells, rcOf,
 } from './model.js';
 import { solveLogic, nextDeduction } from './solver.js';
@@ -159,7 +161,13 @@ function sendCells(list) {
   const key = coopSend({ type: Coop.MSG.MOVE, op: 'cells', list: list.map(([i, v]) => [i, v]), from: state.coop.myId });
   if (key) { const keys = { ...state.gemKeys }; for (const [i] of list) keys[i] = key; state.gemKeys = keys; }
 }
-const nextOnTap = (v) => (v === EMPTY ? CROSS : v === CROSS ? GEM : EMPTY);
+const tool = () => (state.gemTool === 'cross' ? 'cross' : 'gem');
+export function setGemTool(v) {
+  if (v !== 'gem' && v !== 'cross') return;
+  if (state.gemTool === v) return;
+  state.gemTool = v;
+  if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
+}
 
 // ── Tippen & Wischen ─────────────────────────────────────────────────────────
 let drag = null;            // { id, box, start, v0, mode, last, changes:Map }
@@ -183,6 +191,13 @@ function paint(i) {
   sendLive({ cells: [...drag.changes], cur: i });
 }
 function onDown(e) {
+  // Rechtsklick (Maus): immer Kreuz, egal welches Werkzeug gewählt ist.
+  if (e.button === 2) {
+    if (!playable()) return;
+    const i = cellAt(e.currentTarget.getBoundingClientRect(), e.clientX, e.clientY);
+    setCells([[i, tapResult(state.gemCells[i], 'cross')]]);
+    return;
+  }
   if (e.button != null && e.button > 0) return;
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
@@ -196,7 +211,7 @@ function onDown(e) {
   if (!playable()) return;
   const box = e.currentTarget.getBoundingClientRect();
   const i = cellAt(box, e.clientX, e.clientY);
-  drag = { id: e.pointerId, box, start: i, v0: state.gemCells[i], mode: null, last: i, changes: new Map() };
+  drag = { id: e.pointerId, box, start: i, v0: state.gemCells[i], tool: tool(), mode: null, moved: false, last: i, changes: new Map() };
   sendLive({ cur: i });
 }
 function onMove(e) {
@@ -213,6 +228,9 @@ function onMove(e) {
   const i = cellAt(drag.box, e.clientX, e.clientY);
   if (i === drag.last) return;
   drag.last = i;
+  drag.moved = true;
+  // Mit dem Stein-Werkzeug ist Wischen kein Zug (versehentliches Verrutschen setzt nichts).
+  if (drag.tool !== 'cross') return;
   if (!drag.mode) {
     // Erstes Verlassen der Startzelle: aus dem Tipp wird ein Wischen.
     drag.mode = drag.v0 === CROSS ? 'erase' : 'cross';
@@ -226,7 +244,11 @@ function onUp(e) {
   if (!drag || e.pointerId !== drag.id) return;
   const d = drag; drag = null;
   sendLive(null);
-  if (!d.mode) { setCells([[d.start, nextOnTap(state.gemCells[d.start])]]); return; }
+  if (!d.mode) {
+    // Ein Tipp: nur, wenn der Finger auf seinem Feld blieb (sonst war es ein Verrutschen).
+    if (!d.moved || d.last === d.start) setCells([[d.start, tapResult(state.gemCells[d.start], d.tool)]]);
+    return;
+  }
   sendCells([...d.changes]);
 }
 function onCancel(e) {
@@ -317,6 +339,31 @@ const FocusLayer = {
               <div v-for="x in focus.unit" :key="x.i" class="gm-unit" :style="style(x)"></div>
               <div class="gm-train" :style="style(focus.cell)"></div>
             </div>`,
+};
+
+// Werkzeug-Umschalter unter dem Brett: zwei große Hälften, die gewählte trägt
+// die gleitende Pille (wie der Umschalter in Number Sums). Feste Höhe, damit
+// nichts springt; im Training ausgeblendet (dort setzt der Banner die Steine).
+const GEM_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11l4.5 5.5L12 21 2 9z" fill="currentColor" opacity=".9"/><path d="M2 9h20M8.8 3.5 7 9l5 12 5-12-1.8-5.5" fill="none" stroke="var(--bg)" stroke-width="1.2" stroke-linejoin="round" opacity=".6"/></svg>';
+const CROSS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';
+export const GemTools = {
+  setup() {
+    const show = computed(() => !!state.puzzle && !(state.isTrainingGame && !state.trainingDone));
+    return { state, show, setGemTool, t, GEM_ICON, CROSS_ICON };
+  },
+  template: `
+          <div class="gm-tools-wrap">
+            <div v-if="show" class="gm-tools" role="radiogroup" :aria-label="t('gem.tool.aria')">
+              <span class="gm-tool-pill" :class="{ cross: state.gemTool === 'cross' }" aria-hidden="true"></span>
+              <button type="button" class="gm-tool gem" role="radio" :aria-checked="state.gemTool !== 'cross'" :class="{ on: state.gemTool !== 'cross' }" @click="setGemTool('gem')">
+                <i v-html="GEM_ICON"></i><span>{{ t('gem.tool.gem') }}</span>
+              </button>
+              <button type="button" class="gm-tool cross" role="radio" :aria-checked="state.gemTool === 'cross'" :class="{ on: state.gemTool === 'cross' }" @click="setGemTool('cross')">
+                <i v-html="CROSS_ICON"></i><span>{{ t('gem.tool.cross') }}</span>
+              </button>
+            </div>
+          </div>
+  `,
 };
 
 export const BoardGrid = {
@@ -464,7 +511,8 @@ export const HistoryBoard = {
 // ── Test-Haken (nur localhost, s. window.__cns in app.js) ──
 export function testHooks() {
   return {
-    tapGem: (i) => setCells([[i, nextOnTap(state.gemCells[i])]]),
+    tapGem: (i, tl) => setCells([[i, tapResult(state.gemCells[i], tl || tool())]]),
+    setGemTool,
     setGem: (i, v) => setCells([[i, v]]),
     solveGems: () => {
       const sol = new Set(state.puzzle.solution);

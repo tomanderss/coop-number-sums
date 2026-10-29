@@ -29,18 +29,32 @@ async function centers(page) {
 const touch = (cdp, type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
 const cells = (page) => page.evaluate(() => window.__cns.state.gemCells.slice());
 
-test('Antippen: leer → Kreuz → Stein → leer; Wischen setzt und radiert Kreuze', async ({ page, context }) => {
+test('Werkzeug Stein/Kreuz: Tippen setzt das gewählte, Wischen nur mit Kreuz', async ({ page, context }) => {
   await gotoApp(page);
   expect(await page.evaluate(() => window.__cns.gameId)).toBe('gems');
   await startGame(page, 'mittel');
   const at = await centers(page);
   const cdp = await context.newCDPSession(page);
   const tap = async (i) => { await touch(cdp, 'touchStart', [at(i)]); await touch(cdp, 'touchEnd', []); };
-  await tap(0);
-  expect((await cells(page))[0]).toBe(1);
+  // Werkzeug unter dem Brett, „Stein" ist vorgewählt.
+  await expect(page.locator('.gm-tools')).toBeVisible();
+  await expect(page.locator('.gm-tool.gem.on')).toBeVisible();
   await tap(0);
   expect((await cells(page))[0]).toBe(2);
   await expect(page.locator('.gm-mark.gem')).toHaveCount(1);
+  await tap(0);
+  expect((await cells(page))[0]).toBe(0);
+  // Mit „Stein" setzt Wischen nichts.
+  await touch(cdp, 'touchStart', [at(0)]);
+  for (let c = 1; c < 5; c++) await touch(cdp, 'touchMove', [at(c)]);
+  await touch(cdp, 'touchEnd', []);
+  expect((await cells(page)).slice(0, 5)).toEqual([0, 0, 0, 0, 0]);
+  // Umschalten auf „Kreuz".
+  await page.locator('.gm-tool.cross').click();
+  await expect(page.locator('.gm-tool.cross.on')).toBeVisible();
+  expect(await page.evaluate(() => window.__cns.state.gemTool)).toBe('cross');
+  await tap(0);
+  expect((await cells(page))[0]).toBe(1);
   await tap(0);
   expect((await cells(page))[0]).toBe(0);
   // Wischen über die erste Zeile: Kreuze überall.
@@ -54,6 +68,10 @@ test('Antippen: leer → Kreuz → Stein → leer; Wischen setzt und radiert Kre
   for (let c = 2; c < 4; c++) await touch(cdp, 'touchMove', [at(c)]);
   await touch(cdp, 'touchEnd', []);
   expect((await cells(page)).slice(0, 5)).toEqual([1, 0, 0, 0, 1]);
+  // Ein Stein wird mit „Kreuz" zum Kreuz.
+  await page.evaluate(() => window.__cns.setGem(2, 2));
+  await tap(2);
+  expect((await cells(page))[2]).toBe(1);
   expect(await page.evaluate(() => window.__cns.state.mistakes)).toBe(0);
   await expect(page.locator('.rt-undo, .round-btn, .tutor-card')).toHaveCount(0);
 });

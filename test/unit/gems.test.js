@@ -2,9 +2,9 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EMPTY, CROSS, GEM, neighbors8, clash, conflicts, isFull, isSolved, progressPct,
-  validPuzzleShape, normalizePuzzle, normalizeCells,
+  validPuzzleShape, normalizePuzzle, normalizeCells, tapResult,
 } from '../../js/games/gems/model.js';
-import { solveLogic, countSolutions, nextDeduction } from '../../js/games/gems/solver.js';
+import { solveLogic, countSolutions, nextDeduction, entryInfo, EASY_KINDS } from '../../js/games/gems/solver.js';
 import { generatePuzzle, randomSolution, mulberry32 } from '../../js/games/gems/generator.js';
 import { DIFFICULTIES, genOptionsFor, bigNumbersAllowed } from '../../js/games/gems/difficulty.js';
 import { snapshotSolved, snapshotProgress, healSnapshot } from '../../js/games/gems/snapshot.js';
@@ -57,11 +57,38 @@ describe('Gem Hunt: Löser und Generator', () => {
       const p = generatePuzzle({ difficulty: d.id, seed: 11 });
       assert.equal(p.rows, d.size, d.id);
       assert.equal(countSolutions(p, 2), 1, d.id + ' eindeutig');
-      const res = solveLogic(p, { maxTier: d.maxTier });
+      const res = solveLogic(p, { maxTier: d.maxTier, blocks: d.blocks });
       assert.ok(res.solved, d.id + ' ohne Raten');
       assert.deepEqual(res.stars.slice().sort((a, b) => a - b), p.solution.slice().sort((a, b) => a - b));
       assert.ok(isSolved(p, solvedCells(p)));
     }
+  });
+  test('jede Stufe hat einen EINSTIEG; die leichten brauchen nur Blick-Schlüsse, „Schwer" mehr als „Mittel"', () => {
+    // Gemeldet: auf „Schwer" (7×7) gab es keinen Ansatzpunkt. Jetzt findet man in
+    // JEDEM Rätsel ganz am Anfang Steine allein mit Schlüssen, die man auf einen
+    // Blick sieht.
+    for (const d of DIFFICULTIES) {
+      for (const seed of d.size <= 8 ? [3, 11, 29] : [11]) {
+        const p = generatePuzzle({ difficulty: d.id, seed });
+        const e = entryInfo(p);
+        assert.ok(e.gems >= d.entry, `${d.id}/${seed}: ${e.gems} Einstiegs-Steine, verlangt ${d.entry}`);
+        const all = solveLogic(p, { maxTier: d.maxTier, blocks: d.blocks });
+        if (!d.blocks) assert.ok(all.steps.every((st) => EASY_KINDS.has(st.kind)), d.id + ': nur Blick-Schlüsse');
+        else assert.ok(all.steps.filter((st) => st.kind === 'blocks').length >= d.minBlocks, d.id + ': genug „blockiert"-Schlüsse');
+      }
+    }
+    const byId = Object.fromEntries(DIFFICULTIES.map((d) => [d.id, d]));
+    assert.equal(byId.mittel.blocks, false);
+    assert.ok(byId.schwer.blocks && byId.schwer.minBlocks >= 1 && byId.schwer.maxTier === 1, 'Schwer: ohne Schubfach');
+  });
+  test('Werkzeug: Tippen setzt das gewählte Zeichen oder nimmt es weg', () => {
+    assert.equal(tapResult(EMPTY, 'gem'), GEM);
+    assert.equal(tapResult(CROSS, 'gem'), GEM);
+    assert.equal(tapResult(GEM, 'gem'), EMPTY);
+    assert.equal(tapResult(EMPTY, 'cross'), CROSS);
+    assert.equal(tapResult(GEM, 'cross'), CROSS);
+    assert.equal(tapResult(CROSS, 'cross'), EMPTY);
+    assert.equal(tapResult(EMPTY, undefined), GEM);
   });
   test('deterministisch aus dem Seed (Wettkampf/Team erzeugen dasselbe Rätsel)', () => {
     const a = generatePuzzle({ difficulty: 'mittel', seed: 99 }), b = generatePuzzle({ difficulty: 'mittel', seed: 99 });

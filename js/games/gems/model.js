@@ -51,6 +51,17 @@ export function conflicts(p, cells) {
 }
 
 /** Brett voll = so viele Edelsteine wie Zeilen. Erst dann zählt ein Fehler. */
+/**
+ * Was ein Tippen aus einem Feld macht — je nach gewähltem Werkzeug (Nutzerwunsch:
+ * ein Umschalter wie in Number Sums statt eines Tipp-Zyklus).
+ *   'gem':   leer/Kreuz → Stein, Stein → leer
+ *   'cross': leer/Stein → Kreuz, Kreuz → leer
+ */
+export function tapResult(v, tool) {
+  if (tool === 'cross') return v === CROSS ? EMPTY : CROSS;
+  return v === GEM ? EMPTY : GEM;
+}
+
 export function isFull(p, cells) { return gemsOf(cells).length >= p.rows; }
 
 /** Gelöst = genau n Edelsteine, keiner in Konflikt (⇒ je Zeile/Spalte/Käfig einer). */
