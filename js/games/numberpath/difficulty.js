@@ -35,6 +35,6 @@ export function genOptionsFor(diffId) {
   return {
     difficulty: d.id, rows: d.dim.r, cols: d.dim.c,
     walls: d.walls, maxTier: d.maxTier, minClues: d.minClues, minTier2: d.minTier2,
-    seedDensity: 0.08, tries: 60, maxMs: 4000,
+    seedDensity: 0.08, tries: 60,
   };
 }
