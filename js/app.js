@@ -10367,9 +10367,9 @@ const App = {
         <div class="mj-num" aria-hidden="true">{{ state.majorCelebration }}<small>.0</small></div>
         <h3 class="mj-title">{{ t('major.title', { v: state.majorCelebration + '.0' }) }}</h3>
         <p class="mj-sub">{{ t('major.v' + state.majorCelebration + '.sub') }}</p>
-        <div class="mj-games">
+        <div class="mj-games" :class="{ many: majorInfo().games.length > 4 }">
           <div v-for="(g, i) in majorInfo().games" :key="g.id" class="mj-game" :style="{ '--i': i }">
-            <img :src="g.logo" alt="" draggable="false"><span>{{ t(g.nameKey) }}</span>
+            <img :src="g.logo" :alt="t(g.nameKey)" draggable="false"><span>{{ t(g.nameKey) }}</span>
           </div>
         </div>
         <ul class="mj-list">

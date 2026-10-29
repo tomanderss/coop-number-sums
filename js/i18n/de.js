@@ -946,6 +946,13 @@ export default {
       h3: "Coop, Duelle, Endlos-Aufstieg und Training in jedem Spiel",
       h4: "Neu dabei: Math Cross, Rectangles und Number Path",
     },
+    v3: {
+      sub: "Sechs Spiele und ein Zufallsmodus, der sie alle verbindet – dazu mehr Miteinander im Coop.",
+      h1: "Mix: jedes Level ein zufälliges Spiel – allein, im Coop oder im Duell",
+      h2: "Neu dabei: Gem Hunt und Pipes – jetzt sechs Spiele",
+      h3: "Coop-Zeichnen: alle bearbeiten gleichzeitig und sehen live, was die anderen ziehen",
+      h4: "Wochen-Herausforderungen für alle Spiele und Skins für jedes Spiel einzeln",
+    },
   },
   update: {
     check: 'Nach Updates suchen',

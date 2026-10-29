@@ -829,6 +829,13 @@ export default {
       h3: "Coop, duels, Ascension infinie et entraînement dans chaque jeu",
       h4: "Nouveau : Math Cross, Rectangles et Number Path",
     },
+    v3: {
+      sub: "Six jeux et un mode aléatoire qui les relie tous – et plus d’entraide en coop.",
+      h1: "Mix : chaque niveau un jeu au hasard – en solo, en coop ou en duel",
+      h2: "Nouveau : Gem Hunt et Pipes – désormais six jeux",
+      h3: "Dessiner ensemble en coop : tout le monde modifie en même temps et voit en direct ce que font les autres",
+      h4: "Défis hebdomadaires pour tous les jeux et skins pour chaque jeu séparément",
+    },
   },
   update: {
     check: 'Rechercher des mises à jour',
