@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.26';
-export const BUILD_HASH = '0e4d7b4';
+export const BUILD      = '2.27';
+export const BUILD_HASH = '89af743';
 
 export const CHANGELOG = [
+  {
+    "version": "2.27",
+    "date": "29.10.2026",
+    "changes": [
+      "- Coop: Die Bearbeiten-Sperre ist weg – in Rectangles, Number Path, Gem Hunt und Pipes zeichnen jetzt alle gleichzeitig, und man sieht weiterhin live, was die anderen gerade ziehen",
+      "- Mix: Die Lotterie-Ziehung läuft jetzt auch beim allerersten Level komplett sichtbar ab"
+    ]
+  },
   {
     "version": "2.26",
     "date": "28.10.2026",

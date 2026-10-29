@@ -1,2 +1,0 @@
-- Coop: Die Bearbeiten-Sperre ist weg – in Rectangles, Number Path, Gem Hunt und Pipes zeichnen jetzt alle gleichzeitig, und man sieht weiterhin live, was die anderen gerade ziehen
-- Mix: Die Lotterie-Ziehung läuft jetzt auch beim allerersten Level komplett sichtbar ab
