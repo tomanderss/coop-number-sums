@@ -2,7 +2,6 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  edit: { free: "Libre", me: "Tu dessines", asked: "Demandé …", blocked: "{name} dessine – touche la puce en haut pour prendre la main.", yourTurn: "À toi – commence à dessiner !", reqTitle: "{name} veut dessiner", give: "Céder", keep: "Continuer", aria: { free: "Personne ne dessine – touche pour prendre la main", me: "Tu dessines – touche pour libérer", other: "{name} dessine – touche pour demander", asked: "Demande envoyée" } },
   games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: 'Choisir le jeu', busy: 'Termine la partie en cours avant de changer de jeu.' },
 
   coopEndless: { toggle: 'Ascension sans fin', toggleHint: 'Montez ensemble — 3 vies partagées, sans recharge' },

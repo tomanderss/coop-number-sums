@@ -40,9 +40,8 @@ let afterMove = () => {};
 let coopSend = () => null;
 let desktopBoard = () => false;
 
-// Bearbeiten-Sperre (Schale, s. app.js editAllowed): im Coop zeichnet nur, wer die
-// Sperre hält; sendLive schickt den laufenden Entwurf an die anderen.
-let editAllowed = () => true;
+// Live-Entwurf (Schale, s. app.js sendLive): im Coop sehen die anderen, was
+// man gerade zieht.
 let sendLive = () => {};
 
 export function initBoard(ctx) {
@@ -54,7 +53,6 @@ export function initBoard(ctx) {
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
-  if (ctx.editAllowed) editAllowed = ctx.editAllowed;
   if (ctx.sendLive) sendLive = ctx.sendLive;
 }
 
@@ -112,7 +110,7 @@ const me = () => state.coop.myId || LOCAL_PLAYER_ID;
 const isMultiplayer = () => state.coop.active || state.team.active;
 function playable() {
   return state.puzzle && state.status === 'playing' && !state.generating && !state.paused && !state.sessionReadonly
-    && !(state.isTrainingGame && !state.trainingDone) && editAllowed();
+    && !(state.isTrainingGame && !state.trainingDone);
 }
 
 // Erst ein VOLLES Brett (so viele Steine wie Zeilen), das nicht aufgeht, kostet
@@ -231,8 +229,6 @@ function onUp(e) {
   if (!d.mode) { setCells([[d.start, nextOnTap(state.gemCells[d.start])]]); return; }
   sendCells([...d.changes]);
 }
-/** Die Sperre wechselt mitten im Wischen (abgegeben): Gemaltes senden, Wischen beenden. */
-export function cancelLiveGesture() { if (drag) { sendCells([...drag.changes]); drag = null; } }
 function onCancel(e) {
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pan = null;
