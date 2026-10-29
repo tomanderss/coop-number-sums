@@ -7,10 +7,12 @@
 // 2. Käfige: jeder Stein ist Keim eines Käfigs; die Käfige wachsen zufällig
 //    Zelle für Zelle (waagerecht/senkrecht), kleinere bevorzugt, bis das Feld
 //    voll ist. So enthält jeder Käfig genau einen Stein der Lösung.
-// 3. Prüfung mit dem Löser (bis `maxTier`); bei Bedarf werden genug Schlüsse
-//    der Stufe 2 verlangt. Sonst neuer Versuch — deterministisch aus dem Seed.
+// 3. Prüfung mit dem Löser (bis `maxTier`, ggf. ohne „blockiert"); bei Bedarf
+//    werden genug Schlüsse der Stufe 2 verlangt, und IMMER ein Einstieg: so
+//    viele Steine (`entry`), wie man am Anfang allein mit Blick-Schlüsseln
+//    findet. Sonst neuer Versuch — deterministisch aus dem Seed.
 
-import { solveLogic } from './solver.js';
+import { solveLogic, entryInfo } from './solver.js';
 import { genOptionsFor } from './difficulty.js';
 
 export function mulberry32(seed) {
@@ -100,10 +102,10 @@ function stillConnected(n, reg, k, without) {
  * viel entscheiden kann (Bergsteigen mit Seitwärtsschritten). Die Steine der
  * Lösung bleiben dabei in ihren Käfigen — die Lösung bleibt gültig.
  */
-export function refineRegions(n, cols, regions, rnd, { maxTier = 2, budget = 400 } = {}) {
+export function refineRegions(n, cols, regions, rnd, { maxTier = 2, blocks = true, budget = 400 } = {}) {
   const reg = regions.slice();
   const stars = new Set(cols.map((c, r) => r * n + c));
-  const solve = () => solveLogic({ rows: n, cols: n, regions: reg }, { maxTier });
+  const solve = () => solveLogic({ rows: n, cols: n, regions: reg }, { maxTier, blocks });
   let res = solve();
   let cur = res.solved ? Infinity : res.decided;
   for (let it = 0; it < budget && cur !== Infinity; it++) {
@@ -127,7 +129,7 @@ export function refineRegions(n, cols, regions, rnd, { maxTier = 2, budget = 400
 }
 
 /**
- * opts: { difficulty, size, maxTier, minTier2, seed, maxMs, tries }
+ * opts: { difficulty, size, maxTier, blocks, minBlocks, minTier2, entry, seed, maxMs, tries }
  * Liefert { rows, cols, regions, solution, difficulty, seed, tier2 }.
  */
 export function generatePuzzle(input = {}) {
@@ -136,25 +138,38 @@ export function generatePuzzle(input = {}) {
   const n = opts.size || 6;
   const maxTier = opts.maxTier ?? 2;
   const minTier2 = opts.minTier2 ?? 0;
+  const blocks = opts.blocks ?? true;
+  const minBlocks = blocks ? (opts.minBlocks ?? 0) : 0;
+  const entry = opts.entry ?? 1;
   const seed = (opts.seed ?? Math.floor(Math.random() * 2 ** 31)) >>> 0;
   const rnd = mulberry32(seed);
-  const deadline = Date.now() + (opts.maxMs ?? 6000);
-  const tries = opts.tries ?? 400;
+  // Abbruch nach einer festen ZAHL von Versuchen, nicht nach Zeit: Wettkampf/
+  // Team/Mix-Duell erzeugen dasselbe Rätsel aus demselben Seed auf JEDEM Gerät —
+  // ein Zeitlimit lieferte auf einem langsamen Gerät ein anderes Rätsel (in der
+  // CI aufgefallen). Gemessen braucht 11×11 höchstens ~13 Versuche; die Zeit
+  // ist nur noch ein fernes Sicherheitsnetz.
+  const deadline = Date.now() + (opts.maxMs ?? 30000);
+  const tries = opts.tries ?? 30;
   let best = null;
   for (let t = 0; t < tries; t++) {
     const cols = randomSolution(n, rnd);
     if (!cols) continue;
-    const regions = refineRegions(n, cols, growRegions(n, cols, rnd), rnd, { maxTier, budget: opts.budget ?? 250 * n });
+    const regions = refineRegions(n, cols, growRegions(n, cols, rnd), rnd, { maxTier, blocks, budget: opts.budget ?? 250 * n });
     if (!regions) { if (Date.now() > deadline && best) break; continue; }
     const p = { rows: n, cols: n, regions };
-    const res = solveLogic(p, { maxTier });
+    const res = solveLogic(p, { maxTier, blocks });
     const tier2 = res.steps.filter((s) => s.tier === 2).length;
-    const cand = { ...p, solution: cols.map((c, r) => r * n + c), difficulty: opts.difficulty || null, seed, tier2 };
-    if (tier2 >= minTier2) return cand;
-    if (!best || tier2 > best.tier2) best = cand;
+    const nBlocks = res.steps.filter((s) => s.kind === 'blocks').length;
+    const ent = entryInfo(p).gems;
+    const cand = { ...p, solution: cols.map((c, r) => r * n + c), difficulty: opts.difficulty || null, seed, tier2, blocks: nBlocks, entry: ent };
+    if (tier2 >= minTier2 && nBlocks >= minBlocks && ent >= entry) return cand;
+    // Bester Ersatz: der Einstieg zählt vor der Schwere.
+    const score = (x) => Math.min(x.entry, entry) * 100 + Math.min(x.tier2, minTier2) * 10 + Math.min(x.blocks, minBlocks);
+    if (ent >= 1 && (!best || score(cand) > score(best))) best = cand;
     if (Date.now() > deadline) break;
   }
   if (best) return best;
-  // Notausgang (praktisch nie): ohne Zusatzforderung, Stufe 2 erlaubt.
-  return generatePuzzle({ ...opts, size: n, minTier2: 0, maxTier: 2, seed: seed + 1, maxMs: 4000 });
+  // Notausgang (praktisch nie): ohne Zusatzforderung, Stufe 2 erlaubt — der
+  // Einstieg (mindestens ein Stein) bleibt.
+  return generatePuzzle({ ...opts, size: n, minTier2: 0, minBlocks: 0, maxTier: 2, blocks: true, entry: 1, seed: seed + 1 });
 }

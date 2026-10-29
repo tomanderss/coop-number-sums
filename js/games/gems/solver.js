@@ -8,6 +8,8 @@
 //       (Spalte) → der Rest dieser Zeile ist aus; ebenso Zeile/Spalte → Käfig.
 //     · „würde alles blockieren": ein Stein auf X nähme einer anderen Zeile/
 //       Spalte/einem Käfig das letzte freie Feld → X ist aus.
+//   Ohne `blocks` (Option blocks:false) entfällt „würde alles blockieren" — dann
+//   bleiben nur die Schlüsse, die man auf einen Blick sieht (EASY_KINDS).
 //   2 · „Schubfach": k Käfige liegen zusammen in genau k Zeilen (Spalten) → in
 //       diesen Zeilen ist außerhalb dieser Käfige alles aus (und umgekehrt).
 //
@@ -31,7 +33,8 @@ function units(p) {
  * Löst so weit wie möglich. `known` = bereits feststehende Steine (Zellindizes),
  * `maxTier` = höchste erlaubte Stufe. Bricht beim ersten Widerspruch ab (ok:false).
  */
-export function solveLogic(p, { maxTier = 2, known = [], maxK = 4 } = {}) {
+export const EASY_KINDS = new Set(['single', 'regInLine', 'lineInReg']);
+export function solveLogic(p, { maxTier = 2, known = [], maxK = 4, blocks = true } = {}) {
   const n = p.rows, N = n * n;
   const U = units(p);
   const rowOf = (i) => Math.floor(i / n), colOf = (i) => i % n, regOf = (i) => p.regions[i];
@@ -105,6 +108,7 @@ export function solveLogic(p, { maxTier = 2, known = [], maxK = 4 } = {}) {
     if (progress) continue;
     // Stufe 1c: ein Stein auf X würde einer anderen Einheit das letzte Feld nehmen.
     // X muss dazu JEDES freie Feld der Einheit blockieren = Schnitt ihrer Blocklisten.
+    if (!blocks) break;
     for (const u of ALL) {
       if (hasStar(u.l)) continue;
       const o = open(u.l);
@@ -187,6 +191,17 @@ export function countSolutions(p, cap = 2) {
   }
   go(0);
   return count;
+}
+
+/**
+ * Der EINSTIEG: wie viele Steine findet man ganz am Anfang nur mit Schlüssen,
+ * die man auf einen Blick sieht (EASY_KINDS), und wie viele Schritte braucht es
+ * bis zum ersten? Gemeldet: auf „Schwer" (7×7) gab es oft gar keinen Ansatz.
+ */
+export function entryInfo(p) {
+  const res = solveLogic(p, { maxTier: 1, blocks: false });
+  const first = res.steps.findIndex((s) => s.place != null);
+  return { gems: res.stars.length, firstAt: first < 0 ? Infinity : first + 1, firstKind: first < 0 ? null : res.steps[first].kind };
 }
 
 /** Der nächste Stein, den der Löser ab den gegebenen (richtigen) Steinen setzt. */

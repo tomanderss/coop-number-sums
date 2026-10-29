@@ -5,7 +5,7 @@
 import { generatePuzzle } from './generator.js';
 import { validPuzzleShape as shapeOk, normalizePuzzle } from './model.js';
 import * as board from './board.js';
-import { BoardGrid, initBoard, isFullyTier1Solvable } from './board.js';
+import { BoardGrid, GemTools, initBoard, isFullyTier1Solvable } from './board.js';
 import { DIFFICULTIES, DIFF_BY_ID, bigNumbersAllowed } from './difficulty.js';
 import { GAME_META } from '../registry.js';
 import messages from './i18n.js';
@@ -18,9 +18,10 @@ export const GAME = {
     validPuzzleShape: (p) => shapeOk(normalizePuzzle(p)),
   },
 
-  // Nichts unter dem Brett, kein Rückgängig, keine Tipps — wie Rectangles.
-  // Das Training bleibt.
+  // Unter dem Brett der Werkzeug-Umschalter Stein/Kreuz; kein Rückgängig,
+  // keine Tipps — wie Rectangles. Das Training bleibt.
   BoardGrid,
+  BoardBelow: GemTools,
   initBoard,
   board,
 
