@@ -2,7 +2,6 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  edit: { free: "Free", me: "You’re drawing", asked: "Requested …", blocked: "{name} is drawing – tap the chip at the top to take over.", yourTurn: "Your turn – start drawing!", reqTitle: "{name} wants to draw", give: "Hand over", keep: "Keep drawing", aria: { free: "Nobody is drawing – tap to take over", me: "You are drawing – tap to release", other: "{name} is drawing – tap to request", asked: "Takeover requested" } },
   games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: 'Choose game', busy: 'Finish the current game before switching.' },
 
   coopEndless: { toggle: 'Endless Climb', toggleHint: 'Climb together — 3 shared lives, no refills' },

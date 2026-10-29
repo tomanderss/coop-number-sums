@@ -32,8 +32,8 @@ export const GAME = {
   isFullyTier1Solvable,
 
   features: {
-    // Im Coop zeichnet immer nur einer, die anderen sehen live zu (app.js editLockActive).
-    editLock: true,
+    // Im Coop sehen die anderen live, was einer gerade zieht (app.js liveActive).
+    liveDrafts: true,
     hints: false,
     toolToggle: false,
     markTools: false,

@@ -40,9 +40,8 @@ let afterMove = () => {};
 let coopSend = () => null;
 let desktopBoard = () => false;
 
-// Bearbeiten-Sperre (Schale, s. app.js editAllowed): im Coop zeichnet nur, wer die
-// Sperre hält; sendLive schickt den laufenden Entwurf an die anderen.
-let editAllowed = () => true;
+// Live-Entwurf (Schale, s. app.js sendLive): im Coop sehen die anderen, was
+// man gerade zieht.
 let sendLive = () => {};
 
 export function initBoard(ctx) {
@@ -53,7 +52,6 @@ export function initBoard(ctx) {
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
-  if (ctx.editAllowed) editAllowed = ctx.editAllowed;
   if (ctx.sendLive) sendLive = ctx.sendLive;
 }
 
@@ -94,7 +92,7 @@ const me = () => state.coop.myId || LOCAL_PLAYER_ID;
 const isMultiplayer = () => state.coop.active || state.team.active;
 function playable() {
   return state.puzzle && state.status === 'playing' && !state.generating && !state.paused && !state.sessionReadonly
-    && !(state.isTrainingGame && !state.trainingDone) && editAllowed();
+    && !(state.isTrainingGame && !state.trainingDone);
 }
 const endpoints = (p, f) => p.tiles.reduce((n, m, i) => n + (i !== p.source && degree(m) === 1 && f.depth[i] >= 0 ? 1 : 0), 0);
 
@@ -142,8 +140,6 @@ function cellAt(box, x, y) {
   return r < 0 || c < 0 || r >= rows || c >= cols ? -1 : r * cols + c;
 }
 function endPress() { if (press) { clearTimeout(press.timer); sendLive(null); } press = null; }
-/** Die Sperre wechselt (abgegeben): laufendes Drücken verwerfen. */
-export function cancelLiveGesture() { endPress(); }
 function onDown(e) {
   if (e.button != null && e.button > 0) return;
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });

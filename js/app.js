@@ -204,9 +204,8 @@ const state = reactive({
 
   // Coop-Modus
   coop: {
-    // Bearbeiten-Sperre (Spiele mit features.editLock, s. editLockActive):
-    // edit = { uid, name, at, req? } aus Coop.onEdit; live = Entwürfe der anderen.
-    edit: null, live: {}, editAsked: 0, editReqSeen: null,
+    // Live-Entwürfe der anderen (Spiele mit features.liveDrafts, s. liveActive).
+    live: {},
     mixMode: null,             // 'coop' | 'duel': der Raum spielt Mix (meta.game = 'mix')
     active: false,             // aktive Session
     role: null,                // 'host' | 'guest'
@@ -420,7 +419,7 @@ for (const g of GAMES) {
   g.board.initBoard({
     state, LOCAL_PLAYER_ID, playerColor, shopEquippedId, desktopBoard,
     registerMistake, afterMove, coopSend, persistGame, ask,
-    editAllowed, sendLive,
+    sendLive,
   });
 }
 // Weichen auf das aktuelle Brett (früher eine Destrukturierung beim Laden, die
@@ -2469,156 +2468,28 @@ function resetZoom() {
 // ─── SPIELZÜGE ────────────────────────────────────────────────────────────────
 
 
-// ─── BEARBEITEN-SPERRE („wer zeichnet gerade") ───────────────────────────────
-// Nutzerwunsch: in Spielen, in denen gleichzeitiges Bearbeiten schwer ist
-// (Rectangles, Number Path, Gem Hunt, Pipes — features.editLock), zeichnet im
-// Coop immer nur EINER. Wer bei freier Sperre aufs Brett tippt, nimmt sie
-// automatisch; die anderen sehen live, was gezeichnet wird, und können die
-// Übernahme anfragen. Der Halter gibt frei (Chip) oder antwortet auf die
-// Anfrage — antwortet er nicht, wird nach EDIT_ASK_MS automatisch übergeben.
-// Transport: transiente Raum-Knoten (coop.js claimEdit/…/setLive).
-const EDIT_ASK_MS = 10000;
-const EDIT_TOUCH_MS = 8000;
-function editLockActive() {
-  return gameHas('editLock') && state.coop.active && !state.race.active && !state.team.active
+// Live-Entwürfe im Coop (features.liveDrafts: Rectangles, Number Path, Gem Hunt,
+// Pipes): ALLE dürfen jederzeit zeichnen (Nutzerwunsch — die frühere Bearbeiten-
+// Sperre ist entfernt), jeder sieht aber live, was die anderen gerade ziehen —
+// in deren Farbe, BEVOR der fertige Zug eintrifft (games/livelayer.js).
+// Transport: transienter Raum-Knoten rooms/{code}/live/{uid} (Coop.setLive).
+function liveActive() {
+  return gameHas('liveDrafts') && state.coop.active && !state.race.active && !state.team.active
     && state.coop.players.length > 1 && !!state.puzzle;
 }
-const myEditId = () => state.coop.myId || LOCAL_PLAYER_ID;
-function editHolder() {
-  const e = state.coop.edit;
-  if (!e || !e.uid) return null;
-  // Abgelaufen (kein Lebenszeichen) zählt als frei — die Transaktion prüft dasselbe.
-  if (e.uid !== myEditId() && Coop.serverNow() - (Number(e.at) || 0) >= Coop.EDIT_STALE_MS) return null;
-  return e.uid;
-}
-function editHeldByMe() { return editLockActive() && editHolder() === myEditId(); }
-function editHolderName() {
-  const id = editHolder();
-  const p = id && state.coop.players.find((x) => x.id === id);
-  return (p && p.name) || (state.coop.edit && state.coop.edit.name) || '?';
-}
-// Vom Brett gefragt, bevor ein Zug zählt. Freie Sperre → sofort nehmen (optimistisch).
-let lastBlockedToast = 0;
-function editAllowed() {
-  if (!editLockActive()) return true;
-  const holder = editHolder();
-  if (holder === myEditId()) return true;
-  if (!holder) { claimEditNow(); return true; }
-  if (Date.now() - lastBlockedToast > 2500) {
-    lastBlockedToast = Date.now();
-    showToast(t('edit.blocked', { name: editHolderName() }), 'info', 2200);
-  }
-  return false;
-}
-function claimEditNow() {
-  state.coop.edit = { uid: myEditId(), name: state.settings.coopName || '', at: Coop.serverNow() };
-  Coop.claimEdit(state.settings.coopName || '').then((ok) => {
-    if (!ok) log('coop', 'Bearbeiten-Sperre war schon vergeben');
-  });
-  log('coop', 'Bearbeiten-Sperre genommen (Antippen)');
-}
-let editTouchTimer = null, lastEditTouch = 0;
-function touchEditSoon() {
-  if (Date.now() - lastEditTouch < EDIT_TOUCH_MS) return;
-  lastEditTouch = Date.now();
-  Coop.touchEdit();
-}
-// Lebenszeichen, solange ich halte und die App sichtbar ist.
-setInterval(() => { if (editHeldByMe() && document.visibilityState === 'visible') { lastEditTouch = Date.now(); Coop.touchEdit(); } }, 10000);
-function releaseEdit() {
-  if (!editHeldByMe()) return;
-  state.coop.edit = null;
-  Board.cancelLiveGesture && Board.cancelLiveGesture();
-  sendLive(null);
-  Coop.releaseEdit();
-  log('coop', 'Bearbeiten-Sperre freigegeben (Knopf)');
-}
-function requestEdit() {
-  if (!editLockActive() || editHeldByMe()) return;
-  if (!editHolder()) { claimEditNow(); return; }
-  state.coop.editAsked = Date.now();
-  setTimeout(() => { if (state.coop.editAsked && Date.now() - state.coop.editAsked >= EDIT_ASK_MS + 4000) state.coop.editAsked = 0; }, EDIT_ASK_MS + 4100);
-  Coop.requestEdit(state.settings.coopName || '');
-  noteSent({ type: 'editRequest' });
-  log('coop', 'Übernahme angefragt', { holder: editHolder() });
-}
-function grantEdit() {
-  clearTimeout(editAskTimer);
-  if (!editHeldByMe()) return;
-  const req = state.coop.edit && state.coop.edit.req;
-  if (!req || !req.uid) return;
-  Board.cancelLiveGesture && Board.cancelLiveGesture();
-  sendLive(null);
-  state.coop.edit = { uid: req.uid, name: req.name || '', at: Coop.serverNow() };
-  Coop.grantEdit();
-  log('coop', 'Bearbeiten-Sperre übergeben', { to: req.uid });
-}
-function denyEdit() {
-  clearTimeout(editAskTimer);
-  const e = state.coop.edit;
-  if (e && e.req) state.coop.edit = { ...e, req: null };
-  Coop.denyEdit();
-  log('coop', 'Übernahme abgelehnt');
-}
-// Eintreffender Stand der Sperre (Coop.onEdit). Eine Anfrage an MICH startet die
-// Rückfrage mit Countdown; ohne Antwort wird automatisch übergeben.
-let editAskTimer = null;
-function onEditState(v) {
-  const prev = state.coop.edit;
-  state.coop.edit = v || null;
-  const me = myEditId();
-  if (v && v.uid === me && (!prev || prev.uid !== me) && state.coop.editAsked) {
-    // Mir übergeben: eigenes Aufräumen setzen.
-    state.coop.editAsked = 0;
-    Coop.adoptEdit();
-    showToast(t('edit.yourTurn'), 'success', 1800);
-  }
-  if (!v || v.uid !== me) state.coop.editAsked = v && v.uid ? state.coop.editAsked : 0;
-  const req = v && v.uid === me && v.req && v.req.uid !== me ? v.req : null;
-  const key = req ? req.uid + ':' + req.at : null;
-  if (key !== state.coop.editReqSeen) {
-    state.coop.editReqSeen = key;
-    clearTimeout(editAskTimer);
-    if (req) {
-      if (state.settings.sfxHint) Music.sfxHint();
-      editAskTimer = setTimeout(() => { if (editHeldByMe()) grantEdit(); }, EDIT_ASK_MS);
-    }
-  }
-}
-function editRequestPending() {
-  const e = state.coop.edit;
-  return editHeldByMe() && e && e.req && e.req.uid && e.req.uid !== myEditId() ? e.req : null;
-}
-// Live-Entwurf (gedrosselt auf ~12/s, das letzte Bild kommt immer an).
+// Gedrosselt auf ~12/s, das letzte Bild (und null = fertig) kommt immer an.
 let liveTimer = null, livePending, liveLast = 0;
 function sendLive(data) {
-  if (!editLockActive()) return;
+  if (!liveActive()) return;
   livePending = data;
-  const flush = () => { liveTimer = null; liveLast = Date.now(); Coop.setLive(livePending == null ? null : { ...livePending, c: playerColor(myEditId()) || '' }); };
+  const flush = () => { liveTimer = null; liveLast = Date.now(); Coop.setLive(livePending == null ? null : { ...livePending, c: playerColor(state.coop.myId || LOCAL_PLAYER_ID) || '' }); };
   if (data == null) { clearTimeout(liveTimer); flush(); return; }
   if (liveTimer) return;
   const wait = Math.max(0, 80 - (Date.now() - liveLast));
   liveTimer = setTimeout(flush, wait);
 }
-// Chip in der Kopfleiste: Zustand + die passende Aktion.
-const editLockedByOther = computed(() => editLockActive() && !!editHolder() && editHolder() !== myEditId());
-const editChip = computed(() => {
-  if (!editLockActive()) return null;
-  const holder = editHolder(), me = myEditId();
-  if (holder === me) return { kind: 'me', label: t('edit.me'), color: playerColor(me) };
-  if (!holder) return { kind: 'free', label: t('edit.free'), color: '' };
-  if (state.coop.editAsked) return { kind: 'asked', label: t('edit.asked'), color: playerColor(holder) };
-  return { kind: 'other', label: editHolderName(), color: playerColor(holder) };
-});
-function onEditChip() {
-  const c = editChip.value;
-  if (!c) return;
-  if (c.kind === 'me') releaseEdit();
-  else if (c.kind === 'other' || c.kind === 'free') requestEdit();
-}
 
 function afterMove() {
-  if (editHeldByMe()) touchEditSoon();
   Board.clearStaleTutor();
   persistGameSoon();
   if (state.team.active) pushTeamProgress();
@@ -3359,8 +3230,8 @@ function handleCoopMsg(msg, key = null) {
 // (scheinbar) leer ist (s. Coop.leave()).
 function coopReset({ keepRoom = false } = {}) {
   coopIntentionalLeave = true;
-  clearTimeout(editAskTimer);
-  state.coop.edit = null; state.coop.live = {}; state.coop.editAsked = 0; state.coop.editReqSeen = null;
+  clearTimeout(liveTimer); liveTimer = null;
+  state.coop.live = {};
   coopOutbox = [];
   Coop.leave({ keepRoom });
   if (!keepRoom) clearCoopSession();
@@ -7640,7 +7511,6 @@ function init() {
   // Tipp-Indikator: live tippende Mitspieler aus dem Raum übernehmen (Chat-Button
   // + Tipp-Blase). Einmalige Registrierung — gilt für jede künftige Coop-Session.
   Coop.onTyping((uids) => { state.chat.typingUids = uids; });
-  Coop.onEdit(onEditState);
   Coop.onLive((m) => { state.coop.live = m; });
   refreshResume();
   initMissions();   // Wochen-Missionen laden / bei Wochenwechsel neu setzen
@@ -8178,7 +8048,6 @@ const App = {
       }),
       wheelCurrent: computed(() => (state.mixOn ? MIX_ID : currentGame.id)),
       setMixScreenMode, setDuelGoal, duelGoalLabel, startMixFromScreen, mixDuelRemainingMs, DUEL_COUNTS, DUEL_MINUTES,
-      editChip, onEditChip, editRequestPending, grantEdit, denyEdit, EDIT_ASK_MS, editLockedByOther,
       onWheelSelect, openMix, startMix, resumeMix, mixInfo, mixToggleGame, mixToggleDiff, mixPreset, ladderStep, MIX_LOGO, ENDLESS_START_LIVES: ENDLESS_CFG.startLives,
       mixStrip: computed(() => { const g = mixInfo.value.games.filter((x) => x.on); const l = g.length ? g : mixInfo.value.games; return l.concat(l); }),
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL, BRAND_LOGO,
@@ -8571,12 +8440,7 @@ const App = {
         <div class="meta-chips">
           <span class="chip"><span class="ei" v-html="ic(DIFF_BY_ID[state.puzzle.difficulty].emoji)"></span> {{ t('difficulty.'+state.puzzle.difficulty) }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
-          <!-- Bearbeiten-Sperre: wer zeichnet gerade? Antippen = freigeben / anfragen. -->
-          <button v-if="editChip" type="button" class="chip edit-chip" :class="[editChip.kind, (state.coop.connected && state.coop.online) ? 'coop-on' : 'coop-off']"
-                  :style="editChip.color ? { '--ec': editChip.color } : null" @click="onEditChip" :aria-label="t('edit.aria.' + editChip.kind, { name: editChip.label })">
-            <span class="ei" v-html="ic(editChip.kind === 'free' ? 'pen' : editChip.kind === 'me' ? 'pen' : 'lock')"></span><span class="ec-label">{{ editChip.label }}</span>
-          </button>
-          <span v-else-if="state.coop.active" class="chip coop-chip" :class="(state.coop.connected && state.coop.online) ? 'coop-on' : 'coop-off'">
+          <span v-if="state.coop.active" class="chip coop-chip" :class="(state.coop.connected && state.coop.online) ? 'coop-on' : 'coop-off'">
             <span class="ei" v-html="ic('users')"></span> {{ t('game.coopTag') }}{{ (state.coop.connected && state.coop.online) ? '' : t('game.coopOfflineSuffix') }}
           </span>
           <span v-if="state.team.active" class="chip coop-chip"><span class="ei" v-html="ic('versus')"></span> {{ t('team.label'+state.team.myTeam) }}</span>
@@ -8652,21 +8516,9 @@ const App = {
         <!-- Das Brett ist eine EIGENE Child-Komponente (BoardGrid): App-Renders
              (Tool-Umschalter, Sekunden-Tick, HUD) rendern die ~200 Zellen NICHT
              mehr mit — das Brett rendert nur bei echten Brett-Änderungen. -->
-        <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart, 'edit-locked': editLockedByOther }"
-             :style="editLockedByOther && editChip && editChip.color ? { '--ec': editChip.color } : null">
+        <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
           <board-grid></board-grid>
         </div>
-        <!-- Bearbeiten-Sperre: ein Mitspieler möchte übernehmen (feste Ebene, verschiebt nichts). -->
-        <transition name="rfade">
-          <div v-if="editRequestPending()" class="edit-req" role="alertdialog" :aria-label="t('edit.reqTitle', { name: editRequestPending().name || '?' })">
-            <div class="er-text"><span class="ei" v-html="ic('pen')"></span> {{ t('edit.reqTitle', { name: editRequestPending().name || '?' }) }}</div>
-            <div class="er-bar"><i :style="{ animationDuration: EDIT_ASK_MS + 'ms' }"></i></div>
-            <div class="er-actions">
-              <button class="btn btn-ghost btn-sm" @click="denyEdit">{{ t('edit.keep') }}</button>
-              <button class="btn btn-primary btn-sm" @click="grantEdit">{{ t('edit.give') }}</button>
-            </div>
-          </div>
-        </transition>
 
         <!-- Steckplatz UNTER dem Brett: in Math Cross der Vorrat mit den noch zu
              legenden Steinen (eigene Child-Komponente, damit ein HUD-/Sekunden-
@@ -10753,7 +10605,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, startCoopGame, startCoopMatch, startRaceMatch, endlessContinue, onEditState, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, startCoopGame, startCoopMatch, startRaceMatch, endlessContinue, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint,
   boardRenders, cellRenders, currentGameInfo, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
