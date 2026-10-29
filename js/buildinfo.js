@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '2.28';
-export const BUILD_HASH = '3097cc7';
+export const BUILD      = '3.0';
+export const BUILD_HASH = '8ffb36b';
 
 export const CHANGELOG = [
+  {
+    "version": "3.0",
+    "date": "29.10.2026",
+    "changes": [
+      "- Version 3.0: Sechs Spiele, der Zufallsmodus Mix (allein, im Coop und im Duell), gemeinsames Zeichnen im Coop mit Live-Ansicht, Wochen-Herausforderungen für alle Spiele und Skins je Spiel"
+    ]
+  },
   {
     "version": "2.28",
     "date": "29.10.2026",

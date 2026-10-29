@@ -829,6 +829,13 @@ export default {
       h3: "Coop, duels, Endless Climb and training in every game",
       h4: "New: Math Cross, Rectangles and Number Path",
     },
+    v3: {
+      sub: "Six games and a random mode that ties them all together – plus more teamwork in coop.",
+      h1: "Mix: every level a random game – solo, in coop or in a duel",
+      h2: "New: Gem Hunt and Pipes – six games now",
+      h3: "Draw together in coop: everyone edits at once and sees live what the others drag",
+      h4: "Weekly challenges across all games and skins for each game separately",
+    },
   },
   update: {
     check: 'Check for updates',

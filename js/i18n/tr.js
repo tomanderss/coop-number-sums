@@ -829,6 +829,13 @@ export default {
       h3: "Her oyunda co-op, düellolar, Sonsuz Tırmanış ve antrenman",
       h4: "Yeni: Math Cross, Rectangles ve Number Path",
     },
+    v3: {
+      sub: "Altı oyun ve hepsini birleştiren rastgele mod – üstelik ortak oyunda daha fazla birliktelik.",
+      h1: "Mix: her seviye rastgele bir oyun – tek başına, ortak ya da düelloda",
+      h2: "Yeni: Gem Hunt ve Pipes – artık altı oyun",
+      h3: "Ortak çizim: herkes aynı anda düzenler ve diğerlerinin ne çektiğini canlı görür",
+      h4: "Tüm oyunlar için haftalık görevler ve her oyuna ayrı görünümler",
+    },
   },
   update: {
     check: 'Güncellemeleri denetle',
