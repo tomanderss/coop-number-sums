@@ -129,7 +129,7 @@ export function refineRegions(n, cols, regions, rnd, { maxTier = 2, blocks = tru
 }
 
 /**
- * opts: { difficulty, size, maxTier, blocks, minBlocks, minTier2, entry, seed, maxMs, tries }
+ * opts: { difficulty, size, maxTier, blocks, minBlocks, minTier2, entry, seed, tries }
  * Liefert { rows, cols, regions, solution, difficulty, seed, tier2 }.
  */
 export function generatePuzzle(input = {}) {
@@ -146,16 +146,14 @@ export function generatePuzzle(input = {}) {
   // Abbruch nach einer festen ZAHL von Versuchen, nicht nach Zeit: Wettkampf/
   // Team/Mix-Duell erzeugen dasselbe Rätsel aus demselben Seed auf JEDEM Gerät —
   // ein Zeitlimit lieferte auf einem langsamen Gerät ein anderes Rätsel (in der
-  // CI aufgefallen). Gemessen braucht 11×11 höchstens ~13 Versuche; die Zeit
-  // ist nur noch ein fernes Sicherheitsnetz.
-  const deadline = Date.now() + (opts.maxMs ?? 30000);
+  // CI aufgefallen). Gemessen braucht 11×11 höchstens ~13 Versuche.
   const tries = opts.tries ?? 30;
   let best = null;
   for (let t = 0; t < tries; t++) {
     const cols = randomSolution(n, rnd);
     if (!cols) continue;
     const regions = refineRegions(n, cols, growRegions(n, cols, rnd), rnd, { maxTier, blocks, budget: opts.budget ?? 250 * n });
-    if (!regions) { if (Date.now() > deadline && best) break; continue; }
+    if (!regions) continue;
     const p = { rows: n, cols: n, regions };
     const res = solveLogic(p, { maxTier, blocks });
     const tier2 = res.steps.filter((s) => s.tier === 2).length;
@@ -166,7 +164,6 @@ export function generatePuzzle(input = {}) {
     // Bester Ersatz: der Einstieg zählt vor der Schwere.
     const score = (x) => Math.min(x.entry, entry) * 100 + Math.min(x.tier2, minTier2) * 10 + Math.min(x.blocks, minBlocks);
     if (ent >= 1 && (!best || score(cand) > score(best))) best = cand;
-    if (Date.now() > deadline) break;
   }
   if (best) return best;
   // Notausgang (praktisch nie): ohne Zusatzforderung, Stufe 2 erlaubt — der
