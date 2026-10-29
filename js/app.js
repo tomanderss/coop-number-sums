@@ -1682,6 +1682,35 @@ const MIX_CATALOG = mixCatalog(GAMES);
 const MIX_LADDER = DIFFICULTY_LADDER.map((d) => d.id);
 const MIX_LOGO = './icons/games/mix-192.png';
 const MIX_REVEAL_MS = 2300;     // so lange läuft die Ziehung mindestens (die Generierung läuft parallel)
+const MIX_SPIN_MS = 1750;       // Walze steht + Name/Stufe sind eingeblendet (s. .mr-reel/.mr-result in styles.css)
+// Die Ziehung zeigen — und ihre Animation erst starten, wenn sie WIRKLICH auf dem
+// Schirm ist. Gemeldet: beim allerersten Level war die Walze „verschluckt", man
+// sah nach kurzem Laden nur noch das Ergebnis. Grund: im selben Frame baute sich
+// der Spiel-Screen auf, gleich danach lief der Spielwechsel — der erste Frame der
+// Ziehung kam erst, als die Walze schon stand. Deshalb: Ebene zeigen (Animation
+// angehalten, .mix-reveal ohne .go), zwei Frames + Logos dekodiert abwarten, dann
+// erst losdrehen; die schwere Arbeit (Spielwechsel, Generierung) wartet auf
+// `spun` = Walze steht. `done` = die Ziehung hatte ihre volle Zeit.
+function runMixReveal(info, totalMs = MIX_REVEAL_MS) {
+  const seq = Date.now() + Math.random();
+  state.mixReveal = {
+    reel: (info.reel || [info.game]).filter((id) => GAME_IDS.includes(id)).map((id) => ({ id, logo: gameMeta(id).logo })),
+    game: info.game, diff: info.diff, level: info.level, seq, go: false,
+  };
+  const t0 = performance.now();
+  const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+  const decoded = () => {
+    const imgs = [...document.querySelectorAll('.mix-reveal .mr-reel img')];
+    const all = Promise.all(imgs.map((img) => (img.decode ? img.decode().catch(() => {}) : Promise.resolve())));
+    return Promise.race([all, new Promise((r) => setTimeout(r, 600))]);
+  };
+  const started = nextTick().then(frame).then(decoded).then(frame).then(frame).then(() => {
+    if (state.mixReveal && state.mixReveal.seq === seq) state.mixReveal.go = true;
+    log('game', 'Mix-Ziehung startet', { level: info.level, game: info.game, waitMs: Math.round(performance.now() - t0) });
+  });
+  const after = (ms) => started.then(() => new Promise((r) => setTimeout(r, ms)));
+  return { spun: after(Math.min(MIX_SPIN_MS, totalMs)), done: after(totalMs) };
+}
 function mixPool() { return normalizeMixPool(state.settings.mixPool, MIX_CATALOG); }
 function setMixPool(p) { setSetting('mixPool', normalizeMixPool(p, MIX_CATALOG)); }
 function mixToggleGame(id) { setMixPool(toggleMixGame(mixPool(), id, MIX_CATALOG)); }
@@ -1770,17 +1799,14 @@ function loadMixLevel() {
   m.prev = pick.game; m.game = pick.game; m.diff = pick.diff;
   const ids = MIX_CATALOG.filter((g) => mixGameOn(pool, g.id, MIX_CATALOG)).map((g) => g.id);
   state.isTrainingGame = false;
-  state.screen = 'game';
   state.generating = true;
-  state.mixReveal = {
-    reel: mixReel(ids.length ? ids : [pick.game], pick.game, 12).map((id) => ({ id, logo: gameMeta(id).logo })),
-    game: pick.game, diff: pick.diff, level: e.level, seq: Date.now(),
-  };
+  const { spun, done: reveal } = runMixReveal({ game: pick.game, diff: pick.diff, level: e.level, reel: mixReel(ids.length ? ids : [pick.game], pick.game, 12) });
   log('game', 'Mix-Level gezogen', { level: e.level, game: pick.game, difficulty: pick.diff });
-  const reveal = new Promise((r) => setTimeout(r, MIX_REVEAL_MS));
   const stillMine = () => state.endless.active && state.endless.mix === m;
-  requestAnimationFrame(() => setTimeout(() => {
+  spun.then(() => {
     if (!stillMine()) return;
+    // Erst JETZT (Walze steht) den Spiel-Screen aufbauen und das Spiel wechseln.
+    state.screen = 'game';
     if (currentGame.id !== pick.game) switchGame(pick.game, { force: true });
     const t0 = performance.now();
     const gen = generateAsync({ difficulty: pick.diff }).catch((err) => {
@@ -1797,7 +1823,7 @@ function loadMixLevel() {
       state.generating = false; state.mixReveal = null;
       showToast(t('mix.loadFailed'), 'error', 3500);
     });
-  }, 30));
+  });
 }
 function resumeMix() {
   const r = state.resumeAvailableMix;
@@ -1853,12 +1879,6 @@ function mixInitExtra() {
   const e = state.endless;
   return e.active && e.mix ? { game: currentGame.id, mix: { diff: e.mix.diff || '', played: { ...(e.mix.played || {}) } } } : {};
 }
-function showMixReveal(game, diff, level, reel) {
-  state.mixReveal = {
-    reel: (reel || [game]).filter((id) => GAME_IDS.includes(id)).map((id) => ({ id, logo: gameMeta(id).logo })),
-    game, diff, level, seq: Date.now(),
-  };
-}
 // ── Coop-Mix (host-autoritativ) ──
 function startCoopMix() {
   if (!canStartCoopMatch()) return;
@@ -1880,14 +1900,13 @@ function loadCoopMixLevel() {
   const reel = mixReel(ids.length ? ids : [pick.game], pick.game, 12);
   state.generating = true;
   e.advancing = true;
-  state.screen = 'game';
-  showMixReveal(pick.game, pick.diff, e.level, reel);
+  const { spun, done: reveal } = runMixReveal({ game: pick.game, diff: pick.diff, level: e.level, reel });
   coopSend({ type: Coop.MSG.MIX_PICK, game: pick.game, diff: pick.diff, level: e.level, reel });
   log('coop', 'Coop-Mix-Level gezogen', { level: e.level, game: pick.game, difficulty: pick.diff });
-  const reveal = new Promise((r) => setTimeout(r, MIX_REVEAL_MS));
   const stillMine = () => state.endless.active && state.endless.mix === m;
-  requestAnimationFrame(() => setTimeout(() => {
+  spun.then(() => {
     if (!stillMine()) return;
+    state.screen = 'game';
     if (currentGame.id !== pick.game) switchGame(pick.game, { force: true });
     const t0 = performance.now();
     const gen = generateAsync({ difficulty: pick.diff }).catch((err) => {
@@ -1900,18 +1919,18 @@ function loadCoopMixLevel() {
       finishCoopEndlessLevel(puzzle);
       state.mixReveal = null;
     }).catch((err) => { state.mixReveal = null; onLobbyGenFailed(err, 'Coop-Mix'); });
-  }, 30));
+  });
 }
 // Gast: der Host hat gezogen → dieselbe Ziehung zeigen, schon mal das Spiel wechseln.
 let mixPickTimer = null;
 function onMixPick(msg) {
   if (!state.coop.active || !GAME_IDS.includes(msg.game)) return;
-  showMixReveal(msg.game, msg.diff, msg.level, msg.reel);
+  const { spun } = runMixReveal({ game: msg.game, diff: msg.diff, level: msg.level, reel: msg.reel });
   state.generating = true;
   log('coop', 'Coop-Mix: Ziehung vom Host', { level: msg.level, game: msg.game });
-  requestAnimationFrame(() => setTimeout(() => {
-    if (currentGame.id !== msg.game) switchGame(msg.game, { force: true });
-  }, 30));
+  // Schon mal das Spiel wechseln — aber erst, wenn die Walze steht (das INIT
+  // wechselt notfalls selbst, falls es früher kommt).
+  spun.then(() => { if (state.coop.active && currentGame.id !== msg.game) switchGame(msg.game, { force: true }); });
   // Kommt das Level nicht (Host weg), hängt die Ziehung nicht ewig.
   clearTimeout(mixPickTimer);
   mixPickTimer = setTimeout(() => { if (state.mixReveal) { state.mixReveal = null; state.generating = false; } }, 15000);
@@ -1959,13 +1978,13 @@ function loadMixDuelLevel(first) {
   const lv = mixDuelLevelInfo(d.level);
   const run = d;
   state.generating = true;
+  let spun = new Promise((r) => requestAnimationFrame(() => setTimeout(r, 30))), reveal = Promise.resolve();
   if (!first) {
     const ids = MIX_CATALOG.filter((g) => mixGameOn(d.pool, g.id, MIX_CATALOG)).map((g) => g.id);
-    showMixReveal(lv.game, lv.diff, d.level, mixReel(ids.length ? ids : [lv.game], lv.game, 10));
+    ({ spun, done: reveal } = runMixReveal({ game: lv.game, diff: lv.diff, level: d.level, reel: mixReel(ids.length ? ids : [lv.game], lv.game, 10) }, MIX_REVEAL_MS - 600));
   }
   log('game', 'Mix-Duell: Level laden', { level: d.level, game: lv.game, difficulty: lv.diff });
-  const reveal = new Promise((r) => setTimeout(r, first ? 0 : MIX_REVEAL_MS - 600));
-  requestAnimationFrame(() => setTimeout(() => {
+  spun.then(() => {
     if (state.mixDuel !== run || run.over) return;
     if (currentGame.id !== lv.game) switchGame(lv.game, { force: true });
     const gen = generateAsync({ difficulty: lv.diff, seed: lv.seed }).catch(() => generatePuzzle({ difficulty: lv.diff, seed: lv.seed }));
@@ -1984,7 +2003,7 @@ function loadMixDuelLevel(first) {
       startTimer();
       pushRaceProgress();
     }).catch((err) => { state.mixReveal = null; onLobbyGenFailed(err, 'Mix-Duell'); });
-  }, 30));
+  });
 }
 // Ein Level ist vorbei (gelöst oder alle Leben weg): weiterzählen, Ziel prüfen,
 // sonst sofort das nächste Rätsel.
@@ -8055,7 +8074,7 @@ const App = {
     <!-- Mix: die Ziehung vor jedem Level — eine Walze über die Spiel-Logos, die
          auf dem gezogenen Spiel einrastet, danach erscheinen Name und Stufe.
          Verdeckt zugleich die Generierung (läuft parallel). -->
-    <div v-if="state.mixReveal" :key="state.mixReveal.seq" class="mix-reveal" role="status"
+    <div v-if="state.mixReveal" :key="state.mixReveal.seq" class="mix-reveal" :class="{ go: state.mixReveal.go }" role="status"
          :aria-label="t('mix.levelN', { n: state.mixReveal.level }) + ': ' + t(gameMeta(state.mixReveal.game).nameKey) + ', ' + t('difficulty.' + state.mixReveal.diff)">
       <div class="mr-card" :style="{ '--c': ladderStep(state.mixReveal.diff).accent }">
         <div class="mr-kicker">{{ t('mix.levelN', { n: state.mixReveal.level }) }}</div>
