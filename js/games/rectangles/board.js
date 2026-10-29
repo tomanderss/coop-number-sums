@@ -50,9 +50,8 @@ let afterMove = () => {};
 let coopSend = () => null;
 let desktopBoard = () => false;
 
-// Bearbeiten-Sperre (Schale, s. app.js editAllowed): im Coop zeichnet nur, wer die
-// Sperre hält; sendLive schickt den laufenden Entwurf an die anderen.
-let editAllowed = () => true;
+// Live-Entwurf (Schale, s. app.js sendLive): im Coop sehen die anderen, was
+// man gerade zieht.
 let sendLive = () => {};
 
 export function initBoard(ctx) {
@@ -64,7 +63,6 @@ export function initBoard(ctx) {
   afterMove = ctx.afterMove;
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
-  if (ctx.editAllowed) editAllowed = ctx.editAllowed;
   if (ctx.sendLive) sendLive = ctx.sendLive;
 }
 
@@ -140,7 +138,7 @@ const wire = (q) => ({ id: q.id, r: q.r, c: q.c, h: q.h, w: q.w, by: q.by || '',
 
 function playable() {
   return state.puzzle && state.status === 'playing' && !state.generating && !state.paused && !state.sessionReadonly
-    && !(state.isTrainingGame && !state.trainingDone) && editAllowed();
+    && !(state.isTrainingGame && !state.trainingDone);
 }
 
 // Nach JEDER eigenen Änderung: ist das Brett voll und geht nicht auf, kostet das
@@ -366,8 +364,6 @@ function onCancel(e) {
   if (pointers.size < 2) pan = null;
   if (drag && e.pointerId === drag.id) { clearMarks(drag); drag = null; hidePreview(); sendLive(null); }
 }
-/** Die Sperre wechselt mitten im Ziehen (abgegeben): Entwurf verwerfen. */
-export function cancelLiveGesture() { if (drag) { clearMarks(drag); drag = null; hidePreview(); } }
 
 // ── Darstellung ──────────────────────────────────────────────────────────────
 const pct = (v, n) => `${(v / n) * 100}%`;

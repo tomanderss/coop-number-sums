@@ -2,7 +2,6 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  edit: { free: "空き", me: "あなたが描画中", asked: "リクエスト中…", blocked: "{name}が描画中です。上のチップをタップして交代をリクエスト。", yourTurn: "あなたの番です。描き始めよう！", reqTitle: "{name}が描きたがっています", give: "交代する", keep: "続ける", aria: { free: "誰も描いていません。タップで担当", me: "描画中。タップで解放", other: "{name}が描画中。タップでリクエスト", asked: "交代をリクエスト済み" } },
   games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: 'ゲームを選ぶ', busy: 'ゲームを切り替える前に、進行中のゲームを終えてください。' },
 
   coopEndless: { toggle: 'エンドレス・クライム', toggleHint: '協力で登る——共有ライフ3つ、補充なし' },

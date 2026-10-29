@@ -2,7 +2,6 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  edit: { free: "Frei", me: "Du zeichnest", asked: "Angefragt …", blocked: "{name} zeichnet gerade – tippe oben auf den Chip, um zu übernehmen.", yourTurn: "Du bist dran – zeichne los!", reqTitle: "{name} möchte zeichnen", give: "Abgeben", keep: "Weiter zeichnen", aria: { free: "Niemand zeichnet – antippen zum Übernehmen", me: "Du zeichnest – antippen zum Freigeben", other: "{name} zeichnet – antippen zum Anfragen", asked: "Übernahme angefragt" } },
   games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: 'Spiel wählen', busy: 'Erst die laufende Partie beenden, dann das Spiel wechseln.' },
 
   coopEndless: { toggle: 'Endlos-Aufstieg', toggleHint: 'Gemeinsam immer schwerer — 3 geteilte Leben, kein Nachschub' },

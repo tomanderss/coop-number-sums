@@ -2,7 +2,6 @@
 export default {
 
   // Namen der Spiele dieser App (Eigennamen — in jeder Sprache gleich).
-  edit: { free: "Libre", me: "Estás dibujando", asked: "Solicitado …", blocked: "{name} está dibujando: toca el chip de arriba para tomar el control.", yourTurn: "¡Te toca! Empieza a dibujar.", reqTitle: "{name} quiere dibujar", give: "Ceder", keep: "Seguir dibujando", aria: { free: "Nadie dibuja: toca para tomar el control", me: "Estás dibujando: toca para liberar", other: "{name} está dibujando: toca para pedir el turno", asked: "Turno solicitado" } },
   games: { numbersums: 'Number Sums', mathcross: 'Math Cross', rectangles: 'Rectangles', numberpath: 'Number Path', gems: 'Gem Hunt', pipes: 'Pipes', choose: 'Elegir juego', busy: 'Termina la partida actual antes de cambiar de juego.' },
 
   coopEndless: { toggle: 'Ascenso sin fin', toggleHint: 'Suban juntos — 3 vidas compartidas, sin recargas' },

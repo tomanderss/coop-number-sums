@@ -3579,35 +3579,9 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   .mr-frame, .mr-result { animation-delay: 0s; animation-duration: .01s; }
 }
 
-/* ── Bearbeiten-Sperre („wer zeichnet gerade", features.editLock) ──────────
-   Chip in der Kopfleiste (feste Breite, verschiebt nichts), gedimmtes Brett mit
-   Rahmen in der Farbe des Zeichnenden, Rückfrage-Karte als feste Ebene.
-   Animiert nur transform/opacity. */
-.chip.edit-chip {
-  display: inline-flex; align-items: center; gap: 4px; border: 0; cursor: pointer; font: inherit; font-size: .7rem; font-weight: 700;
-  width: 10.2em; justify-content: flex-start; overflow: hidden;
-  background: color-mix(in srgb, var(--ec, var(--accent)) 16%, var(--bg2)); color: var(--text);
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ec, var(--accent)) 60%, transparent);
-}
-.chip.edit-chip .ec-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chip.edit-chip .ei svg { width: 12px; height: 12px; }
-.chip.edit-chip.free { background: var(--bg2); color: var(--text2); box-shadow: inset 0 0 0 1px var(--hairline); }
-.chip.edit-chip.asked .ec-label { animation: ec-wait 1s ease-in-out infinite; }
-@keyframes ec-wait { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
-.chip.edit-chip.coop-off { opacity: .6; }
-.board-wrap.edit-locked .board { opacity: .82; box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--ec, var(--accent)) 75%, transparent), var(--soft-shadow); }
-.edit-req {
-  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 18px); z-index: 60;
-  transform: translateX(-50%); width: min(340px, calc(100vw - 32px));
-  background: var(--card); color: var(--text); border-radius: 16px; padding: 12px 14px;
-  box-shadow: 0 8px 28px rgba(0,0,0,.28), 0 0 0 1px var(--hairline);
-}
-.edit-req .er-text { font-weight: 700; font-size: .92rem; display: flex; gap: 6px; align-items: center; }
-.edit-req .er-bar { height: 4px; border-radius: 4px; background: var(--bg2); overflow: hidden; margin: 10px 0; }
-.edit-req .er-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; animation: er-count linear forwards; }
-@keyframes er-count { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-.edit-req .er-actions { display: flex; gap: 8px; justify-content: flex-end; }
-/* Live-Entwurf eines Mitspielers (Ebene in den Brettern: .live-*) */
+/* ── Live-Entwurf eines Mitspielers (features.liveDrafts; Ebene in den Brettern: .live-*) ──
+   Alle zeichnen gleichzeitig; was ein anderer gerade zieht, erscheint hier in
+   seiner Farbe. Animiert nur opacity. */
 .live-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
 .live-cursor {
   position: absolute; border-radius: 30%;
@@ -3623,7 +3597,7 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .live-path { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .live-path polyline { fill: none; stroke: var(--lc, var(--accent)); stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
 .live-cell { position: absolute; display: grid; place-items: center; color: var(--lc, var(--accent)); font-weight: 800; opacity: .8; }
-@media (prefers-reduced-motion: reduce) { .live-cursor, .chip.edit-chip.asked .ec-label, .edit-req .er-bar i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .live-cursor { animation: none; } }
 
 /* ── Mix im Mehrspieler: Spielweise, Duell-Ziel, Lobby-Karte, Duell-Chip ── */
 .mix-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
