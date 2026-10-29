@@ -38,6 +38,6 @@ export function genOptionsFor(diffId) {
     difficulty: d.id, rows: d.dim.r, cols: d.dim.c,
     minArea: 2, maxArea: d.maxArea, maxAspect: 5,
     maxTier: d.maxTier, minTier2: d.minTier2,
-    tries: 3000, maxMs: 4000,
+    tries: 3000,
   };
 }

@@ -57,7 +57,9 @@ function spanningTree(rows, cols, rnd, branchy) {
 
 export function generatePuzzle(input = {}) {
   const opts = input.rows ? input : { ...genOptionsFor(input.difficulty), ...input };
-  const { rows, cols, maxTier = 2, branchy = 0.5, minTier2 = 0, tries = 300, maxMs = 4000 } = opts;
+  // Nur eine feste Versuchszahl, kein Zeitlimit: derselbe Seed muss auf jedem Gerät
+  // dasselbe Rätsel geben (Wettkampf/Mix-Duell).
+  const { rows, cols, maxTier = 2, branchy = 0.5, minTier2 = 0, tries = 300 } = opts;
   const seed = Number.isFinite(input.seed) ? input.seed : Math.floor(Math.random() * 2 ** 31);
   const rnd = mulberry32(seed);
   const t0 = Date.now();
@@ -80,7 +82,6 @@ export function generatePuzzle(input = {}) {
     const score = res.decided + (res.tier2 >= minTier2 ? n2(rows, cols) : 0);
     if (!best || score > best.score) best = { p, res, score };
     if (res.solved && res.tier2 >= minTier2) break;
-    if (Date.now() - t0 > maxMs) break;
   }
   const { p, res } = best;
   return { ...p, difficulty: opts.difficulty || null, seed, tier2: res.tier2, logic: res.solved };

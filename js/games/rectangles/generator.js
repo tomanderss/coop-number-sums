@@ -85,7 +85,6 @@ export function generatePuzzle(opts = {}) {
   const seed = (opts.seed ?? Math.floor(Math.random() * 2 ** 31)) >>> 0;
   const rng = mulberry32(seed);
   const t0 = Date.now();
-  const deadline = t0 + (o.maxMs || 4000);
   let tries = 0;
   for (; tries < (o.tries || 400); tries++) {
     const rects = partition(o.rows, o.cols, rng, o);
@@ -108,11 +107,12 @@ export function generatePuzzle(opts = {}) {
       clues = clues.slice();
       for (const i of open) if (rng() < 0.6) clues[i] = placeClue(rects[i], rng);
     }
-    if (Date.now() > deadline && tries > 5) break;
+    // Kein Zeitlimit: derselbe Seed muss auf jedem Gerät dasselbe Rätsel geben
+    // (Wettkampf/Mix-Duell) — die Versuchszahl begrenzt.
   }
   // Notausgang (sollte nie greifen): die einfachste Stufe ohne Härte-Vorgabe.
   if (!opts.__fallback) {
-    return generatePuzzle({ ...o, seed: (seed + 1) >>> 0, minTier2: 0, maxTier: 2, maxArea: Math.min(o.maxArea, 8), __fallback: true, tries: 2000, maxMs: 8000 });
+    return generatePuzzle({ ...o, seed: (seed + 1) >>> 0, minTier2: 0, maxTier: 2, maxArea: Math.min(o.maxArea, 8), __fallback: true, tries: 2000 });
   }
   throw new Error('Rectangles: kein Rätsel gefunden');
 }

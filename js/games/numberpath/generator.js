@@ -77,6 +77,7 @@ function placeWalls(o, path, rng) {
   return free.slice(0, Math.min(free.length, o.walls));
 }
 
+const TIER2_TRIES = 6;   // gemessen: praktisch immer 1–2 Versuche
 export function generatePuzzle(opts = {}) {
   const o = opts.rows ? opts : { ...genOptionsFor(opts.difficulty), ...opts };
   const seed = (opts.seed ?? Math.floor(Math.random() * 2 ** 31)) >>> 0;
@@ -110,7 +111,10 @@ export function generatePuzzle(opts = {}) {
     }
     const res = solveEdges(buildPuzzle(o, path, walls, idxs), { maxTier: o.maxTier });
     if (!res.solved) continue;
-    if ((o.minTier2 || 0) > res.tier2Steps && attempt < (o.tries || 40) - 1 && Date.now() - t0 < (o.maxMs || 4000)) continue;
+    // Zu leicht für die Stufe → noch ein Versuch, aber nach einer festen ZAHL von
+    // Versuchen, nie nach Zeit: Wettkampf/Mix-Duell erzeugen aus demselben Seed auf
+    // jedem Gerät, ein Zeitlimit gab auf einem langsamen Gerät ein anderes Rätsel.
+    if ((o.minTier2 || 0) > res.tier2Steps && attempt < Math.min(o.tries || 40, TIER2_TRIES) - 1) continue;
     return {
       game: 'numberpath', difficulty: o.difficulty, seed,
       ...buildPuzzle(o, path, walls, idxs),
