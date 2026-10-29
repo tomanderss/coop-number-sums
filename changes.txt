@@ -1,3 +1,0 @@
-- Gem Hunt: Jedes Rätsel hat jetzt einen klaren Einstieg – ein paar Edelsteine findet man immer auf einen Blick; „Schwer“ und „Extrem“ sind deutlich zugänglicher
-- Gem Hunt: Unter dem Brett wählst du jetzt wie bei Number Sums das Werkzeug – Stein oder Kreuz – statt durch Mehrfach-Tippen zu schalten
-- Duelle: Number Path, Pipes, Rectangles und Gem Hunt erzeugen aus demselben Startwert jetzt auf jedem Gerät garantiert dasselbe Rätsel – vorher konnte ein langsames Handy ein anderes bekommen
