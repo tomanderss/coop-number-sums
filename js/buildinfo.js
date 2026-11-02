@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.2';
-export const BUILD_HASH = '4a8e2a4';
+export const BUILD      = '3.3';
+export const BUILD_HASH = 'c3a9b5c';
 
 export const CHANGELOG = [
+  {
+    "version": "3.3",
+    "date": "02.11.2026",
+    "changes": [
+      "- Gem Hunt: Der Stein/Kreuz-Umschalter sieht aus wie in Number Sums und wechselt bei jedem Tipp darauf",
+      "- Gem Hunt: Neues, schlichteres Edelstein-Design und deutlichere Käfig-Grenzen – angekreuzte Felder treten zurück, freie Felder fallen sofort auf",
+      "- Gem Hunt: Neue Einstellung „Kreuze automatisch setzen“ – jeder Edelstein kreuzt Nachbarn, Zeile, Spalte und Käfig an und räumt sie beim Wegnehmen wieder ab"
+    ]
+  },
   {
     "version": "3.2",
     "date": "02.11.2026",
