@@ -377,6 +377,7 @@ const state = reactive({
   mixStats: loadMixStats(),
   resumeAvailableMix: null,
   mixReveal: null,              // { reel:[{id,logo}], game, diff, level, seq } | null
+  winHold: false,               // Sieg-Dialog wartet auf das Brett-Finale (holdForBoardFinale)
   saves: [],                 // Bibliothek gespeicherter Partien (neueste zuerst), s. refreshResume
   savesOpen: false,          // Spielstand-Liste (Bottom-Sheet) offen?
   winFx: null,                   // laufende Sieganimation { id, pieces, seq } | null (s. launchWinFx)
@@ -1451,7 +1452,7 @@ function endlessLevelSolved(remote) {
   if (e.coop) e.lifeLossBy = (state.coop.lifeLossBy || []).slice();  // wer welche Leben verbraucht hat — bewahren
   state.perfectWin = (state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0;
   state.newHighscore = false; state.wouldHaveBeenBest = false; state.lastCoinReward = 0; state.lastStreakUsed = 0;
-  launchWinFx(state.perfectWin);
+  { const perfect = state.perfectWin; holdForBoardFinale(() => launchWinFx(perfect)); }
   updateMusic();
   log('game', 'Endlos-Level gelöst', { level: e.score, coop: !!e.coop, lives: e.lives });
   // ── VOLLE Einzelspiel-Buchhaltung je Level ──────────────────────────────────
@@ -2312,6 +2313,7 @@ function applyTrainingStep() {
 }
 
 function loadPuzzleIntoState(puzzle, saved) {
+  state.winHold = false;
   // Rätsel aus Cloud/Coop brauchbar machen (Spielregel; Math Cross heilt hier
   // sein löchriges slots-Raster, Number Sums braucht nichts).
   puzzle = Board.normalizePuzzle(puzzle);
@@ -4168,6 +4170,23 @@ function afterPaint(cb) {
     setTimeout(cb, 32);
   }
 }
+// Spiele mit eigenem Brett-Finale (Pipes: eine Welle läuft von der Quelle durch
+// das ganze Netz) zeigen den Sieg-Dialog + die Sieganimation erst DANACH —
+// Nutzerwunsch: man soll merken, dass man fertig ist. Die Buchhaltung läuft
+// unabhängig davon sofort; nur die Anzeige wartet (state.winHold).
+function holdForBoardFinale(then) {
+  let ms = 0;
+  try { ms = Board.winFinaleMs ? Board.winFinaleMs() : 0; } catch (_) { ms = 0; }
+  if (!(ms > 0)) { then(); return; }
+  const gid = state.gameId;
+  state.winHold = true;
+  log('game', 'Brett-Finale vor dem Sieg-Dialog', { ms });
+  setTimeout(() => {
+    if (state.gameId !== gid || state.status !== 'won') { state.winHold = false; return; }
+    state.winHold = false;
+    then();
+  }, ms);
+}
 function win(remote) {
   // Endlos-Aufstieg: Level geschafft → NORMALER Gewinn-Screen (mit „Fortsetzen"),
   // keine normale Sieg-Buchhaltung. Für Solo UND Coop derselbe Pfad; Coop ist
@@ -4192,7 +4211,7 @@ function win(remote) {
   // Sieganimation + Sieg-Sound SOFORT starten (Sound läuft in launchWinFx, an die
   // Animation/Stufe gekoppelt). Der Ergebnis-Dialog erscheint ebenfalls sofort —
   // KEIN Vorlauf mehr; die Animation liegt per z-index ohnehin ÜBER dem Dialog.
-  launchWinFx((state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0);
+  holdForBoardFinale(() => launchWinFx((state.mistakes || 0) === 0 && (state.hintsUsed || 0) === 0));
   // Anzeige-Werte auf sichere Defaults, damit der sofort sichtbare Dialog keine
   // Werte des Vorspiels zeigt — die echten folgen unten (Münzen zählen von 0 hoch).
   state.lastCoinReward = 0;
@@ -8702,7 +8721,7 @@ const App = {
            Team-Verteilung als EIN gestapelter Balken + eine Zeile je Spieler
            (bis 4 Spieler), Aktionen nebeneinander. Identischer Aufbau in allen
            Modi — jede Sektion erscheint nur, wenn relevant. -->
-      <div v-if="state.status==='won'" class="overlay">
+      <div v-if="state.status==='won' && !state.winHold" class="overlay">
         <div class="result-card win rc" :class="{ perfect: state.perfectWin }">
           <div class="rc-head">
             <div class="result-emoji"><img v-if="state.endless.mix" class="rc-gamelogo" :src="gameMeta(currentGame.id).logo" alt=""><span v-else class="ei" v-html="ic(state.endless.active ? 'meteor' : 'party')"></span></div>
@@ -10502,7 +10521,7 @@ const App = {
     </div>
 
     <!-- „Großmeister" freigeschaltet — einmalige Krönungs-Feier (alle 12 Kategorien Legendär) -->
-    <div v-if="state.masterUnlock" class="modal-bg master-unlock-bg">
+    <div v-if="state.masterUnlock && !state.winHold" class="modal-bg master-unlock-bg">
       <div class="modal master-unlock-modal">
         <div class="master-unlock-medal" v-html="badgeSvg(MASTER_BADGE, true)"></div>
         <div class="master-unlock-title">{{ t('prestige.master.unlockTitle') }}</div>
@@ -10513,7 +10532,7 @@ const App = {
     </div>
 
     <!-- Prestige-Stufen-Aufstieg: Intensität skaliert mit der Stufe (t1..t4) -->
-    <div v-if="state.prestigeUnlock" class="modal-bg prestige-unlock-bg" @click.self="dismissPrestigeUnlock">
+    <div v-if="state.prestigeUnlock && !state.winHold" class="modal-bg prestige-unlock-bg" @click.self="dismissPrestigeUnlock">
       <div class="modal prestige-unlock-modal" :class="'pu-t'+state.prestigeUnlock.tier">
         <div class="pu-rays" aria-hidden="true"></div>
         <div class="pu-medal" v-html="badgeSvg(state.prestigeUnlock.sym + '-' + state.prestigeUnlock.tier, true)"></div>
@@ -10558,7 +10577,7 @@ const App = {
 
     <!-- Streak verlängert/gestartet — feuriger Feier-Screen nach dem ersten
          abgeschlossenen Spiel des Tages (analog zum "Gewonnen"-Screen). -->
-    <div v-if="state.streakExtended" class="modal-bg">
+    <div v-if="state.streakExtended && !state.winHold" class="modal-bg">
       <div class="modal streak-modal extended">
         <div class="streak-emoji"><span class="ei" v-html="ic('flame')"></span></div>
         <h3 class="streak-title">{{ t(state.streakExtended.continued ? 'streak.extendedTitle' : 'streak.startedTitle') }}</h3>

@@ -134,3 +134,21 @@ test('Endlos startet; keine Große-Zahlen-Missionen; Freunde sehen das Spiel', a
   await page.waitForFunction(() => window.__cns.state.status === 'won');
   await expect(page.locator('.endless-lives-row')).toBeVisible();
 });
+
+test('Finale: erst läuft die Welle durchs Netz, dann kommt der Sieg-Dialog', async ({ page }) => {
+  // Nutzerwunsch: beim letzten Zug soll man merken, dass man fertig ist — das
+  // Netz leuchtet von der Quelle nach außen auf, erst danach der Sieg-Bildschirm.
+  await gotoApp(page);
+  await startGame(page, 'mittel');
+  const ms = await page.evaluate(() => { window.__cns.solvePipes(); return window.__cns.board.winFinaleMs(); });
+  expect(ms).toBeGreaterThan(500);
+  await expect(page.locator('.pp-board.done')).toBeVisible();
+  expect(await page.evaluate(() => window.__cns.state.winHold)).toBe(true);
+  await expect(page.locator('.overlay .result-card')).toHaveCount(0);
+  // Die äußersten Stücke starten ihre Welle später als die Quelle.
+  const fds = await page.evaluate(() => [...document.querySelectorAll('.pp-tile')].map((el) => parseInt(el.style.getPropertyValue('--fd'), 10) || 0));
+  expect(Math.max(...fds)).toBeGreaterThan(0);
+  expect(fds[await page.evaluate(() => window.__cns.state.puzzle.source)]).toBe(0);
+  await expect(page.locator('.overlay .result-card')).toBeVisible({ timeout: ms + 3000 });
+  expect(await page.evaluate(() => window.__cns.state.winHold)).toBe(false);
+});
