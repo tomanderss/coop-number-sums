@@ -217,4 +217,38 @@ test.describe('Fortsetzen und Bibliothek bleiben deckungsgleich', () => {
     const ids = await page.evaluate(() => window.__cns.state.saves.map((g) => g.id));
     expect(ids, 'und es kommt auch nicht ueber die Bibliothek zurueck').not.toContain(snap.gameId);
   });
+
+  // Gemeldet: „Coop-Spiele, die nicht mehr existieren, sind noch vorhanden und
+  // nicht löschbar". Ein Coop-Stand hatte keinen Löschen-Knopf — jetzt steht er
+  // mit in der Liste.
+  test('ein Coop-Spielstand steht in der Liste und laesst sich loeschen', async ({ page }) => {
+    await gotoApp(page);
+    await startNewGame(page);
+    await playAFewCells(page);
+    await page.evaluate(() => {
+      const g = JSON.parse(localStorage.getItem('cns_active_game'));
+      localStorage.setItem('cns_active_game_coop', JSON.stringify(g));
+      localStorage.setItem('cns_coop_session', JSON.stringify({ code: 'ZZZZZZ', role: 'guest', name: 'Ich', ts: Date.now() }));
+      localStorage.removeItem('cns_active_game');
+      localStorage.removeItem('cns_saves');
+    });
+    await page.goto('/');
+    await page.waitForFunction(() => !!window.__cns);
+    await expect(page.locator('.btn-resume.coop')).toBeVisible();
+    await page.locator('.saves-expand').click();
+    const row = page.locator('.save-row.coop');
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('.save-badge')).toContainText('COOP');
+    await row.locator('.save-del').click();
+    await page.locator('.confirm-actions .btn-danger').click();
+    await expect(page.locator('.save-row.coop')).toHaveCount(0);
+    await page.locator('.saves-modal .btn-primary').click();
+    await expect(page.locator('.btn-resume.coop')).toHaveCount(0);
+    const left = await page.evaluate(() => ({ g: localStorage.getItem('cns_active_game_coop'), s: localStorage.getItem('cns_coop_session') }));
+    expect(left).toEqual({ g: null, s: null });
+    await page.goto('/');
+    await page.waitForFunction(() => !!window.__cns);
+    await page.waitForTimeout(500);
+    await expect(page.locator('.btn-resume.coop')).toHaveCount(0);
+  });
 });

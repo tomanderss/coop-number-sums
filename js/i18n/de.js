@@ -208,6 +208,7 @@ export default {
     partnerDisconnected: '{name} hat die Lobby verlassen',
     reconnected: 'Wieder verbunden', partnerReconnected: '{name} ist wieder da',
     connectionLost: "Verbindung verloren – offline. Versuche, wieder zu verbinden…",
+    roomGoneSolo: "Den Coop-Raum gibt es nicht mehr – dein Spielstand läuft als Solo-Spiel weiter.",
     errorRoomGone: 'Raum existiert nicht mehr — Coop-Spiel kann nicht fortgesetzt werden.',
     hostDisconnectedPromoting: '{name} (Host) getrennt — werde neuer Host …',
     hostDisconnected: 'Verbindung zu {name} (Host) getrennt',

@@ -208,6 +208,7 @@ export default {
     partnerDisconnected: '{name} ha abandonado la sala',
     reconnected: 'Reconectado', partnerReconnected: '{name} ha vuelto',
     connectionLost: "Conexión perdida: sin conexión. Intentando reconectar…",
+    roomGoneSolo: "Esa sala coop ya no existe: tu partida sigue como partida en solitario.",
     errorRoomGone: 'La sala ya no existe — no se puede continuar la partida coop.',
     hostDisconnectedPromoting: '{name} (anfitrión) desconectado — convirtiéndose en nuevo anfitrión…',
     hostDisconnected: 'Conexión con {name} (anfitrión) perdida',

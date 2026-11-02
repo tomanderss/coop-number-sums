@@ -208,6 +208,7 @@ export default {
     partnerDisconnected: '{name}さんがロビーを退出しました',
     reconnected: '再接続しました', partnerReconnected: '{name} が戻ってきました',
     connectionLost: "接続が切れました – オフライン。再接続を試みています…",
+    roomGoneSolo: "その協力ルームはもうありません。ゲームはソロとして続きます。",
     errorRoomGone: 'ルームが存在しません。Coopゲームを再開できません。',
     hostDisconnectedPromoting: 'ホストの{name}さんが切断されました — 新しいホストになっています…',
     hostDisconnected: 'ホストの{name}さんとの接続が切断されました',

@@ -208,6 +208,7 @@ export default {
     partnerDisconnected: '{name} a quitté le salon',
     reconnected: 'Reconnecté', partnerReconnected: '{name} est de retour',
     connectionLost: "Connexion perdue – hors ligne. Tentative de reconnexion…",
+    roomGoneSolo: "Ce salon coop n’existe plus – ta partie continue en solo.",
     errorRoomGone: "Le salon n'existe plus — impossible de reprendre la partie coop.",
     hostDisconnectedPromoting: '{name} (hôte) déconnecté — devient le nouvel hôte…',
     hostDisconnected: "Connexion à {name} (hôte) perdue",

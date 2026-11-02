@@ -208,6 +208,7 @@ export default {
     partnerDisconnected: '{name} lobiden ayrıldı',
     reconnected: 'Yeniden bağlanıldı', partnerReconnected: '{name} geri döndü',
     connectionLost: "Bağlantı kesildi – çevrimdışı. Yeniden bağlanılıyor…",
+    roomGoneSolo: "O ortak oda artık yok – oyunun tek kişilik olarak devam ediyor.",
     errorRoomGone: 'Oda artık mevcut değil — coop oyunu sürdürülemiyor.',
     hostDisconnectedPromoting: '{name} (ev sahibi) bağlantısı kesildi — yeni ev sahibi oluyorsun…',
     hostDisconnected: '{name} (ev sahibi) ile bağlantı kesildi',

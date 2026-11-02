@@ -1,8 +1,22 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.0';
-export const BUILD_HASH = '8ffb36b';
+export const BUILD      = '3.2';
+export const BUILD_HASH = '4a8e2a4';
 
 export const CHANGELOG = [
+  {
+    "version": "3.2",
+    "date": "02.11.2026",
+    "changes": [
+      "- Pipes: Alle Stufen sind eine Nummer schwerer – das kleinste 4×4-Brett entfällt, dafür gibt es ganz oben ein neues 12×12-Brett"
+    ]
+  },
+  {
+    "version": "3.1",
+    "date": "02.11.2026",
+    "changes": [
+      "- Coop: Spielstände, deren Raum nicht mehr existiert, kommen nicht mehr als „Coop fortsetzen“ zurück – sie laufen als Solo-Spiel weiter; jedes Coop-Spiel lässt sich außerdem in „Spielstände“ löschen"
+    ]
+  },
   {
     "version": "3.0",
     "date": "29.10.2026",
