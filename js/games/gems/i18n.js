@@ -6,7 +6,7 @@
 
 export default {
   de: {
-    gem: { tool: { gem: "Stein", cross: "Kreuz", aria: "Werkzeug: Stein oder Kreuz setzen" }, boardLabel: "Spielfeld: Edelsteine setzen", train: { title: "Nächster Edelstein", row: "In dieser Zeile ist nur noch ein Feld frei – alle anderen sind durch Steine, Nachbarn oder eingesperrte Käfige ausgeschlossen. Hier liegt der Edelstein.", col: "In dieser Spalte ist nur noch ein Feld frei – alle anderen sind durch Steine, Nachbarn oder eingesperrte Käfige ausgeschlossen. Hier liegt der Edelstein.", reg: "In diesem Käfig ist nur noch ein Feld frei – alle anderen sind durch Steine, Nachbarn oder Zeilen und Spalten ausgeschlossen. Hier liegt der Edelstein." } },
+    gem: { autoCross: "Kreuze automatisch setzen", autoCrossHint: "Mit jedem Edelstein werden Nachbarfelder, Zeile, Spalte und Käfig automatisch angekreuzt – nimmst du ihn weg, verschwinden diese Kreuze wieder. Aus = alle Kreuze von Hand.", tool: { gem: "Stein", cross: "Kreuz", aria: "Werkzeug: Stein oder Kreuz setzen" }, boardLabel: "Spielfeld: Edelsteine setzen", train: { title: "Nächster Edelstein", row: "In dieser Zeile ist nur noch ein Feld frei – alle anderen sind durch Steine, Nachbarn oder eingesperrte Käfige ausgeschlossen. Hier liegt der Edelstein.", col: "In dieser Spalte ist nur noch ein Feld frei – alle anderen sind durch Steine, Nachbarn oder eingesperrte Käfige ausgeschlossen. Hier liegt der Edelstein.", reg: "In diesem Käfig ist nur noch ein Feld frei – alle anderen sind durch Steine, Nachbarn oder Zeilen und Spalten ausgeschlossen. Hier liegt der Edelstein." } },
     howto: {
       rule1: "In jedem <b>Farbkäfig</b> ist genau <b>ein Edelstein</b> versteckt.",
       rule2: "Auch jede <b>Zeile</b> und jede <b>Spalte</b> enthält genau einen Edelstein.",
@@ -19,7 +19,7 @@ export default {
     prestige: { master: { desc: "Das ultimative Abzeichen — freigeschaltet, wenn ALLE 12 Abzeichen auf Legendär stehen. Der Beweis, dass du Gem Hunt gemeistert hast." } },
   },
   en: {
-    gem: { tool: { gem: "Gem", cross: "Cross", aria: "Tool: place a gem or a cross" }, boardLabel: "Board: place the gems", train: { title: "Next gem", row: "Only one cell is still free in this row – all others are ruled out by gems, neighbours or trapped cages. The gem goes here.", col: "Only one cell is still free in this column – all others are ruled out by gems, neighbours or trapped cages. The gem goes here.", reg: "Only one cell is still free in this cage – all others are ruled out by gems, neighbours, rows or columns. The gem goes here." } },
+    gem: { autoCross: "Place crosses automatically", autoCrossHint: "Each gem automatically crosses out its neighbours, row, column and cage – remove it and those crosses disappear again. Off = all crosses by hand.", tool: { gem: "Gem", cross: "Cross", aria: "Tool: place a gem or a cross" }, boardLabel: "Board: place the gems", train: { title: "Next gem", row: "Only one cell is still free in this row – all others are ruled out by gems, neighbours or trapped cages. The gem goes here.", col: "Only one cell is still free in this column – all others are ruled out by gems, neighbours or trapped cages. The gem goes here.", reg: "Only one cell is still free in this cage – all others are ruled out by gems, neighbours, rows or columns. The gem goes here." } },
     howto: {
       rule1: "Each <b>coloured cage</b> hides exactly <b>one gem</b>.",
       rule2: "Every <b>row</b> and every <b>column</b> also holds exactly one gem.",
@@ -32,7 +32,7 @@ export default {
     prestige: { master: { desc: "The ultimate badge — unlocked when ALL 12 badges are Legendary. Proof that you have mastered Gem Hunt." } },
   },
   es: {
-    gem: { tool: { gem: "Gema", cross: "Cruz", aria: "Herramienta: poner gema o cruz" }, boardLabel: "Tablero: coloca las gemas", train: { title: "Siguiente gema", row: "En esta fila solo queda una casilla libre: todas las demás quedan descartadas por gemas, vecinas o jaulas encerradas. Aquí va la gema.", col: "En esta columna solo queda una casilla libre: todas las demás quedan descartadas por gemas, vecinas o jaulas encerradas. Aquí va la gema.", reg: "En esta jaula solo queda una casilla libre: todas las demás quedan descartadas por gemas, vecinas, filas o columnas. Aquí va la gema." } },
+    gem: { autoCross: "Poner cruces automáticamente", autoCrossHint: "Cada gema marca con cruz sus vecinas, su fila, su columna y su jaula; si la quitas, esas cruces desaparecen. Desactivado = todas las cruces a mano.", tool: { gem: "Gema", cross: "Cruz", aria: "Herramienta: poner gema o cruz" }, boardLabel: "Tablero: coloca las gemas", train: { title: "Siguiente gema", row: "En esta fila solo queda una casilla libre: todas las demás quedan descartadas por gemas, vecinas o jaulas encerradas. Aquí va la gema.", col: "En esta columna solo queda una casilla libre: todas las demás quedan descartadas por gemas, vecinas o jaulas encerradas. Aquí va la gema.", reg: "En esta jaula solo queda una casilla libre: todas las demás quedan descartadas por gemas, vecinas, filas o columnas. Aquí va la gema." } },
     howto: {
       rule1: "Cada <b>jaula de color</b> esconde exactamente <b>una gema</b>.",
       rule2: "Cada <b>fila</b> y cada <b>columna</b> también contiene exactamente una gema.",
@@ -45,7 +45,7 @@ export default {
     prestige: { master: { desc: "La insignia definitiva: se desbloquea cuando TODAS las 12 insignias son legendarias. La prueba de que dominas Gem Hunt." } },
   },
   fr: {
-    gem: { tool: { gem: "Gemme", cross: "Croix", aria: "Outil : poser une gemme ou une croix" }, boardLabel: "Grille : place les gemmes", train: { title: "Gemme suivante", row: "Il ne reste qu’une case libre dans cette ligne – toutes les autres sont exclues par des gemmes, des voisines ou des cages enfermées. La gemme va ici.", col: "Il ne reste qu’une case libre dans cette colonne – toutes les autres sont exclues par des gemmes, des voisines ou des cages enfermées. La gemme va ici.", reg: "Il ne reste qu’une case libre dans cette cage – toutes les autres sont exclues par des gemmes, des voisines, des lignes ou des colonnes. La gemme va ici." } },
+    gem: { autoCross: "Placer les croix automatiquement", autoCrossHint: "Chaque gemme coche automatiquement ses voisines, sa ligne, sa colonne et sa cage – retire-la et ces croix disparaissent. Désactivé = toutes les croix à la main.", tool: { gem: "Gemme", cross: "Croix", aria: "Outil : poser une gemme ou une croix" }, boardLabel: "Grille : place les gemmes", train: { title: "Gemme suivante", row: "Il ne reste qu’une case libre dans cette ligne – toutes les autres sont exclues par des gemmes, des voisines ou des cages enfermées. La gemme va ici.", col: "Il ne reste qu’une case libre dans cette colonne – toutes les autres sont exclues par des gemmes, des voisines ou des cages enfermées. La gemme va ici.", reg: "Il ne reste qu’une case libre dans cette cage – toutes les autres sont exclues par des gemmes, des voisines, des lignes ou des colonnes. La gemme va ici." } },
     howto: {
       rule1: "Chaque <b>cage colorée</b> cache exactement <b>une gemme</b>.",
       rule2: "Chaque <b>ligne</b> et chaque <b>colonne</b> contient aussi exactement une gemme.",
@@ -58,7 +58,7 @@ export default {
     prestige: { master: { desc: "Le badge ultime — débloqué quand LES 12 badges sont Légendaires. La preuve que tu maîtrises Gem Hunt." } },
   },
   "pt-BR": {
-    gem: { tool: { gem: "Gema", cross: "X", aria: "Ferramenta: colocar gema ou X" }, boardLabel: "Tabuleiro: coloque as gemas", train: { title: "Próxima gema", row: "Nesta linha só resta uma casa livre – todas as outras foram descartadas por gemas, vizinhas ou jaulas presas. A gema fica aqui.", col: "Nesta coluna só resta uma casa livre – todas as outras foram descartadas por gemas, vizinhas ou jaulas presas. A gema fica aqui.", reg: "Nesta jaula só resta uma casa livre – todas as outras foram descartadas por gemas, vizinhas, linhas ou colunas. A gema fica aqui." } },
+    gem: { autoCross: "Marcar X automaticamente", autoCrossHint: "Cada gema marca X nas vizinhas, na linha, na coluna e na jaula – ao tirá-la, esses X somem. Desligado = todos os X à mão.", tool: { gem: "Gema", cross: "X", aria: "Ferramenta: colocar gema ou X" }, boardLabel: "Tabuleiro: coloque as gemas", train: { title: "Próxima gema", row: "Nesta linha só resta uma casa livre – todas as outras foram descartadas por gemas, vizinhas ou jaulas presas. A gema fica aqui.", col: "Nesta coluna só resta uma casa livre – todas as outras foram descartadas por gemas, vizinhas ou jaulas presas. A gema fica aqui.", reg: "Nesta jaula só resta uma casa livre – todas as outras foram descartadas por gemas, vizinhas, linhas ou colunas. A gema fica aqui." } },
     howto: {
       rule1: "Cada <b>jaula colorida</b> esconde exatamente <b>uma gema</b>.",
       rule2: "Cada <b>linha</b> e cada <b>coluna</b> também tem exatamente uma gema.",
@@ -71,7 +71,7 @@ export default {
     prestige: { master: { desc: "O emblema definitivo — desbloqueado quando TODOS os 12 emblemas são lendários. A prova de que você domina Gem Hunt." } },
   },
   it: {
-    gem: { tool: { gem: "Gemma", cross: "Croce", aria: "Strumento: metti gemma o croce" }, boardLabel: "Griglia: piazza le gemme", train: { title: "Prossima gemma", row: "In questa riga resta libera una sola casella: tutte le altre sono escluse da gemme, vicine o gabbie bloccate. Qui va la gemma.", col: "In questa colonna resta libera una sola casella: tutte le altre sono escluse da gemme, vicine o gabbie bloccate. Qui va la gemma.", reg: "In questa gabbia resta libera una sola casella: tutte le altre sono escluse da gemme, vicine, righe o colonne. Qui va la gemma." } },
+    gem: { autoCross: "Metti le croci automaticamente", autoCrossHint: "Ogni gemma segna con una croce vicine, riga, colonna e gabbia – se la togli, quelle croci spariscono. Spento = tutte le croci a mano.", tool: { gem: "Gemma", cross: "Croce", aria: "Strumento: metti gemma o croce" }, boardLabel: "Griglia: piazza le gemme", train: { title: "Prossima gemma", row: "In questa riga resta libera una sola casella: tutte le altre sono escluse da gemme, vicine o gabbie bloccate. Qui va la gemma.", col: "In questa colonna resta libera una sola casella: tutte le altre sono escluse da gemme, vicine o gabbie bloccate. Qui va la gemma.", reg: "In questa gabbia resta libera una sola casella: tutte le altre sono escluse da gemme, vicine, righe o colonne. Qui va la gemma." } },
     howto: {
       rule1: "Ogni <b>gabbia colorata</b> nasconde esattamente <b>una gemma</b>.",
       rule2: "Anche ogni <b>riga</b> e ogni <b>colonna</b> contiene esattamente una gemma.",
@@ -84,7 +84,7 @@ export default {
     prestige: { master: { desc: "Il badge definitivo — si sblocca quando TUTTI i 12 badge sono leggendari. La prova che hai padroneggiato Gem Hunt." } },
   },
   ja: {
-    gem: { tool: { gem: "宝石", cross: "×", aria: "ツール：宝石か×を置く" }, boardLabel: "盤面：宝石を置く", train: { title: "次の宝石", row: "この行で空いているマスはあと1つだけです。他はすべて宝石・隣接・閉じ込められたエリアのために置けません。宝石はここです。", col: "この列で空いているマスはあと1つだけです。他はすべて宝石・隣接・閉じ込められたエリアのために置けません。宝石はここです。", reg: "このエリアで空いているマスはあと1つだけです。他はすべて宝石・隣接・行や列のために置けません。宝石はここです。" } },
+    gem: { autoCross: "×を自動で置く", autoCrossHint: "宝石を置くと、隣接マス・行・列・エリアに自動で×が付きます。宝石を外すとその×も消えます。オフ＝×はすべて手動。", tool: { gem: "宝石", cross: "×", aria: "ツール：宝石か×を置く" }, boardLabel: "盤面：宝石を置く", train: { title: "次の宝石", row: "この行で空いているマスはあと1つだけです。他はすべて宝石・隣接・閉じ込められたエリアのために置けません。宝石はここです。", col: "この列で空いているマスはあと1つだけです。他はすべて宝石・隣接・閉じ込められたエリアのために置けません。宝石はここです。", reg: "このエリアで空いているマスはあと1つだけです。他はすべて宝石・隣接・行や列のために置けません。宝石はここです。" } },
     howto: {
       rule1: "色分けされた各<b>エリア</b>には、<b>宝石がちょうど1つ</b>隠れています。",
       rule2: "各<b>行</b>と各<b>列</b>にも、宝石はちょうど1つです。",
@@ -97,7 +97,7 @@ export default {
     prestige: { master: { desc: "究極のバッジ — 12個すべてのバッジがレジェンドになると解放。Gem Huntを極めた証です。" } },
   },
   ko: {
-    gem: { tool: { gem: "보석", cross: "X", aria: "도구: 보석 또는 X 놓기" }, boardLabel: "게임판: 보석 놓기", train: { title: "다음 보석", row: "이 행에는 빈칸이 하나만 남았어요. 나머지는 보석, 이웃 칸, 갇힌 구역 때문에 모두 제외됩니다. 보석은 여기예요.", col: "이 열에는 빈칸이 하나만 남았어요. 나머지는 보석, 이웃 칸, 갇힌 구역 때문에 모두 제외됩니다. 보석은 여기예요.", reg: "이 구역에는 빈칸이 하나만 남았어요. 나머지는 보석, 이웃 칸, 행이나 열 때문에 모두 제외됩니다. 보석은 여기예요." } },
+    gem: { autoCross: "X 자동으로 놓기", autoCrossHint: "보석을 놓으면 이웃 칸, 행, 열, 구역에 X가 자동으로 표시돼요. 보석을 치우면 그 X도 사라져요. 끔 = 모든 X를 직접.", tool: { gem: "보석", cross: "X", aria: "도구: 보석 또는 X 놓기" }, boardLabel: "게임판: 보석 놓기", train: { title: "다음 보석", row: "이 행에는 빈칸이 하나만 남았어요. 나머지는 보석, 이웃 칸, 갇힌 구역 때문에 모두 제외됩니다. 보석은 여기예요.", col: "이 열에는 빈칸이 하나만 남았어요. 나머지는 보석, 이웃 칸, 갇힌 구역 때문에 모두 제외됩니다. 보석은 여기예요.", reg: "이 구역에는 빈칸이 하나만 남았어요. 나머지는 보석, 이웃 칸, 행이나 열 때문에 모두 제외됩니다. 보석은 여기예요." } },
     howto: {
       rule1: "색깔 <b>구역</b>마다 <b>보석이 정확히 하나</b> 숨어 있어요.",
       rule2: "모든 <b>행</b>과 <b>열</b>에도 보석이 정확히 하나씩 있어요.",
@@ -110,7 +110,7 @@ export default {
     prestige: { master: { desc: "궁극의 배지 — 12개 배지가 모두 레전드가 되면 해제돼요. Gem Hunt를 정복했다는 증거입니다." } },
   },
   tr: {
-    gem: { tool: { gem: "Mücevher", cross: "Çarpı", aria: "Araç: mücevher veya çarpı koy" }, boardLabel: "Oyun alanı: mücevherleri yerleştir", train: { title: "Sonraki mücevher", row: "Bu satırda yalnızca bir boş kare kaldı – diğerleri mücevherler, komşular veya kapana kısılmış bölgeler yüzünden elendi. Mücevher burada.", col: "Bu sütunda yalnızca bir boş kare kaldı – diğerleri mücevherler, komşular veya kapana kısılmış bölgeler yüzünden elendi. Mücevher burada.", reg: "Bu bölgede yalnızca bir boş kare kaldı – diğerleri mücevherler, komşular, satırlar veya sütunlar yüzünden elendi. Mücevher burada." } },
+    gem: { autoCross: "Çarpıları otomatik koy", autoCrossHint: "Her mücevher komşularını, satırını, sütununu ve bölgesini otomatik çarpılar; kaldırınca bu çarpılar da kaybolur. Kapalı = tüm çarpılar elle.", tool: { gem: "Mücevher", cross: "Çarpı", aria: "Araç: mücevher veya çarpı koy" }, boardLabel: "Oyun alanı: mücevherleri yerleştir", train: { title: "Sonraki mücevher", row: "Bu satırda yalnızca bir boş kare kaldı – diğerleri mücevherler, komşular veya kapana kısılmış bölgeler yüzünden elendi. Mücevher burada.", col: "Bu sütunda yalnızca bir boş kare kaldı – diğerleri mücevherler, komşular veya kapana kısılmış bölgeler yüzünden elendi. Mücevher burada.", reg: "Bu bölgede yalnızca bir boş kare kaldı – diğerleri mücevherler, komşular, satırlar veya sütunlar yüzünden elendi. Mücevher burada." } },
     howto: {
       rule1: "Her <b>renkli bölgede</b> tam olarak <b>bir mücevher</b> saklı.",
       rule2: "Her <b>satırda</b> ve her <b>sütunda</b> da tam olarak bir mücevher var.",
@@ -123,7 +123,7 @@ export default {
     prestige: { master: { desc: "Nihai rozet — 12 rozetin TAMAMI Efsanevi olduğunda açılır. Gem Hunt'ta ustalaştığının kanıtı." } },
   },
   ru: {
-    gem: { tool: { gem: "Камень", cross: "Крестик", aria: "Инструмент: поставить камень или крестик" }, boardLabel: "Поле: расставь самоцветы", train: { title: "Следующий самоцвет", row: "В этой строке осталась только одна свободная клетка – остальные исключены самоцветами, соседями или запертыми областями. Самоцвет здесь.", col: "В этом столбце осталась только одна свободная клетка – остальные исключены самоцветами, соседями или запертыми областями. Самоцвет здесь.", reg: "В этой области осталась только одна свободная клетка – остальные исключены самоцветами, соседями, строками или столбцами. Самоцвет здесь." } },
+    gem: { autoCross: "Ставить крестики автоматически", autoCrossHint: "Каждый самоцвет сам отмечает крестиками соседей, строку, столбец и область — уберёшь его, и эти крестики исчезнут. Выкл. = все крестики вручную.", tool: { gem: "Камень", cross: "Крестик", aria: "Инструмент: поставить камень или крестик" }, boardLabel: "Поле: расставь самоцветы", train: { title: "Следующий самоцвет", row: "В этой строке осталась только одна свободная клетка – остальные исключены самоцветами, соседями или запертыми областями. Самоцвет здесь.", col: "В этом столбце осталась только одна свободная клетка – остальные исключены самоцветами, соседями или запертыми областями. Самоцвет здесь.", reg: "В этой области осталась только одна свободная клетка – остальные исключены самоцветами, соседями, строками или столбцами. Самоцвет здесь." } },
     howto: {
       rule1: "В каждой <b>цветной области</b> спрятан ровно <b>один самоцвет</b>.",
       rule2: "В каждой <b>строке</b> и каждом <b>столбце</b> тоже ровно один самоцвет.",

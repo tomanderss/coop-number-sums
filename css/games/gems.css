@@ -10,36 +10,41 @@
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   background-color: var(--bg2); border-radius: 10px;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 70%, transparent), var(--soft-shadow);
-  --gm-line: color-mix(in srgb, var(--text) 72%, transparent);
+  --gm-line: color-mix(in srgb, var(--text) 88%, transparent);
 }
-.gm-regions, .gm-marks, .gm-focus { position: absolute; inset: 0; pointer-events: none; }
+.gm-regions, .gm-marks, .gm-focus, .gm-borders { position: absolute; inset: 0; pointer-events: none; }
 .gm-cell {
   position: absolute;
-  background: color-mix(in srgb, hsl(var(--gh) 72% 62%) 52%, var(--bg2));
-  box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--text3) 35%, transparent);
+  /* Kräftiger als früher (52 %): gemeldet, die Käfige waren je nach Farbe kaum
+     auseinanderzuhalten. Dazu ein sichtbares feines Raster. */
+  background: color-mix(in srgb, hsl(var(--gh) 74% 58%) 74%, var(--bg2));
+  box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--text) 26%, transparent);
 }
-/* Dicke Käfiggrenzen. */
-.gm-cell::after { content: ''; position: absolute; inset: 0; border: 0 solid var(--gm-line); }
-.gm-cell.bt::after { border-top-width: 2px; }
-.gm-cell.bb::after { border-bottom-width: 2px; }
-.gm-cell.bl::after { border-left-width: 2px; }
-.gm-cell.br::after { border-right-width: 2px; }
+/* Dicke Käfiggrenzen — eigene Ebene über den Markierungen (s. BorderLayer). */
+.gm-bd { position: absolute; border: 0 solid var(--gm-line); }
+.gm-bd.bt { border-top-width: 3px; }
+.gm-bd.bb { border-bottom-width: 3px; }
+.gm-bd.bl { border-left-width: 3px; }
+.gm-bd.br { border-right-width: 3px; }
 
 .gm-mark { position: absolute; display: grid; place-items: center; }
-/* Kreuz = Notiz „hier nicht". */
+/* Kreuz = Notiz „hier nicht". Das ganze Feld wird dabei blass — so springen
+   die noch FREIEN Felder ins Auge (gemeldet: man sah nicht, was noch offen ist). */
+.gm-mark.cross { background: color-mix(in srgb, var(--bg) 58%, transparent); }
 .gm-mark.cross::before {
-  content: '×'; font-size: calc(var(--cell) * .5); line-height: 1; font-weight: 700;
-  color: color-mix(in srgb, var(--text) 50%, transparent);
+  content: '×'; font-size: calc(var(--cell) * .46); line-height: 1; font-weight: 600;
+  color: color-mix(in srgb, var(--text) 55%, transparent);
 }
-/* Edelstein: facettiert, in der Farbe seines Käfigs; im Coop ein Ring in der
-   Farbe des Spielers, der ihn gesetzt hat. */
+/* Edelstein: minimalistische Raute in der Farbe seines Käfigs (oben heller,
+   Fenster in der Mitte, ein Glanzstrich); im Coop ein Ring in der Farbe des
+   Spielers, der ihn gesetzt hat. */
 .gm-mark.gem { border-radius: 30%; box-shadow: inset 0 0 0 2px var(--gb, transparent); }
 .gm-mark.gem i { display: block; width: 76%; height: 76%; animation: gem-pop .34s cubic-bezier(.2, 1.6, .4, 1); }
 .gm-mark.gem svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.35)); }
-.gm-mark .g-body { fill: hsl(var(--gh) 78% 46%); }
-.gm-mark .g-top { fill: hsl(var(--gh) 88% 64%); }
-.gm-mark .g-facet { fill: none; stroke: rgba(255,255,255,.55); stroke-width: .9; stroke-linejoin: round; }
-.gm-mark .g-shine { fill: none; stroke: #fff; stroke-width: 1.5; stroke-linecap: round; opacity: .9; }
+.gm-mark .g-body { fill: hsl(var(--gh) 72% 38%); stroke: hsl(var(--gh) 72% 30%); stroke-width: .8; stroke-linejoin: round; }
+.gm-mark .g-top { fill: hsl(var(--gh) 82% 56%); }
+.gm-mark .g-win { fill: rgba(255, 255, 255, .26); }
+.gm-mark .g-shine { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; opacity: .85; }
 @keyframes gem-pop { from { transform: scale(.3) rotate(-25deg); opacity: 0; } to { transform: none; opacity: 1; } }
 /* Widerspruch: roter Hof, der sanft pulsiert (nur opacity). */
 .gm-mark.gem.bad::before {
@@ -71,32 +76,14 @@
 }
 @keyframes gm-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
-/* Werkzeug unter dem Brett (Stein | Kreuz): zwei große Hälften mit gleitender
-   Pille wie der Umschalter in Number Sums. Feste Höhe — der Platz bleibt auch im
-   Training stehen, nichts springt. Animiert nur transform. */
-.gm-tools-wrap { flex: 0 0 auto; display: flex; justify-content: center; align-items: center; min-height: 64px; padding: 8px 0 4px; }
-.gm-tools {
-  position: relative; display: grid; grid-template-columns: 1fr 1fr; width: min(300px, calc(100vw - 48px)); height: 56px;
-  padding: 4px; border-radius: 999px; background: var(--bg3);
-  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--shadow) 45%, transparent);
-}
-.gm-tool-pill {
-  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 2px 8px var(--accent-soft);
-  transition: transform .26s cubic-bezier(.3, 1.2, .5, 1);
-}
-.gm-tool-pill.cross { transform: translateX(100%); }
-.gm-tool {
-  position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
-  border: 0; background: none; font: inherit; font-weight: 800; font-size: 1rem; color: var(--text3); opacity: .75;
-  cursor: pointer; border-radius: 999px; transition: color .2s, opacity .2s; -webkit-tap-highlight-color: transparent;
-}
-.gm-tool.on { color: #fff; opacity: 1; }
-.gm-tool i { display: block; width: 22px; height: 22px; }
-.gm-tool i svg { display: block; width: 100%; height: 100%; }
+/* Werkzeug unter dem Brett: der Umschalter aus Number Sums (styles.css
+   .tool-toggle/.tool-pill/.tool-ic), hier nur zentriert und mit fester Höhe,
+   damit sich beim Ein-/Ausblenden (Training) nichts verschiebt. */
+.gm-tools-wrap { flex: 0 0 auto; display: flex; justify-content: center; align-items: center; min-height: 72px; padding: 8px 0 4px; }
+.gm-toggle { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gm-toggle .tool-ic svg { width: 24px; height: 24px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .gm-tool-pill { transition: none; }
   .gm-mark.gem i, .gm-mark.gem.bad::before, .board.gm-board.shake, .board.gm-board.done .gm-mark.gem i, .gm-train { animation: none; }
 }
 

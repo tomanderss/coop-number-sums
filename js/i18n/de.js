@@ -480,6 +480,7 @@ export default {
         'settings/coopName': { l: 'Anzeigename', d: 'Name, der anderen im Coop/Wettkampf angezeigt wird.' },
         'settings/coopMyColor': { l: 'Persönliche Farbe', d: 'Hex-Farbe der eigenen Markierungen (in allen Modi).' },
         'settings/dragScale': { l: 'Reichweite beim Ziehen', d: 'Faktor, um den der gezogene Stein der Fingerbewegung verstärkt folgt (1 = aus).' },
+        'settings/gemAutoCross': { l: 'Gem Hunt: Kreuze automatisch', d: 'Ein gesetzter Edelstein kreuzt Nachbarn, Zeile, Spalte und Käfig automatisch an; beim Entfernen verschwinden diese Kreuze wieder.' },
         'settings/markColor': { l: 'Markierungsfarbe', d: 'Farbe der persönlichen Feld-Markierung (Feld lange gedrückt halten). Reine Notiz ohne Regel-Bedeutung, nur für den Besitzer sichtbar.' },
         'settings/divStyle': { l: 'Geteilt-Zeichen', d: 'Anzeige der Divisions-Felder: obelus (÷), colon (:) oder slash (/). null = noch nie gewählt, dann fragt das Spiel beim ersten Rätsel mit Division einmalig nach.' },
         'settings/coopRemovedOutline': { l: 'Rahmen bei gelöschten Zahlen', d: 'Farbige Umrandung zeigt im Coop, wer eine Zahl gelöscht hat.' },
