@@ -35,6 +35,8 @@ export const GAME = {
   features: {
     // Im Coop sehen die anderen live, was einer gerade zieht (app.js liveActive).
     liveDrafts: true,
+    // Einstellung „Kreuze automatisch“ (settings.gemAutoCross) unter Einstellungen ▸ Spiel.
+    autoCross: true,
     hints: false,
     toolToggle: false,
     markTools: false,

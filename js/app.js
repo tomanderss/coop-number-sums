@@ -161,6 +161,7 @@ const state = reactive({
   // wer welchen Stein setzte, Ereignis-Schlüssel je Feld (später gewinnt) und
   // die Rückmeldung bei vollem, falschem Brett.
   gemCells: [], gemBy: [], gemKeys: {}, gemsFullWrong: false, gemsShake: false,
+  gemAuto: [],                 // Gem Hunt: welche Kreuze automatisch gesetzt wurden (Einstellung gemAutoCross)
   gemTool: 'gem',              // Gem Hunt: Werkzeug unter dem Brett ('gem' | 'cross'), bleibt über Partien erhalten
   // Pipes (js/games/pipes): Drehzahl je Stück (fortlaufend, mod 4 zählt), wer
   // zuletzt drehte, gesperrte Stücke und Ereignis-Schlüssel je Stück (später gewinnt).
@@ -9363,6 +9364,13 @@ const App = {
             <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
           </div>
           <small class="set-hint">{{ t('settings.coopRemovedOutlineHint') }}</small>
+          </template>
+          <!-- Gem Hunt: Kreuze von Hand oder automatisch mit jedem Stein. -->
+          <template v-if="gameHas('autoCross')">
+          <div class="set-row gem-autocross" @click="toggleSetting('gemAutoCross')">
+            <span>{{ t('gem.autoCross') }}</span><span class="switch" :class="{on:state.settings.gemAutoCross}"><i></i></span>
+          </div>
+          <small class="set-hint">{{ t('gem.autoCrossHint') }}</small>
           </template>
           </div>
         </div>
