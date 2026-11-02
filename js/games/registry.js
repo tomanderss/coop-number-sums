@@ -28,6 +28,7 @@ export const GAME_META = {
   numberpath: { id: 'numberpath', nameKey: 'games.numberpath', icon: 'route', logo: './icons/games/numberpath-192.png' },
   gems: { id: 'gems', nameKey: 'games.gems', icon: 'gem', logo: './icons/games/gems-192.png' },
   pipes: { id: 'pipes', nameKey: 'games.pipes', icon: 'wave', logo: './icons/games/pipes-192.png' },
+  numberlink: { id: 'numberlink', nameKey: 'games.numberlink', icon: 'link', logo: './icons/games/numberlink-192.png' },
 };
 
 /** Alle Spiel-Kennungen in Anzeige-Reihenfolge. */

@@ -1,0 +1,83 @@
+/* games/numberlink.css — die Optik von „Number Link". Wird nur eingehängt,
+   solange dieses Spiel aktiv ist (s. applyGameCss / index.html).
+
+   Minimalistisch: ein ruhiges Feld mit feinem Raster, darauf je Paar eine
+   dicke, runde Linie in seiner Farbe und die belegten Zellen zart getönt. Die
+   Zahlen sind farbige Kreise. Verbundene Paare werden satter. Animiert wird nur
+   opacity/transform. */
+
+.board.nl-board {
+  display: block; position: relative; padding: 0; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--text) 4%, var(--bg2));
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--text3) 22%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--text3) 22%, transparent) 1px, transparent 1px);
+  background-size: calc(100% / var(--cols)) calc(100% / var(--rows));
+  background-position: -0.5px -0.5px;
+  box-shadow: 0 0 0 1px var(--hairline), var(--soft-shadow);
+}
+.nl-links, .nl-focus { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.nl-ends, .nl-gaps { position: absolute; inset: 0; pointer-events: none; }
+
+/* Belegte Zellen: zarte Tönung; verbunden etwas satter. */
+.nl-fill { fill: var(--lc); opacity: .16; transition: opacity .25s ease; }
+.nl-links g.done .nl-fill { opacity: .3; }
+/* Die Linie: rund, ohne Kanten; noch offen etwas schmaler. */
+.nl-line {
+  fill: none; stroke: var(--lc); stroke-width: .3;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: stroke-width .18s ease;
+}
+.nl-links g.done .nl-line { stroke-width: .36; }
+
+/* Zahlen: Kreis in der Paarfarbe, weiße Zahl. Verbunden: heller Ring + kurzer Hüpfer. */
+.nl-end { position: absolute; display: flex; align-items: center; justify-content: center; }
+.nl-end b {
+  width: 72%; height: 72%; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--lc); color: #fff;
+  font-size: var(--fs); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 1px rgb(0 0 0 / .28);
+  box-shadow: 0 1px 3px rgb(0 0 0 / .18);
+}
+.nl-end::after {
+  content: ''; position: absolute; width: 72%; height: 72%; border-radius: 50%;
+  box-shadow: 0 0 0 max(2px, calc(var(--cell) * .05)) color-mix(in srgb, var(--lc) 45%, transparent);
+  opacity: 0; transform: scale(.85);
+  transition: opacity .25s ease, transform .3s cubic-bezier(.3, 1.5, .5, 1);
+}
+.nl-end.on::after { opacity: 1; transform: scale(1.14); }
+.nl-end.on b { animation: nl-pop .38s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes nl-pop { 0% { transform: scale(1); } 45% { transform: scale(1.16); } 100% { transform: scale(1); } }
+
+/* Alle Paare verbunden, aber noch Zellen frei: die freien Zellen leuchten auf. */
+.nl-gap {
+  position: absolute; border-radius: 22%;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 65%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  animation: nl-pulse 1.2s ease-in-out infinite;
+}
+@keyframes nl-pulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+
+/* Training: die nächste erzwungene Linie, gestrichelt vorgezeichnet. */
+.nl-train {
+  fill: none; stroke: var(--lc); stroke-width: .16; stroke-dasharray: .22 .2;
+  stroke-linecap: round; stroke-linejoin: round;
+  animation: nl-pulse 1.3s ease-in-out infinite;
+}
+
+/* Gelöst: eine Welle läuft über die Linien. */
+.board.nl-board.done .nl-links g { animation: nl-win .7s ease-out both; }
+.board.nl-board.done .nl-fill { opacity: .38; }
+@keyframes nl-win { 0% { opacity: .55; } 100% { opacity: 1; } }
+.board.nl-board.done { box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 60%, transparent), var(--soft-shadow); transition: box-shadow .5s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nl-gap, .nl-train, .nl-end.on b, .board.nl-board.done .nl-links g { animation: none; }
+  .nl-line, .nl-fill, .nl-end::after { transition: none; }
+}
+
+.history-board.nl-board { margin: 0 auto; }
+.history-board.nl-board .nl-line { stroke-width: .36; }

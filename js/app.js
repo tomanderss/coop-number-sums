@@ -155,6 +155,10 @@ const state = reactive({
   path: [],                  // gezogene Linie als Zell-Indizes ab der 1
   pathBy: [],                // wer welche Zelle angehängt hat (Coop-Verteilung)
   pathKey: null,             // Ereignis-Schlüssel der zuletzt übernommenen Linie (später gewinnt)
+  // ── Number Link (s. js/games/numberlink/board.js) ──
+  links: [],                 // Linie je Zahl: links[k-1] = [Zell-Index, …] ab einem Ende (leer = nicht gezogen)
+  linkBy: [],                // wer welche Linie zuletzt zog (Coop-Verteilung)
+  linkKeys: {},              // Ereignis-Schlüssel je Zahl (später gewinnt)
   // ── Rectangles (s. js/games/rectangles/board.js) ──
   rects: [],                 // gezogene Rechtecke [{ id, r, c, h, w, by, col, k }]
   // Gem Hunt (js/games/gems): Feld-Stand je Zelle (0 leer, 1 Kreuz, 2 Edelstein),

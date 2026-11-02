@@ -7,7 +7,8 @@
 // Entwurf (alle Felder optional, Zellen als Index r·cols+c):
 //   cur   die Zelle unter dem Finger           → pulsierender Rahmen
 //   box   { r, c, h, w } (Rectangles)          → gestricheltes Rechteck
-//   path  [zelle, …] (Number Path)             → Linie durch die Zellmitten
+//   path  [zelle, …] (Number Path/Link)        → Linie durch die Zellmitten
+//   pc    Farbe der Linie (Number Link: die Farbe des Paares; sonst die des Zeichnenden)
 //   cells [[zelle, wert], …] (Gem Hunt)        → Kreuz/Stein-Vorschau
 //   c     Farbe des Zeichnenden (setzt die Schale)
 
@@ -31,6 +32,7 @@ export const LiveLayer = {
         const d = live[uid];
         if (!d || typeof d !== 'object') continue;
         const col = { '--lc': d.c || 'var(--accent)' };
+        if (typeof d.pc === 'string' && d.pc) col['--lp'] = d.pc;
         const item = { uid, col };
         if (Number.isInteger(d.cur) && d.cur >= 0 && d.cur < rows * cols) item.cur = cellBox(d.cur);
         if (d.box && Number.isFinite(d.box.r)) item.box = { left: pct(d.box.c, cols), top: pct(d.box.r, rows), width: pct(d.box.w, cols), height: pct(d.box.h, rows) };
