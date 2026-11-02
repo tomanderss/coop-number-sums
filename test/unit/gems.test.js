@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EMPTY, CROSS, GEM, neighbors8, clash, conflicts, isFull, isSolved, progressPct,
-  validPuzzleShape, normalizePuzzle, normalizeCells, tapResult,
+  validPuzzleShape, normalizePuzzle, normalizeCells, tapResult, gemZone, autoCrossChanges,
 } from '../../js/games/gems/model.js';
 import { solveLogic, countSolutions, nextDeduction, entryInfo, EASY_KINDS } from '../../js/games/gems/solver.js';
 import { generatePuzzle, randomSolution, mulberry32 } from '../../js/games/gems/generator.js';
@@ -80,6 +80,33 @@ describe('Gem Hunt: Löser und Generator', () => {
     const byId = Object.fromEntries(DIFFICULTIES.map((d) => [d.id, d]));
     assert.equal(byId.mittel.blocks, false);
     assert.ok(byId.schwer.blocks && byId.schwer.minBlocks >= 1 && byId.schwer.maxTier === 1, 'Schwer: ohne Schubfach');
+  });
+  test('Auto-Kreuze: Setzen kreuzt die Zone, Entfernen nimmt nur eigene Auto-Kreuze zurück', () => {
+    const p = P5, n = p.rows;
+    const z = gemZone(p, 0);
+    assert.ok(z.has(1) && z.has(n) && z.has(n + 1) && z.has(n - 1) && z.has((n - 1) * n), 'Zeile, Spalte, Nachbarn');
+    for (let x = 0; x < n * n; x++) if (p.regions[x] === p.regions[0] && x) assert.ok(z.has(x), 'Käfig');
+    assert.ok(!z.has(0));
+    // Setzen
+    let cells = new Array(n * n).fill(EMPTY);
+    cells[2 * n + 4] = CROSS;                        // ein eigenes Kreuz
+    cells[0] = GEM;
+    const add = autoCrossChanges(p, cells, [], 0, true);
+    assert.ok(add.every(([j, v]) => v === CROSS && z.has(j) && cells[j] === EMPTY));
+    assert.equal(add.length, [...z].filter((j) => cells[j] === EMPTY).length);
+    const auto = new Array(n * n).fill(false);
+    for (const [j, v] of add) { cells[j] = v; auto[j] = true; }
+    // Ein zweiter Stein, dessen Zone sich mit der ersten überschneidet.
+    const g2 = [...Array(n * n).keys()].find((x) => cells[x] === EMPTY && !z.has(x));
+    cells[g2] = GEM;
+    for (const [j, v] of autoCrossChanges(p, cells, auto, g2, true)) { cells[j] = v; auto[j] = true; }
+    // Ersten Stein entfernen: Auto-Kreuze, die nur er verursacht, verschwinden.
+    cells[0] = EMPTY;
+    const rem = autoCrossChanges(p, cells, auto, 0, false);
+    const z2 = gemZone(p, g2);
+    for (const [j, v] of rem) { assert.equal(v, EMPTY); assert.ok(z.has(j) && !z2.has(j) && auto[j]); }
+    for (const j of z) if (z2.has(j)) assert.ok(!rem.some(([x]) => x === j), 'vom zweiten Stein gedeckt');
+    if (z.has(2 * n + 4)) assert.ok(!rem.some(([x]) => x === 2 * n + 4), 'eigenes Kreuz bleibt');
   });
   test('Werkzeug: Tippen setzt das gewählte Zeichen oder nimmt es weg', () => {
     assert.equal(tapResult(EMPTY, 'gem'), GEM);

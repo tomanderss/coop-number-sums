@@ -62,6 +62,45 @@ export function tapResult(v, tool) {
   return v === GEM ? EMPTY : GEM;
 }
 
+/**
+ * AUTO-KREUZE (Einstellung „Kreuze automatisch", Nutzerwunsch): die Zone eines
+ * Steins = alle Felder, auf denen wegen ihm kein weiterer Stein liegen darf —
+ * die acht Nachbarn, seine Zeile, seine Spalte und sein Käfig.
+ */
+export function gemZone(p, i) {
+  const n = p.rows, [r, c] = rcOf(n, i), k = p.regions[i];
+  const out = new Set(neighbors8(n, i));
+  for (let x = 0; x < n * n; x++) {
+    if (x === i) continue;
+    if (Math.floor(x / n) === r || x % n === c || p.regions[x] === k) out.add(x);
+  }
+  out.delete(i);
+  return out;
+}
+
+/**
+ * Was ändert sich zusätzlich, wenn auf Feld i ein Stein gesetzt (placing) bzw.
+ * entfernt wird? `cells` = Brett NACH dem Setzen/Entfernen, `auto[j]` = Kreuz
+ * auf j wurde automatisch gesetzt. Setzen kreuzt alle leeren Felder der Zone;
+ * Entfernen nimmt nur AUTOMATISCHE Kreuze zurück, und nur, wenn kein anderer
+ * Stein dieses Feld noch ausschließt — eigene Kreuze bleiben immer liegen.
+ * Liefert die zusätzlichen Änderungen [[feld, wert], …].
+ */
+export function autoCrossChanges(p, cells, auto, i, placing) {
+  const out = [];
+  if (placing) {
+    for (const j of gemZone(p, i)) if (cells[j] === EMPTY) out.push([j, CROSS]);
+    return out;
+  }
+  const gems = gemsOf(cells).filter((g) => g !== i);
+  for (const j of gemZone(p, i)) {
+    if (cells[j] !== CROSS || !auto[j]) continue;
+    const still = gems.some((g) => gemZone(p, g).has(j));
+    if (!still) out.push([j, EMPTY]);
+  }
+  return out;
+}
+
 export function isFull(p, cells) { return gemsOf(cells).length >= p.rows; }
 
 /** Gelöst = genau n Edelsteine, keiner in Konflikt (⇒ je Zeile/Spalte/Käfig einer). */

@@ -1,0 +1,3 @@
+- Gem Hunt: Der Stein/Kreuz-Umschalter sieht aus wie in Number Sums und wechselt bei jedem Tipp darauf
+- Gem Hunt: Neues, schlichteres Edelstein-Design und deutlichere Käfig-Grenzen – angekreuzte Felder treten zurück, freie Felder fallen sofort auf
+- Gem Hunt: Neue Einstellung „Kreuze automatisch setzen“ – jeder Edelstein kreuzt Nachbarn, Zeile, Spalte und Käfig an und räumt sie beim Wegnehmen wieder ab

@@ -37,8 +37,8 @@ test('Werkzeug Stein/Kreuz: Tippen setzt das gewählte, Wischen nur mit Kreuz', 
   const cdp = await context.newCDPSession(page);
   const tap = async (i) => { await touch(cdp, 'touchStart', [at(i)]); await touch(cdp, 'touchEnd', []); };
   // Werkzeug unter dem Brett, „Stein" ist vorgewählt.
-  await expect(page.locator('.gm-tools')).toBeVisible();
-  await expect(page.locator('.gm-tool.gem.on')).toBeVisible();
+  await expect(page.locator('.gm-toggle')).toBeVisible();
+  await expect(page.locator('.gm-gem.active')).toBeVisible();
   await tap(0);
   expect((await cells(page))[0]).toBe(2);
   await expect(page.locator('.gm-mark.gem')).toHaveCount(1);
@@ -49,9 +49,11 @@ test('Werkzeug Stein/Kreuz: Tippen setzt das gewählte, Wischen nur mit Kreuz', 
   for (let c = 1; c < 5; c++) await touch(cdp, 'touchMove', [at(c)]);
   await touch(cdp, 'touchEnd', []);
   expect((await cells(page)).slice(0, 5)).toEqual([0, 0, 0, 0, 0]);
-  // Umschalten auf „Kreuz".
-  await page.locator('.gm-tool.cross').click();
-  await expect(page.locator('.gm-tool.cross.on')).toBeVisible();
+  // Umschalten auf „Kreuz" — ein Tipp IRGENDWO auf den Schalter (hier sogar auf
+  // die gerade aktive Stein-Seite) wechselt das Werkzeug.
+  const tb = await page.locator('.gm-toggle').boundingBox();
+  await page.mouse.click(tb.x + tb.width - 16, tb.y + tb.height / 2);
+  await expect(page.locator('.gm-cross.active')).toBeVisible();
   expect(await page.evaluate(() => window.__cns.state.gemTool)).toBe('cross');
   await tap(0);
   expect((await cells(page))[0]).toBe(1);
@@ -164,4 +166,34 @@ test('Endlos startet; keine Große-Zahlen-Missionen; Freunde sehen das Spiel', a
   await page.evaluate(() => window.__cns.solveGems());
   await page.waitForFunction(() => window.__cns.state.status === 'won');
   await expect(page.locator('.endless-lives-row')).toBeVisible();
+});
+
+test('Kreuze automatisch: ein Stein kreuzt seine Zone, Wegnehmen räumt nur diese Kreuze', async ({ page }) => {
+  await gotoApp(page);
+  await startGame(page, 'mittel');
+  // Einstellung über die echte Oberfläche einschalten.
+  await page.evaluate(() => window.__cns.setSetting('gemAutoCross', true));
+  const n = await page.evaluate(() => window.__cns.state.puzzle.rows);
+  // Ein eigenes Kreuz irgendwo in Zeile 0 — das muss liegen bleiben.
+  await page.evaluate((n) => window.__cns.tapGem(n - 1, 'cross'), n);
+  await page.evaluate(() => window.__cns.tapGem(0, 'gem'));
+  const after = await cells(page);
+  for (let c = 1; c < n; c++) expect(after[c]).toBe(1);          // ganze Zeile
+  for (let r = 1; r < n; r++) expect(after[r * n]).toBe(1);      // ganze Spalte
+  expect(after[n + 1]).toBe(1);                                  // diagonaler Nachbar
+  expect(await page.evaluate(() => window.__cns.state.gemAuto[1])).toBe(true);
+  // Wegnehmen: die Auto-Kreuze verschwinden, das eigene bleibt.
+  await page.evaluate(() => window.__cns.tapGem(0, 'gem'));
+  const back = await cells(page);
+  expect(back[0]).toBe(0);
+  expect(back[1]).toBe(0);
+  expect(back[n]).toBe(0);
+  expect(back[n - 1]).toBe(1);
+  // Ausgeschaltet: wieder rein manuell.
+  await page.evaluate(() => window.__cns.setSetting('gemAutoCross', false));
+  await page.evaluate(() => window.__cns.tapGem(0, 'gem'));
+  expect((await cells(page))[1]).toBe(0);
+  // Der Schalter steht unter Einstellungen ▸ Spiel.
+  await page.evaluate(() => { window.__cns.state.screen = 'settings'; window.__cns.state.settingsTab = 'spiel'; });
+  await expect(page.locator('.gem-autocross')).toBeVisible();
 });

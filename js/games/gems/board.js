@@ -10,6 +10,10 @@
 //   • Mit „Kreuz" setzt WISCHEN Kreuze auf alle leeren Felder unterwegs; beginnt
 //     es auf einem Kreuz, radiert es stattdessen. Mit „Stein" zählt nur das Tippen.
 //   • Zwei Finger verschieben ein gezoomtes Brett.
+//   • Einstellung „Kreuze automatisch" (settings.gemAutoCross): ein gesetzter Stein
+//     kreuzt seine ganze Zone (Nachbarn, Zeile, Spalte, Käfig), ein entfernter
+//     nimmt NUR die automatisch gesetzten Kreuze zurück (state.gemAuto merkt sich,
+//     welche das sind; s. autoCrossChanges in model.js).
 // Fehler: beim Setzen nie (Konflikte werden nur rot gezeigt). Erst wenn so viele
 // Edelsteine liegen, wie es Zeilen gibt, und es nicht aufgeht, kostet das ein
 // Leben (rote Kontur + Wackeln) — wie bei Rectangles.
@@ -27,7 +31,7 @@ import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
 import {
-  EMPTY, CROSS, GEM, gemsOf, conflicts, isFull, isSolved, progressPct, tapResult,
+  EMPTY, CROSS, GEM, gemsOf, conflicts, isFull, isSolved, progressPct, tapResult, autoCrossChanges,
   normalizePuzzle as healPuzzle, normalizeCells, rcOf,
 } from './model.js';
 import { solveLogic, nextDeduction } from './solver.js';
@@ -132,9 +136,9 @@ function checkFull() {
  * Felder setzen (eigener Zug). `changes` = [[zelle, wert], …]. Sendet im Coop
  * EINE Nachricht für alle Felder. Gibt die Zahl der geänderten Felder zurück.
  */
-export function setCells(changes, { force = false, send = true } = {}) {
+export function setCells(changes, { force = false, send = true, auto = null } = {}) {
   if (!force && !playable()) return 0;
-  const cells = state.gemCells.slice(), by = state.gemBy.slice();
+  const cells = state.gemCells.slice(), by = state.gemBy.slice(), autoArr = state.gemAuto.slice();
   const done = [];
   let gemAdded = false, gemRemoved = false;
   for (const [i, v] of changes) {
@@ -143,11 +147,13 @@ export function setCells(changes, { force = false, send = true } = {}) {
     if (v === GEM) gemAdded = true;
     cells[i] = v;
     by[i] = v === GEM ? me() : '';
+    autoArr[i] = !!(auto && v === CROSS && auto.has(i));
     done.push([i, v]);
   }
   if (!done.length) return 0;
   state.gemCells = cells;
   state.gemBy = by;
+  state.gemAuto = autoArr;
   if (gemRemoved) state.gemsFullWrong = false;
   if (send) sendCells(done);
   if (gemAdded && state.settings.sfxKeep) Music.sfxKeep();
@@ -162,6 +168,19 @@ function sendCells(list) {
   if (key) { const keys = { ...state.gemKeys }; for (const [i] of list) keys[i] = key; state.gemKeys = keys; }
 }
 const tool = () => (state.gemTool === 'cross' ? 'cross' : 'gem');
+// Ein Tipp auf Feld i mit Werkzeug `tl` — inklusive Auto-Kreuze, wenn eingestellt.
+function tapCell(i, tl) {
+  const old = state.gemCells[i], v = tapResult(old, tl);
+  const changes = [[i, v]];
+  let auto = null;
+  if (state.settings.gemAutoCross && (v === GEM || old === GEM)) {
+    const after = state.gemCells.slice(); after[i] = v;
+    const extra = autoCrossChanges(state.puzzle, after, state.gemAuto, i, v === GEM);
+    changes.push(...extra);
+    if (v === GEM) auto = new Set(extra.map(([j]) => j));
+  }
+  return setCells(changes, { auto });
+}
 export function setGemTool(v) {
   if (v !== 'gem' && v !== 'cross') return;
   if (state.gemTool === v) return;
@@ -195,7 +214,7 @@ function onDown(e) {
   if (e.button === 2) {
     if (!playable()) return;
     const i = cellAt(e.currentTarget.getBoundingClientRect(), e.clientX, e.clientY);
-    setCells([[i, tapResult(state.gemCells[i], 'cross')]]);
+    tapCell(i, 'cross');
     return;
   }
   if (e.button != null && e.button > 0) return;
@@ -246,7 +265,7 @@ function onUp(e) {
   sendLive(null);
   if (!d.mode) {
     // Ein Tipp: nur, wenn der Finger auf seinem Feld blieb (sonst war es ein Verrutschen).
-    if (!d.moved || d.last === d.start) setCells([[d.start, tapResult(state.gemCells[d.start], d.tool)]]);
+    if (!d.moved || d.last === d.start) tapCell(d.start, d.tool);
     return;
   }
   sendCells([...d.changes]);
@@ -285,11 +304,28 @@ const RegionLayer = {
   },
   template: `
             <div class="gm-regions" aria-hidden="true">
-              <div v-for="x in cells" :key="x.i" class="gm-cell" :class="{ bt: x.bt, bb: x.bb, bl: x.bl, br: x.br }" :style="style(x)"></div>
+              <div v-for="x in cells" :key="x.i" class="gm-cell" :style="style(x)"></div>
+            </div>`,
+};
+// Die dicken Käfiggrenzen liegen in einer EIGENEN Ebene ÜBER den Markierungen:
+// sonst blasste das Abdunkeln gekreuzter Felder auch die Grenzen aus, und man sah
+// zwischen lauter Kreuzen nicht mehr, wo ein Käfig endet. Hängt nur am Rätsel.
+const BorderLayer = {
+  setup() {
+    const cells = computed(() => (state.puzzle ? regionCells(state.puzzle).filter((x) => x.bt || x.bb || x.bl || x.br) : []));
+    const style = (x) => { const n = state.puzzle.rows; return { left: pct(x.c, n), top: pct(x.r, n), width: pct(1, n), height: pct(1, n) }; };
+    return { cells, style };
+  },
+  template: `
+            <div class="gm-borders" aria-hidden="true">
+              <div v-for="x in cells" :key="x.i" class="gm-bd" :class="{ bt: x.bt, bb: x.bb, bl: x.bl, br: x.br }" :style="style(x)"></div>
             </div>`,
 };
 // Der Edelstein: facettiert, in der Farbe seines Käfigs.
-const GEM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="g-body" d="M6.5 3.5h11l4.5 5.5L12 21 2 9z"/><path class="g-top" d="M6.5 3.5h11l4.5 5.5H2z"/><path class="g-facet" d="M2 9h20M8.8 3.5 7 9l5 12 5-12-1.8-5.5M7 9l5-5.5L17 9"/><path class="g-shine" d="M8.2 5.3l-1.4 2.3"/></svg>';
+// Minimalistisch: eine Raute in zwei Tönen (oben heller), ein durchscheinendes
+// „Fenster" in der Mitte und ein einzelner Glanzstrich — ohne Facettenlinien,
+// damit der Stein auch auf kleinen Feldern klar und ruhig bleibt.
+const GEM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="g-body" d="M12 2.6 21.4 12 12 21.4 2.6 12z"/><path class="g-top" d="M12 2.6 21.4 12H2.6z"/><path class="g-win" d="M12 7.4 16.6 12 12 16.6 7.4 12z"/><path class="g-shine" d="M8.3 8.6 10.6 6.3"/></svg>';
 const MarkLayer = {
   setup() {
     const bad = computed(() => (state.puzzle ? conflicts(state.puzzle, state.gemCells) : new Set()));
@@ -341,33 +377,34 @@ const FocusLayer = {
             </div>`,
 };
 
-// Werkzeug-Umschalter unter dem Brett: zwei große Hälften, die gewählte trägt
-// die gleitende Pille (wie der Umschalter in Number Sums). Feste Höhe, damit
+// Werkzeug-Umschalter unter dem Brett — GENAU der Umschalter aus Number Sums
+// (dieselben Klassen .tool-toggle/.tool-pill/.tool-ic, dieselbe Größe): links
+// Kreuz, rechts Stein. Ein Tipp IRGENDWO auf den Schalter wechselt das Werkzeug
+// (Nutzerwunsch — vorher zählte nur die jeweilige Hälfte). Feste Höhe, damit
 // nichts springt; im Training ausgeblendet (dort setzt der Banner die Steine).
-const GEM_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11l4.5 5.5L12 21 2 9z" fill="currentColor" opacity=".9"/><path d="M2 9h20M8.8 3.5 7 9l5 12 5-12-1.8-5.5" fill="none" stroke="var(--bg)" stroke-width="1.2" stroke-linejoin="round" opacity=".6"/></svg>';
-const CROSS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';
+const GEM_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 20.8 12 12 20.8 3.2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 8.2 15.8 12 12 15.8 8.2 12z" fill="currentColor"/></svg>';
+const CROSS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+function toggleGemTool() { setGemTool(tool() === 'gem' ? 'cross' : 'gem'); }
 export const GemTools = {
   setup() {
     const show = computed(() => !!state.puzzle && !(state.isTrainingGame && !state.trainingDone));
-    return { state, show, setGemTool, t, GEM_ICON, CROSS_ICON };
+    return { state, show, toggleGemTool, t, GEM_ICON, CROSS_ICON };
   },
   template: `
           <div class="gm-tools-wrap">
-            <div v-if="show" class="gm-tools" role="radiogroup" :aria-label="t('gem.tool.aria')">
-              <span class="gm-tool-pill" :class="{ cross: state.gemTool === 'cross' }" aria-hidden="true"></span>
-              <button type="button" class="gm-tool gem" role="radio" :aria-checked="state.gemTool !== 'cross'" :class="{ on: state.gemTool !== 'cross' }" @click="setGemTool('gem')">
-                <i v-html="GEM_ICON"></i><span>{{ t('gem.tool.gem') }}</span>
-              </button>
-              <button type="button" class="gm-tool cross" role="radio" :aria-checked="state.gemTool === 'cross'" :class="{ on: state.gemTool === 'cross' }" @click="setGemTool('cross')">
-                <i v-html="CROSS_ICON"></i><span>{{ t('gem.tool.cross') }}</span>
-              </button>
+            <div v-if="show" class="tool-toggle gm-toggle" role="switch" tabindex="0"
+                 :aria-checked="state.gemTool !== 'cross'" :aria-label="t('gem.tool.aria')"
+                 @click="toggleGemTool" @keydown.enter.prevent="toggleGemTool" @keydown.space.prevent="toggleGemTool">
+              <div class="tool-pill" :class="{ pen: state.gemTool !== 'cross' }"></div>
+              <span class="tool-ic gm-cross" :class="{ active: state.gemTool === 'cross' }" :title="t('gem.tool.cross')" v-html="CROSS_ICON"></span>
+              <span class="tool-ic gm-gem" :class="{ active: state.gemTool !== 'cross' }" :title="t('gem.tool.gem')" v-html="GEM_ICON"></span>
             </div>
           </div>
   `,
 };
 
 export const BoardGrid = {
-  components: { RegionLayer, MarkLayer, FocusLayer, LiveLayer },
+  components: { RegionLayer, BorderLayer, MarkLayer, FocusLayer, LiveLayer },
   setup() {
     const t0 = performance.now();
     onMounted(() => log('perf', 'Brett aufgebaut', { game: 'gems', cells: state.puzzle ? state.puzzle.rows * state.puzzle.cols : 0, tookMs: Math.round(performance.now() - t0) }));
@@ -383,6 +420,7 @@ export const BoardGrid = {
             <focus-layer></focus-layer>
             <live-layer></live-layer>
             <mark-layer></mark-layer>
+            <border-layer></border-layer>
           </div>
   `,
 };
@@ -400,6 +438,8 @@ export function loadBoard(puzzle, saved) {
   const by = arr(saved && saved.gemBy);
   state.gemBy = state.gemCells.map((v, i) => (v === GEM ? (by[i] || LOCAL_PLAYER_ID) : ''));
   state.gemKeys = {};
+  const au = arr(saved && saved.gemAuto);
+  state.gemAuto = state.gemCells.map((v, i) => v === CROSS && !!au[i]);
   state.gemsFullWrong = false;
   state.gemsShake = false;
   drag = null; pan = null; pointers.clear();
@@ -407,9 +447,12 @@ export function loadBoard(puzzle, saved) {
 
 export function boardFields(purpose) {
   if (purpose === 'history') return { gemCells: state.gemCells.slice() };
-  return { gemCells: state.gemCells.slice(), gemBy: state.gemBy.map((x) => x || '') };
+  const out = { gemCells: state.gemCells.slice(), gemBy: state.gemBy.map((x) => x || '') };
+  // Welche Kreuze automatisch kamen, ist nur für dieses Gerät wichtig (Spielstand, nicht Coop).
+  if (purpose === 'save') out.gemAuto = state.gemAuto.map((x) => (x ? 1 : 0));
+  return out;
 }
-export function boardFieldsFrom(src) { return { gemCells: src.gemCells, gemBy: src.gemBy }; }
+export function boardFieldsFrom(src) { return { gemCells: src.gemCells, gemBy: src.gemBy, gemAuto: src.gemAuto }; }
 
 export function boardSolved() { return !!state.puzzle && isSolved(state.puzzle, state.gemCells); }
 export function boardProgressPct() { return state.puzzle ? progressPct(state.puzzle, state.gemCells) : 0; }
@@ -435,7 +478,7 @@ export function wrongCells() { return []; }
 export function applyRemoteMove(msg, eventKey = null) {
   if (!state.puzzle || msg.op !== 'cells' || !msg.list) return;
   const list = arr(msg.list).map((x) => arr(x));
-  const cells = state.gemCells.slice(), by = state.gemBy.slice(), keys = { ...state.gemKeys };
+  const cells = state.gemCells.slice(), by = state.gemBy.slice(), keys = { ...state.gemKeys }, autoArr = state.gemAuto.slice();
   let changed = 0, gemAdded = false;
   for (const [i, v] of list) {
     if (!(i >= 0 && i < cells.length) || ![EMPTY, CROSS, GEM].includes(v)) continue;
@@ -443,11 +486,11 @@ export function applyRemoteMove(msg, eventKey = null) {
     if (eventKey) keys[i] = eventKey;
     if (cells[i] === v) continue;
     if (v === GEM) gemAdded = true;
-    cells[i] = v; by[i] = v === GEM ? (msg.from || '') : ''; changed++;
+    cells[i] = v; by[i] = v === GEM ? (msg.from || '') : ''; autoArr[i] = false; changed++;
   }
   state.gemKeys = keys;
   if (!changed) return;
-  state.gemCells = cells; state.gemBy = by;
+  state.gemCells = cells; state.gemBy = by; state.gemAuto = autoArr;
   state.gemsFullWrong = gemAdded && isFull(state.puzzle, cells) && !isSolved(state.puzzle, cells);
   afterMove();
 }
@@ -502,8 +545,9 @@ export const HistoryBoard = {
   },
   template: `
           <div class="board gm-board history-board" :style="historyStyle(detail.puzzle)">
-            <div class="gm-regions"><div v-for="x in cellsOf(detail.puzzle)" :key="x.i" class="gm-cell" :class="{ bt: x.bt, bb: x.bb, bl: x.bl, br: x.br }" :style="style(detail.puzzle, x)"></div></div>
+            <div class="gm-regions"><div v-for="x in cellsOf(detail.puzzle)" :key="x.i" class="gm-cell" :style="style(detail.puzzle, x)"></div></div>
             <div class="gm-marks"><span v-for="g in gems(detail.puzzle)" :key="g.i" class="gm-mark gem" :style="style(detail.puzzle, g)"><i v-html="GEM_SVG"></i></span></div>
+            <div class="gm-borders"><div v-for="x in cellsOf(detail.puzzle)" :key="'b' + x.i" class="gm-bd" :class="{ bt: x.bt, bb: x.bb, bl: x.bl, br: x.br }" :style="style(detail.puzzle, x)"></div></div>
           </div>
   `,
 };
@@ -511,7 +555,7 @@ export const HistoryBoard = {
 // ── Test-Haken (nur localhost, s. window.__cns in app.js) ──
 export function testHooks() {
   return {
-    tapGem: (i, tl) => setCells([[i, tapResult(state.gemCells[i], tl || tool())]]),
+    tapGem: (i, tl) => tapCell(i, tl || tool()),
     setGemTool,
     setGem: (i, v) => setCells([[i, v]]),
     solveGems: () => {
