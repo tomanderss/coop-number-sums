@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.3';
-export const BUILD_HASH = 'c3a9b5c';
+export const BUILD      = '3.4';
+export const BUILD_HASH = '2cc6c5a';
 
 export const CHANGELOG = [
+  {
+    "version": "3.4",
+    "date": "02.11.2026",
+    "changes": [
+      "- Pipes: Neues, schlichtes Design – Rohre als weiche Spuren mit runden Biegungen, das Wasser fließt als sanfte Lichtpunkte durch die Leitungen",
+      "- Pipes: Ist das letzte Stück gedreht, läuft erst eine Leuchtwelle von der Mitte durchs ganze Netz, danach kommt der Siegbildschirm"
+    ]
+  },
   {
     "version": "3.3",
     "date": "02.11.2026",
