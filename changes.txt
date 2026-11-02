@@ -1,0 +1,1 @@
+- Coop: Spielstände, deren Raum nicht mehr existiert, kommen nicht mehr als „Coop fortsetzen“ zurück – sie laufen als Solo-Spiel weiter; jedes Coop-Spiel lässt sich außerdem in „Spielstände“ löschen

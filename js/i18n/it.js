@@ -208,6 +208,7 @@ export default {
     partnerDisconnected: '{name} ha lasciato la lobby',
     reconnected: 'Riconnesso', partnerReconnected: '{name} è tornato',
     connectionLost: "Connessione persa – offline. Tentativo di riconnessione…",
+    roomGoneSolo: "Quella stanza coop non esiste più – la tua partita continua in solitario.",
     errorRoomGone: 'La stanza non esiste più — impossibile riprendere la partita coop.',
     hostDisconnectedPromoting: '{name} (host) disconnesso — diventi il nuovo host…',
     hostDisconnected: 'Connessione con {name} (host) persa',

@@ -4779,6 +4779,23 @@ function rememberSave(snap, kind, id) {
   state.saves = upsertSave({ ...snap, id: key, kind, ts: snap.ts || Date.now() });
 }
 function openSaves() { state.saves = loadSaves(); state.savesOpen = true; }
+// Zeilen der Liste: das (gerätelokale) Coop-Spiel steht vorne mit drin — vorher
+// gab es für einen Coop-Stand überhaupt keinen Löschen-Knopf (gemeldet: „Coop-
+// Spiele, die nicht mehr existieren, sind noch vorhanden und nicht löschbar").
+// Es liegt bewusst NICHT in der Bibliothek (cns_saves, synct): ohne das
+// Wiederverbindungs-Token dieses Geräts wäre es woanders nicht fortsetzbar.
+const savesRows = computed(() => {
+  const gc = state.resumeAvailableCoop;
+  return gc ? [{ ...gc, id: 'coop:' + (gc.gameId || 'slot'), __coop: true }, ...state.saves] : state.saves;
+});
+function deleteCoopSave() {
+  saveActiveGameCoop(null);
+  clearCoopSession();
+  state.resumeAvailableCoop = null;
+  log('game', 'Coop-Spielstand geloescht');
+  refreshResume();
+  showToast(t('saves.deleted'), 'info', 2000);
+}
 function closeSaves() { state.savesOpen = false; }
 
 // Anzeige-Helfer fuer die Liste. Bewusst hier und nicht im Template, damit das
@@ -4818,7 +4835,8 @@ const otherSavesCount = computed(() => {
 //   verlorenen Endlos-Lauf), hing der Zugang frueher am Solo-Knopf und verschwand
 //   mit ihm — obwohl die Bibliothek voll war.
 const savesLabel = computed(() => {
-  if (!state.saves.length) return '';
+  // Auch ein einzelnes Coop-Spiel braucht den Zugang — nur dort lässt es sich löschen.
+  if (!state.saves.length) return state.resumeAvailableCoop ? t('saves.manage') : '';
   const n = otherSavesCount.value;
   return n > 0 ? t('saves.moreN', { n }) : t('saves.manage');
 });
@@ -4881,6 +4899,7 @@ function saveWhen(g) {
 function resumeSave(g) {
   if (!g) return;
   closeSaves();
+  if (g.__coop) { resumeCoopGame(); return; }
   if (saveIsCurrent(g)) { navigate('game'); return; }
   log('game', 'Spielstand aus der Bibliothek fortgesetzt', { kind: g.kind || null, endless: saveIsEndless(g), progress: saveProgress(g) });
   if (saveIsEndless(g)) {
@@ -4898,6 +4917,7 @@ function resumeSave(g) {
 // geraeumt — sonst taucht er ueber „Fortsetzen" sofort wieder auf.
 function deleteSave(g) {
   if (!g) return;
+  if (g.__coop) { ask(t('saves.deleteTitle'), t('saves.deleteMsg'), deleteCoopSave); return; }
   ask(t('saves.deleteTitle'), t('saves.deleteMsg'), () => {
     state.saves = removeSave(g.id);
     const act = loadActiveGame();
@@ -5095,8 +5115,28 @@ function attemptCoopRejoin(sess) {
       Coop.send({ type: Coop.MSG.IDENTITY, name: sess.name, color: sess.color, username: myUsername(), badge: myBadge() });
       showToast(t('coop.reconnected'), 'success', 2000);
     },
-    onError() {
+    onError(e) {
       state.coop.waitingForGuest = false;
+      // Der Raum existiert nicht mehr: früher wurde nur das Wiederverbindungs-
+      // Token gelöscht, man blieb aber auf dem Coop-Brett — und der nächste
+      // Autosave (persistGame, saveSlot 'coop') schrieb Token + Stand sofort
+      // wieder zurück. „Coop fortsetzen" kam so immer wieder und ließ sich nicht
+      // loswerden (gemeldet). Jetzt wird die Partie zu einem eigenständigen
+      // Solo-Spiel (Fortschritt bleibt, löschbar wie jeder Solo-Stand); geht das
+      // nicht, wird der Coop-Stand verworfen.
+      if (e && e.type === 'room-gone') {
+        log('coop', 'Fortsetzen: Raum existiert nicht mehr', { code: sess.code });
+        state.coop.online = false;
+        if (continueSoloAlone(true)) { showToast(t('coop.roomGoneSolo'), 'info', 3600); return; }
+        saveActiveGameCoop(null);
+        clearCoopSession();
+        coopReset();
+        navigate('home');
+        refreshResume();
+        showToast(t('coop.errorRoomGone'), 'error', 3000);
+        return;
+      }
+      log('coop', 'Fortsetzen: Wiederverbinden fehlgeschlagen', e);
       clearCoopSession();
       showToast(t('coop.errorRoomGone'), 'error', 3000);
     },
@@ -8025,7 +8065,7 @@ const App = {
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
-      openSaves, closeSaves, resumeSave, deleteSave, saveProgress, saveIsEndless, saveDifficulty, saveDim, saveIsCurrent, saveWhen, SAVES_MAX,
+      openSaves, closeSaves, resumeSave, deleteSave, savesRows, saveProgress, saveIsEndless, saveDifficulty, saveDim, saveIsCurrent, saveWhen, SAVES_MAX,
       soloResume, resumeSolo, otherSavesCount, savesLabel, resumeSubline, saveLivesArr, saveLivesLeft,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
       doSignUp, doSignIn, doSignOut, doResetPassword, doChangePassword, doDeleteAccount, refreshAccount, doSyncNow, fmtSyncTime,
@@ -10183,7 +10223,7 @@ const App = {
         <h3><span class="ei" v-html="ic('save')"></span> {{ t('saves.title') }}</h3>
         <p class="saves-intro">{{ t('saves.intro', { max: SAVES_MAX }) }}</p>
         <div class="saves-list">
-          <div v-for="g in state.saves" :key="g.id" class="save-row" :class="{ current: saveIsCurrent(g) }" :style="diffVars(saveDifficulty(g))">
+          <div v-for="g in savesRows" :key="g.id" class="save-row" :class="{ current: saveIsCurrent(g), coop: g.__coop }" :style="diffVars(saveDifficulty(g))">
             <button class="save-main" @click="resumeSave(g)">
               <!-- Medaillon in der Leitfarbe der Schwierigkeit statt eines nackten
                    Punktes — dieselbe Bildsprache wie die Schwierigkeitsauswahl. -->
@@ -10192,6 +10232,7 @@ const App = {
                 <span class="save-head">
                   <b class="save-name">{{ t('difficulty.' + saveDifficulty(g)) }}</b>
                   <span class="save-dim">{{ saveDim(g) }}</span>
+                  <span v-if="g.__coop" class="save-badge"><span class="ei" v-html="ic('users')"></span>{{ t('game.coopTag') }}</span>
                   <span v-if="saveIsEndless(g)" class="save-badge"><span class="ei" v-html="ic('meteor')"></span>{{ t('endless.levelShort', { n: (g.endless && g.endless.level) || 1 }) }}</span>
                   <span v-if="saveIsCurrent(g)" class="save-badge now">{{ t('saves.running') }}</span>
                 </span>
@@ -10216,7 +10257,7 @@ const App = {
               <span class="ei" v-html="ic('trash')"></span>
             </button>
           </div>
-          <p v-if="!state.saves.length" class="saves-empty">{{ t('saves.empty') }}</p>
+          <p v-if="!savesRows.length" class="saves-empty">{{ t('saves.empty') }}</p>
         </div>
         <button class="btn btn-primary" @click="closeSaves">{{ t('common.close') }}</button>
       </div>
