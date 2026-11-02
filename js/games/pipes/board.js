@@ -10,13 +10,25 @@
 // Brett, sobald das Wasser von der Quelle JEDE Zelle erreicht und nirgends ein
 // Rohr ins Leere zeigt.
 //
+// OPTIK (Rework, Nutzerwunsch „moderner, minimalistischer, flüssiger"): ein Rohr
+// ist eine weiche Spur — je Arm ein Strich bis zur Kante, in der Mitte eine
+// runde Nabe, dadurch sind Biegungen rund und Nachbarstücke gehen nahtlos
+// ineinander über. Endstücke tragen eine kleine Kappe, die Quelle einen Kern.
+//
 // DER WASSERLAUF: jede erreichte Zelle füllt sich, verzögert um ihre Entfernung
-// von der Quelle (`--dl`) — das Wasser „läuft" sichtbar durch die Rohre. In
-// jedem gefüllten Rohrarm wandern Lichtstreifen in Flussrichtung (zur Mitte im
-// Arm, aus dem das Wasser kommt, nach außen in allen anderen). Animiert werden
-// AUSSCHLIESSLICH transform und opacity (Compositor; Lehre aus dem iOS-Skin-
-// Absturz, s. CLAUDE.md), und nur, solange das Spiel läuft (Pause/Verstecken
-// hält die Streifen an).
+// von der Quelle (`--dl`) — das Wasser „läuft" sichtbar durch die Rohre. Im
+// gefüllten Kanal treiben weiche Lichtpunkte in Flussrichtung (zur Mitte im Arm,
+// aus dem das Wasser kommt, nach außen in allen anderen) — EIN animiertes
+// Element je Arm mit einem Punktmuster, das nahtlos um genau eine Periode
+// gleitet. Animiert werden AUSSCHLIESSLICH transform und opacity (Compositor;
+// Lehre aus dem iOS-Skin-Absturz, s. CLAUDE.md), und nur, solange das Spiel
+// läuft (Pause/Verstecken hält sie an).
+//
+// FINALE: ist das Netz geschlossen, läuft erst eine Welle von der Quelle (Mitte)
+// nach außen durch jedes Stück (`--fd` nach Entfernung), DANN kommt der Sieg-
+// bildschirm (`winFinaleMs`, die Schale wartet so lange) — damit man merkt, dass
+// man fertig ist, auch wenn der letzte Zug auf einmal ein Viertel des Netzes
+// füllt (gemeldet).
 
 import { computed, onMounted, onBeforeUnmount } from '../../vue.esm-browser.prod.js';
 import { shopItemById } from '../../shopitems.js';
@@ -85,7 +97,22 @@ export function fitBoard() {
 }
 
 // ── Wasserlauf (eine Rechnung je Zug) ────────────────────────────────────────
-const flowInfo = computed(() => (state.puzzle ? flow(state.puzzle, state.pipeRot) : null));
+const flowInfo = computed(() => {
+  if (!state.puzzle) return null;
+  const f = flow(state.puzzle, state.pipeRot);
+  f.maxDepth = f.depth.reduce((a, b) => (b > a ? b : a), 0);
+  return f;
+});
+// Finale-Dauer: die Welle braucht ~50 ms je Schritt von der Quelle, höchstens
+// 1,2 s, danach klingt der letzte Puls ~0,7 s aus.
+const finaleSpread = (maxDepth) => Math.min(1200, maxDepth * 50);
+const FINALE_TAIL = 700;
+/** So lange soll die Schale nach dem Lösen mit dem Sieg-Dialog warten (0 = gar nicht). */
+export function winFinaleMs() {
+  const f = flowInfo.value;
+  if (!state.puzzle || !f || !isSolved(state.puzzle, state.pipeRot)) return 0;
+  return finaleSpread(f.maxDepth) + FINALE_TAIL;
+}
 
 // ── Züge ─────────────────────────────────────────────────────────────────────
 const me = () => state.coop.myId || LOCAL_PLAYER_ID;
@@ -199,15 +226,16 @@ export function boardRenders() { return boardRenderCount; }
 const countRender = () => { boardRenderCount++; return ''; };
 
 // Das ROHR eines Stücks in seiner Grundlage (Maske `m`, ungedreht), als SVG in
-// einem 100er-Raster. Hängt nur am Rätsel → einmal je Stück gebaut.
-const ARM = ['M50 50V-2', 'M50 50H102', 'M50 50V102', 'M50 50H-2'];
+// einem 100er-Raster: eine Spur (Arme bis zur Kante + runde Nabe). Hängt nur am
+// Rätsel → einmal je Stück gebaut.
+const ARM = ['M50 50V0', 'M50 50H100', 'M50 50V100', 'M50 50H0'];
 function pipeSvg(m, kind) {
   let d = '';
   for (let k = 0; k < 4; k++) if (m & (1 << k)) d += ARM[k];
-  const hub = kind === 'src' ? '<circle class="pp-src-ring" cx="50" cy="50" r="30"/><circle class="pp-src-core" cx="50" cy="50" r="22"/>'
-    : kind === 'end' ? '<circle class="pp-end-ring" cx="50" cy="50" r="24"/>'
-      : '<circle class="pp-joint" cx="50" cy="50" r="17"/>';
-  return `<svg viewBox="0 0 100 100" aria-hidden="true"><path class="pp-wall" d="${d}"/><path class="pp-bore" d="${d}"/>${hub}</svg>`;
+  const hub = kind === 'src' ? '<circle class="pp-src-ring" cx="50" cy="50" r="27"/><circle class="pp-src-core" cx="50" cy="50" r="7"/>'
+    : kind === 'end' ? '<circle class="pp-cap" cx="50" cy="50" r="19"/><circle class="pp-cap-in" cx="50" cy="50" r="7"/>'
+      : '<circle class="pp-joint" cx="50" cy="50" r="13"/>';
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><path class="pp-track" d="${d}"/>${hub}</svg>`;
 }
 const tileArt = computed(() => {
   const p = state.puzzle;
@@ -244,9 +272,12 @@ const PipeTile = {
         style: {
           left: pct(i % n, n), top: pct(Math.floor(i / n), p.rows), width: pct(1, n), height: pct(1, p.rows),
           '--dl': wet ? Math.min(1400, f.depth[i] * 45) + 'ms' : '0ms',
+          // Finale: Welle von der Quelle nach außen, über höchstens FINALE_SPREAD verteilt.
+          '--fd': wet && f.maxDepth ? Math.round((f.depth[i] / f.maxDepth) * finaleSpread(f.maxDepth)) + 'ms' : '0ms',
           ...(col ? { '--pb': col } : {}),
         },
         rot: { transform: `rotate(${r * 90}deg)` },
+        locked: !!state.pipeLock[i],
         svg: art.svg, arms,
       };
     });
@@ -254,6 +285,8 @@ const PipeTile = {
   },
   template: `
               <div class="pp-tile" :class="look.cls" :style="look.style">
+                <div class="pp-wave"></div>
+                <span v-if="look.locked" class="pp-lockmark"></span>
                 <div class="pp-rot" :style="look.rot">
                   <div class="pp-pipe" v-html="look.svg"></div>
                   <div v-for="a in look.arms" :key="a.k" class="pp-arm" :class="['d' + a.k, { inn: a.inn, leak: a.leak }]"><i></i></div>
