@@ -31,7 +31,7 @@ import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
 import {
-  EMPTY, CROSS, GEM, gemsOf, conflicts, isFull, isSolved, progressPct, tapResult, autoCrossChanges,
+  EMPTY, CROSS, GEM, gemsOf, conflicts, isFull, isSolved, progressPct, filledCells, tapResult, autoCrossChanges,
   normalizePuzzle as healPuzzle, normalizeCells, rcOf,
 } from './model.js';
 import { solveLogic, nextDeduction } from './solver.js';
@@ -461,10 +461,10 @@ export function boardFieldsFrom(src) { return { gemCells: src.gemCells, gemBy: s
 
 export function boardSolved() { return !!state.puzzle && isSolved(state.puzzle, state.gemCells); }
 export function boardProgressPct() { return state.puzzle ? progressPct(state.puzzle, state.gemCells) : 0; }
-export function boardFilledCount() { return gemsOf(state.gemCells).length; }
+export function boardFilledCount() { return filledCells(state.gemCells); }
 export function boardProgressCounts() {
   const p = state.puzzle;
-  return p ? { kept: Math.min(p.rows, gemsOf(state.gemCells).length), total: p.rows } : { kept: 0, total: 0 };
+  return p ? { kept: filledCells(state.gemCells), total: p.rows * p.rows } : { kept: 0, total: 0 };
 }
 // „Richtig" = Steine dieses Spielers auf Feldern der Lösung.
 export function playerCorrect(id) {

@@ -110,11 +110,19 @@ export function isSolved(p, cells) {
   return gems.length === p.rows && conflicts(p, cells).size === 0;
 }
 
-/** Fortschritt = gesetzte Edelsteine (gedeckelt). */
+/** Belegte Felder = Edelsteine UND Kreuze. */
+export function filledCells(cells) {
+  let n = 0;
+  for (const v of cells || []) if (v === GEM || v === CROSS) n++;
+  return n;
+}
+
+/** Fortschritt = belegte Felder (Stein ODER Kreuz) / alle Felder; ein gelöstes Brett zählt 100 %. */
 export function progressPct(p, cells) {
   const n = p && p.rows;
   if (!n) return 0;
-  return Math.round((Math.min(n, gemsOf(cells).length) / n) * 100);
+  if (isSolved(p, cells)) return 100;
+  return Math.min(99, Math.round((filledCells(cells) / (n * n)) * 100));
 }
 
 /** Struktur-Prüfung eines empfangenen Rätsels (Blackscreen-Schutz der Schale). */
