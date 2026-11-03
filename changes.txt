@@ -1,2 +1,0 @@
-- Absturz behoben: im Mix konnte der Wechsel zum nächsten Spiel einen roten Fehlerschirm auslösen
-- iPhone: langes Drücken auf dem Brett (z.B. Sperren in Pipes) öffnet nicht mehr die Lupe
