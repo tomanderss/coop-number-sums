@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.6';
-export const BUILD_HASH = 'd1534a3';
+export const BUILD      = '3.7';
+export const BUILD_HASH = '36c264d';
 
 export const CHANGELOG = [
+  {
+    "version": "3.7",
+    "date": "03.11.2026",
+    "changes": [
+      "- Pipes: neues Design – klar abgegrenzte Zellen, Rohre mit Kante, Fase und Kanal, die nahtlos ineinander übergehen; Endkappen und Pumpe mit mehr Details",
+      "- Pipes: Wasser-Schalter unter dem Brett – Fluss ausblenden und erst zum Prüfen wieder einschalten"
+    ]
+  },
   {
     "version": "3.6",
     "date": "03.11.2026",
