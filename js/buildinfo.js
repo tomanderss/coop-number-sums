@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.4';
-export const BUILD_HASH = '2cc6c5a';
+export const BUILD      = '3.5';
+export const BUILD_HASH = '8644434';
 
 export const CHANGELOG = [
+  {
+    "version": "3.5",
+    "date": "03.11.2026",
+    "changes": [
+      "- Neues Spiel „Number Link“: gleiche Zahlen mit Linien verbinden – ohne Kreuzungen, jede Zelle bedeckt. Mit jeder Stufe mehr Paare und ein größeres Brett (5×5 bis 13×13), mit Coop, Training, Endlos und Mix"
+    ]
+  },
   {
     "version": "3.4",
     "date": "02.11.2026",
