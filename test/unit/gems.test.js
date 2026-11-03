@@ -147,3 +147,19 @@ describe('Gem Hunt: Spielstand', () => {
     assert.ok(!snapshotSolved({ puzzle: P5 }));
   });
 });
+
+describe('Gem Hunt: Käfigfarben', () => {
+  test('angrenzende Käfige bekommen nie dieselbe Farbe, deterministisch, gültige Indizes', async () => {
+    const { regionColors, GEM_PALETTE } = await import('../../js/games/gems/colors.js');
+    for (const d of ['sehrleicht', 'extrem', 'rip']) {
+      const p = generatePuzzle({ difficulty: d, seed: 11 });
+      const col = regionColors(p), n = p.rows;
+      assert.deepEqual(col, regionColors(p));
+      for (const c of col) assert.ok(c >= 0 && c < GEM_PALETTE.length);
+      for (let i = 0; i < n * n; i++) for (const j of [i + 1, i + n]) {
+        if ((j === i + 1 && i % n === n - 1) || j >= n * n) continue;
+        if (p.regions[i] !== p.regions[j]) assert.notEqual(col[p.regions[i]], col[p.regions[j]]);
+      }
+    }
+  });
+});

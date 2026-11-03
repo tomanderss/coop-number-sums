@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.9';
-export const BUILD_HASH = '104baba';
+export const BUILD      = '3.10';
+export const BUILD_HASH = '1bed196';
 
 export const CHANGELOG = [
+  {
+    "version": "3.10",
+    "date": "03.11.2026",
+    "changes": [
+      "- Gem Hunt: Brett neu gestaltet – Käfige als klar getrennte Inseln mit runden Ecken, abgestimmte Farben, feinere Kreuze und Edelsteine"
+    ]
+  },
   {
     "version": "3.9",
     "date": "03.11.2026",
