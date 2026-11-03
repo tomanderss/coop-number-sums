@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.8';
-export const BUILD_HASH = '3427e2a';
+export const BUILD      = '3.9';
+export const BUILD_HASH = '104baba';
 
 export const CHANGELOG = [
+  {
+    "version": "3.9",
+    "date": "03.11.2026",
+    "changes": [
+      "- Neues App-Icon für Coop Number Games – auch als dezentes Motiv im Hintergrund der Startseite"
+    ]
+  },
   {
     "version": "3.8",
     "date": "03.11.2026",
