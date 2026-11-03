@@ -163,3 +163,37 @@ describe('Gem Hunt: Käfigfarben', () => {
     }
   });
 });
+
+describe('Gem Hunt: Käfigformen', () => {
+  test('Umrisse: Außenecken rund, Innenecken weich, Löcher und diagonale Berührung getrennt', async () => {
+    const { regionLoops, regionPath, interiorGrid } = await import('../../js/games/gems/shapes.js');
+    // Käfig 0 als L um Käfig 1, Käfig 2 in der Ecke.
+    const p = { rows: 3, regions: [0, 0, 0, 0, 1, 1, 0, 1, 2] };
+    const l0 = regionLoops(p, 0);
+    assert.equal(l0.length, 1);
+    assert.equal(l0[0].length, 6);                       // L-Form: 6 Ecken
+    const d0 = regionPath(p, 0, { gi: 0.05, R: 0.2, rc: 0.1 });
+    assert.equal((d0.match(/A0\.2 0\.2 0 0 1/g) || []).length, 5);   // 5 Außenecken
+    assert.equal((d0.match(/A0\.1 0\.1 0 0 0/g) || []).length, 1);   // 1 Innenecke
+    // Innenecke bei (1,1) rückt um die halbe Fuge in den Käfig (nach oben links).
+    assert.ok(d0.includes('0.95 '));
+    // Ring mit Loch: zwei Schleifen; Schachbrett: Diagonal-Kontakt bleibt getrennt.
+    assert.equal(regionLoops({ rows: 3, regions: [0, 0, 0, 0, 1, 0, 0, 0, 0] }, 0).length, 2);
+    assert.equal(regionLoops({ rows: 2, regions: [0, 1, 1, 0] }, 0).length, 2);
+    // Raster nur innerhalb eines Käfigs.
+    assert.equal(interiorGrid({ rows: 2, regions: [0, 1, 2, 3] }), '');
+    assert.equal(interiorGrid({ rows: 2, regions: [0, 0, 1, 1] }), 'M1 0V1M1 1V2');
+  });
+
+  test('jeder Käfig echter Rätsel ergibt geschlossene Umrisse mit genug Ecken', async () => {
+    const { regionLoops, regionPath } = await import('../../js/games/gems/shapes.js');
+    for (const d of ['sehrleicht', 'extrem', 'rip']) {
+      const p = generatePuzzle({ difficulty: d, seed: 5 });
+      for (let k = 0; k < p.rows; k++) {
+        const loops = regionLoops(p, k);
+        assert.ok(loops.length >= 1 && loops.every((l) => l.length >= 4 && l.length % 2 === 0));
+        assert.ok(/^M[\d.]+ [\d.]+L/.test(regionPath(p, k)) && regionPath(p, k).endsWith('Z'));
+      }
+    }
+  });
+});
