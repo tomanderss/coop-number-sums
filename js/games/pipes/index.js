@@ -5,7 +5,7 @@
 import { generatePuzzle } from './generator.js';
 import { validPuzzleShape as shapeOk, normalizePuzzle } from './model.js';
 import * as board from './board.js';
-import { BoardGrid, initBoard, isFullyTier1Solvable } from './board.js';
+import { BoardGrid, PipeTools, initBoard, isFullyTier1Solvable } from './board.js';
 import { DIFFICULTIES, DIFF_BY_ID, bigNumbersAllowed } from './difficulty.js';
 import { GAME_META } from '../registry.js';
 import messages from './i18n.js';
@@ -18,9 +18,10 @@ export const GAME = {
     validPuzzleShape: (p) => shapeOk(normalizePuzzle(p)),
   },
 
-  // Nichts unter dem Brett, kein Rückgängig (Drehen ist frei), keine Tipps —
-  // wie Number Path. Das Training bleibt.
+  // Unter dem Brett nur der Fluss-Schalter (Wasser zeigen/verbergen, prüft beim
+  // Einschalten); kein Rückgängig (Drehen ist frei), keine Tipps. Das Training bleibt.
   BoardGrid,
+  BoardBelow: PipeTools,
   initBoard,
   board,
 

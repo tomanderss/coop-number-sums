@@ -153,6 +153,29 @@ test('Finale: erst läuft die Welle durchs Netz, dann kommt der Sieg-Dialog', as
   expect(await page.evaluate(() => window.__cns.state.winHold)).toBe(false);
 });
 
+test('Wasser-Schalter: aus = kein Fluss, kein Fortschritt, kein Sieg; einschalten prüft und gewinnt', async ({ page }) => {
+  await gotoApp(page);
+  await startGame(page, 'mittel');
+  const btn = page.locator('.pp-tools-wrap .pp-flow-btn');
+  await expect(btn).toHaveClass(/\bon\b/);
+  const boardTop = async () => (await page.locator('.pp-board').boundingBox()).y;
+  const y0 = await boardTop();
+  await btn.click();
+  expect(await page.evaluate(() => window.__cns.state.settings.pipesFlow)).toBe(false);
+  await expect(page.locator('.pp-board.dry')).toHaveCount(1);
+  await expect(page.locator('.pp-tile.wet')).toHaveCount(0);
+  // Das Brett springt beim Umschalten nicht (Hinweis hat festen Platz).
+  expect(await boardTop()).toBe(y0);
+  // Gelöst, aber ohne Wasser: noch kein Sieg, kein Fortschritt verraten.
+  await page.evaluate(() => window.__cns.solvePipes());
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => [window.__cns.state.status, window.__cns.board.boardProgressPct()])).toEqual(['playing', 0]);
+  // Einschalten prüft: gelöst → Sieg.
+  await btn.click();
+  await page.waitForFunction(() => window.__cns.state.status === 'won');
+  expect(await page.evaluate(() => window.__cns.state.settings.pipesFlow)).toBe(true);
+});
+
 test('iPhone: langes Drücken sperrt, ohne dass das Brett die Lupe/Textauswahl auslöst', async ({ page, context }) => {
   // Gemeldet: beim Sperren erschien auf dem iPhone die Lupe. Das Brett muss
   // touchstart verhindern (nicht passiv) — die Gesten laufen über Pointer-Events.

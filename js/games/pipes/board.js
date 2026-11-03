@@ -14,10 +14,18 @@
 // Brett, sobald das Wasser von der Quelle JEDE Zelle erreicht und nirgends ein
 // Rohr ins Leere zeigt.
 //
-// OPTIK (Rework, Nutzerwunsch „moderner, minimalistischer, flüssiger"): ein Rohr
-// ist eine weiche Spur — je Arm ein Strich bis zur Kante, in der Mitte eine
-// runde Nabe, dadurch sind Biegungen rund und Nachbarstücke gehen nahtlos
-// ineinander über. Endstücke tragen eine kleine Kappe, die Quelle einen Kern.
+// OPTIK (zweiter Rework, Nutzerwunsch „klare Zellen, aber der Fluss von jetzt"):
+// jede Zelle ist eine eigene Platte mit feiner Fuge (man sieht, wo welche Zelle
+// endet), darauf liegt das Rohr in einer drehenden Ebene: Kante, Körper, helle
+// Fase und dunkler Kanal, Endstücke mit Kappe und Niete, die Quelle als Pumpe mit
+// vier Schrauben. Das Rohr läuft ohne Absatz über die Zellkante, Nachbarn
+// schließen also nahtlos an (s. pipeSvg).
+//
+// FLUSS-SCHALTER (`PipeTools` unter dem Brett, settings.pipesFlow): aus = das
+// Wasser wird NICHT gezeigt (kein Füllen, keine Lecks, kein Fortschritt, kein
+// Ton) und das Brett gilt nicht automatisch als gelöst — erst das Einschalten
+// prüft es (`setFlow` ruft afterMove): man sieht einmalig, ob es klappt, und kann
+// wieder ausschalten.
 //
 // DER WASSERLAUF: jede erreichte Zelle füllt sich, verzögert um ihre Entfernung
 // von der Quelle (`--dl`) — das Wasser „läuft" sichtbar durch die Rohre. Im
@@ -100,6 +108,10 @@ export function fitBoard() {
   state.cellPx = Math.round(Math.max(22, Math.min(cap, ideal)) * state.zoom);
 }
 
+// Wird das Wasser gezeigt? Ausgeschaltet nur WÄHREND des Spiels — ist es gelöst
+// (auch durch einen Mitspieler), läuft das Finale immer.
+const flowShown = computed(() => state.settings.pipesFlow !== false || state.status !== 'playing');
+
 // ── Wasserlauf (eine Rechnung je Zug) ────────────────────────────────────────
 const flowInfo = computed(() => {
   if (!state.puzzle) return null;
@@ -142,10 +154,20 @@ export function setRot(i, r, { force = false, send = true } = {}) {
     if (key) state.pipeKeys = { ...state.pipeKeys, [i]: key };
   }
   const after = flowInfo.value;
-  if (after && endpoints(p, after) > supBefore && state.settings.sfxComplete) Music.sfxComplete(1);
+  // Ohne gezeigtes Wasser darf auch der Ton nichts verraten.
+  if (flowShown.value && after && endpoints(p, after) > supBefore && state.settings.sfxComplete) Music.sfxComplete(1);
   else if (state.settings.sfxKeep) Music.sfxKeep();
   afterMove();
   return true;
+}
+/** Fluss-Schalter: an = Wasser zeigen und das Brett prüfen (löst es, gewinnt es). */
+export function setFlow(v) {
+  v = !!v;
+  if (state.settings.pipesFlow === v) return;
+  state.settings.pipesFlow = v;
+  log('game', 'Pipes: Fluss ' + (v ? 'an' : 'aus'));
+  if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
+  if (v && state.puzzle && state.status === 'playing') afterMove();
 }
 export function rotate(i, dir = 1) {
   if (!state.puzzle || state.pipeLock[i]) return false;
@@ -230,16 +252,31 @@ export function boardRenders() { return boardRenderCount; }
 const countRender = () => { boardRenderCount++; return ''; };
 
 // Das ROHR eines Stücks in seiner Grundlage (Maske `m`, ungedreht), als SVG in
-// einem 100er-Raster: eine Spur (Arme bis zur Kante + runde Nabe). Hängt nur am
-// Rätsel → einmal je Stück gebaut.
-const ARM = ['M50 50V0', 'M50 50H100', 'M50 50V100', 'M50 50H0'];
+// einem 100er-Raster. Gezeichnet in SCHICHTEN über Arme und Nabe zugleich —
+// erst alle Kanten, dann alle Körper, dann die helle Fase, zuletzt die Bohrung —
+// so gibt es an Biegungen und T-Stücken keine durchscheinenden Kreise, und das
+// Rohr läuft ohne Absatz bis zur Zellkante: Nachbarn schließen nahtlos an (ein
+// erster Entwurf mit Muffen an der Kante ließ das Netz wie nebeneinander gelegte
+// Einzelteile wirken — gemeldet). Endstück: Kappe mit Fassung und Niete,
+// Quelle: Pumpe mit vier Schrauben. Hängt nur am Rätsel → einmal je Stück gebaut.
+// Arme laufen einen Hauch ÜBER die Zellkante (1 Einheit): der Nachbar zeichnet
+// dort denselben Querschnitt darüber, so entsteht an der Grenze keine Naht.
+const ARM = ['V-1', 'H101', 'V101', 'H-1'];
+// Breiten (Durchmesser) je Schicht: Kante, Körper, Fase, Bohrung.
+const W = { edge: 40, body: 36, rim: 24, bore: 20 };
+const ring = (cls, r) => `<circle class="${cls}" cx="50" cy="50" r="${r}"/>`;
 function pipeSvg(m, kind) {
   let d = '';
-  for (let k = 0; k < 4; k++) if (m & (1 << k)) d += ARM[k];
-  const hub = kind === 'src' ? '<circle class="pp-src-ring" cx="50" cy="50" r="27"/><circle class="pp-src-core" cx="50" cy="50" r="7"/>'
-    : kind === 'end' ? '<circle class="pp-cap" cx="50" cy="50" r="19"/><circle class="pp-cap-in" cx="50" cy="50" r="7"/>'
-      : '<circle class="pp-joint" cx="50" cy="50" r="13"/>';
-  return `<svg viewBox="0 0 100 100" aria-hidden="true"><path class="pp-track" d="${d}"/>${hub}</svg>`;
+  for (let k = 0; k < 4; k++) if (m & (1 << k)) d += `M50 50${ARM[k]}`;
+  // Nabe je Schicht (Radius): Endstück = Kappe, Quelle = Pumpengehäuse.
+  const hub = kind === 'src' ? { edge: 33, body: 31, rim: 23, bore: 19 }
+    : kind === 'end' ? { edge: 24, body: 22, rim: 12, bore: 10 }
+      : { edge: W.edge / 2, body: W.body / 2, rim: W.rim / 2, bore: W.bore / 2 };
+  const layer = (cls) => `<path class="pp-${cls}" d="${d}" stroke-width="${W[cls]}"/>${ring('pp-' + cls + ' pp-hubc', hub[cls])}`;
+  let extra = '';
+  if (kind === 'src') extra = ring('pp-src-ring', 26) + [[27, 27], [73, 27], [27, 73], [73, 73]].map(([x, y]) => `<circle class="pp-bolt" cx="${x}" cy="${y}" r="2.8"/>`).join('');
+  else if (kind === 'end') extra = ring('pp-rivet', 3.2);
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">${layer('edge')}${layer('body')}${layer('rim')}${layer('bore')}${extra}</svg>`;
 }
 const tileArt = computed(() => {
   const p = state.puzzle;
@@ -259,7 +296,8 @@ const PipeTile = {
     const look = computed(() => {
       const i = props.i, p = state.puzzle, f = flowInfo.value;
       const r = state.pipeRot[i] || 0, n = p.cols;
-      const wet = !!f && f.depth[i] >= 0;
+      const show = flowShown.value;
+      const wet = show && !!f && f.depth[i] >= 0;
       const art = tileArt.value[i];
       // Je Arm (in der Grundlage des Stücks): Fluss nach innen (woher das Wasser
       // kommt) oder nach außen; ein Arm, der ins Leere führt, leckt.
@@ -289,6 +327,7 @@ const PipeTile = {
   },
   template: `
               <div class="pp-tile" :class="look.cls" :style="look.style">
+                <div class="pp-plate"></div>
                 <div class="pp-wave"></div>
                 <span v-if="look.locked" class="pp-lockmark"></span>
                 <div class="pp-rot" :style="look.rot">
@@ -325,6 +364,30 @@ const FocusLayer = {
   template: `<div class="pp-focus" aria-hidden="true" v-if="focus"><div class="pp-train" :style="focus"></div></div>`,
 };
 
+// ── Fluss-Schalter unter dem Brett (BoardBelow) ──
+// Ein einzelner Aktivierungs-Knopf in der Mitte, gleich groß wie der Umschalter
+// der anderen Spiele: an = Wasser sichtbar (Standard), aus = nur die Rohre.
+const DROP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2c3.2 3.9 5.6 6.8 5.6 10a5.6 5.6 0 0 1-11.2 0c0-3.2 2.4-6.1 5.6-10z" fill="currentColor"/><path d="M9.6 14.2a2.6 2.6 0 0 0 2.2 2.4" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/></svg>';
+function toggleFlow() { setFlow(state.settings.pipesFlow === false); }
+export const PipeTools = {
+  setup() {
+    const show = computed(() => !!state.puzzle && !(state.isTrainingGame && !state.trainingDone));
+    const on = computed(() => state.settings.pipesFlow !== false);
+    return { state, show, on, toggleFlow, t, DROP_ICON };
+  },
+  template: `
+          <div class="pp-tools-wrap">
+            <button v-if="show" type="button" class="pp-flow-btn" :class="{ on }" role="switch" :aria-checked="on"
+                    :aria-label="t('pipe.flow.aria')" @click="toggleFlow">
+              <span class="pp-flow-ic" v-html="DROP_ICON"></span>
+              <span class="pp-flow-tx">{{ on ? t('pipe.flow.on') : t('pipe.flow.off') }}</span>
+            </button>
+            <!-- Platz IMMER reserviert (unsichtbar, solange das Wasser an ist): das Brett darf beim Umschalten nicht springen. -->
+            <small v-if="show" class="pp-flow-hint" :class="{ off: on }" :aria-hidden="on">{{ t('pipe.flow.hint') }}</small>
+          </div>
+  `,
+};
+
 export const BoardGrid = {
   components: { TileLayer, FocusLayer, LiveLayer },
   setup() {
@@ -332,10 +395,11 @@ export const BoardGrid = {
     onMounted(() => log('perf', 'Brett aufgebaut', { game: 'pipes', cells: state.puzzle ? state.puzzle.rows * state.puzzle.cols : 0, tookMs: Math.round(performance.now() - t0) }));
     onBeforeUnmount(() => { endPress(); pan = null; pointers.clear(); });
     const still = computed(() => state.paused || state.status !== 'playing' && state.status !== 'won');
-    return { state, gridStyle, boardFontClass, onDown, onMove, onUp, onCancel, onContext, still, t };
+    const dry = computed(() => !flowShown.value);
+    return { state, gridStyle, boardFontClass, onDown, onMove, onUp, onCancel, onContext, still, dry, t };
   },
   template: `
-          <div class="board pp-board" :class="[boardFontClass(), { done: state.status === 'won', still }]" :style="gridStyle"
+          <div class="board pp-board" :class="[boardFontClass(), { done: state.status === 'won', still, dry }]" :style="gridStyle"
                role="application" :aria-label="t('pipe.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
                @touchstart.prevent
@@ -370,12 +434,14 @@ export function boardFields(purpose) {
 }
 export function boardFieldsFrom(src) { return { pipeRot: src.pipeRot, pipeBy: src.pipeBy, pipeLock: src.pipeLock }; }
 
-export function boardSolved() { return !!state.puzzle && isSolved(state.puzzle, state.pipeRot); }
-export function boardProgressPct() { return state.puzzle ? progressPct(state.puzzle, state.pipeRot) : 0; }
-export function boardFilledCount() { return flowInfo.value ? flowInfo.value.reached : 0; }
+// Ohne gezeigtes Wasser gilt das Brett nicht automatisch als gelöst — erst das
+// Einschalten des Flusses prüft es (setFlow → afterMove).
+export function boardSolved() { return !!state.puzzle && flowShown.value && isSolved(state.puzzle, state.pipeRot); }
+export function boardProgressPct() { return state.puzzle && flowShown.value ? progressPct(state.puzzle, state.pipeRot) : 0; }
+export function boardFilledCount() { return flowInfo.value && flowShown.value ? flowInfo.value.reached : 0; }
 export function boardProgressCounts() {
   const p = state.puzzle;
-  return p ? { kept: flowInfo.value ? flowInfo.value.reached : 0, total: p.rows * p.cols } : { kept: 0, total: 0 };
+  return p ? { kept: flowInfo.value && flowShown.value ? flowInfo.value.reached : 0, total: p.rows * p.cols } : { kept: 0, total: 0 };
 }
 const solMask = (p, i) => rotMask(p.tiles[i], p.solRot[i]);
 const isRight = (p, i) => rotMask(p.tiles[i], state.pipeRot[i]) === solMask(p, i);

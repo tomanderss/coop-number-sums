@@ -1,0 +1,2 @@
+- Pipes: neues Design – klar abgegrenzte Zellen, Rohre mit Kante, Fase und Kanal, die nahtlos ineinander übergehen; Endkappen und Pumpe mit mehr Details
+- Pipes: Wasser-Schalter unter dem Brett – Fluss ausblenden und erst zum Prüfen wieder einschalten
