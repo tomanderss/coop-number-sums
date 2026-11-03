@@ -38,8 +38,12 @@ test('Antippen dreht, langes Drücken sperrt; kein Rückgängig, keine Leiste, k
   await touch(cdp, 'touchStart', [at(0)]); await touch(cdp, 'touchEnd', []);
   await touch(cdp, 'touchStart', [at(0)]); await touch(cdp, 'touchEnd', []);
   expect((await rots(page))[0]).toBe(2);
-  // Die Drehung ist eine echte Rotation der Ebene (Animation über transform).
-  await expect(page.locator('.pp-tile').first().locator('.pp-rot')).toHaveAttribute('style', /rotate\(180deg\)/);
+  // Im Ruhezustand ist nichts gedreht: das Rohr ist direkt in seiner Lage
+  // gezeichnet (sonst Versatz an den Zellgrenzen, gemeldet) — gedreht wird nur
+  // während der Animation.
+  await expect(page.locator('.pp-tile').first()).toHaveAttribute('data-rot', '2');
+  await page.waitForTimeout(400);
+  expect(await page.locator('.pp-tile').first().locator('.pp-rot').evaluate((el) => getComputedStyle(el).transform)).toBe('none');
   // Langes Drücken sperrt — danach dreht ein Tipp nicht mehr.
   await touch(cdp, 'touchStart', [at(1)]);
   await page.waitForTimeout(600);

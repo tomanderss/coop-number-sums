@@ -42,7 +42,7 @@
 // man fertig ist, auch wenn der letzte Zug auf einmal ein Viertel des Netzes
 // füllt (gemeldet).
 
-import { computed, onMounted, onBeforeUnmount } from '../../vue.esm-browser.prod.js';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from '../../vue.esm-browser.prod.js';
 import { shopItemById } from '../../shopitems.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
@@ -259,58 +259,94 @@ const countRender = () => { boardRenderCount++; return ''; };
 // erster Entwurf mit Muffen an der Kante ließ das Netz wie nebeneinander gelegte
 // Einzelteile wirken — gemeldet). Endstück: Kappe mit Fassung und Niete,
 // Quelle: Pumpe mit vier Schrauben. Hängt nur am Rätsel → einmal je Stück gebaut.
-// Arme laufen einen Hauch ÜBER die Zellkante (1 Einheit): der Nachbar zeichnet
-// dort denselben Querschnitt darüber, so entsteht an der Grenze keine Naht.
-const ARM = ['V-1', 'H101', 'V101', 'H-1'];
+// Arme laufen ÜBER die Zellkante, und zwar jede höhere Schicht ein Stück
+// weiter (Kante 0,5 · Körper 1 · Fase 1,5 · Kanal 2 Einheiten). Grund (gemeldet:
+// „Lücken und Stufen an den Zellgrenzen"): endeten alle Schichten des Nachbarn
+// auf DERSELBEN Pixelspalte, stapelte sich dort ihre Kantenglättung — Kante
+// halb, darüber Körper halb … — und ergab eine feine dunkle Naht, bei krummer
+// Pixeldichte eine Stufe. Gestaffelt liegt jedes Schichtende entweder auf
+// derselben Farbe des Nachbarn oder unter einer deckenden höheren Schicht —
+// unsichtbar.
+const OVER = { edge: 0.5, body: 1, rim: 1.5, bore: 2 };
+const armTo = (k, o) => (k === 0 ? `V${-o}` : k === 1 ? `H${100 + o}` : k === 2 ? `V${100 + o}` : `H${-o}`);
 // Breiten (Durchmesser) je Schicht: Kante, Körper, Fase, Bohrung.
 const W = { edge: 40, body: 36, rim: 24, bore: 20 };
 const ring = (cls, r) => `<circle class="${cls}" cx="50" cy="50" r="${r}"/>`;
 function pipeSvg(m, kind) {
-  let d = '';
-  for (let k = 0; k < 4; k++) if (m & (1 << k)) d += `M50 50${ARM[k]}`;
+  const arms = [];
+  for (let k = 0; k < 4; k++) if (m & (1 << k)) arms.push(k);
+  const d = (cls) => arms.map((k) => `M50 50${armTo(k, OVER[cls])}`).join('');
   // Nabe je Schicht (Radius): Endstück = Kappe, Quelle = Pumpengehäuse.
   const hub = kind === 'src' ? { edge: 33, body: 31, rim: 23, bore: 19 }
     : kind === 'end' ? { edge: 24, body: 22, rim: 12, bore: 10 }
       : { edge: W.edge / 2, body: W.body / 2, rim: W.rim / 2, bore: W.bore / 2 };
-  const layer = (cls) => `<path class="pp-${cls}" d="${d}" stroke-width="${W[cls]}"/>${ring('pp-' + cls + ' pp-hubc', hub[cls])}`;
+  const layer = (cls) => `<path class="pp-${cls}" d="${d(cls)}" stroke-width="${W[cls]}"/>${ring('pp-' + cls + ' pp-hubc', hub[cls])}`;
   let extra = '';
   if (kind === 'src') extra = ring('pp-src-ring', 26) + [[27, 27], [73, 27], [27, 73], [73, 73]].map(([x, y]) => `<circle class="pp-bolt" cx="${x}" cy="${y}" r="2.8"/>`).join('');
   else if (kind === 'end') extra = ring('pp-rivet', 3.2);
   return `<svg viewBox="0 0 100 100" aria-hidden="true">${layer('edge')}${layer('body')}${layer('rim')}${layer('bore')}${extra}</svg>`;
 }
-const tileArt = computed(() => {
+// Art des Stücks (hängt nur am Rätsel) und das Rohr-SVG je Maske — gezeichnet
+// wird immer die AKTUELLE Lage (Maske nach Drehung), zwischengespeichert je
+// Maske+Art (höchstens 16 · 3 Varianten).
+const tileKind = computed(() => {
   const p = state.puzzle;
   if (!p) return [];
-  return p.tiles.map((m, i) => {
-    const kind = i === p.source ? 'src' : degree(m) === 1 ? 'end' : 'pipe';
-    const arms = [];
-    for (let k = 0; k < 4; k++) if (m & (1 << k)) arms.push(k);
-    return { svg: pipeSvg(m, kind), kind, arms };
-  });
+  return p.tiles.map((m, i) => (i === p.source ? 'src' : degree(m) === 1 ? 'end' : 'pipe'));
 });
+const svgCache = new Map();
+function svgFor(mask, kind) {
+  const key = mask + kind;
+  let s = svgCache.get(key);
+  if (!s) { s = pipeSvg(mask, kind); svgCache.set(key, s); }
+  return s;
+}
+const reducedMotion = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } };
 
 // Ein Stück. Eigene Komponente: rendert neu, wenn sich SEIN Zustand ändert.
+//
+// AUSRICHTUNG (gemeldet: „Rohre nicht exakt aneinandergereiht, Stufen"): im
+// Ruhezustand ist NICHTS gedreht — das SVG zeigt das Rohr direkt in seiner
+// aktuellen Lage. Vorher lag jedes Stück in einer per CSS gedrehten Ebene; der
+// Browser rastert die je Zelle anders auf das Gerätepixel-Raster (krumme
+// Pixeldichte), und Nachbarn mit unterschiedlicher Drehung landeten um
+// Bruchteile eines Pixels versetzt. Die Dreh-Animation läuft trotzdem: nach
+// einer Drehung wird die neue Lage sofort um die Differenz ZURÜCKgedreht
+// gezeigt und gleitet dann auf 0 (FLIP) — gedreht ist nur während der Bewegung.
 const PipeTile = {
   props: ['i'],
   setup(props) {
+    const rotEl = ref(null);
+    watch(() => state.pipeRot[props.i], (r, old) => {
+      const el = rotEl.value;
+      const d = (r || 0) - (old || 0);
+      if (!el || old == null || !d || reducedMotion()) return;
+      el.style.transition = 'none';
+      el.style.transform = `rotate(${-d * 90}deg)`;
+      void el.offsetWidth;            // Startlage festschreiben
+      el.style.transition = '';
+      el.style.transform = '';
+    }, { flush: 'post' });
     const look = computed(() => {
       const i = props.i, p = state.puzzle, f = flowInfo.value;
       const r = state.pipeRot[i] || 0, n = p.cols;
       const show = flowShown.value;
       const wet = show && !!f && f.depth[i] >= 0;
-      const art = tileArt.value[i];
-      // Je Arm (in der Grundlage des Stücks): Fluss nach innen (woher das Wasser
+      const kind = tileKind.value[i];
+      const mask = rotMask(p.tiles[i], r);
+      // Je Arm (Richtung auf dem Brett): Fluss nach innen (woher das Wasser
       // kommt) oder nach außen; ein Arm, der ins Leere führt, leckt.
-      const arms = art.arms.map((k) => {
-        const world = (k + mod4(r)) % 4;
-        const j = neighbor(p, i, world);
-        const leak = j < 0 || !has(f.masks[j], opp(world));
-        return { k, inn: wet && f.from[i] === world, leak: wet && leak };
-      });
+      const arms = [];
+      for (let k = 0; k < 4; k++) {
+        if (!(mask & (1 << k))) continue;
+        const j = neighbor(p, i, k);
+        const leak = j < 0 || !has(f.masks[j], opp(k));
+        arms.push({ k, inn: wet && f.from[i] === k, leak: wet && leak });
+      }
       const by = state.pipeBy[i];
       const col = isMultiplayer() && by && by !== me() && by !== LOCAL_PLAYER_ID ? playerColor(by) : null;
       return {
-        cls: [art.kind, { wet, locked: !!state.pipeLock[i] }],
+        cls: [kind, { wet, locked: !!state.pipeLock[i] }],
         style: {
           left: pct(i % n, n), top: pct(Math.floor(i / n), p.rows), width: pct(1, n), height: pct(1, p.rows),
           '--dl': wet ? Math.min(1400, f.depth[i] * 45) + 'ms' : '0ms',
@@ -318,19 +354,19 @@ const PipeTile = {
           '--fd': wet && f.maxDepth ? Math.round((f.depth[i] / f.maxDepth) * finaleSpread(f.maxDepth)) + 'ms' : '0ms',
           ...(col ? { '--pb': col } : {}),
         },
-        rot: { transform: `rotate(${r * 90}deg)` },
+        rot: mod4(r),
         locked: !!state.pipeLock[i],
-        svg: art.svg, arms,
+        svg: svgFor(mask, kind), arms,
       };
     });
-    return { look };
+    return { look, rotEl };
   },
   template: `
-              <div class="pp-tile" :class="look.cls" :style="look.style">
+              <div class="pp-tile" :class="look.cls" :style="look.style" :data-rot="look.rot">
                 <div class="pp-plate"></div>
                 <div class="pp-wave"></div>
                 <span v-if="look.locked" class="pp-lockmark"></span>
-                <div class="pp-rot" :style="look.rot">
+                <div class="pp-rot" ref="rotEl">
                   <div class="pp-pipe" v-html="look.svg"></div>
                   <div v-for="a in look.arms" :key="a.k" class="pp-arm" :class="['d' + a.k, { inn: a.inn, leak: a.leak }]"><i></i></div>
                   <div class="pp-hub"></div>
