@@ -174,6 +174,7 @@ test('Wasser-Schalter: aus = kein Fluss, kein Fortschritt, kein Sieg; einschalte
   await btn.click();
   await page.waitForFunction(() => window.__cns.state.status === 'won');
   expect(await page.evaluate(() => window.__cns.state.settings.pipesFlow)).toBe(true);
+});
 
 test('iPhone: langes Drücken sperrt, ohne dass das Brett die Lupe/Textauswahl auslöst', async ({ page, context }) => {
   // Gemeldet: beim Sperren erschien auf dem iPhone die Lupe. Das Brett muss
