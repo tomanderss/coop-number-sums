@@ -1,1 +1,0 @@
-- Neues Spiel „Number Link“: gleiche Zahlen mit Linien verbinden – ohne Kreuzungen, jede Zelle bedeckt. Mit jeder Stufe mehr Paare und ein größeres Brett (5×5 bis 13×13), mit Coop, Training, Endlos und Mix
