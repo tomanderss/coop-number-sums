@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.5';
-export const BUILD_HASH = '8644434';
+export const BUILD      = '3.6';
+export const BUILD_HASH = 'd1534a3';
 
 export const CHANGELOG = [
+  {
+    "version": "3.6",
+    "date": "03.11.2026",
+    "changes": [
+      "- Absturz behoben: im Mix konnte der Wechsel zum nächsten Spiel einen roten Fehlerschirm auslösen",
+      "- iPhone: langes Drücken auf dem Brett (z.B. Sperren in Pipes) öffnet nicht mehr die Lupe"
+    ]
+  },
   {
     "version": "3.5",
     "date": "03.11.2026",
