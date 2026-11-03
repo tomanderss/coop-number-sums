@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.12';
-export const BUILD_HASH = 'f2675d8';
+export const BUILD      = '3.13';
+export const BUILD_HASH = '24a7288';
 
 export const CHANGELOG = [
+  {
+    "version": "3.13",
+    "date": "03.11.2026",
+    "changes": [
+      "Gem Hunt: Fortschritt zählt jetzt jedes belegte Feld (Stein oder Kreuz)"
+    ]
+  },
   {
     "version": "3.12",
     "date": "03.11.2026",

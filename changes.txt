@@ -1,1 +1,0 @@
-Gem Hunt: Fortschritt zählt jetzt jedes belegte Feld (Stein oder Kreuz)
