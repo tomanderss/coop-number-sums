@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.7';
-export const BUILD_HASH = '36c264d';
+export const BUILD      = '3.8';
+export const BUILD_HASH = '3427e2a';
 
 export const CHANGELOG = [
+  {
+    "version": "3.8",
+    "date": "03.11.2026",
+    "changes": [
+      "- Neue Logos für Number Sums und Math Cross im Stil der anderen Spiele"
+    ]
+  },
   {
     "version": "3.7",
     "date": "03.11.2026",
