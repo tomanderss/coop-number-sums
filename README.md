@@ -44,7 +44,7 @@ Vor einem Release einfach die Stichpunkte der neuen Version in `changes.txt`
 schreiben — sie erscheinen automatisch im „Was ist neu"-Popup und im Changelog.
 
 ### Icons neu erzeugen
-`node create-icons.js` (erzeugt `icons/icon-192.png` & `icon-512.png`).
+`node scripts/render-icons.mjs` (erzeugt das App-Icon in allen Größen: PWA, Hintergrundmotiv, Android, iOS).
 
 ## Projektstruktur
 ```
@@ -54,7 +54,7 @@ database.rules.json   Firebase-RTDB-Security-Rules (versioniert, Quelle: Firebas
 sw.js                 Service Worker (offline-Cache)
 build.js / build.bat  Versionierung & Deploy
 start-server.bat      Lokaler Testserver
-create-icons.js       Icon-Generator
+scripts/render-icons.mjs  App-Icon-Generator
 css/styles.css        Styles (Dark default + Light)
 js/
   config.js           Größen, Schwierigkeiten, Farben, Defaults

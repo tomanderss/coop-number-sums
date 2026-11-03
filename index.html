@@ -82,9 +82,15 @@
       <div id="splash-inner">
         <img id="splash-logo" src="./icons/icon-192.png" alt="" />
         <div id="splash-title">Coop Number Games</div>
-        <!-- Splash zeigt das Logo des zuletzt gewählten Spiels (s. data-game im Kopf). -->
+        <!-- Splash: im Mix (Standard) das App-Icon, sonst das Logo des zuletzt
+             gewählten Spiels (s. data-game im Kopf) — auch Number Sums hat ein
+             eigenes Logo, seit das App-Icon für die ganze App steht. -->
         <script>
-          (function () { var g = document.documentElement.getAttribute('data-game'); if (g && g !== 'numbersums') document.getElementById('splash-logo').src = './icons/games/' + g + '-192.png'; })();
+          (function () {
+            var mix = true; try { mix = localStorage.getItem('cns_mix_on') !== 'false'; } catch (e) {}
+            var g = document.documentElement.getAttribute('data-game');
+            if (!mix && g) document.getElementById('splash-logo').src = './icons/games/' + g + '-192.png';
+          })();
         </script>
         <div id="splash-version"></div>
       </div>

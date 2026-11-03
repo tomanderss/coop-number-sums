@@ -133,6 +133,8 @@ const ASSETS = [
   './icons/games/pipes-192.png',
   './icons/games/mix-192.png',
   './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './icons/motif.svg',
   './icons/icon-1024.png',
 ];
 // Der App-Shell-Einstieg. JEDE Navigations-Anfrage (Home-Icon-Start, Reload,

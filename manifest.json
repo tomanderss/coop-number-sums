@@ -1,14 +1,33 @@
 {
   "name": "Coop Number Games",
   "short_name": "Number Games",
-  "description": "Zahlenrätsel (Number Sums, Math Cross) — solo oder gemeinsam im Coop-Modus.",
+  "description": "Zahlenrätsel (Number Sums, Math Cross, Rectangles, Number Path, Gem Hunt, Pipes, Number Link) — solo, gemeinsam im Coop oder im Duell.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0b1020",
   "theme_color": "#0b1020",
-  "categories": ["games", "puzzle"],
+  "categories": [
+    "games",
+    "puzzle"
+  ],
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
