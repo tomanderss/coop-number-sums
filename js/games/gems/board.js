@@ -35,6 +35,8 @@ import {
   normalizePuzzle as healPuzzle, normalizeCells, rcOf,
 } from './model.js';
 import { solveLogic, nextDeduction } from './solver.js';
+import { GEM_PALETTE, regionColors } from './colors.js';
+export { GEM_PALETTE, regionColors };
 
 // ── Von der Schale injizierte Verweise (s. numbersums/board.js) ──────────────
 let state = null;
@@ -73,21 +75,16 @@ export const skinBoardClasses = computed(() => []);
 export function activePaletteFx() { const it = shopItemById(shopEquippedId('palette')); return it ? it.fx : null; }
 
 // ── Farben ───────────────────────────────────────────────────────────────────
-// n Käfige bekommen n GLEICHMÄSSIG über den Farbkreis verteilte Töne (feste
-// Zwölfer-Liste ließ bei 8 Käfigen Cyan und Türkis nebeneinander landen). Ein
-// Schritt teilerfremd zu n verteilt aufeinanderfolgende Käfig-Nummern über den
-// ganzen Kreis. Eine Shop-Palette dreht die Töne mit.
-export function regionHue(k, n) {
-  let step = Math.max(1, Math.round(n * 0.38));
-  while (gcd(step, n) !== 1) step++;
-  return Math.round(8 + (((k * step) % n) * 360) / n) % 360;
-}
-function gcd(a, b) { return b ? gcd(b, a % b) : a; }
-const hueOfRegion = computed(() => {
+// Palette + Vergabe je Käfig: colors.js (rein). Eine Shop-Palette dreht die Töne mit.
+const regionHsl = computed(() => {
+  const p = state.puzzle;
+  if (!p) return [];
   const fx = activePaletteFx();
-  const n = state.puzzle ? state.puzzle.rows : 1;
-  return Array.from({ length: n }, (_, k) => applyPaletteFx({ h: regionHue(k, n), s: 70, l: 60 }, fx).h);
+  return regionColors(p).map((ci) => applyPaletteFx(GEM_PALETTE[ci], fx));
 });
+// CSS-Variablen eines Käfigs: Farbton/Sättigung/Helligkeit getrennt (Stein und
+// Kreuz leiten ihre Töne daraus ab).
+const hslVars = (c) => (c ? { '--gh': c.h, '--gs': c.s + '%', '--gl': c.l + '%' } : {});
 
 // ── Größe ────────────────────────────────────────────────────────────────────
 export const gridStyle = computed(() => {
@@ -282,8 +279,12 @@ let boardRenderCount = 0;
 export function boardRenders() { return boardRenderCount; }
 const countRender = () => { boardRenderCount++; return ''; };
 
-// Käfige: je Zelle ihre Farbe + dicke Linie, wo ein anderer Käfig angrenzt.
-// Hängt nur am Rätsel (und an der Palette).
+// Käfige als INSELN (Nutzerwunsch „Rahmen überlappen sich, clunky"): statt
+// heller Grenzlinien je Zellkante liegt zwischen zwei Käfigen eine Fuge in der
+// Brettfarbe, und jede AUSSENecke eines Käfigs ist gerundet. Innerhalb eines
+// Käfigs stoßen die Zellen nahtlos aneinander (feines Raster). Die Geometrie
+// (Fugen-Einzug + Rundungen) gilt für Käfigfläche, Kreuz, Konflikt und Training
+// gleich — alles sitzt deckungsgleich auf der Insel. Hängt nur am Rätsel.
 function regionCells(p) {
   const n = p.rows, reg = p.regions, out = [];
   for (let i = 0; i < n * n; i++) {
@@ -296,60 +297,72 @@ function regionCells(p) {
   }
   return out;
 }
+let geomCache = null;   // { p, cells } — je Rätsel einmal
+function geomOf(i) {
+  const p = state.puzzle;
+  if (!geomCache || geomCache.p !== p) geomCache = { p, cells: regionCells(p) };
+  return geomCache.cells[i];
+}
+/** Stil einer Zelle als Teil ihrer Insel: Einzug an Käfiggrenzen, runde Außenecken. */
+function islandStyle(x, n) {
+  const g = 'var(--gm-gi)', R = 'var(--gm-r)';
+  const inl = (b) => (b ? g : '0px');
+  return {
+    left: `calc(${pct(x.c, n)} + ${inl(x.bl)})`, top: `calc(${pct(x.r, n)} + ${inl(x.bt)})`,
+    width: `calc(${pct(1, n)} - ${inl(x.bl)} - ${inl(x.br)})`, height: `calc(${pct(1, n)} - ${inl(x.bt)} - ${inl(x.bb)})`,
+    borderRadius: `${x.bt && x.bl ? R : '0'} ${x.bt && x.br ? R : '0'} ${x.bb && x.br ? R : '0'} ${x.bb && x.bl ? R : '0'}`,
+    // Verschiebung der Kästchenmitte durch den Einzug — Kreuz und Stein rücken
+    // damit zurück auf die Zellmitte (sonst saßen sie an Grenzen schief).
+    '--mx': (x.bl ? 1 : 0) - (x.br ? 1 : 0), '--my': (x.bt ? 1 : 0) - (x.bb ? 1 : 0),
+  };
+}
 const RegionLayer = {
   setup() {
     const cells = computed(() => (state.puzzle ? regionCells(state.puzzle) : []));
-    const style = (x) => { const n = state.puzzle.rows; return { left: pct(x.c, n), top: pct(x.r, n), width: pct(1, n), height: pct(1, n), '--gh': hueOfRegion.value[x.k] }; };
+    const style = (x) => ({ ...islandStyle(x, state.puzzle.rows), ...hslVars(regionHsl.value[x.k]) });
     return { cells, style };
   },
   template: `
             <div class="gm-regions" aria-hidden="true">
-              <div v-for="x in cells" :key="x.i" class="gm-cell" :style="style(x)"></div>
+              <div v-for="x in cells" :key="x.i" class="gm-cell" :class="{ gbt: !x.bt, gbl: !x.bl }" :style="style(x)"></div>
             </div>`,
 };
-// Die dicken Käfiggrenzen liegen in einer EIGENEN Ebene ÜBER den Markierungen:
-// sonst blasste das Abdunkeln gekreuzter Felder auch die Grenzen aus, und man sah
-// zwischen lauter Kreuzen nicht mehr, wo ein Käfig endet. Hängt nur am Rätsel.
-const BorderLayer = {
-  setup() {
-    const cells = computed(() => (state.puzzle ? regionCells(state.puzzle).filter((x) => x.bt || x.bb || x.bl || x.br) : []));
-    const style = (x) => { const n = state.puzzle.rows; return { left: pct(x.c, n), top: pct(x.r, n), width: pct(1, n), height: pct(1, n) }; };
-    return { cells, style };
-  },
-  template: `
-            <div class="gm-borders" aria-hidden="true">
-              <div v-for="x in cells" :key="x.i" class="gm-bd" :class="{ bt: x.bt, bb: x.bb, bl: x.bl, br: x.br }" :style="style(x)"></div>
-            </div>`,
-};
-// Der Edelstein: facettiert, in der Farbe seines Käfigs.
-// Minimalistisch: eine Raute in zwei Tönen (oben heller), ein durchscheinendes
-// „Fenster" in der Mitte und ein einzelner Glanzstrich — ohne Facettenlinien,
-// damit der Stein auch auf kleinen Feldern klar und ruhig bleibt.
-const GEM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="g-body" d="M12 2.6 21.4 12 12 21.4 2.6 12z"/><path class="g-top" d="M12 2.6 21.4 12H2.6z"/><path class="g-win" d="M12 7.4 16.6 12 12 16.6 7.4 12z"/><path class="g-shine" d="M8.3 8.6 10.6 6.3"/></svg>';
+// Der Edelstein: Brillant-Raute in der Farbe seines Käfigs — Krone heller,
+// Pavillon dunkler, zwei Facettenkanten, ein Glanzpunkt, darunter ein weicher
+// Lichthof. Ruhig genug für kleine Felder.
+const GEM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+  + '<path class="g-pav" d="M12 21.6 2.4 10.4 6.6 4.2h10.8l4.2 6.2z"/>'
+  + '<path class="g-crown" d="M2.4 10.4 6.6 4.2h10.8l4.2 6.2z"/>'
+  + '<path class="g-table" d="M8.6 4.2h6.8l2 6.2H6.6z"/>'
+  + '<path class="g-facet" d="M6.6 10.4 12 21.6 17.4 10.4M12 10.4v11.2"/>'
+  + '<path class="g-glint" d="M8.4 6.6 9.6 5.4"/>'
+  + '</svg>';
+const CROSS_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>';
 const MarkLayer = {
   setup() {
     const bad = computed(() => (state.puzzle ? conflicts(state.puzzle, state.gemCells) : new Set()));
     const marks = computed(() => {
       const p = state.puzzle;
       if (!p) return [];
-      const n = p.rows, out = [];
-      state.gemCells.forEach((v, i) => { if (v) { const [r, c] = rcOf(n, i); out.push({ i, v, r, c, k: p.regions[i] }); } });
+      const out = [];
+      state.gemCells.forEach((v, i) => { if (v) out.push({ i, v, k: p.regions[i] }); });
       return out;
     });
     const style = (m) => {
       const n = state.puzzle.rows;
-      const st = { left: pct(m.c, n), top: pct(m.r, n), width: pct(1, n), height: pct(1, n), '--gh': hueOfRegion.value[m.k] };
+      const st = { ...islandStyle(geomOf(m.i), n), ...hslVars(regionHsl.value[m.k]) };
       // Im Coop: Ring in der Farbe dessen, der den Stein gesetzt hat (eigene ohne Ring).
       const by = state.gemBy[m.i];
       if (m.v === GEM && isMultiplayer() && by && by !== me() && by !== LOCAL_PLAYER_ID) { const col = playerColor(by); if (col) st['--gb'] = col; }
       return st;
     };
-    return { marks, style, bad, GEM, GEM_SVG, countRender };
+    return { marks, style, bad, GEM, GEM_SVG, CROSS_SVG, countRender };
   },
   template: `
             <div class="gm-marks" aria-hidden="true" :data-rc="countRender()">
               <span v-for="m in marks" :key="m.i + '-' + m.v" class="gm-mark" :class="m.v === GEM ? ['gem', { bad: bad.has(m.i) }] : 'cross'" :style="style(m)">
                 <i v-if="m.v === GEM" v-html="GEM_SVG"></i>
+                <i v-else v-html="CROSS_SVG"></i>
               </span>
             </div>`,
 };
@@ -367,7 +380,7 @@ const FocusLayer = {
       }
       return { cell: { r: st.r, c: st.c }, unit };
     });
-    const style = (x) => { const n = state.puzzle.rows; return { left: pct(x.c, n), top: pct(x.r, n), width: pct(1, n), height: pct(1, n) }; };
+    const style = (x) => islandStyle(geomOf(x.r * state.puzzle.rows + x.c), state.puzzle.rows);
     return { focus, style };
   },
   template: `
@@ -404,7 +417,7 @@ export const GemTools = {
 };
 
 export const BoardGrid = {
-  components: { RegionLayer, BorderLayer, MarkLayer, FocusLayer, LiveLayer },
+  components: { RegionLayer, MarkLayer, FocusLayer, LiveLayer },
   setup() {
     const t0 = performance.now();
     onMounted(() => log('perf', 'Brett aufgebaut', { game: 'gems', cells: state.puzzle ? state.puzzle.rows * state.puzzle.cols : 0, tookMs: Math.round(performance.now() - t0) }));
@@ -421,7 +434,6 @@ export const BoardGrid = {
             <focus-layer></focus-layer>
             <live-layer></live-layer>
             <mark-layer></mark-layer>
-            <border-layer></border-layer>
           </div>
   `,
 };
@@ -539,16 +551,21 @@ function historyStyle(p) {
 export const HistoryBoard = {
   props: ['detail'],
   setup() {
-    const cellsOf = (p) => regionCells(p);
-    const style = (p, x) => ({ left: pct(x.c, p.rows), top: pct(x.r, p.rows), width: pct(1, p.rows), height: pct(1, p.rows), '--gh': regionHue(x.k, p.rows) });
-    const gems = (p) => p.solution.map((i) => ({ i, r: Math.floor(i / p.rows), c: i % p.rows, k: p.regions[i] }));
-    return { historyStyle, cellsOf, style, gems, GEM_SVG };
+    const fx = activePaletteFx();
+    const view = (p) => {
+      const cols = regionColors(p).map((ci) => applyPaletteFx(GEM_PALETTE[ci], fx));
+      const cells = regionCells(p);
+      return {
+        cells: cells.map((x) => ({ i: x.i, cls: { gbt: !x.bt, gbl: !x.bl }, style: { ...islandStyle(x, p.rows), ...hslVars(cols[x.k]) } })),
+        gems: p.solution.map((i) => ({ i, style: { ...islandStyle(cells[i], p.rows), ...hslVars(cols[p.regions[i]]) } })),
+      };
+    };
+    return { historyStyle, view, GEM_SVG };
   },
   template: `
           <div class="board gm-board history-board" :style="historyStyle(detail.puzzle)">
-            <div class="gm-regions"><div v-for="x in cellsOf(detail.puzzle)" :key="x.i" class="gm-cell" :style="style(detail.puzzle, x)"></div></div>
-            <div class="gm-marks"><span v-for="g in gems(detail.puzzle)" :key="g.i" class="gm-mark gem" :style="style(detail.puzzle, g)"><i v-html="GEM_SVG"></i></span></div>
-            <div class="gm-borders"><div v-for="x in cellsOf(detail.puzzle)" :key="'b' + x.i" class="gm-bd" :class="{ bt: x.bt, bb: x.bb, bl: x.bl, br: x.br }" :style="style(detail.puzzle, x)"></div></div>
+            <div class="gm-regions"><div v-for="x in view(detail.puzzle).cells" :key="x.i" class="gm-cell" :class="x.cls" :style="x.style"></div></div>
+            <div class="gm-marks"><span v-for="g in view(detail.puzzle).gems" :key="g.i" class="gm-mark gem" :style="g.style"><i v-html="GEM_SVG"></i></span></div>
           </div>
   `,
 };
