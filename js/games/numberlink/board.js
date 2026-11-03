@@ -386,6 +386,7 @@ export const BoardGrid = {
           <div class="board nl-board" :class="[boardFontClass(), { done: state.status === 'won' }]" :style="gridStyle"
                role="application" :aria-label="t('nl.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
+               @touchstart.prevent
                @contextmenu.prevent>
             <link-layer></link-layer>
             <gap-layer></gap-layer>

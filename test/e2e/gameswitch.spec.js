@@ -191,3 +191,23 @@ test('beim Spielwechsel bleibt das Menü stehen (kein Aus- und Einblenden)', asy
   expect(await page.evaluate(() => document.querySelector('.home-actions').dataset.keep)).toBe('1');
   expect(await page.evaluate(() => window.__minOpacity)).toBe(1);
 });
+
+test('Wechsel mitten in einer Sitzung (Mix): das alte Rätsel wird verworfen, Fortschritt/Präsenz stürzen nicht ab', async ({ page }) => {
+  // Gemeldet: roter Fehlerschirm — der Präsenz-Takt las das Rätsel des alten
+  // Spiels mit den Regeln des neuen (Number-Sums-progressPct auf fremdem Rätsel).
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e.message || e)));
+  await gotoApp(page);
+  await startNewGame(page, 'leicht');
+  const r = await page.evaluate(() => {
+    const c = window.__cns;
+    const before = !!c.state.puzzle;
+    c.switchGame('rectangles', { force: true });
+    return { before, puzzle: c.state.puzzle, info: c.currentGameInfo(), game: c.gameId };
+  });
+  expect(r).toEqual({ before: true, puzzle: null, info: null, game: 'rectangles' });
+  // Und umgekehrt: Number Sums auf ein Rätsel eines anderen Spiels — nichts wirft.
+  await page.evaluate(() => window.__cns.switchGame('numbersums', { force: true }));
+  await page.waitForTimeout(300);
+  expect(errors).toEqual([]);
+});

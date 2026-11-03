@@ -294,6 +294,7 @@ export const BoardGrid = {
           <div class="board np-board" :class="[boardFontClass(), { done: state.status === 'won' }]" :style="gridStyle"
                role="application" :aria-label="t('np.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
+               @touchstart.prevent
                @contextmenu.prevent>
             <path-layer></path-layer>
             <wall-layer></wall-layer>

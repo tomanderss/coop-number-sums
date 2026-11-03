@@ -415,6 +415,7 @@ export const BoardGrid = {
           <div class="board gm-board" :class="[boardFontClass(), { 'full-wrong': state.gemsFullWrong, shake: state.gemsShake, done: state.status === 'won' }]" :style="gridStyle"
                role="application" :aria-label="t('gem.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
+               @touchstart.prevent
                @contextmenu.prevent>
             <region-layer></region-layer>
             <focus-layer></focus-layer>

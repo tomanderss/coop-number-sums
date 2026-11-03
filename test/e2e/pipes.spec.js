@@ -174,4 +174,26 @@ test('Wasser-Schalter: aus = kein Fluss, kein Fortschritt, kein Sieg; einschalte
   await btn.click();
   await page.waitForFunction(() => window.__cns.state.status === 'won');
   expect(await page.evaluate(() => window.__cns.state.settings.pipesFlow)).toBe(true);
+
+test('iPhone: langes Drücken sperrt, ohne dass das Brett die Lupe/Textauswahl auslöst', async ({ page, context }) => {
+  // Gemeldet: beim Sperren erschien auf dem iPhone die Lupe. Das Brett muss
+  // touchstart verhindern (nicht passiv) — die Gesten laufen über Pointer-Events.
+  await gotoApp(page);
+  await startGame(page, 'leicht');
+  const prevented = await page.evaluate(() => {
+    const el = document.querySelector('.pp-board');
+    const r = el.getBoundingClientRect();
+    const tp = new Touch({ identifier: 1, target: el, clientX: r.left + 10, clientY: r.top + 10 });
+    const ev = new TouchEvent('touchstart', { cancelable: true, bubbles: true, touches: [tp], targetTouches: [tp], changedTouches: [tp] });
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
+  expect(prevented).toBe(true);
+  // Und das Sperren per langem Drücken klappt weiterhin.
+  const cdp = await context.newCDPSession(page);
+  const at = await centers(page);
+  await touch(cdp, 'touchStart', [at(0)]);
+  await page.waitForTimeout(650);
+  await touch(cdp, 'touchEnd', []);
+  await expect.poll(() => page.evaluate(() => window.__cns.state.pipeLock[0])).toBe(true);
 });
