@@ -2345,6 +2345,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.sessionRev = 0;
   state.sessionReadonly = false;
   state.puzzle = puzzle;
+  puzzleGameId = currentGame.id;   // zu welchem Spiel das geladene Rätsel gehört (s. switchGame/progressPct)
   // Der spieleigene Brett-Zustand (Number Sums: Markierungen, Käfig-Farben,
   // Werkzeug; Math Cross: gelegte Steine + Vorrat) — s. Board.loadBoard.
   Board.loadBoard(puzzle, saved);
@@ -2557,7 +2558,21 @@ function isSolved() { return Board.boardSolved(); }
 // raceProgress/{uid} -- nie Zellinhalte (sonst Antwort-Leak an die Gegenseite,
 // siehe Plan). progressPct() ist bewusst generisch (kein Team-/Race-Bezug im
 // Namen), da beide Modi denselben reinen Puzzle-Fortschritt brauchen.
-function progressPct() { return Board.boardProgressPct(); }
+// Zu welchem Spiel gehört das geladene Rätsel? Ein Spielwechsel mitten in einer
+// Sitzung (Mix zwischen zwei Leveln) tauscht das Brett, BEVOR das neue Rätsel
+// da ist — dann darf niemand das alte Rätsel mit den Regeln des neuen Spiels
+// lesen (gemeldet: roter Fehlerschirm aus dem Präsenz-Takt, Number-Sums-
+// progressPct auf einem Rätsel eines anderen Spiels).
+let puzzleGameId = null;
+const puzzleMatchesGame = () => !!state.puzzle && puzzleGameId === currentGame.id;
+let progressErrLogged = false;
+function progressPct() {
+  if (!puzzleMatchesGame()) return 0;
+  try { return Board.boardProgressPct(); } catch (err) {
+    if (!progressErrLogged) { progressErrLogged = true; log('error', 'Fortschritt nicht berechenbar', { game: currentGame.id, err: String(err && err.message || err) }); }
+    return 0;
+  }
+}
 let teamProgressThrottle = 0;
 let teamProgressTimer = null;
 // Reines "leading edge"-Throttle (nur sofort senden, sonst verwerfen) ließ
@@ -4719,6 +4734,9 @@ function persistGame() {
   // Race-Matches sind strikt live/Wettkampf -- ein Fortsetzen nach Verbindungs-
   // abbruch wäre unfair/sinnlos (siehe state.race-Kommentar), daher nie persistiert.
   if (state.saveSlot === 'race' || state.race.active) return;
+  // Ohne (passendes) Rätsel gibt es nichts zu sichern — z.B. im Mix zwischen
+  // Spielwechsel und neuem Level (s. switchGame).
+  if (!puzzleMatchesGame()) return;
   // Endlos-Aufstieg: den echten Solo-/Coop-Slot NIE anfassen. Ein SOLO-Endlos-Lauf
   // ist aber fortsetzbar (eigener Slot) — mitten im Level den Rundenstand + die
   // Lauf-Metadaten sichern; zwischen den Leveln wird stattdessen ein „nächstes
@@ -7150,7 +7168,7 @@ function friendActivityText(uid) {
 // ── Eigene Präsenz veröffentlichen ──
 // gameInfo aus dem aktuellen State ableiten (oder null im Menü).
 function currentGameInfo() {
-  if (!gameSessionActive() || !state.puzzle) return null;
+  if (!gameSessionActive() || !puzzleMatchesGame()) return null;
   return {
     id: currentGame.id,   // welches Spiel (Freunde-Liste zeigt den Namen)
     mode: state.coop.active ? (state.race.active ? 'race' : state.team.active ? 'team' : 'coop') : (state.endless.mix ? 'mix' : 'solo'),
@@ -7365,6 +7383,12 @@ function switchGame(id, opts = {}) {
   genReqPending.clear();
   initGenWorker();
   currentGame.id = id;                             // ab hier zeichnet das Menü das neue Spiel
+  // Ein noch geladenes Rätsel des ALTEN Spiels passt nicht zum neuen Brett —
+  // verwerfen, bis das neue geladen ist (Mix wechselt zwischen zwei Leveln).
+  if (state.puzzle && puzzleGameId !== id) {
+    log('app', 'Spielwechsel: Rätsel des alten Spiels verworfen', { von, nach: id });
+    state.puzzle = null;
+  }
   reloadGameScopedState();
   if (window.__cns) Object.assign(window.__cns, Board.testHooks ? Board.testHooks() : {}, { board: Board });
   log('app', 'Spiel gewechselt (ohne Neuladen)', { von, nach: id, tookMs: Math.round(performance.now() - t0) });

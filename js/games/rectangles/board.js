@@ -435,6 +435,7 @@ export const BoardGrid = {
           <div class="board rect-board" :class="[boardFontClass(), { 'full-wrong': state.rectsFullWrong, shake: state.rectsShake}]" :style="gridStyle"
                role="application" :aria-label="t('rect.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
+               @touchstart.prevent
                @contextmenu.prevent>
             <rect-layer></rect-layer>
             <focus-layer></focus-layer>

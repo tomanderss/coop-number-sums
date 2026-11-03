@@ -6,6 +6,10 @@
 //   • Langes Drücken sperrt ein Stück („liegt richtig") — gesperrte Stücke drehen
 //     sich nicht versehentlich mit. Nochmal lange drücken entsperrt.
 //   • Zwei Finger verschieben ein gezoomtes Brett.
+//   • iOS: das Brett ruft auf `touchstart` preventDefault (`@touchstart.prevent`,
+//     nicht passiv). Sonst zeigte iOS beim langen Drücken (Sperren) die Lupe /
+//     Textauswahl-Vergrößerung (gemeldet). Die Gesten laufen über Pointer-Events,
+//     die davon unberührt bleiben. Dasselbe gilt für alle Zieh-/Tipp-Bretter.
 // Fehler gibt es keine (Drehen ist frei, wie bei Number Path): gelöst ist das
 // Brett, sobald das Wasser von der Quelle JEDE Zelle erreicht und nirgends ein
 // Rohr ins Leere zeigt.
@@ -334,6 +338,7 @@ export const BoardGrid = {
           <div class="board pp-board" :class="[boardFontClass(), { done: state.status === 'won', still }]" :style="gridStyle"
                role="application" :aria-label="t('pipe.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
+               @touchstart.prevent
                @contextmenu.prevent="onContext">
             <tile-layer></tile-layer>
             <focus-layer></focus-layer>
