@@ -143,9 +143,12 @@ export function mixReel(gameIds, target, length = 14, rand = Math.random) {
   const ids = (gameIds || []).length ? gameIds : [target];
   const out = [];
   for (let i = 0; i < length - 1; i++) {
-    let id = ids[Math.floor(rand() * ids.length)];
-    if (ids.length > 1) { let guard = 0; while ((id === out[i - 1] || (i === length - 2 && id === target)) && guard++ < 10) id = ids[Math.floor(rand() * ids.length)]; }
-    out.push(id);
+    // Nur aus den erlaubten Kandidaten ziehen (nicht wie der Vorgänger, das
+    // vorletzte Feld nicht wie das Ziel) — früher wurde zufällig nachgezogen und
+    // nach 10 Versuchen aufgegeben; selten standen dann zwei gleiche nebeneinander.
+    const allowed = ids.length > 1 ? ids.filter((x) => x !== out[i - 1] && !(i === length - 2 && x === target)) : ids;
+    const pool = allowed.length ? allowed : ids;
+    out.push(pool[Math.floor(rand() * pool.length)]);
   }
   out.push(target);
   return out;

@@ -68,10 +68,16 @@ describe('Mix: Ziehen', () => {
     assert.equal(pickMixLevel({ off: { a: true, b: true, c: true } }, CAT), null);
   });
   test('Walze endet auf dem Ziel, Nachbarn nie gleich', () => {
-    const r = mixReel(['a', 'b', 'c'], 'b', 14);
-    assert.equal(r.length, 14);
-    assert.equal(r[13], 'b');
-    for (let i = 1; i < r.length; i++) assert.notEqual(r[i], r[i - 1]);
+    // Viele Läufe: das frühere zufällige Nachziehen gab nach 10 Versuchen auf
+    // und ließ selten zwei gleiche nebeneinander stehen (CI-Fund).
+    for (let run = 0; run < 2000; run++) {
+      for (const ids of [['a', 'b'], ['a', 'b', 'c']]) {
+        const r = mixReel(ids, 'b', 14);
+        assert.equal(r.length, 14);
+        assert.equal(r[13], 'b');
+        for (let i = 1; i < r.length; i++) assert.notEqual(r[i], r[i - 1]);
+      }
+    }
     assert.deepEqual(mixReel([], 'x', 3), ['x', 'x', 'x']);
   });
 });
