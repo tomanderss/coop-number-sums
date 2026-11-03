@@ -22,7 +22,7 @@ describe('Gem Hunt: Regeln', () => {
     assert.ok(clash(p, 0, 6));        // über Eck
     assert.ok(!clash(p, 0, 7));       // weit genug weg, andere Zeile/Spalte/Käfig
   });
-  test('gelöst = n Steine ohne Konflikt; voll ab n Steinen; Fortschritt = Steine', () => {
+  test('gelöst = n Steine ohne Konflikt; voll ab n Steinen; Fortschritt = belegte Felder (Steine + Kreuze)', () => {
     const c = solvedCells(P5);
     assert.ok(isSolved(P5, c));
     assert.ok(isFull(P5, c));
@@ -30,7 +30,9 @@ describe('Gem Hunt: Regeln', () => {
     const wrong = c.slice(); wrong[P5.solution[0]] = EMPTY; wrong[P5.solution[0] + (P5.solution[0] % 5 < 4 ? 1 : -1)] = GEM;
     assert.ok(!isSolved(P5, wrong));
     assert.ok(conflicts(P5, wrong).size > 0);
-    assert.equal(progressPct(P5, new Array(25).fill(CROSS)), 0);
+    assert.equal(progressPct(P5, new Array(25).fill(CROSS)), 99);
+    const half = new Array(25).fill(EMPTY); for (let i = 0; i < 5; i++) half[i] = CROSS;
+    assert.equal(progressPct(P5, half), 20);
   });
   test('Struktur-Prüfung und Heilen von RTDB-Objekten', () => {
     assert.ok(validPuzzleShape(P5));
@@ -141,7 +143,7 @@ describe('Gem Hunt: Löser und Generator', () => {
 describe('Gem Hunt: Spielstand', () => {
   test('gelöst/Fortschritt/heilen', () => {
     assert.ok(snapshotSolved({ puzzle: P5, gemCells: solvedCells(P5) }));
-    assert.equal(snapshotProgress({ puzzle: P5, gemCells: [GEM] }), 20);
+    assert.equal(snapshotProgress({ puzzle: P5, gemCells: [GEM] }), 4);
     const healed = healSnapshot({ puzzle: P5, gemCells: { 0: 2 } });
     assert.equal(healed.gemCells.length, 25);
     assert.ok(!snapshotSolved({ puzzle: P5 }));
