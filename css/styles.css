@@ -3603,7 +3603,7 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   background: color-mix(in srgb, var(--lc, var(--accent)) 16%, transparent);
 }
 .live-path { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.live-path polyline { fill: none; stroke: var(--lc, var(--accent)); stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
+.live-path polyline { fill: none; stroke: var(--lp, var(--lc, var(--accent))); stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
 .live-cell { position: absolute; display: grid; place-items: center; color: var(--lc, var(--accent)); font-weight: 800; opacity: .8; }
 @media (prefers-reduced-motion: reduce) { .live-cursor { animation: none; } }
 

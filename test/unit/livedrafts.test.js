@@ -6,7 +6,7 @@ import * as Coop from '../../js/coop.js';
 describe('Live-Entwürfe im Coop', () => {
   test('genau die Zieh-Spiele zeigen den Entwurf der anderen live', () => {
     const on = GAMES.filter((g) => g.features && g.features.liveDrafts).map((g) => g.id).sort();
-    assert.deepEqual(on, ['gems', 'numberpath', 'pipes', 'rectangles']);
+    assert.deepEqual(on, ['gems', 'numberlink', 'numberpath', 'pipes', 'rectangles']);
   });
   test('keine Bearbeiten-Sperre mehr: alle zeichnen gleichzeitig', () => {
     for (const g of GAMES) assert.ok(!(g.features && g.features.editLock), g.id + ': editLock');

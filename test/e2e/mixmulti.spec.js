@@ -6,7 +6,7 @@ import { gotoApp, dismissStreakModal } from './helpers.js';
 // oder die meisten in M Minuten). Ohne Firebase werden Raum und Mitspieler über
 // die Test-Haken simuliert; was gesendet würde, steht im sentLog.
 
-const POOL = { off: { numbersums: true, mathcross: true, gems: true, pipes: true } };   // nur Rectangles + Number Path (schnelle Löse-Haken)
+const POOL = { off: { numbersums: true, mathcross: true, gems: true, pipes: true, numberlink: true } };   // nur Rectangles + Number Path (schnelle Löse-Haken)
 
 async function boot(page) {
   await page.addInitScript(() => { try { if (!sessionStorage.getItem('b')) { localStorage.setItem('cns_mix_on', 'true'); sessionStorage.setItem('b', '1'); } } catch {} });

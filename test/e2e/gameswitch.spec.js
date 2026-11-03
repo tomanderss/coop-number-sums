@@ -21,9 +21,9 @@ test.describe('Spielauswahl', () => {
     await gotoApp(page);
     // Alle Spiele plus Mix, jedes genau einmal als Haupt-Exemplar (der Ring zeigt
     // weiter entfernte Einträge zusätzlich als Kopien).
-    await expect(page.locator('.game-wheel .gw-item[data-game]')).toHaveCount(7);
+    await expect(page.locator('.game-wheel .gw-item[data-game]')).toHaveCount(8);
     expect((await page.locator('.game-wheel .gw-item[data-game]').evaluateAll((els) => els.map((e) => e.dataset.game))).sort())
-      .toEqual(['gems', 'mathcross', 'mix', 'numberpath', 'numbersums', 'pipes', 'rectangles']);
+      .toEqual(['gems', 'mathcross', 'mix', 'numberlink', 'numberpath', 'numbersums', 'pipes', 'rectangles']);
     await expect(page.locator('.gw-item.on')).toHaveAttribute('data-game', 'numbersums');
     await expect(page.locator('.brand-title')).toContainText('Number Games');
   });
@@ -131,7 +131,7 @@ test('auf dem ersten Spiel sind auch die übernächsten Logos sichtbar', async (
     return { game: el.dataset.game, opacity: Number(getComputedStyle(el).opacity), inView: r.right > 0 && r.left < innerWidth };
   }));
   // Endlos-Ring: von jedem Eintrag aus liegt JEDES Spiel in Sichtweite (links oder rechts).
-  expect(vis.length).toBe(7);
+  expect(vis.length).toBe(8);
   for (const v of vis) {
     expect(v.inView, v.game).toBe(true);
     expect(v.opacity, v.game).toBeGreaterThan(0.3);
