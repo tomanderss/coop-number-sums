@@ -280,6 +280,7 @@ export const DEFAULT_SETTINGS = {
   // Rein private Notiz ohne Regel-Bedeutung; bewusst NICHT die Spielerfarbe:
   // die sagt im Mehrspieler, WER gesetzt hat.
   markColor: '#f2c024',
+  pipesFlow: true,       // Pipes: Wasser sichtbar (aus = nur die Rohre; Einschalten prüft das Brett einmalig)
   gemAutoCross: false,   // Gem Hunt: ein Stein kreuzt seine Zone automatisch (Hilfe statt rein manuell)
   // Geteilt-Zeichen (s. DIV_STYLES in games/mathcross/model.js). null = noch NIE
   // gewählt → beim ersten Start von Math Cross fragt ein Pop-up einmalig nach.

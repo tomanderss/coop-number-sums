@@ -1,53 +1,74 @@
 /* games/pipes.css — die Optik von „Pipes". Wird nur eingehängt, solange dieses
    Spiel aktiv ist (s. applyGameCss / index.html).
 
-   Rework (Nutzerwunsch „moderner, minimalistischer, flüssiger"):
-   • Ein Rohr ist eine weiche SPUR: je Arm ein Strich bis zur Kante, in der Mitte
-     eine runde Nabe — Biegungen sind rund, Nachbarstücke gehen nahtlos ineinander
-     über. Kein Wandung/Bohrung-Doppelstrich mehr.
-   • Wasser = der Kanal füllt sich (Farbe), darin treiben weiche Lichtpunkte in
-     Flussrichtung. Ein animiertes Element je Arm, nahtlos um eine Periode
-     gleitend — dezent, nicht penetrant.
+   Zweiter Rework (Nutzerwunsch „klare Zellen wie am Anfang, den Fluss von jetzt,
+   ausgeschmückt aber sauber"):
+   • Jede Zelle ist eine PLATTE mit feiner Fuge — man sieht, wo welche Zelle
+     endet. Die Platte dreht sich nicht.
+   • Darauf das ROHR in der drehenden Ebene: dunkle Kante, Körper, helle Fase,
+     dunkler Kanal (Schichten über Arme + Nabe, s. pipeSvg). Es läuft ohne Absatz
+     über die Zellkante und schließt nahtlos an die Nachbarn an. Endstück =
+     Kappe mit Niete, Quelle = Pumpe mit Schrauben.
+   • WASSER füllt die Bohrung, darin treiben weiche Lichtpunkte in Flussrichtung
+     (ein animiertes Element je Arm, nahtlos um eine Periode gleitend).
    • Finale beim Lösen: eine Welle läuft von der Quelle nach außen (--fd), erst
      danach erscheint der Sieg-Dialog (winFinaleMs).
+   • `.dry` (Fluss-Schalter aus): kein Wasser, kein Lecken, keine Tönung.
    Animiert wird AUSSCHLIESSLICH transform/opacity. */
 
 .board.pp-board {
   display: block; position: relative; padding: 0; overflow: hidden;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   border-radius: 14px;
-  background:
-    radial-gradient(130% 100% at 50% 50%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%),
-    color-mix(in srgb, var(--text) 5%, var(--bg2));
-  box-shadow: 0 0 0 1px var(--hairline), var(--soft-shadow);
-  /* Spur (trocken), Wasser, Lichtpunkte */
-  --pp-track: color-mix(in srgb, var(--text) 20%, var(--bg2));
+  /* Das Brett ist die dunklere Fuge, die Platten liegen darauf. */
+  background: color-mix(in srgb, var(--text) 15%, var(--bg2));
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--text) 26%, transparent), var(--soft-shadow);
+  --pp-plate: color-mix(in srgb, var(--text) 6%, var(--bg2));
+  --pp-plate-hi: color-mix(in srgb, var(--text) 3%, var(--bg2));
+  --pp-body: color-mix(in srgb, var(--text) 44%, var(--bg2));      /* Körper des Rohrs */
+  --pp-edge: color-mix(in srgb, #000 38%, var(--pp-body));          /* Kante */
+  --pp-fase: color-mix(in srgb, #fff 16%, var(--pp-body));          /* helle Fase/Niete */
+  --pp-bore: color-mix(in srgb, #000 42%, var(--pp-body));          /* Bohrung */
   --pp-water: #3aa8ff;
-  --pp-water-d: #1f7fe0;
+  --pp-water-d: #1c78dc;
   --pp-glow: #e8f7ff;
-  --pp-w: 24%;                      /* Spurbreite relativ zur Zelle (passt zum SVG: 24/100) */
-  --pp-period: calc(var(--cell) * .42);
+  --pp-w: 20%;                      /* Bohrungsbreite relativ zur Zelle (SVG: 20/100) */
+  --pp-period: calc(var(--cell) * .4);
+}
+/* Helles Design: Rohr heller, Bohrung nicht fast schwarz (wirkte zu hart). */
+:root[data-theme="light"] .board.pp-board {
+  --pp-body: color-mix(in srgb, var(--text) 32%, var(--bg2));
+  --pp-edge: color-mix(in srgb, #000 30%, var(--pp-body));
+  --pp-fase: color-mix(in srgb, #fff 34%, var(--pp-body));
+  --pp-bore: color-mix(in srgb, #000 26%, var(--pp-body));
 }
 .pp-tiles, .pp-focus { position: absolute; inset: 0; pointer-events: none; }
 .pp-tile { position: absolute; }
-/* Feiner Zellpunkt in der Ecke: zeigt das Raster, ohne Linien zu ziehen. */
-.pp-tile::after {
-  content: ''; position: absolute; right: -1.5px; bottom: -1.5px; width: 3px; height: 3px; border-radius: 50%;
-  background: color-mix(in srgb, var(--text) 16%, transparent);
+
+/* Platte */
+.pp-plate {
+  position: absolute; inset: 3%; border-radius: 17%;
+  background: linear-gradient(160deg, var(--pp-plate-hi), var(--pp-plate));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent), inset 0 1.5px 0 color-mix(in srgb, #fff 9%, transparent);
+  transition: background-color .4s ease-out, box-shadow .3s ease-out;
 }
-/* Im Coop: das zuletzt von einem Mitspieler gedrehte Stück trägt seine Farbe. */
-.pp-tile[style*="--pb"]::before {
-  content: ''; position: absolute; inset: 8%; border-radius: 26%;
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pb) 70%, transparent);
+/* Mit Wasser versorgt: die Platte nimmt einen Hauch Blau an. */
+.pp-tile.wet .pp-plate {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--pp-water) 11%, var(--pp-plate-hi)), color-mix(in srgb, var(--pp-water) 15%, var(--pp-plate)));
+  transition-delay: var(--dl);
 }
-/* Gesperrt („liegt sicher richtig"): ruhig getönte Fläche + kleines Schloss-Häkchen. */
-.pp-tile.locked { background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 22%; }
-.pp-tile.locked .pp-track, .pp-tile.locked .pp-joint, .pp-tile.locked .pp-cap { stroke: color-mix(in srgb, var(--accent) 34%, var(--bg2)); fill: color-mix(in srgb, var(--accent) 34%, var(--bg2)); }
-.pp-tile.locked .pp-track { fill: none; }
+/* Im Coop: das zuletzt von einem Mitspieler gedrehte Stück trägt seine Farbe als Rahmen. */
+.pp-tile[style*="--pb"] .pp-plate { box-shadow: inset 0 0 0 2.5px color-mix(in srgb, var(--pb) 75%, transparent); }
+/* Gesperrt („liegt sicher richtig"): Platte in der Akzentfarbe + kleine Schraube. */
+.pp-tile.locked .pp-plate {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 16%, var(--pp-plate-hi)), color-mix(in srgb, var(--accent) 22%, var(--pp-plate)));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent);
+}
 .pp-lockmark {
-  position: absolute; right: 6%; top: 6%; width: 16%; height: 16%; border-radius: 50%;
-  background: var(--accent); box-shadow: 0 0 0 2px var(--bg2);
+  position: absolute; right: 11%; top: 11%; width: 15%; height: 15%; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, var(--pp-plate));
 }
+.pp-lockmark::after { content: ''; position: absolute; inset: 36%; border-radius: 50%; background: rgb(255 255 255 / .85); }
 
 .pp-rot {
   position: absolute; inset: 0;
@@ -55,18 +76,29 @@
   will-change: transform;
 }
 .pp-pipe, .pp-pipe svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.pp-track { fill: none; stroke: var(--pp-track); stroke-width: 24; stroke-linecap: butt; }
-.pp-joint { fill: var(--pp-track); }
-.pp-cap { fill: var(--pp-track); }
-.pp-cap-in { fill: color-mix(in srgb, var(--bg2) 70%, transparent); transition: fill .3s; }
-.pp-src-ring { fill: color-mix(in srgb, var(--pp-water) 22%, transparent); }
-.pp-src-core { fill: #fff; }
+
+/* ── Rohr ────────────────────────────────────────────────────────────────── */
+/* Farben relativ zum Körper: Kante und Bohrung dunkler, Fase heller — so
+   stimmt das Verhältnis in hellen und dunklen Designs. */
+.pp-edge, .pp-body, .pp-rim, .pp-bore { fill: none; stroke-linecap: butt; }
+.pp-edge { stroke: var(--pp-edge); }
+.pp-body { stroke: var(--pp-body); }
+.pp-rim { stroke: var(--pp-fase); }
+.pp-bore { stroke: var(--pp-bore); }
+.pp-hubc { stroke: none; }
+.pp-edge.pp-hubc { fill: var(--pp-edge); }
+.pp-body.pp-hubc { fill: var(--pp-body); }
+.pp-rim.pp-hubc { fill: var(--pp-fase); }
+.pp-bore.pp-hubc { fill: var(--pp-bore); }
+.pp-rivet { fill: var(--pp-fase); }
+.pp-bolt { fill: var(--pp-fase); stroke: var(--pp-edge); stroke-width: 1.2; }
+.pp-src-ring { fill: none; stroke: color-mix(in srgb, var(--pp-water) 70%, transparent); stroke-width: 2.4; }
 
 /* ── Wasser ──────────────────────────────────────────────────────────────── */
 /* Ein Arm zeigt in der Grundlage nach oben und wird um seine Wurzel (die Mitte)
-   gedreht; seine Breite = die Spur. Darin: Füllung + treibende Lichtpunkte. */
+   gedreht; seine Breite = die Bohrung. Darin: Füllung + treibende Lichtpunkte. */
 .pp-arm {
-  position: absolute; left: calc(50% - var(--pp-w) / 2); width: var(--pp-w); top: 0; height: 50%;
+  position: absolute; left: calc(50% - var(--pp-w) / 2); width: var(--pp-w); top: -0.5%; height: 50.5%;
   transform-origin: 50% 100%; overflow: hidden;
   background: linear-gradient(90deg, var(--pp-water-d), var(--pp-water) 50%, var(--pp-water-d));
   opacity: 0; transition: opacity .35s ease-out;
@@ -74,12 +106,10 @@
 .pp-arm.d1 { transform: rotate(90deg); }
 .pp-arm.d2 { transform: rotate(180deg); }
 .pp-arm.d3 { transform: rotate(270deg); }
-/* Lichtpunkte: weiche runde Tupfer im Abstand einer Periode, das Muster gleitet
-   genau eine Periode weiter → nahtlose, gleichmäßige Strömung. */
 .pp-arm i {
   position: absolute; left: 0; right: 0; top: 0; height: calc(100% + var(--pp-period));
   background: radial-gradient(circle at 50% 50%, var(--pp-glow) 0 14%, color-mix(in srgb, var(--pp-glow) 0%, transparent) 46%) 0 0 / 100% var(--pp-period) repeat-y;
-  opacity: .7;
+  opacity: .72;
   animation: pp-out 1.5s linear infinite;
 }
 /* Arm, aus dem das Wasser kommt: Punkte laufen zur Mitte. */
@@ -91,7 +121,7 @@
   opacity: 0; transform: scale(.5);
   transition: opacity .3s ease-out, transform .35s cubic-bezier(.3, 1.5, .5, 1);
 }
-.pp-tile.end .pp-hub { left: 31%; top: 31%; width: 38%; height: 38%; background: radial-gradient(circle at 40% 38%, var(--pp-glow), var(--pp-water) 58%, var(--pp-water-d)); }
+.pp-tile.end .pp-hub { left: 40%; top: 40%; width: 20%; height: 20%; background: radial-gradient(circle at 40% 38%, var(--pp-glow), var(--pp-water) 58%, var(--pp-water-d)); }
 .pp-tile.wet .pp-arm, .pp-tile.wet .pp-hub { opacity: 1; transition-delay: var(--dl); }
 .pp-tile.wet .pp-hub { transform: none; }
 /* Ein Arm, der ins Leere führt: das Ende glimmt rot (sanft pulsierend). */
@@ -102,10 +132,10 @@
 }
 @keyframes pp-leak { 0%, 100% { opacity: .3; } 50% { opacity: .95; } }
 
-/* Quelle: Kern + ruhig atmender Hof. */
-.pp-tile.src .pp-hub { left: 30%; top: 30%; width: 40%; height: 40%; opacity: 1; transform: none; background: radial-gradient(circle at 40% 38%, var(--pp-glow), var(--pp-water) 55%, var(--pp-water-d)); }
+/* Quelle: Pumpe mit leuchtendem Kern + ruhig atmendem Hof (immer sichtbar, auch .dry). */
+.pp-tile.src .pp-hub { left: 31%; top: 31%; width: 38%; height: 38%; opacity: 1; transform: none; background: radial-gradient(circle at 40% 38%, var(--pp-glow), var(--pp-water) 55%, var(--pp-water-d)); }
 .pp-tile.src::before {
-  content: ''; position: absolute; inset: 12%; border-radius: 50%;
+  content: ''; position: absolute; inset: 14%; border-radius: 50%;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--pp-water) 60%, transparent);
   animation: pp-src 2.2s ease-out infinite;
 }
@@ -114,10 +144,15 @@
 .pp-tile.end.wet .pp-hub { animation: pp-fill .5s ease-out both; animation-delay: var(--dl); }
 @keyframes pp-fill { 0% { transform: scale(.3); } 60% { transform: scale(1.18); } 100% { transform: none; } }
 
+/* ── Fluss aus ───────────────────────────────────────────────────────────── */
+/* Nichts füllt sich, nichts leckt; die Pumpe ruht (kein Hof). */
+.board.pp-board.dry .pp-arm, .board.pp-board.dry .pp-tile:not(.src) .pp-hub { opacity: 0; }
+.board.pp-board.dry .pp-tile.src::before { animation: none; opacity: 0; }
+
 /* ── Finale beim Lösen ───────────────────────────────────────────────────────
    Eine Welle läuft von der Quelle (Mitte) nach außen: jedes Stück leuchtet nach
-   seiner Entfernung (--fd) einmal auf und hebt sich kurz an; die Spur wird zum
-   leuchtenden Kanal. Erst danach kommt der Sieg-Dialog. */
+   seiner Entfernung (--fd) einmal auf und hebt sich kurz an. Erst danach kommt
+   der Sieg-Dialog. */
 .pp-wave {
   position: absolute; inset: 6%; border-radius: 30%; opacity: 0; pointer-events: none;
   background: radial-gradient(circle, color-mix(in srgb, var(--pp-glow) 85%, transparent), color-mix(in srgb, var(--pp-water) 35%, transparent) 55%, transparent 72%);
@@ -125,7 +160,7 @@
 .board.pp-board.done .pp-wave { animation: pp-wave .75s ease-out both; animation-delay: var(--fd); }
 @keyframes pp-wave { 0% { opacity: 0; transform: scale(.4); } 35% { opacity: 1; transform: scale(1.12); } 100% { opacity: 0; transform: scale(1.3); } }
 .board.pp-board.done .pp-rot { animation: pp-lift .6s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: var(--fd); }
-@keyframes pp-lift { 0%, 100% { scale: 1; } 40% { scale: 1.1; } }
+@keyframes pp-lift { 0%, 100% { scale: 1; } 40% { scale: 1.08; } }
 .board.pp-board.done .pp-arm i { opacity: .95; }
 .board.pp-board.done {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--pp-water) 65%, transparent), 0 0 28px color-mix(in srgb, var(--pp-water) 32%, transparent);
@@ -137,21 +172,47 @@
 
 /* Training: das Stück, das als Nächstes feststeht. */
 .pp-train {
-  position: absolute; border-radius: 22%;
+  position: absolute; border-radius: 17%; inset: auto;
   box-shadow: inset 0 0 0 2.5px var(--accent);
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   animation: pp-pulse 1.3s ease-in-out infinite;
 }
 @keyframes pp-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
 
+/* ── Fluss-Schalter unter dem Brett (PipeTools) ──────────────────────────────
+   Ein einzelner Aktivierungs-Knopf in der Mitte, so hoch wie der Umschalter der
+   anderen Spiele (60 px); der Hinweis darunter nimmt keinen Platz weg. */
+.pp-tools-wrap { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; min-height: 72px; padding: 8px 0 4px; }
+.pp-flow-btn {
+  display: inline-flex; align-items: center; gap: 10px; height: 60px; padding: 0 22px 0 8px; border-radius: 999px;
+  background: var(--bg3); color: var(--text3); font-weight: 800; font-size: .95rem; letter-spacing: .01em;
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--shadow) 45%, transparent);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: color .2s, background-color .2s;
+}
+.pp-flow-btn:active { transform: scale(.97); }
+.pp-flow-ic {
+  width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text3);
+  transition: background .25s, color .25s, box-shadow .25s;
+}
+.pp-flow-ic svg { width: 24px; height: 24px; }
+.pp-flow-btn.on { color: var(--text); }
+.pp-flow-btn.on .pp-flow-ic { background: linear-gradient(135deg, #3aa8ff, #1c78dc); color: #fff; box-shadow: 0 2px 8px color-mix(in srgb, #1c78dc 45%, transparent); }
+.pp-flow-hint { color: var(--text3); font-size: .74rem; text-align: center; max-width: 280px; line-height: 1.25; min-height: 2.5em; transition: opacity .2s; }
+.pp-flow-hint.off { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .pp-flow-btn, .pp-flow-ic { transition: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pp-arm i, .pp-tile.src::before, .pp-arm.leak::after, .pp-train,
   .pp-tile.end.wet .pp-hub, .board.pp-board.done .pp-rot { animation: none; }
   .board.pp-board.done .pp-wave { animation-duration: .01s; }
-  .pp-rot { transition: none; }
+  .pp-rot, .pp-plate { transition: none; }
 }
 
 .history-board.pp-board { margin: 0 auto; }
-.history-board.pp-board .pp-arm, .history-board.pp-board .pp-hub, .history-board.pp-board .pp-wave { display: none; }
-.history-board.pp-board .pp-track { stroke: var(--pp-water); }
-.history-board.pp-board .pp-joint, .history-board.pp-board .pp-cap { fill: var(--pp-water); }
+.history-board.pp-board .pp-arm, .history-board.pp-board .pp-hub, .history-board.pp-board .pp-wave, .history-board.pp-board .pp-lockmark { display: none; }
+.history-board.pp-board .pp-bore { stroke: var(--pp-water); }
+.history-board.pp-board .pp-bore.pp-hubc { fill: var(--pp-water); }
