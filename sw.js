@@ -73,6 +73,7 @@ const ASSETS = [
   './js/games/gems/difficulty.js',
   './js/games/gems/genworker.js',
   './js/games/gems/snapshot.js',
+  './js/games/gems/colors.js',
   './js/games/gems/board.js',
   './js/games/gems/i18n.js',
   './js/games/gems/index.js',

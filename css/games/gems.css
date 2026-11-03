@@ -1,51 +1,68 @@
 /* games/gems.css — die Optik von „Gem Hunt". Wird nur eingehängt, solange
    dieses Spiel aktiv ist (s. applyGameCss / index.html).
 
-   Käfige = Zellen in ihrer Farbe mit dicken Grenzen, wo ein anderer Käfig
-   beginnt; darüber Kreuze und facettierte Edelsteine in der Käfigfarbe.
+   Rework (gemeldet: „Rahmen überschatten sich, clunky, lieblos"):
+   • Käfige sind INSELN: zwischen zwei Käfigen eine Fuge in der Brettfarbe,
+     Außenecken gerundet, innen nahtlos mit feinem Raster — keine hellen
+     Grenzlinien mehr, die sich an den Ecken überlappten.
+   • Farben aus einer kuratierten Palette (s. regionColors), Nachbarn nie gleich.
+   • Kreuz: die Insel-Zelle wird ruhig abgedunkelt (freie Felder springen ins
+     Auge), darauf ein feines, rundes ×.
+   • Stein: Brillant in der Käfigfarbe mit weichem Lichthof.
    Animiert wird nur transform/opacity. */
 
 .board.gm-board {
   display: block; position: relative; padding: 0; overflow: hidden;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  background-color: var(--bg2); border-radius: 10px;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 70%, transparent), var(--soft-shadow);
-  --gm-line: color-mix(in srgb, var(--text) 88%, transparent);
+  /* Die Brettfarbe IST die Fuge zwischen den Inseln. */
+  --gm-gap: var(--bg);
+  background-color: var(--gm-gap); border-radius: 14px;
+  box-shadow: 0 0 0 1px var(--hairline), var(--soft-shadow);
+  --gm-gi: max(1.5px, calc(var(--cell) * .035));   /* halbe Fuge (Einzug je Seite) */
+  --gm-r: calc(var(--cell) * .2);                  /* Rundung der Außenecken */
+  --gm-dim: .46;                                   /* Abdunkeln gekreuzter Felder */
 }
-.gm-regions, .gm-marks, .gm-focus, .gm-borders { position: absolute; inset: 0; pointer-events: none; }
+:root[data-theme="light"] .board.gm-board { --gm-gap: color-mix(in srgb, var(--text) 10%, var(--bg2)); --gm-dim: .55; }
+.gm-regions, .gm-marks, .gm-focus { position: absolute; inset: 0; pointer-events: none; }
+
+/* Käfig-Zelle: die Inselfarbe, oben ein Hauch heller. */
 .gm-cell {
   position: absolute;
-  /* Kräftiger als früher (52 %): gemeldet, die Käfige waren je nach Farbe kaum
-     auseinanderzuhalten. Dazu ein sichtbares feines Raster. */
-  background: color-mix(in srgb, hsl(var(--gh) 74% 58%) 74%, var(--bg2));
-  box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--text) 26%, transparent);
+  background: linear-gradient(180deg, hsl(var(--gh) var(--gs) calc(var(--gl) + 3%)), hsl(var(--gh) var(--gs) var(--gl)));
 }
-/* Dicke Käfiggrenzen — eigene Ebene über den Markierungen (s. BorderLayer). */
-.gm-bd { position: absolute; border: 0 solid var(--gm-line); }
-.gm-bd.bt { border-top-width: 3px; }
-.gm-bd.bb { border-bottom-width: 3px; }
-.gm-bd.bl { border-left-width: 3px; }
-.gm-bd.br { border-right-width: 3px; }
+:root[data-theme="light"] .gm-cell { background: hsl(var(--gh) calc(var(--gs) - 8%) calc(var(--gl) + 14%)); }
+/* Feines Raster nur INNERHALB eines Käfigs (Kante zum Nachbarn im selben Käfig). */
+.gm-cell.gbt::before, .gm-cell.gbl::after { content: ''; position: absolute; background: rgb(0 0 0 / .14); }
+.gm-cell.gbt::before { left: 0; right: 0; top: 0; height: 1px; }
+.gm-cell.gbl::after { top: 0; bottom: 0; left: 0; width: 1px; }
 
 .gm-mark { position: absolute; display: grid; place-items: center; }
-/* Kreuz = Notiz „hier nicht". Das ganze Feld wird dabei blass — so springen
-   die noch FREIEN Felder ins Auge (gemeldet: man sah nicht, was noch offen ist). */
-.gm-mark.cross { background: color-mix(in srgb, var(--bg) 58%, transparent); }
-.gm-mark.cross::before {
-  content: '×'; font-size: calc(var(--cell) * .46); line-height: 1; font-weight: 600;
-  color: color-mix(in srgb, var(--text) 55%, transparent);
+.gm-mark > i { translate: calc(var(--mx, 0) * var(--gm-gi) * -.5) calc(var(--my, 0) * var(--gm-gi) * -.5); }
+/* Kreuz = Notiz „hier nicht": die Zelle ruhig abgedunkelt, darauf ein feines ×. */
+/* Neutral abdunkeln (nicht mit dem Blaustich der Brettfarbe — der machte aus
+   Gelb Oliv); im hellen Design neutral aufhellen. */
+.gm-mark.cross { background: rgb(6 8 14 / var(--gm-dim)); }
+:root[data-theme="light"] .gm-mark.cross { background: rgb(255 255 255 / var(--gm-dim)); }
+.gm-mark.cross i { display: block; width: 46%; height: 46%; }
+.gm-mark.cross svg { display: block; width: 100%; height: 100%; }
+.gm-mark.cross path { fill: none; stroke: hsl(var(--gh) 40% 82% / .75); stroke-width: 2.6; stroke-linecap: round; }
+:root[data-theme="light"] .gm-mark.cross path { stroke: hsl(var(--gh) 45% 30% / .6); }
+
+/* Edelstein: Brillant in der Käfigfarbe, weicher Lichthof dahinter, im Coop ein
+   Ring in der Farbe des Spielers, der ihn gesetzt hat. */
+.gm-mark.gem::after {
+  content: ''; position: absolute; inset: 12%; border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / .38), transparent 68%);
 }
-/* Edelstein: minimalistische Raute in der Farbe seines Käfigs (oben heller,
-   Fenster in der Mitte, ein Glanzstrich); im Coop ein Ring in der Farbe des
-   Spielers, der ihn gesetzt hat. */
-.gm-mark.gem { border-radius: 30%; box-shadow: inset 0 0 0 2px var(--gb, transparent); }
-.gm-mark.gem i { display: block; width: 76%; height: 76%; animation: gem-pop .34s cubic-bezier(.2, 1.6, .4, 1); }
-.gm-mark.gem svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.35)); }
-.gm-mark .g-body { fill: hsl(var(--gh) 72% 38%); stroke: hsl(var(--gh) 72% 30%); stroke-width: .8; stroke-linejoin: round; }
-.gm-mark .g-top { fill: hsl(var(--gh) 82% 56%); }
-.gm-mark .g-win { fill: rgba(255, 255, 255, .26); }
-.gm-mark .g-shine { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; opacity: .85; }
-@keyframes gem-pop { from { transform: scale(.3) rotate(-25deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.gm-mark.gem { box-shadow: inset 0 0 0 2.5px var(--gb, transparent); }
+.gm-mark.gem i { position: relative; z-index: 1; display: block; width: 74%; height: 74%; animation: gem-pop .38s cubic-bezier(.2, 1.6, .4, 1); }
+.gm-mark.gem svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 2px rgb(0 0 0 / .32)); }
+.gm-mark .g-pav { fill: hsl(var(--gh) 70% 32%); stroke: hsl(var(--gh) 70% 22%); stroke-width: .7; stroke-linejoin: round; }
+.gm-mark .g-crown { fill: hsl(var(--gh) 80% 52%); }
+.gm-mark .g-table { fill: hsl(var(--gh) 90% 74%); }
+.gm-mark .g-facet { fill: none; stroke: hsl(var(--gh) 70% 22% / .45); stroke-width: .7; stroke-linejoin: round; }
+.gm-mark .g-glint { fill: none; stroke: #fff; stroke-width: 1.5; stroke-linecap: round; opacity: .9; }
+@keyframes gem-pop { from { transform: scale(.3) rotate(-20deg); opacity: 0; } to { transform: none; opacity: 1; } }
 /* Widerspruch: roter Hof, der sanft pulsiert (nur opacity). */
 .gm-mark.gem.bad::before {
   content: ''; position: absolute; inset: 6%; border-radius: 50%;
@@ -69,7 +86,7 @@
 /* Training: die Einheit, in der nur noch ein Feld frei ist, und das Zielfeld. */
 .gm-unit { position: absolute; background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .gm-train {
-  position: absolute; border-radius: 6px;
+  position: absolute;
   box-shadow: inset 0 0 0 2.5px var(--accent);
   background: color-mix(in srgb, var(--accent) 22%, transparent);
   animation: gm-pulse 1.3s ease-in-out infinite;
