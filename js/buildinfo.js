@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.11';
-export const BUILD_HASH = '6838e91';
+export const BUILD      = '3.12';
+export const BUILD_HASH = 'f2675d8';
 
 export const CHANGELOG = [
+  {
+    "version": "3.12",
+    "date": "03.11.2026",
+    "changes": [
+      "- Gem Hunt: Käfige als durchgehende Formen – gleich breite Fugen, auch Innenecken weich gerundet, nichts ragt mehr heraus",
+      "- Mix: auf der Ziehungs-Walze stehen nie mehr zwei gleiche Spiele direkt nebeneinander"
+    ]
+  },
   {
     "version": "3.11",
     "date": "03.11.2026",
