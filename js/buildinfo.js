@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.10';
-export const BUILD_HASH = '1bed196';
+export const BUILD      = '3.11';
+export const BUILD_HASH = '6838e91';
 
 export const CHANGELOG = [
+  {
+    "version": "3.11",
+    "date": "03.11.2026",
+    "changes": [
+      "- Pipes: Rohre schließen an den Zellgrenzen jetzt exakt aneinander an – keine Nähte oder Stufen mehr"
+    ]
+  },
   {
     "version": "3.10",
     "date": "03.11.2026",
