@@ -2,9 +2,9 @@
    dieses Spiel aktiv ist (s. applyGameCss / index.html).
 
    Rework (gemeldet: „Rahmen überschatten sich, clunky, lieblos"):
-   • Käfige sind INSELN: zwischen zwei Käfigen eine Fuge in der Brettfarbe,
-     Außenecken gerundet, innen nahtlos mit feinem Raster — keine hellen
-     Grenzlinien mehr, die sich an den Ecken überlappten.
+   • Käfige sind FORMEN (shapes.js): ein Umriss je Käfig, um die halbe Fuge
+     versetzt, Außenecken rund, Innenecken weich — durchgehend gleich breite
+     Fuge, nichts ragt hinein. Innen feines Raster.
    • Farben aus einer kuratierten Palette (s. regionColors), Nachbarn nie gleich.
    • Kreuz: die Insel-Zelle wird ruhig abgedunkelt (freie Felder springen ins
      Auge), darauf ein feines, rundes ×.
@@ -18,31 +18,24 @@
   --gm-gap: var(--bg);
   background-color: var(--gm-gap); border-radius: 14px;
   box-shadow: 0 0 0 1px var(--hairline), var(--soft-shadow);
-  --gm-gi: max(1.5px, calc(var(--cell) * .035));   /* halbe Fuge (Einzug je Seite) */
-  --gm-r: calc(var(--cell) * .2);                  /* Rundung der Außenecken */
   --gm-dim: .46;                                   /* Abdunkeln gekreuzter Felder */
 }
 :root[data-theme="light"] .board.gm-board { --gm-gap: color-mix(in srgb, var(--text) 10%, var(--bg2)); --gm-dim: .55; }
-.gm-regions, .gm-marks, .gm-focus { position: absolute; inset: 0; pointer-events: none; }
+.gm-regions, .gm-marks, .gm-focus, .gm-dimmer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.gm-regions, .gm-dimmer, svg.gm-focus { overflow: visible; display: block; }
 
-/* Käfig-Zelle: die Inselfarbe, oben ein Hauch heller. */
-.gm-cell {
-  position: absolute;
-  background: linear-gradient(180deg, hsl(var(--gh) var(--gs) calc(var(--gl) + 3%)), hsl(var(--gh) var(--gs) var(--gl)));
-}
-:root[data-theme="light"] .gm-cell { background: hsl(var(--gh) calc(var(--gs) - 8%) calc(var(--gl) + 14%)); }
-/* Feines Raster nur INNERHALB eines Käfigs (Kante zum Nachbarn im selben Käfig). */
-.gm-cell.gbt::before, .gm-cell.gbl::after { content: ''; position: absolute; background: rgb(0 0 0 / .14); }
-.gm-cell.gbt::before { left: 0; right: 0; top: 0; height: 1px; }
-.gm-cell.gbl::after { top: 0; bottom: 0; left: 0; width: 1px; }
+/* Käfig-Form (s. shapes.js): ein Umriss je Käfig, Fugen und Rundungen inklusive. */
+.gm-reg { fill: hsl(var(--gh) var(--gs) var(--gl)); }
+:root[data-theme="light"] .gm-reg { fill: hsl(var(--gh) calc(var(--gs) - 8%) calc(var(--gl) + 14%)); }
+/* Feines Raster nur INNERHALB eines Käfigs. */
+.gm-grid { fill: none; stroke: rgb(0 0 0 / .14); stroke-width: 1; }
 
 .gm-mark { position: absolute; display: grid; place-items: center; }
-.gm-mark > i { translate: calc(var(--mx, 0) * var(--gm-gi) * -.5) calc(var(--my, 0) * var(--gm-gi) * -.5); }
-/* Kreuz = Notiz „hier nicht": die Zelle ruhig abgedunkelt, darauf ein feines ×. */
-/* Neutral abdunkeln (nicht mit dem Blaustich der Brettfarbe — der machte aus
-   Gelb Oliv); im hellen Design neutral aufhellen. */
-.gm-mark.cross { background: rgb(6 8 14 / var(--gm-dim)); }
-:root[data-theme="light"] .gm-mark.cross { background: rgb(255 255 255 / var(--gm-dim)); }
+/* Kreuz = Notiz „hier nicht": das Feld wird ruhig abgedunkelt (auf die
+   Käfigform beschnitten) — neutral, nicht mit dem Blaustich der Brettfarbe
+   (der machte aus Gelb Oliv); im hellen Design neutral aufgehellt. */
+.gm-dim { fill: rgb(6 8 14 / var(--gm-dim)); }
+:root[data-theme="light"] .gm-dim { fill: rgb(255 255 255 / var(--gm-dim)); }
 .gm-mark.cross i { display: block; width: 46%; height: 46%; }
 .gm-mark.cross svg { display: block; width: 100%; height: 100%; }
 .gm-mark.cross path { fill: none; stroke: hsl(var(--gh) 40% 82% / .75); stroke-width: 2.6; stroke-linecap: round; }
@@ -54,7 +47,7 @@
   content: ''; position: absolute; inset: 12%; border-radius: 50%;
   background: radial-gradient(circle, rgb(255 255 255 / .38), transparent 68%);
 }
-.gm-mark.gem { box-shadow: inset 0 0 0 2.5px var(--gb, transparent); }
+.gm-mark.gem { border-radius: 26%; box-shadow: inset 0 0 0 2.5px var(--gb, transparent); }
 .gm-mark.gem i { position: relative; z-index: 1; display: block; width: 74%; height: 74%; animation: gem-pop .38s cubic-bezier(.2, 1.6, .4, 1); }
 .gm-mark.gem svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 2px rgb(0 0 0 / .32)); }
 .gm-mark .g-pav { fill: hsl(var(--gh) 70% 32%); stroke: hsl(var(--gh) 70% 22%); stroke-width: .7; stroke-linejoin: round; }
@@ -83,12 +76,11 @@
   60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
 }
 
-/* Training: die Einheit, in der nur noch ein Feld frei ist, und das Zielfeld. */
-.gm-unit { position: absolute; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+/* Training: die Einheit, in der nur noch ein Feld frei ist, und das Zielfeld
+   (SVG, beschnitten auf die Käfigformen). */
+.gm-unit { fill: color-mix(in srgb, var(--accent) 18%, transparent); }
 .gm-train {
-  position: absolute;
-  box-shadow: inset 0 0 0 2.5px var(--accent);
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  fill: color-mix(in srgb, var(--accent) 22%, transparent); stroke: var(--accent); stroke-width: 2.5;
   animation: gm-pulse 1.3s ease-in-out infinite;
 }
 @keyframes gm-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
