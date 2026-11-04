@@ -160,7 +160,7 @@ test('Finale: erst läuft die Welle durchs Netz, dann kommt der Sieg-Dialog', as
 test('Wasser-Schalter: aus = kein Fluss, kein Fortschritt, kein Sieg; einschalten prüft und gewinnt', async ({ page }) => {
   await gotoApp(page);
   await startGame(page, 'mittel');
-  const btn = page.locator('.pp-tools-wrap .pp-flow-btn');
+  const btn = page.locator('.pp-tools-wrap .pp-flow-btn:not(.pp-lock-btn)');
   await expect(btn).toHaveClass(/\bon\b/);
   const boardTop = async () => (await page.locator('.pp-board').boundingBox()).y;
   const y0 = await boardTop();
@@ -201,4 +201,34 @@ test('iPhone: langes Drücken sperrt, ohne dass das Brett die Lupe/Textauswahl a
   await page.waitForTimeout(650);
   await touch(cdp, 'touchEnd', []);
   await expect.poll(() => page.evaluate(() => window.__cns.state.pipeLock[0])).toBe(true);
+});
+
+test('Sperr-Modus: kurzer Tipp sperrt/entsperrt, gedreht wird nicht; aus = wieder drehen', async ({ page, context }) => {
+  await gotoApp(page);
+  await startGame(page, 'mittel');
+  const btn = page.locator('.pp-tools-wrap .pp-lock-btn');
+  await expect(btn).toBeVisible();
+  await expect(btn).not.toHaveClass(/\bon\b/);
+  const boardTop = async () => (await page.locator('.pp-board').boundingBox()).y;
+  const y0 = await boardTop();
+  await btn.click();
+  await expect(btn).toHaveClass(/\bon\b/);
+  expect(await page.evaluate(() => window.__cns.state.pipeLockMode)).toBe(true);
+  await expect(page.locator('.pp-flow-hint')).not.toHaveClass(/\boff\b/);
+  expect(await boardTop()).toBe(y0);
+  const at = await centers(page);
+  const cdp = await context.newCDPSession(page);
+  const r0 = await rots(page);
+  await touch(cdp, 'touchStart', [at(2)]); await touch(cdp, 'touchEnd', []);
+  expect(await page.evaluate(() => window.__cns.state.pipeLock[2])).toBe(true);
+  expect(await rots(page)).toEqual(r0);
+  // Nochmal tippen entsperrt.
+  await touch(cdp, 'touchStart', [at(2)]); await touch(cdp, 'touchEnd', []);
+  expect(await page.evaluate(() => window.__cns.state.pipeLock[2])).toBe(false);
+  expect(await rots(page)).toEqual(r0);
+  // Modus aus: Tippen dreht wieder.
+  await btn.click();
+  expect(await page.evaluate(() => window.__cns.state.pipeLockMode)).toBe(false);
+  await touch(cdp, 'touchStart', [at(2)]); await touch(cdp, 'touchEnd', []);
+  expect((await rots(page))[2]).toBe(r0[2] + 1);
 });

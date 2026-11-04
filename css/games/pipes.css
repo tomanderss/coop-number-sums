@@ -198,6 +198,15 @@
 .pp-flow-ic svg { width: 24px; height: 24px; }
 .pp-flow-btn.on { color: var(--text); }
 .pp-flow-btn.on .pp-flow-ic { background: linear-gradient(135deg, #3aa8ff, #1c78dc); color: #fff; box-shadow: 0 2px 8px color-mix(in srgb, #1c78dc 45%, transparent); }
+.pp-tools-row { display: flex; gap: 10px; justify-content: center; }
+.pp-tools-row .pp-flow-btn { padding-right: 18px; }
+.pp-tools-row .pp-flow-tx { line-height: 1.1; }
+@media (max-width: 380px) {
+  .pp-tools-row { gap: 6px; }
+  .pp-tools-row .pp-flow-btn { gap: 6px; padding: 0 12px 0 6px; font-size: .84rem; }
+  .pp-tools-row .pp-flow-ic { width: 40px; height: 40px; }
+}
+.pp-lock-btn.on .pp-flow-ic { background: linear-gradient(135deg, #ffb340, #e07b10); color: #fff; box-shadow: 0 2px 8px color-mix(in srgb, #e07b10 45%, transparent); }
 .pp-flow-hint { color: var(--text3); font-size: .74rem; text-align: center; max-width: 280px; line-height: 1.25; min-height: 2.5em; transition: opacity .2s; }
 .pp-flow-hint.off { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {

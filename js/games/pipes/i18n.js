@@ -5,7 +5,7 @@
 
 export default {
   de: {
-    pipe: { boardLabel: "Spielfeld: Rohre drehen", flow: { aria: "Wasser zeigen: an / aus", on: "Wasser an", off: "Wasser aus", hint: "Wasser aus – das Brett gilt erst als gelöst, wenn du es wieder einschaltest." }, train: { title: "Nächstes Rohr", edge: "Dieses Stück passt nur noch in EINER Lage: jede andere würde Wasser über den Rand oder gegen ein schon festes Nachbarrohr laufen lassen.", net: "Dieses Stück steht durch das Netz fest: jede andere Lage würde einen Kreis schließen oder ein Teilnetz von der Quelle abschneiden." } },
+    pipe: { boardLabel: "Spielfeld: Rohre drehen", flow: { aria: "Wasser zeigen: an / aus", on: "Wasser an", off: "Wasser aus", hint: "Wasser aus – das Brett gilt erst als gelöst, wenn du es wieder einschaltest." }, lock: { label: "Sperren", aria: "Sperr-Modus: an / aus", hint: "Sperr-Modus – Tippen sperrt oder entsperrt ein Stück, drehen ist aus." }, train: { title: "Nächstes Rohr", edge: "Dieses Stück passt nur noch in EINER Lage: jede andere würde Wasser über den Rand oder gegen ein schon festes Nachbarrohr laufen lassen.", net: "Dieses Stück steht durch das Netz fest: jede andere Lage würde einen Kreis schließen oder ein Teilnetz von der Quelle abschneiden." } },
     howto: {
       rule1: "Drehe die Rohre so, dass das <b>Wasser von der Quelle</b> (blauer Punkt) <b>jedes Feld</b> erreicht.",
       rule2: "<b>Antippen</b> dreht ein Stück um 90°. Am Computer dreht ein <b>Rechtsklick</b> zurück.",
@@ -18,7 +18,7 @@ export default {
     prestige: { master: { desc: "Das ultimative Abzeichen — freigeschaltet, wenn ALLE 12 Abzeichen auf Legendär stehen. Der Beweis, dass du Pipes gemeistert hast." } },
   },
   en: {
-    pipe: { boardLabel: "Board: rotate the pipes", flow: { aria: "Show water: on / off", on: "Water on", off: "Water off", hint: "Water is off – the board only counts as solved once you switch it on again." }, train: { title: "Next pipe", edge: "This piece fits in only ONE position: any other would spill water over the edge or against a neighbour that is already fixed.", net: "The network fixes this piece: any other position would close a loop or cut part of the network off from the source." } },
+    pipe: { boardLabel: "Board: rotate the pipes", flow: { aria: "Show water: on / off", on: "Water on", off: "Water off", hint: "Water is off – the board only counts as solved once you switch it on again." }, lock: { label: "Lock", aria: "Lock mode: on / off", hint: "Lock mode – tap locks or unlocks a piece, rotating is off." }, train: { title: "Next pipe", edge: "This piece fits in only ONE position: any other would spill water over the edge or against a neighbour that is already fixed.", net: "The network fixes this piece: any other position would close a loop or cut part of the network off from the source." } },
     howto: {
       rule1: "Rotate the pipes so the <b>water from the source</b> (blue dot) reaches <b>every cell</b>.",
       rule2: "<b>Tap</b> rotates a piece by 90°. On a computer, a <b>right-click</b> turns it back.",
@@ -31,7 +31,7 @@ export default {
     prestige: { master: { desc: "The ultimate badge — unlocked when ALL 12 badges are Legendary. Proof that you have mastered Pipes." } },
   },
   es: {
-    pipe: { boardLabel: "Tablero: gira las tuberías", flow: { aria: "Mostrar agua: activar / desactivar", on: "Agua activada", off: "Agua desactivada", hint: "Agua desactivada: el tablero solo cuenta como resuelto cuando vuelvas a activarla." }, train: { title: "Siguiente tubería", edge: "Esta pieza solo encaja en UNA posición: cualquier otra derramaría agua por el borde o contra una vecina ya fija.", net: "La red fija esta pieza: cualquier otra posición cerraría un círculo o separaría parte de la red de la fuente." } },
+    pipe: { boardLabel: "Tablero: gira las tuberías", flow: { aria: "Mostrar agua: activar / desactivar", on: "Agua activada", off: "Agua desactivada", hint: "Agua desactivada: el tablero solo cuenta como resuelto cuando vuelvas a activarla." }, lock: { label: "Bloquear", aria: "Modo bloqueo: activar / desactivar", hint: "Modo bloqueo: tocar bloquea o desbloquea una pieza; no se gira." }, train: { title: "Siguiente tubería", edge: "Esta pieza solo encaja en UNA posición: cualquier otra derramaría agua por el borde o contra una vecina ya fija.", net: "La red fija esta pieza: cualquier otra posición cerraría un círculo o separaría parte de la red de la fuente." } },
     howto: {
       rule1: "Gira las tuberías para que el <b>agua de la fuente</b> (punto azul) llegue a <b>todas las casillas</b>.",
       rule2: "<b>Toca</b> para girar una pieza 90°. En el ordenador, el <b>clic derecho</b> la gira hacia atrás.",
@@ -44,7 +44,7 @@ export default {
     prestige: { master: { desc: "La insignia definitiva: se desbloquea cuando las 12 insignias son legendarias. La prueba de que dominas Pipes." } },
   },
   fr: {
-    pipe: { boardLabel: "Plateau : tourner les tuyaux", flow: { aria: "Afficher l’eau : oui / non", on: "Eau activée", off: "Eau coupée", hint: "Eau coupée – la grille n’est comptée comme résolue que lorsque tu la réactives." }, train: { title: "Tuyau suivant", edge: "Cette pièce ne tient que dans UNE position : toute autre ferait couler l’eau hors du bord ou contre un voisin déjà fixé.", net: "Le réseau fixe cette pièce : toute autre position fermerait une boucle ou couperait une partie du réseau de la source." } },
+    pipe: { boardLabel: "Plateau : tourner les tuyaux", flow: { aria: "Afficher l’eau : oui / non", on: "Eau activée", off: "Eau coupée", hint: "Eau coupée – la grille n’est comptée comme résolue que lorsque tu la réactives." }, lock: { label: "Verrouiller", aria: "Mode verrou : oui / non", hint: "Mode verrou – toucher verrouille ou déverrouille une pièce, pas de rotation." }, train: { title: "Tuyau suivant", edge: "Cette pièce ne tient que dans UNE position : toute autre ferait couler l’eau hors du bord ou contre un voisin déjà fixé.", net: "Le réseau fixe cette pièce : toute autre position fermerait une boucle ou couperait une partie du réseau de la source." } },
     howto: {
       rule1: "Tournez les tuyaux pour que <b>l’eau de la source</b> (point bleu) atteigne <b>chaque case</b>.",
       rule2: "<b>Touchez</b> pour tourner une pièce de 90°. Sur ordinateur, un <b>clic droit</b> la tourne en arrière.",
@@ -57,7 +57,7 @@ export default {
     prestige: { master: { desc: "Le badge ultime — débloqué quand les 12 badges sont légendaires. La preuve que vous maîtrisez Pipes." } },
   },
   it: {
-    pipe: { boardLabel: "Tabellone: ruota i tubi", flow: { aria: "Mostra l’acqua: sì / no", on: "Acqua attiva", off: "Acqua spenta", hint: "Acqua spenta – la griglia conta come risolta solo quando la riaccendi." }, train: { title: "Prossimo tubo", edge: "Questo pezzo entra in UNA sola posizione: qualsiasi altra farebbe uscire l’acqua dal bordo o contro un vicino già fissato.", net: "La rete fissa questo pezzo: qualsiasi altra posizione chiuderebbe un anello o staccherebbe parte della rete dalla sorgente." } },
+    pipe: { boardLabel: "Tabellone: ruota i tubi", flow: { aria: "Mostra l’acqua: sì / no", on: "Acqua attiva", off: "Acqua spenta", hint: "Acqua spenta – la griglia conta come risolta solo quando la riaccendi." }, lock: { label: "Blocca", aria: "Modalità blocco: sì / no", hint: "Modalità blocco – un tocco blocca o sblocca un pezzo, niente rotazione." }, train: { title: "Prossimo tubo", edge: "Questo pezzo entra in UNA sola posizione: qualsiasi altra farebbe uscire l’acqua dal bordo o contro un vicino già fissato.", net: "La rete fissa questo pezzo: qualsiasi altra posizione chiuderebbe un anello o staccherebbe parte della rete dalla sorgente." } },
     howto: {
       rule1: "Ruota i tubi in modo che <b>l’acqua della sorgente</b> (punto blu) raggiunga <b>ogni casella</b>.",
       rule2: "<b>Tocca</b> per ruotare un pezzo di 90°. Al computer il <b>clic destro</b> lo riporta indietro.",
@@ -70,7 +70,7 @@ export default {
     prestige: { master: { desc: "Il distintivo definitivo: si sblocca quando tutti i 12 distintivi sono leggendari. La prova che hai padroneggiato Pipes." } },
   },
   ja: {
-    pipe: { boardLabel: "盤面：パイプを回す", flow: { aria: "水の表示：オン／オフ", on: "水オン", off: "水オフ", hint: "水はオフです。もう一度オンにすると、盤面が完成したか確認されます。" }, train: { title: "次のパイプ", edge: "このピースは1つの向きにしか合いません。他の向きでは水が盤の外や固定済みの隣に漏れます。", net: "ネットワークでこのピースが決まります。他の向きではループができるか、一部が水源から切り離されます。" } },
+    pipe: { boardLabel: "盤面：パイプを回す", flow: { aria: "水の表示：オン／オフ", on: "水オン", off: "水オフ", hint: "水はオフです。もう一度オンにすると、盤面が完成したか確認されます。" }, lock: { label: "ロック", aria: "ロックモード：オン／オフ", hint: "ロックモード：タップでピースをロック／解除。回転はしません。" }, train: { title: "次のパイプ", edge: "このピースは1つの向きにしか合いません。他の向きでは水が盤の外や固定済みの隣に漏れます。", net: "ネットワークでこのピースが決まります。他の向きではループができるか、一部が水源から切り離されます。" } },
     howto: {
       rule1: "パイプを回して、<b>水源</b>（青い点）の水を<b>すべてのマス</b>に届けよう。",
       rule2: "<b>タップ</b>でピースを90°回転。パソコンでは<b>右クリック</b>で逆回転。",
@@ -83,7 +83,7 @@ export default {
     prestige: { master: { desc: "究極のバッジ — 12個すべてのバッジがレジェンダリーになると解放。Pipesを極めた証。" } },
   },
   ko: {
-    pipe: { boardLabel: "보드: 파이프 돌리기", flow: { aria: "물 표시: 켜기 / 끄기", on: "물 켜짐", off: "물 꺼짐", hint: "물이 꺼져 있어요. 다시 켜야 보드가 완성으로 인정돼요." }, train: { title: "다음 파이프", edge: "이 조각은 한 방향에만 맞습니다. 다른 방향이면 물이 테두리 밖이나 이미 고정된 이웃 쪽으로 샙니다.", net: "네트워크가 이 조각을 결정합니다. 다른 방향이면 고리가 생기거나 일부가 수원에서 끊깁니다." } },
+    pipe: { boardLabel: "보드: 파이프 돌리기", flow: { aria: "물 표시: 켜기 / 끄기", on: "물 켜짐", off: "물 꺼짐", hint: "물이 꺼져 있어요. 다시 켜야 보드가 완성으로 인정돼요." }, lock: { label: "잠금", aria: "잠금 모드: 켜기 / 끄기", hint: "잠금 모드 – 탭하면 조각을 잠그거나 풉니다. 회전은 안 됩니다." }, train: { title: "다음 파이프", edge: "이 조각은 한 방향에만 맞습니다. 다른 방향이면 물이 테두리 밖이나 이미 고정된 이웃 쪽으로 샙니다.", net: "네트워크가 이 조각을 결정합니다. 다른 방향이면 고리가 생기거나 일부가 수원에서 끊깁니다." } },
     howto: {
       rule1: "파이프를 돌려 <b>수원</b>(파란 점)의 물이 <b>모든 칸</b>에 닿게 하세요.",
       rule2: "<b>탭</b>하면 조각이 90° 돌아갑니다. 컴퓨터에서는 <b>오른쪽 클릭</b>으로 되돌립니다.",
@@ -96,7 +96,7 @@ export default {
     prestige: { master: { desc: "최고의 배지 — 12개 배지가 모두 전설이 되면 해금. Pipes를 정복했다는 증거." } },
   },
   "pt-BR": {
-    pipe: { boardLabel: "Tabuleiro: gire os canos", flow: { aria: "Mostrar água: ligar / desligar", on: "Água ligada", off: "Água desligada", hint: "Água desligada – o tabuleiro só conta como resolvido quando você ligar de novo." }, train: { title: "Próximo cano", edge: "Esta peça só encaixa em UMA posição: qualquer outra derramaria água pela borda ou contra um vizinho já fixo.", net: "A rede fixa esta peça: qualquer outra posição fecharia um ciclo ou separaria parte da rede da fonte." } },
+    pipe: { boardLabel: "Tabuleiro: gire os canos", flow: { aria: "Mostrar água: ligar / desligar", on: "Água ligada", off: "Água desligada", hint: "Água desligada – o tabuleiro só conta como resolvido quando você ligar de novo." }, lock: { label: "Travar", aria: "Modo travar: ligar / desligar", hint: "Modo travar – tocar trava ou destrava uma peça, sem girar." }, train: { title: "Próximo cano", edge: "Esta peça só encaixa em UMA posição: qualquer outra derramaria água pela borda ou contra um vizinho já fixo.", net: "A rede fixa esta peça: qualquer outra posição fecharia um ciclo ou separaria parte da rede da fonte." } },
     howto: {
       rule1: "Gire os canos para que a <b>água da fonte</b> (ponto azul) chegue a <b>todas as casas</b>.",
       rule2: "<b>Toque</b> para girar uma peça 90°. No computador, o <b>clique direito</b> gira de volta.",
@@ -109,7 +109,7 @@ export default {
     prestige: { master: { desc: "O emblema definitivo — liberado quando TODOS os 12 emblemas são lendários. A prova de que você domina Pipes." } },
   },
   ru: {
-    pipe: { boardLabel: "Поле: поверните трубы", flow: { aria: "Показ воды: вкл / выкл", on: "Вода включена", off: "Вода выключена", hint: "Вода выключена – поле считается решённым только после повторного включения." }, train: { title: "Следующая труба", edge: "Эта деталь подходит только в ОДНОМ положении: в любом другом вода выльется за край или упрётся в уже закреплённого соседа.", net: "Сеть определяет эту деталь: любое другое положение замкнёт кольцо или отрежет часть сети от источника." } },
+    pipe: { boardLabel: "Поле: поверните трубы", flow: { aria: "Показ воды: вкл / выкл", on: "Вода включена", off: "Вода выключена", hint: "Вода выключена – поле считается решённым только после повторного включения." }, lock: { label: "Замок", aria: "Режим блокировки: вкл / выкл", hint: "Режим блокировки – нажатие блокирует или разблокирует деталь, поворота нет." }, train: { title: "Следующая труба", edge: "Эта деталь подходит только в ОДНОМ положении: в любом другом вода выльется за край или упрётся в уже закреплённого соседа.", net: "Сеть определяет эту деталь: любое другое положение замкнёт кольцо или отрежет часть сети от источника." } },
     howto: {
       rule1: "Поворачивайте трубы так, чтобы <b>вода из источника</b> (синяя точка) дошла до <b>каждой клетки</b>.",
       rule2: "<b>Касание</b> поворачивает деталь на 90°. На компьютере <b>правый клик</b> поворачивает обратно.",
@@ -122,7 +122,7 @@ export default {
     prestige: { master: { desc: "Высшая награда — открывается, когда ВСЕ 12 значков легендарные. Доказательство, что вы покорили Pipes." } },
   },
   tr: {
-    pipe: { boardLabel: "Oyun alanı: boruları çevir", flow: { aria: "Suyu göster: açık / kapalı", on: "Su açık", off: "Su kapalı", hint: "Su kapalı – tahta, suyu yeniden açtığında çözülmüş sayılır." }, train: { title: "Sıradaki boru", edge: "Bu parça yalnızca TEK bir konuma uyuyor: diğerlerinde su kenardan ya da sabit bir komşuya taşar.", net: "Ağ bu parçayı belirliyor: başka her konum bir döngü kapatır ya da ağın bir kısmını kaynaktan koparır." } },
+    pipe: { boardLabel: "Oyun alanı: boruları çevir", flow: { aria: "Suyu göster: açık / kapalı", on: "Su açık", off: "Su kapalı", hint: "Su kapalı – tahta, suyu yeniden açtığında çözülmüş sayılır." }, lock: { label: "Kilitle", aria: "Kilit modu: açık / kapalı", hint: "Kilit modu – dokunmak parçayı kilitler ya da açar, döndürme kapalı." }, train: { title: "Sıradaki boru", edge: "Bu parça yalnızca TEK bir konuma uyuyor: diğerlerinde su kenardan ya da sabit bir komşuya taşar.", net: "Ağ bu parçayı belirliyor: başka her konum bir döngü kapatır ya da ağın bir kısmını kaynaktan koparır." } },
     howto: {
       rule1: "Boruları çevir ki <b>kaynaktaki su</b> (mavi nokta) <b>her hücreye</b> ulaşsın.",
       rule2: "<b>Dokunmak</b> parçayı 90° çevirir. Bilgisayarda <b>sağ tık</b> geri çevirir.",
