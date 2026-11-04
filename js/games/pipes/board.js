@@ -183,7 +183,7 @@ export function setLock(i, v, { send = true } = {}) {
 }
 
 // ── Gesten ───────────────────────────────────────────────────────────────────
-const LONG_MS = 450, SLOP = 10;
+const LONG_MS = 300, SLOP = 10;
 let press = null;            // { id, i, x, y, timer, long }
 let pan = null;
 const pointers = new Map();
