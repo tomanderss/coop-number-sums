@@ -1,1 +1,0 @@
-Pipes: neuer Sperr-Knopf – im Sperr-Modus sperrt ein kurzer Tipp ein Stück, gedreht wird dann nicht
