@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.14';
-export const BUILD_HASH = 'b2651ad';
+export const BUILD      = '3.15';
+export const BUILD_HASH = '7d20928';
 
 export const CHANGELOG = [
+  {
+    "version": "3.15",
+    "date": "04.11.2026",
+    "changes": [
+      "Pipes: Sperren per langem Drücken geht schneller (0,3 statt 0,45 Sekunden)"
+    ]
+  },
   {
     "version": "3.14",
     "date": "04.11.2026",

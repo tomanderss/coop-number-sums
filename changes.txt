@@ -1,1 +1,0 @@
-Pipes: Sperren per langem Drücken geht schneller (0,3 statt 0,45 Sekunden)
