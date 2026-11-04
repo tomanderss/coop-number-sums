@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.13';
-export const BUILD_HASH = '24a7288';
+export const BUILD      = '3.14';
+export const BUILD_HASH = 'b2651ad';
 
 export const CHANGELOG = [
+  {
+    "version": "3.14",
+    "date": "04.11.2026",
+    "changes": [
+      "Pipes: neuer Sperr-Knopf – im Sperr-Modus sperrt ein kurzer Tipp ein Stück, gedreht wird dann nicht"
+    ]
+  },
   {
     "version": "3.13",
     "date": "03.11.2026",
