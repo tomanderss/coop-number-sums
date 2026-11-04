@@ -208,6 +208,8 @@ function onDown(e) {
   if (i < 0) return;
   press = { id: e.pointerId, i, x: e.clientX, y: e.clientY, long: false, timer: null };
   sendLive({ cur: i });
+  // Sperr-Modus: ein kurzer Tipp sperrt/entsperrt (beim Loslassen), kein Langes Drücken nötig.
+  if (state.pipeLockMode) return;
   press.timer = setTimeout(() => {
     if (!press) return;
     press.long = true;
@@ -231,7 +233,9 @@ function onUp(e) {
   if (pan) { if (pointers.size < 2) pan = null; return; }
   if (!press || e.pointerId !== press.id) return;
   const p = press; endPress();
-  if (!p.long) rotate(p.i, 1);
+  if (p.long) return;
+  if (state.pipeLockMode) setLock(p.i, !state.pipeLock[p.i]);
+  else rotate(p.i, 1);
 }
 function onCancel(e) {
   pointers.delete(e.pointerId);
@@ -242,7 +246,10 @@ function onCancel(e) {
 function onContext(e) {
   if (!state.puzzle || !playable()) return;
   const i = cellAt(e.currentTarget.getBoundingClientRect(), e.clientX, e.clientY);
-  if (i >= 0) rotate(i, -1);
+  if (i < 0) return;
+  // Im Sperr-Modus wird nie gedreht — Rechtsklick sperrt wie ein Tipp.
+  if (state.pipeLockMode) setLock(i, !state.pipeLock[i]);
+  else rotate(i, -1);
 }
 
 // ── Darstellung ──────────────────────────────────────────────────────────────
@@ -405,21 +412,41 @@ const FocusLayer = {
 // der anderen Spiele: an = Wasser sichtbar (Standard), aus = nur die Rohre.
 const DROP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2c3.2 3.9 5.6 6.8 5.6 10a5.6 5.6 0 0 1-11.2 0c0-3.2 2.4-6.1 5.6-10z" fill="currentColor"/><path d="M9.6 14.2a2.6 2.6 0 0 0 2.2 2.4" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/></svg>';
 function toggleFlow() { setFlow(state.settings.pipesFlow === false); }
+// Sperr-Modus (Nutzerwunsch): kurzer Tipp sperrt/entsperrt statt zu drehen.
+export function setLockMode(v) {
+  v = !!v;
+  if (state.pipeLockMode === v) return;
+  state.pipeLockMode = v;
+  log('game', 'Pipes: Sperr-Modus ' + (v ? 'an' : 'aus'));
+  if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
+}
+function toggleLockMode() { setLockMode(!state.pipeLockMode); }
+const LOCK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.4" fill="currentColor"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 export const PipeTools = {
   setup() {
     const show = computed(() => !!state.puzzle && !(state.isTrainingGame && !state.trainingDone));
     const on = computed(() => state.settings.pipesFlow !== false);
-    return { state, show, on, toggleFlow, t, DROP_ICON };
+    const lockOn = computed(() => !!state.pipeLockMode);
+    // Ein Hinweis-Platz für beide Schalter: Sperr-Modus hat Vorrang.
+    const hint = computed(() => (lockOn.value ? t('pipe.lock.hint') : !on.value ? t('pipe.flow.hint') : ''));
+    return { state, show, on, lockOn, hint, toggleFlow, toggleLockMode, t, DROP_ICON, LOCK_ICON };
   },
   template: `
           <div class="pp-tools-wrap">
-            <button v-if="show" type="button" class="pp-flow-btn" :class="{ on }" role="switch" :aria-checked="on"
-                    :aria-label="t('pipe.flow.aria')" @click="toggleFlow">
-              <span class="pp-flow-ic" v-html="DROP_ICON"></span>
-              <span class="pp-flow-tx">{{ on ? t('pipe.flow.on') : t('pipe.flow.off') }}</span>
-            </button>
-            <!-- Platz IMMER reserviert (unsichtbar, solange das Wasser an ist): das Brett darf beim Umschalten nicht springen. -->
-            <small v-if="show" class="pp-flow-hint" :class="{ off: on }" :aria-hidden="on">{{ t('pipe.flow.hint') }}</small>
+            <div v-if="show" class="pp-tools-row">
+              <button type="button" class="pp-flow-btn" :class="{ on }" role="switch" :aria-checked="on"
+                      :aria-label="t('pipe.flow.aria')" @click="toggleFlow">
+                <span class="pp-flow-ic" v-html="DROP_ICON"></span>
+                <span class="pp-flow-tx">{{ on ? t('pipe.flow.on') : t('pipe.flow.off') }}</span>
+              </button>
+              <button type="button" class="pp-flow-btn pp-lock-btn" :class="{ on: lockOn }" role="switch" :aria-checked="lockOn"
+                      :aria-label="t('pipe.lock.aria')" @click="toggleLockMode">
+                <span class="pp-flow-ic" v-html="LOCK_ICON"></span>
+                <span class="pp-flow-tx">{{ t('pipe.lock.label') }}</span>
+              </button>
+            </div>
+            <!-- Platz IMMER reserviert (unsichtbar ohne Hinweis): das Brett darf beim Umschalten nicht springen. -->
+            <small v-if="show" class="pp-flow-hint" :class="{ off: !hint }" :aria-hidden="!hint">{{ hint || t('pipe.flow.hint') }}</small>
           </div>
   `,
 };
@@ -461,6 +488,7 @@ export function loadBoard(puzzle, saved) {
   state.pipeBy = Array.from({ length: n }, (_, i) => by[i] || '');
   state.pipeLock = Array.from({ length: n }, (_, i) => !!lock[i]);
   state.pipeKeys = {};
+  state.pipeLockMode = false;
   endPress(); pan = null; pointers.clear();
 }
 

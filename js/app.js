@@ -169,7 +169,7 @@ const state = reactive({
   gemTool: 'gem',              // Gem Hunt: Werkzeug unter dem Brett ('gem' | 'cross'), bleibt über Partien erhalten
   // Pipes (js/games/pipes): Drehzahl je Stück (fortlaufend, mod 4 zählt), wer
   // zuletzt drehte, gesperrte Stücke und Ereignis-Schlüssel je Stück (später gewinnt).
-  pipeRot: [], pipeBy: [], pipeLock: [], pipeKeys: {},
+  pipeRot: [], pipeBy: [], pipeLock: [], pipeKeys: {}, pipeLockMode: false,
   rectsFullWrong: false,     // Brett voll, geht aber nicht auf (Hinweiszeile unter dem Brett)
   rectsShake: false,         // kurzes Wackeln des Bretts nach einem vollen, falschen Brett
   cellMeta: [],              // pro Zelle: { region, color, edges, chip, hint, hintMark }
