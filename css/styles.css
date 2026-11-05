@@ -156,6 +156,18 @@ html, body, #rotate-fix { margin: 0; height: 100%; }
 /* Minimalistisches Design (Nutzerwunsch: „schlanker, kleiner, mehr Luft"):
    ein leichter Schatten für alle Flächen statt des früheren schweren. */
 :root { --soft-shadow: 0 1px 3px color-mix(in srgb, var(--shadow) 40%, transparent); --hairline: color-mix(in srgb, var(--text3) 28%, transparent); }
+/* EINE Brett-DNA für alle Spiele: Ecken, Kontur, Schatten, Rasterlinien und
+   Spielfläche kommen aus diesen Tokens (css/games/*.css nutzen sie, statt eigene
+   Werte zu erfinden). Die Leiste unter dem Brett ist überall gleich hoch
+   (--dock-h), damit das Brett in jedem Spiel an derselben Stelle steht. */
+:root {
+  --board-radius: 12px;
+  --board-rim: 0 0 0 1px color-mix(in srgb, var(--text3) 36%, transparent);
+  --board-shadow: var(--board-rim), var(--soft-shadow), 0 6px 20px color-mix(in srgb, var(--shadow) 35%, transparent);
+  --board-line: color-mix(in srgb, var(--text3) 26%, transparent);
+  --board-surface: var(--bg2);
+  --dock-h: 84px;
+}
 html, body { overflow: hidden; width: 100%; overscroll-behavior: none; touch-action: pan-x pan-y; }
 body {
   background: var(--bg); color: var(--text);
@@ -1340,13 +1352,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    exakt wie direkte Flex-Kinder von .screen.game verhalten. Erst im
    Querformat (Media Query unten) werden sie zu echten Grid-Boxen. */
 .game-sidebar-top, .game-sidebar-bottom { display: contents; }
+/* Spiele ohne Leiste unter dem Brett halten denselben Platz frei (feste Brett-Position). */
+.board-dock-spacer { flex: 0 0 auto; height: var(--dock-h); }
 
 /* ─── Board ─── */
 /* Feld zentriert, wenn es passt – sonst voll scroll-/verschiebbar (margin:auto
    statt justify/align center, damit bei Überlauf der obere/linke Rand erreichbar
    bleibt). */
 .board-wrap { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; overflow: auto; padding: 6px; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
-.board { display: grid; gap: 0; background: var(--grid); border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 6px 24px var(--shadow); margin: auto; flex-shrink: 0; transition: filter .3s, opacity .3s; }
+.board { display: grid; gap: 0; background: var(--grid); border-radius: var(--board-radius); padding: 0; overflow: hidden; box-shadow: var(--board-shadow); margin: auto; flex-shrink: 0; transition: filter .3s, opacity .3s; }
 .corner { background: var(--accent-soft); border: 1px solid var(--grid); }
 .hdr {
   display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
@@ -1497,6 +1511,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    .screen.game, also keine Hochformat-Änderung. Erst hier im Querformat
    werden sie zu echten Grid-Boxen. */
 @media screen and (orientation: landscape) and (pointer: coarse) {
+  .board-dock-spacer { display: none; }
   .app { max-width: 820px; }
   /* Großes Touch-Querformat (z.B. iPad landscape): der Spiel-Screen darf breiter
      werden, damit die Brett-Spalte (1fr neben der 240px-Steuerspalte) mehr Platz
@@ -1631,7 +1646,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    (Hinweis-Knopf-Breite, unsichtbar) den Hinweis-Knopf rechts aus; die
    auto-Margins zentrieren den Umschalter auch, wenn der Hinweis-Knopf fehlt
    (Race/Team blenden Spacer UND Hinweis gemeinsam aus). */
-.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 8px 0; margin-bottom: 18px; flex: 0 0 auto; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 8px; height: var(--dock-h); box-sizing: border-box; flex: 0 0 auto; }
 .toolbar-spacer { width: 52px; flex: 0 0 auto; }
 .toolbar .tool-toggle { margin-inline: auto; }
 .round-btn {

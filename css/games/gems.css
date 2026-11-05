@@ -16,8 +16,8 @@
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   /* Die Brettfarbe IST die Fuge zwischen den Inseln. */
   --gm-gap: var(--bg);
-  background-color: var(--gm-gap); border-radius: 14px;
-  box-shadow: 0 0 0 1px var(--hairline), var(--soft-shadow);
+  background-color: var(--gm-gap); border-radius: var(--board-radius);
+  box-shadow: var(--board-shadow);
   --gm-dim: .46;                                   /* Abdunkeln gekreuzter Felder */
 }
 :root[data-theme="light"] .board.gm-board { --gm-gap: color-mix(in srgb, var(--text) 10%, var(--bg2)); --gm-dim: .55; }
@@ -88,7 +88,7 @@
 /* Werkzeug unter dem Brett: der Umschalter aus Number Sums (styles.css
    .tool-toggle/.tool-pill/.tool-ic), hier nur zentriert und mit fester Höhe,
    damit sich beim Ein-/Ausblenden (Training) nichts verschiebt. */
-.gm-tools-wrap { flex: 0 0 auto; display: flex; justify-content: center; align-items: center; min-height: 72px; padding: 8px 0 4px; }
+.gm-tools-wrap { flex: 0 0 auto; display: flex; justify-content: center; align-items: center; height: var(--dock-h); box-sizing: border-box; }
 .gm-toggle { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .gm-toggle .tool-ic svg { width: 24px; height: 24px; }
 

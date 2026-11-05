@@ -7,13 +7,13 @@
 .board.np-board {
   display: block; position: relative; padding: 0; overflow: hidden;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  background-color: var(--bg2);
+  background-color: var(--board-surface);
   background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--text3) 30%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--text3) 30%, transparent) 1px, transparent 1px);
+    linear-gradient(to right, var(--board-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--board-line) 1px, transparent 1px);
   background-size: calc(100% / var(--cols)) calc(100% / var(--rows));
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--text3) 45%, transparent), var(--soft-shadow);
-  border-radius: 10px;
+  box-shadow: var(--board-shadow);
+  border-radius: var(--board-radius);
 }
 .np-walls, .np-clues, .np-focus { position: absolute; inset: 0; pointer-events: none; }
 .np-path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
