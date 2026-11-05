@@ -46,6 +46,7 @@ import { computed, ref, watch, onMounted, onBeforeUnmount } from '../../vue.esm-
 import { shopItemById } from '../../shopitems.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
+import { haptic } from '../feedback.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
@@ -157,7 +158,9 @@ export function setRot(i, r, { force = false, send = true } = {}) {
   }
   const after = flowInfo.value;
   // Ohne gezeigtes Wasser darf auch der Ton nichts verraten.
-  if (flowShown.value && after && endpoints(p, after) > supBefore && state.settings.sfxComplete) Music.sfxComplete(1);
+  const joined = flowShown.value && after && endpoints(p, after) > supBefore;
+  haptic(joined ? 'done' : 'tap');
+  if (joined && state.settings.sfxComplete) Music.sfxComplete(1);
   else if (state.settings.sfxKeep) Music.sfxKeep();
   afterMove();
   return true;
@@ -182,7 +185,7 @@ export function setLock(i, v, { send = true } = {}) {
   const lock = state.pipeLock.slice(); lock[i] = !!v;
   state.pipeLock = lock;
   if (send && isMultiplayer()) coopSend({ type: Coop.MSG.MOVE, op: 'lock', i, v: !!v, from: state.coop.myId });
-  try { navigator.vibrate && navigator.vibrate(12); } catch (_) {}
+  haptic('lock');
   return true;
 }
 

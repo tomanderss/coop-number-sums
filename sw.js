@@ -18,6 +18,7 @@ const ASSETS = [
   './js/games/index.js',
   './js/games/snapshots.js',
   './js/games/livelayer.js',
+  './js/games/feedback.js',
   './js/games/numbersums/index.js',
   './js/games/numbersums/model.js',
   './js/games/numbersums/difficulty.js',

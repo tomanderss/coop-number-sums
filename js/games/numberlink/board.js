@@ -24,6 +24,7 @@ import { computed, onMounted, onBeforeUnmount } from '../../vue.esm-browser.prod
 import { shopItemById, applyPaletteFx } from '../../shopitems.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
+import { haptic } from '../feedback.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
@@ -137,7 +138,7 @@ function commitLinks(next, by = null) {
   state.links = out;
   state.linkBy = outBy;
   const nowDone = out.some((path, i) => !before[i] && connected(i + 1, path));
-  if (nowDone && state.settings.sfxComplete) Music.sfxComplete(1);
+  if (nowDone) { haptic('done'); if (state.settings.sfxComplete) Music.sfxComplete(1); }
   afterMove();
   return true;
 }
@@ -259,7 +260,11 @@ function finishDrag() {
   commitLinks(final, me());
   const set = {};
   final.forEach((path, i) => { if (!sameArr(path, d.base[i])) set[i + 1] = path.length ? path : ''; });
-  if (Object.keys(set).length) sendLinks(set);
+  if (Object.keys(set).length) {
+    // Linie abgelegt: Setz-Ton, außer sie ist gerade fertig geworden (dann kam schon der Fertig-Ton).
+    if (!connected(d.k, final[d.k - 1])) { haptic('place'); if (state.settings.sfxKeep) Music.sfxKeep(); }
+    sendLinks(set);
+  }
   sendLive(null);
 }
 function sendLinks(set) {

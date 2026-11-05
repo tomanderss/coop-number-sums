@@ -329,6 +329,7 @@ export default {
     sfxError: 'ミス',
     sfxHint: 'ヒント',
     sfxToolSwitch: 'モード切替（ペン／消しゴム）',
+    haptics: 'バイブレーション',
     sfxUndo: '元に戻す',
     sfxWin: '勝利',
     sfxLose: '敗北',

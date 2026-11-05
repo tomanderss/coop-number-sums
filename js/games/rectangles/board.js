@@ -31,11 +31,12 @@ import { computed, ref, onMounted, onBeforeUnmount } from '../../vue.esm-browser
 import { shopItemById, applyPaletteFx } from '../../shopitems.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
+import { haptic } from '../feedback.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
 import {
-  rectFromCorners, rectsOverlap, sameRect, addRect, rectAt, isFull, isSolved,
+  rectFromCorners, rectsOverlap, sameRect, addRect, rectAt, isFull, isSolved, rectValid,
   progressPct, coveredCount, normalizePuzzle as healPuzzle, normalizeRects, rectArea, clampToFree,
 } from './model.js';
 import { solveLogic } from './solver.js';
@@ -170,7 +171,10 @@ export function addUserRect(box, { force = false } = {}) {
   const { rects } = addRect(state.rects, rect);
   state.rects = rects;
   if (isMultiplayer()) rect.k = coopSend({ type: Coop.MSG.MOVE, op: 'add', rect: wire(rect), from: state.coop.myId }) || null;
-  if (state.settings.sfxKeep) Music.sfxKeep();
+  // Passt das Rechteck zu genau einer Zahl, klingt es wie eine fertige Einheit
+  // (wie eine aufgelöste Zeile in Number Sums) — sonst der normale Setz-Ton.
+  if (rectValid(p, q)) { haptic('done'); if (state.settings.sfxComplete) Music.sfxComplete(1); }
+  else { haptic('place'); if (state.settings.sfxKeep) Music.sfxKeep(); }
   checkFull();
   afterMove();
   return rect;
@@ -182,6 +186,7 @@ export function removeUserRect(rect) {
   if (!state.rects.some((x) => x.id === rect.id)) return false;
   state.rects = state.rects.filter((x) => x.id !== rect.id);
   if (isMultiplayer()) coopSend({ type: Coop.MSG.MOVE, op: 'del', id: rect.id, from: state.coop.myId });
+  haptic('tap');
   if (state.settings.sfxRemove) Music.sfxRemove();
   state.rectsFullWrong = false;
   afterMove();
@@ -215,7 +220,6 @@ function hidePreview() {
 // Gummiband: nähert sich GIVE·size, ohne es je zu erreichen.
 const rubber = (o, size) => size * GIVE * (1 - Math.exp(-o / (size * GIVE * 1.4)));
 
-function vibrate(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} }
 
 // Markiert bestehende Rechtecke direkt am DOM (kein reaktiver Zustand pro
 // Pointer-Bewegung): .blocking = man drückt gerade dagegen, .doomed = wird beim
@@ -257,13 +261,13 @@ function showPreview(e) {
       for (const x of blocking) d.pass.add(x.id);
       blocking = [];
       d.touch = false;
-      vibrate(16);
+      haptic('lock');
       previewEl.classList.remove('give');
       previewEl.classList.add('give');
       clearTimeout(d.giveT);
       d.giveT = setTimeout(() => { if (previewEl) previewEl.classList.remove('give'); }, 260);
     } else {
-      if (!d.touch) { d.touch = true; vibrate(6); }
+      if (!d.touch) { d.touch = true; haptic('tap'); }
       q = free;
       if (limX != null) px = limX + (right ? 1 : -1) * rubber(ox, cw);
       if (limY != null) py = limY + (down ? 1 : -1) * rubber(oy, ch);

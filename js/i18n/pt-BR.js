@@ -329,6 +329,7 @@ export default {
     sfxError: 'Erro',
     sfxHint: 'Dica',
     sfxToolSwitch: 'Troca de modo (lápis/borracha)',
+    haptics: 'Vibração',
     sfxUndo: 'Desfazer',
     sfxWin: 'Vitória',
     sfxLose: 'Derrota',
