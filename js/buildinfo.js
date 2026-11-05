@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.19';
-export const BUILD_HASH = '90095c2';
+export const BUILD      = '3.20';
+export const BUILD_HASH = '2b23f31';
 
 export const CHANGELOG = [
+  {
+    "version": "3.20",
+    "date": "05.11.2026",
+    "changes": [
+      "Aufgeräumt: rund 70 nicht mehr genutzte Stil-Regeln entfernt"
+    ]
+  },
   {
     "version": "3.19",
     "date": "05.11.2026",
