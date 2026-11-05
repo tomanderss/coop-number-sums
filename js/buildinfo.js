@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.17';
-export const BUILD_HASH = '55121b1';
+export const BUILD      = '3.18';
+export const BUILD_HASH = 'd26f66a';
 
 export const CHANGELOG = [
+  {
+    "version": "3.18",
+    "date": "05.11.2026",
+    "changes": [
+      "Alle Spiele: einheitliche Vibration bei Zügen, Fehlern und Sieg (neuer Schalter unter Einstellungen ▸ Sound)",
+      "Alle Spiele: kurzes Sieg-Finale auf dem Brett, bevor der Sieg-Dialog erscheint",
+      "Number Path und Number Link: Setz-Ton beim Loslassen; Rectangles: passendes Rechteck klingt wie eine fertige Einheit"
+    ]
+  },
   {
     "version": "3.17",
     "date": "05.11.2026",
