@@ -214,7 +214,7 @@ test('Sperr-Modus: kurzer Tipp sperrt/entsperrt, gedreht wird nicht; aus = wiede
   await btn.click();
   await expect(btn).toHaveClass(/\bon\b/);
   expect(await page.evaluate(() => window.__cns.state.pipeLockMode)).toBe(true);
-  await expect(page.locator('.pp-flow-hint')).not.toHaveClass(/\boff\b/);
+  await expect(page.locator('.toast')).toContainText('Sperr-Modus');
   expect(await boardTop()).toBe(y0);
   const at = await centers(page);
   const cdp = await context.newCDPSession(page);

@@ -58,3 +58,14 @@ test('Startseite: der Profil-Chip zeigt ohne Namen kein „?“', async ({ page 
   await page.evaluate(() => { window.__cns.state.settings.coopName = ''; });
   await expect(page.locator('.home-profile-chip .hpc-name')).not.toHaveText('?');
 });
+
+test('Leiste unter dem Brett: in jedem Spiel gleich hoch und an derselben Stelle', async ({ page }) => {
+  const docks = {};
+  for (const g of ['numbersums', 'gems', 'pipes', 'rectangles', 'numberlink']) {
+    await gotoGame(page, g);
+    await startGame(page);
+    const box = await page.locator('.screen.game .toolbar, .gm-tools-wrap, .pp-tools-wrap, .board-dock-spacer').first().boundingBox();
+    docks[g] = [Math.round(box.y), Math.round(box.height)];
+  }
+  for (const g of Object.keys(docks)) expect(docks[g], g).toEqual(docks.numbersums);
+});

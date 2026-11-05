@@ -88,6 +88,7 @@ setGameMessages(activeGame().messages || null);
 function gameHas(f) { return !!(gameById(currentGame.id).features || {})[f]; }
 // Herzen nur, wo man Leben verlieren kann — oder im Endlos-/Mix-Lauf, dessen
 // Leben-Pool über die Level läuft (Nutzerwunsch: sonst nicht anzeigen).
+function hasBoardBelow() { return !!gameById(currentGame.id).BoardBelow; }
 function livesShown() { return gameHas('lives') || !!state.endless.active || !!state.mixDuel.active; }
 // Fähigkeiten des laufenden Spiels, an denen Missionen und Erfolge hängen
 // (`requires` in missions.js/achievements.js). Liest currentGame.id mit, damit
@@ -429,7 +430,7 @@ for (const g of GAMES) {
   g.board.initBoard({
     state, LOCAL_PLAYER_ID, playerColor, shopEquippedId, desktopBoard,
     registerMistake, afterMove, coopSend, persistGame, ask,
-    sendLive,
+    sendLive, toast: showToast,
   });
 }
 // Weichen auf das aktuelle Brett (früher eine Destrukturierung beim Laden, die
@@ -8107,7 +8108,7 @@ const App = {
       openWalletLog, closeWalletLog, walletReasonLabel, walletEntryDetail, walletEntryFactors, walletEntryExpandable, toggleWalletEntry,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
-      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, homeProfileName, livesShown, myUsername, shopFreeDots, adminGrantAllItems, myBadge, lbBadge, badgeSvg, badgeDefs, badgeShown, ic,
+      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, homeProfileName, livesShown, hasBoardBelow, myUsername, shopFreeDots, adminGrantAllItems, myBadge, lbBadge, badgeSvg, badgeDefs, badgeShown, ic,
       openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
       dismissPrestigeUnlock, prestigeUnlockName,
       masterInfo, isMasterEquipped, equipMaster, dismissMasterUnlock, MASTER_BADGE,
@@ -8621,6 +8622,9 @@ const App = {
              legenden Steinen (eigene Child-Komponente, damit ein HUD-/Sekunden-
              Render die Steine nicht mit neu rendert). -->
         <board-below v-if="!state.paused && !state.coop.awaitingStart"></board-below>
+        <!-- Ohne eigene Leiste unter dem Brett: derselbe Platz bleibt frei — das Brett steht
+             so in JEDEM Spiel an derselben Stelle (feste Positionen, --dock-h). -->
+        <div v-if="!gameHas('toolToggle') && !hasBoardBelow()" class="board-dock-spacer" aria-hidden="true"></div>
 
         <div v-if="gameHas('toolToggle')" class="game-sidebar-bottom">
         <!-- Kein Undo-Knopf mehr (Nutzerwunsch) — Fehlzüge werden ohnehin sofort
