@@ -33,6 +33,8 @@ export const GAME = {
 
   // Kein Werkzeug-Umschalter, keine Tipps. Das Training bleibt (Trainingsmodus).
   features: {
+    // Kann man hier Leben verlieren? Nein = Herzen nur im Endlos-/Mix-Lauf (Lebens-Pool über Level).
+    lives: true,
     // Im Coop sehen die anderen live, was einer gerade zieht (app.js liveActive).
     liveDrafts: true,
     hints: false,

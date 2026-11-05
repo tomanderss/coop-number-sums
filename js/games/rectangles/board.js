@@ -152,6 +152,7 @@ function checkFull() {
     log('game', 'Rectangles: Brett voll, geht nicht auf');
     state.rectsShake = true;
     setTimeout(() => { state.rectsShake = false; }, 650);
+    if (state.settings.sfxError) Music.sfxError();
     registerMistake();
   }
 }

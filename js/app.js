@@ -86,6 +86,9 @@ setGameMessages(activeGame().messages || null);
 // Markier-Werkzeuge …) — s. `features` in js/games/<id>/index.js. Liest die
 // reaktive Kennung, damit das Menü einem Wechsel sofort folgt.
 function gameHas(f) { return !!(gameById(currentGame.id).features || {})[f]; }
+// Herzen nur, wo man Leben verlieren kann — oder im Endlos-/Mix-Lauf, dessen
+// Leben-Pool über die Level läuft (Nutzerwunsch: sonst nicht anzeigen).
+function livesShown() { return gameHas('lives') || !!state.endless.active || !!state.mixDuel.active; }
 // Fähigkeiten des laufenden Spiels, an denen Missionen und Erfolge hängen
 // (`requires` in missions.js/achievements.js). Liest currentGame.id mit, damit
 // die Listen einem Spielwechsel folgen.
@@ -1103,6 +1106,8 @@ function shopDemoSkin() {
 }
 // Badge-Demo: eigener Name + Vorschau-/ausgerüstetes Abzeichen als Chip.
 function shopDemoBadgeName() { return myUsername() || state.settings.coopName || '?'; }
+// Profil-Chip auf der Startseite: ohne Namen ein lesbarer Platzhalter statt „?“.
+function homeProfileName() { return myUsername() || state.settings.coopName || t('prestige.title'); }
 // Anzeige-Elemente der Gratis-Standard-Karte („Klassisch"): dieselbe Vorschau
 // wie auf den Kauf-Karten — Original-Cage-Farben bzw. die eingebaute Farbwelt.
 function shopFreeDots(cat) {
@@ -8102,7 +8107,7 @@ const App = {
       openWalletLog, closeWalletLog, walletReasonLabel, walletEntryDetail, walletEntryFactors, walletEntryExpandable, toggleWalletEntry,
       SHOP_CATS, shopCatItems, ownsShop, shopEquippedId, shopOwnedCount, equipShopItem, equipShopFree, buyShopItem, shopItemPrice, shopPreviewDots, shopCategoryTitle, previewSfxPack, boardFontClass, boardFrameClass, applySkinPreset,
       settingsVisualCats, settingsSoundCats, settingsCatOptions, equipCatFromSettings,
-      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, shopFreeDots, adminGrantAllItems, myBadge, lbBadge, badgeSvg, badgeDefs, badgeShown, ic,
+      shopPreviewIt, shopPreviewFree, shopDemoId, shopDemoActive, shopDemoCells, shopDemoClass, shopDemoSkin, shopDemoBadgeName, homeProfileName, livesShown, myUsername, shopFreeDots, adminGrantAllItems, myBadge, lbBadge, badgeSvg, badgeDefs, badgeShown, ic,
       openPrestige, closePrestige, prestigeList, isBadgeEquipped, earnedTier, equipBadge, unequipBadge, prestigeTierName,
       dismissPrestigeUnlock, prestigeUnlockName,
       masterInfo, isMasterEquipped, equipMaster, dismissMasterUnlock, MASTER_BADGE,
@@ -8206,7 +8211,7 @@ const App = {
         <button class="home-profile-chip" :class="{ master: isMasterEquipped() }" @click="openPrestige">
           <b v-if="myBadge()" class="badge-medal-inline hpc-medal" v-html="badgeSvg(myBadge())"></b>
           <span v-else class="ico-wrap hpc-add" :title="t('prestige.title')" v-html="ic('medal')"></span>
-          <span class="hpc-name">{{ shopDemoBadgeName() }}</span>
+          <span class="hpc-name" :class="{ placeholder: !myUsername() && !state.settings.coopName }">{{ homeProfileName() }}</span>
         </button>
       </div>
 
@@ -8397,6 +8402,20 @@ const App = {
 
       <difficulty-slider v-model="state.sel.difficulty" :endless="!!state.sel.endless" @randomstart="setupStart($event)"></difficulty-slider>
 
+      <!-- „Endlos-Aufstieg": ein Lauf über immer schwerere Level (3 Leben, kein
+           Refill). Ignoriert die gewählte Schwierigkeit/Große Zahlen. -->
+      <label class="mode-toggle" :class="{ on: state.sel.endless }">
+        <b class="mt-title">{{ t('solo.endless') }}</b>
+        <span class="mt-info" tabindex="0" role="button" :aria-label="t('solo.endlessHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
+          <span class="ei" v-html="ic('info')"></span>
+          <span class="mt-tip">{{ t('solo.endlessHint') }}</span>
+        </span>
+        <input type="checkbox" v-model="state.sel.endless" />
+        <span class="bignum-switch" aria-hidden="true"></span>
+      </label>
+
+      <!-- Fehlt „Große Zahlen“ im Spiel (v-else): gleich hoher, unsichtbarer Platz — Medaillon,
+           Regler und Schalter stehen so in JEDEM Spiel an derselben Stelle (feste Positionen). -->
       <!-- „Big Numbers"-Modus: Zellwerte 10–19 statt 1–9. Ein anderer kognitiver
            Reiz bei identischer Logik/Eindeutigkeit. Kombinierbar MIT Endlos
            (gilt dann je Level, wo die Feldgröße es erlaubt). -->
@@ -8409,18 +8428,7 @@ const App = {
         <input type="checkbox" v-model="state.sel.bigNumbers" />
         <span class="bignum-switch" aria-hidden="true"></span>
       </label>
-
-      <!-- „Endlos-Aufstieg": ein Lauf über immer schwerere Level (3 Leben, kein
-           Refill). Ignoriert die gewählte Schwierigkeit/Große Zahlen. -->
-      <label class="mode-toggle" :class="{ on: state.sel.endless }">
-        <b class="mt-title">{{ t('solo.endless') }}</b>
-        <span class="mt-info" tabindex="0" role="button" :aria-label="t('solo.endlessHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
-          <span class="ei" v-html="ic('info')"></span>
-          <span class="mt-tip">{{ t('solo.endlessHint') }}</span>
-        </span>
-        <input type="checkbox" v-model="state.sel.endless" />
-        <span class="bignum-switch" aria-hidden="true"></span>
-      </label>
+      <div v-else class="mode-toggle mode-toggle-ph" aria-hidden="true"><b class="mt-title">&nbsp;</b><span class="bignum-switch"></span></div>
 
       <div class="setup-startrow">
         <button class="btn btn-primary btn-start diff-start" @click="setupStart(state.sel.difficulty)">
@@ -8452,7 +8460,7 @@ const App = {
            "Zum Menü" gibt es dort ebenfalls (kein Zurück-Pfeil oben mehr). -->
       <header class="topbar game-top">
         <div class="hud">
-          <div class="hud-item lives">
+          <div v-if="livesShown()" class="hud-item lives">
             <span v-for="(full,i) in livesArr" :key="i" class="heart" :class="{empty:!full}">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
               <i v-if="!full && state.coop.active && lifeLossColor(i)" class="heart-strike" :style="{background: lifeLossColor(i)}"></i>
@@ -8558,7 +8566,7 @@ const App = {
               <span class="progress-pct">{{ state.team.opponentPct }}%</span>
               <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.team.opponentPct + '%' }"></span></span>
             </div>
-            <div class="progress-line opponent-lives-line" :aria-label="t('win.mistakesCount', { count: state.team.opponentMistakes })">
+            <div v-if="livesShown()" class="progress-line opponent-lives-line" :aria-label="t('win.mistakesCount', { count: state.team.opponentMistakes })">
               <span class="progress-label"></span>
               <span class="opponent-lives">
                 <span v-for="(full,i) in opponentTeamLivesArr" :key="i" class="heart" :class="{empty:!full}">
@@ -8582,7 +8590,7 @@ const App = {
             <span class="progress-pct">{{ state.race.opponentPct }}%</span>
             <span class="progress-bar"><span class="progress-bar-fill opp" :style="{ width: state.race.opponentPct + '%', background: state.race.opponentColor }"></span></span>
           </div>
-          <div class="progress-line opponent-lives-line" v-if="state.race.active && !state.race.ffa" :aria-label="t('win.mistakesCount', { count: state.race.opponentMistakes })">
+          <div class="progress-line opponent-lives-line" v-if="state.race.active && !state.race.ffa && livesShown()" :aria-label="t('win.mistakesCount', { count: state.race.opponentMistakes })">
             <span class="progress-label"></span>
             <span class="opponent-lives">
               <span v-for="(full,i) in opponentLivesArr" :key="i" class="heart" :class="{empty:!full}">
@@ -8782,8 +8790,8 @@ const App = {
           <div v-if="state.lastStreakUsed > 0" class="coin-streak-bonus"><span class="ei" v-html="ic('flame')"></span> {{ t('wallet.streakBonus', { days: state.lastStreakUsed, pct: streakBonusPct(state.lastStreakUsed) }) }}</div>
           <div class="result-stats">
             <div><b>{{ fmtTime(state.elapsed) }}</b><small>{{ t('win.timeLabel') }}</small></div>
-            <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
-            <div><b>{{ state.hintsUsed }}</b><small>{{ t('win.hintsLabel') }}</small></div>
+            <div v-if="gameHas('lives')"><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
+            <div v-if="gameHas('hints')"><b>{{ state.hintsUsed }}</b><small>{{ t('win.hintsLabel') }}</small></div>
           </div>
           <!-- Endlos: verbleibende/verlorene Leben (Coop mit farbigem Strich = wer). -->
           <div v-if="state.endless.active" class="endless-lives-row">
@@ -8855,8 +8863,8 @@ const App = {
                wie der Sieg-Screen (identische Karte in allen Modi). -->
           <div class="result-stats">
             <div><b>{{ fmtTime(state.elapsed) }}</b><small>{{ t('win.timeLabel') }}</small></div>
-            <div><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
-            <div><b>{{ state.hintsUsed }}</b><small>{{ t('win.hintsLabel') }}</small></div>
+            <div v-if="gameHas('lives')"><b>{{ state.mistakes }}</b><small>{{ t('win.mistakesLabel') }}</small></div>
+            <div v-if="gameHas('hints')"><b>{{ state.hintsUsed }}</b><small>{{ t('win.hintsLabel') }}</small></div>
           </div>
           <div v-if="coopPerformance.length" class="coop-performance">
             <div class="perf-title">{{ t('win.teamPerformance') }}</div>
@@ -9098,17 +9106,6 @@ const App = {
           <small v-if="state.coop.mixMode === 'duel'" class="ml-goal"><span class="ei" v-html="ic('flag')"></span>{{ duelGoalLabel() }}</small>
         </div>
         <difficulty-slider v-else v-model="state.coop.lobbyDiffId" :coop="true" :endless="!!state.coop.lobbyEndless && !state.coop.raceMode && !state.coop.teamMode" @randomstart="startHosting()"></difficulty-slider>
-        <!-- „Große Zahlen" (10–19) für die Mehrspieler-Runde: gilt für alle
-             Mitspieler (Host generiert/sendet den Modus mit). -->
-        <label v-if="!state.coop.mixMode && bigNumbersAllowed(state.coop.lobbyDiffId)" class="mode-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
-          <b class="mt-title">{{ t('setup.bigNumbers') }}</b>
-          <span class="mt-info" tabindex="0" role="button" :aria-label="t('setup.bigNumbersHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
-            <span class="ei" v-html="ic('info')"></span>
-            <span class="mt-tip">{{ t('setup.bigNumbersHint') }}</span>
-          </span>
-          <input type="checkbox" v-model="state.coop.lobbyBigNumbers" />
-          <span class="bignum-switch" aria-hidden="true"></span>
-        </label>
         <!-- „Endlos-Aufstieg" gemeinsam: geteilte Leben (3), kein Refill. Nur für
              reines Coop (nicht Race/Team). Die Schwierigkeit wird dabei ignoriert. -->
         <label v-if="!state.coop.mixMode && !state.coop.raceMode && !state.coop.teamMode" class="mode-toggle" :class="{ on: state.coop.lobbyEndless }">
@@ -9120,6 +9117,19 @@ const App = {
           <input type="checkbox" v-model="state.coop.lobbyEndless" />
           <span class="bignum-switch" aria-hidden="true"></span>
         </label>
+        <div v-else-if="!state.coop.mixMode" class="mode-toggle mode-toggle-ph" aria-hidden="true"><b class="mt-title">&nbsp;</b><span class="bignum-switch"></span></div>
+        <!-- „Große Zahlen" (10–19) für die Mehrspieler-Runde: gilt für alle
+             Mitspieler (Host generiert/sendet den Modus mit). -->
+        <label v-if="!state.coop.mixMode && bigNumbersAllowed(state.coop.lobbyDiffId)" class="mode-toggle" :class="{ on: state.coop.lobbyBigNumbers }">
+          <b class="mt-title">{{ t('setup.bigNumbers') }}</b>
+          <span class="mt-info" tabindex="0" role="button" :aria-label="t('setup.bigNumbersHint')" @click.stop.prevent @keydown.enter.stop.prevent @keydown.space.stop.prevent>
+            <span class="ei" v-html="ic('info')"></span>
+            <span class="mt-tip">{{ t('setup.bigNumbersHint') }}</span>
+          </span>
+          <input type="checkbox" v-model="state.coop.lobbyBigNumbers" />
+          <span class="bignum-switch" aria-hidden="true"></span>
+        </label>
+        <div v-else-if="!state.coop.mixMode" class="mode-toggle mode-toggle-ph" aria-hidden="true"><b class="mt-title">&nbsp;</b><span class="bignum-switch"></span></div>
         <div class="setup-startrow">
           <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
           <button class="btn btn-primary btn-start diff-start" @click="startHosting">{{ t('coop.startHosting') }}</button>

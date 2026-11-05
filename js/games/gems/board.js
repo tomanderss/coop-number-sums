@@ -126,6 +126,7 @@ function checkFull() {
     state.gemsShake = true;
     setTimeout(() => { state.gemsShake = false; }, 650);
     log('game', 'Gem Hunt: volles Brett geht nicht auf');
+    if (state.settings.sfxError) Music.sfxError();
     registerMistake();
   }
 }
