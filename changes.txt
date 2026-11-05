@@ -1,0 +1,3 @@
+Alle Spiele: einheitlicher Brett-Rahmen (Ecken, Kontur, Schatten, Rasterlinien)
+Die Leiste unter dem Brett ist in jedem Spiel gleich hoch – das Brett steht überall an derselben Stelle
+Pipes: Hinweise zu „Wasser aus“ und „Sperren“ erscheinen als kurze Meldung

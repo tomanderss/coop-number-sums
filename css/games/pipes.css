@@ -19,10 +19,10 @@
 .board.pp-board {
   display: block; position: relative; padding: 0; overflow: hidden;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  border-radius: 14px;
+  border-radius: var(--board-radius);
   /* Das Brett ist die dunklere Fuge, die Platten liegen darauf. */
   background: color-mix(in srgb, var(--text) 15%, var(--bg2));
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--text) 26%, transparent), var(--soft-shadow);
+  box-shadow: var(--board-shadow);
   --pp-plate: color-mix(in srgb, var(--text) 6%, var(--bg2));
   --pp-plate-hi: color-mix(in srgb, var(--text) 3%, var(--bg2));
   --pp-body: color-mix(in srgb, var(--text) 44%, var(--bg2));      /* Körper des Rohrs */
@@ -181,7 +181,7 @@
 /* ── Fluss-Schalter unter dem Brett (PipeTools) ──────────────────────────────
    Ein einzelner Aktivierungs-Knopf in der Mitte, so hoch wie der Umschalter der
    anderen Spiele (60 px); der Hinweis darunter nimmt keinen Platz weg. */
-.pp-tools-wrap { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; min-height: 72px; padding: 8px 0 4px; }
+.pp-tools-wrap { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; align-items: center; height: var(--dock-h); box-sizing: border-box; }
 .pp-flow-btn {
   display: inline-flex; align-items: center; gap: 10px; height: 60px; padding: 0 22px 0 8px; border-radius: 999px;
   background: var(--bg3); color: var(--text3); font-weight: 800; font-size: .95rem; letter-spacing: .01em;
@@ -207,8 +207,6 @@
   .pp-tools-row .pp-flow-ic { width: 40px; height: 40px; }
 }
 .pp-lock-btn.on .pp-flow-ic { background: linear-gradient(135deg, #ffb340, #e07b10); color: #fff; box-shadow: 0 2px 8px color-mix(in srgb, #e07b10 45%, transparent); }
-.pp-flow-hint { color: var(--text3); font-size: .74rem; text-align: center; max-width: 280px; line-height: 1.25; min-height: 2.5em; transition: opacity .2s; }
-.pp-flow-hint.off { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   .pp-flow-btn, .pp-flow-ic { transition: none; }
 }
