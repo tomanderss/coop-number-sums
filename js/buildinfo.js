@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.16';
-export const BUILD_HASH = '7d618f3';
+export const BUILD      = '3.17';
+export const BUILD_HASH = '55121b1';
 
 export const CHANGELOG = [
+  {
+    "version": "3.17",
+    "date": "05.11.2026",
+    "changes": [
+      "Alle Spiele: einheitlicher Brett-Rahmen (Ecken, Kontur, Schatten, Rasterlinien)",
+      "Die Leiste unter dem Brett ist in jedem Spiel gleich hoch – das Brett steht überall an derselben Stelle",
+      "Pipes: Hinweise zu „Wasser aus“ und „Sperren“ erscheinen als kurze Meldung"
+    ]
+  },
   {
     "version": "3.16",
     "date": "05.11.2026",
