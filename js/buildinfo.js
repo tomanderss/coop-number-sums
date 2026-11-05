@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.18';
-export const BUILD_HASH = 'd26f66a';
+export const BUILD      = '3.19';
+export const BUILD_HASH = '90095c2';
 
 export const CHANGELOG = [
+  {
+    "version": "3.19",
+    "date": "05.11.2026",
+    "changes": [
+      "Auswahl-Screen zeigt Logo und Namen des Spiels",
+      "Rectangles, Number Path, Number Link: Zahlen als einheitliche runde Steine",
+      "Number Path: Wände kräftiger und abgerundet"
+    ]
+  },
   {
     "version": "3.18",
     "date": "05.11.2026",
