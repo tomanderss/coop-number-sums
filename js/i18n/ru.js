@@ -329,6 +329,7 @@ export default {
     sfxError: 'Ошибка',
     sfxHint: 'Подсказка',
     sfxToolSwitch: 'Смена режима (перо/ластик)',
+    haptics: 'Вибрация',
     sfxUndo: 'Отменить',
     sfxWin: 'Победа',
     sfxLose: 'Поражение',

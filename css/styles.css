@@ -1355,6 +1355,26 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Spiele ohne Leiste unter dem Brett halten denselben Platz frei (feste Brett-Position). */
 .board-dock-spacer { flex: 0 0 auto; height: var(--dock-h); }
 
+/* Einheitliches Sieg-Finale (alle Spiele): das Brett hebt sich kurz, ein heller
+   Lichtstreif läuft darüber, die Kontur leuchtet grün — danach erst der Dialog
+   (app.js holdForBoardFinale). Pipes hat sein eigenes Finale (Welle), Math Cross
+   hat keine Brettfläche (Lücken zwischen den Zellen) — dort kein Lichtstreif. */
+.board-wrap.finale > .board { position: relative; animation: board-finale-pop .85s cubic-bezier(.3, 1.4, .5, 1);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 60%, transparent), var(--board-shadow); transition: box-shadow .4s ease-out; }
+.board-wrap.finale > .board::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 6;
+  background: linear-gradient(115deg, transparent 32%, color-mix(in srgb, #fff 55%, transparent) 50%, transparent 68%) no-repeat;
+  background-size: 260% 100%; animation: board-finale-sweep .85s ease-out forwards; }
+.board-wrap.finale > .pp-board { animation: none; }
+.board-wrap.finale > .pp-board::after,
+html[data-game="mathcross"] .board-wrap.finale > .board::after { display: none; }
+html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
+@keyframes board-finale-pop { 0% { transform: scale(1); } 35% { transform: scale(1.025); } 100% { transform: scale(1); } }
+@keyframes board-finale-sweep { from { background-position: 130% 0; opacity: 1; } to { background-position: -30% 0; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .board-wrap.finale > .board, .board-wrap.finale > .board::after { animation: none; }
+  .board-wrap.finale > .board::after { display: none; }
+}
+
 /* ─── Board ─── */
 /* Feld zentriert, wenn es passt – sonst voll scroll-/verschiebbar (margin:auto
    statt justify/align center, damit bei Überlauf der obere/linke Rand erreichbar

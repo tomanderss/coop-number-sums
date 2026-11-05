@@ -329,6 +329,7 @@ export default {
     sfxError: 'Hata',
     sfxHint: 'İpucu',
     sfxToolSwitch: 'Mod değişimi (kalem/silgi)',
+    haptics: 'Titreşim',
     sfxUndo: 'Geri al',
     sfxWin: 'Kazanma',
     sfxLose: 'Kaybetme',

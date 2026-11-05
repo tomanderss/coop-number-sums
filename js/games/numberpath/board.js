@@ -20,6 +20,7 @@ import { computed, ref, onMounted, onBeforeUnmount } from '../../vue.esm-browser
 import { shopItemById, applyPaletteFx } from '../../shopitems.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
+import { haptic } from '../feedback.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
@@ -104,6 +105,7 @@ function playable() {
     && !(state.isTrainingGame && !state.trainingDone);
 }
 
+let lastChime = 0;
 /** Neue Linie übernehmen (lokal). Gibt true zurück, wenn sich etwas geändert hat. */
 function setPath(path, by) {
   if (path.length === state.path.length && path.every((x, i) => x === state.path[i])) return false;
@@ -111,7 +113,7 @@ function setPath(path, by) {
   state.path = path;
   state.pathBy = by;
   const reachedNow = reachedClue(state.puzzle, path, rules().clues);
-  if (reachedNow > reachedBefore && state.settings.sfxComplete) Music.sfxComplete(1);
+  if (reachedNow > reachedBefore) { lastChime = Date.now(); haptic('done'); if (state.settings.sfxComplete) Music.sfxComplete(1); }
   afterMove();
   return true;
 }
@@ -177,11 +179,12 @@ function onDown(e) {
   if (!playable()) return;
   const box = e.currentTarget.getBoundingClientRect();
   const cell = cellAt(box, e.clientX, e.clientY);
+  const before = state.path.length;
   const idx = state.path.indexOf(cell);
   if (idx >= 0) truncate(idx);
   else if (!state.path.length) { if (!extend(cell)) return; }
   else if (!extend(cell)) return;
-  drag = { id: e.pointerId, box };
+  drag = { id: e.pointerId, box, base: before };
   sendLive({ path: state.path.slice(), cur: cell });
 }
 
@@ -209,7 +212,10 @@ function onUp(e) {
   pointers.delete(e.pointerId);
   if (pan) { if (pointers.size < 2) pan = null; return; }
   if (!drag || e.pointerId !== drag.id) return;
+  const changed = state.path.length !== drag.base;
   drag = null;
+  // Zug abgelegt: dieselbe Rückmeldung wie in den anderen Spielen (außer direkt nach einem Zahl-Ton).
+  if (changed && Date.now() - lastChime > 250) { haptic('place'); if (state.settings.sfxKeep) Music.sfxKeep(); }
   sendPath();
   sendLive(null);
 }

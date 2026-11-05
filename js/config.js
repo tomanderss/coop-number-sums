@@ -342,6 +342,7 @@ export const DEFAULT_SETTINGS = {
   sfxError: true,
   sfxHint: true,
   sfxToolSwitch: true,
+  haptics: true,           // kurze Vibration bei Zügen/Fehlern/Sieg (games/feedback.js)
   sfxWin: true,
   sfxLose: true,
   sfxUndo: true,

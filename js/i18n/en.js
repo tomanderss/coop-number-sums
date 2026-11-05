@@ -329,6 +329,7 @@ export default {
     sfxError: 'Mistake',
     sfxHint: 'Hint',
     sfxToolSwitch: 'Mode switch (pen/eraser)',
+    haptics: 'Vibration',
     sfxUndo: 'Undo',
     sfxWin: 'Win',
     sfxLose: 'Loss',

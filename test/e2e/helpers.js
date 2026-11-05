@@ -63,6 +63,8 @@ export async function solveActivePuzzle(page) {
 // Ergebnis-Karte/das Menü ab. Diese Helper-Funktion blendet ihn best effort weg;
 // no-op, wenn er (z.B. beim zweiten Spiel desselben Tests) gar nicht erscheint.
 export async function dismissStreakModal(page) {
+  // Das Serien-Pop-up wartet auf das Brett-Finale (state.winHold) — erst danach suchen.
+  await page.waitForFunction(() => !window.__cns || !window.__cns.state.winHold, null, { timeout: 8000 }).catch(() => {});
   try { await page.locator('.streak-modal.extended .btn-primary').click({ timeout: 3000 }); } catch {}
 }
 

@@ -27,6 +27,7 @@ import { computed, onMounted, onBeforeUnmount } from '../../vue.esm-browser.prod
 import { shopItemById, applyPaletteFx } from '../../shopitems.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
+import { haptic } from '../feedback.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
@@ -155,6 +156,7 @@ export function setCells(changes, { force = false, send = true, auto = null } = 
   state.gemAuto = autoArr;
   if (gemRemoved) state.gemsFullWrong = false;
   if (send) sendCells(done);
+  haptic(gemAdded ? 'place' : 'tap');
   if (gemAdded && state.settings.sfxKeep) Music.sfxKeep();
   else if (gemRemoved && state.settings.sfxRemove) Music.sfxRemove();
   if (gemAdded) checkFull();
