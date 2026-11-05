@@ -8406,7 +8406,8 @@ const App = {
       <div class="setup-aura" aria-hidden="true"><b></b><b></b><b></b></div>
       <header class="topbar setup-top">
         <button class="icon-btn" @click="goBack()">‹</button>
-        <h2>{{ t('setup.title') }}</h2>
+        <!-- Welches Spiel? Logo + Name statt nur „Neues Spiel“ (der Screen sieht in allen Spielen gleich aus). -->
+        <h2 class="setup-title" :aria-label="t('setup.title') + ': ' + t(gameMeta(currentGame.id).nameKey)"><img class="setup-game-logo" :src="gameMeta(currentGame.id).logo" alt="" draggable="false"><span>{{ t(gameMeta(currentGame.id).nameKey) }}</span></h2>
         <button class="icon-btn" @click="openSettings" :aria-label="t('home.settings')" :title="t('home.settings')"><span class="ico-wrap" v-html="ic('gear')"></span></button>
       </header>
 

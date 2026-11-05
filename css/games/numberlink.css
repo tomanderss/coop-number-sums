@@ -35,15 +35,15 @@
 /* Zahlen: Kreis in der Paarfarbe, weiße Zahl. Verbunden: heller Ring + kurzer Hüpfer. */
 .nl-end { position: absolute; display: flex; align-items: center; justify-content: center; }
 .nl-end b {
-  width: 72%; height: 72%; border-radius: 50%;
+  width: var(--token-size); height: var(--token-size); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: var(--lc); color: #fff;
   font-size: var(--fs); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 1px rgb(0 0 0 / .28);
-  box-shadow: 0 1px 3px rgb(0 0 0 / .18);
+  box-shadow: var(--token-shadow);
 }
 .nl-end::after {
-  content: ''; position: absolute; width: 72%; height: 72%; border-radius: 50%;
+  content: ''; position: absolute; width: var(--token-size); height: var(--token-size); border-radius: 50%;
   box-shadow: 0 0 0 max(2px, calc(var(--cell) * .05)) color-mix(in srgb, var(--lc) 45%, transparent);
   opacity: 0; transform: scale(.85);
   transition: opacity .25s ease, transform .3s cubic-bezier(.3, 1.5, .5, 1);

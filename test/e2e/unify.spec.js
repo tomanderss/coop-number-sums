@@ -71,3 +71,25 @@ test('Leiste unter dem Brett: in jedem Spiel gleich hoch und an derselben Stelle
   }
   for (const g of Object.keys(docks)) expect(docks[g], g).toEqual(docks.numbersums);
 });
+
+test('Auswahl-Screen nennt das Spiel; Zahlen-Steine sind in allen Spielen gleich groß', async ({ page }) => {
+  const size = {};
+  for (const [g, sel] of [['rectangles', '.rclue'], ['numberpath', '.np-clue b'], ['numberlink', '.nl-end b']]) {
+    await gotoGame(page, g);
+    await openSetup(page);
+    await expect(page.locator('.setup-title span')).toHaveText(/\S/);
+    await expect(page.locator('.setup-title .setup-game-logo')).toHaveAttribute('src', new RegExp(g + '-192'));
+    await page.evaluate(() => { window.__cns.state.sel.difficulty = 'leicht'; window.__cns.state.sel.endless = false; });
+    await page.locator('.diff-start').click();
+    await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating);
+    // Anteil des Steins an der Zellgröße (Rectangles: die Scheibe ist ::before).
+    size[g] = await page.evaluate((sel) => {
+      const el = document.querySelector(sel);
+      const cell = el.parentElement.closest('.board').getBoundingClientRect().width / window.__cns.state.puzzle.cols;
+      const disc = sel === '.rclue' ? parseFloat(getComputedStyle(el, '::before').width) : el.getBoundingClientRect().width;
+      return Math.round((disc / cell) * 100);
+    }, sel);
+  }
+  expect(size.numberpath).toBe(size.rectangles);
+  expect(size.numberlink).toBe(size.rectangles);
+});

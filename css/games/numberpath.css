@@ -28,16 +28,16 @@
 
 /* Wände: dicke Balken auf der Zellgrenze. */
 .np-wall {
-  position: absolute; background: var(--text); border-radius: 3px;
+  position: absolute; background: var(--text); border-radius: 999px;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg2) 60%, transparent);
 }
-.np-wall.v { width: max(4px, calc(var(--cell) * 0.1)); transform: translateX(-50%); }
-.np-wall.h { height: max(4px, calc(var(--cell) * 0.1)); transform: translateY(-50%); }
+.np-wall.v { width: max(5px, calc(var(--cell) * 0.12)); transform: translateX(-50%); }
+.np-wall.h { height: max(5px, calc(var(--cell) * 0.12)); transform: translateY(-50%); }
 
 /* Zahlen als Kreise; erreichte leuchten in der Linienfarbe, die nächste ist umrandet. */
 .np-clue { position: absolute; display: flex; align-items: center; justify-content: center; }
 .np-clue b {
-  width: 64%; height: 64%; border-radius: 50%;
+  width: var(--token-size); height: var(--token-size); border-radius: 50%; box-shadow: var(--token-shadow);
   display: flex; align-items: center; justify-content: center;
   background: var(--text); color: var(--bg2);
   font-size: var(--fs); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums;
