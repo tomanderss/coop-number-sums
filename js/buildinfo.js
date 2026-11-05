@@ -1,8 +1,19 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.15';
-export const BUILD_HASH = '7d20928';
+export const BUILD      = '3.16';
+export const BUILD_HASH = '7d618f3';
 
 export const CHANGELOG = [
+  {
+    "version": "3.16",
+    "date": "05.11.2026",
+    "changes": [
+      "Herzen nur noch in Spielen, in denen man Leben verlieren kann (in Endlos und Mix immer)",
+      "Ergebnis-Karte zeigt Fehler und Hinweise nur noch, wo es sie im Spiel gibt",
+      "Rectangles und Gem Hunt: Fehler-Ton, wenn ein volles Brett nicht aufgeht",
+      "Auswahl-Screen: Schwierigkeit, Schalter und Start-Knopf stehen in jedem Spiel an derselben Stelle",
+      "Startseite: Profil-Chip zeigt ohne Namen „Prestige“ statt „?“"
+    ]
+  },
   {
     "version": "3.15",
     "date": "04.11.2026",
