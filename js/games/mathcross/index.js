@@ -44,6 +44,8 @@ export const GAME = {
   // persönlichen Farb-Markierungen, das wählbare Geteilt-Zeichen und die
   // Zieh-Reichweite.
   features: {
+    // Kann man hier Leben verlieren? Nein = Herzen nur im Endlos-/Mix-Lauf (Lebens-Pool über Level).
+    lives: true,
     hints: false,
     toolToggle: false,
     markTools: true,

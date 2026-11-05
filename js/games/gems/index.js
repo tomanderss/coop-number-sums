@@ -33,6 +33,8 @@ export const GAME = {
   isFullyTier1Solvable,
 
   features: {
+    // Kann man hier Leben verlieren? Nein = Herzen nur im Endlos-/Mix-Lauf (Lebens-Pool über Level).
+    lives: true,
     // Im Coop sehen die anderen live, was einer gerade zieht (app.js liveActive).
     liveDrafts: true,
     // Einstellung „Kreuze automatisch“ (settings.gemAutoCross) unter Einstellungen ▸ Spiel.

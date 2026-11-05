@@ -60,6 +60,8 @@ export const GAME = {
   // beim Erzeugen des Workers aufgeloest wird (und relativ zu DIESER Datei).
   // Was die Schale je Spiel ein- oder ausblendet (s. mathcross/index.js).
   features: {
+    // Kann man hier Leben verlieren? Nein = Herzen nur im Endlos-/Mix-Lauf (Lebens-Pool über Level).
+    lives: true,
     hints: true,
     toolToggle: true,
     markTools: false,

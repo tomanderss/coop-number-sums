@@ -32,6 +32,8 @@ export const GAME = {
   isFullyTier1Solvable,
 
   features: {
+    // Kann man hier Leben verlieren? Nein = Herzen nur im Endlos-/Mix-Lauf (Lebens-Pool über Level).
+    lives: false,
     // Im Coop sehen die anderen live, was einer gerade zieht (app.js liveActive).
     liveDrafts: true,
     hints: false,

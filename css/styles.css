@@ -374,6 +374,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes bmm-spin  { to { transform: rotate(360deg); } }
 @keyframes bmm-glow  { 0%,100% { opacity:.5; } 50% { opacity:.9; } }
 .hpc-name { font-weight: 800; }
+.hpc-name.placeholder { font-weight: 600; color: var(--text2); }
 .home-profile-chip.master {
   position: relative; color: #fff; border: 2px solid transparent;
   background:
@@ -967,6 +968,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    dem morphenden Hintergrund (z-index 1). Nimmt bewusst minimalen vertikalen
    Platz, damit die Auswahl-Screens auch mit zwei Toggles nie überlaufen. */
 .setup-slider .mode-toggle { position: relative; z-index: 1; }
+/* Platzhalter für einen Schalter, den das Spiel nicht hat: hält die Höhe, damit
+   im Auswahl-Screen nichts je nach Spiel springt. */
+.mode-toggle.mode-toggle-ph { visibility: hidden; pointer-events: none; }
 .mode-toggle {
   flex: 0 0 auto; display: flex; align-items: center; gap: 8px; cursor: pointer;
   margin: 4px 0; padding: 6px 12px; border-radius: 12px; position: relative;
