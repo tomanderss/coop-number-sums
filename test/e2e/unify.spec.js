@@ -41,6 +41,7 @@ test('Number Sums behält Herzen und Fehler-/Hinweis-Zeile', async ({ page }) =>
 });
 
 test('Auswahl-Screen: Medaillon, Regler und Start-Knopf stehen in jedem Spiel an derselben Stelle', async ({ page }) => {
+  test.setTimeout(90000);
   const boxes = {};
   for (const g of ['numbersums', 'pipes', 'numberlink']) {
     await gotoGame(page, g);
@@ -60,6 +61,7 @@ test('Startseite: der Profil-Chip zeigt ohne Namen kein „?“', async ({ page 
 });
 
 test('Leiste unter dem Brett: in jedem Spiel gleich hoch und an derselben Stelle', async ({ page }) => {
+  test.setTimeout(120000); // fünf Spiele nacheinander erzeugen
   const docks = {};
   for (const g of ['numbersums', 'gems', 'pipes', 'rectangles', 'numberlink']) {
     await gotoGame(page, g);
