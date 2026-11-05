@@ -433,7 +433,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   color: transparent; animation: bmm-sheen 6s linear infinite;
 }
 .prestige-master-tag { font-size: .64rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #d9c7ff; background: rgba(185,140,255,.18); padding: 2px 8px; border-radius: 99px; }
-.prestige-master-desc { color: var(--text2); font-size: .82rem; margin: 5px 0 8px; }
 .prestige-master-prog { font-size: .78rem; font-weight: 700; color: var(--text2); margin-top: 5px; }
 .prestige-master-btn { margin-top: 10px; }
 
@@ -645,11 +644,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .prestige-eq-dot { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; }
 .prestige-eq-dot .ico { width: 12px; height: 12px; }
 .prestige-unequip { margin-top: 12px; width: 100%; flex: none; }
-.brand-logo {
-  width: 88px; height: 88px; border-radius: 24px; display: block;
-  box-shadow: 0 12px 38px var(--accent-soft), 0 4px 12px var(--shadow);
-  animation: pop .5s cubic-bezier(.2,1.3,.5,1);
-}
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 /* Spielauswahl = rotierende Scheibe (js/gamewheel.js). Die Logos sitzen auf
    einer gedachten Scheibe: Mitte groß und vorn, Nachbarn kleiner, nach hinten
@@ -712,7 +706,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .gw-item, .gw-name, .gw-glow, .rfade-enter-active, .rfade-leave-active { transition-duration: .01s; }
 }
 .brand-title { font-size: clamp(1.05rem, 2.6dvh, 1.3rem); font-weight: 800; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.2px; }
-.brand-sub { color: var(--text2); font-size: .9rem; }
 .home-actions, .home-mix { display: flex; flex-direction: column; gap: 8px; }
 /* Spiel- und Mix-Menü liegen in EINER Rasterzelle übereinander: die Zelle ist
    immer so hoch wie das größere, beim Drehen der Scheibe blendet nur der Inhalt
@@ -853,12 +846,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    kompakt gehalten, dass ALLE (auch auf kleinen Telefonen ≥320×568) ohne Scrollen
    auf einen Screen passen — die Levelauswahl darf nie scrollbar werden. Auf großen
    Screens wird der Überschuss zu mittigem Leerraum (justify-content:center). */
-.setup-body { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; justify-content: center; }
 .setup-label { font-size: .8rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
 /* minmax(0,1fr) statt 1fr: erlaubt den Spalten, unter ihre min-content-Breite zu
    schrumpfen (sonst zwingen die nicht umbrechenden Chip-Labels die Karten breiter
    als den Viewport -> rechte Spalte würde abgeschnitten). */
-.option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 /* Einheitlich gestapelte Schwierigkeitskarte — bei JEDER Karte identisch
    aufgebaut, damit nichts „nach oben geschoben" wirkt:
      1. Kopfzeile: Emoji + Name (immer vollständig)
@@ -866,45 +857,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
      3. zwei feste, exakt ausgerichtete Zeit-Chips (Ø Zeit + Bestzeit)
    Nur der Modus des jeweiligen Screens wird gezeigt (Solo im Setup, Coop in der
    Coop-Lobby); fehlende Zeiten als Platzhalter -> gleiche Struktur überall. */
-.opt-card {
-  position: relative;
-  display: flex; flex-direction: column; justify-content: center; gap: 4px;
-  padding: 8px 12px; border-radius: 14px; background: var(--bg2);
-  border: 2px solid transparent; box-shadow: 0 2px 8px var(--shadow); text-align: left;
-  transition: transform .12s, border-color .15s;
-}
 /* Münz-Belohnung der Schwierigkeit als eigene, rechtsbündige Zeile oben auf der
    Karte. Sitzt in DERSELBEN Zeile wie die Maßangabe (r×c links, Münze rechts)
    → kostet keine zusätzliche Kartenhöhe (Auswahl passt ohne Scrollen) und kann
    den darüberstehenden Namen nie überlappen (Name wird voll angezeigt). */
-.opt-coins {
-  z-index: 1; flex: 0 0 auto;
-  font-size: .72rem; font-weight: 800; color: #b8860b;
-  background: hsl(45 90% 88% / .9); border-radius: 999px; padding: 1px 7px;
-  font-variant-numeric: tabular-nums; white-space: nowrap;
-}
 /* Zeile mit Maßangabe (links) und Münz-Belohnung (rechts). */
-.opt-dimrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-:root[data-theme="dark"] .opt-coins { color: #ffd970; background: hsl(45 60% 22% / .8); }
-.opt-card:active { transform: scale(.97); }
-.opt-card.active { border-color: var(--accent); background: var(--accent-soft); }
 /* Der Name hat die volle Kopfzeilenbreite (die Münze liegt in der Maß-Zeile
    darunter) und wird immer vollständig gezeigt. */
-.opt-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.opt-emoji { font-size: 1.05rem; line-height: 1; flex: 0 0 auto; }
-.opt-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 800; font-size: .9rem; line-height: 1.1; white-space: nowrap; }
 /* Maßangabe in eigener Zeile, unter dem Namen eingerückt (bündig mit dem Namen,
    nicht unter dem Emoji). */
-.opt-dim { padding-left: 26px; margin-top: -2px; font-size: .68rem; font-weight: 700; color: var(--text3); font-variant-numeric: tabular-nums; }
 /* Zwei gleich breite Chips nebeneinander -> über alle Karten hinweg an exakt
    derselben x-Position; Platzhalter halten die Struktur auch ohne Zeit stabil. */
-.opt-chips { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
-.opt-chips .chip {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
-  padding: 4px; border-radius: 9px; font-size: .76rem; font-variant-numeric: tabular-nums; min-width: 0;
-  background: var(--bg3);
-}
-.opt-chips .chip-label { margin-left: 0; font-size: .56rem; text-transform: uppercase; letter-spacing: .3px; }
 .btn-start { margin-top: 2px; font-size: 1.05rem; padding: 12px; }
 
 /* ═══ SLIDER-SCHWIERIGKEITSAUSWAHL ════════════════════════════════════════════
@@ -1208,22 +1171,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    Code-Eingabe + Raster + „Hosten"/„Zurück" zusammen ohne Scrollen auf eine Seite
    passen. */
 .coop-screen .coop-body { gap: 8px; }
-.coop-screen .option-grid { gap: 6px; }
-.coop-screen .opt-card { padding: 6px 11px; }
 /* Mittelgroße/kürzere Telefone: die Coop-Auswahl hat gegenüber dem Solo-Setup
    zusätzlich Code-Eingabe + „Zurück". Damit Raster MIT Zeit-Chips trotzdem ohne
    Scrollen passt (bis hinab zu ~iPhone-SE-Höhe), Karten/Code/Buttons enger packen.
    Erst auf sehr kurzen Screens (≤600px, weiter unten) entfallen die Chips ganz. */
 @media (max-height: 843px) {
   .screen.coop-screen .coop-body { gap: 6px; padding-bottom: 6px; }
-  .screen.coop-screen .option-grid { gap: 5px; }
-  .screen.coop-screen .opt-card { padding: 5px 10px; gap: 2px; }
-  .screen.coop-screen .opt-emoji { font-size: .95rem; }
-  .screen.coop-screen .opt-name { font-size: .84rem; }
-  .screen.coop-screen .opt-dim { font-size: .62rem; padding-left: 24px; margin-top: -1px; }
-  .screen.coop-screen .opt-chips { gap: 5px; }
-  .screen.coop-screen .opt-chips .chip { padding: 3px; font-size: .72rem; }
-  .screen.coop-screen .opt-chips .chip-label { font-size: .52rem; }
   .screen.coop-screen .coop-code-label { font-size: .72rem; }
   .screen.coop-screen .coop-input { font-size: 1.3rem; padding: 7px; }
   .screen.coop-screen .coop-body > .btn { padding: 9px 16px; }
@@ -1232,27 +1185,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    nicht mehr für Code + Raster MIT Chips + beide Buttons. Wie bisher die Zeit-Chips
    ausblenden (kompakte Karten: Emoji + Name + Maße) — so bleibt die Auswahl
    garantiert ohne Scrollen, Bestzeiten erscheinen auf allen normalen Telefonen. */
-@media (max-height: 640px) {
-  .screen.coop-screen .opt-chips { display: none; }
-}
 /* Sehr kurze Screens (alte/kleine Telefone, z.B. 320×568): noch enger packen,
    damit die Levelauswahl auch dort ohne Scrollen passt. */
 @media (max-height: 600px) {
-  .setup-body { gap: 5px; }
-  .screen.setup .option-grid { gap: 6px; }
-  .screen.setup .opt-card { padding: 6px 10px; gap: 2px; }
-  .screen.setup .opt-name { font-size: .84rem; }
-  .screen.setup .opt-dim { font-size: .62rem; padding-left: 24px; }
-  .opt-chips .chip { padding: 3px; font-size: .72rem; }
-  .opt-chips .chip-label { font-size: .52rem; }
   .screen.setup .btn-start { padding: 9px; }
   /* Coop-/Wettkampf-Host-Auswahl auf sehr kurzen Screens enger, damit Hosten- UND
      Zurück-Button ohne Scrollen sichtbar bleiben. */
   .coop-screen .coop-body { gap: 5px; }
-  .coop-screen .option-grid { gap: 5px; }
-  .coop-screen .opt-card { padding: 5px 10px; gap: 2px; }
-  .coop-screen .opt-name { font-size: .82rem; }
-  .coop-screen .opt-dim { font-size: .6rem; padding-left: 23px; }
   .coop-screen .coop-input { font-size: 1.4rem; padding: 6px; }
 }
 
@@ -1351,8 +1290,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .opponent-lives { display: flex; gap: 3px; align-items: center; }
 .opponent-lives .heart svg { width: 16px; height: 16px; }
 .opp-heart-strike { background: var(--bad); }
-.hearts-chip { display: inline-flex; align-items: center; gap: 3px; padding: 4px 10px; }
-.hearts-chip .heart svg { width: 14px; height: 14px; }
 
 /* Im Hochformat unsichtbare Wrapper um die Steuerelemente vor/nach dem Brett
    (siehe Template in app.js) -- "display: contents" lässt ihre Kinder sich
@@ -1562,7 +1499,6 @@ html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
   .home > .home-menu { grid-row: 2; grid-column: 2; }
   .home > .home-resume { grid-row: 3; grid-column: 2; max-width: none; align-self: start; padding-top: 8px; }
   .home .brand { margin-top: 0; gap: 4px; }
-  .home .brand-logo { width: 64px; height: 64px; border-radius: 18px; }
   .home .brand-title { font-size: 1.05rem; margin-top: 0; }
   .home-actions, .home-mix { width: 360px; flex: 0 0 auto; gap: 8px; }
   .home .btn { padding: 9px 14px; gap: 10px; }
@@ -1571,10 +1507,7 @@ html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
 
   /* Querformat: knapp in der Höhe -> wieder oben beginnen (justify-content:center
      würde bei hohem Inhalt den oberen Rand abschneiden) und 3 Spalten nutzen. */
-  .screen.setup .setup-body { justify-content: flex-start; gap: 8px; }
   .screen.coop-screen .coop-body { gap: 8px; }
-  .screen.setup .option-grid, .screen.coop-screen .option-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .screen.setup .opt-card, .screen.coop-screen .opt-card { padding: 8px 10px; }
   .screen.setup .btn-start { margin-top: 10px; }
   /* Code-Eingabe/-Anzeige ist für Hochformat groß ausgelegt (2.1rem/3.4rem) --
      in der knapperen Querformat-Höhe verkleinert, damit z.B. die Schwierigkeits-
@@ -1697,11 +1630,6 @@ html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
 .game-top .icon-btn svg { width: 17px; height: 17px; }
 .round-btn:active { transform: scale(.9); }
 .round-btn:disabled { opacity: .4; }
-.round-badge {
-  position: absolute; top: -2px; right: -2px; background: var(--accent); color: #fff;
-  font-size: .66rem; font-weight: 800; min-width: 18px; height: 18px; border-radius: 999px;
-  display: flex; align-items: center; justify-content: center; padding: 0 4px;
-}
 .tool-toggle {
   position: relative; display: inline-flex; align-items: center; gap: 4px;
   background: var(--bg3); border-radius: 999px; padding: 4px;
@@ -1717,9 +1645,6 @@ html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
 .tool-ic { position: relative; z-index: 1; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--text3); transition: color .2s, opacity .2s; opacity: .65; }
 .tool-ic.active { color: #fff; opacity: 1; }
 .tool-ic.pen { font-weight: 800; }
-
-.check-row { padding: 10px 0 4px; flex: 0 0 auto; }
-.btn-check { width: 100%; }
 
 /* ─── Loading ─── */
 .loading { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
@@ -1837,8 +1762,6 @@ html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
 .result-stats small { color: var(--text2); font-size: .74rem; }
 
 /* ─── Team-vs-Team: Match-Ergebnis & Team-Chip in der Lobby ─── */
-.team-result { display: flex; flex-direction: column; gap: 4px; text-align: left; margin: 2px 0 4px; }
-.team-chip.player-chip b { margin-left: 5px; font-weight: 700; opacity: .85; }
 
 /* ─── Coop: Team-Performance & MVP (Gewonnen/Verloren-Screen) ───
    KOMPAKT: EIN gestapelter Verteilungs-Balken (Segmente in Spielerfarbe) +
@@ -2410,7 +2333,6 @@ html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
    großen Abstand darüber — die Linie säße sonst unschön direkt unter der
    Reiter-Leiste. Greift in jedem Reiter, da dessen erstes Element stets eine
    .set-group-title direkt nach .settings-tabs ist. */
-.settings-body > .settings-tabs + .set-group-title { border-top: none; padding-top: 2px; margin-top: 2px; }
 .diff-row { display: flex; flex-direction: column; gap: 10px; background: var(--bg2); padding: 12px 16px; border-radius: 12px; }
 .diff-row-top { display: flex; justify-content: space-between; align-items: center; }
 .diff-name { font-weight: 700; }
@@ -2429,7 +2351,7 @@ html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
    Block (.diff-sub .diff-row-sub) bleibt davon unberührt (kein direktes Kind). */
 .diff-row > .diff-row-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; justify-items: start; align-items: start; }
 /* ─── Statistik-Reiter + Allgemein-Überblick ─── */
-.stats-tabs, .settings-tabs { margin-bottom: 4px; }
+.stats-tabs { margin-bottom: 4px; }
 .stats-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .stat-tile { background: var(--bg2); border-radius: 12px; padding: 14px 12px; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
 .stat-tile .stat-emoji { font-size: 1.5rem; line-height: 1; }
@@ -2713,7 +2635,6 @@ html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
 .player-chip .badge-medal-inline svg, .coop-roster .badge-medal-inline svg { width: 1.2em; height: 1.2em; }
 /* Team-Zuweisungs-Chip ist ein echter Button (Lobby-Formation) -- bekommt
    anders als die rein dekorativen .player-chip-Anzeigen eine 44px-Tippfläche. */
-.player-chip.team-chip { min-height: 44px; padding: 4px 14px; }
 
 /* ─── Team-Picker (2v2-Lobby: Team A | Pfeile | Team B) ─── */
 /* Jeder Spieler liefert per v-for genau 3 Geschwister-Divs (a/mid/b), die
@@ -2924,13 +2845,7 @@ select.admin-select {
   padding-right: 30px;
 }
 /* Admin-User-Browser: scrollbare Liste + Bearbeiten-Modal */
-.admin-user-list { display: flex; flex-direction: column; gap: 4px; max-height: 340px; overflow-y: auto; overscroll-behavior: contain; }
-.admin-user-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
-  padding: 10px 12px; border-radius: 10px; background: var(--bg2); box-shadow: 0 1px 4px var(--shadow); text-align: left; }
-.admin-user-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.admin-user-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-role-tag { padding: 0 6px; font-size: .7rem; }
-.admin-user-meta { flex: 0 0 auto; color: var(--text3); font-size: .8rem; font-variant-numeric: tabular-nums; }
 /* Admin-Konsole: Vollbild-Modal mit scrollbarer Nutzer-Tabelle */
 /* max-height: 100% (statt 90vh): löst gegen den Inhaltsbereich des gepolsterten
    .modal-bg auf — die Konsole kann nie größer werden als der sichtbare Platz.
@@ -3092,7 +3007,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .friends-body { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 64vh; }
 .friends-add { display: flex; gap: 8px; }
 .friends-add .text-input { flex: 1; }
-.friends-notice { color: var(--good); font-size: .85rem; font-weight: 600; }
 .friends-section-title { font-weight: 800; font-size: .82rem; color: var(--text3); margin-top: 18px; text-transform: uppercase; letter-spacing: .04em; }
 .friends-req-row, .friends-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--bg2); border-radius: 10px; }
 /* Anfragen: Buttons UNTER dem Namen (lange Namen werden sonst verdeckt). */
@@ -3109,9 +3023,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .friends-progress-fill { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width .4s; }
 .friends-remove { flex: none; opacity: .6; }
 .friends-remove:hover { opacity: 1; }
-.friends-leaderboard-placeholder { align-items: center; text-align: center; padding: 24px 12px; gap: 6px; }
-.friends-lb-icon { font-size: 2.6rem; }
-.friends-lb-title { font-weight: 800; font-size: 1.02rem; }
 /* Bestenliste: Kopf/Chips fix, nur die Rangliste darunter scrollt — so springt
    beim Schwierigkeit-Wechsel nichts (kein Flackern/Verschieben der Buttons). */
 .friends-leaderboard { overflow: visible; max-height: none; flex: 1 1 auto; min-height: 0; gap: 10px; }
@@ -3146,7 +3057,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   min-height: 32px; font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px var(--shadow);
 }
 :root[data-theme="dark"] .coin-chip { color: #ffd970; background: hsl(45 55% 20% / .9); }
-.coin-chip-static { box-shadow: none; }
 .coin-chip-btn { border: none; cursor: pointer; font: inherit; font-size: .82rem; font-weight: 800; }
 .coin-chip-btn:active { transform: scale(.96); }
 
@@ -3200,9 +3110,7 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .shop-card-ic { font-size: 1.8rem; line-height: 1; }
 .shop-card-name { font-weight: 800; font-size: .86rem; line-height: 1.15; }
 /* Sieganimations-Karten: Vorschau oben rechts, Kauf-/Aktiv-Zustand unten */
-.shop-sec-title { font-weight: 900; font-size: 1.02rem; margin: 6px 0 0; }
 .shop-sec-hint { color: var(--text2); font-size: .84rem; margin: 0 0 4px; }
-.shop-lock-hint { color: var(--warn, #e6a23c); font-weight: 600; }
 /* Live-Demo im Shop (Vorschau für Brett-Kategorien + Badge-Chip).
    sticky: bleibt beim Scrollen durch die Karten oben sichtbar — die Auswahl
    scrollt „hinter" die Vorschau (deckender Hintergrund + z-index nötig).
@@ -3226,10 +3134,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 }
 .shop-demo .cell.kept, .shop-demo .cell.removed { width: 52px; height: 52px; }
 .shop-demo-hint { color: var(--text2); font-size: .76rem; }
-.shop-demo-chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 99px;
-  background: var(--bg3); font-weight: 800; font-size: 1.05rem;
-}
 
 /* ── Selbstgezeichnete Abzeichen-Medaillen (SVG statt Emoji) ──────────────────
    Die gemeinsamen Verläufe/Symbole liegen unsichtbar im DOM (badge-defs-holder);
@@ -3245,7 +3149,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .icon-btn .ico { width: 1.35em; height: 1.35em; vertical-align: middle; }
 /* Das Zahnrad-Glyph füllt den Viewport bis zum Rand (Zähne außen) und wirkt
    dadurch größer als die anderen (eingerückten) Icons — optisch angleichen. */
-.ico-gear { transform: scale(.86); }
 /* Wrapper, wenn ein Icon per <span v-html> inline neben Text steht. */
 .ico-lead { display: inline-flex; align-items: center; margin-right: .4em; vertical-align: -0.14em; }
 /* Inline-Icon (Emoji-Ersatz im Fließtext/Chips/Tiles): erbt Textgröße & -farbe,
@@ -3260,8 +3163,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .badge-medal-card { display: inline-flex; }
 .badge-medal-card svg { width: 46px; height: 46px; display: block; }
 /* Große Vorschau-Medaille am Halsband (Shop-Sticky-Demo). */
-.badge-medal-lg { display: inline-flex; }
-.badge-medal-lg svg { height: 58px; width: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
 .shop-fx-preview.prevon { background: var(--accent); color: #fff; }
 .admin-grant-all { margin-top: 8px; width: 100%; }
 .shop-card.fx.fxactive { box-shadow: 0 0 0 2px var(--accent), 0 2px 8px var(--shadow); }
@@ -3510,7 +3411,6 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .save-del:hover, .save-del:focus-visible { color: var(--bad); background: color-mix(in srgb, var(--bad) 22%, transparent); }
 .save-del:active { transform: scale(.9); }
 .saves-empty { margin: 18px 0; text-align: center; font-size: .82rem; font-weight: 600; color: var(--text2); opacity: .8; }
-
 
 /* ══ Zufallsmodus „Mix" (js/mix.js) ══════════════════════════════════════════
    Auswahl-Screen: vollflächiger, langsam driftender Farbhof in den Farben der

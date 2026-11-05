@@ -122,6 +122,7 @@ test('Auswahl eingrenzen, Lauf spielen, fortsetzen und beenden', async ({ page }
 });
 
 test('mit zwei Spielen wechselt jedes Level das Spiel', async ({ page }) => {
+  test.setTimeout(60000); // mehrere Level, je Ziehung + Brett-Finale
   await boot(page, { mix: true });
   await page.evaluate(() => window.__cns.setSetting('mixPool', { off: { numbersums: true, mathcross: true, gems: true, pipes: true, numberlink: true } }));
   await page.locator('.mix-play-btn').click();
