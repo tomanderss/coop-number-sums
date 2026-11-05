@@ -23,6 +23,7 @@ import { SKINPRESET_ITEMS, shopItemById, ownsShopItem, applyPaletteFx } from '..
 import { SKIN_ID, skinVars as buildSkinVars, skinClasses as buildSkinClasses, gameSkin } from '../../skins.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
+import { haptic } from '../feedback.js';
 import * as Coop from '../../coop.js';
 import * as Model from './model.js';
 import { remapColorsForMarkVisibility } from './generator.js';
@@ -454,6 +455,7 @@ export function setMark(r, c, next, user, fromId) {
 
   // Aktions-Sound nur für eigene Züge (sonst klingelt jeder Partner-Tap im Coop).
   if (user) {
+    haptic('tap');
     if (next === 'kept' && state.settings.sfxKeep) Music.sfxKeep();
     else if (next === 'removed' && state.settings.sfxRemove) Music.sfxRemove();
   }
@@ -463,6 +465,7 @@ export function setMark(r, c, next, user, fromId) {
   if (!wasRow && rowResolved(r)) { pulseResolved('row', r); resolved++; }
   if (!wasCol && colResolved(c)) { pulseResolved('col', c); resolved++; }
   if (region >= 0 && !wasRegion && regionResolved(region)) { pulseResolved('region', region); resolved++; }
+  if (resolved > 0) haptic('done');
   if (resolved > 0 && state.settings.sfxComplete) Music.sfxComplete(resolved);
 
   afterMove();

@@ -1,0 +1,3 @@
+Alle Spiele: einheitliche Vibration bei Zügen, Fehlern und Sieg (neuer Schalter unter Einstellungen ▸ Sound)
+Alle Spiele: kurzes Sieg-Finale auf dem Brett, bevor der Sieg-Dialog erscheint
+Number Path und Number Link: Setz-Ton beim Loslassen; Rectangles: passendes Rechteck klingt wie eine fertige Einheit

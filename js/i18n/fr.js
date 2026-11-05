@@ -329,6 +329,7 @@ export default {
     sfxError: 'Erreur',
     sfxHint: 'Indice',
     sfxToolSwitch: 'Changement de mode (stylo/gomme)',
+    haptics: 'Vibration',
     sfxUndo: 'Annuler',
     sfxWin: 'Victoire',
     sfxLose: 'Défaite',

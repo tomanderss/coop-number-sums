@@ -20,6 +20,7 @@ import { SKINPRESET_ITEMS, shopItemById, ownsShopItem } from '../../shopitems.js
 import { SKIN_ID, skinVars as buildSkinVars, skinClasses as buildSkinClasses, gameSkin } from '../../skins.js';
 import { t } from '../../i18n/index.js';
 import * as Music from '../../music.js';
+import { haptic } from '../feedback.js';
 import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import {
@@ -427,11 +428,13 @@ function applyChanges(changes, { user = true, fromId = null, hint = false, event
 
   // 3. Klang + Puls für jede Rechnung, die dieser Zug fertig gemacht hat.
   if (user) {
+    haptic('tap');
     if (changes.some(ch => ch.v != null)) { if (state.settings.sfxKeep) Music.sfxKeep(); }
     else if (state.settings.sfxRemove) Music.sfxRemove();
   }
   let done = 0;
   for (const i of solvedEquations.value) if (!wasSolved.has(i)) { pulseResolved('eq', i); done++; }
+  if (done > 0) haptic('done');
   if (done > 0 && state.settings.sfxComplete) Music.sfxComplete(done);
 
   afterMove();
@@ -772,7 +775,7 @@ function onCellDown(e, cell) {
     longPressTimer = 0; longPressFired = true;
     onDragCancel();                       // eine begonnene Zug-Vorbereitung verwerfen
     toggleHighlight(cell.r, cell.c);
-    try { navigator.vibrate && navigator.vibrate(15); } catch (_) {}
+    haptic('lock');
   }, LONG_PRESS_MS);
   if (!cell.given && cellValue(cell) != null) onDragStart(e, cellValue(cell), { r: cell.r, c: cell.c });
 }

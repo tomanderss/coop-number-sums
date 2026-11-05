@@ -329,6 +329,7 @@ export default {
     sfxError: 'Errore',
     sfxHint: 'Indizio',
     sfxToolSwitch: 'Cambio modalità (penna/gomma)',
+    haptics: 'Vibrazione',
     sfxUndo: 'Annulla',
     sfxWin: 'Vittoria',
     sfxLose: 'Sconfitta',

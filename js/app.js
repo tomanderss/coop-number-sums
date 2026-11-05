@@ -9,6 +9,7 @@ import * as Coop from './coop.js';
 import { log, exportLogToFile } from './debuglog.js';
 import { ACHIEVEMENTS, achievementsFor, evaluate as evaluateAchievements } from './achievements.js';
 import * as Music from './music.js';
+import { initFeedback, haptic } from './games/feedback.js';
 import { activeGame, GAME_IDS, GAMES, gameById } from './games/index.js';
 import { gameMeta, DEFAULT_GAME_ID } from './games/registry.js';
 import { initLiveLayer } from './games/livelayer.js';
@@ -426,6 +427,7 @@ const DIV_STYLE_DEFAULT = 'obelus';
 // ALLE Bretter einmal anbinden (reine Zuweisungen) — dann ist ein Spielwechsel
 // nur noch ein Umhängen von `Board`.
 initLiveLayer(state);
+initFeedback(() => state.settings);
 for (const g of GAMES) {
   g.board.initBoard({
     state, LOCAL_PLAYER_ID, playerColor, shopEquippedId, desktopBoard,
@@ -2521,6 +2523,7 @@ function registerMistake() {
   if (state.coop.active) coopSend({ type: Coop.MSG.MISTAKE, by, n: 1 });
   // Leben sind immer aktiv: jeder Fehler zieht ein Leben ab.
   state.lives--;
+  haptic('error');
   if (state.coop.active) state.coop.lifeLossBy.push(by);
   showBestTimeNotice(t('game.lifeLostNotice'));
   if (state.lives <= 0) { state.lives = 0; lose(); }
@@ -4200,9 +4203,14 @@ function afterPaint(cb) {
 // das ganze Netz) zeigen den Sieg-Dialog + die Sieganimation erst DANACH —
 // Nutzerwunsch: man soll merken, dass man fertig ist. Die Buchhaltung läuft
 // unabhängig davon sofort; nur die Anzeige wartet (state.winHold).
+// Einheitliches Sieg-Finale: jedes Brett leuchtet kurz auf (styles.css
+// `.board-wrap.finale`), erst danach kommen Dialog + Sieganimation. Ein Brett mit
+// eigenem Finale (Pipes: Welle von der Quelle) meldet seine Dauer über winFinaleMs.
+const DEFAULT_FINALE_MS = 850;
 function holdForBoardFinale(then) {
   let ms = 0;
-  try { ms = Board.winFinaleMs ? Board.winFinaleMs() : 0; } catch (_) { ms = 0; }
+  haptic('win');
+  try { ms = Board.winFinaleMs ? Board.winFinaleMs() : DEFAULT_FINALE_MS; } catch (_) { ms = 0; }
   if (!(ms > 0)) { then(); return; }
   const gid = state.gameId;
   state.winHold = true;
@@ -5582,6 +5590,7 @@ function toggleSetting(key) {
     else if (key === 'sfxWin') Music.sfxWin();
     else if (key === 'sfxLose') Music.sfxLose();
     else if (key === 'sfxUndo') Music.sfxUndo();
+    else if (key === 'haptics') haptic('place');
   }
 }
 // Skin JE SPIEL: lesen über curSkin (computed im setup), schreiben nur ins laufende Spiel.
@@ -8614,7 +8623,7 @@ const App = {
         <!-- Das Brett ist eine EIGENE Child-Komponente (BoardGrid): App-Renders
              (Tool-Umschalter, Sekunden-Tick, HUD) rendern die ~200 Zellen NICHT
              mehr mit — das Brett rendert nur bei echten Brett-Änderungen. -->
-        <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart }">
+        <div class="board-wrap" :class="{ blurred: state.paused || state.coop.awaitingStart, finale: state.status === 'won' }">
           <board-grid></board-grid>
         </div>
 
@@ -9692,6 +9701,9 @@ const App = {
           </div>
           <div class="set-row" @click="toggleSetting('sfxLose')">
             <span>{{ t('settings.sfxLose') }}</span><span class="switch" :class="{on:state.settings.sfxLose}"><i></i></span>
+          </div>
+          <div class="set-row" @click="toggleSetting('haptics')">
+            <span>{{ t('settings.haptics') }}</span><span class="switch" :class="{on:state.settings.haptics !== false}"><i></i></span>
           </div>
           </div>
         </div>
