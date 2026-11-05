@@ -958,6 +958,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes aura2 { 50% { transform: translate(-24px, 16px) scale(1.08); } }
 @keyframes aura3 { 50% { transform: translate(16px, -20px) scale(1.14); } }
 /* Inhalt über die Deko heben */
+.setup-title { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
+.setup-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setup-game-logo { width: 28px; height: 28px; border-radius: 8px; flex: 0 0 auto; box-shadow: var(--soft-shadow); }
+/* Zahlen-Stein: EINE Form für die Zahlen auf dem Brett (Rectangles, Number Path,
+   Number Link) — runde Scheibe, gleiche Größe, Schrift und Schatten. Die Farbe
+   bleibt Spielsache (neutral bzw. Paar-Farbe). */
+:root { --token-size: 66%; --token-shadow: 0 1px 3px color-mix(in srgb, #000 22%, transparent); }
 .setup-slider .setup-top,
 .setup-slider .setup-coderow,
 .setup-slider .diff-picker,

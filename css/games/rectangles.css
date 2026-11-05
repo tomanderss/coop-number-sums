@@ -34,9 +34,16 @@
 
 .rclue {
   position: absolute; display: flex; align-items: center; justify-content: center;
-  font-size: var(--fs); font-weight: 800; color: var(--text); line-height: 1;
+  font-size: var(--fs); font-weight: 900; color: var(--bg2); line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+/* Zahlen-Stein wie in Number Path/Number Link (s. --token-size in styles.css). */
+.rclue::before {
+  content: ''; position: absolute; width: var(--token-size); height: var(--token-size); border-radius: 50%;
+  background: var(--text); box-shadow: var(--token-shadow); z-index: -1;
+}
+.rb-clues { z-index: 1; }
+.rclue { isolation: isolate; }
 
 /* Zieh-Vorschau: folgt dem Finger frei; beim Loslassen gleitet sie auf ihr
    eingerastetes Ziel (Klasse .snap) und blendet aus. */
