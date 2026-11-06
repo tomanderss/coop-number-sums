@@ -1,0 +1,1 @@
+- Spiel-Knöpfe (z.B. Wasser und Sperren in Pipes) zeigen keine Hinweis-Meldungen mehr – die Erklärung steht in der Anleitung

@@ -168,7 +168,8 @@ test('Wasser-Schalter: aus = kein Fluss, kein Fortschritt, kein Sieg; einschalte
   expect(await page.evaluate(() => window.__cns.state.settings.pipesFlow)).toBe(false);
   await expect(page.locator('.pp-board.dry')).toHaveCount(1);
   await expect(page.locator('.pp-tile.wet')).toHaveCount(0);
-  // Das Brett springt beim Umschalten nicht (Hinweis hat festen Platz).
+  await expect(page.locator('.toast')).toHaveCount(0);
+  // Das Brett springt beim Umschalten nicht.
   expect(await boardTop()).toBe(y0);
   // Gelöst, aber ohne Wasser: noch kein Sieg, kein Fortschritt verraten.
   await page.evaluate(() => window.__cns.solvePipes());
@@ -214,7 +215,8 @@ test('Sperr-Modus: kurzer Tipp sperrt/entsperrt, gedreht wird nicht; aus = wiede
   await btn.click();
   await expect(btn).toHaveClass(/\bon\b/);
   expect(await page.evaluate(() => window.__cns.state.pipeLockMode)).toBe(true);
-  await expect(page.locator('.toast')).toContainText('Sperr-Modus');
+  // Kein Toast beim Knopfdruck — die Erklärung steht in der Anleitung (Nutzerwunsch).
+  await expect(page.locator('.toast')).toHaveCount(0);
   expect(await boardTop()).toBe(y0);
   const at = await centers(page);
   const cdp = await context.newCDPSession(page);
