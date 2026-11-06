@@ -263,6 +263,8 @@ test('Coop: Wasser-Schalter und Sperr-Modus gelten nur für mich; löst der Part
   await page.waitForFunction(() => window.__cns.state.status === 'won');
   await expect(page.locator('.pp-board.dry')).toHaveCount(0);
   expect(await page.evaluate(() => window.__cns.state.settings.pipesFlow)).toBe(false);
+});
+
 // Gemeldet: „ab 12×12 ist die Drehung nicht mehr smooth, hakelig". Zwei Ursachen:
 // jede Drehung zeichnete ALLE Stücke neu (der Wasserlauf hängt an jedem), und
 // in jedem Arm lief eine Dauer-Animation — auch in trockenen, unsichtbaren.
