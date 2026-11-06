@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.20';
-export const BUILD_HASH = '2b23f31';
+export const BUILD      = '3.21';
+export const BUILD_HASH = '327dd21';
 
 export const CHANGELOG = [
+  {
+    "version": "3.21",
+    "date": "06.11.2026",
+    "changes": [
+      "- Pipes: Drehen auf großen Brettern (ab 12×12) läuft wieder flüssig"
+    ]
+  },
   {
     "version": "3.20",
     "date": "05.11.2026",
