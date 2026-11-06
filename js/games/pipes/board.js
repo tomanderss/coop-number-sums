@@ -68,7 +68,6 @@ let desktopBoard = () => false;
 // Live-Entwurf (Schale, s. app.js sendLive): im Coop sehen die anderen, was
 // man gerade zieht.
 let sendLive = () => {};
-let toast = () => {};
 
 export function initBoard(ctx) {
   state = ctx.state;
@@ -79,7 +78,6 @@ export function initBoard(ctx) {
   coopSend = ctx.coopSend;
   if (ctx.desktopBoard) desktopBoard = ctx.desktopBoard;
   if (ctx.sendLive) sendLive = ctx.sendLive;
-  if (ctx.toast) toast = ctx.toast;
 }
 
 // Shop-Optik, die es hier (noch) nicht gibt (s. rectangles/board.js).
@@ -172,8 +170,6 @@ export function setFlow(v) {
   state.settings.pipesFlow = v;
   log('game', 'Pipes: Fluss ' + (v ? 'an' : 'aus'));
   if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
-  // Hinweis als kurze Meldung statt fester Zeile: die Leiste ist in allen Spielen gleich hoch.
-  if (!v) toast(t('pipe.flow.hint'), 'info', 3200);
   if (v && state.puzzle && state.status === 'playing') afterMove();
 }
 export function rotate(i, dir = 1) {
@@ -452,7 +448,6 @@ export function setLockMode(v) {
   state.pipeLockMode = v;
   log('game', 'Pipes: Sperr-Modus ' + (v ? 'an' : 'aus'));
   if (state.settings.sfxToolSwitch) Music.sfxToolSwitch();
-  if (v) toast(t('pipe.lock.hint'), 'info', 3200);
 }
 function toggleLockMode() { setLockMode(!state.pipeLockMode); }
 const LOCK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.4" fill="currentColor"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
