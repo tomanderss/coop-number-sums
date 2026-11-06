@@ -264,6 +264,10 @@ const pct = (v, n) => `${(v / n) * 100}%`;
 let boardRenderCount = 0;
 export function boardRenders() { return boardRenderCount; }
 const countRender = () => { boardRenderCount++; return ''; };
+// Zählt Neuzeichnungen einzelner Stücke (Test: eine Drehung zeichnet nicht das ganze Brett neu).
+let tileRenderCount = 0;
+export function cellRenders() { return tileRenderCount; }
+const countTile = () => { tileRenderCount++; return ''; };
 
 // Das ROHR eines Stücks in seiner Grundlage (Maske `m`, ungedreht), als SVG in
 // einem 100er-Raster. Gezeichnet in SCHICHTEN über Arme und Nabe zugleich —
@@ -317,6 +321,55 @@ function svgFor(mask, kind) {
 }
 const reducedMotion = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } };
 
+// Aussehen eines Stücks samt Kennung `sig` (alles, was das Bild bestimmt).
+function tileLook(i) {
+  const p = state.puzzle, f = flowInfo.value;
+  const r = state.pipeRot[i] || 0, n = p.cols;
+  const show = flowShown.value;
+  const wet = show && !!f && f.depth[i] >= 0;
+  const kind = tileKind.value[i];
+  const mask = rotMask(p.tiles[i], r);
+  // Je Arm (Richtung auf dem Brett): Fluss nach innen (woher das Wasser
+  // kommt) oder nach außen; ein Arm, der ins Leere führt, leckt.
+  const arms = [];
+  for (let k = 0; k < 4; k++) {
+    if (!(mask & (1 << k))) continue;
+    const j = neighbor(p, i, k);
+    const leak = j < 0 || !has(f.masks[j], opp(k));
+    arms.push({ k, inn: wet && f.from[i] === k, leak: wet && leak });
+  }
+  const by = state.pipeBy[i];
+  const col = isMultiplayer() && by && by !== me() && by !== LOCAL_PLAYER_ID ? playerColor(by) : null;
+  const locked = !!state.pipeLock[i];
+  // Verzögerung der Füllung nach Entfernung zur Quelle — zählt nur im Moment,
+  // in dem das Stück nass wird (s. tileLookFrom).
+  const dl = wet ? Math.min(1400, f.depth[i] * 45) + 'ms' : '0ms';
+  // Finale: Welle von der Quelle nach außen, über höchstens FINALE_SPREAD
+  // verteilt. Nur im Finale gebraucht — sonst änderte jeder Zug (neue größte
+  // Tiefe) die Werte ALLER nassen Stücke.
+  const fd = wet && f.maxDepth && state.status === 'won' ? Math.round((f.depth[i] / f.maxDepth) * finaleSpread(f.maxDepth)) + 'ms' : '0ms';
+  const sig = [mod4(r), mask, kind, wet, locked, col, fd, arms.map((a) => a.k + (a.inn ? 'i' : '') + (a.leak ? 'l' : '')).join('')].join('|');
+  return {
+    cls: [kind, { wet, locked }],
+    style: {
+      left: pct(i % n, n), top: pct(Math.floor(i / n), p.rows), width: pct(1, n), height: pct(1, p.rows),
+      '--dl': dl, '--fd': fd,
+      ...(col ? { '--pb': col } : {}),
+    },
+    rot: mod4(r),
+    wet, dl, sig, locked,
+    svg: svgFor(mask, kind), arms,
+  };
+}
+// Bleibt ein Stück nass, behält es seine Verzögerung (sie wirkt nur beim
+// Nasswerden) — sonst zöge eine Änderung weit oben im Netz alle Stücke
+// dahinter mit. Gleiches Aussehen → dasselbe Objekt, kein Neuzeichnen.
+function tileLookFrom(prev, i) {
+  const next = tileLook(i);
+  if (prev && prev.wet && next.wet && prev.dl !== next.dl) { next.dl = prev.dl; next.style['--dl'] = prev.dl; }
+  return prev && prev.sig === next.sig && prev.dl === next.dl ? prev : next;
+}
+
 // Ein Stück. Eigene Komponente: rendert neu, wenn sich SEIN Zustand ändert.
 //
 // AUSRICHTUNG (gemeldet: „Rohre nicht exakt aneinandergereiht, Stufen"): im
@@ -335,48 +388,21 @@ const PipeTile = {
       const el = rotEl.value;
       const d = (r || 0) - (old || 0);
       if (!el || old == null || !d || reducedMotion()) return;
-      el.style.transition = 'none';
-      el.style.transform = `rotate(${-d * 90}deg)`;
-      void el.offsetWidth;            // Startlage festschreiben
-      el.style.transition = '';
-      el.style.transform = '';
+      // Web Animations statt „Transition aus, Lage setzen, offsetWidth lesen":
+      // das Lesen erzwang je Drehung eine Stil-Neuberechnung des GANZEN
+      // Bretts — samt aller laufenden Wasser-Animationen (12×12 hakelig).
+      if (el.getAnimations) el.getAnimations().forEach((a) => a.cancel());
+      el.animate([{ transform: `rotate(${-d * 90}deg)` }, { transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.3, 1.35, .55, 1)' });
     }, { flush: 'post' });
-    const look = computed(() => {
-      const i = props.i, p = state.puzzle, f = flowInfo.value;
-      const r = state.pipeRot[i] || 0, n = p.cols;
-      const show = flowShown.value;
-      const wet = show && !!f && f.depth[i] >= 0;
-      const kind = tileKind.value[i];
-      const mask = rotMask(p.tiles[i], r);
-      // Je Arm (Richtung auf dem Brett): Fluss nach innen (woher das Wasser
-      // kommt) oder nach außen; ein Arm, der ins Leere führt, leckt.
-      const arms = [];
-      for (let k = 0; k < 4; k++) {
-        if (!(mask & (1 << k))) continue;
-        const j = neighbor(p, i, k);
-        const leak = j < 0 || !has(f.masks[j], opp(k));
-        arms.push({ k, inn: wet && f.from[i] === k, leak: wet && leak });
-      }
-      const by = state.pipeBy[i];
-      const col = isMultiplayer() && by && by !== me() && by !== LOCAL_PLAYER_ID ? playerColor(by) : null;
-      return {
-        cls: [kind, { wet, locked: !!state.pipeLock[i] }],
-        style: {
-          left: pct(i % n, n), top: pct(Math.floor(i / n), p.rows), width: pct(1, n), height: pct(1, p.rows),
-          '--dl': wet ? Math.min(1400, f.depth[i] * 45) + 'ms' : '0ms',
-          // Finale: Welle von der Quelle nach außen, über höchstens FINALE_SPREAD verteilt.
-          '--fd': wet && f.maxDepth ? Math.round((f.depth[i] / f.maxDepth) * finaleSpread(f.maxDepth)) + 'ms' : '0ms',
-          ...(col ? { '--pb': col } : {}),
-        },
-        rot: mod4(r),
-        locked: !!state.pipeLock[i],
-        svg: svgFor(mask, kind), arms,
-      };
-    });
-    return { look, rotEl };
+    // Bleibt das Aussehen gleich, liefert `look` DASSELBE Objekt zurück — dann
+    // zeichnet sich das Stück nicht neu. Jeder Zug ändert den Wasserlauf und
+    // damit die Abhängigkeit ALLER Stücke; ohne diesen Schritt rechnete und
+    // verglich Vue bei jeder Drehung alle 144 Stücke eines 12×12-Bretts neu.
+    const look = computed((prev) => tileLookFrom(prev, props.i));
+    return { look, rotEl, countTile };
   },
   template: `
-              <div class="pp-tile" :class="look.cls" :style="look.style" :data-rot="look.rot">
+              <div class="pp-tile" :class="look.cls" :style="look.style" :data-rot="look.rot" :data-rc="countTile()">
                 <div class="pp-plate"></div>
                 <div class="pp-wave"></div>
                 <span v-if="look.locked" class="pp-lockmark"></span>
