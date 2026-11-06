@@ -232,3 +232,35 @@ test('Sperr-Modus: kurzer Tipp sperrt/entsperrt, gedreht wird nicht; aus = wiede
   await touch(cdp, 'touchStart', [at(2)]); await touch(cdp, 'touchEnd', []);
   expect((await rots(page))[2]).toBe(r0[2] + 1);
 });
+
+test('Coop: Wasser-Schalter und Sperr-Modus gelten nur für mich; löst der Partner, gewinne ich mit — Wasser wird sichtbar', async ({ page }) => {
+  await gotoApp(page);
+  const p = await page.evaluate(async () => {
+    const { generatePuzzle } = await import('/js/games/pipes/generator.js');
+    return generatePuzzle({ difficulty: 'leicht', seed: 91 });
+  });
+  await page.evaluate((puzzle) => {
+    const s = window.__cns.state;
+    s.coop.active = true; s.coop.role = 'guest'; s.coop.myId = 'me';
+    s.coop.players = [{ id: 'host', name: 'H', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' }];
+    window.__cns.clearSentLog && window.__cns.clearSentLog();
+    window.__cns.handleCoopMsg({ type: 'init', gameId: 'ppflow', running: true, puzzle, pipeRot: puzzle.tiles.map(() => 0), startTime: Date.now() - 5000, lives: 3, maxLives: 3, mistakes: 0 });
+  }, p);
+  await page.waitForSelector('.screen.game .pp-board');
+  // Ich schalte Wasser aus und den Sperr-Modus an — das ist MEINE Sicht, nichts davon geht an den Partner.
+  await page.locator('.pp-tools-wrap .pp-flow-btn:not(.pp-lock-btn)').click();
+  await page.locator('.pp-tools-wrap .pp-lock-btn').click();
+  await expect(page.locator('.pp-board.dry')).toHaveCount(1);
+  const sent = await page.evaluate(() => (window.__cns.sentLog ? window.__cns.sentLog() : []));
+  expect(sent.filter((x) => x.type !== 'init'), 'Umschalten schickt nichts an den Partner').toEqual([]);
+  // Der Partner dreht alles richtig: bei mir (Wasser aus) gewinnt noch nichts …
+  await page.evaluate((solRot) => {
+    solRot.forEach((r, i) => window.__cns.handleCoopMsg({ type: 'move', op: 'rot', i, r, from: 'host' }, '-N' + String(100000 + i).padStart(16, '0')));
+  }, p.solRot);
+  expect(await page.evaluate(() => window.__cns.state.status)).toBe('playing');
+  // … bis sein Sieg ankommt: dann gewinne ich mit, und das Wasser wird sichtbar.
+  await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'status', status: 'won', timeMs: 9000, mistakes: 0, hintsUsed: 0 }));
+  await page.waitForFunction(() => window.__cns.state.status === 'won');
+  await expect(page.locator('.pp-board.dry')).toHaveCount(0);
+  expect(await page.evaluate(() => window.__cns.state.settings.pipesFlow)).toBe(false);
+});
