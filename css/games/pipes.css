@@ -70,10 +70,7 @@
 }
 .pp-lockmark::after { content: ''; position: absolute; inset: 36%; border-radius: 50%; background: rgb(255 255 255 / .85); }
 
-.pp-rot {
-  position: absolute; inset: 0;
-  transition: transform .22s cubic-bezier(.3, 1.35, .55, 1);
-}
+.pp-rot { position: absolute; inset: 0; }  /* Dreh-Animation: Web Animations in PipeTile (board.js) */
 .pp-pipe, .pp-pipe svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 
 /* ── Rohr ────────────────────────────────────────────────────────────────── */
@@ -109,10 +106,12 @@
   position: absolute; left: 0; right: 0; top: 0; height: calc(100% + var(--pp-period));
   background: radial-gradient(circle at 50% 50%, var(--pp-glow) 0 14%, color-mix(in srgb, var(--pp-glow) 0%, transparent) 46%) 0 0 / 100% var(--pp-period) repeat-y;
   opacity: .72;
-  animation: pp-out 1.5s linear infinite;
 }
+/* Nur im NASSEN Stück treiben Punkte — ein trockener Arm ist unsichtbar, seine
+   Animation kostete trotzdem jedes Bild (12×12: bis zu ~290 auf einmal). */
+.pp-tile.wet .pp-arm i { animation: pp-out 1.5s linear infinite; }
 /* Arm, aus dem das Wasser kommt: Punkte laufen zur Mitte. */
-.pp-arm.inn i { animation-direction: reverse; }
+.pp-tile.wet .pp-arm.inn i { animation-direction: reverse; }
 @keyframes pp-out { from { transform: translateY(0); } to { transform: translateY(calc(-1 * var(--pp-period))); } }
 .pp-hub {
   position: absolute; left: calc(50% - var(--pp-w) / 2); top: calc(50% - var(--pp-w) / 2); width: var(--pp-w); height: var(--pp-w);
@@ -212,7 +211,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pp-arm i, .pp-tile.src::before, .pp-arm.leak::after, .pp-train,
+  .pp-tile.wet .pp-arm i, .pp-tile.src::before, .pp-arm.leak::after, .pp-train,
   .pp-tile.end.wet .pp-hub, .board.pp-board.done .pp-rot { animation: none; }
   .board.pp-board.done .pp-wave { animation-duration: .01s; }
   .pp-rot, .pp-plate { transition: none; }
