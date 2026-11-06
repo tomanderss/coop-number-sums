@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.21';
-export const BUILD_HASH = '327dd21';
+export const BUILD      = '3.22';
+export const BUILD_HASH = '4d856fb';
 
 export const CHANGELOG = [
+  {
+    "version": "3.22",
+    "date": "06.11.2026",
+    "changes": [
+      "- Spiel-Knöpfe (z.B. Wasser und Sperren in Pipes) zeigen keine Hinweis-Meldungen mehr – die Erklärung steht in der Anleitung"
+    ]
+  },
   {
     "version": "3.21",
     "date": "06.11.2026",
