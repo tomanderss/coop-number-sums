@@ -263,4 +263,36 @@ test('Coop: Wasser-Schalter und Sperr-Modus gelten nur für mich; löst der Part
   await page.waitForFunction(() => window.__cns.state.status === 'won');
   await expect(page.locator('.pp-board.dry')).toHaveCount(0);
   expect(await page.evaluate(() => window.__cns.state.settings.pipesFlow)).toBe(false);
+// Gemeldet: „ab 12×12 ist die Drehung nicht mehr smooth, hakelig". Zwei Ursachen:
+// jede Drehung zeichnete ALLE Stücke neu (der Wasserlauf hängt an jedem), und
+// in jedem Arm lief eine Dauer-Animation — auch in trockenen, unsichtbaren.
+test('Leistung: eine Drehung zeichnet nur wenige Stücke neu, nur nasse Arme animieren', async ({ page }) => {
+  test.setTimeout(60000);
+  await gotoApp(page);
+  await startGame(page, 'rip');
+  expect(await page.evaluate(() => window.__cns.state.puzzle.rows)).toBe(12);
+  const anim = () => page.evaluate(() => document.querySelectorAll('.pp-arm').length && document.getAnimations().filter((a) => a.effect && a.effect.target && a.effect.target.matches('.pp-arm i')).length);
+  const wetArms = () => page.evaluate(() => document.querySelectorAll('.pp-tile.wet .pp-arm').length);
+  expect(await anim()).toBe(await wetArms());
+  expect(await anim()).toBeLessThan(await page.locator('.pp-arm').count());
+  // Ein Stück fern der Quelle drehen: höchstens eine Handvoll Stücke zeichnet sich neu.
+  const i = await page.evaluate(() => { const s = window.__cns.state; const p = s.puzzle; for (let k = p.tiles.length - 1; k >= 0; k--) if (k !== p.source && !s.pipeLock[k]) return k; return 0; });
+  for (let n = 0; n < 4; n++) {
+    const before = await page.evaluate(() => window.__cns.cellRenders());
+    await page.evaluate((k) => window.__cns.rotatePipe(k), i);
+    await page.waitForTimeout(120);
+    const delta = (await page.evaluate(() => window.__cns.cellRenders())) - before;
+    expect(delta).toBeGreaterThan(0);
+    expect(delta).toBeLessThan(30);
+  }
+  // Die Drehung selbst ist eine Web Animation, die ohne Reste endet.
+  await page.evaluate((k) => window.__cns.rotatePipe(k), i);
+  const rotEl = page.locator('.pp-tile').nth(i).locator('.pp-rot');
+  expect(await rotEl.evaluate((el) => el.getAnimations().length)).toBe(1);
+  await page.waitForTimeout(400);
+  expect(await rotEl.evaluate((el) => [el.getAnimations().length, getComputedStyle(el).transform])).toEqual([0, 'none']);
+  // Ein Zufluss-Arm läuft rückwärts (Punkte zur Mitte).
+  const dirs = await page.evaluate(() => [...document.querySelectorAll('.pp-tile.wet .pp-arm.inn i')].slice(0, 3).map((e) => getComputedStyle(e).animationDirection));
+  expect(dirs.length).toBeGreaterThan(0);
+  expect(new Set(dirs)).toEqual(new Set(['reverse']));
 });
