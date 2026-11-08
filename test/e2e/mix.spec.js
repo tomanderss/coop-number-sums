@@ -169,3 +169,33 @@ test('erstes Level: die Ziehung startet erst, wenn sie zu sehen ist, und läuft 
   // Und die Ziehung bleibt, bis das Brett da ist (kein leerer Moment).
   expect(await page.evaluate(() => !!window.__cns.state.puzzle)).toBe(true);
 });
+
+// Gemeldet: ein angefangener Mix-Lauf ließ sich nur fortsetzen, nicht löschen.
+test('angefangener Mix-Lauf lässt sich auf der Startseite löschen (mit Rückfrage)', async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      if (!sessionStorage.getItem('seeded')) {
+        localStorage.setItem('cns_mix_run', JSON.stringify({ pending: true, ts: Date.now(), game: 'rectangles', mix: { level: 3, lives: 2, score: 2 } }));
+        sessionStorage.setItem('seeded', '1');
+      }
+    } catch {}
+  });
+  await boot(page, { mix: true });
+  const resume = page.locator('.resume-stack .btn-resume.mix');
+  const del = page.locator('.resume-stack .mix-del');
+  await expect(resume).toBeVisible();
+  await expect(del).toBeVisible();
+  // Abbrechen lässt den Lauf stehen.
+  await del.click();
+  await page.locator('.confirm-actions .btn:not(.btn-danger)').first().click();
+  await expect(resume).toBeVisible();
+  // Bestätigen entfernt ihn — auch nach dem Neuladen.
+  await del.click();
+  await page.locator('.confirm-actions .btn-danger').click();
+  await expect(resume).toHaveCount(0);
+  await expect(del).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('cns_mix_run'))).toBeNull();
+  await page.reload();
+  await page.waitForSelector('.screen.home');
+  await expect(page.locator('.resume-stack .btn-resume.mix')).toHaveCount(0);
+});

@@ -797,6 +797,7 @@ export default {
     empty: "Pick at least one level.",
     start: "Start Mix",
     resume: "Continue Mix",
+    deleteRun: "Delete Mix run", deleteTitle: "Delete Mix run?", deleteMsg: "Your unfinished Mix run will be removed for good.",
     levelN: "Level {n}",
     overTitle: "Mix over",
     record: "New Mix record!",

@@ -770,6 +770,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Chevron nach UNTEN gedreht = „hier klappt etwas auf". Ein eigenes
    Abwaerts-Chevron gibt es im Icon-Set nicht, die Drehung ist billiger als ein
    weiteres Glyph. */
+.saves-expand.mix-del:hover, .saves-expand.mix-del:focus-visible { color: var(--bad); }
 .saves-expand .se-chev { font-size: .95rem; opacity: .65; transform: rotate(90deg); }
 /* minmax(0,1fr) statt 1fr: ohne das würde der Default min-width:auto eines
    Grid-Items auf dessen min-content (z.B. das unbrechbare Wort "Einstellungen")
