@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.22';
-export const BUILD_HASH = '4d856fb';
+export const BUILD      = '3.23';
+export const BUILD_HASH = '60c435e';
 
 export const CHANGELOG = [
+  {
+    "version": "3.23",
+    "date": "08.11.2026",
+    "changes": [
+      "- Mix: ein angefangener Mix-Lauf lässt sich auf der Startseite löschen"
+    ]
+  },
   {
     "version": "3.22",
     "date": "06.11.2026",
