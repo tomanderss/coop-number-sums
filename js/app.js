@@ -1840,6 +1840,19 @@ function loadMixLevel() {
     });
   });
 }
+// Angefangenen Mix-Lauf verwerfen (mit Rückfrage). Er liegt gerätelokal in
+// EINEM Platz (cns_mix_run), nicht in der Spielstand-Bibliothek.
+function deleteMixRun() {
+  if (!state.resumeAvailableMix) return;
+  ask(t('mix.deleteTitle'), t('mix.deleteMsg'), () => {
+    const r = state.resumeAvailableMix;
+    saveMixRun(null);
+    state.resumeAvailableMix = null;
+    log('game', 'Mix-Lauf geloescht', { level: r && r.mix && r.mix.level || null, game: r && r.game || null });
+    refreshResume();
+    showToast(t('saves.deleted'), 'info', 2000);
+  });
+}
 function resumeMix() {
   const r = state.resumeAvailableMix;
   if (!r) return;
@@ -8152,7 +8165,7 @@ const App = {
       }),
       wheelCurrent: computed(() => (state.mixOn ? MIX_ID : currentGame.id)),
       setMixScreenMode, setDuelGoal, duelGoalLabel, startMixFromScreen, mixDuelRemainingMs, DUEL_COUNTS, DUEL_MINUTES,
-      onWheelSelect, openMix, startMix, resumeMix, mixInfo, mixToggleGame, mixToggleDiff, mixPreset, ladderStep, MIX_LOGO, ENDLESS_START_LIVES: ENDLESS_CFG.startLives,
+      onWheelSelect, openMix, startMix, resumeMix, deleteMixRun, mixInfo, mixToggleGame, mixToggleDiff, mixPreset, ladderStep, MIX_LOGO, ENDLESS_START_LIVES: ENDLESS_CFG.startLives,
       mixStrip: computed(() => { const g = mixInfo.value.games.filter((x) => x.on); const l = g.length ? g : mixInfo.value.games; return l.concat(l); }),
       startCoopMatch, canStartCoopMatch, COOP_MAX_PLAYERS, DONATE_URL, BRAND_LOGO,
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
@@ -8286,6 +8299,10 @@ const App = {
              Solo-Knopf klebt und benannt ist ("Weitere Spielstaende (N)")
              statt als loser Textlink danebenzustehen. -->
         <div v-if="state.mixOn && state.resumeAvailableMix" key="mix" class="resume-stack">
+          <!-- Der Mix-Lauf hat EINEN Platz und steht nicht in der Bibliothek —
+               loeschen geht deshalb direkt am Knopf (gemeldet: nur fortsetzbar,
+               nicht loeschbar). -->
+          <div class="resume-group expandable">
           <button class="btn btn-resume mix" @click="resumeMix">
             <span class="btn-ic"><img class="mix-resume-logo" :src="gameMeta(state.resumeAvailableMix.game).logo" alt=""></span>
             <span class="btn-tx"><b>{{ t('mix.resume') }}</b>
@@ -8293,6 +8310,11 @@ const App = {
             </span>
             <span class="badge-endless">{{ t('mix.name') }}</span>
           </button>
+          <button class="saves-expand attached mix-del" @click="deleteMixRun" :aria-label="t('mix.deleteRun')">
+            <span class="ei se-ic" v-html="ic('trash')"></span>
+            <span class="se-tx">{{ t('mix.deleteRun') }}</span>
+          </button>
+          </div>
         </div>
         <div v-else-if="!state.mixOn && (soloResume || state.resumeAvailableCoop || state.saves.length)" key="game" class="resume-stack">
           <div v-if="soloResume" class="resume-group" :class="{ expandable: !!savesLabel }">

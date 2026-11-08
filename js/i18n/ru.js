@@ -797,6 +797,7 @@ export default {
     empty: "Выбери хотя бы один уровень.",
     start: "Начать Mix",
     resume: "Продолжить Mix",
+    deleteRun: "Удалить забег Mix", deleteTitle: "Удалить забег Mix?", deleteMsg: "Начатый забег Mix будет удалён без возможности восстановления.",
     levelN: "Уровень {n}",
     overTitle: "Mix окончен",
     record: "Новый рекорд Mix!",

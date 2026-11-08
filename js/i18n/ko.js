@@ -797,6 +797,7 @@ export default {
     empty: "난이도를 하나 이상 선택하세요.",
     start: "Mix 시작",
     resume: "Mix 계속하기",
+    deleteRun: "Mix 진행 삭제", deleteTitle: "Mix 진행을 삭제할까요?", deleteMsg: "진행 중인 Mix가 영구적으로 삭제됩니다.",
     levelN: "레벨 {n}",
     overTitle: "Mix 종료",
     record: "Mix 신기록!",

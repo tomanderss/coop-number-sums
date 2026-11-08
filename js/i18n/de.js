@@ -917,6 +917,7 @@ export default {
     empty: "Wähle mindestens eine Stufe aus.",
     start: "Mix starten",
     resume: "Mix fortsetzen",
+    deleteRun: "Mix-Lauf löschen", deleteTitle: "Mix-Lauf löschen?", deleteMsg: "Dein angefangener Mix-Lauf wird endgültig entfernt.",
     levelN: "Level {n}",
     overTitle: "Mix vorbei",
     record: "Neuer Mix-Rekord!",

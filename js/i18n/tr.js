@@ -797,6 +797,7 @@ export default {
     empty: "En az bir seviye seç.",
     start: "Mix'i başlat",
     resume: "Mix'e devam et",
+    deleteRun: "Mix koşusunu sil", deleteTitle: "Mix koşusu silinsin mi?", deleteMsg: "Başladığın Mix koşusu kalıcı olarak silinecek.",
     levelN: "Seviye {n}",
     overTitle: "Mix bitti",
     record: "Yeni Mix rekoru!",

@@ -1,0 +1,1 @@
+- Mix: ein angefangener Mix-Lauf lässt sich auf der Startseite löschen

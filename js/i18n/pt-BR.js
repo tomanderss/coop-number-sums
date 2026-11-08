@@ -797,6 +797,7 @@ export default {
     empty: "Escolha pelo menos um nível.",
     start: "Iniciar Mix",
     resume: "Continuar Mix",
+    deleteRun: "Excluir partida Mix", deleteTitle: "Excluir a partida Mix?", deleteMsg: "Sua partida Mix em andamento será removida de vez.",
     levelN: "Nível {n}",
     overTitle: "Fim do Mix",
     record: "Novo recorde no Mix!",
