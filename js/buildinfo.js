@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.23';
-export const BUILD_HASH = '60c435e';
+export const BUILD      = '3.24';
+export const BUILD_HASH = '6fd1697';
 
 export const CHANGELOG = [
+  {
+    "version": "3.24",
+    "date": "09.11.2026",
+    "changes": [
+      "- Rectangles: die Zellen-Anzeige beim Ziehen steht jetzt gut sichtbar über dem Daumen"
+    ]
+  },
   {
     "version": "3.23",
     "date": "08.11.2026",
