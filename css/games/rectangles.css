@@ -63,12 +63,14 @@
   transition: opacity .1s ease;
   z-index: 2;
 }
-/* Größen-Blase: zählt die Zellen des eingerasteten Ziels, sitzt über dem Finger. */
+/* Größen-Blase: zählt die Zellen des eingerasteten Ziels. Feste Ebene über dem
+   Bildschirm (nie vom Brettrand abgeschnitten), klar über dem Daumen — Lage
+   rechnet bubbleAt() in board.js. */
 .rb-size {
-  margin: -46px 0 0 -18px; min-width: 36px; height: 30px; padding: 0 8px;
-  border-radius: 15px; background: var(--accent); color: #fff;
+  position: fixed; min-width: 40px; height: 34px; padding: 0 10px;
+  border-radius: 17px; background: var(--accent); color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: .95rem; font-variant-numeric: tabular-nums;
+  font-weight: 900; font-size: 1.05rem; font-variant-numeric: tabular-nums;
   box-shadow: 0 4px 12px var(--shadow);
   transition: opacity .1s ease;
   z-index: 4;

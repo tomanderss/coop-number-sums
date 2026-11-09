@@ -1,0 +1,1 @@
+- Rectangles: die Zellen-Anzeige beim Ziehen steht jetzt gut sichtbar über dem Daumen
