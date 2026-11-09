@@ -183,3 +183,13 @@ describe('Rectangles: Spielstand', () => {
     assert.equal(healSnapshot(h), h);
   });
 });
+
+test('Größen-Blase: über dem Finger, oben am Rand seitlich, nie aus dem Bild', async () => {
+  const { bubbleAt } = await import('../../js/games/rectangles/board.js');
+  const mid = bubbleAt(200, 400, 400);
+  assert.ok(400 - mid.y >= 60 && mid.x === 200);
+  const top = bubbleAt(380, 40, 400);
+  assert.ok(top.x < 380 && top.y >= 30 && top.x <= 370);
+  const left = bubbleAt(10, 40, 400);
+  assert.ok(left.x > 10);
+});

@@ -236,6 +236,19 @@ function markRects(d, blocking, doomed) {
 }
 function clearMarks(d) { if (d) markRects(d, [], []); }
 
+// Wo die Größen-Blase steht (Bildschirm-Koordinaten ihrer MITTE), wenn der
+// Finger bei (x, y) liegt. Gemeldet: „immer etwas hinter dem Daumen" — sie saß
+// nur ~30 px über dem Berührpunkt, also unter der Daumenkuppe, und wurde in der
+// obersten Reihe vom Brettrand abgeschnitten. Jetzt deutlich darüber (BUBBLE_UP),
+// als feste Ebene über dem Bildschirm; reicht der Platz nach oben nicht, weicht
+// sie zur Seite aus (zur Brettmitte hin, weg vom Daumen).
+const BUBBLE_UP = 66, BUBBLE_SIDE = 62, BUBBLE_EDGE = 30;
+export function bubbleAt(x, y, vw) {
+  const clampX = (v) => (vw > 2 * BUBBLE_EDGE ? Math.min(vw - BUBBLE_EDGE, Math.max(BUBBLE_EDGE, v)) : v);
+  if (y - BUBBLE_UP >= BUBBLE_EDGE) return { x: clampX(x), y: y - BUBBLE_UP };
+  const left = x > vw / 2;
+  return { x: clampX(x + (left ? -BUBBLE_SIDE : BUBBLE_SIDE)), y: Math.max(BUBBLE_EDGE, y - 20) };
+}
 function showPreview(e) {
   const p = state.puzzle, b = drag.box, d = drag;
   const cw = b.width / p.cols, ch = b.height / p.rows;
@@ -289,7 +302,8 @@ function showPreview(e) {
   ghostEl.style.height = q.h * ch + 'px';
   ghostEl.style.opacity = '1';
   sizeEl.textContent = String(rectArea(q));
-  sizeEl.style.transform = `translate(${Math.min(b.width - 10, Math.max(10, px))}px, ${Math.max(0, py) }px)`;
+  const at = bubbleAt(b.left + px, b.top + py, window.innerWidth || 0);
+  sizeEl.style.transform = `translate(${at.x}px, ${at.y}px) translate(-50%, -50%)`;
   sizeEl.style.opacity = '1';
 }
 

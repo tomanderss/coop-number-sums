@@ -244,3 +244,43 @@ test('Freunde sehen, dass ich gerade Rectangles spiele', async ({ page }) => {
   const info = await page.evaluate(() => window.__cns.currentGameInfo && window.__cns.currentGameInfo());
   expect(info && info.id).toBe('rectangles');
 });
+
+// Gemeldet: die Größen-Blase saß „immer etwas hinter dem Daumen". Sie steht jetzt
+// klar über dem Berührpunkt, liegt ganz im Bild und weicht in der obersten Reihe
+// zur Seite aus, statt am Brettrand abgeschnitten zu werden.
+test('Größen-Blase steht frei über dem Daumen und ist immer ganz sichtbar', async ({ page, context }) => {
+  await gotoApp(page);
+  await startGame(page, 'mittel');
+  const cdp = await context.newCDPSession(page);
+  const at = await geometry(page);
+  const vp = page.viewportSize();
+  const { rows, cols } = await page.evaluate(() => window.__cns.state.puzzle);
+  const bubbleWhileHolding = async (a, z) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [a] });
+    for (let i = 1; i <= 6; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a.x + ((z.x - a.x) * i) / 6, y: a.y + ((z.y - a.y) * i) / 6 }] });
+    await page.waitForTimeout(150);
+    const box = await page.locator('.rb-size').boundingBox();
+    const op = await page.locator('.rb-size').evaluate((el) => getComputedStyle(el).opacity);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    await page.waitForTimeout(100);
+    return { box, op };
+  };
+  const inView = (b) => b.x >= 0 && b.y >= 0 && b.x + b.width <= vp.width && b.y + b.height <= vp.height;
+  // Mitte des Bretts: Unterkante der Blase mindestens 40 px über dem Finger.
+  const z = at(Math.floor(rows / 2) + 1, Math.floor(cols / 2) + 1);
+  const mid = await bubbleWhileHolding(at(Math.floor(rows / 2), Math.floor(cols / 2)), z);
+  expect(mid.op).toBe('1');
+  expect(z.y - (mid.box.y + mid.box.height)).toBeGreaterThanOrEqual(40);
+  expect(Math.abs(mid.box.x + mid.box.width / 2 - z.x)).toBeLessThan(4);
+  expect(inView(mid.box)).toBe(true);
+  // Oberste Reihe ganz oben am Bildschirm: Blase bleibt ganz im Bild und überdeckt den Finger nicht.
+  await page.evaluate(() => document.querySelector('.rect-board').scrollIntoView({ block: 'start' }));
+  const at2 = await geometry(page);
+  const z2 = at2(0, cols - 1);
+  if (z2.y < 80) {
+    const top = await bubbleWhileHolding(at2(1, cols - 2), z2);
+    expect(inView(top.box)).toBe(true);
+    const covers = z2.x >= top.box.x && z2.x <= top.box.x + top.box.width && z2.y >= top.box.y && z2.y <= top.box.y + top.box.height;
+    expect(covers).toBe(false);
+  }
+});
