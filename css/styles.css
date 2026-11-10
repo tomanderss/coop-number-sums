@@ -3569,3 +3569,10 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .mix-lobby small { font-size: .74rem; color: var(--text2); }
 .ml-goal { display: inline-flex; align-items: center; gap: 4px; color: var(--accent) !important; font-weight: 700; }
 .chip.duel-chip { background: color-mix(in srgb, var(--accent) 16%, var(--bg2)); color: var(--text); font-variant-numeric: tabular-nums; min-width: 5.5em; text-align: center; }
+
+/* Einladen aus der Gast-Warte-Lobby und der Bereit-Lobby (Nutzerwunsch:
+   „in jedem Modus jemanden einladen"). */
+.lobby-invite-btn { margin-top: 2px; }
+.ready-invite { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 2px 0 8px; }
+.ready-invite .ready-code { font-size: .82rem; font-weight: 700; color: var(--text2); }
+.ready-invite .ready-code b { font-variant-numeric: tabular-nums; letter-spacing: .12em; color: var(--text); margin-left: 4px; }

@@ -4557,8 +4557,9 @@ function canInviteToSolo() {
   // Klassische Solo-Partie ODER ein Solo-Endlos-Lauf (noch nicht coop). Beide
   // lassen sich mitten im Spiel live zu Coop umwandeln.
   const soloClassic = state.saveSlot === 'solo';
-  // Ein Mix-Lauf springt zwischen den Spielen — als Coop-Runde gibt es ihn (noch) nicht.
-  const soloEndless = state.endless.active && !state.endless.coop && !state.endless.mix;
+  // Auch ein Solo-Mix-Lauf: er wird beim Beitritt zum Coop-Mix (der Host zieht
+  // ab dann die Level, s. loadCoopMixLevel).
+  const soloEndless = state.endless.active && !state.endless.coop;
   return (soloClassic || soloEndless) && !state.isTrainingGame && !state.coop.active
     && !state.race.active && !state.team.active && state.status === 'playing';
 }
@@ -4567,9 +4568,26 @@ function canInviteToSolo() {
 // reines Coop (Race/Team/FFA haben eigene Lobby-Semantik). So verschwindet der
 // „Mitspieler einladen"-Knopf nicht mehr, sobald der erste Gast beigetreten ist.
 function canInviteMore() {
-  return state.coop.active && state.coop.role === 'host' && state.status === 'playing'
+  // Jeder Mitspieler darf einladen, nicht nur der Host (Nutzerwunsch: „jederzeit
+  // jemanden einladen") — der Beitritt läuft über den Raumcode, der Host holt den
+  // Neuen per hostRegisterPlayer/broadcastRunningInit ins laufende Spiel.
+  return state.coop.active && !!state.coop.code && state.status === 'playing'
     && !state.race.active && !state.team.active && !state.coop.raceMode && !state.coop.ffaMode
     && !state.coop.awaitingStart && state.coop.players.length < COOP_MAX_PLAYERS;
+}
+// Warte-Lobby vor dem Start (Gast-Sicht): einladen, solange noch Platz ist —
+// 1v1 fasst zwei, alle anderen Modi COOP_MAX_PLAYERS.
+function canInviteFromLobby() {
+  if (!state.coop.waitingForGuest || !state.coop.myId || !state.coop.code) return false;
+  const max = (state.coop.raceMode && !state.coop.ffaMode) ? 2 : COOP_MAX_PLAYERS;
+  return state.coop.players.length < max;
+}
+// Bereit-Lobby: nur reines Coop. In Race/Team/FFA steht das Rätsel dort schon
+// per Seed fest, ein Nachzügler käme an den Start-Event nicht mehr heran.
+function canInviteToReadyLobby() {
+  return state.coop.awaitingStart && !!state.coop.code && !state.race.active && !state.team.active
+    && !state.coop.raceMode && !state.coop.ffaMode && !state.coop.teamMode
+    && state.coop.players.length < COOP_MAX_PLAYERS;
 }
 // Der im Einladungs-Dialog angezeigte Raumcode: pre-join steckt er in soloInvite,
 // nach der Umwandlung/als Coop-Host im coop-Raum.
@@ -4580,7 +4598,7 @@ function inviteCode() { return state.soloInvite.code || state.coop.code || ''; }
 // jederzeit erreichbar (Nutzerwunsch: der Dialog darf nach dem 1. Beitritt nicht
 // verschwinden).
 function openInvite() {
-  if (state.coop.active && state.coop.role === 'host') {
+  if (state.coop.active) {
     log('coop', 'Einladungs-Dialog in laufender Coop-Runde geöffnet', { code: state.coop.code, players: state.coop.players.length });
     state.modal = 'soloInvite';
     return;
@@ -4603,7 +4621,9 @@ function inviteToSoloGame(attempt = 0) {
     code,
     name: state.settings.coopName,
     color: state.settings.coopMyColor,
-    game: gameId(),
+    // Ein Mix-Lauf öffnet einen Mix-Raum — sonst wiese joinGame den Gast ab,
+    // sobald das nächste Level ein anderes Spiel ist.
+    game: state.endless.active && state.endless.mix ? MIX_ID : gameId(),
     onOpen(id) { onSoloInviteRoomOpen(id, code); },
     onError(e) {
       if (e && e.type === 'code-taken' && attempt < 3) {
@@ -4688,6 +4708,9 @@ function completeSoloConversion() {
   // führen, Bestwert auf den Coop-Endlos-Wert umstellen. Slot bleibt 'endless'
   // (ephemer). Sonst (klassisch): Slot-Umzug in den Coop-Slot + Solo-Slot räumen.
   if (isSoloEndless) {
+    // Ein Mix-Lauf lebt ab jetzt als Coop-Mix weiter — der gerätelokale Solo-Mix-
+    // Platz wird geräumt (sonst böte die Startseite parallel „Mix fortsetzen" an).
+    if (state.endless.mix) { saveMixRun(null); state.resumeAvailableMix = null; }
     state.endless.coop = true;
     state.endless.best = state.stats.endlessCoopBest || 0;
     state.coop.lifeLossBy = state.coop.lifeLossBy || [];
@@ -4713,7 +4736,7 @@ function completeSoloConversion() {
   broadcastRunningInit();
   persistGame();
   refreshResume();
-  log('coop', 'Solo-Partie live zu Coop umgewandelt', { code: state.coop.code, elapsed: elapsedNow, gameId: state.gameId });
+  log('coop', 'Solo-Partie live zu Coop umgewandelt', { code: state.coop.code, elapsed: elapsedNow, gameId: state.gameId, mix: !!state.endless.mix });
   return true;
 }
 // Einladung zurückziehen/abräumen, solange noch niemand beigetreten ist (nach
@@ -8171,7 +8194,7 @@ const App = {
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
-      openInvitePicker, closeInvitePicker, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle, duelBars,
+      openInvitePicker, closeInvitePicker, canInviteFromLobby, canInviteToReadyLobby, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle, duelBars,
       canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       canContinueSolo, continueSoloAlone, startResumeCountdown,
       startTrainingGame, applyTrainingStep, trainingText: (step) => Board.trainingText(step),
@@ -8729,6 +8752,12 @@ const App = {
           <!-- Solange das eigene Rätsel noch generiert wird: laufender Ladebalken
                statt Start/Bereit-Knopf -- so kann niemand starten/sich bereit
                melden, bevor bei ihm wirklich ein Rätsel bereitliegt. -->
+          <!-- Reines Coop: auch in der Bereit-Lobby kann jeder noch jemanden holen
+               (der Beitretende setzt beim INIT der Runde auf und landet hier). -->
+          <div v-if="canInviteToReadyLobby()" class="ready-invite">
+            <span class="ready-code">{{ t('coop.yourCode') }} <b>{{ state.coop.code }}</b></span>
+            <button v-if="state.account.status==='in'" class="btn btn-ghost btn-sm" @click="openInvitePicker"><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteFriends') }}</button>
+          </div>
           <template v-if="state.coop.generating">
             <div class="loading-bar"><span></span></div>
           </template>
@@ -9274,6 +9303,9 @@ const App = {
           </span>
         </div>
         <p v-if="state.coop.waitingForGuest && state.coop.myId" class="coop-subtext">{{ t('coop.playersCount', { n: state.coop.players.length, max: (state.coop.raceMode && !state.coop.ffaMode) ? 2 : COOP_MAX_PLAYERS }) }}</p>
+        <!-- Auch Gäste dürfen Freunde dazuholen (Nutzerwunsch, gemeldet für
+             „Jeder gegen jeden") — nur solange der Raum nicht voll ist. -->
+        <button v-if="canInviteFromLobby()" class="btn btn-ghost btn-sm lobby-invite-btn" @click="openInvitePicker"><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteFriends') }}</button>
         <p v-if="state.coop.error" class="coop-error">{{ state.coop.error }}</p>
         <button class="btn btn-ghost" style="margin-top:4px" @click="goBack()">{{ t('common.back') }}</button>
       </div>
