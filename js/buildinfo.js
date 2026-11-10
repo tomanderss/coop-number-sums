@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.24';
-export const BUILD_HASH = '6fd1697';
+export const BUILD      = '3.25';
+export const BUILD_HASH = '8f308d5';
 
 export const CHANGELOG = [
+  {
+    "version": "3.25",
+    "date": "10.11.2026",
+    "changes": [
+      "- Einladen geht jetzt fast überall: auch als Gast, in der Warte-Lobby aller Modi (auch „Jeder gegen jeden“), in der Bereit-Lobby und im Mix"
+    ]
+  },
   {
     "version": "3.24",
     "date": "09.11.2026",
