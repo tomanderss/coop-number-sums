@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.25';
-export const BUILD_HASH = '8f308d5';
+export const BUILD      = '3.26';
+export const BUILD_HASH = '280efe6';
 
 export const CHANGELOG = [
+  {
+    "version": "3.26",
+    "date": "10.11.2026",
+    "changes": [
+      "- Gem Hunt: automatisch gesetzte Kreuze sind leicht anders gefärbt als die eigenen; beide Farben einstellbar"
+    ]
+  },
   {
     "version": "3.25",
     "date": "10.11.2026",
