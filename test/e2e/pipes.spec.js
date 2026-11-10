@@ -295,7 +295,15 @@ test('Leistung: eine Drehung zeichnet nur wenige Stücke neu, nur nasse Arme ani
   expect(await rotEl.evaluate((el) => el.getAnimations().length)).toBe(1);
   await page.waitForTimeout(400);
   expect(await rotEl.evaluate((el) => [el.getAnimations().length, getComputedStyle(el).transform])).toEqual([0, 'none']);
-  // Ein Zufluss-Arm läuft rückwärts (Punkte zur Mitte).
+  // Ein Zufluss-Arm läuft rückwärts (Punkte zur Mitte). Damit sicher ein Stück
+  // hinter der Quelle Wasser führt, Quelle und ihre Nachbarn richtig drehen —
+  // im Zufallsrätsel kann anfangs sonst nur die Quelle selbst nass sein.
+  await page.evaluate(() => {
+    const c = window.__cns, p = c.state.puzzle, n = p.cols, s = p.source;
+    const near = [s, s - n, s + n, s % n ? s - 1 : -1, (s + 1) % n ? s + 1 : -1].filter((j) => j >= 0 && j < p.tiles.length);
+    for (const j of near) c.setPipeRot(j, p.solRot[j] + 4 * (1 + Math.floor((c.state.pipeRot[j] || 0) / 4)));
+  });
+  await page.waitForTimeout(150);
   const dirs = await page.evaluate(() => [...document.querySelectorAll('.pp-tile.wet .pp-arm.inn i')].slice(0, 3).map((e) => getComputedStyle(e).animationDirection));
   expect(dirs.length).toBeGreaterThan(0);
   expect(new Set(dirs)).toEqual(new Set(['reverse']));
