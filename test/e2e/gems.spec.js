@@ -197,3 +197,39 @@ test('Kreuze automatisch: ein Stein kreuzt seine Zone, Wegnehmen räumt nur dies
   await page.evaluate(() => { window.__cns.state.screen = 'settings'; window.__cns.state.settingsTab = 'spiel'; });
   await expect(page.locator('.gem-autocross')).toBeVisible();
 });
+
+// Nutzerwunsch: automatisch gesetzte Kreuze sind leicht anders gefärbt als die
+// eigenen — dezent, aber sichtbar — und beide Farben sind einstellbar.
+test('Kreuz-Farben: automatische Kreuze leicht anders, beide einstellbar, auch im Coop erkennbar', async ({ page }) => {
+  await gotoApp(page);
+  await startGame(page, 'mittel');
+  await page.evaluate(() => window.__cns.setSetting('gemAutoCross', true));
+  const n = await page.evaluate(() => window.__cns.state.puzzle.rows);
+  await page.evaluate((n) => window.__cns.tapGem(n * n - 1, 'cross'), n);   // eigenes Kreuz unten rechts
+  await page.evaluate(() => window.__cns.tapGem(0, 'gem'));                 // Stein oben links → Auto-Kreuze
+  const stroke = (sel) => page.locator(sel).first().locator('path').evaluate((el) => getComputedStyle(el).stroke);
+  await expect(page.locator('.gm-mark.cross.auto').first()).toBeVisible();
+  await expect(page.locator('.gm-mark.cross:not(.auto)')).toHaveCount(1);
+  const own = await stroke('.gm-mark.cross:not(.auto)'), auto = await stroke('.gm-mark.cross.auto');
+  expect(own).not.toBe(auto);
+  // Standard: dieselbe Farbfamilie, nur blasser (keine fremde Farbe).
+  await expect(page.locator('.gm-board')).toHaveClass(/xo-cage/);
+  await expect(page.locator('.gm-board')).toHaveClass(/xa-soft/);
+  // Einstellbar: Auto-Kreuze in Gold, eigene bleiben unverändert.
+  await page.evaluate(() => window.__cns.setSetting('gemAutoCrossColor', 'gold'));
+  await expect(page.locator('.gm-board')).toHaveClass(/xa-gold/);
+  expect(await stroke('.gm-mark.cross.auto')).not.toBe(auto);
+  expect(await stroke('.gm-mark.cross:not(.auto)')).toBe(own);
+  // Im Coop geht die Kennung mit: ein Auto-Kreuz des Partners bleibt „auto".
+  await page.evaluate((n) => {
+    const s = window.__cns.state;
+    s.coop.active = true; s.coop.role = 'guest'; s.coop.myId = 'me';
+    s.coop.players = [{ id: 'host', name: 'H', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' }];
+    window.__cns.handleCoopMsg({ type: 'move', op: 'cells', list: [[n * n - 2, 1, 1], [n * n - 3, 1]], from: 'host' }, '-Z0000000000000009');
+  }, n);
+  expect(await page.evaluate((n) => [window.__cns.state.gemAuto[n * n - 2], window.__cns.state.gemAuto[n * n - 3]], n)).toEqual([true, false]);
+  // Die Auswahl steht unter Einstellungen ▸ Spiel.
+  await page.evaluate(() => { const s = window.__cns.state; s.coop.active = false; s.screen = 'settings'; s.settingsTab = 'spiel'; });
+  await expect(page.locator('.gem-crosscolor-own .gx-sw')).toHaveCount(6);
+  await expect(page.locator('.gem-crosscolor-auto .gx-sw.active')).toHaveClass(/c-gold/);
+});

@@ -1,0 +1,1 @@
+- Gem Hunt: automatisch gesetzte Kreuze sind leicht anders gefärbt als die eigenen; beide Farben einstellbar

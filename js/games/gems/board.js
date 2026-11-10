@@ -165,7 +165,9 @@ export function setCells(changes, { force = false, send = true, auto = null } = 
 }
 function sendCells(list) {
   if (!isMultiplayer() || !list.length) return;
-  const key = coopSend({ type: Coop.MSG.MOVE, op: 'cells', list: list.map(([i, v]) => [i, v]), from: state.coop.myId });
+  // Drittes Feld = 1 bei einem automatisch gesetzten Kreuz: so sieht auch der
+  // Partner, aus welcher Kategorie es kommt (alte Clients ignorieren es).
+  const key = coopSend({ type: Coop.MSG.MOVE, op: 'cells', list: list.map(([i, v]) => (v === CROSS && state.gemAuto[i] ? [i, v, 1] : [i, v])), from: state.coop.myId });
   if (key) { const keys = { ...state.gemKeys }; for (const [i] of list) keys[i] = key; state.gemKeys = keys; }
 }
 const tool = () => (state.gemTool === 'cross' ? 'cross' : 'gem');
@@ -331,7 +333,7 @@ const MarkLayer = {
       const p = state.puzzle;
       if (!p) return [];
       const out = [];
-      state.gemCells.forEach((v, i) => { if (v) out.push({ i, v, k: p.regions[i], x: i % p.rows, y: Math.floor(i / p.rows) }); });
+      state.gemCells.forEach((v, i) => { if (v) out.push({ i, v, k: p.regions[i], x: i % p.rows, y: Math.floor(i / p.rows), auto: v === CROSS && !!state.gemAuto[i] }); });
       return out;
     });
     const crosses = computed(() => marks.value.filter((m) => m.v !== GEM));
@@ -353,7 +355,7 @@ const MarkLayer = {
               <svg class="gm-dimmer" :viewBox="'0 0 ' + n + ' ' + n" preserveAspectRatio="none">
                 <g clip-path="url(#gm-clip)"><rect v-for="m in crosses" :key="m.i" class="gm-dim" :x="m.x" :y="m.y" width="1" height="1"/></g>
               </svg>
-              <span v-for="m in marks" :key="m.i + '-' + m.v" class="gm-mark" :class="m.v === GEM ? ['gem', { bad: bad.has(m.i) }] : 'cross'" :style="style(m)">
+              <span v-for="m in marks" :key="m.i + '-' + m.v" class="gm-mark" :class="m.v === GEM ? ['gem', { bad: bad.has(m.i) }] : ['cross', { auto: m.auto }]" :style="style(m)">
                 <i v-if="m.v === GEM" v-html="GEM_SVG"></i>
                 <i v-else v-html="CROSS_SVG"></i>
               </span>
@@ -411,16 +413,24 @@ export const GemTools = {
   `,
 };
 
+// Farben der Kreuze (Nutzerwunsch): eigene und automatisch gesetzte leicht
+// unterscheidbar, beide einstellbar. Die Werte selbst stehen in gems.css.
+export const CROSS_COLORS = ['cage', 'soft', 'gold', 'mint', 'sky', 'rose'];
+const crossColor = (v, fb) => (CROSS_COLORS.includes(v) ? v : fb);
+function crossColorClasses() {
+  const st = state.settings || {};
+  return ['xo-' + crossColor(st.gemCrossColor, 'cage'), 'xa-' + crossColor(st.gemAutoCrossColor, 'soft')];
+}
 export const BoardGrid = {
   components: { RegionLayer, MarkLayer, FocusLayer, LiveLayer },
   setup() {
     const t0 = performance.now();
     onMounted(() => log('perf', 'Brett aufgebaut', { game: 'gems', cells: state.puzzle ? state.puzzle.rows * state.puzzle.cols : 0, tookMs: Math.round(performance.now() - t0) }));
     onBeforeUnmount(() => { drag = null; pan = null; pointers.clear(); });
-    return { state, gridStyle, boardFontClass, onDown, onMove, onUp, onCancel, t };
+    return { state, gridStyle, boardFontClass, crossColorClasses, onDown, onMove, onUp, onCancel, t };
   },
   template: `
-          <div class="board gm-board" :class="[boardFontClass(), { 'full-wrong': state.gemsFullWrong, shake: state.gemsShake, done: state.status === 'won' }]" :style="gridStyle"
+          <div class="board gm-board" :class="[boardFontClass(), crossColorClasses(), { 'full-wrong': state.gemsFullWrong, shake: state.gemsShake, done: state.status === 'won' }]" :style="gridStyle"
                role="application" :aria-label="t('gem.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
                @touchstart.prevent
@@ -488,13 +498,14 @@ export function applyRemoteMove(msg, eventKey = null) {
   const list = arr(msg.list).map((x) => arr(x));
   const cells = state.gemCells.slice(), by = state.gemBy.slice(), keys = { ...state.gemKeys }, autoArr = state.gemAuto.slice();
   let changed = 0, gemAdded = false;
-  for (const [i, v] of list) {
+  for (const [i, v, a] of list) {
     if (!(i >= 0 && i < cells.length) || ![EMPTY, CROSS, GEM].includes(v)) continue;
     if (eventKey && keys[i] && eventKey < keys[i]) continue;   // dieses Feld hat schon einen späteren Zug
     if (eventKey) keys[i] = eventKey;
-    if (cells[i] === v) continue;
+    const isAuto = v === CROSS && a === 1;
+    if (cells[i] === v && autoArr[i] === isAuto) continue;
     if (v === GEM) gemAdded = true;
-    cells[i] = v; by[i] = v === GEM ? (msg.from || '') : ''; autoArr[i] = false; changed++;
+    cells[i] = v; by[i] = v === GEM ? (msg.from || '') : ''; autoArr[i] = isAuto; changed++;
   }
   state.gemKeys = keys;
   if (!changed) return;

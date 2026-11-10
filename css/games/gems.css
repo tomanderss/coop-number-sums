@@ -38,8 +38,34 @@
 :root[data-theme="light"] .gm-dim { fill: rgb(255 255 255 / var(--gm-dim)); }
 .gm-mark.cross i { display: block; width: 46%; height: 46%; }
 .gm-mark.cross svg { display: block; width: 100%; height: 100%; }
-.gm-mark.cross path { fill: none; stroke: hsl(var(--gh) 40% 82% / .75); stroke-width: 2.6; stroke-linecap: round; }
-:root[data-theme="light"] .gm-mark.cross path { stroke: hsl(var(--gh) 45% 30% / .6); }
+/* Kreuz-Farben (einstellbar, s. CROSS_COLORS in board.js): eigene Kreuze `xo-*`,
+   automatisch von einem Stein gesetzte `xa-*`. Die Palette steht am Zeichen,
+   weil „Käfigfarbe" und „Blass" am Farbton des Käfigs (--gh) hängen. Standard:
+   eigene = Käfigfarbe, automatische = blass (nur leicht anders, ruhig). */
+.gm-mark.cross {
+  --gx-cage: hsl(var(--gh) 40% 82% / .75);
+  --gx-soft: hsl(var(--gh) 18% 90% / .45);
+  --gx-gold: hsl(42 80% 70% / .8);
+  --gx-mint: hsl(158 55% 70% / .8);
+  --gx-sky:  hsl(205 75% 76% / .8);
+  --gx-rose: hsl(342 70% 78% / .8);
+  --gx: var(--gx-cage);
+}
+:root[data-theme="light"] .gm-mark.cross {
+  --gx-cage: hsl(var(--gh) 45% 30% / .6);
+  --gx-soft: hsl(var(--gh) 20% 42% / .36);
+  --gx-gold: hsl(36 85% 36% / .75);
+  --gx-mint: hsl(160 60% 28% / .7);
+  --gx-sky:  hsl(208 70% 38% / .7);
+  --gx-rose: hsl(342 60% 42% / .7);
+}
+.gm-board.xo-cage .gm-mark.cross:not(.auto), .gm-board.xa-cage .gm-mark.cross.auto { --gx: var(--gx-cage); }
+.gm-board.xo-soft .gm-mark.cross:not(.auto), .gm-board.xa-soft .gm-mark.cross.auto { --gx: var(--gx-soft); }
+.gm-board.xo-gold .gm-mark.cross:not(.auto), .gm-board.xa-gold .gm-mark.cross.auto { --gx: var(--gx-gold); }
+.gm-board.xo-mint .gm-mark.cross:not(.auto), .gm-board.xa-mint .gm-mark.cross.auto { --gx: var(--gx-mint); }
+.gm-board.xo-sky .gm-mark.cross:not(.auto),  .gm-board.xa-sky .gm-mark.cross.auto  { --gx: var(--gx-sky); }
+.gm-board.xo-rose .gm-mark.cross:not(.auto), .gm-board.xa-rose .gm-mark.cross.auto { --gx: var(--gx-rose); }
+.gm-mark.cross path { fill: none; stroke: var(--gx); stroke-width: 2.6; stroke-linecap: round; }
 
 /* Edelstein: Brillant in der Käfigfarbe, weicher Lichthof dahinter, im Coop ein
    Ring in der Farbe des Spielers, der ihn gesetzt hat. */
@@ -97,3 +123,17 @@
 }
 
 .history-board.gm-board { margin: 0 auto; }
+
+/* Kreuz-Farbwahl in den Einstellungen: kleine Muster-Kreuze auf dunklem Grund. */
+.gx-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.gx-row > span { font-size: .86rem; font-weight: 700; color: var(--text2); }
+.gx-swatches { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.gx-sw { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: #1d2433;
+  box-shadow: inset 0 0 0 1px var(--hairline); transition: box-shadow .15s, transform .12s; --gh: 210; }
+.gx-sw:active { transform: scale(.92); }
+.gx-sw.active { box-shadow: inset 0 0 0 2px var(--accent); }
+.gx-sw svg { width: 18px; height: 18px; }
+.gx-sw path { fill: none; stroke: var(--gx); stroke-width: 2.6; stroke-linecap: round; }
+.gx-sw.c-cage { --gx: hsl(var(--gh) 40% 82% / .75); } .gx-sw.c-soft { --gx: hsl(var(--gh) 18% 90% / .45); }
+.gx-sw.c-gold { --gx: hsl(42 80% 70% / .8); } .gx-sw.c-mint { --gx: hsl(158 55% 70% / .8); }
+.gx-sw.c-sky { --gx: hsl(205 75% 76% / .8); } .gx-sw.c-rose { --gx: hsl(342 70% 78% / .8); }

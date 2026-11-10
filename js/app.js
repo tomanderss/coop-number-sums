@@ -106,6 +106,9 @@ if (splashVersion) splashVersion.textContent = `v${BUILD}`;
 // Sentinel für state.markedBy außerhalb einer aktiven Coop-/Team-/Wettkampf-
 // Lobby (state.coop.myId ist dort null, da keine Firebase-Identität nötig ist).
 const LOCAL_PLAYER_ID = 'local';
+// Gem Hunt: Farbauswahl der Kreuze (Werte und Optik in css/games/gems.css).
+const GEM_CROSS_COLORS = ['cage', 'soft', 'gold', 'mint', 'sky', 'rose'];
+const GEM_CROSS_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>';
 
 // Home-Logo als Data-URI eingebettet: das Home-Icon wird beim Wechsel ins
 // Hauptmenü (v-if remount) NEU gemountet; als externe Datei entstand dabei ein
@@ -8194,7 +8197,7 @@ const App = {
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
-      openInvitePicker, closeInvitePicker, canInviteFromLobby, canInviteToReadyLobby, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle, duelBars,
+      GEM_CROSS_COLORS, GEM_CROSS_SVG, openInvitePicker, closeInvitePicker, canInviteFromLobby, canInviteToReadyLobby, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle, duelBars,
       canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       canContinueSolo, continueSoloAlone, startResumeCountdown,
       startTrainingGame, applyTrainingStep, trainingText: (step) => Board.trainingText(step),
@@ -9477,6 +9480,22 @@ const App = {
             <span>{{ t('gem.autoCross') }}</span><span class="switch" :class="{on:state.settings.gemAutoCross}"><i></i></span>
           </div>
           <small class="set-hint">{{ t('gem.autoCrossHint') }}</small>
+          <!-- Kreuz-Farben: eigene und automatische leicht unterscheidbar (Nutzerwunsch). -->
+          <div class="gx-row gem-crosscolor-own">
+            <span>{{ t('gem.crossOwn') }}</span>
+            <div class="gx-swatches">
+              <button v-for="c in GEM_CROSS_COLORS" :key="c" class="gx-sw" :class="['c-' + c, { active: (state.settings.gemCrossColor || 'cage') === c }]"
+                      :title="t('gem.xc.' + c)" :aria-label="t('gem.crossOwn') + ': ' + t('gem.xc.' + c)" @click="setSetting('gemCrossColor', c)" v-html="GEM_CROSS_SVG"></button>
+            </div>
+          </div>
+          <div v-if="state.settings.gemAutoCross" class="gx-row gem-crosscolor-auto">
+            <span>{{ t('gem.crossAuto') }}</span>
+            <div class="gx-swatches">
+              <button v-for="c in GEM_CROSS_COLORS" :key="c" class="gx-sw" :class="['c-' + c, { active: (state.settings.gemAutoCrossColor || 'soft') === c }]"
+                      :title="t('gem.xc.' + c)" :aria-label="t('gem.crossAuto') + ': ' + t('gem.xc.' + c)" @click="setSetting('gemAutoCrossColor', c)" v-html="GEM_CROSS_SVG"></button>
+            </div>
+          </div>
+          <small v-if="state.settings.gemAutoCross" class="set-hint">{{ t('gem.crossColorsHint') }}</small>
           </template>
           </div>
         </div>
