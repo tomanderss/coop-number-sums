@@ -1,1 +1,0 @@
-- Gem Hunt: eigene und automatische Kreuze sind jetzt deutlich unterscheidbar (Größe, Strichstärke, kräftigere Farben)
