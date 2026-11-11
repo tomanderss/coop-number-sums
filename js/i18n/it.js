@@ -298,10 +298,11 @@ export default {
     soundOn: 'Audio',
     secDesktop: "Desktop",
     desktop: {
+      clear: 'Rimuovi',
+      choose: 'Scegli tasto',
       toolKey: 'Tasto: cambia strumento',
       hint: "Passa tra cerchiare e gomma sul desktop.",
       press: 'Premi un tasto …',
-      off: 'Disattivato',
       keySpace: 'Spazio',
     },
     profile: "Profilo",

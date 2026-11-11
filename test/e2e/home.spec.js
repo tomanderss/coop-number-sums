@@ -140,3 +140,21 @@ test.describe('home screen', () => {
     expect(Math.abs(box1.width - box2.width)).toBeLessThan(2);
   });
 });
+
+// Gemeldet: bei vielen Einstellungen wurde die Reiterleiste überdeckt.
+test('Einstellungen: die Reiterleiste bleibt beim Scrollen sichtbar', async ({ page }) => {
+  await gotoApp(page);
+  await page.locator('.home-settings-btn').click();
+  await page.locator('.screen.settings .admin-acc-head').nth(2).click();   // Ton = lange Karte
+  const before = await page.locator('.settings-tabs').boundingBox();
+  await page.locator('.settings-body').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await page.waitForTimeout(100);
+  const after = await page.locator('.settings-tabs').boundingBox();
+  expect(after.height).toBeGreaterThan(36);
+  expect(Math.abs(after.y - before.y)).toBeLessThan(1);
+  // Oben liegt die Leiste, nicht eine Einstellung.
+  const top = await page.evaluate(() => { const r = document.querySelector('.st-tab.st-general').getBoundingClientRect(); return !!document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2).closest('.st-tab'); });
+  expect(top).toBe(true);
+  await page.locator('.st-tab[data-game="numbersums"]').click();
+  await expect(page.locator('.desktop-key-cap')).toBeVisible();
+});

@@ -3604,7 +3604,11 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .gx-sw.c-sky { --gx: hsl(205 100% 66%); } .gx-sw.c-rose { --gx: hsl(0 100% 64%); }
 
 /* ── Einstellungen: Reiter „Allgemein" + je Spiel (Nutzerwunsch) ── */
-.settings-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 10px; margin: 0 0 4px; scrollbar-width: none; }
+/* Die Reiterleiste bleibt IMMER sichtbar (gemeldet: bei vielen Einstellungen
+   wurde sie überdeckt): sie schrumpft nie (flex 0 0 auto — als Flex-Kind des
+   scrollenden .settings-body schrumpfte sie sonst auf null) und klebt oben. */
+.settings-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 10px; margin: 0 0 4px; scrollbar-width: none;
+  flex: 0 0 auto; position: sticky; top: 0; z-index: 3; background: var(--bg); }
 .settings-tabs::-webkit-scrollbar { display: none; }
 .st-tab { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; min-width: 40px; padding: 0 10px;
   border-radius: 12px; background: var(--bg2); color: var(--text2); font-weight: 800; font-size: .82rem; box-shadow: inset 0 0 0 1px var(--hairline);
@@ -3612,7 +3616,7 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .st-tab.st-game { padding: 0 6px; }
 .st-tab img { width: 28px; height: 28px; border-radius: 7px; display: block; }
 .st-tab.on { box-shadow: inset 0 0 0 2px var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 10%, var(--bg2)); }
-.set-game-panel { display: flex; flex-direction: column; gap: 4px; }
+.set-game-panel { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
 .set-game-head { display: flex; align-items: center; gap: 10px; padding: 4px 2px 6px; }
 .set-game-head img { width: 36px; height: 36px; border-radius: 9px; }
 .set-game-head b { font-size: 1rem; }

@@ -298,10 +298,11 @@ export default {
     soundOn: 'サウンド',
     secDesktop: "デスクトップ",
     desktop: {
+      clear: '解除',
+      choose: 'キーを選択',
       toolKey: 'キー: ツールを切り替え',
       hint: "デスクトップで囲みと消しゴムを切り替えます。",
       press: 'キーを押してください …',
-      off: 'オフ',
       keySpace: 'スペース',
     },
     profile: "プロフィール",

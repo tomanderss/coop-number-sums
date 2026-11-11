@@ -298,10 +298,11 @@ export default {
     soundOn: 'Son',
     secDesktop: "Bureau",
     desktop: {
+      clear: 'Retirer',
+      choose: 'Choisir une touche',
       toolKey: 'Touche : changer d’outil',
       hint: "Bascule entre entourer et gomme sur ordinateur.",
       press: 'Appuyez sur une touche …',
-      off: 'Désactivé',
       keySpace: 'Espace',
     },
     profile: "Profil",

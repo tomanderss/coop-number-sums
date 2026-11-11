@@ -298,10 +298,11 @@ export default {
     soundOn: '사운드',
     secDesktop: "데스크톱",
     desktop: {
+      clear: '해제',
+      choose: '키 선택',
       toolKey: '키: 도구 전환',
       hint: "데스크톱에서 동그라미와 지우개를 전환합니다.",
       press: '키를 누르세요 …',
-      off: '끔',
       keySpace: '스페이스',
     },
     profile: "프로필",

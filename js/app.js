@@ -9868,7 +9868,7 @@ const App = {
                   {{ state.desktopKeyCapture ? tg('settings.desktop.press') : desktopKeyLabel(state.settings.desktopToolKey) }}
                 </button>
                 <button v-if="state.desktopKeyCapture" class="btn-link" @click="cancelDesktopKeyCapture">{{ tg('common.cancel') }}</button>
-                <button v-else-if="state.settings.desktopToolKey" class="btn-link" @click="clearDesktopToolKey">{{ tg('settings.desktop.off') }}</button>
+                <button v-else-if="state.settings.desktopToolKey" class="btn-link" @click="clearDesktopToolKey">{{ tg('settings.desktop.clear') }}</button>
               </div>
               <small class="set-hint">{{ tg('settings.desktop.hint') }}</small>
             </div>
@@ -10866,7 +10866,7 @@ function toggleTool() {
 function normKey(k) { return typeof k === 'string' && k.length === 1 ? k.toLowerCase() : k; }
 // Menschenlesbares Label einer Taste (für die Anzeige in den Einstellungen).
 function desktopKeyLabel(k) {
-  if (!k) return t('settings.desktop.off');
+  if (!k) return t('settings.desktop.choose');
   if (k === ' ' || k === 'Spacebar') return t('settings.desktop.keySpace');
   if (k.length === 1) return k.toUpperCase();
   return k; // Tab, Enter, ArrowLeft, …
