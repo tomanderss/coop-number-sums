@@ -413,11 +413,18 @@ function loadRawStreak() {
 // ist der Streak gerissen. justLost wird genau einmal pro Riss true (per
 // lossNoticeShown persistiert), damit der Verlust-Hinweis beim App-Start nicht
 // bei jedem Öffnen erneut erscheint.
-export function loadStreak() {
+// `commit:false` = nur ANSEHEN, nichts festschreiben: angemeldet steht beim Start
+// noch der Stand DIESES Geräts im Speicher — wurde auf einem anderen Gerät
+// gestern gespielt, sähe die Serie hier fälschlich gerissen aus (gemeldet: die
+// Meldung kam beim Start und war nach dem Neuladen weg). Dann wird weder der
+// Zähler genullt noch die Meldung als gezeigt vermerkt; die Schale prüft nach
+// dem Cloud-Abgleich noch einmal mit commit (Standard).
+export function loadStreak({ commit = true } = {}) {
   const d = loadRawStreak();
   const today = todayDateStr();
   let justLost = false;
   if (d.currentStreak > 0 && d.lastCompletedDate !== today && !isNextCalendarDay(d.lastCompletedDate, today)) {
+    if (!commit) return { ...d, currentStreak: 0, justLost: false, lossPending: !d.lossNoticeShown };
     d.currentStreak = 0;
     if (!d.lossNoticeShown) {
       d.lossNoticeShown = true;

@@ -14,7 +14,7 @@ const {
   normalizeUsername, isValidUsername, isValidEmail, passwordIssue, usernameKey, errKey,
   isSignedIn, lastSyncAt, decideSync, isDivergent, friendActivityRank, sortFriends, sortLeaderboard,
   presenceOnline, PRESENCE_STALE_MS, mergeSnapshots, mergeStreak, walletBalanceDiffers,
-  mergeSettingsCloudWins, activeGamesConflict, uidToName,
+  mergeSettingsCloudWins, activeGamesConflict, uidToName, walletChoice,
 } = await import('../../js/account.js');
 
 describe('account.isDivergent (echter Offline-vs-Cloud-Konflikt)', () => {
@@ -546,5 +546,42 @@ describe('account.planCloudMcMigration', async () => {
   test('Freunde: nur die, die hier noch fehlen', () => {
     const p = planCloudMcMigration({ friends: { f1: { username: 'x', since: 1 }, f2: { username: 'y', since: 2 } } }, { friends: { f1: { username: 'x' } } });
     assert.deepEqual(Object.keys(p.friends), ['f2']);
+  });
+});
+
+describe('account.walletChoice (fragen nur, wenn BEIDE Seiten einen Vorteil haben)', () => {
+  const e = (id, amount, reason = 'win') => ({ id, ts: 1, amount, reason });
+  test('gleicher Saldo → nichts zu entscheiden', () => {
+    assert.equal(walletChoice({ wallet: { balance: 50 } }, { wallet: { balance: 50 } }), 'none');
+  });
+  test('Cloud kennt alles von hier (anderes Gerät hat gewonnen) → Cloud, ohne Frage', () => {
+    const local = { wallet: { balance: 100 }, walletLog: [e('a', 100)] };
+    const cloud = { wallet: { balance: 300 }, walletLog: [e('b', 200), e('a', 100)], stats: { played: 5, won: 5 } };
+    assert.equal(walletChoice(local, cloud), 'cloud');
+  });
+  test('Kauf auf dem anderen Gerät (Cloud hat weniger Gold) → trotzdem Cloud', () => {
+    const local = { wallet: { balance: 900 }, walletLog: [e('a', 900)] };
+    const cloud = { wallet: { balance: 300 }, walletLog: [e('buy', -600, 'shop'), e('a', 900)], inventory: { x: 1 } };
+    assert.equal(walletChoice(local, cloud), 'cloud');
+  });
+  test('Gutschriften, die dieses Gerät nur nachgebucht hat (gift), zählen nicht als eigene Aktivität', () => {
+    const local = { wallet: { balance: 500 }, walletLog: [e('g', 400, 'gift'), e('a', 100)] };
+    const cloud = { wallet: { balance: 450 }, walletLog: [e('a', 100), e('b', 350)] };
+    assert.equal(walletChoice(local, cloud), 'cloud');
+  });
+  test('hier offline gespielt, Cloud kennt nichts Neues → lokal (sonst ginge Geld verloren)', () => {
+    const local = { wallet: { balance: 400 }, walletLog: [e('n', 300), e('a', 100)], stats: { played: 3, won: 3 } };
+    const cloud = { wallet: { balance: 100 }, walletLog: [e('a', 100)] };
+    assert.equal(walletChoice(local, cloud), 'local');
+  });
+  test('Cloud 3 Siege mehr, lokal viel mehr Gold, beide mit eigenen Buchungen → fragen', () => {
+    const local = { wallet: { balance: 10500 }, walletLog: [e('l', 10000, 'mission'), e('a', 500)], stats: { played: 10, won: 10 } };
+    const cloud = { wallet: { balance: 800 }, walletLog: [e('c', 300), e('a', 500)], stats: { played: 13, won: 13 } };
+    assert.equal(walletChoice(local, cloud), 'ask');
+  });
+  test('beide mit eigenen Buchungen, aber eine Seite liegt überall vorn → diese Seite, ohne Frage', () => {
+    const local = { wallet: { balance: 200 }, walletLog: [e('l', 50), e('a', 100)], stats: { played: 2, won: 2 } };
+    const cloud = { wallet: { balance: 900 }, walletLog: [e('c', 800), e('a', 100)], stats: { played: 9, won: 9 } };
+    assert.equal(walletChoice(local, cloud), 'cloud');
   });
 });

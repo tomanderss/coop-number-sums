@@ -1,0 +1,2 @@
+- Abgleich mit der Cloud fragt nur noch, wenn beide Seiten etwas haben, was der anderen fehlt – sonst gilt automatisch der aktuelle Stand
+- Keine falsche „Serie gerissen“-Meldung mehr beim Start auf einem zweiten Gerät

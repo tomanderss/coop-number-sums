@@ -80,6 +80,44 @@ const nz = (v) => Number(v) || 0;
 export function walletBalanceDiffers(a, b) {
   return nz(a && a.wallet && a.wallet.balance) !== nz(b && b.wallet && b.wallet.balance);
 }
+// ── Welches GUTHABEN gilt beim Abgleich? (Nutzerwunsch: fragen NUR, wenn beide
+// Seiten etwas haben, was der anderen fehlt — z.B. Cloud 3 Siege mehr, lokal
+// 10 000 Gold mehr. Sonst gewinnt die Cloud, sie ist geräteübergreifend aktuell.)
+// Vorher fragte JEDER abweichende Saldo — also auch nach jedem Sieg auf dem
+// anderen Gerät, sobald dieses Gerät mit veraltetem Stand startete.
+// Entscheidend ist der GELDVERLAUF (synct mit, Einträge haben eine id):
+//  • hat dieses Gerät keine Buchung, die die Cloud nicht kennt → Cloud (sie
+//    weiß alles, was hier passiert ist; der Unterschied stammt von woanders —
+//    Siege ODER Käufe auf einem anderen Gerät)
+//  • kennt die Cloud keine Buchung, die hier fehlt → lokal (hier wurde z.B.
+//    offline weitergespielt; die Cloud zu nehmen, löschte dieses Geld)
+//  • beide haben eigene Buchungen → nur fragen, wenn BEIDE einen Vorteil haben
+//    (mehr Gold auf der einen, mehr Spiele/Inventar auf der anderen Seite).
+// 'gift'/'adminRevoke' sind Nachbuchungen von CLOUD-Änderungen auf diesem Gerät
+// und zählen nicht als eigene Aktivität. Rein, unit-getestet.
+const LOG_ECHO = new Set(['gift', 'adminRevoke']);
+const logKey = (e) => e.id || `${e.ts}|${e.amount}|${e.reason || ''}`;
+function progressScore(s) {
+  const st = (s && s.stats) || {};
+  const inv = (s && s.inventory) || {};
+  const done = (s && s.completedGames) || {};
+  return nz(st.played) + nz(st.won) + Object.keys(inv).length + (Array.isArray(done) ? done.length : Object.keys(done).length);
+}
+export function walletChoice(local = {}, cloud = {}) {
+  const lb = nz(local && local.wallet && local.wallet.balance), cb = nz(cloud && cloud.wallet && cloud.wallet.balance);
+  if (lb === cb) return 'none';
+  const lLog = (local && Array.isArray(local.walletLog)) ? local.walletLog : [];
+  const cLog = (cloud && Array.isArray(cloud.walletLog)) ? cloud.walletLog : [];
+  const cKeys = new Set(cLog.filter(Boolean).map(logKey)), lKeys = new Set(lLog.filter(Boolean).map(logKey));
+  const localOnly = lLog.filter((e) => e && typeof e.amount === 'number' && !LOG_ECHO.has(e.reason) && !cKeys.has(logKey(e)));
+  const cloudOnly = cLog.filter((e) => e && typeof e.amount === 'number' && !LOG_ECHO.has(e.reason) && !lKeys.has(logKey(e)));
+  if (!localOnly.length) return 'cloud';
+  if (!cloudOnly.length) return 'local';
+  const lp = progressScore(local), cp = progressScore(cloud);
+  const localAdv = lb > cb || lp > cp, cloudAdv = cb > lb || cp > lp;
+  if (localAdv && cloudAdv) return 'ask';
+  return localAdv ? 'local' : 'cloud';
+}
 // Liegen in DEMSELBEN Aktivspiel-Slot zwei WIRKLICH VERSCHIEDENE offene Partien
 // (unterschiedliche gameId) auf beiden Seiten? Das ist der Fall, den der Nutzer
 // selbst entscheiden muss: offline weitergespielt, nie synchronisiert — dann
@@ -974,6 +1012,25 @@ export function isSignedIn() { return !!loadProfile().accountId; }
 export function lastSyncAt() { return loadLastSync(); }
 function stampSynced() { const ts = Date.now(); saveLastSync(ts); return ts; }
 
+// Zwei WIRKLICH verschiedene offene Partien im selben Slot: die Cloud-Partie
+// gilt (sie ist geräteübergreifend die zuletzt gesyncte), die lokale wandert in
+// die Bibliothek, damit sie über „Weitere Spielstände" fortsetzbar bleibt.
+// Liefert, ob es einen solchen Konflikt gab.
+function keepCloudGames(merged, local = {}, cloud = {}) {
+  let hit = false;
+  for (const [k, kind] of [['activeGame', 'solo'], ['activeGameEndless', 'endless'], ['activeGameCoop', null]]) {
+    const l = local[k], c = cloud && cloud[k];
+    if (!l || !c || !(l.gameId || '') || !(c.gameId || '') || l.gameId === c.gameId) continue;
+    hit = true;
+    merged[k] = c;
+    if (kind && !l.pending) {
+      const id = (kind === 'endless' && l.endless && l.endless.runId) || l.gameId;
+      merged.saves = mergeSaves(merged.saves || [], [{ ...l, id, kind, ts: l.ts || Date.now() }], merged.savesGone || {});
+    }
+  }
+  return hit;
+}
+
 // ── Abgleich beim Start: entscheidet git-artig lokal vs. Cloud. Bei echter
 // Divergenz gewinnt IMMER die Cloud (decideSync liefert nie mehr 'conflict'),
 // es gibt also keinen Auswahldialog mehr.
@@ -1008,20 +1065,26 @@ export async function reconcile() {
       //  • zwei verschiedene offene Partien (offline weitergespielt, nie gesynct)
       // Alles andere (Einstellungen: Cloud gewinnt; Fortschritt/Inventar: Union/Max)
       // wird weiterhin still und verlustfrei zusammengeführt.
-      const walletDiff = walletBalanceDiffers(localData, snap);
-      const gameDiff = activeGamesConflict(localData, snap);
-      if (walletDiff || gameDiff) {
-        const reason = walletDiff && gameDiff ? 'both' : (walletDiff ? 'wallet' : 'game');
-        log('account', 'reconcile', { decision: 'conflict', reason });
-        return { decision: 'conflict', reason, cloud: snap, localData, cloudTs: (snap && snap.ts) || 0, localTs: dataRev() };
+      // Gefragt wird nur noch, wenn BEIDE Seiten beim Guthaben-Vergleich einen
+      // Vorteil haben (walletChoice). Zwei verschiedene offene Partien fragen
+      // nicht mehr: die Cloud-Partie gilt, die lokale bleibt in der Bibliothek
+      // („Weitere Spielstände") und als Sicherheitskopie erhalten.
+      const pick = walletChoice(localData, snap);
+      if (pick === 'ask') {
+        log('account', 'reconcile', { decision: 'conflict', reason: 'wallet' });
+        return { decision: 'conflict', reason: 'wallet', cloud: snap, localData, cloudTs: (snap && snap.ts) || 0, localTs: dataRev() };
       }
-      // Gleicher Geldstand → stiller verlustfreier Merge, kein Dialog. Die
-      // Cloud-Seite wird vorher als Backup gesichert (nie still verloren).
+      // Sonst stiller verlustfreier Merge. Die verdrängte Seite wird vorher als
+      // Backup gesichert (nie still verloren).
       const t0 = Date.now();
-      saveConflictBackup({ side: 'cloud', data: snap });
-      importFromFile(JSON.stringify(mergeSnapshots(localData, snap)));
+      saveConflictBackup(pick === 'local' ? { side: 'cloud', data: snap } : { side: 'local', data: localData });
+      const merged = mergeSnapshots(localData, snap);
+      if (pick === 'cloud' && snap && snap.wallet) merged.wallet = snap.wallet;
+      else if (pick === 'local' && localData.wallet) merged.wallet = localData.wallet;
+      const gameDiff = keepCloudGames(merged, localData, snap);
+      importFromFile(JSON.stringify(merged));
       await uploadLocal(fb, u.uid); stampSynced();
-      log('account', 'reconcile', { decision: 'merged', tookMs: Date.now() - t0 });
+      log('account', 'reconcile', { decision: 'merged', wallet: pick, gameConflict: gameDiff, tookMs: Date.now() - t0 });
       return { decision: 'merged' };
     }
     if (decision === 'uploadLocal') { await uploadLocal(fb, u.uid); stampSynced(); }

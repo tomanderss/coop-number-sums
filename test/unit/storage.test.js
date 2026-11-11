@@ -384,6 +384,16 @@ describe('storage.recordStreakResult', () => {
     assert.equal(second.justLost, false);
   });
 
+  test('loadStreak({commit:false}) meldet einen Riss nicht und schreibt nichts fest', () => {
+    recordStreakResult('2026-06-18');
+    const peek = loadStreak({ commit: false });
+    assert.equal(peek.justLost, false);
+    assert.equal(peek.lossPending, true);
+    assert.equal(peek.currentStreak, 0);
+    // Nichts verbraucht: die echte Prüfung nach dem Abgleich meldet den Riss noch.
+    assert.equal(loadStreak().justLost, true);
+  });
+
   test('loadStreak keeps a streak alive when the last completion was today', () => {
     recordStreakResult(todayDateStr());
     const d = loadStreak();
