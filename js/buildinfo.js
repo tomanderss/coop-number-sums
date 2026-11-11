@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.28';
-export const BUILD_HASH = '43dc978';
+export const BUILD      = '3.29';
+export const BUILD_HASH = '1975b59';
 
 export const CHANGELOG = [
+  {
+    "version": "3.29",
+    "date": "11.11.2026",
+    "changes": [
+      "- Coop: jederzeit allein weiterspielen (Pausenmenü), auch im Endlos und Mix",
+      "- Mitspieler lassen sich aus einer laufenden Runde ausladen – der Ausgeladene spielt sein Brett allein weiter",
+      "- Duelle verlässt man über „Aufgeben“ im Pausenmenü"
+    ]
+  },
   {
     "version": "3.28",
     "date": "11.11.2026",
