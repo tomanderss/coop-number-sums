@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.26';
-export const BUILD_HASH = '280efe6';
+export const BUILD      = '3.27';
+export const BUILD_HASH = 'b806509';
 
 export const CHANGELOG = [
+  {
+    "version": "3.27",
+    "date": "11.11.2026",
+    "changes": [
+      "- Abgleich mit der Cloud fragt nur noch, wenn beide Seiten etwas haben, was der anderen fehlt – sonst gilt automatisch der aktuelle Stand",
+      "- Keine falsche „Serie gerissen“-Meldung mehr beim Start auf einem zweiten Gerät"
+    ]
+  },
   {
     "version": "3.26",
     "date": "10.11.2026",
