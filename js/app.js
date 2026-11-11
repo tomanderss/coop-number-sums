@@ -3270,6 +3270,10 @@ function handleCoopMsg(msg, key = null) {
     }
   } else if (msg.type === Coop.MSG.MIX_PICK) {
     onMixPick(msg);
+  } else if (msg.type === Coop.MSG.KICK) {
+    // Nur der Host lädt aus; ein Ausgeladener behält das Brett als Solo-Spiel.
+    if (msg.target !== state.coop.myId || msg.author !== state.coop.hostId) return;
+    onKicked();
   } else if (msg.type === Coop.MSG.CHAT) {
     receiveChat(msg);
   }
@@ -4449,7 +4453,7 @@ function quitToHome() {
   // umgewandelt (continueSoloAlone) — der Stand landet im Solo-/Endlos-Slot und
   // ist als „Fortsetzen" wieder da, statt mit der kaputten Lobby unterzugehen.
   // Danach läuft der normale Quit-Fluss (saveSlot ist dann 'solo'/'endless').
-  if (canContinueSolo()) continueSoloAlone(true);
+  if (canContinueSoloOnQuit()) continueSoloAlone(true);
   // Endlos-Aufstieg mitten im Lauf verlassen:
   //  • SOLO-Endlos bleibt FORTSETZBAR — Lauf-Snapshot im eigenen Slot behalten,
   //    nur den State sauber deaktivieren (kein Abbruch/keine Wertung; die kommt
@@ -4515,20 +4519,26 @@ function quitToHome() {
 // Verlassen im Offline-Zustand passiert das AUTOMATISCH (quitToHome), sodass
 // immer ein gespeicherter Solo-Stand übrig bleibt. Der Raum wird dabei bewusst
 // NICHT abgerissen (keepRoom) — der Partner könnte selbst nur still offline sein.
+// Seit Nutzerwunsch JEDERZEIT (nicht nur offline): jeder Mitspieler kann eine
+// reine Coop-Partie — auch Coop-Endlos und Coop-Mix — als eigenes Solo-Spiel
+// weiterführen, z.B. wenn der Partner gegangen ist. Duelle verlässt man über
+// „Aufgeben". Automatisch beim Verlassen nur, wenn die Verbindung tot ist
+// (canContinueSoloOnQuit) — sonst bleibt „Coop fortsetzen" wie gehabt.
 function canContinueSolo() {
-  return state.coop.active && state.coop.online === false && state.status === 'playing' && !!state.puzzle
-    && !state.race.active && !state.team.active && !state.coop.raceMode && !state.coop.ffaMode && !state.isTrainingGame;
+  return state.coop.active && state.status === 'playing' && !!state.puzzle
+    && !state.race.active && !state.team.active && !state.coop.raceMode && !state.coop.ffaMode && !state.coop.teamMode && !state.isTrainingGame;
 }
+function canContinueSoloOnQuit() { return canContinueSolo() && state.coop.online === false; }
 function continueSoloAlone(silent = false) {
   if (!canContinueSolo()) return false;
   const wasEndless = state.endless.active && state.endless.coop;
-  log('coop', 'Coop offline → Umwandlung in eigenständiges Solo-Spiel', { code: state.coop.code, endless: wasEndless });
+  log('coop', 'Coop → Umwandlung in eigenständiges Solo-Spiel', { code: state.coop.code, endless: wasEndless, mix: !!state.endless.mix, online: state.coop.online !== false });
   // Exakte Zeit auf der ALTEN (Server-)Uhr ablesen, bevor gameNow() auf die
   // lokale Uhr wechselt (sonst springt der Timer um den Server-Offset).
   const elapsedNow = state.paused ? state.elapsed : Math.max(0, gameNow() - state.startTime);
   // Coop-Endlos wird zum SOLO-Endlos-Lauf (Slot 'endless', fortsetzbar) — Flag
   // VOR coopReset umlegen, sonst beendet dessen Endlos-Guard den Lauf.
-  if (wasEndless) { state.endless.coop = false; state.endless.best = state.stats.endlessBest || 0; }
+  if (wasEndless) { state.endless.coop = false; state.endless.best = state.endless.mix ? ((state.mixStats && state.mixStats.best) || 0) : (state.stats.endlessBest || 0); }
   coopReset({ keepRoom: true });
   clearCoopSession();
   saveActiveGameCoop(null);   // kein paralleles „Coop fortsetzen" desselben Bretts
@@ -4548,6 +4558,39 @@ function continueSoloAlone(silent = false) {
   return true;
 }
 
+// ── AUSLADEN (Nutzerwunsch: Partner jederzeit ein- UND ausladen) ──────────────
+// Der Host lädt einen Mitspieler aus der laufenden Runde aus. Der Ausgeladene
+// verlässt den Raum und spielt sein Brett als eigenes Solo-Spiel weiter
+// (continueSoloAlone), in der Lobby landet er einfach im Menü.
+// Auch bei vollem Raum bleibt der Dialog erreichbar — zum Ausladen.
+function canManagePlayers() {
+  return state.coop.active && state.coop.role === 'host' && state.status === 'playing' && state.coop.players.length > 1
+    && !state.race.active && !state.team.active && !state.coop.raceMode && !state.coop.ffaMode && !state.coop.teamMode;
+}
+function canKick(p) {
+  return !!p && state.coop.active && state.coop.role === 'host' && p.id !== state.coop.myId;
+}
+function kickPlayer(p) {
+  if (!canKick(p)) return;
+  const name = playerLabel(p) || t('common.defaultPlayerName');
+  ask(t('coop.kickTitle', { name }), t('coop.kickMsg', { name }), () => {
+    log('coop', 'Mitspieler ausgeladen', { id: p.id, code: state.coop.code });
+    sendRoom({ type: Coop.MSG.KICK, target: p.id });
+    removePlayer(p.id);
+    broadcastRoster();
+  });
+}
+function onKicked() {
+  log('coop', 'Vom Host ausgeladen', { code: state.coop.code, playing: state.status === 'playing' });
+  if (canContinueSolo()) {
+    continueSoloAlone(true);
+    showToast(t('coop.kickedSolo'), 'info', 3500);
+    return;
+  }
+  coopReset();
+  navigate('home');
+  showToast(t('coop.kicked'), 'info', 3500);
+}
 // ─── SOLO → COOP: Freund in die LAUFENDE Solo-Partie einladen ─────────────────
 // Aus dem Pausenmenü heraus wird ein Coop-Raum geöffnet (Code teilbar / Freunde
 // einladbar), das Spiel läuft dabei zunächst UNVERÄNDERT als Solo weiter — erst
@@ -8209,7 +8252,7 @@ const App = {
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
       GEM_CROSS_COLORS, GEM_CROSS_SVG, openInvitePicker, closeInvitePicker, canInviteFromLobby, canInviteToReadyLobby, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle, duelBars,
-      canInviteToSolo, canInviteMore, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
+      canInviteToSolo, canInviteMore, canKick, kickPlayer, canManagePlayers, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       canContinueSolo, continueSoloAlone, startResumeCountdown,
       startTrainingGame, applyTrainingStep, trainingText: (step) => Board.trainingText(step),
       B: computed(() => (currentGame.id, Board)), gameHas, divStyles: DIV_STYLES, activeDivStyleId: computed(() => state.settings.divStyle || DIV_STYLE_DEFAULT), chooseDivStyle, dragScaleLabel,
@@ -8814,20 +8857,21 @@ const App = {
                zum Coop. Bleibt auch NACH der Umwandlung sichtbar (canInviteMore):
                der Host kann jederzeit weitere Mitspieler holen, bis der Raum voll
                ist. -->
-          <button v-if="canInviteToSolo() || canInviteMore() || state.soloInvite.status==='hosting' || state.soloInvite.status==='connecting'"
+          <button v-if="canInviteToSolo() || canInviteMore() || canManagePlayers() || state.soloInvite.status==='hosting' || state.soloInvite.status==='connecting'"
                   class="btn btn-ghost" @click="openInvite()">
             <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span>
             {{ state.soloInvite.status==='hosting' ? t('soloInvite.buttonPending') : t('soloInvite.button') }}
           </button>
           <!-- Coop-Verbindung tot? → Brett als eigenständiges Solo-Spiel retten
                und sofort allein weiterspielen (Coop-Offline-Rettung). -->
-          <button v-if="canContinueSolo()" class="btn btn-ghost" @click="continueSoloAlone(); startResumeCountdown();">
+          <button v-if="canContinueSolo()" class="btn btn-ghost continue-solo-btn" @click="continueSoloAlone(true); startResumeCountdown();">
             <span class="btn-ic"><span class="ei" v-html="ic('play')"></span></span>
             {{ t('coop.continueSolo') }}
           </button>
           <button class="btn btn-ghost" @click="openSettings"><span class="btn-ic"><span class="ei" v-html="ic('gear')"></span></span> {{ t('home.settings') }}</button>
           <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic"><span class="ei" v-html="ic('book')"></span></span> {{ t('home.howto') }}</button>
-          <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
+          <!-- Duelle verlässt man über „Aufgeben" (Nutzerwunsch); sonst „Zum Menü". -->
+          <button class="btn btn-ghost pause-quit" @click="quitToHome">{{ (state.race.active || state.team.active) ? t('pause.giveUp') : t('common.menu') }}</button>
         </div>
       </div>
 
@@ -10516,6 +10560,16 @@ const App = {
           <div class="coop-code-label">{{ t('coop.yourCode') }}</div>
           <div class="coop-code">{{ inviteCode() }}</div>
           <p class="coop-subtext">{{ t('soloInvite.hint') }}</p>
+          <!-- Laufende Runde: wer mitspielt — der Host kann jemanden ausladen
+               (der Ausgeladene spielt sein Brett allein weiter). -->
+          <div v-if="state.coop.active && state.coop.players.length > 1" class="invite-players">
+            <div class="coop-code-label">{{ t('coop.players') }}</div>
+            <div v-for="p in state.coop.players" :key="p.id" class="invite-player">
+              <span class="ip-dot" :style="{ background: p.color }"></span>
+              <span class="ip-name">{{ playerLabel(p) }}<template v-if="p.id===state.coop.myId">{{ t('common.youSuffix') }}</template></span>
+              <button v-if="canKick(p)" class="btn btn-ghost btn-sm ip-kick" @click="kickPlayer(p)">{{ t('coop.kick') }}</button>
+            </div>
+          </div>
           <button v-if="state.account.status==='in'" class="btn btn-ghost btn-sm" @click="openInvitePicker"><span class="ei" v-html="ic('users')"></span> {{ t('coop.inviteFriends') }}</button>
           <!-- Die Freunde-Auswahl erscheint als Vollbild-Modal ÜBER diesem Fenster
                (siehe .invite-modal weiter unten). -->

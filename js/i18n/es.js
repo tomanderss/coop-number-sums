@@ -119,6 +119,7 @@ export default {
     joined: '¡{name} se ha unido – ahora jugáis juntos!',
   },
   pause: {
+    giveUp: "Rendirse",
     title: 'En pausa',
     msg: 'El tablero está oculto – el tiempo no avanza.',
     resuming: 'Reanudando …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: 'Código ya en uso — elige otro número.',
     errorConnection: 'Error de conexión.',
     continueSolo: 'Seguir en solitario',
+    kickTitle: "¿Expulsar a {name}?", kickMsg: "{name} sale de la partida y sigue jugando el tablero en solitario.", kick: "Expulsar", kicked: "Te han expulsado de la partida.", kickedSolo: "Te han expulsado: sigues jugando en solitario.", players: "Jugadores",
     continueSoloDone: 'Ahora sigues jugando en solitario: progreso guardado.',
     errorCodeNotFound: 'Código no encontrado.',
     errorTimeout: 'Tiempo de espera agotado.',

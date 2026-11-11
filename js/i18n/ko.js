@@ -119,6 +119,7 @@ export default {
     joined: '{name} 님이 참여했습니다 – 이제 함께 플레이합니다!',
   },
   pause: {
+    giveUp: "포기하기",
     title: '일시정지됨',
     msg: '보드가 가려져 있습니다 – 시간이 멈췄습니다.',
     resuming: '곧 재개됩니다 …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: '이미 사용 중인 코드입니다 — 다른 번호를 선택하세요.',
     errorConnection: '연결 오류입니다.',
     continueSolo: '혼자 계속하기',
+    kickTitle: "{name}님을 내보낼까요?", kickMsg: "{name}님은 라운드를 떠나 보드를 혼자 계속합니다.", kick: "내보내기", kicked: "라운드에서 내보내졌어요.", kickedSolo: "내보내졌어요. 혼자 계속합니다.", players: "플레이어",
     continueSoloDone: '이제 혼자 계속합니다 – 진행 상황이 저장되었습니다.',
     errorCodeNotFound: '코드를 찾을 수 없습니다.',
     errorTimeout: '시간이 초과되었습니다.',

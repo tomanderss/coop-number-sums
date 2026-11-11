@@ -119,6 +119,7 @@ export default {
     joined: '{name} が参加しました – ここからは一緒にプレイ！',
   },
   pause: {
+    giveUp: "降参する",
     title: '一時停止中',
     msg: 'ボードは非表示です – 時間は進みません。',
     resuming: 'まもなく再開 …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: 'このコードは既に使われています — 別の番号を選んでください。',
     errorConnection: '接続エラーです。',
     continueSolo: 'ひとりで続ける',
+    kickTitle: "{name}を退出させますか？", kickMsg: "{name}はラウンドから抜け、盤面をひとりで続けます。", kick: "退出させる", kicked: "ラウンドから退出させられました。", kickedSolo: "退出させられました。ひとりで続けます。", players: "プレイヤー",
     continueSoloDone: 'ここからはひとりでプレイ – 進行状況は保存されました。',
     errorCodeNotFound: 'コードが見つかりません。',
     errorTimeout: 'タイムアウトしました。',

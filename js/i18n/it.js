@@ -119,6 +119,7 @@ export default {
     joined: '{name} si è unito: ora giocate insieme!',
   },
   pause: {
+    giveUp: "Arrenditi",
     title: 'In pausa',
     msg: 'La griglia è nascosta – il tempo è fermo.',
     resuming: 'Si riprende …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: 'Codice già in uso — scegli un altro numero.',
     errorConnection: 'Errore di connessione.',
     continueSolo: 'Continua da solo',
+    kickTitle: "Rimuovere {name}?", kickMsg: "{name} lascia la partita e continua da solo sulla griglia.", kick: "Rimuovi", kicked: "Sei stato rimosso dalla partita.", kickedSolo: "Sei stato rimosso: continui da solo.", players: "Giocatori",
     continueSoloDone: 'Ora continui da solo: progressi salvati.',
     errorCodeNotFound: 'Codice non trovato.',
     errorTimeout: 'Tempo scaduto.',
