@@ -298,10 +298,11 @@ export default {
     soundOn: 'Som',
     secDesktop: "Desktop",
     desktop: {
+      clear: 'Remover',
+      choose: 'Escolher tecla',
       toolKey: 'Tecla: trocar ferramenta',
       hint: "Alterna entre circular e borracha no computador.",
       press: 'Pressione uma tecla …',
-      off: 'Desligado',
       keySpace: 'Espaço',
     },
     profile: "Perfil",

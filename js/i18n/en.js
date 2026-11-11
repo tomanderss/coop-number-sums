@@ -298,10 +298,11 @@ export default {
     soundOn: 'Sound',
     secDesktop: "Desktop",
     desktop: {
+      clear: 'Remove',
+      choose: 'Choose key',
       toolKey: 'Key: switch tool',
       hint: "Switches between circle and eraser on desktop.",
       press: 'Press a key …',
-      off: 'Off',
       keySpace: 'Space',
     },
     profile: "Profile",

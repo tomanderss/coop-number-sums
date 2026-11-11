@@ -298,10 +298,11 @@ export default {
     soundOn: 'Звук',
     secDesktop: "Десктоп",
     desktop: {
+      clear: 'Убрать',
+      choose: 'Выбрать клавишу',
       toolKey: 'Клавиша: смена инструмента',
       hint: "Переключает обвод и ластик на компьютере.",
       press: 'Нажмите клавишу …',
-      off: 'Выкл.',
       keySpace: 'Пробел',
     },
     profile: "Профиль",

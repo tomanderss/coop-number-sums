@@ -298,10 +298,11 @@ export default {
     soundOn: 'Ton',
     secDesktop: "Desktop",
     desktop: {
+      clear: 'Entfernen',
+      choose: 'Taste wählen',
       toolKey: 'Taste: Werkzeug wechseln',
       hint: "Schaltet am Desktop zwischen Einkreisen und Radierer um.",
       press: 'Taste drücken …',
-      off: 'Aus',
       keySpace: 'Leertaste',
     },
     profile: "Profil",

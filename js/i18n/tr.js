@@ -298,10 +298,11 @@ export default {
     soundOn: 'Ses',
     secDesktop: "Masaüstü",
     desktop: {
+      clear: 'Kaldır',
+      choose: 'Tuş seç',
       toolKey: 'Tuş: araç değiştir',
       hint: "Masaüstünde daire ve silgi arasında geçiş yapar.",
       press: 'Bir tuşa basın …',
-      off: 'Kapalı',
       keySpace: 'Boşluk',
     },
     profile: "Profil",

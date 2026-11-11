@@ -298,10 +298,11 @@ export default {
     soundOn: 'Sonido',
     secDesktop: "Escritorio",
     desktop: {
+      clear: 'Quitar',
+      choose: 'Elegir tecla',
       toolKey: 'Tecla: cambiar herramienta',
       hint: "Alterna entre rodear y borrador en el escritorio.",
       press: 'Pulsa una tecla …',
-      off: 'Desactivado',
       keySpace: 'Espacio',
     },
     profile: "Perfil",
