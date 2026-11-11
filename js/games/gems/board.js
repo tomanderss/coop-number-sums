@@ -325,7 +325,9 @@ const GEM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true">'
   + '<path class="g-facet" d="M6.6 10.4 12 21.6 17.4 10.4M12 10.4v11.2"/>'
   + '<path class="g-glint" d="M8.4 6.6 9.6 5.4"/>'
   + '</svg>';
-const CROSS_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>';
+// Zwei Striche übereinander: ein Kontrast-Saum (dunkel bzw. hell je Design) und
+// darauf das Kreuz in seiner Farbe — so bleibt jede Farbe auf jedem Käfig lesbar.
+const CROSS_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="x-halo" d="M7.5 7.5l9 9M16.5 7.5l-9 9"/><path class="x-ink" d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>';
 const MarkLayer = {
   setup() {
     const bad = computed(() => (state.puzzle ? conflicts(state.puzzle, state.gemCells) : new Set()));

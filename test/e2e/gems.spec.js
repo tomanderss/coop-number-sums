@@ -207,11 +207,14 @@ test('Kreuz-Farben: automatische Kreuze leicht anders, beide einstellbar, auch i
   const n = await page.evaluate(() => window.__cns.state.puzzle.rows);
   await page.evaluate((n) => window.__cns.tapGem(n * n - 1, 'cross'), n);   // eigenes Kreuz unten rechts
   await page.evaluate(() => window.__cns.tapGem(0, 'gem'));                 // Stein oben links → Auto-Kreuze
-  const stroke = (sel) => page.locator(sel).first().locator('path').evaluate((el) => getComputedStyle(el).stroke);
+  const stroke = (sel) => page.locator(sel).first().locator('.x-ink').evaluate((el) => getComputedStyle(el).stroke);
+  // Auch die FORM unterscheidet sich (Nutzerwunsch: Farbe allein reichte nicht): automatische sind kleiner.
+  const size = (sel) => page.locator(sel).first().locator('i').evaluate((el) => el.getBoundingClientRect().width);
   await expect(page.locator('.gm-mark.cross.auto').first()).toBeVisible();
   await expect(page.locator('.gm-mark.cross:not(.auto)')).toHaveCount(1);
   const own = await stroke('.gm-mark.cross:not(.auto)'), auto = await stroke('.gm-mark.cross.auto');
   expect(own).not.toBe(auto);
+  expect(await size('.gm-mark.cross.auto')).toBeLessThan((await size('.gm-mark.cross:not(.auto)')) * 0.8);
   // Standard: dieselbe Farbfamilie, nur blasser (keine fremde Farbe).
   await expect(page.locator('.gm-board')).toHaveClass(/xo-cage/);
   await expect(page.locator('.gm-board')).toHaveClass(/xa-soft/);
