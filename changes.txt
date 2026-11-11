@@ -1,0 +1,1 @@
+- Weitere Spielstände: Endlos-Läufe sind jetzt klar als „Endlos“ markiert, Große Zahlen ebenfalls

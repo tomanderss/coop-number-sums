@@ -252,3 +252,25 @@ test.describe('Fortsetzen und Bibliothek bleiben deckungsgleich', () => {
     await expect(page.locator('.btn-resume.coop')).toHaveCount(0);
   });
 });
+
+// Gemeldet: in der Liste sah man nicht, ob ein Stand ein Endlos-Lauf ist.
+test('Endlos-Stand ist in der Liste als „Endlos“ markiert', async ({ page }) => {
+  await gotoApp(page);
+  await startNewGame(page);
+  await playAFewCells(page);
+  await page.goto('/');
+  await page.waitForFunction(() => !!window.__cns);
+  await page.locator('.home-actions .btn-primary').click();
+  await page.waitForSelector('.screen.setup');
+  await page.evaluate(() => { window.__cns.state.sel.endless = true; });
+  await page.locator('.diff-start').click();
+  await page.waitForFunction(() => window.__cns.state.puzzle && !window.__cns.state.generating && window.__cns.state.endless.active);
+  await playAFewCells(page);
+  await page.goto('/');
+  await page.waitForFunction(() => !!window.__cns);
+  await page.locator('.saves-expand').click();
+  await expect(page.locator('.save-row')).toHaveCount(2);
+  await expect(page.locator('.save-badge.endless')).toHaveCount(1);
+  await expect(page.locator('.save-badge.endless')).toContainText('Endlos');
+  await expect(page.locator('.save-badge.endless')).toContainText('Level 1');
+});
