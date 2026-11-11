@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.29';
-export const BUILD_HASH = '1975b59';
+export const BUILD      = '3.30';
+export const BUILD_HASH = '0ea60fc';
 
 export const CHANGELOG = [
+  {
+    "version": "3.30",
+    "date": "11.11.2026",
+    "changes": [
+      "- Gem Hunt: eigene und automatische Kreuze sind jetzt deutlich unterscheidbar (Größe, Strichstärke, kräftigere Farben)"
+    ]
+  },
   {
     "version": "3.29",
     "date": "11.11.2026",
