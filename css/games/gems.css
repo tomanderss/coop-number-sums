@@ -36,42 +36,38 @@
    (der machte aus Gelb Oliv); im hellen Design neutral aufgehellt. */
 .gm-dim { fill: rgb(6 8 14 / var(--gm-dim)); }
 :root[data-theme="light"] .gm-dim { fill: rgb(255 255 255 / var(--gm-dim)); }
-/* Kreuze: eigene und automatische unterscheiden sich in FORM UND FARBE
-   (Nutzerwunsch „deutlicher unterscheidbar“ — Farbe allein reichte selbst bei
-   Grün/Rot nicht): eigene groß und kräftig, automatische kleiner und schmaler.
-   Darunter ein Kontrast-Saum (.x-halo), der jede Farbe auf jedem Käfig trägt;
-   das abgedunkelte Feld (gm-dim) bleibt unverändert. */
-.gm-mark.cross i { display: block; width: 54%; height: 54%; }
-.gm-mark.cross.auto i { width: 38%; height: 38%; }
+/* Kreuze: eigene und automatische haben dieselbe GRÖSSE (Nutzerwunsch) und
+   unterscheiden sich nur über die FARBE. Darunter ein dunkler Kontrast-Saum
+   (.x-halo), der jede Farbe auf jedem Käfig klar trägt; das abgedunkelte Feld
+   (gm-dim) bleibt unverändert. */
+.gm-mark.cross i { display: block; width: 46%; height: 46%; }
 .gm-mark.cross svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .gm-mark.cross path { fill: none; stroke-linecap: round; }
-.gm-mark.cross .x-ink { stroke: var(--gx); stroke-width: 3; }
-.gm-mark.cross .x-halo { stroke: var(--gx-halo); stroke-width: 5.6; }
-.gm-mark.cross.auto .x-ink { stroke-width: 2.4; }
-.gm-mark.cross.auto .x-halo { stroke-width: 4.6; }
+.gm-mark.cross .x-ink { stroke: var(--gx); stroke-width: 2.6; }
+.gm-mark.cross .x-halo { stroke: var(--gx-halo); stroke-width: 5.2; }
 /* Kreuz-Farben (einstellbar, s. CROSS_COLORS in board.js): eigene `xo-*`,
    automatisch von einem Stein gesetzte `xa-*`. Satt und deckend — die früheren
    Pastelltöne mit Transparenz verschwammen auf den Pastell-Käfigen. „Käfigfarbe“
    und „Blass“ hängen am Farbton des Käfigs (--gh). Standard: eigene = Käfigfarbe,
    automatische = blass. */
 .gm-mark.cross {
-  --gx-halo: rgb(10 14 24 / .55);
-  --gx-cage: hsl(var(--gh) 75% 80%);
-  --gx-soft: hsl(var(--gh) 12% 82% / .75);
-  --gx-gold: hsl(46 100% 58%);
-  --gx-mint: hsl(145 80% 52%);
-  --gx-sky:  hsl(205 95% 64%);
-  --gx-rose: hsl(352 95% 64%);
+  --gx-halo: rgb(6 8 14 / .78);
+  --gx-cage: hsl(var(--gh) 90% 78%);
+  --gx-soft: hsl(var(--gh) 10% 70% / .8);
+  --gx-gold: hsl(50 100% 55%);
+  --gx-mint: hsl(130 95% 55%);
+  --gx-sky:  hsl(205 100% 66%);
+  --gx-rose: hsl(0 100% 64%);
   --gx: var(--gx-cage);
 }
 :root[data-theme="light"] .gm-mark.cross {
-  --gx-halo: rgb(255 255 255 / .7);
-  --gx-cage: hsl(var(--gh) 65% 28%);
-  --gx-soft: hsl(var(--gh) 14% 42% / .6);
-  --gx-gold: hsl(38 100% 40%);
-  --gx-mint: hsl(145 85% 28%);
-  --gx-sky:  hsl(212 90% 40%);
-  --gx-rose: hsl(352 85% 44%);
+  --gx-halo: rgb(255 255 255 / .85);
+  --gx-cage: hsl(var(--gh) 75% 26%);
+  --gx-soft: hsl(var(--gh) 10% 48% / .7);
+  --gx-gold: hsl(40 100% 40%);
+  --gx-mint: hsl(130 90% 28%);
+  --gx-sky:  hsl(212 100% 40%);
+  --gx-rose: hsl(0 90% 44%);
 }
 .gm-board.xo-cage .gm-mark.cross:not(.auto), .gm-board.xa-cage .gm-mark.cross.auto { --gx: var(--gx-cage); }
 .gm-board.xo-soft .gm-mark.cross:not(.auto), .gm-board.xa-soft .gm-mark.cross.auto { --gx: var(--gx-soft); }
