@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.33';
-export const BUILD_HASH = '9f397c8';
+export const BUILD      = '3.34';
+export const BUILD_HASH = 'ba27bcf';
 
 export const CHANGELOG = [
+  {
+    "version": "3.34",
+    "date": "11.11.2026",
+    "changes": [
+      "- Einstellungen: die Spiel-Reiter oben bleiben immer sichtbar; Desktop-Taste zeigt „Taste wählen“ statt „Aus“"
+    ]
+  },
   {
     "version": "3.33",
     "date": "11.11.2026",

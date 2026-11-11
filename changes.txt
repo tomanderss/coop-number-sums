@@ -1,1 +1,0 @@
-- Einstellungen: die Spiel-Reiter oben bleiben immer sichtbar; Desktop-Taste zeigt „Taste wählen“ statt „Aus“
