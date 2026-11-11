@@ -23,19 +23,19 @@ export default {
     "settings": {
       "divStyle": "Geteilt-Zeichen",
       "divStyleAsk": "Wie soll „geteilt durch“ auf dem Brett aussehen?",
-      "divStyleHint": "Reine Anzeige — die Rätsel bleiben identisch. Jederzeit hier änderbar.",
+      "divStyleHint": "Nur die Anzeige – die Rätsel bleiben gleich.",
       "div_obelus": "Obelus",
       "div_colon": "Doppelpunkt",
       "div_slash": "Schrägstrich",
       "divExample": "z. B. 12 {sym} 3 = 4",
       "sfxChat": "Chat-Nachricht",
       "dragScale": "Reichweite beim Ziehen",
-      "dragScaleHint": "Der gezogene Stein folgt deinem Finger verstärkt: Bei 3x schiebt eine kurze Bewegung ihn dreimal so weit — so erreichst du den oberen Brettrand, ohne den Finger über den ganzen Bildschirm zu ziehen. Abgelegt wird immer dort, wo der Stein zu sehen ist.",
+      "dragScaleHint": "Der Stein folgt dem Finger verstärkt – so erreichst du den oberen Rand leichter.",
       "dragScaleOff": "1x (aus)",
       "dragScaleOn": "{f}x",
       "colorBlindModeHint": "Ersetzt Grün/Rot im gesamten Spiel (richtig/falsch, Leben, Coop-Farben, ...) durch besser unterscheidbare Töne für Rot-Grün-/Blau-Gelb-Sehschwäche.",
       "markColor": "Markierungsfarbe",
-      "markColorHint": "Farbe für eigene Notiz-Markierungen: ein Feld lange gedrückt halten hebt es hervor. Die Markierung hat keine Bedeutung fürs Rätsel — du legst selbst fest, wofür du sie nutzt. Nur du siehst sie."
+      "markColorHint": "Farbe deiner Notiz-Markierungen (Feld lange drücken). Nur für dich sichtbar."
     },
     "prestige": {
       "master": {
@@ -99,19 +99,19 @@ export default {
     "settings": {
       "divStyle": "Division sign",
       "divStyleAsk": "How should “divided by” look on the board?",
-      "divStyleHint": "Display only — the puzzles stay identical. Changeable here at any time.",
+      "divStyleHint": "Display only – the puzzles stay the same.",
       "div_obelus": "Obelus",
       "div_colon": "Colon",
       "div_slash": "Slash",
       "divExample": "e.g. 12 {sym} 3 = 4",
       "sfxChat": "Chat message",
       "dragScale": "Drag reach",
-      "dragScaleHint": "The tile you drag follows your finger amplified: at 3x a short move sends it three times as far, so you reach the top of the board without dragging across the whole screen. It always drops where the tile is shown.",
+      "dragScaleHint": "The tile follows your finger amplified – reaching the top edge is easier.",
       "dragScaleOff": "1x (off)",
       "dragScaleOn": "{f}x",
       "colorBlindModeHint": "Replaces green/red everywhere in the game (correct/wrong, lives, co-op colors, ...) with more distinguishable tones for red-green/blue-yellow color vision deficiency.",
       "markColor": "Highlight color",
-      "markColorHint": "Color for your own note markers: press and hold a cell to highlight it. The marker means nothing to the puzzle — you decide what you use it for. Only you can see it."
+      "markColorHint": "Colour of your note markers (long-press a cell). Only you see them."
     },
     "prestige": {
       "master": {
@@ -175,19 +175,19 @@ export default {
     "settings": {
       "divStyle": "Signo de división",
       "divStyleAsk": "¿Cómo quieres que se vea «dividido por» en el tablero?",
-      "divStyleHint": "Solo visual: los rompecabezas no cambian. Puedes cambiarlo aquí cuando quieras.",
+      "divStyleHint": "Solo la vista: los rompecabezas no cambian.",
       "div_obelus": "Óbelo",
       "div_colon": "Dos puntos",
       "div_slash": "Barra",
       "divExample": "p. ej. 12 {sym} 3 = 4",
       "sfxChat": "Mensaje de chat",
       "dragScale": "Alcance al arrastrar",
-      "dragScaleHint": "La ficha que arrastras sigue tu dedo amplificada: con 3x un movimiento corto la lleva tres veces más lejos, así llegas al borde superior sin recorrer toda la pantalla. Siempre se coloca donde se ve la ficha.",
+      "dragScaleHint": "La ficha sigue tu dedo amplificada: llegas al borde superior más fácil.",
       "dragScaleOff": "1x (desactivado)",
       "dragScaleOn": "{f}x",
       "colorBlindModeHint": "Sustituye el verde/rojo en todo el juego (correcto/incorrecto, vidas, colores cooperativos, ...) por tonos más distinguibles para la discapacidad visual rojo-verde/azul-amarillo.",
       "markColor": "Color de marca",
-      "markColorHint": "Color de tus marcas personales: mantén pulsada una casilla para resaltarla. La marca no significa nada para el puzle: tú decides para qué la usas. Solo tú la ves."
+      "markColorHint": "Color de tus marcas de nota (mantén pulsada una casilla). Solo tú las ves."
     },
     "prestige": {
       "master": {
@@ -251,19 +251,19 @@ export default {
     "settings": {
       "divStyle": "Signe de division",
       "divStyleAsk": "À quoi doit ressembler « divisé par » sur la grille ?",
-      "divStyleHint": "Affichage seulement — les grilles restent identiques. Modifiable ici à tout moment.",
+      "divStyleHint": "Affichage seulement – les grilles ne changent pas.",
       "div_obelus": "Obèle",
       "div_colon": "Deux-points",
       "div_slash": "Barre oblique",
       "divExample": "ex. 12 {sym} 3 = 4",
       "sfxChat": "Message de chat",
       "dragScale": "Portée du glisser",
-      "dragScaleHint": "La tuile déplacée suit votre doigt de façon amplifiée : à 3x, un petit geste la déplace trois fois plus loin, vous atteignez le haut de la grille sans traverser tout l'écran. Elle est posée là où elle est affichée.",
+      "dragScaleHint": "La tuile suit ton doigt de façon amplifiée – le bord supérieur est plus facile à atteindre.",
       "dragScaleOff": "1x (désactivé)",
       "dragScaleOn": "{f}x",
       "colorBlindModeHint": "Remplace le vert/rouge partout dans le jeu (correct/incorrect, vies, couleurs coop, ...) par des teintes plus distinguables pour la déficience visuelle rouge-vert/bleu-jaune.",
       "markColor": "Couleur de repère",
-      "markColorHint": "Couleur de tes repères personnels : appuie longuement sur une case pour la mettre en évidence. Le repère n'a aucun sens pour la grille — à toi de décider à quoi il sert. Toi seul le vois."
+      "markColorHint": "Couleur de tes repères (appui long sur une case). Toi seul les vois."
     },
     "prestige": {
       "master": {
@@ -327,19 +327,19 @@ export default {
     "settings": {
       "divStyle": "Sinal de divisão",
       "divStyleAsk": "Como “dividido por” deve aparecer no tabuleiro?",
-      "divStyleHint": "Apenas visual: os quebra-cabeças não mudam. Alterável aqui a qualquer momento.",
+      "divStyleHint": "Apenas visual – os quebra-cabeças não mudam.",
       "div_obelus": "Óbelo",
       "div_colon": "Dois-pontos",
       "div_slash": "Barra",
       "divExample": "ex.: 12 {sym} 3 = 4",
       "sfxChat": "Mensagem de chat",
       "dragScale": "Alcance ao arrastar",
-      "dragScaleHint": "A peça arrastada segue seu dedo de forma amplificada: em 3x um movimento curto a leva três vezes mais longe, então você alcança o topo do tabuleiro sem percorrer a tela inteira. Ela é colocada onde aparece.",
+      "dragScaleHint": "A peça segue seu dedo de forma ampliada – fica mais fácil chegar à borda de cima.",
       "dragScaleOff": "1x (desligado)",
       "dragScaleOn": "{f}x",
       "colorBlindModeHint": "Substitui o verde/vermelho em todo o jogo (certo/errado, vidas, cores do coop, ...) por tons mais distinguíveis para deficiência visual vermelho-verde/azul-amarelo.",
       "markColor": "Cor da marcação",
-      "markColorHint": "Cor das suas marcações pessoais: mantenha uma casa pressionada para destacá-la. A marcação não significa nada para o quebra-cabeça — você decide para que serve. Só você a vê."
+      "markColorHint": "Cor das suas marcações (pressione uma casa). Só você as vê."
     },
     "prestige": {
       "master": {
@@ -403,19 +403,19 @@ export default {
     "settings": {
       "divStyle": "Segno di divisione",
       "divStyleAsk": "Come deve apparire «diviso» sulla griglia?",
-      "divStyleHint": "Solo visivo: gli schemi restano identici. Modificabile qui in qualsiasi momento.",
+      "divStyleHint": "Solo visivo: gli schemi non cambiano.",
       "div_obelus": "Obelo",
       "div_colon": "Due punti",
       "div_slash": "Barra",
       "divExample": "es. 12 {sym} 3 = 4",
       "sfxChat": "Messaggio in chat",
       "dragScale": "Portata del trascinamento",
-      "dragScaleHint": "La tessera trascinata segue il dito amplificata: a 3x un piccolo movimento la sposta tre volte più lontano, così raggiungi il bordo superiore senza attraversare tutto lo schermo. Viene posata dove la vedi.",
+      "dragScaleHint": "La tessera segue il dito amplificata: raggiungi più facilmente il bordo superiore.",
       "dragScaleOff": "1x (off)",
       "dragScaleOn": "{f}x",
       "colorBlindModeHint": "Sostituisce il verde/rosso in tutto il gioco (corretto/errato, vite, colori co-op, ...) con tonalità più distinguibili per il deficit visivo rosso-verde/blu-giallo.",
       "markColor": "Colore del segno",
-      "markColorHint": "Colore dei tuoi segni personali: tieni premuta una casella per evidenziarla. Il segno non ha alcun significato per il puzzle: decidi tu a cosa serve. Lo vedi solo tu."
+      "markColorHint": "Colore dei tuoi segni (tieni premuta una casella). Li vedi solo tu."
     },
     "prestige": {
       "master": {
@@ -479,19 +479,19 @@ export default {
     "settings": {
       "divStyle": "割り算の記号",
       "divStyleAsk": "盤面の「割る」をどう表示しますか？",
-      "divStyleHint": "表示だけの設定です。問題そのものは変わりません。いつでもここで変更できます。",
+      "divStyleHint": "表示だけの設定です。問題は変わりません。",
       "div_obelus": "除算記号",
       "div_colon": "コロン",
       "div_slash": "スラッシュ",
       "divExample": "例: 12 {sym} 3 = 4",
       "sfxChat": "チャット",
       "dragScale": "ドラッグの移動倍率",
-      "dragScaleHint": "つかんだタイルが指の動きより大きく動きます。3倍なら小さな動きで3倍の距離を移動できるので、画面全体を指でなぞらなくても盤面の上まで届きます。置かれるのは常にタイルが表示されている位置です。",
+      "dragScaleHint": "タイルが指より大きく動き、上端に届きやすくなります。",
       "dragScaleOff": "1倍（オフ）",
       "dragScaleOn": "{f}倍",
       "colorBlindModeHint": "ゲーム全体（正解/不正解、ライフ、Coopカラーなど）の緑/赤を、赤緑・青黄色覚異常でも区別しやすい色に置き換えます。",
       "markColor": "目印の色",
-      "markColorHint": "自分用の目印の色です。マスを長押しすると目立たせられます。目印はパズルの進行には関係なく、使い道は自由。ほかの人には見えません。"
+      "markColorHint": "自分用の目印の色（マスを長押し）。自分にだけ見えます。"
     },
     "prestige": {
       "master": {
@@ -555,19 +555,19 @@ export default {
     "settings": {
       "divStyle": "나누기 기호",
       "divStyleAsk": "보드에서 ‘나누기’를 어떻게 표시할까요?",
-      "divStyleHint": "표시만 바뀝니다. 퍼즐 자체는 그대로이며 언제든 여기서 바꿀 수 있습니다.",
+      "divStyleHint": "표시만 바뀌고 퍼즐은 그대로예요.",
       "div_obelus": "오벨루스",
       "div_colon": "콜론",
       "div_slash": "슬래시",
       "divExample": "예: 12 {sym} 3 = 4",
       "sfxChat": "채팅 메시지",
       "dragScale": "드래그 이동 배율",
-      "dragScaleHint": "드래그하는 타일이 손가락 움직임보다 크게 움직입니다. 3배로 두면 짧게 움직여도 세 배 멀리 이동하므로 화면 전체를 훑지 않고도 판 위쪽에 닿습니다. 타일이 보이는 자리에 놓입니다.",
+      "dragScaleHint": "타일이 손가락보다 크게 움직여 위쪽 가장자리에 닿기 쉬워요.",
       "dragScaleOff": "1배(끄기)",
       "dragScaleOn": "{f}배",
       "colorBlindModeHint": "게임 전체(정답/오답, 생명, 협동 색상 등)의 초록/빨강을 적록/청황 색각 이상에서도 구별하기 쉬운 색으로 바꿉니다.",
       "markColor": "표시 색상",
-      "markColorHint": "나만의 메모 표시 색상입니다. 칸을 길게 누르면 강조됩니다. 표시는 퍼즐에 아무 영향이 없으며 용도는 자유롭게 정하면 됩니다. 나만 볼 수 있습니다."
+      "markColorHint": "메모 표시 색상(칸을 길게 누르기). 나만 볼 수 있어요."
     },
     "prestige": {
       "master": {
@@ -631,19 +631,19 @@ export default {
     "settings": {
       "divStyle": "Bölme işareti",
       "divStyleAsk": "Tahtada “bölü” nasıl görünsün?",
-      "divStyleHint": "Yalnızca görünüm — bulmacalar aynı kalır. Buradan istediğin zaman değiştirebilirsin.",
+      "divStyleHint": "Yalnızca görünüm – bulmacalar değişmez.",
       "div_obelus": "Obelüs",
       "div_colon": "İki nokta",
       "div_slash": "Eğik çizgi",
       "divExample": "ör. 12 {sym} 3 = 4",
       "sfxChat": "Sohbet mesajı",
       "dragScale": "Sürükleme menzili",
-      "dragScaleHint": "Sürüklediğin taş parmağını büyütülmüş şekilde izler: 3x ile kısa bir hareket onu üç kat uzağa taşır, böylece ekranın tamamını taramadan tahtanın üst kenarına ulaşırsın. Her zaman göründüğü yere bırakılır.",
+      "dragScaleHint": "Taş parmağını büyütülmüş izler – üst kenara ulaşmak kolaylaşır.",
       "dragScaleOff": "1x (kapalı)",
       "dragScaleOn": "{f}x",
       "colorBlindModeHint": "Oyunun her yerindeki (doğru/yanlış, canlar, coop renkleri, ...) yeşil/kırmızıyı, kırmızı-yeşil/mavi-sarı renk görme bozukluğu için daha kolay ayırt edilen tonlarla değiştirir.",
       "markColor": "İşaret rengi",
-      "markColorHint": "Kendi notların için işaret rengi: bir kareye basılı tutarsan vurgulanır. İşaretin bulmaca için hiçbir anlamı yok — ne için kullanacağına sen karar verirsin. Yalnızca sen görürsün."
+      "markColorHint": "Not işaretlerinin rengi (kareye uzun bas). Yalnızca sen görürsün."
     },
     "prestige": {
       "master": {
@@ -707,19 +707,19 @@ export default {
     "settings": {
       "divStyle": "Знак деления",
       "divStyleAsk": "Как должно выглядеть «разделить на» на поле?",
-      "divStyleHint": "Только отображение — сами головоломки не меняются. Изменить можно здесь в любой момент.",
+      "divStyleHint": "Только отображение – головоломки не меняются.",
       "div_obelus": "Обелюс",
       "div_colon": "Двоеточие",
       "div_slash": "Косая черта",
       "divExample": "напр. 12 {sym} 3 = 4",
       "sfxChat": "Сообщение в чате",
       "dragScale": "Дальность перетаскивания",
-      "dragScaleHint": "Перетаскиваемая плитка движется быстрее пальца: при 3x короткое движение уводит её втрое дальше, поэтому до верха поля можно дотянуться без движения через весь экран. Кладётся туда, где плитка видна.",
+      "dragScaleHint": "Плитка движется за пальцем с усилением – до верхнего края дотянуться легче.",
       "dragScaleOff": "1x (выкл.)",
       "dragScaleOn": "{f}x",
       "colorBlindModeHint": "Заменяет зелёный/красный во всей игре (правильно/неправильно, жизни, цвета в коопе, ...) на более различимые оттенки для нарушений цветовосприятия красно-зелёного/сине-жёлтого типа.",
       "markColor": "Цвет пометки",
-      "markColorHint": "Цвет ваших личных пометок: удерживайте клетку, чтобы выделить её. На головоломку пометка никак не влияет — решайте сами, для чего она. Видите её только вы."
+      "markColorHint": "Цвет ваших пометок (долгое нажатие на клетку). Видны только вам."
     },
     "prestige": {
       "master": {

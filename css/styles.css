@@ -3583,3 +3583,74 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .invite-player .ip-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .invite-player .ip-name { flex: 1; min-width: 0; font-weight: 700; font-size: .9rem; overflow-wrap: anywhere; text-align: left; }
 .invite-player .ip-kick { flex: none; color: var(--bad); }
+
+/* Gem Hunt: Kreuz-Farbwahl in den Einstellungen (liegt hier, weil der Gem-Hunt-Reiter
+   auch bei einem anderen aktiven Spiel erreichbar ist — gems.css ist dann nicht geladen): kleine Muster-Kreuze auf dunklem Grund. */
+.gx-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.gx-row > span { font-size: .86rem; font-weight: 700; color: var(--text2); }
+.gx-swatches { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.gx-sw { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: #1d2433;
+  box-shadow: inset 0 0 0 1px var(--hairline); transition: box-shadow .15s, transform .12s; --gh: 210; }
+.gx-sw:active { transform: scale(.92); }
+.gx-sw.active { box-shadow: inset 0 0 0 2px var(--accent); }
+.gx-sw svg { width: 18px; height: 18px; }
+.gx-sw path { fill: none; stroke-linecap: round; }
+.gx-sw .x-ink { stroke: var(--gx); stroke-width: 3; }
+.gx-sw .x-halo { stroke: rgb(10 14 24 / .55); stroke-width: 5.6; }
+.gx-sw.c-cage { --gx: hsl(var(--gh) 75% 80%); } .gx-sw.c-soft { --gx: hsl(var(--gh) 12% 82% / .75); }
+.gx-sw.c-gold { --gx: hsl(46 100% 58%); } .gx-sw.c-mint { --gx: hsl(145 80% 52%); }
+.gx-sw.c-sky { --gx: hsl(205 95% 64%); } .gx-sw.c-rose { --gx: hsl(352 95% 64%); }
+
+/* ── Einstellungen: Reiter „Allgemein" + je Spiel (Nutzerwunsch) ── */
+.settings-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 10px; margin: 0 0 4px; scrollbar-width: none; }
+.settings-tabs::-webkit-scrollbar { display: none; }
+.st-tab { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; min-width: 40px; padding: 0 10px;
+  border-radius: 12px; background: var(--bg2); color: var(--text2); font-weight: 800; font-size: .82rem; box-shadow: inset 0 0 0 1px var(--hairline);
+  transition: box-shadow .15s, background .15s; }
+.st-tab.st-game { padding: 0 6px; }
+.st-tab img { width: 28px; height: 28px; border-radius: 7px; display: block; }
+.st-tab.on { box-shadow: inset 0 0 0 2px var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 10%, var(--bg2)); }
+.set-game-panel { display: flex; flex-direction: column; gap: 4px; }
+.set-game-head { display: flex; align-items: center; gap: 10px; padding: 4px 2px 6px; }
+.set-game-head img { width: 36px; height: 36px; border-radius: 9px; }
+.set-game-head b { font-size: 1rem; }
+.set-info-row { display: flex; flex-direction: column; gap: 4px; padding: 6px 0; }
+.set-info-links { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+/* Kompakter (Nutzerwunsch): weniger Abstand, Schalter-Zeilen einzeilig. */
+.settings .set-row { padding-top: 7px; padding-bottom: 7px; }
+.settings .set-row.col { gap: 6px; }
+.settings .set-hint { margin-top: 0; line-height: 1.3; }
+.settings .admin-acc-body { gap: 2px; }
+.settings .set-group-title { margin-top: 8px; }
+
+/* Math Cross: Geteilt-Zeichen-Auswahl — hier, weil der Math-Cross-Reiter der
+   Einstellungen auch bei einem anderen aktiven Spiel erreichbar ist. */
+.op-obelus {
+  display: block; position: relative; width: 1em; height: 1em;
+  background: linear-gradient(currentColor, currentColor) 50% 50% / .8em .13em no-repeat;
+}
+
+.op-obelus::before, .op-obelus::after {
+  content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+  width: .22em; height: .22em; border-radius: 50%; background: currentColor;
+}
+
+.op-obelus::before { top: .02em; }
+
+.op-obelus::after { bottom: .02em; }
+
+.div-choice { display: flex; gap: 8px; width: 100%; }
+
+.div-opt {
+  flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px; border: 0; border-radius: 12px; cursor: pointer;
+  background: var(--bg2); color: var(--text); font: inherit;
+  box-shadow: inset 0 0 0 2px transparent; transition: box-shadow .12s, background .12s;
+}
+
+.div-opt.on { background: color-mix(in srgb, var(--accent) 16%, var(--bg2)); box-shadow: inset 0 0 0 2px var(--accent); }
+
+.div-opt small { color: var(--text2); font-size: .78rem; }
+
+.div-opt .op-obelus, .div-opt .div-sample { color: var(--text); }
+.set-row-label .account-role { margin-left: 8px; }

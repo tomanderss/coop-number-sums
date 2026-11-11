@@ -137,18 +137,3 @@
 
 .history-board.gm-board { margin: 0 auto; }
 
-/* Kreuz-Farbwahl in den Einstellungen: kleine Muster-Kreuze auf dunklem Grund. */
-.gx-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
-.gx-row > span { font-size: .86rem; font-weight: 700; color: var(--text2); }
-.gx-swatches { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.gx-sw { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: #1d2433;
-  box-shadow: inset 0 0 0 1px var(--hairline); transition: box-shadow .15s, transform .12s; --gh: 210; }
-.gx-sw:active { transform: scale(.92); }
-.gx-sw.active { box-shadow: inset 0 0 0 2px var(--accent); }
-.gx-sw svg { width: 18px; height: 18px; }
-.gx-sw path { fill: none; stroke-linecap: round; }
-.gx-sw .x-ink { stroke: var(--gx); stroke-width: 3; }
-.gx-sw .x-halo { stroke: rgb(10 14 24 / .55); stroke-width: 5.6; }
-.gx-sw.c-cage { --gx: hsl(var(--gh) 75% 80%); } .gx-sw.c-soft { --gx: hsl(var(--gh) 12% 82% / .75); }
-.gx-sw.c-gold { --gx: hsl(46 100% 58%); } .gx-sw.c-mint { --gx: hsl(145 80% 52%); }
-.gx-sw.c-sky { --gx: hsl(205 95% 64%); } .gx-sw.c-rose { --gx: hsl(352 95% 64%); }

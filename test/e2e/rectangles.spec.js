@@ -233,7 +233,7 @@ test('Erfolge, Missionen und Einstellungen zeigen nur, was es in Rectangles gibt
   // Missionen: über viele Wochen nie die Große-Zahlen-Mission.
   expect(await page.evaluate(() => window.__cns.state.missions.list.some((m) => m.id === 'bigWin2'))).toBe(false);
   // Einstellungen: Löschstil (nur Number Sums) fehlt.
-  await page.evaluate(() => { window.__cns.state.screen = 'settings'; window.__cns.state.settingsTab = 'spiel'; });
+  await page.evaluate(() => { window.__cns.state.screen = 'settings'; window.__cns.state.settingsScope = 'rectangles'; });
   await page.waitForSelector('.set-howto-btn');
   await expect(page.locator('.screen.settings', { hasText: 'Durchstreichen' })).toHaveCount(0);
 });

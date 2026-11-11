@@ -1,0 +1,2 @@
+- Einstellungen neu: „Allgemein“ und ein eigener Reiter je Spiel – alles immer erreichbar, egal welches Spiel aktiv ist
+- Einstellungen kompakter: kürzere Erklärungen, Musik nur noch „im Menü“ und „im Spiel“, Infos & Rechtliches in einer Zeile

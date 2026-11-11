@@ -44,16 +44,13 @@ test('Pro-Modus-Schalter aus: keine Spielmusik im Solo', async ({ page }) => {
   expect(await page.evaluate(() => window.__cns.Music.isPlaying())).toBe(false);
 });
 
-test('Einstellungen: Ton-Kategorie mit Menü- + vier Modus-Schaltern und Lautstärke', async ({ page }) => {
+test('Einstellungen: Ton-Kategorie mit Menü- + Spiel-Schalter und Lautstärke', async ({ page }) => {
   await gotoApp(page);
   await page.locator('.home-settings-btn').click();
   await page.waitForSelector('.screen.settings');
   await gotoSettingsSection(page, 'Ton');
   await expect(page.getByText('Musik in Menüs')).toBeVisible();
-  await expect(page.getByText('Musik im Solo-Modus')).toBeVisible();
-  await expect(page.getByText('Musik im Coop-Modus')).toBeVisible();
-  await expect(page.getByText('Musik im Wettkampf')).toBeVisible();
-  await expect(page.getByText('Musik im Training')).toBeVisible();
+  await expect(page.locator('.music-game-row')).toBeVisible();
   await expect(page.locator('.screen.settings .set-range')).toHaveCount(1);
 });
 

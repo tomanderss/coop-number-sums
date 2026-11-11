@@ -52,7 +52,7 @@ import { icon as customIcon, hasIcon } from './icons.js';
 import { PRESTIGE, allPrestige, categoryProgress, prestigeBySym, isUnlocked, encodeBadge, decodeBadge, MASTER_BADGE, isMasterBadge, masterProgress, hasMasterBadge, unlockedTierCodes, newlyUnlockedTiers, headlineUnlock, duelWins } from './prestige.js';
 import * as Account from './account.js';
 import { SKIN_ID, FOUNDER_ID, qualifiesForV1Skin, skinCodeMatches, skinSpeedToDuration, skinVars as buildSkinVars, skinClasses as buildSkinClasses, gameSkin, withGameSkin } from './skins.js';
-import { t, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES, setGameMessages } from './i18n/index.js';
+import { t, tFor, setLocale, detectLocale, i18nState, SUPPORTED_LOCALES, setGameMessages } from './i18n/index.js';
 import { ENDLESS_CFG, endlessDiffId, endlessGrantsLife, endlessLivesAfter, endlessIsRecord, reconstructEndlessRuns } from './endless.js';
 import { currentWeekKey, weeklyMissions, SHARED_MISSION_POOL, missionStateFor, missionById, missionValue, isMissionComplete, isMissionClaimed, isMissionClaimable, allMissionsComplete, claimableCount, applyMissionEvent } from './missions.js';
 
@@ -319,6 +319,8 @@ const state = reactive({
   whatsNewSince: null,       // zuletzt gesehene Version beim App-Start -> "Was ist neu" zeigt alle Einträge seither
   updateCheck: 'idle',       // manuelle Update-Prüfung (Klick auf die Version): idle | busy | found (Dialog offen)
   statsTab: 'allgemein',     // aktiver Reiter im Statistik-Screen: allgemein | solo | coop
+  settingsScope: 'general',  // Einstellungs-Reiter: 'general' oder eine Spiel-Kennung (Reiter je Spiel)
+  howtoGame: null,           // Anleitung eines bestimmten Spiels (null = aktives Spiel)
   settingsTab: '',           // aufgeklappte Einstellungs-Karte ('' = alle zu; spiel | darstellung | farbe | ton | konto | daten). Bewusst NICHT persistiert — Einstellungen starten immer zugeklappt.
   // Optionaler Account (E-Mail+Username+PW, Cloud-Sync). Anonymous-first: ohne
   // Login bleibt alles lokal. status: 'anon' | 'in'; busy während Auth-Aktionen.
@@ -1192,11 +1194,13 @@ function openSettings() {
   // Immer zugeklappt starten — die zuletzt offene Karte wird bewusst nicht
   // gemerkt (Deep-Links wie „Konto" setzen ihre Karte direkt NACH dem Öffnen).
   state.settingsTab = '';
+  state.settingsScope = 'general';
   navigate('settings');
 }
 // Sektion direkt öffnen (Deep-Links von Home: Konto, Skin-Editor). Beim Konto
 // zusätzlich den Account-Status auffrischen (wie zuvor beim Tab-Klick).
 function selectSettingsSection(id) {
+  state.settingsScope = 'general';
   state.settingsTab = id;
   if (id === 'konto') refreshAccount();
 }
@@ -5680,8 +5684,40 @@ function toggleSetting(key) {
 }
 // Skin JE SPIEL: lesen über curSkin (computed im setup), schreiben nur ins laufende Spiel.
 function setSkin(key, val) {
-  setSetting('skinByGame', withGameSkin(state.settings.skinByGame, currentGame.id, key, val));
-  if (key === 'skinEnabled') log('app', 'Skin je Spiel umgeschaltet', { game: currentGame.id, on: !!val });
+  const g = skinTargetGame();
+  setSetting('skinByGame', withGameSkin(state.settings.skinByGame, g, key, val));
+  if (key === 'skinEnabled') log('app', 'Skin je Spiel umgeschaltet', { game: g, on: !!val });
+}
+// ── Einstellungen je Spiel (Reiter) ──
+// Skins gibt es in den Brettern von Number Sums und Math Cross.
+const SKIN_GAMES = ['numbersums', 'mathcross'];
+// Welchem Spiel gilt der Skin-Editor? Im Spiel-Reiter diesem, sonst dem aktiven.
+function skinTargetGame() { return state.settingsScope && state.settingsScope !== 'general' ? state.settingsScope : currentGame.id; }
+// Text aus der Text-Ebene des gewählten Spiel-Reiters.
+function tg(key, params) { return tFor(state.settingsScope !== 'general' ? (gameById(state.settingsScope).messages || null) : null, key, params); }
+// Anleitung eines beliebigen Spiels (aus dem Spiel-Reiter heraus).
+function openHowto(g = null) { state.howtoGame = g && g !== currentGame.id ? g : null; state.modal = 'howto'; }
+function closeHowto() { state.modal = null; state.howtoGame = null; }
+function howtoGameId() { return state.howtoGame || currentGame.id; }
+function th(key, params) { return tFor(gameById(howtoGameId()).messages || null, key, params); }
+function howtoHas(f) { return !!(gameById(howtoGameId()).features || {})[f]; }
+// Training geht für das aktive Spiel immer; für ein anderes nur, wenn gerade
+// keine Partie läuft (dann wird vorher gewechselt).
+function howtoCanTrain() { return !state.howtoGame || !gameSessionActive(); }
+function trainFromHowto() {
+  const g = state.howtoGame;
+  closeHowto();
+  if (g && g !== currentGame.id) { state.mixOn = false; if (!switchGame(g)) return; }
+  startTrainingGame();
+}
+// Musik „im Spiel" = die früheren Bereiche Solo/Coop/Wettkampf/Training zusammen.
+const MUSIC_GAME_KEYS = ['musicSolo', 'musicCoop', 'musicCompetition', 'musicTraining'];
+function musicGameOn() { return MUSIC_GAME_KEYS.some((k) => state.settings[k]); }
+function toggleMusicGame() {
+  const on = !musicGameOn();
+  for (const k of MUSIC_GAME_KEYS) state.settings[k] = on;
+  updateMusic();
+  log('app', 'Musik im Spiel umgeschaltet', { on });
 }
 function setSetting(key, val) {
   state.settings[key] = val;
@@ -7384,7 +7420,10 @@ function chooseDivStyle(id) {
 function dragScaleLabel() {
   const v = Number(state.settings.dragScale);
   const f = Number.isFinite(v) ? Math.min(4, Math.max(1, v)) : 1;
-  return f <= 1 ? t('settings.dragScaleOff') : t('settings.dragScaleOn', { f: String(f).replace('.', ',') });
+  // Texte aus der Math-Cross-Ebene — der Regler steht im Math-Cross-Reiter,
+  // auch wenn gerade ein anderes Spiel aktiv ist.
+  const mc = gameById('mathcross').messages || null;
+  return f <= 1 ? tFor(mc, 'settings.dragScaleOff') : tFor(mc, 'settings.dragScaleOn', { f: String(f).replace('.', ',') });
 }
 function dismissStreakLostNotice() { state.streakLostNotice = false; }
 // Nach dem Cloud-Abgleich (angemeldet): jetzt steht der geräteübergreifende
@@ -8157,7 +8196,9 @@ const App = {
     // leben auf MODULEBENE (s. Brett-Optik-Block) — hier nur die Editor-Vorschau.
     // Editor-Vorschau: IMMER aktiv (unabhängig vom Master-Schalter), damit man die
     // gerade eingestellte Optik sieht.
-    const curSkin = computed(() => gameSkin(state.settings, currentGame.id));
+    const curSkin = computed(() => gameSkin(state.settings, skinTargetGame()));
+    // Geteilt-Zeichen des Math-Cross-Reiters — auch wenn gerade ein anderes Spiel aktiv ist.
+    const scopeDivStyles = computed(() => gameById('mathcross').divStyles || []);
     const skinPreviewVars = computed(() => buildSkinVars(curSkin.value));
     const skinPreviewClasses = computed(() => buildSkinClasses(curSkin.value, true));
 
@@ -8251,7 +8292,7 @@ const App = {
       assignTeam, randomizeTeams, canStartTeamMatch, startTeamMatch, goRace, canStartRaceMatch, startRaceMatch, rematchRace,
       chipTextColor, confirmCoopIdentity, coopChooseHost, coopChooseGuest, playerColor, goCoop,
       nonHostPlayers, readyCount, allGuestsReady, myReady, markReady, unmarkReady,
-      GEM_CROSS_COLORS, GEM_CROSS_SVG, openInvitePicker, closeInvitePicker, canInviteFromLobby, canInviteToReadyLobby, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle, duelBars,
+      GEM_CROSS_COLORS, GEM_CROSS_SVG, GAMES, SKIN_GAMES, tg, th, howtoHas, howtoCanTrain, trainFromHowto, openHowto, closeHowto, musicGameOn, toggleMusicGame, scopeDivStyles, openInvitePicker, closeInvitePicker, canInviteFromLobby, canInviteToReadyLobby, inviteFriendToLobby, withdrawLobbyInvite, acceptLobbyInvite, declineLobbyInviteUI, lobbyModeLabel, raceResultMsg, teamResultMsg, winTitle, duelBars,
       canInviteToSolo, canInviteMore, canKick, kickPlayer, canManagePlayers, inviteCode, openInvite, inviteToSoloGame, cancelSoloInvite, bigNumbersAllowed,
       canContinueSolo, continueSoloAlone, startResumeCountdown,
       startTrainingGame, applyTrainingStep, trainingText: (step) => Board.trainingText(step),
@@ -9506,76 +9547,17 @@ const App = {
            Bildschirms. state.settingsTab = aktuell aufgeklappte Karte (Deep-Links
            wie „Konto" von Home setzen sie weiterhin direkt). -->
       <div class="settings-body settings-cards">
-
-        <!-- 🎮 Spiel -->
-        <div class="admin-acc">
-          <button class="admin-acc-head" @click="toggleSettingsCard('spiel')">
-            <span><span class="ico-lead" v-html="ic('controller')"></span>{{ t('settings.tabGame') }}</span>
-            <span class="admin-acc-chev" :class="{ open: state.settingsTab==='spiel' }">▾</span>
+        <!-- Reiter: „Allgemein" + ein Reiter je Spiel (Logo). -->
+        <div class="settings-tabs" role="tablist">
+          <button class="st-tab st-general" role="tab" :class="{ on: state.settingsScope==='general' }" :aria-selected="state.settingsScope==='general'" @click="state.settingsScope='general'">
+            <span class="ei" v-html="ic('gear')"></span> {{ t('settings.general') }}
           </button>
-          <div v-if="state.settingsTab==='spiel'" class="admin-acc-body">
-          <button class="btn btn-ghost set-howto-btn" @click="state.modal='howto'"><span class="btn-ic"><span class="ei" v-html="ic('book')"></span></span> {{ t('home.howto') }}</button>
-          <!-- Nur in Spielen mit Einkreisen/Löschen (Number Sums): woanders wirkungslos. -->
-          <template v-if="gameHas('toolToggle')">
-          <div class="set-row col">
-            <span class="set-row-label">{{ t('settings.eraseStyle') }}</span>
-            <div class="seg">
-              <button :class="{active:state.settings.eraseStyle==='hide'}" @click="setSetting('eraseStyle','hide')">{{ t('settings.hide') }}</button>
-              <button :class="{active:state.settings.eraseStyle==='strike'}" @click="setSetting('eraseStyle','strike')">{{ t('settings.strike') }}</button>
-            </div>
-          </div>
-          <div class="set-row" @click="toggleSetting('coopRemovedOutline')">
-            <span>{{ t('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
-          </div>
-          <small class="set-hint">{{ t('settings.coopRemovedOutlineHint') }}</small>
-          </template>
-          <!-- Gem Hunt: Kreuze von Hand oder automatisch mit jedem Stein. -->
-          <template v-if="gameHas('autoCross')">
-          <div class="set-row gem-autocross" @click="toggleSetting('gemAutoCross')">
-            <span>{{ t('gem.autoCross') }}</span><span class="switch" :class="{on:state.settings.gemAutoCross}"><i></i></span>
-          </div>
-          <small class="set-hint">{{ t('gem.autoCrossHint') }}</small>
-          <!-- Kreuz-Farben: eigene und automatische leicht unterscheidbar (Nutzerwunsch). -->
-          <div class="gx-row gem-crosscolor-own">
-            <span>{{ t('gem.crossOwn') }}</span>
-            <div class="gx-swatches">
-              <button v-for="c in GEM_CROSS_COLORS" :key="c" class="gx-sw" :class="['c-' + c, { active: (state.settings.gemCrossColor || 'cage') === c }]"
-                      :title="t('gem.xc.' + c)" :aria-label="t('gem.crossOwn') + ': ' + t('gem.xc.' + c)" @click="setSetting('gemCrossColor', c)" v-html="GEM_CROSS_SVG"></button>
-            </div>
-          </div>
-          <div v-if="state.settings.gemAutoCross" class="gx-row gem-crosscolor-auto">
-            <span>{{ t('gem.crossAuto') }}</span>
-            <div class="gx-swatches">
-              <button v-for="c in GEM_CROSS_COLORS" :key="c" class="gx-sw" :class="['c-' + c, { active: (state.settings.gemAutoCrossColor || 'soft') === c }]"
-                      :title="t('gem.xc.' + c)" :aria-label="t('gem.crossAuto') + ': ' + t('gem.xc.' + c)" @click="setSetting('gemAutoCrossColor', c)" v-html="GEM_CROSS_SVG"></button>
-            </div>
-          </div>
-          <small v-if="state.settings.gemAutoCross" class="set-hint">{{ t('gem.crossColorsHint') }}</small>
-          </template>
-          </div>
-        </div>
-
-        <!-- 🖥️ Desktop (Tastatur-Kürzel) — schaltet das Werkzeug um, gibt es
-             also nur in Spielen mit Werkzeug-Umschalter. -->
-        <div v-if="gameHas('toolToggle')" class="admin-acc">
-          <button class="admin-acc-head" @click="toggleSettingsCard('desktop')">
-            <span><span class="ico-lead" v-html="ic('keyboard')"></span>{{ t('settings.secDesktop') }}</span>
-            <span class="admin-acc-chev" :class="{ open: state.settingsTab==='desktop' }">▾</span>
+          <button v-for="g in GAMES" :key="g.id" class="st-tab st-game" role="tab" :class="{ on: state.settingsScope===g.id }" :aria-selected="state.settingsScope===g.id"
+                  :title="t(gameMeta(g.id).nameKey)" :aria-label="t(gameMeta(g.id).nameKey)" :data-game="g.id" @click="state.settingsScope=g.id">
+            <img :src="gameMeta(g.id).logo" alt="">
           </button>
-          <div v-if="state.settingsTab==='desktop'" class="admin-acc-body">
-            <div class="set-row col">
-              <span class="set-row-label">{{ t('settings.desktop.toolKey') }}</span>
-              <div class="desktop-key-row">
-                <button class="btn btn-ghost btn-sm desktop-key-cap" :class="{ capturing: state.desktopKeyCapture }" @click="startDesktopKeyCapture">
-                  {{ state.desktopKeyCapture ? t('settings.desktop.press') : desktopKeyLabel(state.settings.desktopToolKey) }}
-                </button>
-                <button v-if="state.desktopKeyCapture" class="btn-link" @click="cancelDesktopKeyCapture">{{ t('common.cancel') }}</button>
-                <button v-else-if="state.settings.desktopToolKey" class="btn-link" @click="clearDesktopToolKey">{{ t('settings.desktop.off') }}</button>
-              </div>
-              <small class="set-hint">{{ t('settings.desktop.hint') }}</small>
-            </div>
-          </div>
         </div>
+        <template v-if="state.settingsScope==='general'">
 
         <!-- 🌓 Darstellung (Theme, Sprache, Barrierefreiheit) -->
         <div class="admin-acc">
@@ -9591,7 +9573,6 @@ const App = {
               <button :class="{active:state.settings.themeMode==='light'}" @click="setSetting('themeMode','light')"><span class="ei" v-html="ic('sun')"></span> {{ t('settings.themeLight') }}</button>
               <button :class="{active:state.settings.themeMode==='dark'}" @click="setSetting('themeMode','dark')"><span class="ei" v-html="ic('moon')"></span> {{ t('settings.themeDark') }}</button>
             </div>
-            <small class="set-hint">{{ t('settings.themeHint') }}</small>
           </div>
           <div class="set-row col">
             <span class="set-row-label">{{ t('settings.language') }}</span>
@@ -9623,16 +9604,6 @@ const App = {
           </div>
 
           <div class="set-group-title">{{ t('settings.a11y') }}</div>
-          <!-- Math Cross: Reichweite beim Ziehen — der Stein folgt der Finger-
-               bewegung verstärkt, damit man den oberen Brettrand ohne Wisch über
-               den ganzen Bildschirm erreicht. -->
-          <div v-if="gameHas('dragScale')" class="set-row col">
-            <span class="set-row-label">{{ t('settings.dragScale') }}<span class="account-role">{{ dragScaleLabel() }}</span></span>
-            <input type="range" class="set-range" min="1" max="4" step="0.5" :value="state.settings.dragScale"
-                   :style="{ '--rangePct': Math.round((state.settings.dragScale-1)/3*100) + '%' }"
-                   @input="setSetting('dragScale', parseFloat($event.target.value))" />
-            <small class="set-hint">{{ t('settings.dragScaleHint') }}</small>
-          </div>
           <div class="set-row" @click="toggleSetting('colorBlindMode')">
             <span>{{ t('settings.colorBlindMode') }}</span><span class="switch" :class="{on:state.settings.colorBlindMode}"><i></i></span>
           </div>
@@ -9655,105 +9626,6 @@ const App = {
             <small class="set-hint">{{ t('settings.colorHint') }}</small>
           </div>
 
-          <template v-if="gameHas('divStyle')">
-          <div class="set-group-title">{{ t('settings.divStyle') }}</div>
-          <div class="set-row col">
-            <div class="div-choice">
-              <button v-for="d in divStyles" :key="d.id" class="div-opt" :class="{ on: activeDivStyleId===d.id }" @click="chooseDivStyle(d.id)">
-                <span v-if="d.sym==='÷'" class="op-obelus op-obelus-lg"></span><b v-else class="div-sample">{{ d.sym }}</b>
-                <small>{{ t('settings.div_' + d.id) }}</small>
-              </button>
-            </div>
-            <small class="set-hint">{{ t('settings.divStyleHint') }}</small>
-          </div>
-          </template>
-
-          <template v-if="gameHas('markColor')">
-          <div class="set-group-title">{{ t('settings.markColor') }}</div>
-          <div class="set-row col">
-            <div class="coop-swatches">
-              <input type="color" class="swatch-custom" v-model="state.settings.markColor" :title="t('common.pickColorTitle')" />
-            </div>
-            <small class="set-hint">{{ t('settings.markColorHint') }}</small>
-          </div>
-          </template>
-
-          <!-- Dynamischer Skin (1.0): Code-Einlösung immer sichtbar; Editor nur, wenn freigeschaltet -->
-          <div class="set-group-title skin-editor">{{ t('skin.title') }}</div>
-          <!-- Skin JE SPIEL: alles hier gilt nur für das gerade gewählte Spiel. -->
-          <small v-if="skinUnlocked || skinPresetOwned" class="set-hint skin-game-hint">{{ t('skin.forGame', { game: t(gameMeta(currentGame.id).nameKey) }) }}</small>
-          <!-- Vorschau + An/Aus: für Besitzer des exklusiven Skins ODER einer
-               gekauften Skin-Vorlage. Der freie EDITOR darunter bleibt exklusiv. -->
-          <template v-if="skinUnlocked || skinPresetOwned">
-            <div class="skin-preview-wrap">
-              <div class="board skin-preview" :class="skinPreviewClasses" :style="skinPreviewVars">
-                <div class="cell kept coop-mark" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">5</span></div>
-                <div class="cell removed coop-mark-removed" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">3</span></div>
-              </div>
-            </div>
-            <div class="set-row" @click="setSkin('skinEnabled', !curSkin.skinEnabled)">
-              <span>{{ t('skin.enabled') }}</span><span class="switch" :class="{on:curSkin.skinEnabled}"><i></i></span>
-            </div>
-            <small v-if="!skinUnlocked" class="set-hint">{{ t('skin.presetOnlyHint') }} <button class="btn-link" @click="openShop('skinpreset')">{{ t('shop.title') }} ›</button></small>
-          </template>
-          <template v-if="skinUnlocked">
-            <div class="set-row col">
-              <span class="set-row-label">{{ t('skin.style') }}</span>
-              <div class="seg">
-                <button :class="{active:curSkin.skinStyle==='solid'}" @click="setSkin('skinStyle','solid')">{{ t('skin.styleSolid') }}</button>
-                <button :class="{active:curSkin.skinStyle==='gradient'}" @click="setSkin('skinStyle','gradient')">{{ t('skin.styleGradient') }}</button>
-                <button :class="{active:curSkin.skinStyle==='rainbow'}" @click="setSkin('skinStyle','rainbow')">{{ t('skin.styleRainbow') }}</button>
-              </div>
-            </div>
-            <div class="set-row col" v-if="curSkin.skinStyle==='gradient'">
-              <span class="set-row-label">{{ t('skin.colors') }}</span>
-              <div class="coop-swatches">
-                <input type="color" class="swatch-custom" :value="curSkin.skinColor1 || state.settings.coopMyColor" @input="setSkin('skinColor1', $event.target.value)" />
-                <input type="color" class="swatch-custom" :value="curSkin.skinColor2 || '#ffffff'" @input="setSkin('skinColor2', $event.target.value)" />
-                <input type="color" class="swatch-custom" :value="curSkin.skinColor3 || '#000000'" @input="setSkin('skinColor3', $event.target.value)" />
-                <button class="btn-link" @click="setSkin('skinColor1',''); setSkin('skinColor2',''); setSkin('skinColor3','')">{{ t('skin.resetColors') }}</button>
-              </div>
-              <small class="set-hint">{{ t('skin.colorsHint') }}</small>
-            </div>
-            <div class="set-row col">
-              <span class="set-row-label">{{ t('skin.speed') }}</span>
-              <input type="range" class="set-range" min="0" max="12" step="1" :value="curSkin.skinSpeed"
-                     :style="{ '--rangePct': Math.round(curSkin.skinSpeed/12*100) + '%' }"
-                     @input="setSkin('skinSpeed', parseFloat($event.target.value))" />
-              <small class="set-hint">{{ curSkin.skinSpeed>0 ? t('skin.speedOn', { s: skinSpeedToDuration(curSkin.skinSpeed).toFixed(1) }) : t('skin.speedOff') }}</small>
-            </div>
-            <div class="set-row" v-if="curSkin.skinSpeed>0" @click="setSkin('skinDirection', curSkin.skinDirection==='cw' ? 'ccw' : 'cw')">
-              <span>{{ t('skin.direction') }}</span><span class="account-role">{{ curSkin.skinDirection==='ccw' ? t('skin.ccw') : t('skin.cw') }}</span>
-            </div>
-            <div class="set-row col">
-              <span class="set-row-label">{{ t('skin.glow') }}</span>
-              <input type="range" class="set-range" min="0" max="16" step="1" :value="curSkin.skinGlow"
-                     :style="{ '--rangePct': Math.round(curSkin.skinGlow/16*100) + '%' }"
-                     @input="setSkin('skinGlow', parseFloat($event.target.value))" />
-            </div>
-            <div class="set-row col">
-              <span class="set-row-label">{{ t('skin.thickness') }}</span>
-              <input type="range" class="set-range" min="1" max="5" step="0.5" :value="curSkin.skinThickness"
-                     :style="{ '--rangePct': Math.round((curSkin.skinThickness-1)/4*100) + '%' }"
-                     @input="setSkin('skinThickness', parseFloat($event.target.value))" />
-            </div>
-            <div class="set-row col">
-              <span class="set-row-label">{{ t('skin.applyTo') }}</span>
-              <div class="seg">
-                <button :class="{active:curSkin.skinApplyTo==='kept'}" @click="setSkin('skinApplyTo','kept')">{{ t('skin.applyKept') }}</button>
-                <button :class="{active:curSkin.skinApplyTo==='removed'}" @click="setSkin('skinApplyTo','removed')">{{ t('skin.applyRemoved') }}</button>
-                <button :class="{active:curSkin.skinApplyTo==='both'}" @click="setSkin('skinApplyTo','both')">{{ t('skin.applyBoth') }}</button>
-              </div>
-              <small class="set-hint">{{ t('skin.applyHint') }}</small>
-            </div>
-          </template>
-          <template v-else>
-            <small class="set-hint">{{ t('skin.lockedHint') }}</small>
-            <div class="account-search">
-              <input class="text-input" v-model="state.skinCodeInput" :placeholder="t('skin.codePlaceholder')" @keydown.enter="redeemSkinCode" />
-              <button class="btn btn-primary" @click="redeemSkinCode">{{ t('skin.redeem') }}</button>
-            </div>
-          </template>
           </div>
         </div>
 
@@ -9791,17 +9663,10 @@ const App = {
           <div class="set-row" @click="toggleSetting('musicMenu')">
             <span>{{ t('settings.musicMenu') }}</span><span class="switch" :class="{on:state.settings.musicMenu}"><i></i></span>
           </div>
-          <div class="set-row" @click="toggleSetting('musicSolo')">
-            <span>{{ t('settings.musicSolo') }}</span><span class="switch" :class="{on:state.settings.musicSolo}"><i></i></span>
-          </div>
-          <div class="set-row" @click="toggleSetting('musicCoop')">
-            <span>{{ t('settings.musicCoop') }}</span><span class="switch" :class="{on:state.settings.musicCoop}"><i></i></span>
-          </div>
-          <div class="set-row" @click="toggleSetting('musicCompetition')">
-            <span>{{ t('settings.musicCompetition') }}</span><span class="switch" :class="{on:state.settings.musicCompetition}"><i></i></span>
-          </div>
-          <div class="set-row" @click="toggleSetting('musicTraining')">
-            <span>{{ t('settings.musicTraining') }}</span><span class="switch" :class="{on:state.settings.musicTraining}"><i></i></span>
+          <!-- Musik: nur noch „im Menü" und „im Spiel" (Nutzerwunsch; schaltet die
+               bisherigen Bereiche Solo/Coop/Wettkampf/Training gemeinsam). -->
+          <div class="set-row music-game-row" @click="toggleMusicGame">
+            <span>{{ t('settings.musicGame') }}</span><span class="switch" :class="{on:musicGameOn()}"><i></i></span>
           </div>
           <small class="set-hint">{{ t('settings.sfxHintText') }}</small>
           <div class="set-row" @click="toggleSetting('sfxComplete')">
@@ -9821,9 +9686,6 @@ const App = {
           </div>
           <div class="set-row" @click="toggleSetting('sfxToolSwitch')">
             <span>{{ t('settings.sfxToolSwitch') }}</span><span class="switch" :class="{on:state.settings.sfxToolSwitch}"><i></i></span>
-          </div>
-          <div class="set-row" @click="toggleSetting('sfxUndo')">
-            <span>{{ t('settings.sfxUndo') }}</span><span class="switch" :class="{on:state.settings.sfxUndo}"><i></i></span>
           </div>
           <div class="set-row" @click="toggleSetting('sfxWin')">
             <span>{{ t('settings.sfxWin') }}</span><span class="switch" :class="{on:state.settings.sfxWin}"><i></i></span>
@@ -9849,7 +9711,6 @@ const App = {
           <div class="set-row col">
             <span class="set-row-label">{{ t('settings.displayName') }}</span>
             <input class="text-input" v-model="state.settings.coopName" maxlength="32" :placeholder="t('common.namePlaceholder')" />
-            <small class="set-hint">{{ t('settings.displayNameHint') }}</small>
           </div>
 
           <div class="set-group-title">{{ t('account.title') }}</div>
@@ -9879,7 +9740,7 @@ const App = {
                 <small class="set-hint">{{ t('account.usernameHint') }}</small>
               </div>
               <div class="account-row" v-if="state.account.email"><span class="account-label">{{ t('account.email') }}</span><span>{{ state.account.email }}</span></div>
-              <div class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }"><span v-if="state.account.role==='admin'" class="ei" v-html="ic('crown')"></span> {{ state.account.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
+              <div v-if="state.account.role==='admin'" class="account-row"><span class="account-label">{{ t('account.role') }}</span><span class="account-role" :class="{ admin: state.account.role==='admin' }"><span v-if="state.account.role==='admin'" class="ei" v-html="ic('crown')"></span> {{ state.account.role==='admin' ? t('account.roleAdmin') : t('account.roleUser') }}</span></div>
               <div class="account-sync" :class="'sync-'+state.account.syncState">
                 <template v-if="state.account.syncState==='syncing'"><span class="spinner-inline"></span> {{ t('account.syncing') }}</template>
                 <template v-else-if="state.account.syncState==='error'"><span class="ei" v-html="ic('warning')"></span> {{ state.account.syncErrorMsg || t('account.syncError') }}</template>
@@ -9957,9 +9818,15 @@ const App = {
             <input type="file" accept="application/json" @change="doImport" hidden>
           </label>
           <button class="btn btn-ghost" @click="doExportLog">{{ t('settings.exportLog') }}</button>
-          <button class="btn btn-ghost" @click="state.modal='changelog'">{{ t('settings.changelog') }}</button>
-          <a class="btn btn-ghost" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
-          <a class="btn btn-ghost" href="./imprint.html" target="_blank" rel="noopener">{{ t('settings.imprint') }}</a>
+          <!-- Infos & Rechtliches in EINER Zeile (Nutzerwunsch). -->
+          <div class="set-info-row">
+            <span class="set-row-label">{{ t('settings.infoLegal') }}</span>
+            <div class="set-info-links">
+              <button class="btn-link" @click="state.modal='changelog'">{{ t('settings.changelog') }}</button>
+              <a class="btn-link" href="./privacy.html" target="_blank" rel="noopener">{{ t('settings.privacyPolicy') }}</a>
+              <a class="btn-link" href="./imprint.html" target="_blank" rel="noopener">{{ t('settings.imprint') }}</a>
+            </div>
+          </div>
           <button class="btn btn-danger-ghost" @click="doDeleteAllData">{{ t('settings.deleteAllData') }}</button>
           <div class="backup-section">
             <h4 class="backup-title">{{ t('backups.title') }}</h4>
@@ -9970,6 +9837,182 @@ const App = {
             </div>
           </div>
           </div>
+        </div>
+        </template>
+
+        <!-- Reiter je Spiel (Nutzerwunsch): alle Spiel-Einstellungen sind immer
+             erreichbar, egal welches Spiel gerade aktiv ist. Texte über tg() aus
+             der Text-Ebene DIESES Spiels. -->
+        <div v-else class="set-game-panel" :data-game="state.settingsScope">
+          <div class="set-game-head">
+            <img :src="gameMeta(state.settingsScope).logo" alt="">
+            <b>{{ t('settings.gameSettings', { game: t(gameMeta(state.settingsScope).nameKey) }) }}</b>
+          </div>
+          <button class="btn btn-ghost set-howto-btn" @click="openHowto(state.settingsScope)"><span class="btn-ic"><span class="ei" v-html="ic('book')"></span></span> {{ t('home.howto') }}</button>
+          <template v-if="state.settingsScope==='numbersums'">
+          <div class="set-row col">
+            <span class="set-row-label">{{ tg('settings.eraseStyle') }}</span>
+            <div class="seg">
+              <button :class="{active:state.settings.eraseStyle==='hide'}" @click="setSetting('eraseStyle','hide')">{{ tg('settings.hide') }}</button>
+              <button :class="{active:state.settings.eraseStyle==='strike'}" @click="setSetting('eraseStyle','strike')">{{ tg('settings.strike') }}</button>
+            </div>
+          </div>
+          <div class="set-row" @click="toggleSetting('coopRemovedOutline')">
+            <span>{{ tg('settings.coopRemovedOutline') }}</span><span class="switch" :class="{on:state.settings.coopRemovedOutline}"><i></i></span>
+          </div>
+          <small class="set-hint">{{ tg('settings.coopRemovedOutlineHint') }}</small>
+            <div class="set-row col">
+              <span class="set-row-label">{{ tg('settings.desktop.toolKey') }}</span>
+              <div class="desktop-key-row">
+                <button class="btn btn-ghost btn-sm desktop-key-cap" :class="{ capturing: state.desktopKeyCapture }" @click="startDesktopKeyCapture">
+                  {{ state.desktopKeyCapture ? tg('settings.desktop.press') : desktopKeyLabel(state.settings.desktopToolKey) }}
+                </button>
+                <button v-if="state.desktopKeyCapture" class="btn-link" @click="cancelDesktopKeyCapture">{{ tg('common.cancel') }}</button>
+                <button v-else-if="state.settings.desktopToolKey" class="btn-link" @click="clearDesktopToolKey">{{ tg('settings.desktop.off') }}</button>
+              </div>
+              <small class="set-hint">{{ tg('settings.desktop.hint') }}</small>
+            </div>
+          </template>
+          <template v-if="state.settingsScope==='mathcross'">
+          
+          <div class="set-group-title">{{ tg('settings.divStyle') }}</div>
+          <div class="set-row col">
+            <div class="div-choice">
+              <button v-for="d in scopeDivStyles" :key="d.id" class="div-opt" :class="{ on: activeDivStyleId===d.id }" @click="chooseDivStyle(d.id)">
+                <span v-if="d.sym==='÷'" class="op-obelus op-obelus-lg"></span><b v-else class="div-sample">{{ d.sym }}</b>
+                <small>{{ tg('settings.div_' + d.id) }}</small>
+              </button>
+            </div>
+            <small class="set-hint">{{ tg('settings.divStyleHint') }}</small>
+          </div>
+          
+
+          
+          <div class="set-group-title">{{ tg('settings.markColor') }}</div>
+          <div class="set-row col">
+            <div class="coop-swatches">
+              <input type="color" class="swatch-custom" v-model="state.settings.markColor" :title="tg('common.pickColorTitle')" />
+            </div>
+            <small class="set-hint">{{ tg('settings.markColorHint') }}</small>
+          </div>
+          
+
+
+          <!-- Math Cross: Reichweite beim Ziehen — der Stein folgt der Finger-
+               bewegung verstärkt, damit man den oberen Brettrand ohne Wisch über
+               den ganzen Bildschirm erreicht. -->
+          <div class="set-row col">
+            <span class="set-row-label">{{ tg('settings.dragScale') }}<span class="account-role">{{ dragScaleLabel() }}</span></span>
+            <input type="range" class="set-range" min="1" max="4" step="0.5" :value="state.settings.dragScale"
+                   :style="{ '--rangePct': Math.round((state.settings.dragScale-1)/3*100) + '%' }"
+                   @input="setSetting('dragScale', parseFloat($event.target.value))" />
+            <small class="set-hint">{{ tg('settings.dragScaleHint') }}</small>
+          </div>
+          </template>
+          <template v-if="state.settingsScope==='gems'">
+          <div class="set-row gem-autocross" @click="toggleSetting('gemAutoCross')">
+            <span>{{ tg('gem.autoCross') }}</span><span class="switch" :class="{on:state.settings.gemAutoCross}"><i></i></span>
+          </div>
+          <small class="set-hint">{{ tg('gem.autoCrossHint') }}</small>
+          <!-- Kreuz-Farben: eigene und automatische leicht unterscheidbar (Nutzerwunsch). -->
+          <div class="gx-row gem-crosscolor-own">
+            <span>{{ tg('gem.crossOwn') }}</span>
+            <div class="gx-swatches">
+              <button v-for="c in GEM_CROSS_COLORS" :key="c" class="gx-sw" :class="['c-' + c, { active: (state.settings.gemCrossColor || 'cage') === c }]"
+                      :title="tg('gem.xc.' + c)" :aria-label="tg('gem.crossOwn') + ': ' + tg('gem.xc.' + c)" @click="setSetting('gemCrossColor', c)" v-html="GEM_CROSS_SVG"></button>
+            </div>
+          </div>
+          <div v-if="state.settings.gemAutoCross" class="gx-row gem-crosscolor-auto">
+            <span>{{ tg('gem.crossAuto') }}</span>
+            <div class="gx-swatches">
+              <button v-for="c in GEM_CROSS_COLORS" :key="c" class="gx-sw" :class="['c-' + c, { active: (state.settings.gemAutoCrossColor || 'soft') === c }]"
+                      :title="tg('gem.xc.' + c)" :aria-label="tg('gem.crossAuto') + ': ' + tg('gem.xc.' + c)" @click="setSetting('gemAutoCrossColor', c)" v-html="GEM_CROSS_SVG"></button>
+            </div>
+          </div>
+          <small v-if="state.settings.gemAutoCross" class="set-hint">{{ tg('gem.crossColorsHint') }}</small>
+          </template>
+          <template v-if="state.settingsScope==='pipes'">
+          <div class="set-row pipes-flow-setting" @click="toggleSetting('pipesFlow')">
+            <span>{{ t('settings.pipesFlow') }}</span><span class="switch" :class="{on:state.settings.pipesFlow !== false}"><i></i></span>
+          </div>
+          </template>
+          <template v-if="SKIN_GAMES.includes(state.settingsScope)">
+          <!-- Dynamischer Skin (1.0): Code-Einlösung immer sichtbar; Editor nur, wenn freigeschaltet -->
+          <div class="set-group-title skin-editor">{{ t('skin.title') }}</div>
+          <!-- Vorschau + An/Aus: für Besitzer des exklusiven Skins ODER einer
+               gekauften Skin-Vorlage. Der freie EDITOR darunter bleibt exklusiv. -->
+          <template v-if="skinUnlocked || skinPresetOwned">
+            <div class="skin-preview-wrap">
+              <div class="board skin-preview" :class="skinPreviewClasses" :style="skinPreviewVars">
+                <div class="cell kept coop-mark" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">5</span></div>
+                <div class="cell removed coop-mark-removed" :style="{ '--markcol': state.settings.coopMyColor }"><span class="cnum">3</span></div>
+              </div>
+            </div>
+            <div class="set-row" @click="setSkin('skinEnabled', !curSkin.skinEnabled)">
+              <span>{{ t('skin.enabled') }}</span><span class="switch" :class="{on:curSkin.skinEnabled}"><i></i></span>
+            </div>
+            <small v-if="!skinUnlocked" class="set-hint">{{ t('skin.presetOnlyHint') }} <button class="btn-link" @click="openShop('skinpreset')">{{ t('shop.title') }} ›</button></small>
+          </template>
+          <template v-if="skinUnlocked">
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.style') }}</span>
+              <div class="seg">
+                <button :class="{active:curSkin.skinStyle==='solid'}" @click="setSkin('skinStyle','solid')">{{ t('skin.styleSolid') }}</button>
+                <button :class="{active:curSkin.skinStyle==='gradient'}" @click="setSkin('skinStyle','gradient')">{{ t('skin.styleGradient') }}</button>
+                <button :class="{active:curSkin.skinStyle==='rainbow'}" @click="setSkin('skinStyle','rainbow')">{{ t('skin.styleRainbow') }}</button>
+              </div>
+            </div>
+            <div class="set-row col" v-if="curSkin.skinStyle==='gradient'">
+              <span class="set-row-label">{{ t('skin.colors') }}</span>
+              <div class="coop-swatches">
+                <input type="color" class="swatch-custom" :value="curSkin.skinColor1 || state.settings.coopMyColor" @input="setSkin('skinColor1', $event.target.value)" />
+                <input type="color" class="swatch-custom" :value="curSkin.skinColor2 || '#ffffff'" @input="setSkin('skinColor2', $event.target.value)" />
+                <input type="color" class="swatch-custom" :value="curSkin.skinColor3 || '#000000'" @input="setSkin('skinColor3', $event.target.value)" />
+                <button class="btn-link" @click="setSkin('skinColor1',''); setSkin('skinColor2',''); setSkin('skinColor3','')">{{ t('skin.resetColors') }}</button>
+              </div>
+              <small class="set-hint">{{ t('skin.colorsHint') }}</small>
+            </div>
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.speed') }}</span>
+              <input type="range" class="set-range" min="0" max="12" step="1" :value="curSkin.skinSpeed"
+                     :style="{ '--rangePct': Math.round(curSkin.skinSpeed/12*100) + '%' }"
+                     @input="setSkin('skinSpeed', parseFloat($event.target.value))" />
+              <small class="set-hint">{{ curSkin.skinSpeed>0 ? t('skin.speedOn', { s: skinSpeedToDuration(curSkin.skinSpeed).toFixed(1) }) : t('skin.speedOff') }}</small>
+            </div>
+            <div class="set-row" v-if="curSkin.skinSpeed>0" @click="setSkin('skinDirection', curSkin.skinDirection==='cw' ? 'ccw' : 'cw')">
+              <span>{{ t('skin.direction') }}</span><span class="account-role">{{ curSkin.skinDirection==='ccw' ? t('skin.ccw') : t('skin.cw') }}</span>
+            </div>
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.glow') }}</span>
+              <input type="range" class="set-range" min="0" max="16" step="1" :value="curSkin.skinGlow"
+                     :style="{ '--rangePct': Math.round(curSkin.skinGlow/16*100) + '%' }"
+                     @input="setSkin('skinGlow', parseFloat($event.target.value))" />
+            </div>
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.thickness') }}</span>
+              <input type="range" class="set-range" min="1" max="5" step="0.5" :value="curSkin.skinThickness"
+                     :style="{ '--rangePct': Math.round((curSkin.skinThickness-1)/4*100) + '%' }"
+                     @input="setSkin('skinThickness', parseFloat($event.target.value))" />
+            </div>
+            <div class="set-row col">
+              <span class="set-row-label">{{ t('skin.applyTo') }}</span>
+              <div class="seg">
+                <button :class="{active:curSkin.skinApplyTo==='kept'}" @click="setSkin('skinApplyTo','kept')">{{ t('skin.applyKept') }}</button>
+                <button :class="{active:curSkin.skinApplyTo==='removed'}" @click="setSkin('skinApplyTo','removed')">{{ t('skin.applyRemoved') }}</button>
+                <button :class="{active:curSkin.skinApplyTo==='both'}" @click="setSkin('skinApplyTo','both')">{{ t('skin.applyBoth') }}</button>
+              </div>
+              <small class="set-hint">{{ t('skin.applyHint') }}</small>
+            </div>
+          </template>
+          <template v-else>
+            <small class="set-hint">{{ t('skin.lockedHint') }}</small>
+            <div class="account-search">
+              <input class="text-input" v-model="state.skinCodeInput" :placeholder="t('skin.codePlaceholder')" @keydown.enter="redeemSkinCode" />
+              <button class="btn btn-primary" @click="redeemSkinCode">{{ t('skin.redeem') }}</button>
+            </div>
+          </template>
+
+          </template>
         </div>
       </div>
     </section>
@@ -10349,26 +10392,26 @@ const App = {
       </div>
     </div>
 
-    <div v-if="state.modal==='howto'" class="modal-bg" @click.self="state.modal=null">
+    <div v-if="state.modal==='howto'" class="modal-bg" @click.self="closeHowto()">
       <div class="modal">
-        <h3>{{ t('howto.title') }}</h3>
+        <h3>{{ th('howto.title') }}</h3>
         <ol class="rules">
-          <li v-html="t('howto.rule1')"></li>
-          <li v-html="t('howto.rule2')"></li>
-          <li v-html="t('howto.rule3')"></li>
-          <li v-html="t('howto.rule4')"></li>
-          <li v-if="gameHas('markTools')" v-html="t('howto.ruleTapBack')"></li>
-          <li v-if="gameHas('markTools')" v-html="t('howto.ruleMark')"></li>
-          <li v-html="t('howto.rule5')"></li>
-          <li v-html="t('howto.rule6')"></li>
-          <li v-if="state.coop.active" v-html="t('howto.rule7Coop')"></li>
-          <li v-html="t('howto.rule9')"></li>
+          <li v-html="th('howto.rule1')"></li>
+          <li v-html="th('howto.rule2')"></li>
+          <li v-html="th('howto.rule3')"></li>
+          <li v-html="th('howto.rule4')"></li>
+          <li v-if="howtoHas('markTools')" v-html="th('howto.ruleTapBack')"></li>
+          <li v-if="howtoHas('markTools')" v-html="th('howto.ruleMark')"></li>
+          <li v-html="th('howto.rule5')"></li>
+          <li v-html="th('howto.rule6')"></li>
+          <li v-if="state.coop.active" v-html="th('howto.rule7Coop')"></li>
+          <li v-html="th('howto.rule9')"></li>
         </ol>
-        <button class="btn btn-ghost training-btn" @click="state.modal=null; startTrainingGame()">
+        <button v-if="howtoCanTrain()" class="btn btn-ghost training-btn" @click="trainFromHowto()">
           <span class="btn-ic"><span class="ei" v-html="ic('graduation')"></span></span>
           <span class="btn-tx"><b>{{ t('home.trainingMode') }}</b><small>{{ t('home.trainingHint') }}</small></span>
         </button>
-        <button class="btn btn-primary" @click="state.modal=null">{{ t('howto.understood') }}</button>
+        <button class="btn btn-primary" @click="closeHowto()">{{ th('howto.understood') }}</button>
       </div>
     </div>
 

@@ -194,7 +194,7 @@ test('Kreuze automatisch: ein Stein kreuzt seine Zone, Wegnehmen räumt nur dies
   await page.evaluate(() => window.__cns.tapGem(0, 'gem'));
   expect((await cells(page))[1]).toBe(0);
   // Der Schalter steht unter Einstellungen ▸ Spiel.
-  await page.evaluate(() => { window.__cns.state.screen = 'settings'; window.__cns.state.settingsTab = 'spiel'; });
+  await page.evaluate(() => { window.__cns.state.screen = 'settings'; window.__cns.state.settingsScope = 'gems'; });
   await expect(page.locator('.gem-autocross')).toBeVisible();
 });
 
@@ -232,7 +232,7 @@ test('Kreuz-Farben: automatische Kreuze leicht anders, beide einstellbar, auch i
   }, n);
   expect(await page.evaluate((n) => [window.__cns.state.gemAuto[n * n - 2], window.__cns.state.gemAuto[n * n - 3]], n)).toEqual([true, false]);
   // Die Auswahl steht unter Einstellungen ▸ Spiel.
-  await page.evaluate(() => { const s = window.__cns.state; s.coop.active = false; s.screen = 'settings'; s.settingsTab = 'spiel'; });
+  await page.evaluate(() => { const s = window.__cns.state; s.coop.active = false; s.screen = 'settings'; s.settingsScope = 'gems'; });
   await expect(page.locator('.gem-crosscolor-own .gx-sw')).toHaveCount(6);
   await expect(page.locator('.gem-crosscolor-auto .gx-sw.active')).toHaveClass(/c-gold/);
 });
