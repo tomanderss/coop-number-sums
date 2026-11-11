@@ -14,7 +14,7 @@ globalThis.localStorage = new MemoryStorage();
 
 const {
   gameScopedKey, STORAGE_KEYS, ACCOUNT_FIELDS, GAME_FIELDS,
-  restoreGameChoice, chooseGame, gameId, collectExportData,
+  restoreGameChoice, chooseGame, gameId, collectExportData, withGameScope, loadStats, clearStats,
 } = await import('../../js/storage.js');
 const { DEFAULT_GAME_ID } = await import('../../js/games/registry.js');
 
@@ -134,5 +134,24 @@ describe('Beitritt nach Spielwechsel (cns_pending_join)', () => {
 
   test('der Auftrag ist geraetelokal und spielunabhaengig (kein Spiel-Zusatz)', () => {
     assert.equal(gameScopedKey('cns_pending_join', 'zweitspiel'), 'cns_pending_join');
+  });
+});
+
+describe('withGameScope (Abgleich aller Spiele beim Start)', () => {
+  test('liest/schreibt kurz die Schlüssel eines anderen Spiels und stellt danach zurück', () => {
+    localStorage.clear();
+    chooseGame(DEFAULT_GAME_ID);
+    assert.equal(withGameScope('pipes', () => gameId()), 'pipes');
+    assert.equal(gameId(), DEFAULT_GAME_ID);
+    localStorage.setItem('cns_stats__pipes', JSON.stringify({ played: 7 }));
+    assert.equal(withGameScope('pipes', () => loadStats().played), 7, 'liest die Statistik des anderen Spiels');
+    assert.notEqual(loadStats().played, 7, 'das aktive Spiel bleibt unberührt');
+    withGameScope('pipes', () => clearStats());
+    assert.equal(localStorage.getItem('cns_stats__pipes'), null, 'schreibt beim anderen Spiel');
+  });
+  test('stellt auch nach einem Fehler zurück', () => {
+    chooseGame(DEFAULT_GAME_ID);
+    assert.throws(() => withGameScope('gems', () => { throw new Error('x'); }));
+    assert.equal(gameId(), DEFAULT_GAME_ID);
   });
 });

@@ -110,7 +110,18 @@ export function gameScopedKey(key, game) {
  * load/save/remove, damit die ~200 Aufrufstellen unveraendert mit den logischen
  * Namen aus KEYS arbeiten.
  */
-function k(key) { return gameScopedKey(key, activeGameId()); }
+// Vorübergehender Spiel-Bereich für SYNCHRONE Abschnitte (withGameScope): beim
+// Start gleicht account.js ALLE Spiele mit der Cloud ab, nicht nur das aktive —
+// dafür liest/schreibt es kurz die Schlüssel eines anderen Spiels. Nur synchron
+// gesetzt (try/finally), daher sieht kein anderer Code den Wechsel.
+let scopeOverride = null;
+const scopeGame = () => scopeOverride || activeGameId();
+export function withGameScope(game, fn) {
+  const prev = scopeOverride;
+  scopeOverride = game || null;
+  try { return fn(); } finally { scopeOverride = prev; }
+}
+function k(key) { return gameScopedKey(key, scopeGame()); }
 
 function load(key, fallback) {
   try { const v = localStorage.getItem(k(key)); return v ? JSON.parse(v) : fallback; }
@@ -755,7 +766,7 @@ export function collectExportData(type = 'manual') {
 // Auswahl zur Laufzeit aendert (Spielauswahl im Hauptmenue): eine zur Ladezeit
 // eingefrorene Konstante haette nach einem Spielwechsel auf den alten Knoten
 // geschrieben.
-export function gameId() { return activeGameId(); }
+export function gameId() { return scopeGame(); }
 /**
  * Beim Start das zuletzt gespielte Spiel wiederherstellen. GERAETELOKAL und
  * bewusst NICHT synct: welches Spiel hier zuletzt offen war, ist Zustand dieses
