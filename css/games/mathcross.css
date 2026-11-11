@@ -257,20 +257,6 @@
 
 .shop-demo .cell.filled, .shop-demo .cell.given { width: 52px; height: 52px; }
 
-.div-choice { display: flex; gap: 8px; width: 100%; }
-
-.div-opt {
-  flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 6px; border: 0; border-radius: 12px; cursor: pointer;
-  background: var(--bg2); color: var(--text); font: inherit;
-  box-shadow: inset 0 0 0 2px transparent; transition: box-shadow .12s, background .12s;
-}
-
-.div-opt.on { background: color-mix(in srgb, var(--accent) 16%, var(--bg2)); box-shadow: inset 0 0 0 2px var(--accent); }
-
-.div-opt small { color: var(--text2); font-size: .78rem; }
-
-.div-opt .op-obelus, .div-opt .div-sample { color: var(--text); }
 
 .op-obelus-lg { font-size: 1.6rem; }
 

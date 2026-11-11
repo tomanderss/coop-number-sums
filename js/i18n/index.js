@@ -65,6 +65,23 @@ export function setGameMessages(table) {
   i18nState.gameRev = (i18nState.gameRev || 0) + 1;
 }
 
+// Text mit der Text-Ebene EINES BESTIMMTEN Spiels (statt der des aktiven) —
+// für die Einstellungs-Reiter je Spiel und die Anleitung eines anderen Spiels.
+// table = messages der Spiel-Beschreibung (null = nur gemeinsame Texte).
+export function tFor(table, key, params) {
+  void i18nState.gameRev; void i18nState.locale;
+  let msg;
+  if (table) {
+    msg = resolve(key, table[i18nState.locale]);
+    if (msg === undefined && resolve(key, MESSAGES[i18nState.locale]) === undefined) msg = resolve(key, table[FALLBACK_LOCALE]);
+  }
+  if (msg === undefined) msg = resolve(key, MESSAGES[i18nState.locale]);
+  if (msg === undefined) msg = resolve(key, MESSAGES[FALLBACK_LOCALE]);
+  if (msg === undefined) return key;
+  if (params) for (const [k, v] of Object.entries(params)) msg = msg.replaceAll(`{${k}}`, v);
+  return msg;
+}
+
 // t('game.errorsFound', { count: 3 }) -> "3 Fehler gefunden"
 export function t(key, params) {
   let msg;

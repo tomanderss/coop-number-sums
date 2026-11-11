@@ -36,11 +36,11 @@ test.describe('home screen', () => {
     await expect(page.locator('.screen.home')).toBeVisible();
   });
 
-  test('opens and closes the how-to modal (from settings ▸ Spiel)', async ({ page }) => {
+  test('opens and closes the how-to modal (from the game tab in settings)', async ({ page }) => {
     await gotoApp(page);
     await page.locator('.home-settings-btn').click();
     await expect(page.locator('.screen.settings')).toBeVisible();
-    await gotoSettingsSection(page, 'Spiel');  // Einstellungen starten zugeklappt
+    await page.locator('.st-tab[data-game="numbersums"]').click();
     await page.locator('.set-howto-btn').click();
     await expect(page.locator('.modal .rules')).toBeVisible();
     await page.locator('.modal .btn-primary').click();

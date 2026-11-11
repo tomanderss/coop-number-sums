@@ -12,7 +12,7 @@ test.describe('dynamic skin', () => {
     // nur Bestandsspieler mit 1.0-Versionssprung (bzw. Code/Admin-Geschenk).
     expect(await page.evaluate(() => !!window.__cns.state.inventory.dynamicColor)).toBe(false);
 
-    await page.evaluate(() => { const s = window.__cns.state; s.screen = 'settings'; s.settingsTab = 'farbe'; });
+    await page.evaluate(() => { const s = window.__cns.state; s.screen = 'settings'; s.settingsScope = 'numbersums'; });
     const codeInput = page.getByPlaceholder('Freischaltcode');
     await expect(codeInput).toBeVisible();
 
@@ -66,9 +66,9 @@ test.describe('dynamic skin', () => {
     await page.evaluate(() => {
       const s = window.__cns.state;
       s.inventory = { dynamicColor: { acquiredAt: 1, source: 'test' } };
-      s.screen = 'settings'; s.settingsTab = 'farbe';
+      s.screen = 'settings'; s.settingsScope = 'numbersums';
     });
-    await expect(page.locator('.skin-game-hint')).toContainText('Number Sums');
+    await expect(page.locator('.set-game-panel[data-game="numbersums"]')).toBeVisible();
     // In Number Sums einschalten (Einstellungen-Schalter).
     const sw = page.locator('.set-row', { hasText: 'Skin aktiv' }).first();
     await sw.click();
@@ -78,8 +78,8 @@ test.describe('dynamic skin', () => {
     await page.evaluate(() => { window.__cns.state.screen = 'home'; window.__cns.setSetting('divStyle', 'obelus'); });
     await page.evaluate(() => window.__cns.switchGame('mathcross'));
     expect(await page.evaluate(() => window.__cns.board.skinActive.value)).toBe(false);
-    await page.evaluate(() => { const s = window.__cns.state; s.screen = 'settings'; s.settingsTab = 'farbe'; });
-    await expect(page.locator('.skin-game-hint')).toContainText('Math Cross');
+    await page.evaluate(() => { const s = window.__cns.state; s.screen = 'settings'; s.settingsScope = 'mathcross'; });
+    await expect(page.locator('.set-game-panel[data-game="mathcross"]')).toBeVisible();
     await expect(page.locator('.set-row', { hasText: 'Skin aktiv' }).first().locator('.switch')).not.toHaveClass(/\bon\b/);
     // Ein Stil-Wechsel in Math Cross ändert Number Sums nicht.
     await page.locator('.seg button', { hasText: 'Regenbogen' }).click();
