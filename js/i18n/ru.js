@@ -119,6 +119,7 @@ export default {
     joined: '{name} присоединился – теперь вы играете вместе!',
   },
   pause: {
+    giveUp: "Сдаться",
     title: 'На паузе',
     msg: 'Поле скрыто – время не идёт.',
     resuming: 'Продолжаем …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: 'Код уже занят — выберите другое число.',
     errorConnection: 'Ошибка соединения.',
     continueSolo: 'Продолжить в одиночку',
+    kickTitle: "Удалить {name}?", kickMsg: "{name} покидает раунд и продолжает поле в одиночку.", kick: "Удалить", kicked: "Вас удалили из раунда.", kickedSolo: "Вас удалили – вы продолжаете в одиночку.", players: "Игроки",
     continueSoloDone: 'Теперь вы играете в одиночку – прогресс сохранён.',
     errorCodeNotFound: 'Код не найден.',
     errorTimeout: 'Истекло время ожидания.',

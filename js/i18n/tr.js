@@ -119,6 +119,7 @@ export default {
     joined: '{name} katıldı – artık birlikte oynuyorsunuz!',
   },
   pause: {
+    giveUp: "Pes et",
     title: 'Duraklatıldı',
     msg: 'Tahta gizlendi – süre durdu.',
     resuming: 'Devam ediyor …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: 'Bu kod zaten kullanılıyor — başka bir sayı seç.',
     errorConnection: 'Bağlantı hatası.',
     continueSolo: 'Tek başına devam et',
+    kickTitle: "{name} çıkarılsın mı?", kickMsg: "{name} turdan ayrılır ve tahtaya tek başına devam eder.", kick: "Çıkar", kicked: "Turdan çıkarıldın.", kickedSolo: "Çıkarıldın – tek başına devam ediyorsun.", players: "Oyuncular",
     continueSoloDone: 'Artık tek başına devam ediyorsun – ilerleme kaydedildi.',
     errorCodeNotFound: 'Kod bulunamadı.',
     errorTimeout: 'Zaman aşımı.',

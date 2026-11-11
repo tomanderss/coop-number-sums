@@ -119,6 +119,7 @@ export default {
     joined: '{name} joined – you are now playing together!',
   },
   pause: {
+    giveUp: "Give up",
     title: 'Paused',
     msg: 'The board is hidden – the timer is stopped.',
     resuming: 'Resuming …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: 'Code already taken — choose a different number.',
     errorConnection: 'Connection error.',
     continueSolo: 'Continue alone',
+    kickTitle: "Remove {name}?", kickMsg: "{name} leaves the round and keeps playing the board alone.", kick: "Remove", kicked: "You were removed from the round.", kickedSolo: "You were removed – you keep playing alone.", players: "Players",
     continueSoloDone: 'You are now playing on your own – progress saved.',
     errorCodeNotFound: 'Code not found.',
     errorTimeout: 'Timed out.',

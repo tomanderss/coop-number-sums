@@ -119,6 +119,7 @@ export default {
     joined: '{name} a rejoint la partie – vous jouez maintenant ensemble !',
   },
   pause: {
+    giveUp: "Abandonner",
     title: 'En pause',
     msg: 'La grille est masquée – le temps est arrêté.',
     resuming: 'Reprise …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: 'Code déjà utilisé — choisis un autre nombre.',
     errorConnection: 'Erreur de connexion.',
     continueSolo: 'Continuer seul',
+    kickTitle: "Exclure {name} ?", kickMsg: "{name} quitte la partie et continue seul sur sa grille.", kick: "Exclure", kicked: "Tu as été exclu de la partie.", kickedSolo: "Tu as été exclu – tu continues en solo.", players: "Joueurs",
     continueSoloDone: 'Tu continues maintenant en solo – progression sauvegardée.',
     errorCodeNotFound: 'Code introuvable.',
     errorTimeout: 'Délai dépassé.',

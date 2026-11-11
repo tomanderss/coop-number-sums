@@ -119,6 +119,7 @@ export default {
     joined: '{name} entrou – agora vocês jogam juntos!',
   },
   pause: {
+    giveUp: "Desistir",
     title: 'Pausado',
     msg: 'O tabuleiro está oculto – o tempo está parado.',
     resuming: 'Retomando …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: 'Código já em uso — escolha outro número.',
     errorConnection: 'Erro de conexão.',
     continueSolo: 'Continuar sozinho',
+    kickTitle: "Remover {name}?", kickMsg: "{name} sai da rodada e continua o tabuleiro sozinho.", kick: "Remover", kicked: "Você foi removido da rodada.", kickedSolo: "Você foi removido – continua jogando sozinho.", players: "Jogadores",
     continueSoloDone: 'Agora você continua sozinho – progresso salvo.',
     errorCodeNotFound: 'Código não encontrado.',
     errorTimeout: 'Tempo esgotado.',

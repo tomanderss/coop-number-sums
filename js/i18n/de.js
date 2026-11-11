@@ -119,6 +119,7 @@ export default {
     joined: '{name} ist beigetreten – ihr spielt jetzt zusammen!',
   },
   pause: {
+    giveUp: "Aufgeben",
     title: 'Pausiert',
     msg: 'Das Feld ist verdeckt – die Zeit läuft nicht weiter.',
     resuming: 'Weiter geht’s …',
@@ -199,6 +200,7 @@ export default {
     errorCodeTaken: 'Code bereits vergeben — wähle eine andere Zahl.',
     errorConnection: 'Verbindungsfehler.',
     continueSolo: 'Allein weiterspielen',
+    kickTitle: "{name} ausladen?", kickMsg: "{name} verlässt die Runde und spielt das Brett allein weiter.", kick: "Ausladen", kicked: "Du wurdest aus der Runde ausgeladen.", kickedSolo: "Du wurdest ausgeladen – du spielst allein weiter.", players: "Mitspieler",
     continueSoloDone: 'Du spielst jetzt allein weiter – Spielstand gesichert.',
     errorCodeNotFound: 'Code nicht gefunden.',
     errorTimeout: 'Zeitüberschreitung.',

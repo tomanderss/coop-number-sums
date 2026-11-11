@@ -740,4 +740,7 @@ export const MSG = {
   // behoben; derselbe Code steckte hier). Sie sagt ihm: Lauf laeuft, Level N ist
   // geschafft, warte auf den Host.
   ENDLESS_WAIT: 'endlessWait',
+  // Host lädt einen Mitspieler aus der laufenden Runde aus: der Ausgeladene
+  // verlässt den Raum und spielt das Brett allein weiter (Nutzerwunsch).
+  KICK: 'kick',
 };
