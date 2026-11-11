@@ -26,7 +26,7 @@ import {
   deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, mergeSaves, mergeSavesGone, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
   gameId, splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
-  grantCurrency,
+  grantCurrency, withGameScope,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -317,15 +317,15 @@ function stripHead(half) {
   return rest;
 }
 function accountRef(fb, uid, sub) { return userRef(fb, uid, `account${sub ? '/' + sub : ''}`); }
-function gameRef(fb, uid, sub) { return userRef(fb, uid, `games/${gameId()}${sub ? '/' + sub : ''}`); }
+function gameRef(fb, uid, sub, game = gameId()) { return userRef(fb, uid, `games/${game}${sub ? '/' + sub : ''}`); }
 // Beide Haelften lesen und zu EINEM Snapshot fuegen, wie ihn der Rest der App
 // erwartet. UMZUG: existiert die spieleigene Haelfte noch nicht, wird EINMALIG der
 // Alt-Knoten `users/{uid}/data` als Quelle genommen — so geht beim Wechsel nichts
 // verloren. Der Alt-Knoten wird bewusst NICHT geloescht (Sicherheitsnetz).
-async function readCloudSnapshot(fb, uid) {
+async function readCloudSnapshot(fb, uid, g = gameId()) {
   const [acc, game] = await Promise.all([
     fb.get(accountRef(fb, uid)).then((x) => x.val()),
-    fb.get(gameRef(fb, uid)).then((x) => x.val()),
+    fb.get(gameRef(fb, uid, '', g)).then((x) => x.val()),
   ]);
   if (acc || game) return { snap: joinSnapshot(acc || {}, game || {}), legacy: false, hadAccount: !!acc, hadGame: !!game };
   const legacy = (await fb.get(userRef(fb, uid, 'data'))).val();
@@ -950,13 +950,13 @@ export async function syncInventoryFromCloud(uid) {
 }
 // Lokal → Cloud. Danach ist die Basislinie (syncedRev) = aktuelle lokale Revision,
 // d.h. lokal == Cloud == syncedRev (kein Konflikt beim nächsten Start).
-async function uploadLocal(fb, uid) {
+async function uploadLocal(fb, uid, g = gameId()) {
   await mergeCloudInventory(fb, uid);                 // erst fremde/Geschenk-Items aufnehmen …
   // sanitizeForFirebase ist PFLICHT: die Aktivspiel-Slots tragen hintsLeft:
   // Infinity — unsaniert lehnte RTDB den GESAMTEN Snapshot-Write ab, sodass
   // während einer laufenden Partie NIE ein Upload durchkam (Symptom: kein
   // „Fortsetzen" auf dem Zweitgerät, veraltete Settings trotz Sync).
-  const snap = collectExportData('sync');
+  const snap = withGameScope(g, () => collectExportData('sync'));
   // ZWEI Knoten statt einem: die kontoweite Haelfte teilen sich alle Spiele
   // desselben Kontos (ein Name, ein Guthaben, ein Shop, eine Tagesserie), die
   // spieleigene gehoert exklusiv DIESEM Spiel. Vorher lag beides in
@@ -964,7 +964,7 @@ async function uploadLocal(fb, uid) {
   // sich Statistiken und Bestzeiten zwischen den Spielen.
   const halves = splitSnapshot(snap);
   await fb.set(accountRef(fb, uid), sanitizeForFirebase(halves.account));
-  await fb.set(gameRef(fb, uid), sanitizeForFirebase(halves.game));
+  await fb.set(gameRef(fb, uid, '', g), sanitizeForFirebase(halves.game));
   await fb.set(userRef(fb, uid, 'inventory'), loadInventory());  // … dann die Union schreiben
   // Basislinie = GENAU die Revision, die jetzt in der Cloud liegt (snap.rev) —
   // NICHT das inzwischen weitergelaufene dataRev(). Das war ein harter Sync-
@@ -975,11 +975,11 @@ async function uploadLocal(fb, uid) {
   // weiteren Upload dieses Geräts für einen Fremd-Konflikt und übersprang ihn —
   // permanent. Ergebnis: das laufende Spiel (und alle Settings/Kosmetik) kamen
   // nie in der Cloud an, das Zweitgerät konnte nichts fortsetzen.
-  setSyncedRev(nz(snap.rev));
+  withGameScope(g, () => setSyncedRev(nz(snap.rev)));
 }
 // Cloud → lokal (nur bei 'takeCloud' oder Nutzerwahl „Cloud behalten"). Überschreibt
 // die lokalen Nutzdaten bewusst mit dem Cloud-Snapshot; Inventar bleibt vereinigt.
-async function applyCloud(fb, uid, snap) {
+async function applyCloud(fb, uid, snap, g = gameId()) {
   // Guthaben-Diff VOR dem Überschreiben festhalten. NUR der durch den (mit-
   // importierten, Union-gemergten) Geldverlauf NICHT erklärte Rest wird als
   // Admin-Geschenk/-Entzug gebucht — erspieltes Geld anderer Geräte bringt
@@ -989,7 +989,7 @@ async function applyCloud(fb, uid, snap) {
   const prevLog = loadWalletLog();
   if (snap) {
     const localInv = loadInventory();
-    importFromFile(JSON.stringify(snap));
+    withGameScope(g, () => importFromFile(JSON.stringify(snap)));
     mergeInventory(localInv);                 // eigene Unlocks nicht verlieren
     const newBalance = loadWallet().balance || 0;
     // Residual-basiert ⇒ weiterhin doppelbuchungssicher (schon gebuchter Diff = 0).
@@ -1004,7 +1004,7 @@ async function applyCloud(fb, uid, snap) {
   // 'takeCloud' → safeReload → Endlos-Reload-Schleife (Splash→Menü). Jetzt bündig
   // mit dem, was der Vergleich sieht: fehlt der Cloud-rev, ist die Basislinie 0.
   const rev = (snap && snap.rev) || 0;
-  setDataRev(rev); setSyncedRev(rev);         // lokal == Cloud (konsistent mit decideSync)
+  setDataRev(rev); withGameScope(g, () => setSyncedRev(rev));   // lokal == Cloud (konsistent mit decideSync)
 }
 
 // Sync-Status (schnell, ohne Firebase zu laden) fürs UI/Trigger-Gating.
@@ -1034,20 +1034,21 @@ function keepCloudGames(merged, local = {}, cloud = {}) {
 // ── Abgleich beim Start: entscheidet git-artig lokal vs. Cloud. Bei echter
 // Divergenz gewinnt IMMER die Cloud (decideSync liefert nie mehr 'conflict'),
 // es gibt also keinen Auswahldialog mehr.
-export async function reconcile() {
+export async function reconcile(g = gameId()) {
   if (!isSignedIn()) return { decision: 'skip' };
   try {
     const fb = await ensureFirebase();
     const u = currentUser(fb);
     if (!u || u.isAnonymous) return { decision: 'skip' };
-    const { snap } = await readCloudSnapshot(fb, u.uid);
-    const decision = decideSync({
+    const { snap } = await readCloudSnapshot(fb, u.uid, g);
+    const scoped = (fn) => withGameScope(g, fn);
+    const decision = scoped(() => decideSync({
       cloudExists: !!snap,
       localRev: dataRev(),
       cloudRev: snap ? (snap.rev || 0) : 0,
       syncedRev: syncedRev(),
       hasLocalData: hasLocalData(),
-    });
+    }));
     // Die Cloud gewinnt formal — statt sie aber BLIND über lokale Daten zu
     // schreiben, wird INHALTLICH aufgelöst: alles Mergebare fließt verlustfrei
     // zusammen (mergeSnapshots; Einstellungen davon ausgenommen, dort gewinnt die
@@ -1058,8 +1059,8 @@ export async function reconcile() {
     // BLINDES applyCloud und überschrieb den lokalen Stand (z.B. anonym erspielter
     // Fortschritt oder lokal gesetzte Kosmetik beim ersten Login auf dem Desktop).
     // Jetzt wird immer inhaltlich gemergt, wenn lokal überhaupt etwas zu verlieren ist.
-    if (decision === 'takeCloud' && hasLocalData()) {
-      const localData = collectExportData('conflict');
+    if (decision === 'takeCloud' && scoped(hasLocalData)) {
+      const localData = scoped(() => collectExportData('conflict'));
       // Gefragt wird NUR bei den zwei Dingen, die keine Automatik entscheiden darf:
       //  • Guthaben (Käufe lassen es legitim SINKEN — Raten würde Käufe erstatten)
       //  • zwei verschiedene offene Partien (offline weitergespielt, nie gesynct)
@@ -1072,27 +1073,51 @@ export async function reconcile() {
       const pick = walletChoice(localData, snap);
       if (pick === 'ask') {
         log('account', 'reconcile', { decision: 'conflict', reason: 'wallet' });
-        return { decision: 'conflict', reason: 'wallet', cloud: snap, localData, cloudTs: (snap && snap.ts) || 0, localTs: dataRev() };
+        return { decision: 'conflict', reason: 'wallet', game: g, cloud: snap, localData, cloudTs: (snap && snap.ts) || 0, localTs: dataRev() };
       }
       // Sonst stiller verlustfreier Merge. Die verdrängte Seite wird vorher als
       // Backup gesichert (nie still verloren).
       const t0 = Date.now();
-      saveConflictBackup(pick === 'local' ? { side: 'cloud', data: snap } : { side: 'local', data: localData });
+      scoped(() => saveConflictBackup(pick === 'local' ? { side: 'cloud', data: snap } : { side: 'local', data: localData }));
       const merged = mergeSnapshots(localData, snap);
       if (pick === 'cloud' && snap && snap.wallet) merged.wallet = snap.wallet;
       else if (pick === 'local' && localData.wallet) merged.wallet = localData.wallet;
       const gameDiff = keepCloudGames(merged, localData, snap);
-      importFromFile(JSON.stringify(merged));
-      await uploadLocal(fb, u.uid); stampSynced();
-      log('account', 'reconcile', { decision: 'merged', wallet: pick, gameConflict: gameDiff, tookMs: Date.now() - t0 });
+      scoped(() => importFromFile(JSON.stringify(merged)));
+      await uploadLocal(fb, u.uid, g); stampSynced();
+      log('account', 'reconcile', { game: g, decision: 'merged', wallet: pick, gameConflict: gameDiff, tookMs: Date.now() - t0 });
       return { decision: 'merged' };
     }
-    if (decision === 'uploadLocal') { await uploadLocal(fb, u.uid); stampSynced(); }
-    else if (decision === 'takeCloud') { await applyCloud(fb, u.uid, snap); stampSynced(); }
+    if (decision === 'uploadLocal') { await uploadLocal(fb, u.uid, g); stampSynced(); }
+    else if (decision === 'takeCloud') { await applyCloud(fb, u.uid, snap, g); stampSynced(); }
     else if (decision === 'inSync') { await mergeCloudInventory(fb, u.uid); }
-    log('account', 'reconcile', { decision });
+    log('account', 'reconcile', { game: g, decision });
     return { decision };
   } catch (e) { log('account', 'reconcile fehlgeschlagen', e); return { decision: 'error', err: errKey(e) }; }
+}
+
+// ── Abgleich ALLER Spiele in einem Durchgang (Nutzerwunsch: „eine App, die
+// immer alles aktuell hat" — nicht erst beim Auswählen eines Spiels laden und
+// dann ggf. erneut nachfragen). Das aktive Spiel zuerst, dann die übrigen.
+// Konto-Daten (Guthaben, Einstellungen, Inventar) sind für alle Spiele dieselben:
+// fragt der Guthaben-Vergleich, hält der Durchgang an (nach der Wahl lädt die App
+// neu und gleicht den Rest ab — dann ohne Frage). Liefert die Entscheidung für
+// das aktive Spiel und `changed`, wenn irgendwo Cloud-Daten übernommen wurden.
+export async function reconcileAll(games = []) {
+  const active = gameId();
+  const order = [active, ...games.filter((x) => x && x !== active)];
+  const t0 = Date.now();
+  const res = { decision: 'inSync', changed: false, games: {} };
+  for (const g of order) {
+    const r = await reconcile(g);
+    res.games[g] = r.decision;
+    if (r.decision === 'conflict') return { ...r, games: res.games };
+    if (r.decision === 'takeCloud' || r.decision === 'merged') res.changed = true;
+    if (g === active) res.decision = r.decision;
+    if (r.decision === 'skip') break;   // nicht angemeldet / anonym — gilt für alle
+  }
+  log('account', 'Abgleich aller Spiele', { ...res.games, changed: res.changed, tookMs: Date.now() - t0 });
+  return res;
 }
 
 // Auflösung des Versions-Mismatch nach Nutzerwahl. Die Wahl betrifft NUR noch

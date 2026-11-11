@@ -7459,19 +7459,14 @@ function switchGame(id, opts = {}) {
   log('app', 'Spiel gewechselt (ohne Neuladen)', { von, nach: id, tookMs: Math.round(performance.now() - t0) });
   // Konto: die Spiel-Hälfte des neuen Spiels mit der Cloud abgleichen und die
   // spielbezogenen Beobachter umhängen.
+  // Die Cloud-Daten ALLER Spiele wurden schon beim Start abgeglichen
+  // (Account.reconcileAll) — ein Wechsel lädt nichts mehr nach und fragt nie
+  // (Nutzerwunsch: vorher erschien der Abgleich-Dialog je ausgewähltem Spiel).
   if (state.account.status === 'in') {
     stopSessionWatch();
-    Account.reconcile().then((r) => {
-      if (r.decision === 'conflict') { openVersionMismatch(r); return; }
-      if (r.decision === 'takeCloud' || r.decision === 'merged') {
-        state.wallet = loadWallet(); state.walletLog = loadWalletLog(); state.inventory = loadInventory();
-        reloadGameScopedState();
-      }
-      startSessionWatch();
-      reconcileSession();
-      syncBestTimesToLeaderboard();
-      log('app', 'Spielwechsel: Cloud abgeglichen', { decision: r.decision });
-    });
+    startSessionWatch();
+    reconcileSession();
+    syncBestTimesToLeaderboard();
   }
   maybeShowDivStyle();
   return true;
@@ -7682,11 +7677,12 @@ function init() {
     // aufgelöst (Account.mergeSnapshots: verlustfreier Merge, Kleinkram folgt
     // der jüngeren Seite) — der Versions-Mismatch-Dialog erscheint NUR noch,
     // wenn die Geld-Salden abweichen, und entscheidet auch nur das Guthaben.
-    Account.reconcile().then(r => {
+    // Abgleich ALLER Spiele auf einmal (nicht erst beim Auswählen eines Spiels).
+    Account.reconcileAll(GAME_IDS).then(r => {
       if (r.decision === 'conflict') { openVersionMismatch(r); return; }
-      // Cloud übernommen ODER still gemergt → lokale Daten haben sich geändert → sauber neu laden
-      // (die Serie wird nach dem Neuladen mit dem gemergten Stand bewertet).
-      if (r.decision === 'takeCloud' || r.decision === 'merged') { safeReload('reconcile-' + r.decision); return; }
+      // Irgendwo Cloud übernommen ODER still gemergt → lokale Daten haben sich
+      // geändert → sauber neu laden (die Serie wird danach mit dem gemergten Stand bewertet).
+      if (r.changed) { safeReload('reconcile-all'); return; }
       settleStreakAfterSync(r.decision);
       state.inventory = loadInventory();
       state.wallet = loadWallet();
