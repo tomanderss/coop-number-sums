@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.31';
-export const BUILD_HASH = 'e45f60e';
+export const BUILD      = '3.32';
+export const BUILD_HASH = '508f64c';
 
 export const CHANGELOG = [
+  {
+    "version": "3.32",
+    "date": "11.11.2026",
+    "changes": [
+      "- Gem Hunt: Kreuze wieder gleich groß, Unterschied nur über die Farbe – Farben kräftiger und klarer"
+    ]
+  },
   {
     "version": "3.31",
     "date": "11.11.2026",
