@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.30';
-export const BUILD_HASH = '0ea60fc';
+export const BUILD      = '3.31';
+export const BUILD_HASH = 'e45f60e';
 
 export const CHANGELOG = [
+  {
+    "version": "3.31",
+    "date": "11.11.2026",
+    "changes": [
+      "- Einstellungen neu: „Allgemein“ und ein eigener Reiter je Spiel – alles immer erreichbar, egal welches Spiel aktiv ist",
+      "- Einstellungen kompakter: kürzere Erklärungen, Musik nur noch „im Menü“ und „im Spiel“, Infos & Rechtliches in einer Zeile"
+    ]
+  },
   {
     "version": "3.30",
     "date": "11.11.2026",
