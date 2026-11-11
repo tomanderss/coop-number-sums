@@ -3384,6 +3384,8 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
   font-size: .66rem; font-weight: 800; white-space: nowrap;
 }
 .save-badge.now { background: var(--accent); color: #fff; }
+/* Endlos-Stand: dieselbe Marke wie auf dem Home-Knopf „Endlos fortsetzen“. */
+.save-badge.endless { background: var(--accent2); color: #fff; }
 .save-barline { display: flex; align-items: center; gap: 8px; }
 .save-bar { flex: 1; min-width: 0; height: 7px; border-radius: 999px; background: color-mix(in srgb, var(--text3) 30%, transparent); overflow: hidden; }
 /* Nur width animieren waere Layout-Arbeit; der Balken ist statisch gerendert,

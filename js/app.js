@@ -10486,7 +10486,8 @@ const App = {
                   <b class="save-name">{{ t('difficulty.' + saveDifficulty(g)) }}</b>
                   <span class="save-dim">{{ saveDim(g) }}</span>
                   <span v-if="g.__coop" class="save-badge"><span class="ei" v-html="ic('users')"></span>{{ t('game.coopTag') }}</span>
-                  <span v-if="saveIsEndless(g)" class="save-badge"><span class="ei" v-html="ic('meteor')"></span>{{ t('endless.levelShort', { n: (g.endless && g.endless.level) || 1 }) }}</span>
+                  <span v-if="saveIsEndless(g)" class="save-badge endless"><span class="ei" v-html="ic('meteor')"></span>{{ t('endless.badge') }} · {{ t('endless.levelShort', { n: (g.endless && g.endless.level) || 1 }) }}</span>
+                  <span v-if="g.puzzle && g.puzzle.bigNumbers" class="save-badge">10–19</span>
                   <span v-if="saveIsCurrent(g)" class="save-badge now">{{ t('saves.running') }}</span>
                 </span>
                 <span class="save-barline">
