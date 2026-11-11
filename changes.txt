@@ -1,3 +1,0 @@
-- Coop: jederzeit allein weiterspielen (Pausenmenü), auch im Endlos und Mix
-- Mitspieler lassen sich aus einer laufenden Runde ausladen – der Ausgeladene spielt sein Brett allein weiter
-- Duelle verlässt man über „Aufgeben“ im Pausenmenü
