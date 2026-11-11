@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.32';
-export const BUILD_HASH = '508f64c';
+export const BUILD      = '3.33';
+export const BUILD_HASH = '9f397c8';
 
 export const CHANGELOG = [
+  {
+    "version": "3.33",
+    "date": "11.11.2026",
+    "changes": [
+      "- Weitere Spielstände: Endlos-Läufe sind jetzt klar als „Endlos“ markiert, Große Zahlen ebenfalls"
+    ]
+  },
   {
     "version": "3.32",
     "date": "11.11.2026",
