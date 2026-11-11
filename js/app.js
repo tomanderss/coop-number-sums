@@ -108,7 +108,7 @@ if (splashVersion) splashVersion.textContent = `v${BUILD}`;
 const LOCAL_PLAYER_ID = 'local';
 // Gem Hunt: Farbauswahl der Kreuze (Werte und Optik in css/games/gems.css).
 const GEM_CROSS_COLORS = ['cage', 'soft', 'gold', 'mint', 'sky', 'rose'];
-const GEM_CROSS_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>';
+const GEM_CROSS_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="x-halo" d="M7.5 7.5l9 9M16.5 7.5l-9 9"/><path class="x-ink" d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>';
 
 // Home-Logo als Data-URI eingebettet: das Home-Icon wird beim Wechsel ins
 // Hauptmenü (v-if remount) NEU gemountet; als externe Datei entstand dabei ein
