@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.27';
-export const BUILD_HASH = 'b806509';
+export const BUILD      = '3.28';
+export const BUILD_HASH = '43dc978';
 
 export const CHANGELOG = [
+  {
+    "version": "3.28",
+    "date": "11.11.2026",
+    "changes": [
+      "- Cloud-Daten aller Spiele werden beim Start auf einmal abgeglichen – beim Wechseln des Spiels wird nichts mehr nachgeladen oder nachgefragt"
+    ]
+  },
   {
     "version": "3.27",
     "date": "11.11.2026",

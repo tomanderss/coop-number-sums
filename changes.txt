@@ -1,1 +1,0 @@
-- Cloud-Daten aller Spiele werden beim Start auf einmal abgeglichen – beim Wechseln des Spiels wird nichts mehr nachgeladen oder nachgefragt
