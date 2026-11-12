@@ -488,7 +488,7 @@ export const BoardGrid = {
     return { state, gridStyle, boardFontClass, onDown, onMove, onUp, onCancel, onContext, still, dry, t };
   },
   template: `
-          <div class="board pp-board" :class="[boardFontClass(), { done: state.status === 'won', still, dry }]" :style="gridStyle"
+          <div class="board pp-board" :class="[boardFontClass(), { done: state.status === 'won', still, dry, wrap: !!state.puzzle.wrap }]" :style="gridStyle"
                role="application" :aria-label="t('pipe.boardLabel')"
                @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
                @touchstart.prevent
@@ -621,7 +621,7 @@ export const HistoryBoard = {
     return { historyStyle, tiles };
   },
   template: `
-          <div class="board pp-board history-board done still" :style="historyStyle(detail.puzzle)">
+          <div class="board pp-board history-board done still" :class="{ wrap: !!detail.puzzle.wrap }" :style="historyStyle(detail.puzzle)">
             <div class="pp-tiles"><div v-for="x in tiles(detail.puzzle)" :key="x.i" class="pp-tile wet" :style="x.style"><div class="pp-rot"><div class="pp-pipe" v-html="x.svg"></div></div></div></div>
           </div>
   `,

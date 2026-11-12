@@ -22,7 +22,7 @@ export function mulberry32(a) {
 }
 const BIT = [N, E, S, W];
 
-function spanningTree(rows, cols, rnd, branchy) {
+function spanningTree(rows, cols, rnd, branchy, wrap = false) {
   const n = rows * cols;
   const mask = new Array(n).fill(0);
   const inTree = new Uint8Array(n);
@@ -40,7 +40,8 @@ function spanningTree(rows, cols, rnd, branchy) {
     const opts = [];
     if (degree(mask[i]) < 3) {
       for (let d = 0; d < 4; d++) {
-        const rr = r + DR[d], cc = c + DC[d];
+        let rr = r + DR[d], cc = c + DC[d];
+        if (wrap) { rr = (rr + rows) % rows; cc = (cc + cols) % cols; }
         if (rr < 0 || cc < 0 || rr >= rows || cc >= cols) continue;
         const j = rr * cols + cc;
         if (!inTree[j]) opts.push([d, j]);
@@ -59,31 +60,73 @@ export function generatePuzzle(input = {}) {
   const opts = input.rows ? input : { ...genOptionsFor(input.difficulty), ...input };
   // Nur eine feste Versuchszahl, kein Zeitlimit: derselbe Seed muss auf jedem Gerät
   // dasselbe Rätsel geben (Wettkampf/Mix-Duell).
-  const { rows, cols, maxTier = 2, branchy = 0.5, minTier2 = 0, tries = 300 } = opts;
+  const { rows, cols, maxTier = 2, branchy = 0.5, minTier2 = 0, tries = 300, climb = 0 } = opts;
+  const wrap = !!opts.wrap;
   const seed = Number.isFinite(input.seed) ? input.seed : Math.floor(Math.random() * 2 ** 31);
   const rnd = mulberry32(seed);
-  const t0 = Date.now();
   let best = null;
   for (let t = 0; t < tries; t++) {
-    const tree = spanningTree(rows, cols, rnd, branchy);
+    const tree = spanningTree(rows, cols, rnd, branchy, wrap);
     if (!tree) continue;
-    const solRot = [], tiles = [];
-    for (let i = 0; i < tree.mask.length; i++) {
-      const k = Math.floor(rnd() * 4);
-      tiles.push(rotMask(tree.mask[i], k));
-      solRot.push((4 - k) % 4);
-    }
-    // Kein Stück darf schon richtig liegen, das sich drehen lässt (sonst wirkt das Brett halb fertig).
-    for (let i = 0; i < tiles.length; i++) {
-      if (orientations(tiles[i]).length > 1 && tiles[i] === tree.mask[i]) { tiles[i] = rotMask(tiles[i], 1); solRot[i] = (solRot[i] + 3) % 4; }
-    }
-    const p = { rows, cols, tiles, source: tree.source, solRot };
-    const res = solveLogic(p, { maxTier });
+    const shape = { rows, cols, tiles: tree.mask, source: tree.source, ...(wrap ? { wrap: true } : {}) };
+    const res = solveLogic(shape, { maxTier });
     const score = res.decided + (res.tier2 >= minTier2 ? n2(rows, cols) : 0);
-    if (!best || score > best.score) best = { p, res, score };
+    if (!best || score > best.score) best = { mask: tree.mask, source: tree.source, res, score };
     if (res.solved && res.tier2 >= minTier2) break;
   }
-  const { p, res } = best;
+  let { mask, res } = best;
+  // Klettern: mehr Netz-Schlüsse verlangen (s. climbTree). Nur die FORM der
+  // Stücke zählt für die Logik — verdreht wird erst danach.
+  if (res.solved && climb > 0) ({ mask, res } = climbTree({ rows, cols, wrap, source: best.source }, mask, res, rnd, climb, maxTier));
+  const solRot = [], tiles = [];
+  for (let i = 0; i < mask.length; i++) {
+    let k = Math.floor(rnd() * 4);
+    // Kein Stück darf schon richtig liegen, das sich drehen lässt (sonst wirkt das Brett halb fertig).
+    if (orientations(mask[i]).length > 1 && rotMask(mask[i], k) === mask[i]) k = (k + 1) % 4;
+    tiles.push(rotMask(mask[i], k));
+    solRot.push((4 - k) % 4);
+  }
+  const p = { rows, cols, tiles, source: best.source, solRot, ...(wrap ? { wrap: true } : {}) };
   return { ...p, difficulty: opts.difficulty || null, seed, tier2: res.tier2, logic: res.solved };
+}
+
+/**
+ * Klettern über Spannbäume: eine Verbindung, die noch nicht im Netz ist,
+ * hinzunehmen und dafür eine andere auf dem entstehenden Kreis streichen (das
+ * Netz bleibt ein Baum, kein Stück mit vier Rohren). Angenommen wird nur, was
+ * der Löser weiter vollständig OHNE Raten festlegt und mindestens so viele
+ * Netz-Schlüsse verlangt wie vorher. Feste Versuchszahl (deterministisch).
+ */
+function climbTree(base, mask, res, rnd, checks, maxTier) {
+  const { rows, cols, wrap } = base, n = rows * cols;
+  const nb = (i, d) => {
+    let r = Math.floor(i / cols) + DR[d], c = (i % cols) + DC[d];
+    if (wrap) { r = (r + rows) % rows; c = (c + cols) % cols; }
+    return r < 0 || c < 0 || r >= rows || c >= cols ? -1 : r * cols + c;
+  };
+  for (let t = 0; t < checks; t++) {
+    const i = Math.floor(rnd() * n), d = Math.floor(rnd() * 4);
+    const j = nb(i, d);
+    if (j < 0 || j === i || (mask[i] & BIT[d])) continue;
+    if (degree(mask[i]) >= 3 || degree(mask[j]) >= 3) continue;
+    // Weg i → j im Baum (Breitensuche über die Rohre).
+    const prev = new Int32Array(n).fill(-1); prev[i] = i;
+    const q = [i];
+    for (let h = 0; h < q.length && prev[j] < 0; h++) {
+      const x = q[h];
+      for (let k = 0; k < 4; k++) if (mask[x] & BIT[k]) { const y = nb(x, k); if (prev[y] < 0) { prev[y] = x; q.push(y); } }
+    }
+    const path = [];
+    for (let x = j; x !== i; x = prev[x]) path.push([prev[x], x]);
+    const [a, b] = path[Math.floor(rnd() * path.length)];
+    const m2 = mask.slice();
+    m2[i] |= BIT[d]; m2[j] |= BIT[(d + 2) % 4];
+    let da = 0;
+    for (let k = 0; k < 4; k++) if ((mask[a] & BIT[k]) && nb(a, k) === b) da = k;
+    m2[a] &= ~BIT[da]; m2[b] &= ~BIT[(da + 2) % 4];
+    const r2 = solveLogic({ ...base, tiles: m2 }, { maxTier });
+    if (r2.solved && r2.tier2 >= res.tier2) { mask = m2; res = r2; }
+  }
+  return { mask, res };
 }
 const n2 = (r, c) => r * c * 10;

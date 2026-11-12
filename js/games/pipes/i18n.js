@@ -9,7 +9,7 @@ export default {
     howto: {
       rule1: "Drehe die Rohre so, dass das <b>Wasser von der Quelle</b> (blauer Punkt) <b>jedes Feld</b> erreicht.",
       rule2: "<b>Antippen</b> dreht ein Stück um 90°. Am Computer dreht ein <b>Rechtsklick</b> zurück.",
-      rule3: "Kein Rohr darf <b>ins Leere</b> zeigen – offene Enden spritzen rot.",
+      rule3: "Kein Rohr darf <b>ins Leere</b> zeigen – offene Enden spritzen rot. Ab „Extrem“ hat das Brett <b>keinen Rand</b> (gestrichelter Rahmen): was rechts hinausführt, geht links weiter, oben und unten ebenso.",
       rule4: "Es gibt Geraden, Bögen, T-Stücke und <b>Endstücke</b>. Jedes Endstück muss versorgt sein.",
       rule5: "<b>Lange drücken</b> sperrt ein Stück, das sicher richtig liegt – es dreht sich dann nicht mehr versehentlich mit. Mit dem <b>Sperren</b>-Knopf unter dem Brett sperrt oder entsperrt schon ein <b>kurzer Tipp</b> ein Stück; solange er an ist, wird nicht gedreht.",
       rule6: "Drehen kostet nichts. Jedes Rätsel ist <b>ohne Raten</b> lösbar. Ist das Brett gezoomt, verschiebst du es mit <b>zwei Fingern</b>. Mit dem <b>Wasser-Schalter</b> unter dem Brett blendest du den Fluss aus; zum Prüfen schaltest du ihn wieder ein. Solange das Wasser aus ist, gilt das Brett <b>nicht als gelöst</b>.",
@@ -22,7 +22,7 @@ export default {
     howto: {
       rule1: "Rotate the pipes so the <b>water from the source</b> (blue dot) reaches <b>every cell</b>.",
       rule2: "<b>Tap</b> rotates a piece by 90°. On a computer, a <b>right-click</b> turns it back.",
-      rule3: "No pipe may point <b>into nothing</b> – open ends spray red.",
+      rule3: "No pipe may point <b>into nothing</b> – open ends spray red. From “Extreme” the board has <b>no edge</b> (dashed frame): a pipe leaving on the right continues on the left, top and bottom likewise.",
       rule4: "There are straights, bends, T-pieces and <b>end pieces</b>. Every end piece must be supplied.",
       rule5: "<b>Long-press</b> locks a piece you are sure about – it won’t turn by accident any more. With the <b>Lock</b> button below the board a <b>short tap</b> locks or unlocks a piece; while it is on, nothing rotates.",
       rule6: "Rotating is free. Every puzzle can be solved <b>without guessing</b>. When the board is zoomed, move it with <b>two fingers</b>. The <b>water switch</b> below the board hides the flow; switch it back on to check your solution. While the water is off, the board does <b>not count as solved</b>.",
@@ -35,7 +35,7 @@ export default {
     howto: {
       rule1: "Gira las tuberías para que el <b>agua de la fuente</b> (punto azul) llegue a <b>todas las casillas</b>.",
       rule2: "<b>Toca</b> para girar una pieza 90°. En el ordenador, el <b>clic derecho</b> la gira hacia atrás.",
-      rule3: "Ninguna tubería puede apuntar <b>al vacío</b>: los extremos abiertos salpican en rojo.",
+      rule3: "Ninguna tubería puede apuntar <b>al vacío</b>: los extremos abiertos salpican en rojo. Desde «Extremo» el tablero <b>no tiene borde</b> (marco discontinuo): lo que sale por la derecha sigue por la izquierda, y arriba y abajo igual.",
       rule4: "Hay rectas, codos, piezas en T y <b>terminales</b>. Cada terminal debe recibir agua.",
       rule5: "<b>Mantén pulsado</b> para bloquear una pieza que seguro está bien: ya no girará por accidente. Con el botón <b>Bloquear</b> bajo el tablero, un <b>toque corto</b> bloquea o desbloquea una pieza; mientras está activo, no se gira nada.",
       rule6: "Girar no cuesta nada. Cada puzle se resuelve <b>sin adivinar</b>. Con el tablero ampliado, muévelo con <b>dos dedos</b>. El <b>interruptor de agua</b> bajo el tablero oculta el flujo; actívalo de nuevo para comprobar tu solución. Mientras el agua está desactivada, el tablero <b>no cuenta como resuelto</b>.",
@@ -48,7 +48,7 @@ export default {
     howto: {
       rule1: "Tournez les tuyaux pour que <b>l’eau de la source</b> (point bleu) atteigne <b>chaque case</b>.",
       rule2: "<b>Touchez</b> pour tourner une pièce de 90°. Sur ordinateur, un <b>clic droit</b> la tourne en arrière.",
-      rule3: "Aucun tuyau ne doit pointer <b>dans le vide</b> – les bouts ouverts giclent en rouge.",
+      rule3: "Aucun tuyau ne doit pointer <b>dans le vide</b> – les bouts ouverts giclent en rouge. À partir de « Extrême », le plateau n’a <b>pas de bord</b> (cadre en pointillés) : ce qui sort à droite continue à gauche, en haut et en bas de même.",
       rule4: "Il y a des droits, des coudes, des T et des <b>embouts</b>. Chaque embout doit être alimenté.",
       rule5: "Un <b>appui long</b> verrouille une pièce dont vous êtes sûr – elle ne tourne plus par erreur. Avec le bouton <b>Verrouiller</b> sous la grille, un <b>appui court</b> verrouille ou déverrouille une pièce ; tant qu’il est actif, rien ne tourne.",
       rule6: "Tourner ne coûte rien. Chaque grille se résout <b>sans deviner</b>. Plateau zoomé : déplacez-le avec <b>deux doigts</b>. Le <b>bouton d’eau</b> sous la grille masque le flux ; réactive-le pour vérifier ta solution. Tant que l’eau est coupée, la grille <b>ne compte pas comme résolue</b>.",
@@ -61,7 +61,7 @@ export default {
     howto: {
       rule1: "Ruota i tubi in modo che <b>l’acqua della sorgente</b> (punto blu) raggiunga <b>ogni casella</b>.",
       rule2: "<b>Tocca</b> per ruotare un pezzo di 90°. Al computer il <b>clic destro</b> lo riporta indietro.",
-      rule3: "Nessun tubo può puntare <b>nel vuoto</b>: le estremità aperte spruzzano di rosso.",
+      rule3: "Nessun tubo può puntare <b>nel vuoto</b>: le estremità aperte spruzzano di rosso. Da «Estremo» il tabellone <b>non ha bordi</b> (cornice tratteggiata): ciò che esce a destra continua a sinistra, sopra e sotto allo stesso modo.",
       rule4: "Ci sono dritti, curve, pezzi a T e <b>terminali</b>. Ogni terminale deve ricevere acqua.",
       rule5: "<b>Tieni premuto</b> per bloccare un pezzo di cui sei sicuro: non girerà più per sbaglio. Con il pulsante <b>Blocca</b> sotto la griglia basta un <b>tocco breve</b> per bloccare o sbloccare un pezzo; finché è attivo, non si ruota nulla.",
       rule6: "Ruotare non costa nulla. Ogni puzzle si risolve <b>senza tirare a indovinare</b>. Con il tabellone ingrandito spostalo con <b>due dita</b>. L’<b>interruttore dell’acqua</b> sotto la griglia nasconde il flusso; riaccendilo per controllare la soluzione. Finché l’acqua è spenta, la griglia <b>non conta come risolta</b>.",
@@ -74,7 +74,7 @@ export default {
     howto: {
       rule1: "パイプを回して、<b>水源</b>（青い点）の水を<b>すべてのマス</b>に届けよう。",
       rule2: "<b>タップ</b>でピースを90°回転。パソコンでは<b>右クリック</b>で逆回転。",
-      rule3: "どのパイプも<b>何もない方向</b>を向いてはいけません。開いた端は赤くしぶきます。",
+      rule3: "どのパイプも<b>何もない方向</b>を向いてはいけません。開いた端は赤くしぶきます。 「超難しい」以上では盤に<b>端がありません</b>（点線の枠）。右から出た管は左から、上下も同様につながります。",
       rule4: "直線・カーブ・T字・<b>端ピース</b>があります。端ピースにはすべて水を届けること。",
       rule5: "<b>長押し</b>で確実なピースをロック。うっかり回らなくなります。 盤面の下の<b>ロック</b>ボタンをオンにすると、<b>短いタップ</b>でピースをロック／解除できます。オンの間は回転しません。",
       rule6: "回転はノーコスト。どの問題も<b>推測なし</b>で解けます。拡大中は<b>2本指</b>で盤を動かせます。 盤面の下の<b>水スイッチ</b>で水の流れを隠せます。確認したいときはオンに戻しましょう。 水がオフの間は、盤面は<b>完成扱いになりません</b>。",
@@ -87,7 +87,7 @@ export default {
     howto: {
       rule1: "파이프를 돌려 <b>수원</b>(파란 점)의 물이 <b>모든 칸</b>에 닿게 하세요.",
       rule2: "<b>탭</b>하면 조각이 90° 돌아갑니다. 컴퓨터에서는 <b>오른쪽 클릭</b>으로 되돌립니다.",
-      rule3: "어떤 파이프도 <b>빈 곳</b>을 향하면 안 됩니다. 열린 끝은 빨갛게 물이 튑니다.",
+      rule3: "어떤 파이프도 <b>빈 곳</b>을 향하면 안 됩니다. 열린 끝은 빨갛게 물이 튑니다. ‘매우 어려움’부터는 판에 <b>가장자리가 없습니다</b>(점선 테두리). 오른쪽으로 나간 관은 왼쪽으로 이어지고, 위아래도 마찬가지입니다.",
       rule4: "직선, 곡선, T자, <b>끝 조각</b>이 있습니다. 모든 끝 조각에 물이 닿아야 합니다.",
       rule5: "<b>길게 누르면</b> 확실한 조각을 잠가 실수로 돌아가지 않게 합니다. 보드 아래 <b>잠금</b> 버튼을 켜면 <b>짧게 탭</b>해서 조각을 잠그거나 풀 수 있어요. 켜져 있는 동안은 돌아가지 않아요.",
       rule6: "돌리기는 무료입니다. 모든 퍼즐은 <b>추측 없이</b> 풀 수 있어요. 확대했을 때는 <b>두 손가락</b>으로 보드를 움직이세요. 보드 아래의 <b>물 스위치</b>로 흐름을 숨길 수 있어요. 확인하려면 다시 켜세요. 물이 꺼져 있는 동안에는 보드가 <b>완성으로 인정되지 않아요</b>.",
@@ -100,7 +100,7 @@ export default {
     howto: {
       rule1: "Gire os canos para que a <b>água da fonte</b> (ponto azul) chegue a <b>todas as casas</b>.",
       rule2: "<b>Toque</b> para girar uma peça 90°. No computador, o <b>clique direito</b> gira de volta.",
-      rule3: "Nenhum cano pode apontar <b>para o nada</b> – pontas abertas espirram em vermelho.",
+      rule3: "Nenhum cano pode apontar <b>para o nada</b> – pontas abertas espirram em vermelho. A partir de “Extremo” o tabuleiro <b>não tem borda</b> (moldura tracejada): o que sai pela direita continua pela esquerda, e em cima e embaixo também.",
       rule4: "Há retas, curvas, peças em T e <b>terminais</b>. Todo terminal precisa receber água.",
       rule5: "<b>Pressione e segure</b> para travar uma peça que você tem certeza – ela não gira mais sem querer. Com o botão <b>Travar</b> abaixo do tabuleiro, um <b>toque curto</b> trava ou destrava uma peça; enquanto estiver ligado, nada gira.",
       rule6: "Girar não custa nada. Todo quebra-cabeça se resolve <b>sem chutar</b>. Com o tabuleiro ampliado, mova-o com <b>dois dedos</b>. O <b>botão de água</b> abaixo do tabuleiro esconde o fluxo; ligue de novo para conferir sua solução. Enquanto a água estiver desligada, o tabuleiro <b>não conta como resolvido</b>.",
@@ -113,7 +113,7 @@ export default {
     howto: {
       rule1: "Поворачивайте трубы так, чтобы <b>вода из источника</b> (синяя точка) дошла до <b>каждой клетки</b>.",
       rule2: "<b>Касание</b> поворачивает деталь на 90°. На компьютере <b>правый клик</b> поворачивает обратно.",
-      rule3: "Ни одна труба не должна смотреть <b>в пустоту</b> — открытые концы брызгают красным.",
+      rule3: "Ни одна труба не должна смотреть <b>в пустоту</b> — открытые концы брызгают красным. Начиная с уровня «Экстремально» у поля <b>нет края</b> (пунктирная рамка): труба, уходящая вправо, продолжается слева, сверху и снизу так же.",
       rule4: "Есть прямые, изгибы, тройники и <b>заглушки</b>. Вода должна дойти до каждой заглушки.",
       rule5: "<b>Долгое нажатие</b> закрепляет деталь, в которой вы уверены, — она больше не повернётся случайно. С кнопкой <b>Замок</b> под полем деталь блокируется или разблокируется <b>коротким нажатием</b>; пока она включена, ничего не поворачивается.",
       rule6: "Повороты ничего не стоят. Каждую головоломку можно решить <b>без угадывания</b>. При увеличении двигайте поле <b>двумя пальцами</b>. <b>Переключатель воды</b> под полем скрывает поток; включите его снова, чтобы проверить решение. Пока вода выключена, поле <b>не считается решённым</b>.",
@@ -126,7 +126,7 @@ export default {
     howto: {
       rule1: "Boruları çevir ki <b>kaynaktaki su</b> (mavi nokta) <b>her hücreye</b> ulaşsın.",
       rule2: "<b>Dokunmak</b> parçayı 90° çevirir. Bilgisayarda <b>sağ tık</b> geri çevirir.",
-      rule3: "Hiçbir boru <b>boşluğa</b> bakamaz – açık uçlar kırmızı fışkırır.",
+      rule3: "Hiçbir boru <b>boşluğa</b> bakamaz – açık uçlar kırmızı fışkırır. „Aşırı“ seviyesinden itibaren tahtanın <b>kenarı yoktur</b> (kesikli çerçeve): sağdan çıkan boru soldan devam eder, üst ve alt da aynı şekilde.",
       rule4: "Düz, dirsek, T parça ve <b>uç parçalar</b> var. Her uç parçaya su ulaşmalı.",
       rule5: "<b>Uzun basmak</b> emin olduğun bir parçayı kilitler – artık yanlışlıkla dönmez. Tahtanın altındaki <b>Kilitle</b> düğmesi açıkken <b>kısa bir dokunuş</b> parçayı kilitler ya da açar; açık olduğu sürece hiçbir şey dönmez.",
       rule6: "Çevirmek bedava. Her bulmaca <b>tahmin etmeden</b> çözülür. Alan yakınlaştırılmışsa <b>iki parmakla</b> kaydır. Tahtanın altındaki <b>su anahtarı</b> akışı gizler; çözümünü kontrol etmek için tekrar aç. Su kapalıyken tahta <b>çözülmüş sayılmaz</b>.",
