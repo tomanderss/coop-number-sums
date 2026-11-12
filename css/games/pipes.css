@@ -36,6 +36,13 @@
   --pp-period: calc(var(--cell) * .4);
 }
 /* Helles Design: Rohr heller, Bohrung nicht fast schwarz (wirkte zu hart). */
+/* Obere Stufen: das Brett hat keinen Rand (was rechts hinausführt, geht links
+   weiter) — gestrichelter Rahmen über den Platten macht das sichtbar. */
+.board.pp-board.wrap::after {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  border: 2px dashed color-mix(in srgb, var(--accent) 75%, transparent);
+  border-radius: inherit;
+}
 :root[data-theme="light"] .board.pp-board {
   --pp-body: color-mix(in srgb, var(--text) 32%, var(--bg2));
   --pp-edge: color-mix(in srgb, #000 30%, var(--pp-body));

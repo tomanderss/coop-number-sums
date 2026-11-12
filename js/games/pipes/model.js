@@ -33,8 +33,11 @@ export function orientations(m) {
   for (let k = 0; k < 4; k++) { const r = rotMask(m, k); if (!out.some((o) => o.m === r)) out.push({ k, m: r }); }
   return out;
 }
+// Obere Stufen: das Brett „wickelt sich um“ (p.wrap) — ein Rohr, das am
+// rechten Rand hinausführt, geht am linken weiter (oben ↔ unten ebenso).
 export function neighbor(p, i, d) {
-  const r = Math.floor(i / p.cols) + DR[d], c = (i % p.cols) + DC[d];
+  let r = Math.floor(i / p.cols) + DR[d], c = (i % p.cols) + DC[d];
+  if (p.wrap) { r = (r + p.rows) % p.rows; c = (c + p.cols) % p.cols; }
   return r < 0 || c < 0 || r >= p.rows || c >= p.cols ? -1 : r * p.cols + c;
 }
 export const maskAt = (p, rot, i) => rotMask(p.tiles[i], rot[i]);
