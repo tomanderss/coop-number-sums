@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.39';
-export const BUILD_HASH = 'ad220c1';
+export const BUILD      = '3.40';
+export const BUILD_HASH = '9c12a3a';
 
 export const CHANGELOG = [
+  {
+    "version": "3.40",
+    "date": "12.11.2026",
+    "changes": [
+      "- Rectangles deutlich schwerer: ab „Mittel“ verdeckte „?“-Zahlen (Größe unbekannt), größere Rechtecke und mehr Schlussfolgerungen – weiterhin immer ohne Raten lösbar"
+    ]
+  },
   {
     "version": "3.39",
     "date": "12.11.2026",
