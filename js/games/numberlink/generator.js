@@ -12,7 +12,7 @@
 // Deterministisch aus dem Seed (Wettkampf/Team/Verlauf): abgebrochen wird nur
 // nach einer festen Versuchszahl, nie nach Zeit.
 
-import { solveLogic } from './solver.js';
+import { solveLogic, MAX_PAIRS } from './solver.js';
 import { genOptionsFor } from './difficulty.js';
 
 export function mulberry32(seed) {
@@ -149,6 +149,8 @@ export function generatePuzzle(opts = {}) {
       cuts = cuts.filter((_, j) => j !== drop);
       lens = segLens(cuts, N);
     }
+    // Mehr Zahlen, als der Löser darstellen kann: neuer Versuch.
+    if (cuts.length > MAX_PAIRS) continue;
     let res = solvesUpTo(cuts);
     if (!res.solved) continue;
     // Ausdünnen: Paare verschmelzen (einen Schnitt weglassen), solange das Brett

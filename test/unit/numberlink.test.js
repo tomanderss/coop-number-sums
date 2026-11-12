@@ -163,3 +163,16 @@ describe('Number Link: Generator', () => {
     assert.equal(bigNumbersAllowed(), false);
   });
 });
+
+// Farben sind 32-Bit-Masken: mit mehr als 31 Zahlen darf der Löser nie ein
+// (womöglich falsches) „gelöst“ melden.
+test('mehr als 31 Paare gelten nie als gelöst', async () => {
+  const { solveLogic, MAX_PAIRS } = await import('../../js/games/numberlink/solver.js');
+  const mk = (pairs) => {
+    const cols = 2, rows = pairs, ends = [], solution = [];
+    for (let r = 0; r < rows; r++) { ends.push({ r, c: 0, k: r + 1 }, { r, c: 1, k: r + 1 }); solution.push(r + 1, r + 1); }
+    return { rows, cols, ends, solution };
+  };
+  assert.equal(solveLogic(mk(MAX_PAIRS), { maxTier: 1 }).solved, true);
+  assert.equal(solveLogic(mk(MAX_PAIRS + 1), { maxTier: 1 }).solved, false);
+});

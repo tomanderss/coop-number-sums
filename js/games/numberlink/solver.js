@@ -157,8 +157,13 @@ function isComplete(g, s) {
  * Linien des Spielers) setzt deren Kanten vorab an.
  * Rückgabe: { solved, contradiction, tier2Steps, dom, st, order: [{ id, k, step, tier }] }
  */
+export const MAX_PAIRS = 31;
+
 export function solveLogic(p, { maxTier = 2, known = null, probeBudget = 0 } = {}) {
   const g = buildGraph(p);
+  // Farben sind 32-Bit-Masken: mehr als 31 Zahlen kann der Löser nicht
+  // darstellen — dann gilt das Rätsel als NICHT gelöst (nie falsch „gelöst“).
+  if (pairCount(p) > MAX_PAIRS) return { solved: false, contradiction: false, tier2Steps: 0, order: [], dom: [], st: new Uint8Array(0), g };
   let s = initState(p, g);
   const order = [];
   let step = 0, tier = 1;
