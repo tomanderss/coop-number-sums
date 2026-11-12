@@ -88,3 +88,28 @@ describe('Pipes: Spielstand', () => {
     assert.deepEqual(h.pipeRot, [0, 0, 4, 0]);
   });
 });
+
+describe('Pipes: schwerere obere Stufen', () => {
+  test('ohne Rand: Nachbar über den Rand hinweg', async () => {
+    const { neighbor } = await import('../../js/games/pipes/model.js');
+    const p = { rows: 3, cols: 4 };
+    assert.equal(neighbor(p, 3, 1), -1);
+    assert.equal(neighbor({ ...p, wrap: true }, 3, 1), 0);      // rechts → links
+    assert.equal(neighbor({ ...p, wrap: true }, 1, 0), 9);      // oben → unten
+  });
+  for (const id of ['mittel', 'extrem', 'rip']) {
+    test(`${id}: logisch lösbar, Lösungsdrehung löst das Brett`, async () => {
+      const { generatePuzzle } = await import('../../js/games/pipes/generator.js');
+      const { solveLogic } = await import('../../js/games/pipes/solver.js');
+      const { isSolved } = await import('../../js/games/pipes/model.js');
+      for (const seed of [3, 4]) {
+        const p = generatePuzzle({ difficulty: id, seed });
+        assert.equal(p.logic, true);
+        assert.equal(!!p.wrap, id !== 'mittel');
+        assert.ok(solveLogic(p, { maxTier: 2 }).solved, 'nicht ohne Raten lösbar');
+        assert.ok(isSolved(p, p.solRot), 'Lösungsdrehung löst nicht');
+        if (id === 'rip') assert.ok(p.tier2 >= 20, `zu wenige Netz-Schlüsse: ${p.tier2}`);
+      }
+    });
+  }
+});

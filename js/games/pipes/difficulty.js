@@ -10,18 +10,23 @@
 
 import { mergeLadder } from '../../config.js';
 
-// Nutzerwunsch „Pipes ist zu leicht": alle Stufen um eins nach links geschoben
-// (das frühere 4×4 fällt weg), oben kommt 12×12 dazu.
+// Nutzerwunsch „Pipes ist zu leicht“ (zweimal): die Stufen sind eins nach
+// links geschoben (4×4 fiel weg), und ab „Mittel“ sucht der Generator gezielt
+// Netze, die viele Netz-Schlüsse verlangen (`climb` = Kletter-Versuche, s.
+// climbTree). Ab „Extrem“ WICKELT SICH DAS BRETT UM (`wrap`): was rechts
+// hinausführt, kommt links wieder herein (oben ↔ unten ebenso) — es gibt keinen
+// Rand mehr, an dem man anfangen kann. Gemessen 12×12: 36–71 Netz-Schlüsse
+// (vorher 8–11), ≤ 0,25 s, immer vollständig ohne Raten lösbar.
 const PARAMS = {
   sehrleicht: { dim: { r: 5,  c: 5  }, branchy: 0.3,  maxTier: 1, minTier2: 0 },
   leicht:     { dim: { r: 6,  c: 6  }, branchy: 0.4,  maxTier: 2, minTier2: 0 },
-  mittel:     { dim: { r: 7,  c: 7  }, branchy: 0.5,  maxTier: 2, minTier2: 1 },
-  schwer:     { dim: { r: 8,  c: 8  }, branchy: 0.55, maxTier: 2, minTier2: 2 },
-  extrem:     { dim: { r: 8,  c: 8  }, branchy: 0.65, maxTier: 2, minTier2: 3 },
-  mashallah:  { dim: { r: 9,  c: 9  }, branchy: 0.65, maxTier: 2, minTier2: 4 },
-  dikkawas:   { dim: { r: 10, c: 10 }, branchy: 0.7,  maxTier: 2, minTier2: 5 },
-  bismillah:  { dim: { r: 11, c: 11 }, branchy: 0.75, maxTier: 2, minTier2: 6 },
-  rip:        { dim: { r: 12, c: 12 }, branchy: 0.8,  maxTier: 2, minTier2: 7 },
+  mittel:     { dim: { r: 7,  c: 7  }, branchy: 0.5,  maxTier: 2, minTier2: 1, climb: 300 },
+  schwer:     { dim: { r: 8,  c: 8  }, branchy: 0.6,  maxTier: 2, minTier2: 2, climb: 600 },
+  extrem:     { dim: { r: 8,  c: 8  }, branchy: 0.6,  maxTier: 2, minTier2: 2, climb: 300, wrap: true },
+  mashallah:  { dim: { r: 9,  c: 9  }, branchy: 0.65, maxTier: 2, minTier2: 3, climb: 500, wrap: true },
+  dikkawas:   { dim: { r: 10, c: 10 }, branchy: 0.7,  maxTier: 2, minTier2: 4, climb: 600, wrap: true },
+  bismillah:  { dim: { r: 11, c: 11 }, branchy: 0.75, maxTier: 2, minTier2: 5, climb: 700, wrap: true },
+  rip:        { dim: { r: 12, c: 12 }, branchy: 0.8,  maxTier: 2, minTier2: 6, climb: 900, wrap: true },
 };
 
 export const DIFFICULTIES = mergeLadder(PARAMS);
@@ -32,5 +37,5 @@ export function bigNumbersAllowed() { return false; }
 
 export function genOptionsFor(diffId) {
   const d = DIFF_BY_ID[diffId] || DIFFICULTIES[0];
-  return { difficulty: d.id, rows: d.dim.r, cols: d.dim.c, branchy: d.branchy, maxTier: d.maxTier, minTier2: d.minTier2, tries: 400 };
+  return { difficulty: d.id, rows: d.dim.r, cols: d.dim.c, branchy: d.branchy, maxTier: d.maxTier, minTier2: d.minTier2, tries: 400, climb: d.climb || 0, wrap: !!d.wrap };
 }
