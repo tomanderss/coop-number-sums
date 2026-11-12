@@ -30,7 +30,7 @@ import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
 import {
   endMap, endsOf, pairCount, isSolved, progressPct, pathComplete, sanitizeLinks, ownerGrid,
-  normalizePuzzle as healPuzzle, normalizeLinks, rcOf, adjacent,
+  normalizePuzzle as healPuzzle, normalizeLinks, rcOf, adjacent, wallSet, edgeKey,
 } from './model.js';
 import { solveLogic, nextDeduction, pathsFromState } from './solver.js';
 
@@ -112,7 +112,7 @@ export function fitBoard() {
 let ctxCache = null;
 function rules() {
   const p = state.puzzle;
-  if (!ctxCache || ctxCache.p !== p) ctxCache = { p, ends: endMap(p), endsK: endsOf(p), K: pairCount(p), N: p.rows * p.cols };
+  if (!ctxCache || ctxCache.p !== p) ctxCache = { p, ends: endMap(p), endsK: endsOf(p), K: pairCount(p), N: p.rows * p.cols, walls: wallSet(p) };
   return ctxCache;
 }
 const me = () => state.coop.myId || LOCAL_PLAYER_ID;
@@ -169,11 +169,11 @@ function draftLinks(d) {
 
 /** Ein Schritt der gezogenen Linie auf `cell` (Nachbar ihres Endes). */
 function stepDrag(d, cell) {
-  const { ends } = rules();
+  const { ends, walls } = rules();
   const idx = d.path.indexOf(cell);
   if (idx >= 0) { d.path = d.path.slice(0, idx + 1); return true; }          // zurückgezogen
   const end = d.path[d.path.length - 1];
-  if (!adjacent(state.puzzle, end, cell)) return false;
+  if (!adjacent(state.puzzle, end, cell) || walls.has(edgeKey(end, cell))) return false;   // Wand sperrt
   if (d.path.length > 1 && connected(d.k, d.path)) return false;           // fertig verbunden
   const e = ends.get(cell);
   if (e != null && e !== d.k) return false;                                // fremde Zahl sperrt
@@ -325,6 +325,17 @@ const LinkLayer = {
               </g>
             </svg>`,
 };
+// Wände — hängen nur am Rätsel.
+const wallStyle = (p, w) => (w.d === 'r'
+  ? { left: pct(w.c + 1, p.cols), top: pct(w.r, p.rows), height: pct(1, p.rows) }
+  : { left: pct(w.c, p.cols), top: pct(w.r + 1, p.rows), width: pct(1, p.cols) });
+const WallLayer = {
+  setup() { return { state, wallStyle }; },
+  template: `
+            <div v-if="(state.puzzle.walls || []).length" class="nl-walls" aria-hidden="true">
+              <i v-for="(w, i) in state.puzzle.walls" :key="i" class="nl-wall" :class="w.d === 'r' ? 'v' : 'h'" :style="wallStyle(state.puzzle, w)"></i>
+            </div>`,
+};
 // Freie Zellen, sobald alle Paare verbunden sind (dann fehlt nur noch das Füllen).
 const GapLayer = {
   setup() {
@@ -380,7 +391,7 @@ const FocusLayer = {
 };
 
 export const BoardGrid = {
-  components: { LinkLayer, GapLayer, EndLayer, FocusLayer, LiveLayer },
+  components: { LinkLayer, GapLayer, EndLayer, FocusLayer, LiveLayer, WallLayer },
   setup() {
     const t0 = performance.now();
     onMounted(() => log('perf', 'Brett aufgebaut', { game: 'numberlink', cells: state.puzzle ? state.puzzle.rows * state.puzzle.cols : 0, pairs: state.puzzle ? pairCount(state.puzzle) : 0, tookMs: Math.round(performance.now() - t0) }));
@@ -397,6 +408,7 @@ export const BoardGrid = {
             <gap-layer></gap-layer>
             <focus-layer></focus-layer>
             <live-layer></live-layer>
+            <wall-layer></wall-layer>
             <end-layer></end-layer>
           </div>
   `,
@@ -531,7 +543,7 @@ export const HistoryBoard = {
     const fx = activePaletteFx();
     const col = (p, k) => linkColor(colorIdx(p, k), fx);
     const endStyle = (p, e) => ({ left: pct(e.c, p.cols), top: pct(e.r, p.rows), width: pct(1, p.cols), height: pct(1, p.rows), '--lc': col(p, e.k) });
-    return { historyStyle, ptsOf, col, endStyle };
+    return { historyStyle, ptsOf, col, endStyle, wallStyle };
   },
   template: `
           <div class="board nl-board history-board" :style="historyStyle(detail.puzzle)">
@@ -540,6 +552,7 @@ export const HistoryBoard = {
                 <polyline class="nl-line" :points="ptsOf(detail.puzzle, path)"></polyline>
               </g>
             </svg>
+            <div v-if="(detail.puzzle.walls || []).length" class="nl-walls"><i v-for="(w, i) in detail.puzzle.walls" :key="i" class="nl-wall" :class="w.d === 'r' ? 'v' : 'h'" :style="wallStyle(detail.puzzle, w)"></i></div>
             <div class="nl-ends"><span v-for="(e, i) in detail.puzzle.ends" :key="i" class="nl-end on" :style="endStyle(detail.puzzle, e)"><b>{{ e.k }}</b></span></div>
           </div>
   `,

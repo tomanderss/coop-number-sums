@@ -129,6 +129,10 @@ export function assignColors(p) {
 export function generatePuzzle(opts = {}) {
   const o = opts.rows ? opts : { ...genOptionsFor(opts.difficulty), ...opts };
   const seed = (opts.seed ?? Math.floor(Math.random() * 2 ** 31)) >>> 0;
+  if (o.walls) {
+    const wp = generateWalled(o, seed);
+    if (wp) return wp;
+  }
   const rng = mulberry32(seed);
   const t0 = Date.now();
   const N = o.rows * o.cols;
@@ -180,4 +184,84 @@ export function generatePuzzle(opts = {}) {
     };
   }
   throw new Error('Number Link: kein Rätsel gefunden');
+}
+
+// ─── OBERE STUFEN: LANGE LINIEN + WÄNDE ───────────────────────────────────────
+//
+// Die sehnenfreien Schnitte oben liefern auf jeder Brettgröße ~6,5 Zellen je
+// Linie — viele kurze Linien, nie wirklich schwer. Hier wird der Weg in LANGE
+// Stücke geschnitten (Ziel `lineLen` Zellen). Solche Linien ließen sich meist
+// auf mehrere Arten legen; eindeutig werden sie durch WÄNDE auf Zellgrenzen,
+// durch die keine Linie führt:
+//   1. Löser (Stufe 1) laufen lassen; bleibt er hängen, kommt eine Wand auf eine
+//      noch offene Grenze, über die die Lösung NICHT läuft — bis alles feststeht.
+//   2. Überflüssige Wände wieder entfernen (Stufe 1 muss weiter alles festlegen).
+//   3. Obere Stufen: weitere Wände entfernen, solange der Löser mit Vorausblick
+//      (Stufe 2) das Rätsel noch vollständig festlegt — höchstens `t2Prune`
+//      Versuche, damit die Erzeugung auf dem Gerät schnell bleibt.
+// Jedes Ergebnis ist vom Löser komplett OHNE Raten gelöst, also eindeutig.
+// Deterministisch aus dem Seed, nur feste Versuchszahlen, nie Zeit.
+export function generateWalled(o, seed) {
+  const rng = mulberry32(seed ^ 0x5bd1e995);
+  const { rows, cols } = o, N = rows * cols;
+  const minLen = o.minLen || 3, target = o.lineLen || 10;
+  const probeBudget = N * 2;
+  for (let attempt = 0; attempt < (o.wallTries || 6); attempt++) {
+    const path = randomHamiltonPath(rows, cols, rng);
+    const cuts = [0];
+    for (let i = 0; ;) {
+      i += Math.max(minLen, Math.round(target * (0.6 + 0.8 * rng())));
+      if (i > N - minLen) break;
+      cuts.push(i);
+    }
+    if (cuts.length > MAX_PAIRS) continue;
+    const base = buildPuzzle(o, path, cuts);
+    const onSol = new Set();
+    for (let j = 1; j < N; j++) {
+      if (base.solution[path[j]] !== base.solution[path[j - 1]]) continue;
+      const a = Math.min(path[j], path[j - 1]), b = Math.max(path[j], path[j - 1]);
+      onSol.add(`${a}-${b}`);
+    }
+    const walls = [];
+    const solve = (w, tier) => solveLogic({ ...base, walls: w }, { maxTier: tier, probeBudget });
+    let res = null;
+    for (let guard = 0; guard <= N; guard++) {
+      res = solve(walls, 1);
+      if (res.solved || res.contradiction) break;
+      const cand = [];
+      for (let e = 0; e < res.st.length; e++) {
+        if (res.st[e] !== 2) continue;                    // nur noch offene Grenzen
+        const [a, b] = res.g.edges[e];
+        if (!onSol.has(`${a}-${b}`)) cand.push([a, b]);
+      }
+      if (!cand.length) break;
+      const [a, b] = cand[Math.floor(rng() * cand.length)];
+      walls.push({ r: Math.floor(a / cols), c: a % cols, d: b === a + 1 ? 'r' : 'd' });
+    }
+    if (!res || !res.solved) continue;
+    for (let k = walls.length - 1; k >= 0; k--) {
+      const w2 = walls.filter((_, x) => x !== k);
+      if (solve(w2, 1).solved) walls.splice(k, 1);
+    }
+    let t2 = 0;
+    if ((o.maxTier || 1) >= 2 && o.t2Prune) {
+      const order = walls.map((_, i) => i);
+      for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+      const drop = new Set();
+      for (const k of order.slice(0, o.t2Prune)) {
+        const w2 = walls.filter((_, x) => x !== k && !drop.has(x));
+        const r = solve(w2, 2);
+        if (r.solved) { drop.add(k); t2 = r.tier2Steps; }
+      }
+      for (const k of [...drop].sort((a, b) => b - a)) walls.splice(k, 1);
+    }
+    const p = renumber(base);
+    p.walls = walls;
+    return {
+      game: 'numberlink', difficulty: o.difficulty, seed,
+      ...p, colors: assignColors(p),
+      genTries: attempt + 1, tier2: t2,
+    };
+  }
+  return null;
 }

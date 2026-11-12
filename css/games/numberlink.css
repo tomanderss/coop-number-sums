@@ -19,7 +19,14 @@
   box-shadow: var(--board-shadow);
 }
 .nl-links, .nl-focus { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
-.nl-ends, .nl-gaps { position: absolute; inset: 0; pointer-events: none; }
+.nl-ends, .nl-gaps, .nl-walls { position: absolute; inset: 0; pointer-events: none; }
+/* Wände (obere Stufen): dicke Balken auf der Zellgrenze — dieselbe Optik wie in Number Path. */
+.nl-wall {
+  position: absolute; background: var(--text); border-radius: 999px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg2) 60%, transparent);
+}
+.nl-wall.v { width: max(5px, calc(var(--cell) * 0.12)); transform: translateX(-50%); }
+.nl-wall.h { height: max(5px, calc(var(--cell) * 0.12)); transform: translateY(-50%); }
 
 /* Belegte Zellen: zarte Tönung; verbunden etwas satter. */
 .nl-fill { fill: var(--lc); opacity: .16; transition: opacity .25s ease; }
