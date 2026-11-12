@@ -43,6 +43,9 @@
   background: var(--text); box-shadow: var(--token-shadow); z-index: -1;
 }
 .rb-clues { z-index: 1; }
+/* „?“: Fläche unbekannt — derselbe Stein, nur als Ring statt gefüllt. */
+.rclue.q { color: var(--text); }
+.rclue.q::before { background: var(--bg2); box-shadow: inset 0 0 0 2.5px var(--text), var(--token-shadow); }
 .rclue { isolation: isolate; }
 
 /* Zieh-Vorschau: folgt dem Finger frei; beim Loslassen gleitet sie auf ihr

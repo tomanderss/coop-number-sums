@@ -92,12 +92,33 @@ export function generatePuzzle(opts = {}) {
     let clues = rects.map((q) => placeClue(q, rng));
     // Reparatur: Zahlen der noch offenen Rechtecke umsetzen.
     for (let fix = 0; fix <= (o.repairs ?? 25); fix++) {
-      const res = solveLogic({ rows: o.rows, cols: o.cols, clues }, { maxTier: o.maxTier });
+      // Grundrätsel mit Stufe 1+2; Stufe 3 nur beim Verdecken (teuer).
+      const res = solveLogic({ rows: o.rows, cols: o.cols, clues }, { maxTier: Math.min(o.maxTier, 2) });
       if (res.solved && res.tier2Steps >= (o.minTier2 || 0)) {
+        // Obere Stufen: bis zu `hide` Zahlen als „?“ verdecken (Fläche
+        // unbekannt) — nur wo der Löser das Brett trotzdem vollständig festlegt.
+        let tier2 = res.tier2Steps, tier3 = res.tier3Steps || 0;
+        if (o.hide) {
+          const order = clues.map((_, i) => i);
+          for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+          let hidden = 0, t3Left = o.maxTier >= 3 ? (o.t3Tries || 0) : 0;
+          const tryHide = (i, tier) => {
+            const next = clues.slice(); next[i] = { ...clues[i], hide: true };
+            const r2 = solveLogic({ rows: o.rows, cols: o.cols, clues: next }, { maxTier: tier, maxProbes: o.maxProbes || 120 });
+            if (!r2.solved || r2.tier2Steps + (r2.tier3Steps || 0) < (o.minTier2 || 0)) return false;
+            clues = next; hidden++; tier2 = r2.tier2Steps; tier3 = r2.tier3Steps || 0;
+            return true;
+          };
+          // Erst mit den schnellen Stufen 1+2 verdecken, dann (oberste Stufen)
+          // eine feste Zahl weiterer Versuche mit Stufe 3 (Widerspruch).
+          const rest = [];
+          for (const i of order) { if (hidden >= o.hide) break; if (!tryHide(i, Math.min(o.maxTier, 2))) rest.push(i); }
+          for (const i of rest) { if (hidden >= o.hide || t3Left-- <= 0) break; tryHide(i, 3); }
+        }
         const { clues: cs, solution } = sortPuzzle(clues, rects);
         return {
           game: 'rectangles', difficulty: o.difficulty, seed, rows: o.rows, cols: o.cols,
-          clues: cs, solution, genTries: tries + 1, genMs: Date.now() - t0, tier2: res.tier2Steps,
+          clues: cs, solution, genTries: tries + 1, genMs: Date.now() - t0, tier2, tier3,
           ...(opts.__fallback ? { fallback: true } : {}),
         };
       }

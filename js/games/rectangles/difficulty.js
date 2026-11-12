@@ -13,16 +13,21 @@
 
 import { mergeLadder } from '../../config.js';
 
+// Nutzerwunsch „zu leicht": ab „Mittel“ werden Zahlen als „?“ verdeckt (`hide`
+// = höchstens so viele; die Fläche ist dann unbekannt, nur die Lage zählt),
+// größere Flächen, mehr Kern-Schlüsse (`minTier2`), ab „Extrem“ zusätzlich
+// Widerspruchs-Schlüsse (Stufe 3, `t3Tries` Versuche beim Verdecken).
+// Jedes Rätsel bleibt vollständig ohne Raten lösbar.
 const PARAMS = {
   sehrleicht: { dim: { r: 5,  c: 5  }, maxArea: 6,  maxTier: 1, minTier2: 0 },
   leicht:     { dim: { r: 6,  c: 6  }, maxArea: 8,  maxTier: 1, minTier2: 0 },
-  mittel:     { dim: { r: 7,  c: 7  }, maxArea: 9,  maxTier: 2, minTier2: 0 },
-  schwer:     { dim: { r: 8,  c: 8  }, maxArea: 10, maxTier: 2, minTier2: 1 },
-  extrem:     { dim: { r: 9,  c: 9  }, maxArea: 12, maxTier: 2, minTier2: 2 },
-  mashallah:  { dim: { r: 10, c: 10 }, maxArea: 12, maxTier: 2, minTier2: 3 },
-  dikkawas:   { dim: { r: 11, c: 11 }, maxArea: 14, maxTier: 2, minTier2: 4 },
-  bismillah:  { dim: { r: 12, c: 12 }, maxArea: 16, maxTier: 2, minTier2: 5 },
-  rip:        { dim: { r: 13, c: 13 }, maxArea: 18, maxTier: 2, minTier2: 6 },
+  mittel:     { dim: { r: 7,  c: 7  }, maxArea: 9,  maxTier: 2, minTier2: 1, hide: 2 },
+  schwer:     { dim: { r: 8,  c: 8  }, maxArea: 10, maxTier: 2, minTier2: 2, hide: 3 },
+  extrem:     { dim: { r: 9,  c: 9  }, maxArea: 12, maxTier: 3, minTier2: 3, hide: 5,  t3Tries: 3 },
+  mashallah:  { dim: { r: 10, c: 10 }, maxArea: 14, maxTier: 3, minTier2: 4, hide: 6,  t3Tries: 3 },
+  dikkawas:   { dim: { r: 11, c: 11 }, maxArea: 16, maxTier: 3, minTier2: 5, hide: 8,  t3Tries: 4 },
+  bismillah:  { dim: { r: 12, c: 12 }, maxArea: 18, maxTier: 3, minTier2: 6, hide: 10, t3Tries: 4 },
+  rip:        { dim: { r: 13, c: 13 }, maxArea: 20, maxTier: 3, minTier2: 8, hide: 12, t3Tries: 4 },
 };
 
 export const DIFFICULTIES = mergeLadder(PARAMS);
@@ -38,6 +43,7 @@ export function genOptionsFor(diffId) {
     difficulty: d.id, rows: d.dim.r, cols: d.dim.c,
     minArea: 2, maxArea: d.maxArea, maxAspect: 5,
     maxTier: d.maxTier, minTier2: d.minTier2,
+    hide: d.hide || 0, t3Tries: d.t3Tries || 0,
     tries: 3000,
   };
 }

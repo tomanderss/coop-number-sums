@@ -20,9 +20,11 @@ export function candidates(p) {
   p.clues.forEach((k, i) => clueAt.set(k.r * p.cols + k.c, i));
   return p.clues.map((k, i) => {
     const out = [];
-    for (let h = 1; h <= k.n; h++) {
-      if (k.n % h) continue;
-      const w = k.n / h;
+    // „?“-Zahl (k.hide): Fläche unbekannt — jede Rechteckgröße ist möglich.
+    const shapes = [];
+    if (k.hide) { for (let h = 1; h <= p.rows; h++) for (let w = 1; w <= p.cols; w++) shapes.push([h, w]); }
+    else for (let h = 1; h <= k.n; h++) if (!(k.n % h)) shapes.push([h, k.n / h]);
+    for (const [h, w] of shapes) {
       if (h > p.rows || w > p.cols) continue;
       for (let r = Math.max(0, k.r - h + 1); r <= Math.min(k.r, p.rows - h); r++) {
         for (let c = Math.max(0, k.c - w + 1); c <= Math.min(k.c, p.cols - w); c++) {
@@ -50,7 +52,8 @@ export function candidates(p) {
  * Liefert { solved, contradiction, rects (je Zahl das Rechteck oder null),
  *           steps: [{ tier, kind, k, cells }], maxTierUsed, tier2Steps }.
  */
-export function solveLogic(p, { maxTier = 2, known = null, maxSteps = Infinity } = {}) {
+export function solveLogic(p, { maxTier = 2, known = null, maxSteps = Infinity, exclude = null, maxProbes } = {}) {
+  if (maxTier >= 3) return solveDeep(p, { known, maxProbes });
   const N = p.rows * p.cols, K = p.clues.length;
   const cands = candidates(p);
   const alive = cands.map((list) => new Uint8Array(list.length).fill(1));
@@ -87,6 +90,13 @@ export function solveLogic(p, { maxTier = 2, known = null, maxSteps = Infinity }
   // ein) — vorab vergeben, sonst „erklärte" der Löser genau das als ersten Schritt.
   p.clues.forEach((k, i) => { owner[k.r * p.cols + k.c] = i; });
 
+  // Bereits widerlegte Rechtecke (Stufe 3) gelten als ausgeschlossen.
+  if (exclude) {
+    for (const q of exclude) {
+      const j = (cands[q.k] || []).findIndex((x) => x.r === q.r && x.c === q.c && x.h === q.h && x.w === q.w);
+      if (j >= 0) kill(q.k, j);
+    }
+  }
   if (known) {
     for (const q of known) {
       const k = q.k;
@@ -152,7 +162,36 @@ export function solveLogic(p, { maxTier = 2, known = null, maxSteps = Infinity }
   let ownedAll = true;
   for (let id = 0; id < N; id++) if (owner[id] < 0) { ownedAll = false; break; }
   const solved = !contradiction && ownedAll && rects.every(Boolean);
-  return { solved, contradiction, rects, steps, maxTierUsed, tier2Steps };
+  const aliveList = cands.map((list, k) => list.map((q, j) => (alive[k][j] ? { k, r: q.r, c: q.c, h: q.h, w: q.w } : null)).filter(Boolean));
+  return { solved, contradiction, rects, steps, maxTierUsed, tier2Steps, aliveList, tier3Steps: 0 };
+}
+
+/**
+ * Stufe 3 (Beweis durch Widerspruch, ein Schritt tief): ein noch mögliches
+ * Rechteck einer Zahl probeweise setzen (zusammen mit allen schon feststehenden);
+ * führt Stufe 1+2 dann zum Widerspruch, ist es unmöglich. Kein Raten — jedes
+ * gestrichene Rechteck ist bewiesen falsch. Nur für die oberen Stufen.
+ */
+export function solveDeep(p, { known = null, maxProbes = 4000 } = {}) {
+  if (maxProbes == null) maxProbes = 4000;
+  const exclude = [];
+  let res = solveLogic(p, { maxTier: 2, known, exclude });
+  let tier3 = 0, probes = 0;
+  while (!res.solved && !res.contradiction && probes < maxProbes) {
+    const fixed = res.rects.map((q, k) => (q ? { k, ...q } : null)).filter(Boolean);
+    const base = [...(known || []), ...fixed];
+    let hit = false;
+    for (let k = 0; k < res.rects.length && !hit; k++) {
+      if (res.rects[k]) continue;
+      for (const q of res.aliveList[k]) {
+        if (++probes > maxProbes) break;
+        if (solveLogic(p, { maxTier: 2, known: [...base, q], exclude }).contradiction) { exclude.push(q); tier3++; hit = true; break; }
+      }
+    }
+    if (!hit) break;
+    res = solveLogic(p, { maxTier: 2, known, exclude });
+  }
+  return { ...res, tier3Steps: tier3 };
 }
 
 /**
