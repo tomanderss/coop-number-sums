@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.37';
-export const BUILD_HASH = '93732bf';
+export const BUILD      = '3.38';
+export const BUILD_HASH = '6c0f8d4';
 
 export const CHANGELOG = [
+  {
+    "version": "3.38",
+    "date": "12.11.2026",
+    "changes": [
+      "- Pipes deutlich schwerer: ab „Mittel“ verlangen die Netze viel mehr Überlegung, ab „Extrem“ hat das Brett keinen Rand mehr – Rohre laufen auf der anderen Seite weiter"
+    ]
+  },
   {
     "version": "3.37",
     "date": "12.11.2026",
