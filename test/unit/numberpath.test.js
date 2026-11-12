@@ -98,10 +98,11 @@ describe('Number Path: Generator', () => {
       const p = generatePuzzle({ difficulty: d.id, seed: 11 });
       assert.equal(p.rows, d.dim.r);
       assert.equal(isSolved(p, p.solution), true, d.id);
-      const res = solveEdges(p, { maxTier: o.maxTier });
+      const res = solveEdges(p, { maxTier: Math.max(o.maxTier, 2) });
       assert.equal(res.solved, true, d.id);
       assert.deepEqual(res.path, p.solution, d.id);
-      assert.equal(p.walls.length, d.walls, d.id);
+      // Klassische Stufen: feste Zahl zufälliger Wände; obere Stufen (sparse): höchstens maxWalls.
+      if (d.sparse) assert.ok(p.walls.length <= d.maxWalls, d.id); else assert.equal(p.walls.length, d.walls, d.id);
       if (d.dim.r <= 6) assert.equal(countSolutions(p), 1, d.id);
       assert.ok(p.clues.length >= 2 && p.clues.length <= p.rows * p.cols / 2, d.id);
     }
@@ -124,4 +125,24 @@ describe('Number Path: Spielstand', () => {
     assert.deepEqual(h.path, [0, 1]); assert.deepEqual(h.puzzle.walls, []);
     assert.equal(healSnapshot(h), h);
   });
+});
+
+describe('Number Path: obere Stufen mit wenigen Zahlen', () => {
+  for (const id of ['mittel', 'extrem', 'rip']) {
+    test(`${id}: wenige Zahlen, Wände nie auf dem Weg, ohne Raten lösbar`, async () => {
+      const { generatePuzzle } = await import('../../js/games/numberpath/generator.js');
+      const { solveEdges } = await import('../../js/games/numberpath/solver.js');
+      for (const seed of [5, 6]) {
+        const p = generatePuzzle({ difficulty: id, seed });
+        const N = p.rows * p.cols;
+        assert.ok(p.clues.length <= Math.ceil(N * 0.12), `zu viele Zahlen: ${p.clues.length}`);
+        const used = new Set();
+        for (let i = 1; i < N; i++) { const a = Math.min(p.solution[i - 1], p.solution[i]), b = Math.max(p.solution[i - 1], p.solution[i]); used.add(`${a}-${b}`); }
+        for (const w of p.walls) { const a = w.r * p.cols + w.c, b = w.d === 'r' ? a + 1 : a + p.cols; assert.ok(!used.has(`${a}-${b}`), 'Wand auf dem Weg'); }
+        const res = solveEdges(p, { maxTier: 2 });
+        assert.ok(res.solved, 'nicht ohne Raten lösbar');
+        assert.deepEqual(res.path, p.solution);
+      }
+    });
+  }
 });
