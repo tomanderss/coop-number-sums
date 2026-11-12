@@ -9,7 +9,8 @@
 // Rein und unit-getestet. Zellen werden als Index `id = r * cols + c` geführt.
 //
 // Rätsel: { rows, cols, ends: [{ r, c, k }] (k = 1..K, je k genau zwei),
-//           solution: [k je Zelle] }
+//           solution: [k je Zelle], walls?: [{ r, c, d }] (obere Stufen:
+//           Wände auf Zellgrenzen, durch die keine Linie führt) }
 // Stand:  links = [Pfad je Zahl] — links[k-1] = [id, …], beginnt an einem der
 //         beiden Enden der Zahl k (leer = noch nicht gezogen).
 
@@ -41,6 +42,16 @@ export function neighbors(p, id) {
   if (c < p.cols - 1) out.push(id + 1);
   return out;
 }
+/** Wände ({ r, c, d: 'r' = rechts der Zelle, 'd' = darunter }) als Menge „kleiner-größer“. */
+export const edgeKey = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+export function wallSet(p) {
+  const s = new Set();
+  for (const w of (p && p.walls) || []) {
+    const a = w.r * p.cols + w.c;
+    s.add(edgeKey(a, w.d === 'r' ? a + 1 : a + p.cols));
+  }
+  return s;
+}
 export const adjacent = (p, a, b) => {
   const d = Math.abs(a - b);
   return (d === p.cols) || (d === 1 && Math.floor(a / p.cols) === Math.floor(b / p.cols));
@@ -61,6 +72,7 @@ export function ownerGrid(p, links) {
 export function validPath(p, k, path, ctx = null) {
   if (!Array.isArray(path) || !path.length) return true;
   const ends = ctx ? ctx.ends : endMap(p);
+  const walls = ctx && ctx.walls ? ctx.walls : wallSet(p);
   const N = p.rows * p.cols;
   if (ends.get(path[0]) !== k) return false;
   const seen = new Set();
@@ -68,7 +80,7 @@ export function validPath(p, k, path, ctx = null) {
     const id = path[i];
     if (!Number.isInteger(id) || id < 0 || id >= N || seen.has(id)) return false;
     seen.add(id);
-    if (i > 0 && !adjacent(p, path[i - 1], id)) return false;
+    if (i > 0 && (!adjacent(p, path[i - 1], id) || walls.has(edgeKey(path[i - 1], id)))) return false;
     const e = ends.get(id);
     if (i > 0 && e != null) {
       if (e !== k) return false;
@@ -89,7 +101,7 @@ export function pathComplete(p, k, path, ctx = null) {
 export function isSolved(p, links) {
   if (!p || !Array.isArray(links)) return false;
   const K = pairCount(p), N = p.rows * p.cols;
-  const ctx = { ends: endMap(p) };
+  const ctx = { ends: endMap(p), walls: wallSet(p) };
   const used = new Uint8Array(N);
   let count = 0;
   for (let k = 1; k <= K; k++) {
@@ -124,7 +136,7 @@ export function progressPct(p, links) {
  */
 export function sanitizeLinks(p, links) {
   const K = pairCount(p), N = p.rows * p.cols;
-  const ctx = { ends: endMap(p) };
+  const ctx = { ends: endMap(p), walls: wallSet(p) };
   const out = [], used = new Uint8Array(N);
   for (let k = 1; k <= K; k++) {
     const src = Array.isArray(links && links[k - 1]) ? links[k - 1] : [];
@@ -151,6 +163,8 @@ export function validPuzzleShape(p) {
   }
   const K = p.ends.length / 2;
   for (let k = 1; k <= K; k++) if (count[k] !== 2) return false;
+  if (p.walls != null && !Array.isArray(p.walls)) return false;
+  for (const w of p.walls || []) if (!w || !Number.isInteger(w.r) || !Number.isInteger(w.c) || (w.d !== 'r' && w.d !== 'd')) return false;
   return Array.isArray(p.solution) && p.solution.length === p.rows * p.cols;
 }
 
@@ -159,9 +173,9 @@ export function validPuzzleShape(p) {
 const arr = (v) => (Array.isArray(v) ? v : v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []);
 export function normalizePuzzle(p) {
   if (!p) return p;
-  const ends = arr(p.ends), solution = arr(p.solution);
-  if (ends === p.ends && solution === p.solution) return p;
-  return { ...p, ends, solution };
+  const ends = arr(p.ends), solution = arr(p.solution), walls = arr(p.walls);
+  if (ends === p.ends && solution === p.solution && (walls === p.walls || (!p.walls && !walls.length))) return p;
+  return { ...p, ends, solution, walls };
 }
 /** Linien heilen: fehlende/leere Linien werden zu [], Objekte zu Arrays. */
 export function normalizeLinks(v, K) {

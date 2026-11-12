@@ -176,3 +176,35 @@ test('mehr als 31 Paare gelten nie als gelöst', async () => {
   assert.equal(solveLogic(mk(MAX_PAIRS), { maxTier: 1 }).solved, true);
   assert.equal(solveLogic(mk(MAX_PAIRS + 1), { maxTier: 1 }).solved, false);
 });
+
+describe('Number Link: Wände (obere Stufen)', () => {
+  test('eine Linie darf nicht durch eine Wand', async () => {
+    const { validPath } = await import('../../js/games/numberlink/model.js');
+    const p = { rows: 2, cols: 3, ends: [{ r: 0, c: 0, k: 1 }, { r: 0, c: 2, k: 1 }, { r: 1, c: 0, k: 2 }, { r: 1, c: 2, k: 2 }], solution: [1, 1, 1, 2, 2, 2] };
+    assert.equal(validPath(p, 1, [0, 1, 2]), true);
+    assert.equal(validPath({ ...p, walls: [{ r: 0, c: 0, d: 'r' }] }, 1, [0, 1, 2]), false);
+  });
+  for (const id of ['mittel', 'extrem', 'rip']) {
+    test(`${id}: lange Linien, Wände nie auf der Lösung, ohne Raten lösbar`, () => {
+      for (const seed of [11, 22]) {
+        const p = generatePuzzle({ difficulty: id, seed });
+        const N = p.rows * p.cols;
+        assert.ok(p.walls.length > 0, 'Wände vorhanden');
+        assert.ok(N / (p.ends.length / 2) >= 7, `Linien zu kurz: ${N / (p.ends.length / 2)}`);
+        for (const w of p.walls) {
+          const a = w.r * p.cols + w.c, b = w.d === 'r' ? a + 1 : a + p.cols;
+          // Die Lösung läuft nie über eine Wand: beide Seiten gehören nicht zu
+          // derselben Linie ODER sind auf ihr nicht benachbart.
+          const k = p.solution[a];
+          if (k === p.solution[b]) {
+            const res = solveLogic(p, { maxTier: 2, probeBudget: N * 4 });
+            const path = pathsFromState(p, res)[k - 1];
+            const ia = path.indexOf(a), ib = path.indexOf(b);
+            assert.ok(Math.abs(ia - ib) !== 1, 'Wand liegt auf der Lösung');
+          }
+        }
+        assert.ok(solveLogic(p, { maxTier: 2, probeBudget: N * 4 }).solved, 'nicht ohne Raten lösbar');
+      }
+    });
+  }
+});

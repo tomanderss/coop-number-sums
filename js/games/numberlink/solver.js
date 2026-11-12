@@ -45,6 +45,16 @@ const lowK = (m) => 32 - Math.clz32((m & -m) >>> 0);
 const has = (m, k) => ((m >>> (k - 1)) & 1) === 1;
 
 /** Ausgangslage: Farben (Bitmaske je Zelle, bis 30 Zahlen) und alle Kanten offen. */
+/** Kanten-Indizes der Wände ({ r, c, d: 'r' = rechts der Zelle, 'd' = darunter }). */
+export function wallEdges(p, g) {
+  const out = [];
+  for (const w of p.walls || []) {
+    const a = w.r * p.cols + w.c, b = w.d === 'r' ? a + 1 : a + p.cols;
+    for (const e of g.inc[a] || []) { const [x, y] = g.edges[e]; if ((x === a && y === b) || (x === b && y === a)) out.push(e); }
+  }
+  return out;
+}
+
 function initState(p, g) {
   const K = pairCount(p);
   const all = K >= 32 ? 0xffffffff : ((2 ** K) - 1) >>> 0;
@@ -53,6 +63,8 @@ function initState(p, g) {
   const isEnd = new Uint8Array(g.N);
   for (const [id, k] of ends) { dom[id] = bit(k); isEnd[id] = 1; }
   const st = new Uint8Array(g.edges.length).fill(UNK);
+  // Wände: dort ist nie eine Verbindung.
+  for (const e of wallEdges(p, g)) st[e] = OFF;
   return { K, dom, st, isEnd, endsK: endsOf(p) };
 }
 
