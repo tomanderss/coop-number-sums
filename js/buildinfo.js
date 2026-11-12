@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.36';
-export const BUILD_HASH = 'ef3137d';
+export const BUILD      = '3.37';
+export const BUILD_HASH = '93732bf';
 
 export const CHANGELOG = [
+  {
+    "version": "3.37",
+    "date": "12.11.2026",
+    "changes": [
+      "- Number Link deutlich schwerer: ab „Mittel“ lange Linien mit Wänden, ab „Extrem“ nur noch mit Vorausdenken lösbar – weiterhin immer ohne Raten"
+    ]
+  },
   {
     "version": "3.36",
     "date": "12.11.2026",
