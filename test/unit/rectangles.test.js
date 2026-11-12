@@ -151,7 +151,7 @@ describe('Rectangles: Generator', () => {
         assert.equal(isSolved(p, p.solution), true, d.id);
         const res = solveLogic(p, { maxTier: o.maxTier });
         assert.equal(res.solved, true, d.id);
-        assert.ok(res.tier2Steps >= o.minTier2, d.id);
+        assert.ok(res.tier2Steps + (res.tier3Steps || 0) >= o.minTier2, d.id);
         assert.ok(p.clues.every((k) => k.n >= 2 && k.n <= o.maxArea), d.id);
         if (d.dim.r <= 8) assert.equal(countSolutions(p), 1, d.id);
       }
@@ -192,4 +192,27 @@ test('Größen-Blase: über dem Finger, oben am Rand seitlich, nie aus dem Bild'
   assert.ok(top.x < 380 && top.y >= 30 && top.x <= 370);
   const left = bubbleAt(10, 40, 400);
   assert.ok(left.x > 10);
+});
+
+describe('Rectangles: „?“-Zahlen (obere Stufen)', () => {
+  test('ein „?“-Rechteck darf jede Größe haben', async () => {
+    const { rectValid } = await import('../../js/games/rectangles/model.js');
+    const p = { rows: 2, cols: 3, clues: [{ r: 0, c: 0, n: 2, hide: true }] };
+    assert.equal(rectValid(p, { r: 0, c: 0, h: 2, w: 3 }), true);
+    assert.equal(rectValid({ ...p, clues: [{ r: 0, c: 0, n: 2 }] }, { r: 0, c: 0, h: 2, w: 3 }), false);
+  });
+  for (const id of ['mittel', 'extrem', 'rip']) {
+    test(`${id}: verdeckte Zahlen, eindeutig und ohne Raten lösbar`, async () => {
+      const { generatePuzzle } = await import('../../js/games/rectangles/generator.js');
+      const { solveLogic, countSolutions } = await import('../../js/games/rectangles/solver.js');
+      const { isSolved } = await import('../../js/games/rectangles/model.js');
+      for (const seed of [8, 9]) {
+        const p = generatePuzzle({ difficulty: id, seed });
+        assert.ok(p.clues.some((k) => k.hide), 'keine verdeckte Zahl');
+        assert.ok(solveLogic(p, { maxTier: 3 }).solved, 'nicht ohne Raten lösbar');
+        assert.ok(isSolved(p, p.solution), 'Lösung erfüllt die Regeln nicht');
+        if (p.rows <= 9) assert.equal(countSolutions(p, 2), 1, 'nicht eindeutig');
+      }
+    });
+  }
 });

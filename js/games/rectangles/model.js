@@ -44,7 +44,9 @@ export function cluesIn(p, q) {
  */
 export function rectValid(p, q) {
   const inside = cluesIn(p, q);
-  return inside.length === 1 && p.clues[inside[0]].n === rectArea(q);
+  if (inside.length !== 1) return false;
+  const k = p.clues[inside[0]];
+  return k.hide ? true : k.n === rectArea(q);   // „?“: jede Fläche ist erlaubt
 }
 
 /**

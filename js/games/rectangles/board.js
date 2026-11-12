@@ -414,7 +414,7 @@ const ClueLayer = {
   setup() { return { state, clueStyle }; },
   template: `
             <div class="rb-clues" aria-hidden="true">
-              <span v-for="(k, i) in state.puzzle.clues" :key="i" class="rclue" :style="clueStyle(k)">{{ k.n }}</span>
+              <span v-for="(k, i) in state.puzzle.clues" :key="i" class="rclue" :class="{ q: k.hide }" :style="clueStyle(k)">{{ k.hide ? '?' : k.n }}</span>
             </div>`,
 };
 // Hervorhebung im Training: das Rechteck, das der nächste Schritt legt. Eigene
@@ -600,7 +600,7 @@ export const HistoryBoard = {
               <div v-for="(q, i) in detail.puzzle.solution" :key="i" class="rrect"
                    :style="{ left: pct(q.c, detail.puzzle.cols), top: pct(q.r, detail.puzzle.rows), width: pct(q.w, detail.puzzle.cols), height: pct(q.h, detail.puzzle.rows), '--rh': hue(i) }"></div>
             </div>
-            <div class="rb-clues"><span v-for="(k, i) in detail.puzzle.clues" :key="i" class="rclue" :style="clueStyle(detail.puzzle, k)">{{ k.n }}</span></div>
+            <div class="rb-clues"><span v-for="(k, i) in detail.puzzle.clues" :key="i" class="rclue" :class="{ q: k.hide }" :style="clueStyle(detail.puzzle, k)">{{ k.hide ? '?' : k.n }}</span></div>
           </div>
   `,
 };
