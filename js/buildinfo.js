@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.35';
-export const BUILD_HASH = '63dd6f6';
+export const BUILD      = '3.36';
+export const BUILD_HASH = 'ef3137d';
 
 export const CHANGELOG = [
+  {
+    "version": "3.36",
+    "date": "12.11.2026",
+    "changes": [
+      "- Number Link: seltener Fehler behoben, durch den große Rätsel (13×13) in Ausnahmefällen nicht eindeutig sein konnten"
+    ]
+  },
   {
     "version": "3.35",
     "date": "12.11.2026",

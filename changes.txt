@@ -1,1 +1,0 @@
-- Number Link: seltener Fehler behoben, durch den große Rätsel (13×13) in Ausnahmefällen nicht eindeutig sein konnten
