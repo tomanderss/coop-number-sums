@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.38';
-export const BUILD_HASH = '6c0f8d4';
+export const BUILD      = '3.39';
+export const BUILD_HASH = 'ad220c1';
 
 export const CHANGELOG = [
+  {
+    "version": "3.39",
+    "date": "12.11.2026",
+    "changes": [
+      "- Number Path deutlich schwerer: ab „Mittel“ nur noch wenige Zahlen, dafür gezielt gesetzte Wände; Bretter bis 12×12 – weiterhin immer ohne Raten lösbar"
+    ]
+  },
   {
     "version": "3.38",
     "date": "12.11.2026",
