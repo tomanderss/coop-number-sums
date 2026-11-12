@@ -1,1 +1,0 @@
-- Number Link: Rätsel werden bis zu dreimal schneller erzeugt (gleiche Rätsel wie bisher)
