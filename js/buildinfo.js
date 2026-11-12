@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.34';
-export const BUILD_HASH = 'ba27bcf';
+export const BUILD      = '3.35';
+export const BUILD_HASH = '63dd6f6';
 
 export const CHANGELOG = [
+  {
+    "version": "3.35",
+    "date": "12.11.2026",
+    "changes": [
+      "- Number Link: Rätsel werden bis zu dreimal schneller erzeugt (gleiche Rätsel wie bisher)"
+    ]
+  },
   {
     "version": "3.34",
     "date": "11.11.2026",
