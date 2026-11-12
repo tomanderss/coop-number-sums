@@ -81,6 +81,10 @@ const TIER2_TRIES = 6;   // gemessen: praktisch immer 1–2 Versuche
 export function generatePuzzle(opts = {}) {
   const o = opts.rows ? opts : { ...genOptionsFor(opts.difficulty), ...opts };
   const seed = (opts.seed ?? Math.floor(Math.random() * 2 ** 31)) >>> 0;
+  if (o.sparse) {
+    const sp = generateSparse(o, seed);
+    if (sp) return sp;
+  }
   const rng = mulberry32(seed);
   const t0 = Date.now();
   const N = o.rows * o.cols;
@@ -122,4 +126,75 @@ export function generatePuzzle(opts = {}) {
     };
   }
   throw new Error('Number Path: kein Rätsel gefunden');
+}
+
+// ─── OBERE STUFEN: WENIGE ZAHLEN, GEZIELTE WÄNDE ──────────────────────────────
+//
+// Viele Zahlen machen den Weg leicht (sie legen die Reihenfolge fest). Hier
+// beginnt das Rätsel mit fast nichts (Anfang, Ende, `sparseSeeds` Zahlen) und
+// wird eindeutig gemacht, wo der Löser hängt — bevorzugt durch eine WAND auf
+// einer offenen Grenze, über die der Weg NICHT läuft (bis `maxWalls`), sonst
+// durch eine Zahl. Danach werden Zahlen und Wände wieder entfernt, solange der
+// Löser alles festlegt; ab `t2Prune` > 0 auch mit Vorausblick (Stufe 2) —
+// höchstens so viele Versuche, damit es auf dem Gerät schnell bleibt.
+// Jedes Ergebnis ist vom Löser komplett OHNE Raten gelöst, also eindeutig.
+// Deterministisch aus dem Seed, nur feste Versuchszahlen.
+export function generateSparse(o, seed) {
+  const rng = mulberry32((seed ^ 0x2545f491) >>> 0);
+  const { rows, cols } = o, N = rows * cols;
+  for (let attempt = 0; attempt < (o.sparseTries || 6); attempt++) {
+    const path = randomHamiltonPath(rows, cols, rng);
+    const onSol = new Set();
+    for (let i = 1; i < N; i++) { const a = Math.min(path[i - 1], path[i]), b = Math.max(path[i - 1], path[i]); onSol.add(a * 100000 + b); }
+    const idxs = new Set([0, N - 1]);
+    const k0 = o.sparseSeeds || 2;
+    for (let k = 1; k <= k0; k++) idxs.add(Math.min(N - 2, Math.round((k * N) / (k0 + 1))));
+    const walls = [];
+    const build = () => buildPuzzle(o, path, walls, idxs);
+    let res = null;
+    for (let guard = 0; guard < N * 2; guard++) {
+      res = solveEdges(build(), { maxTier: 1 });
+      if (res.solved || res.contradiction) break;
+      const { m, st } = res;
+      const cand = [];
+      if (walls.length < (o.maxWalls ?? 99)) {
+        for (let e = 0; e < m.E; e++) if (st[e] === 0 && !onSol.has(m.ea[e] * 100000 + m.eb[e])) cand.push(e);
+      }
+      if (cand.length) {
+        const e = cand[Math.floor(rng() * cand.length)], a = m.ea[e], b = m.eb[e];
+        walls.push({ r: Math.floor(a / cols), c: a % cols, d: b === a + 1 ? 'r' : 'd' });
+      } else {
+        const at = Math.min(N - 2, Math.max(1, edgeStuckIndex(res, path)));
+        let a = at; while (idxs.has(a) && a < N - 2) a++;
+        if (idxs.has(a)) break;
+        idxs.add(a);
+      }
+    }
+    if (!res || !res.solved) continue;
+    // Ausdünnen mit Stufe 1: erst Zahlen, dann Wände.
+    const inner = [...idxs].filter((i) => i !== 0 && i !== N - 1);
+    for (let i = inner.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [inner[i], inner[j]] = [inner[j], inner[i]]; }
+    for (const i of inner) { idxs.delete(i); if (!solveEdges(build(), { maxTier: 1 }).solved) idxs.add(i); }
+    for (let k = walls.length - 1; k >= 0; k--) {
+      const w = walls.splice(k, 1)[0];
+      if (!solveEdges(build(), { maxTier: 1 }).solved) walls.splice(k, 0, w);
+    }
+    // Obere Stufen: mit Vorausblick weiter ausdünnen (begrenzte Zahl Versuche).
+    let tier2 = 0;
+    if ((o.maxTier || 1) >= 2 && o.t2Prune) {
+      const items = [...[...idxs].filter((i) => i !== 0 && i !== N - 1).map((i) => ['c', i]), ...walls.map((w) => ['w', w])];
+      for (let i = items.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; }
+      for (const [kind, v] of items.slice(0, o.t2Prune)) {
+        if (kind === 'c') idxs.delete(v); else walls.splice(walls.indexOf(v), 1);
+        const r = solveEdges(build(), { maxTier: 2 });
+        if (r.solved) tier2 = r.tier2Steps;
+        else if (kind === 'c') idxs.add(v); else walls.push(v);
+      }
+    }
+    return {
+      game: 'numberpath', difficulty: o.difficulty, seed,
+      ...build(), genTries: attempt + 1, tier2,
+    };
+  }
+  return null;
 }
