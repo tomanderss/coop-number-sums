@@ -38,15 +38,16 @@ function buildGraph(p) {
   }
   return { N, edges, inc };
 }
-const bit = (k) => 2 ** (k - 1);
-const popcount = (m) => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
-const lowK = (m) => { let k = 1; while (!(m & 1)) { m = Math.floor(m / 2); k++; } return k; };
-const has = (m, k) => Math.floor(m / bit(k)) % 2 === 1;
+// Farben als 32-Bit-Maske (höchstens 31 Zahlen — der Generator bleibt darunter).
+const bit = (k) => (1 << (k - 1)) >>> 0;
+const popcount = (m) => { let n = 0; while (m) { m = (m & (m - 1)) >>> 0; n++; } return n; };
+const lowK = (m) => 32 - Math.clz32((m & -m) >>> 0);
+const has = (m, k) => ((m >>> (k - 1)) & 1) === 1;
 
 /** Ausgangslage: Farben (Bitmaske je Zelle, bis 30 Zahlen) und alle Kanten offen. */
 function initState(p, g) {
   const K = pairCount(p);
-  const all = 2 ** K - 1;
+  const all = K >= 32 ? 0xffffffff : ((2 ** K) - 1) >>> 0;
   const ends = endMap(p);
   const dom = new Array(g.N).fill(all);
   const isEnd = new Uint8Array(g.N);
@@ -81,7 +82,7 @@ function propagate(p, g, s, onCell, light = false) {
     for (let e = 0; e < edges.length; e++) {
       const [a, b] = edges[e];
       if (st[e] === OFF) continue;
-      const both = dom[a] & dom[b];
+      const both = (dom[a] & dom[b]) >>> 0;
       if (st[e] === ON) {
         if (!setDom(a, both) || !setDom(b, both)) return false;
       } else if (!both) { st[e] = OFF; changed = true; }
@@ -110,7 +111,7 @@ function propagate(p, g, s, onCell, light = false) {
       const [a, b] = endsK[k];
       if (find(a) !== find(b)) continue;
       const root = find(a), m = bit(k);
-      for (let id = 0; id < N; id++) if (find(id) !== root && has(dom[id], k)) { if (!setDom(id, dom[id] - m)) return false; }
+      for (let id = 0; id < N; id++) if (find(id) !== root && has(dom[id], k)) { if (!setDom(id, (dom[id] & ~m) >>> 0)) return false; }
     }
     // Erreichbarkeit je Farbe: von beiden Enden über Zellen, die k tragen dürfen,
     // und Kanten, die nicht aus sind. (Die Probe-Läufe der Stufe 2 lassen diesen
@@ -121,7 +122,7 @@ function propagate(p, g, s, onCell, light = false) {
       const ra = reach(g, s, k, a), rb = reach(g, s, k, b);
       if (!ra[b]) return false;
       const m = bit(k);
-      for (let id = 0; id < N; id++) if (has(dom[id], k) && !(ra[id] && rb[id])) { if (!setDom(id, dom[id] - m)) return false; }
+      for (let id = 0; id < N; id++) if (has(dom[id], k) && !(ra[id] && rb[id])) { if (!setDom(id, (dom[id] & ~m) >>> 0)) return false; }
     }
   }
   return true;
@@ -177,7 +178,7 @@ export function solveLogic(p, { maxTier = 2, known = null, probeBudget = 0 } = {
   for (let id = 0; id < g.N; id++) if (s.isEnd[id]) order.push({ id, k: lowK(s.dom[id]), step: -1, tier: 0 });
   const doneIds = new Set(order.map((o) => o.id));
   const onCellOnce = (id, k) => { if (!doneIds.has(id)) { doneIds.add(id); onCell(id, k); } };
-  if (!propagate(p, g, s, onCellOnce)) return { solved: false, contradiction: true, tier2Steps: 0, order, dom: s.dom, st: s.st, g };
+  if (!propagate(p, g, s, onCellOnce, true)) return { solved: false, contradiction: true, tier2Steps: 0, order, dom: s.dom, st: s.st, g };
   let tier2Steps = 0;
   // Stufe 2: reihum jede offene Kante probieren; nach einem Treffer geht es an
   // der nächsten Kante weiter (nicht wieder von vorn) — bis eine ganze Runde
@@ -197,7 +198,7 @@ export function solveLogic(p, { maxTier = 2, known = null, probeBudget = 0 } = {
           if (!propagate(p, g, t, null, true)) {
             step++; tier = 2; tier2Steps++;
             s.st[e] = v === ON ? OFF : ON;
-            if (!propagate(p, g, s, onCellOnce)) return { solved: false, contradiction: true, tier2Steps, order, dom: s.dom, st: s.st, g };
+            if (!propagate(p, g, s, onCellOnce, true)) return { solved: false, contradiction: true, tier2Steps, order, dom: s.dom, st: s.st, g };
             tier = 1;
             hit = true;
             break;
