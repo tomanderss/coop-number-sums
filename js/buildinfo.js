@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.0';
-export const BUILD_HASH = '40adba3';
+export const BUILD      = '4.1';
+export const BUILD_HASH = '9ba6d5e';
 
 export const CHANGELOG = [
+  {
+    "version": "4.1",
+    "date": "13.11.2026",
+    "changes": [
+      "- Story: Bestenliste je Level – wer hat die meisten Sterne und die schnellste Zeit? Geschaffte Level zeigen beim Antippen deinen Bestwert und die Bestenliste"
+    ]
+  },
   {
     "version": "4.0",
     "date": "13.11.2026",
