@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.1';
-export const BUILD_HASH = '9ba6d5e';
+export const BUILD      = '4.2';
+export const BUILD_HASH = '3701ffc';
 
 export const CHANGELOG = [
+  {
+    "version": "4.2",
+    "date": "13.11.2026",
+    "changes": [
+      "- Sicherung enthält jetzt die ganze App: alle Spiele mit Statistiken, Bestzeiten, Spielständen und Erfolgen in einer Datei – und beim Einspielen kommen alle Spiele zurück",
+      "- Bestzeiten aller Spiele landen beim Anmelden in der Bestenliste, nicht nur die des gerade offenen Spiels"
+    ]
+  },
   {
     "version": "4.1",
     "date": "13.11.2026",
