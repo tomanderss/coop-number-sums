@@ -1,1 +1,0 @@
-- Story: Bestenliste je Level – wer hat die meisten Sterne und die schnellste Zeit? Geschaffte Level zeigen beim Antippen deinen Bestwert und die Bestenliste
