@@ -32,7 +32,7 @@ import {
   loadSaves, upsertSave, removeSave, isSaveGone, snapshotProgress, SAVES_MAX,
   loadStats, recordResult, recordEndlessRun, applyEndlessBackfill, clearStats,
   loadSeenVersion, saveSeenVersion,
-  exportToFile, importFromFile, deleteAllData, loadStreak, recordStreakResult,
+  exportToFile, importFromFile, withGameScope, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
   loadAchievements, unlockAchievements, loadRace, recordRaceWin, recordRaceLoss,
 
@@ -6053,6 +6053,8 @@ function doImport(ev) {
   reader.onload = () => {
     try {
       importFromFile(reader.result);
+      reloadGameScopedState();
+      state.storyProgress = loadStoryProgress();
       state.settings = loadSettings(); state.stats = loadStats(); applyTheme(); applySfxPack(); applyMusicPack(); applyLocale(); refreshResume();
       showToast(t('toast.importSuccess'), 'success');
     } catch { showToast(t('toast.importFailed'), 'error'); }
@@ -6659,14 +6661,17 @@ async function startNoticeWatch() {
 // Bestzeiten VOR Einführung der Bestenliste (oder vor dem Login) erzielt hat,
 // tauchte dort nie auf. Idempotent: publishBestTime schreibt nur, wenn der
 // Cloud-Eintrag fehlt oder langsamer ist.
+// ALLE Spiele, nicht nur das offene (eine App, Nutzerwunsch).
 function syncBestTimesToLeaderboard() {
   try {
-    const stats = loadStats();
     let n = 0;
-    for (const [diff, d] of Object.entries(stats.byDifficulty || {})) {
-      if (d && d.bestTimeMs > 0) { Account.publishBestTime(diff, d.bestTimeMs, state.account.username, myBadge()); n++; }
+    for (const g of GAME_IDS) {
+      const stats = withGameScope(g, () => loadStats());
+      for (const [diff, d] of Object.entries(stats.byDifficulty || {})) {
+        if (d && d.bestTimeMs > 0) { Account.publishBestTime(diff, d.bestTimeMs, state.account.username, myBadge(), g); n++; }
+      }
     }
-    if (n) log('account', 'Bestzeiten-Sync zur Bestenliste angestoßen', { count: n });
+    if (n) log('account', 'Bestzeiten-Sync zur Bestenliste angestoßen', { count: n, games: GAME_IDS.length });
   } catch (e) { log('account', 'Bestzeiten-Sync fehlgeschlagen', e); }
 }
 // Inventar + Wallet live aus der Cloud übernehmen: Admin-Geschenke/-Entzüge und
@@ -7778,7 +7783,6 @@ function switchGame(id, opts = {}) {
     stopSessionWatch();
     startSessionWatch();
     reconcileSession();
-    syncBestTimesToLeaderboard();
   }
   maybeShowDivStyle();
   return true;

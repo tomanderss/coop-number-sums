@@ -758,12 +758,14 @@ export async function clearPresence() {
 // voll cheat-sicher; Rules erlauben nur den eigenen Eintrag zu schreiben) ───────
 // Eigene (perfekte) Bestzeit für eine Schwierigkeit veröffentlichen. Überschreibt
 // den eigenen Eintrag nur, wenn die neue Zeit besser ist (oder noch keiner da war).
-export async function publishBestTime(difficulty, timeMs, username, badge = null) {
+// `game` VOR dem ersten await festhalten: ein Aufruf aus withGameScope (Start-
+// Abgleich aller Spiele) hätte nach dem await sonst schon das aktive Spiel.
+export async function publishBestTime(difficulty, timeMs, username, badge = null, game = gameId()) {
   try {
     const fb = await ensureFirebase();
     const u = currentUser(fb);
     if (!u || u.isAnonymous || !difficulty || !(timeMs > 0)) return;
-    const ref = fb.ref(fb.db, `leaderboard/${gameId()}/${difficulty}/${u.uid}`);
+    const ref = fb.ref(fb.db, `leaderboard/${game}/${difficulty}/${u.uid}`);
     const prev = (await fb.get(ref)).val();
     if (prev && typeof prev.timeMs === 'number' && prev.timeMs <= timeMs) return;
     await fb.set(ref, { username: username || '', timeMs, ts: fb.serverTimestamp(), badge: badge || null });

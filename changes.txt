@@ -1,0 +1,2 @@
+- Sicherung enthält jetzt die ganze App: alle Spiele mit Statistiken, Bestzeiten, Spielständen und Erfolgen in einer Datei – und beim Einspielen kommen alle Spiele zurück
+- Bestzeiten aller Spiele landen beim Anmelden in der Bestenliste, nicht nur die des gerade offenen Spiels
