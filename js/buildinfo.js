@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.2';
-export const BUILD_HASH = '3701ffc';
+export const BUILD      = '4.3';
+export const BUILD_HASH = '5f1fded';
 
 export const CHANGELOG = [
+  {
+    "version": "4.3",
+    "date": "13.11.2026",
+    "changes": [
+      "- Story: Sterne in Number Path, Pipes und Number Link richten sich jetzt nach realistischen Zeiten – 3 Sterne gibt es nicht mehr geschenkt"
+    ]
+  },
   {
     "version": "4.2",
     "date": "13.11.2026",
