@@ -24,6 +24,7 @@ export default {
   },
 
   solo: { title: 'Solo', classic: 'Classico', classicHint: 'Un rompicapo, difficoltà libera', endless: 'Scalata infinita', endlessHint: 'Sempre più difficile: fin dove arrivi?', endlessStart: 'Avvia infinito' },
+  story: { title: 'Storia', homeHint: 'Livello {n} di 500', progress: '{n} di {max} livelli superati', resume: 'Continua: livello {n}', playLevel: 'Gioca il livello {n}', range: 'Livelli {a}–{b}', more: 'Altri livelli', levelDone: 'Livello {n} superato!', starsAria: '{n} stelle su 3', overview: 'Panoramica', next: 'Livello successivo', retry: 'Riprova', loadFailed: 'Impossibile caricare il livello – collegati una volta a internet.' },
   endless: { badge: 'Infinito', best: 'Miglior partita: livello {n}', cleared: 'Livello {n} superato!', lifeGained: '+1 vita', overTitle: 'Partita finita', reached: 'Livello {n} raggiunto', record: 'Nuovo record!', levelDone: 'Livello {n} superato!', continue: 'Continua', livesLabel: 'Vite', levelShort: 'Livello {n}', levelTime: 'Tempo di questo livello', totalTime: 'Tempo totale della partita', backfillToast: 'Partite infinite passate accreditate: {wins} vittorie da {runs} partite ora contano nelle tue statistiche!', waitingForNextLevel: 'Livello {level} superato: in attesa che l’host avvii il prossimo …' },
 
   saves: { title: 'Partite salvate', manage: 'Gestisci partite', moreN: 'Altre partite salvate ({n})', livesLeft: '{n} vite su {max} rimaste', openN: 'Tutte le partite ({n})', intro: 'Ogni partita viene salvata a parte: inizia pure una nuova, quella vecchia resta. Spazio per {max}.', running: 'in corso', delete: 'Elimina', deleteTitle: 'Eliminare il salvataggio?', deleteMsg: 'Questo salvataggio verra rimosso definitivamente.', deleted: 'Salvataggio eliminato', empty: 'Nessuna partita salvata.', justNow: 'proprio ora', minsAgo: '{n} min fa', hoursAgo: '{n} h fa', yesterday: 'ieri', daysAgo: '{n} giorni fa' },
@@ -446,6 +447,7 @@ export default {
       wallet: 'Saldo',
       daily: 'Serie giornaliera',
       mixStats: 'Modalità casuale Mix',
+      story: 'Modalità storia',
       stats: 'Statistiche',
       achievements: 'Obiettivi',
       race: 'Competizione',

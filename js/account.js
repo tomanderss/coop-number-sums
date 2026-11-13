@@ -19,6 +19,7 @@ import { ensureFirebase } from './firebase.js';
 import { log } from './debuglog.js';
 import { todayDateStr, sanitizeLastCompleted } from './streak.js';
 import { mergeMixStats } from './mix.js';
+import { mergeStory } from './story.js';
 import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
@@ -242,6 +243,7 @@ export function mergeSnapshots(local = {}, cloud = {}) {
     completedGames: [...new Set([...(local.completedGames || []), ...(cloud.completedGames || [])])],
     profile: newer.profile || (localNewer ? cloud.profile : local.profile) || {},
     mixStats: mergeMixStats(local.mixStats, cloud.mixStats),   // Mix-Bestwerte: Maximum je Zähler
+    story: mergeStory(local.story, cloud.story),               // Story: je Level die besseren Sterne/Zeit
   };
 }
 export function decideSync({ cloudExists, localRev, cloudRev, syncedRev, hasLocalData }) {

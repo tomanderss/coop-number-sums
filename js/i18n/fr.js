@@ -24,6 +24,7 @@ export default {
   },
 
   solo: { title: 'Solo', classic: 'Classique', classicHint: 'Une grille, difficulté libre', endless: 'Ascension sans fin', endlessHint: 'Toujours plus dur – jusqu’où irez-vous ?', endlessStart: 'Démarrer sans fin' },
+  story: { title: 'Histoire', homeHint: 'Niveau {n} sur 500', progress: '{n} niveaux sur {max} réussis', resume: 'Continuer : niveau {n}', playLevel: 'Jouer le niveau {n}', range: 'Niveaux {a}–{b}', more: 'Plus de niveaux', levelDone: 'Niveau {n} réussi !', starsAria: '{n} étoiles sur 3', overview: 'Aperçu', next: 'Niveau suivant', retry: 'Réessayer', loadFailed: 'Le niveau n’a pas pu être chargé – connecte-toi une fois à Internet.' },
   endless: { badge: 'Sans fin', best: 'Meilleure partie : niveau {n}', cleared: 'Niveau {n} réussi !', lifeGained: '+1 vie', overTitle: 'Partie terminée', reached: 'Niveau {n} atteint', record: 'Nouveau record !', levelDone: 'Niveau {n} réussi !', continue: 'Continuer', livesLabel: 'Vies', levelShort: 'Niveau {n}', levelTime: 'Temps de ce niveau', totalTime: 'Temps total de la partie', backfillToast: 'Anciennes parties sans fin créditées : {wins} victoires de {runs} parties comptent désormais dans tes statistiques !', waitingForNextLevel: 'Niveau {level} réussi — en attente de l’hôte pour le niveau suivant …' },
 
   saves: { title: 'Parties sauvegardees', manage: 'Gerer les parties', moreN: 'Autres parties ({n})', livesLeft: '{n} vies sur {max} restantes', openN: 'Toutes les parties ({n})', intro: 'Chaque partie est sauvegardee separement : lance-en une nouvelle quand tu veux, l ancienne reste. Place pour {max}.', running: 'en cours', delete: 'Supprimer', deleteTitle: 'Supprimer la sauvegarde ?', deleteMsg: 'Cette sauvegarde sera definitivement supprimee.', deleted: 'Sauvegarde supprimee', empty: 'Aucune partie sauvegardee.', justNow: 'a l instant', minsAgo: 'il y a {n} min', hoursAgo: 'il y a {n} h', yesterday: 'hier', daysAgo: 'il y a {n} jours' },
@@ -446,6 +447,7 @@ export default {
       wallet: 'Solde',
       daily: 'Série quotidienne',
       mixStats: 'Mode aléatoire Mix',
+      story: 'Mode histoire',
       stats: 'Statistiques',
       achievements: 'Succès',
       race: 'Compétition',

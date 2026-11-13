@@ -7,6 +7,7 @@ import { todayDateStr, sanitizeLastCompleted } from './streak.js';
 import { activeGameId, setActiveGameId, DEFAULT_GAME_ID } from './games/registry.js';
 import { snapshotRules } from './games/snapshots.js';
 import { mergeMissions } from './missions.js';
+import { mergeStory } from './story.js';
 
 const KEYS = {
   SETTINGS: 'cns_settings',
@@ -45,6 +46,9 @@ const KEYS = {
   MIX_STATS: 'cns_mix_stats',   // { best, runs, levels } — Mix-Bestwerte, KONTOWEIT (gehört keinem Spiel), SYNCT (Merge per Maximum)
   MIX_RUN: 'cns_mix_run',       // laufender Mix-Lauf zum Fortsetzen { mix, game, snap|pending }; PER GERAET, NIE synct
   MIX_ON: 'cns_mix_on',         // steht die Scheibe auf „Mix"? PER GERAET, NIE synct (wie cns_game); fehlt = ja (Standard)
+  // ── Story-Modus (js/story.js) ──
+  STORY: 'cns_story',           // { [spiel|mix]: { [level]: { s, t } } } — Sterne/Bestzeit je Level, KONTOWEIT, SYNCT (Merge per Bestwert)
+  STORY_RUN: 'cns_story_run',   // angefangenes Story-Level zum Fortsetzen { key, level, game, snap }; PER GERAET, NIE synct
 };
 // Schlüssel, deren Änderung als „Nutzdaten geändert" zählt (⇒ DATA_REV hochzählen).
 // Bewusst OHNE COOP_SESSION (kurzlebiges Reconnect-Token)/Backups (gerätelokale
@@ -62,7 +66,7 @@ const USER_DATA_KEYS = new Set([
   'cns_stats', 'cns_daily',
   'cns_history', 'cns_achievements', 'cns_missions', 'cns_race', 'cns_inventory', 'cns_wallet', 'cns_profile',
   'cns_completed_games', 'cns_wallet_log', 'cns_play_samples', 'cns_saves', 'cns_saves_gone',
-  'cns_mix_stats',
+  'cns_mix_stats', 'cns_story',
 ]);
 // Wie lange „Coop fortsetzen" nach der letzten Sicherung angeboten wird. Der
 // Raum lebt in der RTDB weiter, solange ihn niemand aktiv verlässt (Präsenz-
@@ -742,6 +746,7 @@ export function collectExportData(type = 'manual') {
     walletLog: loadWalletLog(),   // Geldverlauf reist mit (Union-Merge beim Import — Herkunft bleibt geräteübergreifend erhalten)
     completedGames: load(KEYS.COMPLETED_GAMES, []),  // Belohnungs-Idempotenz (Union-Merge beim Import)
     mixStats: load(KEYS.MIX_STATS, {}),   // Mix-Bestwerte (kontoweit, Merge per Maximum)
+    story: load(KEYS.STORY, {}),          // Story-Fortschritt (kontoweit, Merge per Bestwert je Level)
     // Rolle NICHT mitsynchronisieren — sie ist serverseitig autoritativ
     // (/users/{uid}/profile/role) und darf nie über den Datensnapshot reisen.
     profile: (() => { const { role, ...rest } = load(KEYS.PROFILE, {}); return rest; })(),
@@ -781,6 +786,10 @@ export function restoreGameChoice() {
 // Mix ist KEIN Spiel der Registry (kein Brett, keine eigenen Spielstände): ein
 // Lauf springt von Level zu Level zwischen den echten Spielen. Deshalb leben
 // seine Daten ausserhalb der spielspezifischen Schluessel.
+export function loadStoryProgress() { return load(KEYS.STORY, {}) || {}; }
+export function saveStoryProgress(v) { save(KEYS.STORY, v || {}); }
+export function loadStoryRun() { return load(KEYS.STORY_RUN, null); }
+export function saveStoryRun(v) { if (v) save(KEYS.STORY_RUN, v); else remove(KEYS.STORY_RUN); }
 export function loadMixStats() { return load(KEYS.MIX_STATS, {}) || {}; }
 export function saveMixStats(v) { save(KEYS.MIX_STATS, v || {}); }
 /** Einen beendeten Lauf werten. Liefert { stats, newBest }. */
@@ -824,7 +833,7 @@ export function takePendingJoin(now = Date.now()) {
 export function clearStats() { remove(KEYS.STATS); }
 // Kontoweit: gilt fuer ALLE Spiele desselben Kontos.
 // `missions` ist kontoweit: EIN Satz Wochen-Missionen für alle Spiele (Nutzerwunsch).
-export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inventory', 'profile', 'mixStats', 'missions'];
+export const ACCOUNT_FIELDS = ['settings', 'wallet', 'walletLog', 'daily', 'inventory', 'profile', 'mixStats', 'missions', 'story'];
 // Spieleigen: gehoert genau EINEM Spiel und darf sich nie mit einem anderen mischen.
 export const GAME_FIELDS = [
   'activeGame', 'activeGameCoop', 'activeGameEndless', 'saves', 'savesGone', 'stats',
@@ -1037,6 +1046,8 @@ export function importFromFile(jsonText) {
   if (data.stats) save(KEYS.STATS, data.stats);
   if (data.daily) save(KEYS.DAILY, data.daily);
   if (data.mixStats) save(KEYS.MIX_STATS, data.mixStats);
+  // Story-Fortschritt: mergen statt überschreiben (geschaffte Level nie verlieren).
+  if (data.story) save(KEYS.STORY, mergeStory(load(KEYS.STORY, {}), data.story));
   if (data.history) save(KEYS.HISTORY, data.history);
   if (data.achievements) save(KEYS.ACHIEVEMENTS, data.achievements);
   // Missionen sind kontoweit: mergen statt überschreiben (Einlösungen nie verlieren).
@@ -1124,6 +1135,8 @@ export function deleteAllData() {
   remove(KEYS.GAME);
   remove(KEYS.MIX_STATS);
   remove(KEYS.MIX_RUN);
+  remove(KEYS.STORY);
+  remove(KEYS.STORY_RUN);
   remove(KEYS.MIX_ON);
   // DEVICE_ID bewusst behalten: es ist die Geräte-Identität (Handoff), keine Nutzdaten.
   clearLog();

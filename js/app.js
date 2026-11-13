@@ -12,6 +12,10 @@ import * as Music from './music.js';
 import { initFeedback, haptic } from './games/feedback.js';
 import { activeGame, GAME_IDS, GAMES, gameById } from './games/index.js';
 import { gameMeta, DEFAULT_GAME_ID } from './games/registry.js';
+import {
+  STORY_LEVELS, STORY_CHUNK, MIX_KEY as STORY_MIX, storyBandIndex, storyChunkOf, storyStars, storyNext,
+  storyUnlocked, storyEntry, recordStoryResult, storyStarsTotal, loadStoryLevel,
+} from './story.js';
 import { initLiveLayer } from './games/livelayer.js';
 import { GameWheel } from './gamewheel.js';
 // Die SPIELSPEZIFISCHEN Funktionen kommen aus dem Modul des laufenden Spiels
@@ -41,6 +45,7 @@ import {
   gameId, restoreGameChoice, chooseGame, savePendingJoin, takePendingJoin,
   loadConflictBackup, saveConflictBackup, collectExportData,
   loadMixStats, recordMixRun, loadMixRun, saveMixRun, loadMixOn, saveMixOn,
+  loadStoryProgress, saveStoryProgress, loadStoryRun, saveStoryRun,
 } from './storage.js';
 import { runLocalMcMigration } from './mcmigration.js';
 import { decideSessionSync, sessionIsDead, SESSION_SCHEMA, SESSION_STATUS } from './session.js';
@@ -394,6 +399,13 @@ const state = reactive({
   mixOn: loadMixOn(),
   mixStats: loadMixStats(),
   resumeAvailableMix: null,
+  // ── Story-Modus (js/story.js): 500 feste Level je Spiel + Mix ──
+  storyProgress: loadStoryProgress(),   // { [spiel|mix]: { [level]: { s, t } } } (kontoweit, synct)
+  story: null,          // laufendes Story-Level { key, level, game, band } — gesetzt NUR über playStoryLevel
+  storyView: { key: null, page: 0 },   // Story-Screen: welches Spiel/Mix, welche 50er-Seite
+  storyLoading: false,
+  storyRun: null,       // angefangenes Level (gerätelokal) { key, level, game, snap }
+  storyResult: null,    // Sterne des gerade geschafften Levels { stars, prev, level, key }
   mixReveal: null,              // { reel:[{id,logo}], game, diff, level, seq } | null
   winHold: false,               // Sieg-Dialog wartet auf das Brett-Finale (holdForBoardFinale)
   saves: [],                 // Bibliothek gespeicherter Partien (neueste zuerst), s. refreshResume
@@ -1372,6 +1384,143 @@ function newGame(diffId) {
 // Nach jedem Solo-/Coop-Spiel geht's NIE direkt erneut in dieselbe Schwierigkeit,
 // sondern immer zur Schwierigkeitsauswahl, vorbefüllt mit der zuletzt gespielten —
 // so wird eine bewusste Bestätigung erzwungen, bevor das nächste Rätsel startet.
+// ─── STORY-MODUS ──────────────────────────────────────────────────────────────
+// 500 feste Level je Spiel (und für Mix), für alle Nutzer identisch (js/story.js).
+// Die Rätsel kommen aus den ausgelieferten Daten, nie vom Generator. Ein Level
+// ist ein normales Solo-Spiel (Statistik, Münzen, Missionen wie gewohnt) mit
+// eigenem Speicherplatz (saveSlot 'story', gerätelokal cns_story_run); beim Sieg
+// gibt es Sterne (storyStars) und „Nächstes Level".
+let pendingStory = null;   // wird von loadPuzzleIntoState genau einmal übernommen
+const storyKeyNow = () => (state.mixOn ? STORY_MIX : currentGame.id);
+function refreshStoryRun() {
+  const r = loadStoryRun();
+  const ok = r && r.key && r.level && r.game && gameById(r.game) && r.snap && r.snap.puzzle;
+  state.storyRun = ok ? r : null;
+  if (r && !ok) { saveStoryRun(null); log('storage', 'Ungültigen Story-Stand verworfen'); }
+}
+function openStory(key) {
+  const k = key || storyKeyNow();
+  refreshStoryRun();
+  state.storyView = { key: k, page: storyChunkOf(storyNext(state.storyProgress, k)) };
+  log('game', 'Story geöffnet', { key: k, next: storyNext(state.storyProgress, k) });
+  navTo('story');
+}
+// Die 50 Level der aktuellen Seite: Sterne, frei/gesperrt, das nächste markiert.
+const storyPageLevels = computed(() => {
+  const { key, page } = state.storyView;
+  if (!key) return [];
+  const next = storyNext(state.storyProgress, key);
+  const out = [];
+  for (let L = page * STORY_CHUNK + 1; L <= Math.min(STORY_LEVELS, (page + 1) * STORY_CHUNK); L++) {
+    const e = storyEntry(state.storyProgress, key, L);
+    const bi = storyBandIndex(L);
+    out.push({ level: L, stars: e ? e.s : 0, open: L <= next, next: L === next && !e, band: bi, acc: (DIFFICULTY_LADDER[bi] || DIFFICULTY_LADDER[0]).accent });
+  }
+  return out;
+});
+const storyPages = Math.ceil(STORY_LEVELS / STORY_CHUNK);
+function storyPage(delta) {
+  const p = Math.max(0, Math.min(storyPages - 1, state.storyView.page + delta));
+  state.storyView = { ...state.storyView, page: p };
+}
+function storyInfo(key) {
+  const k = key || state.storyView.key;
+  const next = storyNext(state.storyProgress, k);
+  return { next, stars: storyStarsTotal(state.storyProgress, k), max: STORY_LEVELS * 3, done: Object.keys((state.storyProgress && state.storyProgress[k]) || {}).length };
+}
+function storyTitle(key) {
+  const k = key || state.storyView.key;
+  return k === STORY_MIX ? t('mix.name') : t(gameMeta(k).nameKey);
+}
+function storyLogo(key) {
+  const k = key || state.storyView.key;
+  return k === STORY_MIX ? 'icons/games/mix-192.png' : gameMeta(k).logo;
+}
+// Ein Level laden und starten (Daten-Paket bei Bedarf nachladen).
+function playStoryLevel(level, key) {
+  const k = key || state.storyView.key;
+  if (!k || !storyUnlocked(state.storyProgress, k, level) || state.storyLoading) return;
+  // Ein angefangenes, ANDERES Level wird verworfen (nur eines ist fortsetzbar).
+  const run = state.storyRun;
+  if (run && run.key === k && run.level === level) { resumeStoryRun(); return; }
+  state.storyLoading = true;
+  const t0 = Date.now();
+  loadStoryLevel(k, level).then((e) => {
+    state.storyLoading = false;
+    if (e.game !== currentGame.id && !switchGame(e.game, { force: true })) return;
+    coopReset();
+    state.endlessSummary = null;
+    state.isTrainingGame = false;
+    saveStoryRun(null); state.storyRun = null;
+    pendingStory = { key: k, level, game: e.game, band: storyBandIndex(level) };
+    navStack = [() => { navigate('home'); }];
+    navigate('game');
+    loadPuzzleIntoState(e.puzzle, null);
+    startTimer();
+    requestWakeLock();
+    log('game', 'Story-Level gestartet', { key: k, level, game: e.game, difficulty: e.difficulty, tookMs: Date.now() - t0 });
+  }).catch((err) => {
+    state.storyLoading = false;
+    log('error', 'Story-Level konnte nicht geladen werden', { key: k, level, error: String(err && err.message || err) });
+    showToast(t('story.loadFailed'), 'error', 3500);
+  });
+}
+function resumeStoryRun() {
+  const r = state.storyRun;
+  if (!r) return;
+  if (r.game !== currentGame.id && !switchGame(r.game, { force: true })) return;
+  coopReset();
+  state.isTrainingGame = false;
+  pendingStory = { key: r.key, level: r.level, game: r.game, band: storyBandIndex(r.level) };
+  navStack = [() => { navigate('home'); }];
+  navigate('game');
+  loadPuzzleIntoState(r.snap.puzzle, r.snap);
+  startTimer();
+  requestWakeLock();
+  log('game', 'Story-Level fortgesetzt', { key: r.key, level: r.level });
+}
+function storySnapshot() {
+  const s = state.story;
+  return { key: s.key, level: s.level, game: s.game, ts: Date.now(), snap: activeSnapshot() };
+}
+// Sieg in einem Story-Level: Sterne berechnen und eintragen.
+function storyOnWin() {
+  const s = state.story;
+  if (!s) return;
+  const stars = storyStars({
+    lives: gameHas('lives'), mistakes: state.mistakes || 0, hints: state.hintsUsed || 0,
+    elapsedMs: state.elapsed || 0, cells: (state.puzzle.rows || 0) * (state.puzzle.cols || 0), bandIndex: s.band,
+  });
+  const prev = storyEntry(state.storyProgress, s.key, s.level);
+  state.storyProgress = recordStoryResult(state.storyProgress, s.key, s.level, { stars, ms: Math.round(state.elapsed || 0) });
+  saveStoryProgress(state.storyProgress);
+  saveStoryRun(null); state.storyRun = null;
+  state.storyResult = { stars, prev: prev ? prev.s : 0, level: s.level, key: s.key };
+  log('game', 'Story-Level geschafft', { key: s.key, level: s.level, stars, ms: Math.round(state.elapsed || 0) });
+}
+function storyNextLevel() {
+  const s = state.story;
+  if (!s) return;
+  const next = Math.min(STORY_LEVELS, s.level + 1);
+  state.storyView = { key: s.key, page: storyChunkOf(next) };
+  if (next === s.level) { goStoryOverview(); return; }
+  playStoryLevel(next, s.key);
+}
+function storyRetry() {
+  const s = state.story;
+  if (!s) return;
+  saveStoryRun(null); state.storyRun = null;
+  playStoryLevel(s.level, s.key);
+}
+function goStoryOverview() {
+  const k = (state.story && state.story.key) || state.storyView.key || storyKeyNow();
+  state.storyView = { key: k, page: storyChunkOf(state.story ? state.story.level : storyNext(state.storyProgress, k)) };
+  refreshStoryRun();
+  navStack = [() => { navigate('home'); }];
+  navigate('story');
+}
+const storyStarsArr = (n) => [1, 2, 3].map((i) => i <= (n || 0));
+
 function goNextPuzzle() {
   state.sel.difficulty = state.puzzle.difficulty;
   // Aus dem Spiel heraus zur Auswahl: Zurück führt von hier nach Home.
@@ -2367,7 +2516,11 @@ function loadPuzzleIntoState(puzzle, saved) {
   // Speicher-Slot JETZT festnageln (die Aufrufer setzen coop/team/race VOR diesem
   // Aufruf korrekt) — immun gegen späteres Flackern von coop.active bei Rejoin/
   // Rollenwechsel. Team läuft (wie Coop) im Coop-Slot; Race wird nie persistiert.
-  state.saveSlot = state.race.active ? 'race' : (state.coop.active || state.team.active) ? 'coop' : state.endless.active ? 'endless' : 'solo';
+  // Story-Level: nur der Aufruf aus playStoryLevel/resumeStoryRun bringt eins mit
+  // (pendingStory) — jeder andere Spielstart ist automatisch KEIN Story-Level.
+  state.story = pendingStory; pendingStory = null;
+  state.storyResult = null;
+  state.saveSlot = state.race.active ? 'race' : (state.coop.active || state.team.active) ? 'coop' : state.endless.active ? 'endless' : state.story ? 'story' : 'solo';
   log('game', 'loadPuzzle: saveSlot festgelegt', { slot: state.saveSlot, coop: state.coop.active, team: state.team.active, race: state.race.active });
   // Partie-Identität: beim Fortsetzen die gespeicherte gameId behalten, sonst eine
   // neue erzeugen (Multi-Device-Session + Belohnungs-Idempotenz). sessionRev-Basis
@@ -4376,6 +4529,7 @@ function win(remote) {
       checkMasterUnlock();   // ggf. „Großmeister" freischalten (alle 12 auf Legendär)
       checkPrestigeUnlocks(); // ggf. neue Prestige-Stufe(n) feiern
     }
+    if (state.story) storyOnWin();
     persistGame();
     // SOFORTIGE Cloud-Sicherung bei Spielende (nicht entprellt): so ist der Sieg
     // inkl. Belohnung/gelöschtem Fortsetzen-Stand sofort in der Cloud, auch wenn
@@ -4508,6 +4662,9 @@ function quitToHome() {
     else saveActiveGameCoop(null);
   } else if (slot === 'solo') {
     saveActiveGame(wasPlaying ? activeSnapshot() : null);
+  } else if (slot === 'story' && state.story) {
+    // Angefangenes Story-Level bleibt fortsetzbar (Story-Screen: „Weiter").
+    if (wasPlaying) { const r = storySnapshot(); saveStoryRun(r); state.storyRun = r; }
   }
   // 'race'/unbekannt → nichts speichern/löschen (Solo-Slot bleibt unberührt)
   refreshResume();
@@ -4837,6 +4994,14 @@ function persistGame() {
   // Race-Matches sind strikt live/Wettkampf -- ein Fortsetzen nach Verbindungs-
   // abbruch wäre unfair/sinnlos (siehe state.race-Kommentar), daher nie persistiert.
   if (state.saveSlot === 'race' || state.race.active) return;
+  // Story-Level: eigener, gerätelokaler Platz (cns_story_run) — Solo-Slot und
+  // Bibliothek bleiben unberührt. Ein beendetes Level wird nicht fortgesetzt.
+  if (state.saveSlot === 'story') {
+    if (!state.story || !puzzleMatchesGame()) return;
+    if (state.status === 'playing') { const r = storySnapshot(); saveStoryRun(r); state.storyRun = r; }
+    else if (state.status !== 'idle') { saveStoryRun(null); state.storyRun = null; }
+    return;
+  }
   // Ohne (passendes) Rätsel gibt es nichts zu sichern — z.B. im Mix zwischen
   // Spielwechsel und neuem Level (s. switchGame).
   if (!puzzleMatchesGame()) return;
@@ -8262,6 +8427,7 @@ const App = {
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
+      openStory, storyPageLevels, storyPage, storyPages, storyInfo, storyTitle, storyLogo, playStoryLevel, resumeStoryRun, storyNextLevel, storyRetry, goStoryOverview, storyStarsArr, STORY_LEVELS, STORY_CHUNK,
       openSaves, closeSaves, resumeSave, deleteSave, savesRows, saveProgress, saveIsEndless, saveDifficulty, saveDim, saveIsCurrent, saveWhen, SAVES_MAX,
       soloResume, resumeSolo, otherSavesCount, savesLabel, resumeSubline, saveLivesArr, saveLivesLeft,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -8371,6 +8537,9 @@ const App = {
         <button class="btn btn-primary mode-btn" @click="coopReset(); navTo('setup')">
           <span class="btn-ic"><span class="ei" v-html="ic('puzzle')"></span></span><span class="btn-tx"><b>{{ t('home.newGame') }}</b><small>{{ t('home.newGameHint') }}</small></span>
         </button>
+        <button class="btn btn-ghost mode-btn story-btn" @click="openStory()">
+          <span class="btn-ic"><span class="ei" v-html="ic('flag')"></span></span><span class="btn-tx"><b>{{ t('story.title') }}</b><small>{{ t('story.homeHint', { n: storyInfo(currentGame.id).next }) }}</small></span>
+        </button>
         <button class="btn btn-coop mode-btn" :disabled="!coopAvailable || !isOnline()" @click="goCoop">
           <span class="btn-ic"><span class="ei" v-html="ic('users')"></span></span><span class="btn-tx"><b>{{ t('home.coopMode') }}</b><small>{{ t('home.coopHint') }}</small></span>
           <span v-if="!isOnline()" class="badge-soon">{{ t('offline.badge') }}</span>
@@ -8389,6 +8558,9 @@ const App = {
       <div class="home-mix" :class="{ off: !state.mixOn }" :inert="!state.mixOn" :aria-hidden="!state.mixOn ? 'true' : null">
         <button class="btn btn-primary mode-btn mix-play-btn" @click="openMix">
           <span class="btn-ic"><span class="ei" v-html="ic('dice')"></span></span><span class="btn-tx"><b>{{ t('mix.play') }}</b><small>{{ t('mix.sub') }}</small></span>
+        </button>
+        <button class="btn btn-ghost mode-btn story-btn" @click="openStory('mix')">
+          <span class="btn-ic"><span class="ei" v-html="ic('flag')"></span></span><span class="btn-tx"><b>{{ t('story.title') }}</b><small>{{ t('story.homeHint', { n: storyInfo('mix').next }) }}</small></span>
         </button>
         <button class="mix-pool-card" @click="openMix">
           <span class="mpc-head"><b>{{ t('mix.poolTitle') }}</b><span class="ei mpc-chev" v-html="ic('chevron-right')"></span></span>
@@ -8477,6 +8649,39 @@ const App = {
 
 
     <!-- ══ SETUP (Slider-Schwierigkeitsauswahl mit morphendem Hintergrund) ══ -->
+    <!-- ══ STORY: 500 feste Level je Spiel (für alle gleich) ══ -->
+    <section v-else-if="state.screen==='story'" class="screen story-screen">
+      <header class="topbar"><button class="icon-btn" @click="goBack()" :aria-label="t('common.back')">‹</button><h2>{{ t('story.title') }}</h2><span class="icon-btn-spacer"></span></header>
+      <div class="story-body">
+        <div class="story-hero">
+          <img class="story-logo" :src="storyLogo()" alt="" draggable="false">
+          <div class="story-herotx">
+            <b>{{ storyTitle() }}</b>
+            <small>{{ t('story.progress', { n: storyInfo().done, max: STORY_LEVELS }) }}</small>
+            <span class="story-starsum"><span class="ei" v-html="ic('star')"></span>{{ storyInfo().stars }} / {{ storyInfo().max }}</span>
+          </div>
+        </div>
+        <button v-if="state.storyRun && state.storyRun.key === state.storyView.key" class="btn btn-resume story-resume" @click="resumeStoryRun">
+          <span class="btn-ic"><span class="ei" v-html="ic('play')"></span></span><span class="btn-tx"><b>{{ t('story.resume', { n: state.storyRun.level }) }}</b></span>
+        </button>
+        <button v-else class="btn btn-primary story-play" :disabled="state.storyLoading" @click="playStoryLevel(storyInfo().next)">
+          <span class="btn-ic"><span class="ei" v-html="ic('play')"></span></span><span class="btn-tx"><b>{{ t('story.playLevel', { n: storyInfo().next }) }}</b></span>
+        </button>
+        <div class="story-pager">
+          <button class="icon-btn" :disabled="state.storyView.page <= 0" @click="storyPage(-1)" :aria-label="t('common.back')"><span class="ei" v-html="ic('chevron-left')"></span></button>
+          <span class="story-range">{{ t('story.range', { a: state.storyView.page * STORY_CHUNK + 1, b: Math.min(STORY_LEVELS, (state.storyView.page + 1) * STORY_CHUNK) }) }}</span>
+          <button class="icon-btn" :disabled="state.storyView.page >= storyPages - 1" @click="storyPage(1)" :aria-label="t('story.more')"><span class="ei" v-html="ic('chevron-right')"></span></button>
+        </div>
+        <div class="story-grid">
+          <button v-for="l in storyPageLevels" :key="l.level" class="story-tile" :class="{ locked: !l.open, next: l.next, done: l.stars > 0 }"
+                  :style="{ '--acc': l.acc }" :disabled="!l.open || state.storyLoading" :data-level="l.level" @click="playStoryLevel(l.level)">
+            <span class="st-num">{{ l.level }}</span>
+            <span v-if="!l.open" class="ei st-lock" v-html="ic('lock')"></span>
+            <span v-else class="st-stars"><i v-for="(on, i) in storyStarsArr(l.stars)" :key="i" :class="{ on }"></i></span>
+          </button>
+        </div>
+      </div>
+    </section>
     <!-- ══ MIX: Zufallsmodus über alle Spiele ══ -->
     <section v-else-if="state.screen==='mix'" class="screen mix-screen">
       <div class="mix-bg" aria-hidden="true"><b></b><b></b><b></b><b></b></div>
@@ -8927,9 +9132,12 @@ const App = {
           <div class="rc-head">
             <div class="result-emoji"><img v-if="state.endless.mix" class="rc-gamelogo" :src="gameMeta(currentGame.id).logo" alt=""><span v-else class="ei" v-html="ic(state.endless.active ? 'meteor' : 'party')"></span></div>
             <div class="rc-headtx">
-              <h2>{{ state.endless.active ? t('endless.levelDone', { n: state.endless.score }) : winTitle }}</h2>
+              <h2>{{ state.story ? t('story.levelDone', { n: state.story.level }) : state.endless.active ? t('endless.levelDone', { n: state.endless.score }) : winTitle }}</h2>
               <div v-if="state.puzzle" class="result-diff"><template v-if="state.endless.mix">{{ t(gameMeta(currentGame.id).nameKey) }} · </template>{{ t('difficulty.' + state.puzzle.difficulty) }} · {{ state.puzzle.rows }}×{{ state.puzzle.cols }}</div>
             </div>
+          </div>
+          <div v-if="state.story" class="story-result" :aria-label="t('story.starsAria', { n: state.storyResult ? state.storyResult.stars : 0 })">
+            <i v-for="(on, i) in storyStarsArr(state.storyResult ? state.storyResult.stars : 0)" :key="i" class="sr-star" :class="{ on }" :style="{ '--d': (i * 160) + 'ms' }"></i>
           </div>
           <div v-if="state.perfectWin || state.newHighscore || state.wouldHaveBeenBest" class="rc-badges">
             <div v-if="state.perfectWin" class="perfect-badge">{{ t('win.perfectBadge') }}</div>
@@ -8988,9 +9196,13 @@ const App = {
             <div class="opp-chips"><span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ playerLabel(pl) }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span></div>
           </div>
           <div class="rc-actions">
-            <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
+            <button v-if="!state.story" class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
             <!-- Endlos: „Fortsetzen" (Solo direkt, Coop nur Host; Gast wartet auf Host). -->
-            <template v-if="state.endless.active">
+            <template v-if="state.story">
+              <button class="btn btn-ghost" @click="goStoryOverview">{{ t('story.overview') }}</button>
+              <button v-if="state.story.level < STORY_LEVELS" class="btn btn-primary story-next" @click="storyNextLevel">{{ t('story.next') }}</button>
+            </template>
+            <template v-else-if="state.endless.active">
               <button v-if="!state.endless.coop || state.coop.role==='host'" class="btn btn-primary" @click="endlessContinue">{{ t('endless.continue') }}</button>
               <p v-else class="result-msg rc-wait">{{ t('win.waitingForHost') }}</p>
             </template>
@@ -9051,8 +9263,10 @@ const App = {
             <div class="opp-chips"><span v-for="pl in opponentTeamPerformance" :key="pl.id" class="chip" :style="{color: pl.color}">{{ playerLabel(pl) }}: {{ t('win.mistakesCount', { count: pl.mistakes }) }}</span></div>
           </div>
           <div class="rc-actions">
-            <button class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
-            <button class="btn btn-primary" v-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
+            <button v-if="state.story" class="btn btn-ghost" @click="goStoryOverview">{{ t('story.overview') }}</button>
+            <button v-else class="btn btn-ghost" @click="quitToHome">{{ t('common.menu') }}</button>
+            <button class="btn btn-primary story-retry" v-if="state.story" @click="storyRetry">{{ t('story.retry') }}</button>
+            <button class="btn btn-primary" v-else-if="state.isTrainingGame" @click="startTrainingGame">{{ t('training.another') }}</button>
             <button class="btn btn-primary" v-else-if="!state.team.active && !state.race.active && (!state.coop.active || state.coop.role==='host')" @click="goNextPuzzle">{{ t('common.newGame') }}</button>
             <p v-else-if="!state.team.active && !state.race.active && state.coop.active && state.coop.role!=='host'" class="result-msg rc-wait">{{ t('win.waitingForHost') }}</p>
             <button class="btn btn-primary" v-else-if="state.race.active && state.coop.role==='host'" @click="rematchRace">{{ t('race.rematch') }}</button>
@@ -10911,7 +11125,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, startCoopGame, startCoopMatch, startRaceMatch, endlessContinue, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, startCoopGame, startCoopMatch, startRaceMatch, endlessContinue, quitToHome, playStoryLevel, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint,
   boardRenders, cellRenders, currentGameInfo, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
