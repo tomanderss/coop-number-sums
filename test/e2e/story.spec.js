@@ -50,6 +50,32 @@ test.describe('Story-Modus', () => {
     expect(await page.evaluate(() => localStorage.getItem('cns_active_game'))).toBeNull();
   });
 
+  test('Neustart im Pausenmenü verwirft Stand und Zeit; angefangenes Level lässt sich verwerfen', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .story-btn').click();
+    await page.locator('.story-tile[data-level="1"]').click();
+    await page.waitForFunction(() => window.__cns.state.screen === 'game' && window.__cns.state.story);
+    await commitMistakes(page, 1);
+    await page.waitForTimeout(1200);
+    await page.locator('.game-top .icon-btn').last().click();
+    await expect(page.locator('.pause-quit')).toBeVisible();
+    await expect(page.locator('.story-restart')).toBeVisible();
+    await page.locator('.story-restart').click();
+    await page.locator('.confirm-actions .btn-danger').click();
+    await page.waitForFunction(() => { const s = window.__cns.state; return s.story && s.story.level === 1 && s.status === 'playing' && !s.paused && s.mistakes === 0; });
+    expect(await page.evaluate(() => window.__cns.state.elapsed)).toBeLessThan(1000);
+
+    // Angefangenes Level im Story-Screen verwerfen.
+    await commitMistakes(page, 1);
+    await page.evaluate(() => window.__cns.quitToHome());
+    await page.locator('.home-actions .story-btn').click();
+    await expect(page.locator('.story-resume')).toBeVisible();
+    await page.locator('.story-run-del').click();
+    await page.locator('.confirm-actions .btn-danger').click();
+    await expect(page.locator('.story-resume')).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem('cns_story_run'))).toBeNull();
+  });
+
   test('Mix-Story: das Spiel des Levels kommt aus den Daten', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('cns_mix_on', 'true'));
     await gotoApp(page);
