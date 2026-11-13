@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.3';
-export const BUILD_HASH = '5f1fded';
+export const BUILD      = '4.4';
+export const BUILD_HASH = '07b7a42';
 
 export const CHANGELOG = [
+  {
+    "version": "4.4",
+    "date": "13.11.2026",
+    "changes": [
+      "- Story: Level lassen sich im Pausenmenü neu starten (Zeit und Fehler auf null), und ein angefangenes Level kann in der Story-Übersicht verworfen werden"
+    ]
+  },
   {
     "version": "4.3",
     "date": "13.11.2026",
