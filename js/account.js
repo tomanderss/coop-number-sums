@@ -19,7 +19,7 @@ import { ensureFirebase } from './firebase.js';
 import { log } from './debuglog.js';
 import { todayDateStr, sanitizeLastCompleted } from './streak.js';
 import { mergeMixStats } from './mix.js';
-import { mergeStory } from './story.js';
+import { mergeStory, storyBoardBetter, sortStoryBoard } from './story.js';
 import {
   collectExportData, importFromFile, mergeInventory, loadInventory,
   loadWallet, loadProfile, saveProfile, noteWalletTransaction,
@@ -807,6 +807,33 @@ export async function watchLeaderboard(difficulty, cb) {
     });
     return () => { try { off(); } catch (_) {} };
   } catch (e) { log('account', 'watchLeaderboard fehlgeschlagen', e); return () => {}; }
+}
+
+// ─── Story-Bestenliste je Level ─────────────────────────────────────────────
+// storyboard/{key}/{level}/{uid}. Geschrieben nur, wenn das neue Ergebnis besser
+// ist (mehr Sterne, bei Gleichstand schneller) — s. storyBoardBetter in story.js.
+export async function publishStoryResult(key, level, { stars, timeMs }, username, badge = null) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !key || !(level > 0)) return false;
+    const next = { stars, timeMs: Math.round(timeMs) };
+    const ref = fb.ref(fb.db, `storyboard/${key}/${level}/${u.uid}`);
+    const prev = (await fb.get(ref)).val();
+    if (!storyBoardBetter(next, prev)) return false;
+    await fb.set(ref, { username: username || '', ...next, badge: badge || null, ts: fb.serverTimestamp() });
+    log('account', 'Story-Bestwert veröffentlicht', { key, level, stars });
+    return true;
+  } catch (e) { log('account', 'publishStoryResult fehlgeschlagen', e); return false; }
+}
+// Einmal lesen (kein Live-Abo: die Liste steht in einem Ergebnis-/Detail-Fenster).
+export async function fetchStoryBoard(key, level) {
+  const t0 = Date.now();
+  const fb = await ensureFirebase();
+  const snap = await fb.get(fb.ref(fb.db, `storyboard/${key}/${level}`));
+  const arr = Object.entries(snap.val() || {}).map(([uid, v]) => ({ uid, ...(v || {}) }));
+  log('account', 'Story-Bestenliste geladen', { key, level, n: arr.length, tookMs: Date.now() - t0 });
+  return sortStoryBoard(arr);
 }
 
 // ─── Lobby-Einladungen an Freunde (Coop/Wettkampf) ─────────────────────────────

@@ -104,4 +104,40 @@ test.describe('Story: Hilfe holen', () => {
     // Der Gast bekommt keinen Story-Fortschritt gutgeschrieben (es ist nicht sein Level).
     expect(await page.evaluate(() => window.__cns.state.story)).toBeNull();
   });
+
+  test('Bestenliste: Hinweis ohne Konto, Detail eines geschafften Levels zeigt Plätze', async ({ page }) => {
+    await gotoApp(page);
+    await page.locator('.home-actions .story-btn').click();
+    await page.locator('.story-tile[data-level="1"]').click();
+    await page.waitForFunction(() => window.__cns.state.screen === 'game' && window.__cns.state.story);
+    await solveActivePuzzle(page);
+    await page.waitForFunction(() => window.__cns.state.storyResult);
+    await dismissStreakModal(page);
+    // Ohne Anmeldung: kein Eintrag, nur der Hinweis.
+    await expect(page.locator('.result-card .story-board.sb-signin')).toBeVisible();
+
+    await page.evaluate(() => window.__cns.quitToHome());
+    await page.locator('.home-actions .story-btn').click();
+    // Geschaffte Kachel öffnet das Detail statt direkt zu spielen.
+    await page.locator('.story-tile[data-level="1"]').click();
+    await expect(page.locator('.story-detail')).toBeVisible();
+    await expect(page.locator('.story-detail .sd-best .sb-stars i.on')).toHaveCount(3);
+    expect(await page.evaluate(() => window.__cns.state.screen)).toBe('story');
+    // Bestenliste mit fremden Einträgen + eigenem Platz weiter hinten.
+    await page.evaluate(() => {
+      const s = window.__cns.state;
+      s.account.uid = 'me';
+      s.storyBoard = { key: 'numbersums', level: 1, status: 'ok', entries: [
+        { uid: 'a', username: 'Anna', stars: 3, timeMs: 40000 },
+        { uid: 'b', username: 'Ben', stars: 3, timeMs: 52000 },
+        { uid: 'c', username: 'Cem', stars: 2, timeMs: 20000 },
+        { uid: 'me', username: 'Ich', stars: 1, timeMs: 90000 },
+      ] };
+    });
+    await expect(page.locator('.story-detail .sb-row')).toHaveCount(4);
+    await expect(page.locator('.story-detail .sb-row').first()).toContainText('Anna');
+    await expect(page.locator('.story-detail .sb-mine')).toContainText('4');
+    await page.locator('.story-detail .sd-play').click();
+    await page.waitForFunction(() => window.__cns.state.screen === 'game' && window.__cns.state.story && window.__cns.state.story.level === 1);
+  });
 });
