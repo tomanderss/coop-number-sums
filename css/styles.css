@@ -3702,3 +3702,5 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .story-result .sr-star { width: 38px; height: 38px; }
 .story-result .sr-star.on { background: #f5b301; animation: sr-pop .42s cubic-bezier(.2, 1.6, .4, 1) both; animation-delay: var(--d); }
 @keyframes sr-pop { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+/* „Hilfe holen“: Hinweis auf der Sieg-Karte, wenn das Level gemeinsam gelöst wurde. */
+.story-helped { margin: 0; text-align: center; font-size: .8rem; font-weight: 700; color: var(--text2); }

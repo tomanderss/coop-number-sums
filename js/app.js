@@ -405,7 +405,8 @@ const state = reactive({
   storyView: { key: null, page: 0 },   // Story-Screen: welches Spiel/Mix, welche 50er-Seite
   storyLoading: false,
   storyRun: null,       // angefangenes Level (gerätelokal) { key, level, game, snap }
-  storyResult: null,    // Sterne des gerade geschafften Levels { stars, prev, level, key }
+  storyResult: null,    // Sterne des gerade geschafften Levels { stars, prev, level, key, helped }
+  storyTag: null,       // Anzeige „Story · Level N“ — auch beim Gast, der bei einem Story-Level hilft { key, level }
   mixReveal: null,              // { reel:[{id,logo}], game, diff, level, seq } | null
   winHold: false,               // Sieg-Dialog wartet auf das Brett-Finale (holdForBoardFinale)
   saves: [],                 // Bibliothek gespeicherter Partien (neueste zuerst), s. refreshResume
@@ -1487,7 +1488,10 @@ function storySnapshot() {
 function storyOnWin() {
   const s = state.story;
   if (!s) return;
-  const stars = storyStars({
+  // Mit Hilfe gelöst (Coop): das Level gilt als geschafft, bringt aber nur 1 Stern —
+  // die volle Wertung gibt es nur allein.
+  const helped = !!(s.helped || state.coop.active);
+  const stars = helped ? 1 : storyStars({
     lives: gameHas('lives'), mistakes: state.mistakes || 0, hints: state.hintsUsed || 0,
     elapsedMs: state.elapsed || 0, cells: (state.puzzle.rows || 0) * (state.puzzle.cols || 0), bandIndex: s.band,
   });
@@ -1495,8 +1499,8 @@ function storyOnWin() {
   state.storyProgress = recordStoryResult(state.storyProgress, s.key, s.level, { stars, ms: Math.round(state.elapsed || 0) });
   saveStoryProgress(state.storyProgress);
   saveStoryRun(null); state.storyRun = null;
-  state.storyResult = { stars, prev: prev ? prev.s : 0, level: s.level, key: s.key };
-  log('game', 'Story-Level geschafft', { key: s.key, level: s.level, stars, ms: Math.round(state.elapsed || 0) });
+  state.storyResult = { stars, prev: prev ? prev.s : 0, level: s.level, key: s.key, helped };
+  log('game', 'Story-Level geschafft', { key: s.key, level: s.level, stars, helped, ms: Math.round(state.elapsed || 0) });
 }
 function storyNextLevel() {
   const s = state.story;
@@ -2520,6 +2524,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   // (pendingStory) — jeder andere Spielstart ist automatisch KEIN Story-Level.
   state.story = pendingStory; pendingStory = null;
   state.storyResult = null;
+  state.storyTag = state.story ? { key: state.story.key, level: state.story.level } : null;
   state.saveSlot = state.race.active ? 'race' : (state.coop.active || state.team.active) ? 'coop' : state.endless.active ? 'endless' : state.story ? 'story' : 'solo';
   log('game', 'loadPuzzle: saveSlot festgelegt', { slot: state.saveSlot, coop: state.coop.active, team: state.team.active, race: state.race.active });
   // Partie-Identität: beim Fortsetzen die gespeicherte gameId behalten, sonst eine
@@ -3227,6 +3232,8 @@ function handleCoopMsg(msg, key = null) {
       ...Board.boardFieldsFrom(msg), markedBy: msg.markedBy, startTime: msg.startTime, gameId: msg.gameId,
       lives: msg.lives, maxLives: msg.maxLives, hintsLeft: msg.hintsLeft, hintsUsed: msg.hintsUsed, mistakes: msg.mistakes,
     });
+    // „Hilfe holen“: der Host spielt ein Story-Level — der Gast sieht, welches.
+    if (msg.story && msg.story.level) state.storyTag = { key: String(msg.story.key || ''), level: Number(msg.story.level) };
     // Coop-Endlos: kumulierte Herz-Verluste (wer welches Leben verbrauchte) vom
     // Host übernehmen — loadPuzzleIntoState hat lifeLossBy geleert, daher DANACH.
     if (msg.endless && Array.isArray(msg.lifeLossBy)) {
@@ -3739,6 +3746,7 @@ function broadcastRunningInit() {
     puzzle: state.puzzle, ...Board.boardFields('wire'), markedBy: wireMarkedBy(), startTime: state.startTime,
     lives: state.lives, maxLives: state.maxLives, hintsLeft: state.hintsLeft, hintsUsed: state.hintsUsed, mistakes: state.mistakes,
     ...endlessExtra,
+    ...(state.story ? { story: { key: state.story.key, level: state.story.level } } : {}),
   });
   Coop.send({ type: Coop.MSG.START, startTime: state.startTime });
 }
@@ -4766,7 +4774,8 @@ let soloInviteMyId = null;
 function canInviteToSolo() {
   // Klassische Solo-Partie ODER ein Solo-Endlos-Lauf (noch nicht coop). Beide
   // lassen sich mitten im Spiel live zu Coop umwandeln.
-  const soloClassic = state.saveSlot === 'solo';
+  // Ein Story-Level ebenso („Hilfe holen“: ein Freund spielt genau dieses Level mit).
+  const soloClassic = state.saveSlot === 'solo' || state.saveSlot === 'story';
   // Auch ein Solo-Mix-Lauf: er wird beim Beitritt zum Coop-Mix (der Host zieht
   // ab dann die Level, s. loadCoopMixLevel).
   const soloEndless = state.endless.active && !state.endless.coop;
@@ -4889,10 +4898,11 @@ function completeSoloConversion() {
   if (state.soloInvite.status !== 'hosting' || !soloInviteMyId) return false;
   const isSoloEndless = state.endless.active && !state.endless.coop;
   // Partie inzwischen beendet/gewechselt → Einladung stattdessen abräumen.
-  if (state.status !== 'playing' || !state.puzzle || (state.saveSlot !== 'solo' && !isSoloEndless)) { cancelSoloInvite(); return false; }
+  const isStory = state.saveSlot === 'story' && !!state.story;
+  if (state.status !== 'playing' || !state.puzzle || (state.saveSlot !== 'solo' && !isSoloEndless && !isStory)) { cancelSoloInvite(); return false; }
   // Solo-Cloud-Session VOR dem Slot-Umzug beenden (pushSession prüft saveSlot).
   // Der Endlos-Lauf ist ephemer (kein Solo-Slot/keine Session) → nur klassisch.
-  if (!isSoloEndless) pushSession(SESSION_STATUS.DONE);
+  if (!isSoloEndless && !isStory) pushSession(SESSION_STATUS.DONE);
   const myId = soloInviteMyId;
   // Exakte bisherige Spielzeit auf der ALTEN (lokalen) Uhr ablesen …
   const elapsedNow = state.paused ? state.elapsed : Math.max(0, Date.now() - state.startTime);
@@ -4925,6 +4935,13 @@ function completeSoloConversion() {
     state.endless.best = state.stats.endlessCoopBest || 0;
     state.coop.lifeLossBy = state.coop.lifeLossBy || [];
     state.endless.lifeLossBy = state.coop.lifeLossBy.slice();
+  } else if (isStory) {
+    // Story-Level mit Hilfe: läuft als Coop weiter (Coop-Slot), der gerätelokale
+    // Story-Stand wird geräumt; der Sieg zählt als „mit Hilfe“ (s. storyOnWin).
+    state.saveSlot = 'coop';
+    state.story.helped = true;
+    saveStoryRun(null); state.storyRun = null;
+    log('coop', 'Story-Level wird gemeinsam gespielt', { key: state.story.key, level: state.story.level });
   } else {
     state.saveSlot = 'coop';
     saveActiveGame(null);
@@ -8896,6 +8913,7 @@ const App = {
         <div class="meta-chips">
           <span class="chip"><span class="ei" v-html="ic(DIFF_BY_ID[state.puzzle.difficulty].emoji)"></span> {{ t('difficulty.'+state.puzzle.difficulty) }}</span>
           <span class="chip">{{ state.puzzle.rows }}×{{ state.puzzle.cols }}</span>
+          <span v-if="state.storyTag" class="chip story-chip"><span class="ei" v-html="ic('flag')"></span> {{ t('story.chip', { n: state.storyTag.level }) }}</span>
           <span v-if="state.coop.active" class="chip coop-chip" :class="(state.coop.connected && state.coop.online) ? 'coop-on' : 'coop-off'">
             <span class="ei" v-html="ic('users')"></span> {{ t('game.coopTag') }}{{ (state.coop.connected && state.coop.online) ? '' : t('game.coopOfflineSuffix') }}
           </span>
@@ -9136,6 +9154,7 @@ const App = {
               <div v-if="state.puzzle" class="result-diff"><template v-if="state.endless.mix">{{ t(gameMeta(currentGame.id).nameKey) }} · </template>{{ t('difficulty.' + state.puzzle.difficulty) }} · {{ state.puzzle.rows }}×{{ state.puzzle.cols }}</div>
             </div>
           </div>
+          <p v-if="state.storyResult && state.storyResult.helped" class="story-helped">{{ t('story.helped') }}</p>
           <div v-if="state.story" class="story-result" :aria-label="t('story.starsAria', { n: state.storyResult ? state.storyResult.stars : 0 })">
             <i v-for="(on, i) in storyStarsArr(state.storyResult ? state.storyResult.stars : 0)" :key="i" class="sr-star" :class="{ on }" :style="{ '--d': (i * 160) + 'ms' }"></i>
           </div>
