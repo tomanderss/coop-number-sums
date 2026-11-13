@@ -1563,6 +1563,28 @@ function storyRetry() {
   saveStoryRun(null); state.storyRun = null;
   playStoryLevel(s.level, s.key);
 }
+// Neustart aus dem Pausenmenü (Nutzerwunsch: abgelenkt, Zeit lief weiter —
+// statt zu Ende zu rätseln, das Level frisch mit 0:00 beginnen). Nur allein;
+// mit Hilfe (Coop) gibt es ohnehin nur einen Stern.
+const canRestartStory = () => !!state.story && !state.coop.active && state.status === 'playing';
+function restartStoryLevel() {
+  if (!canRestartStory()) return;
+  ask(t('story.restartTitle'), t('story.restartMsg'), () => {
+    const s = state.story;
+    log('game', 'Story-Level neu gestartet', { key: s.key, level: s.level, ms: Math.round(state.elapsed || 0) });
+    storyRetry();
+  });
+}
+// Angefangenes Level im Story-Screen verwerfen (gerätelokal, cns_story_run).
+function deleteStoryRun() {
+  const r = state.storyRun;
+  if (!r) return;
+  ask(t('story.deleteTitle'), t('story.deleteMsg', { n: r.level }), () => {
+    saveStoryRun(null); state.storyRun = null;
+    log('game', 'Story-Stand verworfen', { key: r.key, level: r.level });
+    showToast(t('saves.deleted'), 'info', 2000);
+  });
+}
 function goStoryOverview() {
   const k = (state.story && state.story.key) || state.storyView.key || storyKeyNow();
   state.storyView = { key: k, page: storyChunkOf(state.story ? state.story.level : storyNext(state.storyProgress, k)) };
@@ -8496,7 +8518,7 @@ const App = {
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
-      openStory, storyPageLevels, storyPage, storyPages, storyInfo, storyTitle, storyLogo, playStoryLevel, resumeStoryRun, storyNextLevel, storyRetry, goStoryOverview, storyStarsArr, STORY_LEVELS, STORY_CHUNK, onStoryTile, openStoryDetail, closeStoryDetail, playStoryDetail, storyBoardRows, storyDetailEntry, storyDetailAcc,
+      openStory, storyPageLevels, storyPage, storyPages, storyInfo, storyTitle, storyLogo, playStoryLevel, resumeStoryRun, storyNextLevel, storyRetry, goStoryOverview, storyStarsArr, STORY_LEVELS, STORY_CHUNK, onStoryTile, openStoryDetail, canRestartStory, restartStoryLevel, deleteStoryRun, closeStoryDetail, playStoryDetail, storyBoardRows, storyDetailEntry, storyDetailAcc,
       openSaves, closeSaves, resumeSave, deleteSave, savesRows, saveProgress, saveIsEndless, saveDifficulty, saveDim, saveIsCurrent, saveWhen, SAVES_MAX,
       soloResume, resumeSolo, otherSavesCount, savesLabel, resumeSubline, saveLivesArr, saveLivesLeft,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -8730,9 +8752,12 @@ const App = {
             <span class="story-starsum"><span class="ei" v-html="ic('star')"></span>{{ storyInfo().stars }} / {{ storyInfo().max }}</span>
           </div>
         </div>
-        <button v-if="state.storyRun && state.storyRun.key === state.storyView.key" class="btn btn-resume story-resume" @click="resumeStoryRun">
-          <span class="btn-ic"><span class="ei" v-html="ic('play')"></span></span><span class="btn-tx"><b>{{ t('story.resume', { n: state.storyRun.level }) }}</b></span>
-        </button>
+        <div v-if="state.storyRun && state.storyRun.key === state.storyView.key" class="story-resume-row">
+          <button class="btn btn-resume story-resume" @click="resumeStoryRun">
+            <span class="btn-ic"><span class="ei" v-html="ic('play')"></span></span><span class="btn-tx"><b>{{ t('story.resume', { n: state.storyRun.level }) }}</b></span>
+          </button>
+          <button class="icon-btn story-run-del" @click="deleteStoryRun" :aria-label="t('story.deleteRun')" :title="t('story.deleteRun')"><span class="ei" v-html="ic('trash')"></span></button>
+        </div>
         <button v-else class="btn btn-primary story-play" :disabled="state.storyLoading" @click="playStoryLevel(storyInfo().next)">
           <span class="btn-ic"><span class="ei" v-html="ic('play')"></span></span><span class="btn-tx"><b>{{ t('story.playLevel', { n: storyInfo().next }) }}</b></span>
         </button>
@@ -9184,6 +9209,7 @@ const App = {
             <span class="btn-ic"><span class="ei" v-html="ic('play')"></span></span>
             {{ t('coop.continueSolo') }}
           </button>
+          <button v-if="canRestartStory()" class="btn btn-ghost story-restart" @click="restartStoryLevel"><span class="btn-ic"><span class="ei" v-html="ic('refresh')"></span></span> {{ t('story.restart') }}</button>
           <button class="btn btn-ghost" @click="openSettings"><span class="btn-ic"><span class="ei" v-html="ic('gear')"></span></span> {{ t('home.settings') }}</button>
           <button class="btn btn-ghost" @click="state.modal='howto'"><span class="btn-ic"><span class="ei" v-html="ic('book')"></span></span> {{ t('home.howto') }}</button>
           <!-- Duelle verlässt man über „Aufgeben" (Nutzerwunsch); sonst „Zum Menü". -->

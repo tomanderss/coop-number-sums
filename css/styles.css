@@ -3677,6 +3677,9 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 .story-starsum { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; font-weight: 800; color: #e8a700; }
 .story-starsum .ei { width: 1em; height: 1em; }
 .story-play, .story-resume { width: 100%; }
+.story-resume-row { display: flex; gap: 8px; align-items: stretch; }
+.story-resume-row .story-resume { flex: 1; min-width: 0; }
+.story-resume-row .story-run-del { flex: 0 0 auto; width: 48px; height: auto; border-radius: 14px; border: 1px solid var(--hairline); color: var(--text2); }
 .story-pager { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 8px; }
 .story-range { text-align: center; font-size: .82rem; font-weight: 800; color: var(--text2); }
 .story-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
