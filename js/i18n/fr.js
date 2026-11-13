@@ -838,6 +838,13 @@ export default {
       h3: "Coop, duels, Ascension infinie et entraînement dans chaque jeu",
       h4: "Nouveau : Math Cross, Rectangles et Number Path",
     },
+    v4: {
+      sub: "Le mode histoire est là – et les nouveaux jeux te mettent au défi.",
+      h1: "Histoire : 500 niveaux fixes par jeu, identiques pour tous",
+      h2: "Jusqu’à trois étoiles par niveau, sur tous tes appareils",
+      h3: "Demande de l’aide : invite des amis dans ton niveau",
+      h4: "Plus dur : murs, tuyaux sans bord, nombres cachés",
+    },
     v3: {
       sub: "Six jeux et un mode aléatoire qui les relie tous – et plus d’entraide en coop.",
       h1: "Mix : chaque niveau un jeu au hasard – en solo, en coop ou en duel",

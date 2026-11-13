@@ -838,6 +838,13 @@ export default {
       h3: "Coop, duels, Endless Climb and training in every game",
       h4: "New: Math Cross, Rectangles and Number Path",
     },
+    v4: {
+      sub: "Story mode is here – and the newer games now really challenge you.",
+      h1: "Story: 500 fixed levels per game – the same for all",
+      h2: "Up to three stars per level, on all devices",
+      h3: "Get help: invite friends into your level",
+      h4: "Harder: walls, edgeless pipes, hidden numbers",
+    },
     v3: {
       sub: "Six games and a random mode that ties them all together – plus more teamwork in coop.",
       h1: "Mix: every level a random game – solo, in coop or in a duel",

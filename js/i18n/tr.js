@@ -838,6 +838,13 @@ export default {
       h3: "Her oyunda co-op, düellolar, Sonsuz Tırmanış ve antrenman",
       h4: "Yeni: Math Cross, Rectangles ve Number Path",
     },
+    v4: {
+      sub: "Hikaye modu geldi – yeni oyunlar artık gerçekten zorluyor.",
+      h1: "Hikaye: oyun başına 500 sabit seviye, herkes için aynı",
+      h2: "Seviye başına üç yıldıza kadar, tüm cihazlarda",
+      h3: "Yardım iste: arkadaşlarını seviyene davet et",
+      h4: "Daha zor: duvarlar, kenarsız borular, gizli sayılar",
+    },
     v3: {
       sub: "Altı oyun ve hepsini birleştiren rastgele mod – üstelik ortak oyunda daha fazla birliktelik.",
       h1: "Mix: her seviye rastgele bir oyun – tek başına, ortak ya da düelloda",
