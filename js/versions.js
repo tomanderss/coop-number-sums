@@ -67,6 +67,15 @@ export const MAJORS = {
       { icon: 'flag', key: 'major.v3.h4' },
     ],
   },
+  4: {
+    games: ['numbersums', 'mathcross', 'rectangles', 'numberpath', 'gems', 'pipes', 'numberlink'],
+    highlights: [
+      { icon: 'flag', key: 'major.v4.h1' },
+      { icon: 'star', key: 'major.v4.h2' },
+      { icon: 'users', key: 'major.v4.h3' },
+      { icon: 'route', key: 'major.v4.h4' },
+    ],
+  },
 };
 
 /**

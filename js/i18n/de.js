@@ -963,6 +963,13 @@ export default {
       h3: "Coop, Duelle, Endlos-Aufstieg und Training in jedem Spiel",
       h4: "Neu dabei: Math Cross, Rectangles und Number Path",
     },
+    v4: {
+      sub: "Der Story-Modus ist da – und die neuen Spiele fordern dich jetzt richtig.",
+      h1: "Story: 500 feste Level je Spiel – für alle gleich",
+      h2: "Bis zu drei Sterne je Level, auf allen Geräten",
+      h3: "Hilfe holen: Freunde ins eigene Level einladen",
+      h4: "Schwerer: Wände, Rohre ohne Rand, verdeckte Zahlen",
+    },
     v3: {
       sub: "Sechs Spiele und ein Zufallsmodus, der sie alle verbindet – dazu mehr Miteinander im Coop.",
       h1: "Mix: jedes Level ein zufälliges Spiel – allein, im Coop oder im Duell",

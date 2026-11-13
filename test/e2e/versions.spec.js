@@ -61,7 +61,7 @@ test('nach der Feier zeigt „Was ist neu" nur die Versionen seit der alten Numm
   await expect(page.locator('.whatsnew-badge')).toBeVisible();
   const versions = await page.locator('.whatsnew-multi .cl-head b').allTextContents();
   expect(versions[versions.length - 1]).toBe('v2.7');
-  expect(versions.every((v) => /^v[23]\./.test(v))).toBe(true);
+  expect(versions.every((v) => /^v[2-9]\./.test(v))).toBe(true);   // keine alten 1.x-Nummern
 });
 
 test('eine Neuinstallation feiert keine Hauptversion', async ({ page }) => {

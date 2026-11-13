@@ -1,8 +1,17 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '3.40';
-export const BUILD_HASH = '9c12a3a';
+export const BUILD      = '4.0';
+export const BUILD_HASH = '40adba3';
 
 export const CHANGELOG = [
+  {
+    "version": "4.0",
+    "date": "13.11.2026",
+    "changes": [
+      "- Neu: Story-Modus – je Spiel und im Mix 500 feste Level, für alle Spieler identisch. Am Anfang schnell leicht, dann lange ganz langsam schwerer, die schwerste Stufe ab Level 251",
+      "- Story: bis zu 3 Sterne je Level (Fehler kosten Sterne, in Spielen ohne Leben zählt die Zeit), angefangene Level lassen sich fortsetzen, Fortschritt wird mit dem Konto synchronisiert",
+      "- Story: „Hilfe holen“ – lade einen Freund in dein Level ein (Pausenmenü), ihr spielt genau dieses Level gemeinsam"
+    ]
+  },
   {
     "version": "3.40",
     "date": "12.11.2026",
