@@ -1,1 +1,0 @@
-- Story: Level lassen sich im Pausenmenü neu starten (Zeit und Fehler auf null), und ein angefangenes Level kann in der Story-Übersicht verworfen werden
