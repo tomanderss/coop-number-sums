@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import {
   STORY_LEVELS, STORY_CHUNK, STORY_BANDS, MIX_KEY, storyBandIndex, storyBandRange, storyDifficulty,
   storyChunkOf, storyChunkPath, storyStars, storyNext, storyUnlocked, recordStoryResult, mergeStory,
-  storyStarsTotal, mixStoryGames, cleanPuzzle,
+  storyStarsTotal, mixStoryGames, cleanPuzzle, storyParMs, STORY_SEC_PER_CELL,
 } from '../../js/story.js';
 import { GAMES, GAME_IDS } from '../../js/games/index.js';
 
@@ -40,9 +40,36 @@ describe('Story: Sterne', () => {
     assert.equal(storyStars({ lives: true, mistakes: 2 }), 1);
   });
   test('ohne Leben zählt die Zeit (grob)', () => {
-    const base = { lives: false, cells: 64, bandIndex: 2 };
+    const base = { lives: false, cells: 64, bandIndex: 2, game: 'pipes' };
     assert.equal(storyStars({ ...base, elapsedMs: 10_000 }), 3);
-    assert.equal(storyStars({ ...base, elapsedMs: 10 * 60_000 }), 1);
+    assert.equal(storyStars({ ...base, elapsedMs: 30 * 60_000 }), 1);
+  });
+  // Kalibriert an den Zeiten eines erfahrenen Spielers (s. story.js): auf den
+  // unveränderten leichten Stufen bringt seine Bestzeit 3★, sein Durchschnitt nicht.
+  test('Kalibrierung: Bestzeit = 3★, Durchschnitt nicht, anderthalbfacher Durchschnitt noch 2★', () => {
+    const cases = [
+      // [Spiel, Stufe, Zellen, Bestzeit s, Durchschnitt s]
+      ['numberlink', 0, 25, 4.3, 7.7],
+      ['numberpath', 0, 25, 7.2, 24.3],
+      ['pipes', 1, 36, 39.5, 70.1],
+    ];
+    for (const [game, bandIndex, cells, best, avg] of cases) {
+      const st = (sec) => storyStars({ lives: false, game, bandIndex, cells, elapsedMs: sec * 1000 });
+      assert.equal(st(best), 3, `${game} Bestzeit`);
+      assert.equal(st(avg), 2, `${game} Durchschnitt`);
+      assert.equal(st(avg * 1.5), 2, `${game} 1,5 × Durchschnitt`);
+    }
+  });
+  test('ab „Mittel“ mit Aufschlag für die schwereren Rätsel, Werte steigen mit der Stufe', () => {
+    for (const g of Object.keys(STORY_SEC_PER_CELL)) {
+      let prev = 0;
+      for (let b = 0; b < 9; b++) {
+        const par = storyParMs(100, b, g) / 100;
+        assert.ok(par >= prev, `${g} Stufe ${b}`);
+        prev = par;
+      }
+      assert.ok(storyParMs(100, 2, g) > storyParMs(100, 1, g) * 2 - 1, g);
+    }
   });
 });
 
