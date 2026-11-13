@@ -101,6 +101,17 @@
         }
       }
     },
+    "storyboard": {
+      ".read": "auth != null",
+      "$key": {
+        "$level": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['stars','timeMs','username']) && newData.child('stars').isNumber() && newData.child('stars').val() >= 1 && newData.child('stars').val() <= 3 && newData.child('timeMs').isNumber() && newData.child('timeMs').val() > 0"
+          }
+        }
+      }
+    },
     "usernames": {
       ".read": "auth != null",
       "$key": {
@@ -204,6 +215,17 @@
             "$uid": {
               ".write": "auth != null && auth.uid === $uid",
               ".validate": "newData.hasChildren(['timeMs','username']) && newData.child('timeMs').isNumber()"
+            }
+          }
+        }
+      },
+      "storyboard": {
+        ".read": "auth != null",
+        "$key": {
+          "$level": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "newData.hasChildren(['stars','timeMs','username']) && newData.child('stars').isNumber() && newData.child('stars').val() >= 1 && newData.child('stars').val() <= 3 && newData.child('timeMs').isNumber() && newData.child('timeMs').val() > 0"
             }
           }
         }

@@ -105,3 +105,35 @@ describe('Story: Level-Daten', () => {
     });
   }
 });
+
+import { storyBoardBetter, sortStoryBoard, storyBoardView } from '../../js/story.js';
+describe('Story: Bestenliste', () => {
+  test('mehr Sterne schlagen schnellere Zeit, bei Gleichstand gewinnt die Zeit', () => {
+    assert.equal(storyBoardBetter({ stars: 3, timeMs: 300000 }, { stars: 2, timeMs: 1000 }), true);
+    assert.equal(storyBoardBetter({ stars: 2, timeMs: 1000 }, { stars: 3, timeMs: 300000 }), false);
+    assert.equal(storyBoardBetter({ stars: 3, timeMs: 900 }, { stars: 3, timeMs: 1000 }), true);
+    assert.equal(storyBoardBetter({ stars: 3, timeMs: 1000 }, { stars: 3, timeMs: 1000 }), false);
+    assert.equal(storyBoardBetter({ stars: 1, timeMs: 5 }, null), true);
+    assert.equal(storyBoardBetter({ stars: 0, timeMs: 5 }, null), false);
+    assert.equal(storyBoardBetter({ stars: 2, timeMs: 0 }, null), false);
+  });
+  test('Sortierung und Anzeige: Top 3 + eigener Platz', () => {
+    const e = [
+      { uid: 'a', username: 'A', stars: 2, timeMs: 100 },
+      { uid: 'b', username: 'B', stars: 3, timeMs: 900 },
+      { uid: 'c', username: 'C', stars: 3, timeMs: 500 },
+      { uid: 'd', username: 'D', stars: 1, timeMs: 50 },
+      { uid: 'x', username: 'X', stars: 2, timeMs: Infinity },
+      null,
+    ];
+    assert.deepEqual(sortStoryBoard(e).map((x) => x.uid), ['c', 'b', 'a', 'd']);
+    const v = storyBoardView(e, 'd', 3);
+    assert.deepEqual(v.rows.map((x) => x.rank), [1, 2, 3]);
+    assert.equal(v.mine.uid, 'd');
+    assert.equal(v.mine.rank, 4);
+    assert.equal(v.total, 4);
+    const top = storyBoardView(e, 'b', 3);
+    assert.equal(top.mine, null);
+    assert.equal(top.rows[1].me, true);
+  });
+});

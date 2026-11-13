@@ -15,6 +15,7 @@ import { gameMeta, DEFAULT_GAME_ID } from './games/registry.js';
 import {
   STORY_LEVELS, STORY_CHUNK, MIX_KEY as STORY_MIX, storyBandIndex, storyChunkOf, storyStars, storyNext,
   storyUnlocked, storyEntry, recordStoryResult, storyStarsTotal, loadStoryLevel,
+  storyBoardView,
 } from './story.js';
 import { initLiveLayer } from './games/livelayer.js';
 import { GameWheel } from './gamewheel.js';
@@ -406,6 +407,8 @@ const state = reactive({
   storyLoading: false,
   storyRun: null,       // angefangenes Level (gerätelokal) { key, level, game, snap }
   storyResult: null,    // Sterne des gerade geschafften Levels { stars, prev, level, key, helped }
+  storyBoard: null,     // Bestenliste eines Levels { key, level, status: 'loading'|'ok'|'error'|'signin', entries }
+  storyDetail: null,    // Detail-Fenster eines geschafften Levels { key, level }
   storyTag: null,       // Anzeige „Story · Level N“ — auch beim Gast, der bei einem Story-Level hilft { key, level }
   mixReveal: null,              // { reel:[{id,logo}], game, diff, level, seq } | null
   winHold: false,               // Sieg-Dialog wartet auf das Brett-Finale (holdForBoardFinale)
@@ -1501,7 +1504,51 @@ function storyOnWin() {
   saveStoryRun(null); state.storyRun = null;
   state.storyResult = { stars, prev: prev ? prev.s : 0, level: s.level, key: s.key, helped };
   log('game', 'Story-Level geschafft', { key: s.key, level: s.level, stars, helped, ms: Math.round(state.elapsed || 0) });
+  // Bestenliste: nur ALLEIN gelöste Level werden eingetragen, angezeigt wird sie immer.
+  loadStoryBoard(s.key, s.level, helped ? null : { stars, timeMs: Math.round(state.elapsed || 0) });
 }
+// Bestenliste eines Levels laden (vorher ggf. das eigene Ergebnis eintragen).
+let storyBoardReq = 0;
+async function loadStoryBoard(key, level, mine) {
+  const req = ++storyBoardReq;
+  if (state.account.status !== 'in') { state.storyBoard = { key, level, status: 'signin', entries: [] }; return; }
+  if (!isOnline()) { state.storyBoard = { key, level, status: 'error', entries: [] }; return; }
+  state.storyBoard = { key, level, status: 'loading', entries: [] };
+  try {
+    if (mine) await Account.publishStoryResult(key, level, mine, state.account.username, myBadge());
+    const entries = await Account.fetchStoryBoard(key, level);
+    if (req === storyBoardReq) state.storyBoard = { key, level, status: 'ok', entries };
+  } catch (e) {
+    log('error', 'Story-Bestenliste fehlgeschlagen', { key, level, error: String(e && e.message || e) });
+    if (req === storyBoardReq) state.storyBoard = { key, level, status: 'error', entries: [] };
+  }
+}
+// Anzeige: Top 3 + eigener Platz (falls weiter hinten).
+const storyBoardRows = computed(() => {
+  const b = state.storyBoard;
+  if (!b || b.status !== 'ok') return { rows: [], mine: null, total: 0 };
+  return storyBoardView(b.entries, state.account.uid, 3);
+});
+// Kachel im Story-Screen: geschaffte Level öffnen ihr Detail (Bestwert + Bestenliste),
+// alle anderen starten direkt.
+function onStoryTile(l) {
+  if (l.stars > 0) openStoryDetail(l.level);
+  else playStoryLevel(l.level);
+}
+function openStoryDetail(level) {
+  const key = state.storyView.key;
+  state.storyDetail = { key, level };
+  loadStoryBoard(key, level, null);
+}
+function closeStoryDetail() { state.storyDetail = null; }
+function playStoryDetail() {
+  const d = state.storyDetail;
+  if (!d) return;
+  state.storyDetail = null;
+  playStoryLevel(d.level, d.key);
+}
+const storyDetailAcc = () => (DIFFICULTY_LADDER[storyBandIndex(state.storyDetail ? state.storyDetail.level : 1)] || DIFFICULTY_LADDER[0]).accent;
+const storyDetailEntry = () => (state.storyDetail ? storyEntry(state.storyProgress, state.storyDetail.key, state.storyDetail.level) : null);
 function storyNextLevel() {
   const s = state.story;
   if (!s) return;
@@ -2524,6 +2571,7 @@ function loadPuzzleIntoState(puzzle, saved) {
   // (pendingStory) — jeder andere Spielstart ist automatisch KEIN Story-Level.
   state.story = pendingStory; pendingStory = null;
   state.storyResult = null;
+  state.storyBoard = null;
   state.storyTag = state.story ? { key: state.story.key, level: state.story.level } : null;
   state.saveSlot = state.race.active ? 'race' : (state.coop.active || state.team.active) ? 'coop' : state.endless.active ? 'endless' : state.story ? 'story' : 'solo';
   log('game', 'loadPuzzle: saveSlot festgelegt', { slot: state.saveSlot, coop: state.coop.active, team: state.team.active, race: state.race.active });
@@ -8444,7 +8492,7 @@ const App = {
       isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
-      openStory, storyPageLevels, storyPage, storyPages, storyInfo, storyTitle, storyLogo, playStoryLevel, resumeStoryRun, storyNextLevel, storyRetry, goStoryOverview, storyStarsArr, STORY_LEVELS, STORY_CHUNK,
+      openStory, storyPageLevels, storyPage, storyPages, storyInfo, storyTitle, storyLogo, playStoryLevel, resumeStoryRun, storyNextLevel, storyRetry, goStoryOverview, storyStarsArr, STORY_LEVELS, STORY_CHUNK, onStoryTile, openStoryDetail, closeStoryDetail, playStoryDetail, storyBoardRows, storyDetailEntry, storyDetailAcc,
       openSaves, closeSaves, resumeSave, deleteSave, savesRows, saveProgress, saveIsEndless, saveDifficulty, saveDim, saveIsCurrent, saveWhen, SAVES_MAX,
       soloResume, resumeSolo, otherSavesCount, savesLabel, resumeSubline, saveLivesArr, saveLivesLeft,
       startHosting, startJoining, coopReset, avgTimeFor, coopAvgTimeFor, lobbyIsCompetition, lobbyAvgTimeFor, lobbyBestTimeMs, racePct,
@@ -8691,7 +8739,7 @@ const App = {
         </div>
         <div class="story-grid">
           <button v-for="l in storyPageLevels" :key="l.level" class="story-tile" :class="{ locked: !l.open, next: l.next, done: l.stars > 0 }"
-                  :style="{ '--acc': l.acc }" :disabled="!l.open || state.storyLoading" :data-level="l.level" @click="playStoryLevel(l.level)">
+                  :style="{ '--acc': l.acc }" :disabled="!l.open || state.storyLoading" :data-level="l.level" @click="onStoryTile(l)">
             <span class="st-num">{{ l.level }}</span>
             <span v-if="!l.open" class="ei st-lock" v-html="ic('lock')"></span>
             <span v-else class="st-stars"><i v-for="(on, i) in storyStarsArr(l.stars)" :key="i" :class="{ on }"></i></span>
@@ -9157,6 +9205,27 @@ const App = {
           <p v-if="state.storyResult && state.storyResult.helped" class="story-helped">{{ t('story.helped') }}</p>
           <div v-if="state.story" class="story-result" :aria-label="t('story.starsAria', { n: state.storyResult ? state.storyResult.stars : 0 })">
             <i v-for="(on, i) in storyStarsArr(state.storyResult ? state.storyResult.stars : 0)" :key="i" class="sr-star" :class="{ on }" :style="{ '--d': (i * 160) + 'ms' }"></i>
+          </div>
+          <div v-if="state.story && state.storyBoard && state.storyBoard.key === state.story.key && state.storyBoard.level === state.story.level" class="story-board" :class="'sb-' + state.storyBoard.status">
+            <div class="sb-head"><span class="ei" v-html="ic('trophy')"></span>{{ t('story.board') }}<small v-if="storyBoardRows.total">{{ t('story.boardCount', { n: storyBoardRows.total }) }}</small></div>
+            <p v-if="state.storyBoard.status === 'signin'" class="sb-note">{{ t('story.boardSignIn') }}</p>
+            <p v-else-if="state.storyBoard.status === 'error'" class="sb-note">{{ t('story.boardError') }}</p>
+            <p v-else-if="state.storyBoard.status === 'loading'" class="sb-note">{{ t('story.boardLoading') }}</p>
+            <p v-else-if="!storyBoardRows.total" class="sb-note">{{ t('story.boardEmpty') }}</p>
+            <template v-else>
+              <div v-for="e in storyBoardRows.rows" :key="e.uid" class="sb-row" :class="{ me: e.me }">
+                <span class="sb-rank">{{ e.rank }}</span>
+                <span class="sb-name"><span v-if="badgeShown(lbBadge(e))" class="badge-medal-inline" v-html="badgeSvg(lbBadge(e))"></span>{{ e.username || '–' }}</span>
+                <span class="sb-stars"><i v-for="(on, i) in storyStarsArr(e.stars)" :key="i" :class="{ on }"></i></span>
+                <span class="sb-time">{{ fmtTime(e.timeMs) }}</span>
+              </div>
+              <div v-if="storyBoardRows.mine" class="sb-row me sb-mine">
+                <span class="sb-rank">{{ storyBoardRows.mine.rank }}</span>
+                <span class="sb-name">{{ storyBoardRows.mine.username || '–' }}</span>
+                <span class="sb-stars"><i v-for="(on, i) in storyStarsArr(storyBoardRows.mine.stars)" :key="i" :class="{ on }"></i></span>
+                <span class="sb-time">{{ fmtTime(storyBoardRows.mine.timeMs) }}</span>
+              </div>
+            </template>
           </div>
           <div v-if="state.perfectWin || state.newHighscore || state.wouldHaveBeenBest" class="rc-badges">
             <div v-if="state.perfectWin" class="perfect-badge">{{ t('win.perfectBadge') }}</div>
@@ -10704,6 +10773,41 @@ const App = {
          Jede Zeile beantwortet in einem Blick „welcher Stand ist das und lohnt
          er sich?" — Schwierigkeit, Groesse, FORTSCHRITT als Balken, Restleben,
          Spielzeit und wie lange er schon liegt. -->
+    <!-- Story: Detail eines geschafften Levels — eigener Bestwert + Bestenliste. -->
+    <div v-if="state.storyDetail" class="modal-bg story-detail-bg" @click.self="closeStoryDetail">
+      <div class="modal story-detail" :style="{ '--acc': storyDetailAcc() }">
+        <h3>{{ t('story.levelN', { n: state.storyDetail.level }) }}</h3>
+        <div v-if="storyDetailEntry()" class="sd-best">
+          <span class="sb-stars big"><i v-for="(on, i) in storyStarsArr(storyDetailEntry().s)" :key="i" :class="{ on }"></i></span>
+          <span v-if="storyDetailEntry().t" class="sd-time"><span class="ei" v-html="ic('clock')"></span>{{ fmtTime(storyDetailEntry().t) }}</span>
+        </div>
+        <div v-if="state.storyBoard && state.storyBoard.key === state.storyDetail.key && state.storyBoard.level === state.storyDetail.level" class="story-board" :class="'sb-' + state.storyBoard.status">
+            <div class="sb-head"><span class="ei" v-html="ic('trophy')"></span>{{ t('story.board') }}<small v-if="storyBoardRows.total">{{ t('story.boardCount', { n: storyBoardRows.total }) }}</small></div>
+            <p v-if="state.storyBoard.status === 'signin'" class="sb-note">{{ t('story.boardSignIn') }}</p>
+            <p v-else-if="state.storyBoard.status === 'error'" class="sb-note">{{ t('story.boardError') }}</p>
+            <p v-else-if="state.storyBoard.status === 'loading'" class="sb-note">{{ t('story.boardLoading') }}</p>
+            <p v-else-if="!storyBoardRows.total" class="sb-note">{{ t('story.boardEmpty') }}</p>
+            <template v-else>
+              <div v-for="e in storyBoardRows.rows" :key="e.uid" class="sb-row" :class="{ me: e.me }">
+                <span class="sb-rank">{{ e.rank }}</span>
+                <span class="sb-name"><span v-if="badgeShown(lbBadge(e))" class="badge-medal-inline" v-html="badgeSvg(lbBadge(e))"></span>{{ e.username || '–' }}</span>
+                <span class="sb-stars"><i v-for="(on, i) in storyStarsArr(e.stars)" :key="i" :class="{ on }"></i></span>
+                <span class="sb-time">{{ fmtTime(e.timeMs) }}</span>
+              </div>
+              <div v-if="storyBoardRows.mine" class="sb-row me sb-mine">
+                <span class="sb-rank">{{ storyBoardRows.mine.rank }}</span>
+                <span class="sb-name">{{ storyBoardRows.mine.username || '–' }}</span>
+                <span class="sb-stars"><i v-for="(on, i) in storyStarsArr(storyBoardRows.mine.stars)" :key="i" :class="{ on }"></i></span>
+                <span class="sb-time">{{ fmtTime(storyBoardRows.mine.timeMs) }}</span>
+              </div>
+            </template>
+          </div>
+        <div class="sd-actions">
+          <button class="btn" @click="closeStoryDetail">{{ t('common.close') }}</button>
+          <button class="btn btn-primary sd-play" @click="playStoryDetail">{{ t('story.replay') }}</button>
+        </div>
+      </div>
+    </div>
     <div v-if="state.savesOpen" class="modal-bg saves-bg" @click.self="closeSaves">
       <div class="modal saves-modal">
         <h3><span class="ei" v-html="ic('save')"></span> {{ t('saves.title') }}</h3>

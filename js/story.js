@@ -175,3 +175,28 @@ export async function loadStoryLevel(key, level) {
   if (!e) throw new Error(`Story ${key} Level ${level} fehlt`);
   return e;
 }
+
+// ── Bestenliste je Level ─────────────────────────────────────────────────────
+// Firebase: storyboard/{schlüssel}/{level}/{uid} = { username, stars, timeMs, badge, ts }.
+// Nur allein gelöste Level (mit Hilfe zählt nicht). Rang: mehr Sterne vor
+// schnellerer Zeit — 3★ in 5 min schlägt 2★ in 1 min.
+const validMs = (v) => Number.isFinite(v) && v > 0;
+/** Ist Ergebnis a besser als b? (b fehlt = a ist besser) */
+export function storyBoardBetter(a, b) {
+  if (!a || !(a.stars > 0) || !validMs(a.timeMs)) return false;
+  if (!b || !(b.stars > 0) || !validMs(b.timeMs)) return true;
+  if (a.stars !== b.stars) return a.stars > b.stars;
+  return a.timeMs < b.timeMs;
+}
+export function sortStoryBoard(entries) {
+  return [...(entries || [])]
+    .filter((e) => e && e.stars > 0 && validMs(e.timeMs))
+    .sort((a, b) => (b.stars - a.stars) || (a.timeMs - b.timeMs) || String(a.username || '').localeCompare(String(b.username || '')));
+}
+/** Anzeige: die ersten `top` Plätze + der eigene Platz, falls weiter hinten. */
+export function storyBoardView(entries, uid, top = 3) {
+  const sorted = sortStoryBoard(entries).map((e, i) => ({ ...e, rank: i + 1, me: !!uid && e.uid === uid }));
+  const rows = sorted.slice(0, top);
+  const mine = sorted.find((e) => e.me) || null;
+  return { rows, mine: mine && mine.rank > top ? mine : null, total: sorted.length };
+}

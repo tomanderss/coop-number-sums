@@ -3704,3 +3704,28 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 @keyframes sr-pop { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
 /* „Hilfe holen“: Hinweis auf der Sieg-Karte, wenn das Level gemeinsam gelöst wurde. */
 .story-helped { margin: 0; text-align: center; font-size: .8rem; font-weight: 700; color: var(--text2); }
+/* Bestenliste je Level: kompakt (Ergebnis-Karte muss ohne Scrollen passen). */
+.story-board { margin: 4px 0 8px; padding: 8px 10px; border: 1px solid var(--hairline); border-radius: 12px; text-align: left; }
+.story-board .sb-head { display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 800; color: var(--text2); margin-bottom: 4px; }
+.story-board .sb-head .ei { width: 14px; height: 14px; color: #f5b301; }
+.story-board .sb-head small { margin-left: auto; font-weight: 600; color: var(--text3); }
+.story-board .sb-note { margin: 2px 0; font-size: .78rem; color: var(--text2); }
+.sb-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto 52px; align-items: center; gap: 6px; min-height: 24px; font-size: .84rem; }
+.sb-row.me { font-weight: 800; color: var(--accent); }
+.sb-row.sb-mine { border-top: 1px dashed var(--hairline); margin-top: 2px; padding-top: 2px; }
+.sb-rank { font-variant-numeric: tabular-nums; color: var(--text3); text-align: right; }
+.sb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.sb-time { font-variant-numeric: tabular-nums; text-align: right; }
+.sb-stars { display: flex; gap: 1px; }
+.sb-stars i { display: block; width: 10px; height: 10px; background: color-mix(in srgb, var(--text3) 45%, transparent);
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.sb-stars i.on { background: #f5b301; }
+.sb-stars.big { gap: 6px; }
+.sb-stars.big i { width: 26px; height: 26px; }
+/* Detail eines geschafften Levels (Story-Screen). */
+.story-detail { max-width: 380px; }
+.story-detail h3 { color: var(--acc); }
+.story-detail .sd-best { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 4px 0 10px; }
+.story-detail .sd-time { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.story-detail .sd-time .ei { width: 16px; height: 16px; }
+.story-detail .sd-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
