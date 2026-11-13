@@ -155,3 +155,29 @@ describe('withGameScope (Abgleich aller Spiele beim Start)', () => {
     assert.equal(gameId(), DEFAULT_GAME_ID);
   });
 });
+
+import { collectFullExport, importFromFile as importAll, loadSettings as loadSet } from '../../js/storage.js';
+describe('Vollständige Sicherung: alle Spiele in einer Datei', () => {
+  test('Export enthält jedes Spiel, Import stellt jedes in seinem Bereich wieder her', () => {
+    localStorage.clear();
+    const ids = ['numbersums', 'mathcross', 'pipes'];
+    for (const [i, g] of ids.entries()) {
+      withGameScope(g, () => localStorage.setItem(g === 'numbersums' ? 'cns_stats' : `cns_stats__${g}`, JSON.stringify({ played: 10 + i, byDifficulty: { mittel: { bestTimeMs: 1000 * (i + 1) } } })));
+    }
+    localStorage.setItem('cns_settings', JSON.stringify({ themeMode: 'dark' }));
+    const file = collectFullExport('manual');
+    assert.equal(file.v, 2);
+    for (const [i, g] of ids.entries()) assert.equal(file.games[g].stats.played, 10 + i, g);
+    assert.equal(file.games.numbersums.settings, undefined, 'kontoweite Daten nur einmal');
+
+    localStorage.clear();
+    importAll(JSON.stringify(file));
+    for (const [i, g] of ids.entries()) assert.equal(withGameScope(g, () => loadStats()).played, 10 + i, g);
+    assert.equal(loadSet().themeMode, 'dark');
+  });
+  test('alte Sicherung (v1, ein Spiel) wird weiterhin ins offene Spiel eingespielt', () => {
+    localStorage.clear();
+    importAll(JSON.stringify({ v: 1, stats: { played: 7 } }));
+    assert.equal(loadStats().played, 7);
+  });
+});

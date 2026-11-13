@@ -4,7 +4,7 @@
 import { DEFAULT_SETTINGS } from './config.js';
 import { log, clearLog } from './debuglog.js';
 import { todayDateStr, sanitizeLastCompleted } from './streak.js';
-import { activeGameId, setActiveGameId, DEFAULT_GAME_ID } from './games/registry.js';
+import { activeGameId, setActiveGameId, DEFAULT_GAME_ID, GAME_IDS } from './games/registry.js';
 import { snapshotRules } from './games/snapshots.js';
 import { mergeMissions } from './missions.js';
 import { mergeStory } from './story.js';
@@ -863,9 +863,30 @@ export function joinSnapshot(account = {}, game = {}) {
   return out;
 }
 
+// ─── VOLLSTÄNDIGE Sicherung: die ganze App, ALLE Spiele ─────────────────────
+// Nutzerwunsch „eine App, unabhängig davon, welches Spiel vorne ist": die
+// Sicherungsdatei enthält die kontoweiten Daten EINMAL und unter `games` die
+// spieleigene Hälfte JEDES Spiels. Die oberste Ebene bleibt zusätzlich ein
+// vollständiger Snapshot des gerade offenen Spiels (v1-Form) — eine ältere
+// App-Version kann die Datei damit weiterhin einlesen.
+export const FULL_EXPORT_VERSION = 2;
+export function collectFullExport(type = 'manual') {
+  const out = { ...collectExportData(type), v: FULL_EXPORT_VERSION, game: activeGameId(), games: {} };
+  for (const g of GAME_IDS) {
+    const snap = withGameScope(g, () => collectExportData(type));
+    const half = {};
+    for (const key of GAME_FIELDS) if (snap[key] !== undefined) half[key] = snap[key];
+    out.games[g] = half;
+  }
+  return out;
+}
+
 export async function exportToFile(type = 'manual') {
   const filename = `${type}-coop-number-games-${buildTimestamp()}.json`;
-  const payload = JSON.stringify(collectExportData(type), null, 2);
+  const t0 = Date.now();
+  const data = collectFullExport(type);
+  const payload = JSON.stringify(data, null, 2);
+  log('storage', 'Vollständige Sicherung erstellt', { games: Object.keys(data.games).length, bytes: payload.length, tookMs: Date.now() - t0 });
   const blob = new Blob([payload], { type: 'application/json' });
   if (navigator.canShare) {
     try {
@@ -1041,7 +1062,23 @@ export function pickEndlessSlot(localG, importedG) {
   return (Number(i.ts) || 0) > (Number(l.ts) || 0) ? i : l;
 }
 export function importFromFile(jsonText) {
-  const data = JSON.parse(jsonText);
+  const data = typeof jsonText === 'string' ? JSON.parse(jsonText) : jsonText;
+  // Vollständige Sicherung (v2): kontoweite Daten einmal, dann JEDES Spiel in
+  // seinem eigenen Schlüssel-Bereich. Die Spiel-Felder der obersten Ebene sind
+  // nur die Kopie des damals offenen Spiels für ältere Versionen → übergehen.
+  if (data && data.games && typeof data.games === 'object' && !Array.isArray(data.games)) {
+    const account = {};
+    for (const key of Object.keys(data)) if (key !== 'games' && !GAME_FIELDS.includes(key)) account[key] = data[key];
+    importFromFile(account);
+    const done = [];
+    for (const [g, half] of Object.entries(data.games)) {
+      if (!GAME_IDS.includes(g) || !half || typeof half !== 'object') { log('storage', 'Sicherung: unbekanntes Spiel übergangen', { game: g }); continue; }
+      withGameScope(g, () => importFromFile(half));
+      done.push(g);
+    }
+    log('storage', 'Vollständige Sicherung eingespielt', { games: done });
+    return data;
+  }
   if (data.settings) save(KEYS.SETTINGS, data.settings);
   if (data.stats) save(KEYS.STATS, data.stats);
   if (data.daily) save(KEYS.DAILY, data.daily);
