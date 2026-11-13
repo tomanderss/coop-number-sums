@@ -1496,7 +1496,7 @@ function storyOnWin() {
   const helped = !!(s.helped || state.coop.active);
   const stars = helped ? 1 : storyStars({
     lives: gameHas('lives'), mistakes: state.mistakes || 0, hints: state.hintsUsed || 0,
-    elapsedMs: state.elapsed || 0, cells: (state.puzzle.rows || 0) * (state.puzzle.cols || 0), bandIndex: s.band,
+    elapsedMs: state.elapsed || 0, cells: (state.puzzle.rows || 0) * (state.puzzle.cols || 0), bandIndex: s.band, game: currentGame.id,
   });
   const prev = storyEntry(state.storyProgress, s.key, s.level);
   state.storyProgress = recordStoryResult(state.storyProgress, s.key, s.level, { stars, ms: Math.round(state.elapsed || 0) });

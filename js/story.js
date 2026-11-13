@@ -69,21 +69,47 @@ export function cleanPuzzle(p) {
 
 // ── Sterne ───────────────────────────────────────────────────────────────────
 // Nutzerwunsch: Fehler kosten Sterne. Die Zeit zählt nur in Spielen OHNE Leben
-// (dort gibt es keine Fehler) — mit einer groben Skala nach Brettgröße.
+// (Number Path, Pipes, Number Link — dort gibt es keine Fehler).
 //   mit Leben:  0 Fehler/Tipps = 3★, 1 = 2★, mehr = 1★ (gelöst ist immer ≥ 1★)
-//   ohne Leben: bis Richtzeit 3★, bis doppelte Richtzeit 2★, sonst 1★
-export const PAR_MS_PER_CELL = 2500;
-export function storyParMs(cells, bandIndex = 4) {
-  // Schwerere Stufen bekommen mehr Zeit je Zelle (Faktor 1 … 3).
-  return Math.round(Math.max(1, cells) * PAR_MS_PER_CELL * (1 + bandIndex / 4));
+//   ohne Leben: bis zur 3★-Zeit 3★, bis zur 2★-Zeit 2★, sonst 1★
+//
+// Die 3★-Zeit ist an echten Zeiten eines erfahrenen Spielers ausgerichtet
+// (Sicherung vom 13.11.2026, Nutzerwunsch: „nicht meine Zeit als exakte Grenze,
+// sondern daran orientieren"): 3★ liegt zwischen seiner Bestzeit und seinem
+// Durchschnitt (Bestzeit + 40 % des Abstands), geglättet über die Stufen und als
+// Sekunden JE ZELLE. 2★ = 3 × die 3★-Zeit (≈ 1,5–2 × Durchschnitt).
+//
+// VORLÄUFIG ab „Mittel“: die gemessenen Zeiten stammen von den Rätseln VOR dem
+// Schwierigkeits-Umbau (v3.37–3.39). Für die heutigen Rätsel ist das mit
+// STORY_HARDER hochgerechnet (geschätzt, Nutzerentscheidung „erstmal schätzen")
+// und wird mit neuen Daten nachgeschärft. Schon verdiente Sterne bleiben
+// (recordStoryResult nimmt immer den besseren Wert).
+export const STORY_SEC_PER_CELL = {
+  //            sehrl. leicht mittel schwer extrem mash.  dikk.  bism.  rip
+  numberpath: [0.55, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.00],
+  pipes:      [1.40, 1.50, 1.80, 2.40, 2.80, 3.00, 3.30, 3.80, 4.00],
+  numberlink: [0.23, 0.25, 0.35, 0.45, 0.50, 0.60, 0.80, 1.00, 1.10],
+};
+// Aufschlag für die schwereren Rätsel ab „Mittel“ (Index = Stufe).
+export const STORY_HARDER = [1, 1, 2, 2.5, 3, 3, 3, 3, 3];
+export const STORY_TWO_STAR = 3;
+// Rückfall für ein Spiel ohne eigene Werte (sollte nicht vorkommen: nur Spiele
+// ohne Leben werden nach Zeit gewertet).
+const FALLBACK_SPC = STORY_SEC_PER_CELL.numberpath;
+
+/** 3★-Zeit in ms für ein Brett dieser Größe, Stufe und dieses Spiel. */
+export function storyParMs(cells, bandIndex = 4, game = null) {
+  const b = Math.max(0, Math.min(8, bandIndex | 0));
+  const spc = (STORY_SEC_PER_CELL[game] || FALLBACK_SPC)[b];
+  return Math.round(Math.max(1, cells) * spc * STORY_HARDER[b] * 1000);
 }
-export function storyStars({ lives = true, mistakes = 0, hints = 0, elapsedMs = 0, cells = 0, bandIndex = 0 } = {}) {
+export function storyStars({ lives = true, mistakes = 0, hints = 0, elapsedMs = 0, cells = 0, bandIndex = 0, game = null } = {}) {
   if (lives) {
     const slips = Math.max(0, mistakes) + Math.max(0, hints);
     return slips === 0 ? 3 : slips === 1 ? 2 : 1;
   }
-  const par = storyParMs(cells, bandIndex);
-  return elapsedMs <= par ? 3 : elapsedMs <= par * 2 ? 2 : 1;
+  const par = storyParMs(cells, bandIndex, game);
+  return elapsedMs <= par ? 3 : elapsedMs <= par * STORY_TWO_STAR ? 2 : 1;
 }
 
 // ── Fortschritt ──────────────────────────────────────────────────────────────
