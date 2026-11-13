@@ -24,6 +24,7 @@ export default {
   },
 
   solo: { title: 'Solo', classic: 'Clásico', classicHint: 'Un puzle, dificultad libre', endless: 'Ascenso sin fin', endlessHint: 'Cada vez más difícil, ¿hasta dónde llegas?', endlessStart: 'Iniciar sin fin' },
+  story: { title: 'Historia', homeHint: 'Nivel {n} de 500', progress: '{n} de {max} niveles superados', resume: 'Continuar: nivel {n}', playLevel: 'Jugar nivel {n}', range: 'Niveles {a}–{b}', more: 'Más niveles', levelDone: '¡Nivel {n} superado!', starsAria: '{n} de 3 estrellas', overview: 'Resumen', next: 'Siguiente nivel', retry: 'Otra vez', loadFailed: 'No se pudo cargar el nivel: conéctate a internet una vez.' },
   endless: { badge: 'Sin fin', best: 'Mejor racha: nivel {n}', cleared: '¡Nivel {n} superado!', lifeGained: '+1 vida', overTitle: 'Fin de la partida', reached: 'Nivel {n} alcanzado', record: '¡Nuevo récord!', levelDone: '¡Nivel {n} superado!', continue: 'Continuar', livesLabel: 'Vidas', levelShort: 'Nivel {n}', levelTime: 'Tiempo de este nivel', totalTime: 'Tiempo total de la partida', backfillToast: 'Partidas sin fin anteriores acreditadas: ¡{wins} victorias de {runs} partidas ya cuentan en tus estadísticas!', waitingForNextLevel: 'Nivel {level} superado: esperando a que el anfitrión inicie el siguiente …' },
 
   saves: { title: 'Partidas guardadas', manage: 'Gestionar partidas', moreN: 'Más partidas guardadas ({n})', livesLeft: '{n} de {max} vidas restantes', openN: 'Todas las partidas ({n})', intro: 'Cada partida se guarda por separado: empieza otra cuando quieras, la anterior se conserva. Espacio para {max}.', running: 'en curso', delete: 'Eliminar', deleteTitle: 'Eliminar partida?', deleteMsg: 'Esta partida se eliminara definitivamente.', deleted: 'Partida eliminada', empty: 'Aun no hay partidas guardadas.', justNow: 'ahora mismo', minsAgo: 'hace {n} min', hoursAgo: 'hace {n} h', yesterday: 'ayer', daysAgo: 'hace {n} dias' },
@@ -446,6 +447,7 @@ export default {
       wallet: 'Saldo',
       daily: 'Racha diaria',
       mixStats: 'Modo aleatorio Mix',
+      story: 'Modo historia',
       stats: 'Estadísticas',
       achievements: 'Logros',
       race: 'Competición',

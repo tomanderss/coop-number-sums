@@ -695,8 +695,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Sehr niedrige Bildschirme (z.B. iPhone SE 1. Gen., 568 px): Startseite etwas
    dichter packen, damit sie wie eine native App ohne Scrollen ganz passt. */
 @media (max-height: 620px) {
-  .game-wheel { --gw: 60px; }
-  .screen.home .home-actions .btn, .screen.home .home-mix .btn { padding-top: 8px; padding-bottom: 8px; }
+  .game-wheel { --gw: 54px; }
+  .screen.home .home-actions .btn, .screen.home .home-mix .btn { padding-top: 6px; padding-bottom: 6px; }
+  /* Mit dem Story-Knopf sind es vier Modus-Knöpfe — Tippflächen bleiben ≥ 40 px. */
+  .screen.home .home-actions, .screen.home .home-mix { gap: 5px; }
+  .screen.home .home-actions .mode-btn, .screen.home .home-mix .mode-btn { min-height: 40px; }
+  .screen.home .home-grid .btn, .screen.home .mix-rec { min-height: 36px; }
 }
 /* Menü unter der Scheibe blendet beim Spielwechsel weich über. */
 /* Fortsetzen-Bereich: erscheint/verschwindet weich, ohne Lücke dazwischen. */
@@ -3660,3 +3664,41 @@ select.admin-row-input { flex-basis: 56%; max-width: 230px; font-size: .82rem; }
 
 .div-opt .op-obelus, .div-opt .div-sample { color: var(--text); }
 .set-row-label .account-role { margin-left: 8px; }
+
+/* ══ STORY-MODUS ══════════════════════════════════════════════════════════════
+   Schmale, zentrierte Spalte (Design-Leitlinie), 5er-Raster der Level je Seite
+   (50 Level), Stufenfarbe als feiner Akzent, das nächste Level leuchtet. */
+.story-screen .story-body { width: 100%; max-width: 340px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; padding: 4px 0 18px; }
+.story-hero { display: flex; align-items: center; gap: 14px; }
+.story-logo { width: 64px; height: 64px; border-radius: 16px; box-shadow: var(--soft-shadow); flex: none; }
+.story-herotx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.story-herotx b { font-size: 1.15rem; font-weight: 900; }
+.story-herotx small { font-size: .78rem; font-weight: 700; color: var(--text2); }
+.story-starsum { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; font-weight: 800; color: #e8a700; }
+.story-starsum .ei { width: 1em; height: 1em; }
+.story-play, .story-resume { width: 100%; }
+.story-pager { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 8px; }
+.story-range { text-align: center; font-size: .82rem; font-weight: 800; color: var(--text2); }
+.story-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.story-tile {
+  aspect-ratio: 1; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  background: var(--bg2); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--acc) 35%, transparent); color: var(--text);
+  transition: transform .12s;
+}
+.story-tile:active:not(:disabled) { transform: scale(.94); }
+.story-tile .st-num { font-size: .95rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.story-tile.done { background: color-mix(in srgb, var(--acc) 16%, var(--bg2)); }
+.story-tile.next { box-shadow: inset 0 0 0 2.5px var(--acc), 0 0 0 4px color-mix(in srgb, var(--acc) 22%, transparent); }
+.story-tile.locked { opacity: .42; }
+.story-tile .st-lock { width: 12px; height: 12px; color: var(--text2); }
+.st-stars { display: flex; gap: 2px; }
+.st-stars i, .story-result .sr-star {
+  display: block; width: 9px; height: 9px; background: color-mix(in srgb, var(--text3) 45%, transparent);
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.st-stars i.on { background: #f5b301; }
+/* Sterne auf der Ergebnis-Karte: groß, nacheinander „eingestempelt". */
+.story-result { display: flex; justify-content: center; gap: 10px; margin: 2px 0 6px; }
+.story-result .sr-star { width: 38px; height: 38px; }
+.story-result .sr-star.on { background: #f5b301; animation: sr-pop .42s cubic-bezier(.2, 1.6, .4, 1) both; animation-delay: var(--d); }
+@keyframes sr-pop { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
