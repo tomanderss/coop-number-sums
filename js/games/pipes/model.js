@@ -78,12 +78,26 @@ export function isSolved(p, rot) {
   const f = flow(p, rot);
   return f.leaks.size === 0 && f.reached === p.rows * p.cols;
 }
-/** Fortschritt = versorgte Zellen; 100 nur, wenn wirklich gelöst. */
-export function progressPct(p, rot) {
-  const f = flow(p, rot);
+/**
+ * Wie viele Zellen zählen als Fortschritt? Jede Zelle EINMAL (Nutzerwunsch):
+ * durchströmt (nur bei gezeigtem Wasser) ODER gesperrt („festgestellt“) — die
+ * Vereinigung, nicht die Summe, sonst käme ein Brett auf bis zu 200 %.
+ */
+export function progressCells(p, rot, lock = null, showFlow = true) {
   const n = p.rows * p.cols;
-  if (f.leaks.size === 0 && f.reached === n) return 100;
-  return Math.min(99, Math.round((f.reached / n) * 100));
+  const f = showFlow ? flow(p, rot) : null;
+  const done = new Uint8Array(n);
+  if (f) for (const i of f.cells) done[i] = 1;
+  if (lock) for (let i = 0; i < n; i++) if (lock[i]) done[i] = 1;
+  let c = 0;
+  for (let i = 0; i < n; i++) c += done[i];
+  return { count: c, total: n, solved: !!f && f.leaks.size === 0 && f.reached === n };
+}
+/** Fortschritt = versorgte oder gesperrte Zellen (je einmal); 100 nur, wenn wirklich gelöst. */
+export function progressPct(p, rot, lock = null, showFlow = true) {
+  const { count, total, solved } = progressCells(p, rot, lock, showFlow);
+  if (solved) return 100;
+  return Math.min(99, Math.round((count / total) * 100));
 }
 
 // ── Form & Heilung (RTDB: Arrays als Objekte, leere fehlen) ──

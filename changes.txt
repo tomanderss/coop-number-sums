@@ -1,0 +1,1 @@
+- Pipes: Der Fortschritt zählt jetzt auch gesperrte Felder – jedes Feld einmal, egal ob durchströmt, gesperrt oder beides

@@ -13,7 +13,9 @@ export function snapshotSolved(g) {
 export function snapshotProgress(g) {
   const p = g && g.puzzle && normalizePuzzle(g.puzzle);
   if (!ok(p)) return 0;
-  return progressPct(p, normalizeRot(g.pipeRot, p.rows * p.cols));
+  const n = p.rows * p.cols;
+  const lock = Array.isArray(g.pipeLock) ? g.pipeLock : g.pipeLock && typeof g.pipeLock === 'object' ? Array.from({ length: n }, (_, i) => !!g.pipeLock[i]) : null;
+  return progressPct(p, normalizeRot(g.pipeRot, n), lock);
 }
 // Aus der CLOUD: Arrays als Objekte mit numerischen Schlüsseln, leere fehlen.
 export function healSnapshot(g) {

@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, E, S, W, rotMask, orientations, flow, isSolved, progressPct, normalizePuzzle, normalizeRot, validPuzzleShape, degree } from '../../js/games/pipes/model.js';
+import { N, E, S, W, rotMask, orientations, flow, isSolved, progressPct, progressCells, normalizePuzzle, normalizeRot, validPuzzleShape, degree } from '../../js/games/pipes/model.js';
 import { solveLogic, nextDeduction } from '../../js/games/pipes/solver.js';
 import { generatePuzzle } from '../../js/games/pipes/generator.js';
 import { DIFFICULTIES } from '../../js/games/pipes/difficulty.js';
@@ -112,4 +112,25 @@ describe('Pipes: schwerere obere Stufen', () => {
       }
     });
   }
+});
+
+describe('Pipes: Fortschritt zählt durchströmte UND gesperrte Felder je einmal', () => {
+  test('Vereinigung statt Summe, nie über 99 % ohne Lösung', async () => {
+    const { generatePuzzle } = await import('../../js/games/pipes/generator.js');
+    const p = generatePuzzle({ difficulty: 'mittel', seed: 7 });
+    const n = p.rows * p.cols;
+    const rot = p.tiles.map(() => 0);
+    const wet = flow(p, rot).cells;
+    // Alle durchströmten Felder zusätzlich sperren: kein doppeltes Zählen.
+    const lockWet = Array.from({ length: n }, (_, i) => wet.includes(i));
+    assert.equal(progressCells(p, rot, lockWet).count, wet.length);
+    // Alles gesperrt, aber nicht gelöst: 99 %, nicht 100 oder 200.
+    const all = Array(n).fill(true);
+    if (!isSolved(p, rot)) assert.equal(progressPct(p, rot, all), 99);
+    // Ohne Wasser zählen nur die gesperrten.
+    const some = Array.from({ length: n }, (_, i) => i < 5);
+    assert.equal(progressCells(p, rot, some, false).count, 5);
+    // Gelöst bleibt 100.
+    assert.equal(progressPct(p, p.solRot, all), 100);
+  });
 });
