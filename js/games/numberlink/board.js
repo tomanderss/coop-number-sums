@@ -121,22 +121,41 @@ function playable() {
   return state.puzzle && state.status === 'playing' && !state.generating && !state.paused && !state.sessionReadonly
     && !(state.isTrainingGame && !state.trainingDone);
 }
+// RTDB liefert Arrays evtl. als Objekte, leere fehlen ganz.
+const arr = (v) => (Array.isArray(v) ? v : v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []);
 const sameArr = (a, b) => a === b || (a.length === b.length && a.every((x, i) => x === b[i]));
 const connected = (k, path) => pathComplete(state.puzzle, k, path, rules());
 
-/** Neue Linien übernehmen — nur geänderte Einträge werden ersetzt. */
-function commitLinks(next, by = null) {
+// Wer hat welche ZELLE einer Linie gezogen (Coop-Verteilung)? Zellen, die die
+// Linie schon im Bezugsstand hatte, behalten ihren Zieher, neue gehören `who`.
+// Vorher bekam der, der eine Linie zuletzt berührte, die GANZE Linie — ein
+// Spieler stand so schnell bei 100 % (gemeldet).
+function ownersFor(refPath, refOwn, path, who) {
+  const m = new Map();
+  (refPath || []).forEach((c, j) => m.set(c, (refOwn && refOwn[j]) || ''));
+  return path.map((c) => (m.has(c) && m.get(c) ? m.get(c) : who));
+}
+const fitOwn = (own, path, fill) => path.map((_, j) => (Array.isArray(own) && own[j]) || fill || '');
+
+/** Neue Linien übernehmen — nur geänderte Einträge werden ersetzt. `ref` =
+ *  Bezugsstand für die Zieher (beim Ziehen: der Stand beim Aufsetzen). */
+function commitLinks(next, by = null, ref = null) {
   const cur = state.links;
   let changed = false;
   const out = cur.slice();
   const outBy = state.linkBy.slice();
+  const outOwn = state.linkOwn.slice();
   const before = cur.map((path, i) => connected(i + 1, path));
   for (let i = 0; i < next.length; i++) {
-    if (!sameArr(cur[i] || [], next[i])) { out[i] = next[i]; changed = true; if (by && next[i].length) outBy[i] = by; }
+    if (sameArr(cur[i] || [], next[i])) continue;
+    out[i] = next[i]; changed = true;
+    if (by && next[i].length) outBy[i] = by;
+    outOwn[i] = ref && ref.baseOwn ? ownersFor(ref.base[i], ref.baseOwn[i], next[i], me()) : ownersFor(cur[i], state.linkOwn[i], next[i], me());
   }
   if (!changed) return false;
   state.links = out;
   state.linkBy = outBy;
+  state.linkOwn = outOwn;
   const nowDone = out.some((path, i) => !before[i] && connected(i + 1, path));
   if (nowDone) { haptic('done'); if (state.settings.sfxComplete) Music.sfxComplete(1); }
   afterMove();
@@ -144,7 +163,7 @@ function commitLinks(next, by = null) {
 }
 
 // ── Ziehen ───────────────────────────────────────────────────────────────────
-// drag = { id, box, k, base (Linien beim Aufsetzen), path (die gezogene Linie) }
+// drag = { id, box, k, base (Linien beim Aufsetzen), baseOwn (Zieher je Zelle dazu), path (die gezogene Linie) }
 let drag = null;
 let pan = null;
 const pointers = new Map();
@@ -223,8 +242,8 @@ function onDown(e) {
   const cell = cellAt(box, e.clientX, e.clientY);
   const d = beginAt(cell);
   if (!d) return;
-  drag = { ...d, id: e.pointerId, box };
-  commitLinks(draftLinks(drag));
+  drag = { ...d, id: e.pointerId, box, baseOwn: state.linkOwn.map((x) => x.slice()) };
+  commitLinks(draftLinks(drag), null, drag);
   sendLive({ path: drag.path.slice(), cur: cell, pc: pairColors.value[drag.k - 1] || '' });
 }
 
@@ -245,7 +264,7 @@ function onMove(e) {
   if (drag.path.includes(cell)) stepDrag(drag, cell);
   else stepToward(drag, cell);
   if (drag.path === before) return;
-  commitLinks(draftLinks(drag));
+  commitLinks(draftLinks(drag), null, drag);
   sendLive({ path: drag.path.slice(), cur: cell, pc: pairColors.value[drag.k - 1] || '' });
 }
 
@@ -257,19 +276,19 @@ function finishDrag() {
   const final = draftLinks(d);
   // Eine einzelne Zahl ohne Linie ist keine Linie.
   if (final[d.k - 1].length < 2) final[d.k - 1] = [];
-  commitLinks(final, me());
-  const set = {};
-  final.forEach((path, i) => { if (!sameArr(path, d.base[i])) set[i + 1] = path.length ? path : ''; });
+  commitLinks(final, me(), d);
+  const set = {}, own = {};
+  final.forEach((path, i) => { if (!sameArr(path, d.base[i])) { set[i + 1] = path.length ? path : ''; if (path.length) own[i + 1] = state.linkOwn[i].map((x) => x || ''); } });
   if (Object.keys(set).length) {
     // Linie abgelegt: Setz-Ton, außer sie ist gerade fertig geworden (dann kam schon der Fertig-Ton).
     if (!connected(d.k, final[d.k - 1])) { haptic('place'); if (state.settings.sfxKeep) Music.sfxKeep(); }
-    sendLinks(set);
+    sendLinks(set, own);
   }
   sendLive(null);
 }
-function sendLinks(set) {
+function sendLinks(set, own = {}) {
   if (!isMultiplayer()) return;
-  const key = coopSend({ type: Coop.MSG.MOVE, op: 'links', set, by: me(), from: state.coop.myId });
+  const key = coopSend({ type: Coop.MSG.MOVE, op: 'links', set, own, by: me(), from: state.coop.myId });
   if (key) for (const k of Object.keys(set)) state.linkKeys = { ...state.linkKeys, [k]: key };
 }
 
@@ -288,7 +307,7 @@ function onCancel(e) {
 // Testhaken + Training: eine Linie direkt setzen (wie gezogen und losgelassen).
 export function setLink(k, path, { force = false } = {}) {
   if (!force && !playable()) return false;
-  const d = { k, base: state.links.map((x) => x.slice()), path: [] };
+  const d = { k, base: state.links.map((x) => x.slice()), baseOwn: state.linkOwn.map((x) => x.slice()), path: [] };
   const { endsK } = rules();
   if (!path.length || !endsK[k] || !endsK[k].includes(path[0])) return false;
   d.path = [path[0]];
@@ -428,6 +447,9 @@ export function loadBoard(puzzle, saved) {
   const rawBy = saved && saved.linkBy;
   const by = Array.isArray(rawBy) ? rawBy : rawBy && typeof rawBy === 'object' ? Object.keys(rawBy).reduce((a, x) => { a[+x] = rawBy[x]; return a; }, []) : [];
   state.linkBy = Array.from({ length: K }, (_, i) => (state.links[i].length ? by[i] || LOCAL_PLAYER_ID : ''));
+  // Zieher je Zelle (ältere Stände ohne: die ganze Linie dem Linien-Zieher).
+  const own = arr(saved && saved.linkOwn);
+  state.linkOwn = state.links.map((path, i) => fitOwn(arr(own[i]), path, state.linkBy[i]));
   state.linkKeys = {};
   drag = null; pan = null; pointers.clear();
   ctxCache = null;
@@ -437,9 +459,16 @@ export function loadBoard(puzzle, saved) {
 const wireLinks = () => state.links.map((x) => (x.length ? x.slice() : ''));
 export function boardFields(purpose) {
   if (purpose === 'history') return { links: wireLinks() };
-  return { links: wireLinks(), linkBy: state.linkBy.map((x) => x || '') };
+  return { links: wireLinks(), linkBy: state.linkBy.map((x) => x || ''), linkOwn: state.linkOwn.map((x) => (x.length ? x.map((y) => y || '') : '')) };
 }
-export function boardFieldsFrom(src) { return { links: src.links, linkBy: src.linkBy }; }
+export function boardFieldsFrom(src) { return { links: src.links, linkBy: src.linkBy, linkOwn: src.linkOwn }; }
+// Solo → Coop: die bisher allein gezogenen Zellen gehören dem Gastgeber.
+export function claimLocalMoves(myId) {
+  if (!myId) return;
+  const sw = (x) => (x === LOCAL_PLAYER_ID ? myId : x);
+  state.linkBy = state.linkBy.map(sw);
+  state.linkOwn = state.linkOwn.map((o) => o.map(sw));
+}
 
 export function boardSolved() { return !!state.puzzle && isSolved(state.puzzle, state.links); }
 export function boardProgressPct() { return state.puzzle ? progressPct(state.puzzle, state.links) : 0; }
@@ -453,9 +482,12 @@ export function playerCorrect(id) {
   const sol = state.puzzle.solution;
   let n = 0;
   state.links.forEach((path, i) => {
-    const by = state.linkBy[i];
-    const mine = by === id || (by === LOCAL_PLAYER_ID && id === state.coop.myId);
-    if (mine) for (const c of path) if (sol[c] === i + 1) n++;
+    const own = state.linkOwn[i] || [];
+    path.forEach((c, j) => {
+      const by = own[j] || state.linkBy[i];
+      const mine = by === id || (by === LOCAL_PLAYER_ID && id === state.coop.myId);
+      if (mine && sol[c] === i + 1) n++;
+    });
   });
   return n;
 }
@@ -469,6 +501,8 @@ export function applyRemoteMove(msg, eventKey = null) {
   const { K, N } = rules();
   const next = state.links.map((x) => x.slice());
   const by = state.linkBy.slice();
+  const ownArr = state.linkOwn.map((x) => x.slice());
+  const msgOwn = msg.own && typeof msg.own === 'object' ? msg.own : {};
   const keys = { ...state.linkKeys };
   const taken = new Set();
   for (const [kk, raw] of Object.entries(msg.set)) {
@@ -479,6 +513,7 @@ export function applyRemoteMove(msg, eventKey = null) {
     const clean = sanitizeLinks(state.puzzle, Array.from({ length: K }, (_, i) => (i === k - 1 ? path.filter((x) => Number.isInteger(x) && x >= 0 && x < N) : [])))[k - 1];
     next[k - 1] = clean;
     by[k - 1] = clean.length ? (msg.by || msg.from || '') : '';
+    ownArr[k - 1] = fitOwn(arr(msgOwn[k]), clean, by[k - 1]);
     if (eventKey) keys[k] = eventKey;
     for (const c of clean) taken.add(c);
   }
@@ -490,6 +525,7 @@ export function applyRemoteMove(msg, eventKey = null) {
   state.linkKeys = keys;
   state.links = sanitizeLinks(state.puzzle, next);
   state.linkBy = by;
+  state.linkOwn = state.links.map((path, i) => fitOwn(ownArr[i], path, by[i]));
   // Wer gerade selbst zieht, zieht auf dem neuen Stand weiter.
   if (drag) drag.base = state.links.map((x) => x.slice());
   afterMove();

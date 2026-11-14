@@ -507,6 +507,13 @@ export function playerCorrect(id) {
 }
 // „Prüfen" gibt es nicht — das volle Brett zeigt, ob es aufgeht.
 export function wrongCells() { return []; }
+// Solo → Coop: die bisher allein gemachten Züge gehören dem Gastgeber (sonst
+// zählte der Gast sie in der Coop-Verteilung als seine eigenen).
+export function claimLocalMoves(myId) {
+  if (!myId) return;
+  state.rects = state.rects.map((q) => (q.by === LOCAL_PLAYER_ID ? { ...q, by: myId } : q));
+}
+
 
 // Züge eines Mitspielers. Gleichzeitige, sich überdeckende Rechtecke: das
 // SPÄTERE (Ereignis-Schlüssel) gewinnt — beide Seiten landen so auf demselben
