@@ -1,0 +1,1 @@
+- Beim Start zeigt der Ladebildschirm jetzt immer das Logo von Coop Number Games statt des zuletzt gewählten Spiels
