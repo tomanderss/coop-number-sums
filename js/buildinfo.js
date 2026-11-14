@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.10';
-export const BUILD_HASH = '76b60fa';
+export const BUILD      = '4.11';
+export const BUILD_HASH = 'e09378d';
 
 export const CHANGELOG = [
+  {
+    "version": "4.11",
+    "date": "14.11.2026",
+    "changes": [
+      "- Coop-Prozentverteilung in Gem Hunt, Number Link und nach „Mitspieler einladen“ korrigiert: Kreuze zählen mit, Linien werden je Zelle dem zugerechnet, der sie gezogen hat"
+    ]
+  },
   {
     "version": "4.10",
     "date": "14.11.2026",
