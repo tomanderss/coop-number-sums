@@ -1,2 +1,0 @@
-- Coop-Chat bleibt erhalten, bis die Lobby verlassen wird – auch über neue Runden und Spielwechsel hinweg
-- Neue Chat-Nachrichten fallen deutlich mehr auf: Ring blinkt um das Chat-Symbol, der Punkt bleibt und pulsiert

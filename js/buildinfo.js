@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.9';
-export const BUILD_HASH = '3cf7825';
+export const BUILD      = '4.10';
+export const BUILD_HASH = '76b60fa';
 
 export const CHANGELOG = [
+  {
+    "version": "4.10",
+    "date": "14.11.2026",
+    "changes": [
+      "- Coop-Chat bleibt erhalten, bis die Lobby verlassen wird – auch über neue Runden und Spielwechsel hinweg",
+      "- Neue Chat-Nachrichten fallen deutlich mehr auf: Ring blinkt um das Chat-Symbol, der Punkt bleibt und pulsiert"
+    ]
+  },
   {
     "version": "4.9",
     "date": "14.11.2026",
