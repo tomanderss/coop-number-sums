@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.5';
-export const BUILD_HASH = 'd2addc0';
+export const BUILD      = '4.6';
+export const BUILD_HASH = 'bf25fc9';
 
 export const CHANGELOG = [
+  {
+    "version": "4.6",
+    "date": "14.11.2026",
+    "changes": [
+      "- Pipes: Der Fortschritt zählt jetzt auch gesperrte Felder – jedes Feld einmal, egal ob durchströmt, gesperrt oder beides"
+    ]
+  },
   {
     "version": "4.5",
     "date": "14.11.2026",
