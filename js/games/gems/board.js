@@ -201,16 +201,53 @@ function cellAt(box, x, y) {
   const c = Math.min(n - 1, Math.max(0, Math.floor((x - box.left) / (box.width / n))));
   return r * n + c;
 }
-// Während des Wischens lokal schreiben (ohne Senden), damit jedes Kreuz sofort erscheint.
+// Während des Wischens lokal schreiben (ohne Senden), damit jedes Kreuz sofort
+// erscheint. Der Weg (drag.trail) merkt sich die Reihenfolge der Felder und je
+// Feld den Stand VOR dem Wischen (drag.orig): Zieht der Finger zurück auf ein
+// schon besuchtes Feld, werden alle danach besuchten wieder hergestellt
+// (Nutzerwunsch: drei nach links, einen zurück = nur zwei Kreuze).
 function paint(i) {
   const v = state.gemCells[i];
   let to = null;
   if (drag.mode === 'cross' && v === EMPTY) to = CROSS;
   if (drag.mode === 'erase' && v === CROSS) to = EMPTY;
   if (to == null) return;
+  if (!drag.orig.has(i)) drag.orig.set(i, { v, by: state.gemBy[i], auto: !!state.gemAuto[i] });
   drag.changes.set(i, to);
   setCells([[i, to]], { send: false });
-  sendLive({ cells: [...drag.changes], cur: i });
+}
+// Ein Feld auf den Stand vor dem Wischen zurücksetzen (auch die Herkunft eines Auto-Kreuzes).
+function unpaint(i) {
+  const o = drag.orig.get(i);
+  if (!o) return;
+  drag.orig.delete(i);
+  drag.changes.delete(i);
+  const cells = state.gemCells.slice(), by = state.gemBy.slice(), auto = state.gemAuto.slice();
+  cells[i] = o.v; by[i] = o.by; auto[i] = o.auto;
+  state.gemCells = cells; state.gemBy = by; state.gemAuto = auto;
+}
+// Felder zwischen zwei Zellen (schnelles Wischen überspringt sonst welche).
+function cellsBetween(a, b) {
+  const n = state.puzzle.rows;
+  let r = Math.floor(a / n), c = a % n;
+  const r1 = Math.floor(b / n), c1 = b % n;
+  const out = [];
+  while (r !== r1 || c !== c1) {
+    if (r !== r1) r += Math.sign(r1 - r);
+    if (c !== c1) c += Math.sign(c1 - c);
+    out.push(r * n + c);
+  }
+  return out;
+}
+// Den Finger auf Feld i bewegen: neu → malen, schon im Weg → alles danach zurücknehmen.
+function visit(i) {
+  const k = drag.trail.indexOf(i);
+  if (k >= 0) {
+    for (const j of drag.trail.splice(k + 1)) if (!drag.trail.includes(j)) unpaint(j);
+    return;
+  }
+  drag.trail.push(i);
+  paint(i);
 }
 function onDown(e) {
   // Rechtsklick (Maus): immer Kreuz, egal welches Werkzeug gewählt ist.
@@ -233,7 +270,7 @@ function onDown(e) {
   if (!playable()) return;
   const box = e.currentTarget.getBoundingClientRect();
   const i = cellAt(box, e.clientX, e.clientY);
-  drag = { id: e.pointerId, box, start: i, v0: state.gemCells[i], tool: tool(), mode: null, moved: false, last: i, changes: new Map() };
+  drag = { id: e.pointerId, box, start: i, v0: state.gemCells[i], tool: tool(), mode: null, moved: false, last: i, changes: new Map(), orig: new Map(), trail: [i] };
   sendLive({ cur: i });
 }
 function onMove(e) {
@@ -249,6 +286,7 @@ function onMove(e) {
   if (!drag || e.pointerId !== drag.id || !playable()) return;
   const i = cellAt(drag.box, e.clientX, e.clientY);
   if (i === drag.last) return;
+  const from = drag.last;
   drag.last = i;
   drag.moved = true;
   // Wischen kreuzt mit BEIDEN Werkzeugen (Nutzerwunsch): Tippen = gewähltes
@@ -258,7 +296,8 @@ function onMove(e) {
     drag.mode = drag.v0 === CROSS ? 'erase' : 'cross';
     paint(drag.start);
   }
-  paint(i);
+  for (const j of cellsBetween(from, i)) visit(j);
+  sendLive({ cells: [...drag.changes], cur: i });
 }
 function onUp(e) {
   pointers.delete(e.pointerId);

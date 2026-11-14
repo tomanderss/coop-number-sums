@@ -53,6 +53,25 @@ test('Werkzeug Stein/Kreuz: Tippen setzt das gewählte, Wischen kreuzt mit beide
   for (let c = 1; c < 5; c++) await touch(cdp, 'touchMove', [at(c)]);
   await touch(cdp, 'touchEnd', []);
   expect((await cells(page)).slice(0, 5)).toEqual([0, 0, 0, 0, 0]);
+  // Zurückwischen ohne Absetzen nimmt die letzten Kreuze wieder weg (drei hin, einen zurück = zwei).
+  await touch(cdp, 'touchStart', [at(0)]);
+  for (const c of [1, 2, 3, 2]) await touch(cdp, 'touchMove', [at(c)]);
+  await touch(cdp, 'touchEnd', []);
+  expect((await cells(page)).slice(0, 5)).toEqual([1, 1, 1, 0, 0]);
+  // Auch beim Wegwischen: zurück stellt die Kreuze wieder her.
+  await touch(cdp, 'touchStart', [at(0)]);
+  for (const c of [1, 2, 1]) await touch(cdp, 'touchMove', [at(c)]);
+  await touch(cdp, 'touchEnd', []);
+  expect((await cells(page)).slice(0, 5)).toEqual([0, 0, 1, 0, 0]);
+  // Schnelles Wischen überspringt keine Felder.
+  await touch(cdp, 'touchStart', [at(0)]);
+  await touch(cdp, 'touchMove', [at(4)]);
+  await touch(cdp, 'touchEnd', []);
+  expect((await cells(page)).slice(0, 5)).toEqual([1, 1, 1, 1, 1]);
+  await touch(cdp, 'touchStart', [at(0)]);
+  await touch(cdp, 'touchMove', [at(4)]);
+  await touch(cdp, 'touchEnd', []);
+  expect((await cells(page)).slice(0, 5)).toEqual([0, 0, 0, 0, 0]);
   // Umschalten auf „Kreuz" — ein Tipp IRGENDWO auf den Schalter (hier sogar auf
   // die gerade aktive Stein-Seite) wechselt das Werkzeug.
   const tb = await page.locator('.gm-toggle').boundingBox();
