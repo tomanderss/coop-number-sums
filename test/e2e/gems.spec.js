@@ -29,7 +29,7 @@ async function centers(page) {
 const touch = (cdp, type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
 const cells = (page) => page.evaluate(() => window.__cns.state.gemCells.slice());
 
-test('Werkzeug Stein/Kreuz: Tippen setzt das gewählte, Wischen nur mit Kreuz', async ({ page, context }) => {
+test('Werkzeug Stein/Kreuz: Tippen setzt das gewählte, Wischen kreuzt mit beiden', async ({ page, context }) => {
   await gotoApp(page);
   expect(await page.evaluate(() => window.__cns.gameId)).toBe('gems');
   await startGame(page, 'mittel');
@@ -44,7 +44,11 @@ test('Werkzeug Stein/Kreuz: Tippen setzt das gewählte, Wischen nur mit Kreuz', 
   await expect(page.locator('.gm-mark.gem')).toHaveCount(1);
   await tap(0);
   expect((await cells(page))[0]).toBe(0);
-  // Mit „Stein" setzt Wischen nichts.
+  // Auch mit „Stein" setzt Wischen Kreuze (Nutzerwunsch) — und auf einem Kreuz begonnen radiert es.
+  await touch(cdp, 'touchStart', [at(0)]);
+  for (let c = 1; c < 5; c++) await touch(cdp, 'touchMove', [at(c)]);
+  await touch(cdp, 'touchEnd', []);
+  expect((await cells(page)).slice(0, 5)).toEqual([1, 1, 1, 1, 1]);
   await touch(cdp, 'touchStart', [at(0)]);
   for (let c = 1; c < 5; c++) await touch(cdp, 'touchMove', [at(c)]);
   await touch(cdp, 'touchEnd', []);

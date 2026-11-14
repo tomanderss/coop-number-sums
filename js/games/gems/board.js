@@ -7,8 +7,8 @@
 //     in Number Sums (Nutzerwunsch statt des früheren Tipp-Zyklus leer → Kreuz →
 //     Stein): „Stein" setzt/entfernt per Tippen einen Edelstein, „Kreuz" eine
 //     Notiz „hier nicht" (s. tapResult in model.js). Rechtsklick = immer Kreuz.
-//   • Mit „Kreuz" setzt WISCHEN Kreuze auf alle leeren Felder unterwegs; beginnt
-//     es auf einem Kreuz, radiert es stattdessen. Mit „Stein" zählt nur das Tippen.
+//   • WISCHEN setzt mit BEIDEN Werkzeugen Kreuze auf alle leeren Felder unterwegs
+//     (Nutzerwunsch); beginnt es auf einem Kreuz, radiert es stattdessen.
 //   • Zwei Finger verschieben ein gezoomtes Brett.
 //   • Einstellung „Kreuze automatisch" (settings.gemAutoCross): ein gesetzter Stein
 //     kreuzt seine ganze Zone (Nachbarn, Zeile, Spalte, Käfig), ein entfernter
@@ -251,8 +251,8 @@ function onMove(e) {
   if (i === drag.last) return;
   drag.last = i;
   drag.moved = true;
-  // Mit dem Stein-Werkzeug ist Wischen kein Zug (versehentliches Verrutschen setzt nichts).
-  if (drag.tool !== 'cross') return;
+  // Wischen kreuzt mit BEIDEN Werkzeugen (Nutzerwunsch): Tippen = gewähltes
+  // Zeichen, Wischen = Kreuze (bzw. radieren, wenn es auf einem Kreuz beginnt).
   if (!drag.mode) {
     // Erstes Verlassen der Startzelle: aus dem Tipp wird ein Wischen.
     drag.mode = drag.v0 === CROSS ? 'erase' : 'cross';
