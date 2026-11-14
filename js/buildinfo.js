@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.8';
-export const BUILD_HASH = '1c42878';
+export const BUILD      = '4.9';
+export const BUILD_HASH = '3cf7825';
 
 export const CHANGELOG = [
+  {
+    "version": "4.9",
+    "date": "14.11.2026",
+    "changes": [
+      "- Pipes: Rätsel werden zusätzlich unabhängig auf genau eine Lösung geprüft; ein nicht eindeutig lösbares Rätsel kann nie mehr ausgeliefert werden"
+    ]
+  },
   {
     "version": "4.8",
     "date": "14.11.2026",
