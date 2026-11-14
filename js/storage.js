@@ -44,7 +44,8 @@ const KEYS = {
   GAME: 'cns_game',             // zuletzt gespieltes Spiel (Kennung aus js/games/registry.js); PER GERAET, NIE synct
   // ── Zufallsmodus „Mix" (js/mix.js) ──
   MIX_STATS: 'cns_mix_stats',   // { best, runs, levels } — Mix-Bestwerte, KONTOWEIT (gehört keinem Spiel), SYNCT (Merge per Maximum)
-  MIX_RUN: 'cns_mix_run',       // laufender Mix-Lauf zum Fortsetzen { mix, game, snap|pending }; PER GERAET, NIE synct
+  MIX_RUN: 'cns_mix_run',
+  COOP_CHAT: 'cns_coop_chat',   // Chat des aktuellen Raums { room, messages, unread }; PER GERAET, NIE synct (lebt so lange wie der Raum)       // laufender Mix-Lauf zum Fortsetzen { mix, game, snap|pending }; PER GERAET, NIE synct
   MIX_ON: 'cns_mix_on',         // steht die Scheibe auf „Mix"? PER GERAET, NIE synct (wie cns_game); fehlt = ja (Standard)
   // ── Story-Modus (js/story.js) ──
   STORY: 'cns_story',           // { [spiel|mix]: { [level]: { s, t } } } — Sterne/Bestzeit je Level, KONTOWEIT, SYNCT (Merge per Bestwert)
@@ -801,6 +802,11 @@ export function recordMixRun(score) {
   saveMixStats(stats);
   return { stats, newBest };
 }
+export function loadCoopChat(room) {
+  const v = load(KEYS.COOP_CHAT, null);
+  return v && room && v.room === room && Array.isArray(v.messages) ? v : null;
+}
+export function saveCoopChat(v) { if (v && v.room) save(KEYS.COOP_CHAT, v); else remove(KEYS.COOP_CHAT); }
 export function loadMixRun() { return load(KEYS.MIX_RUN, null); }
 export function saveMixRun(v) { if (v) save(KEYS.MIX_RUN, v); else remove(KEYS.MIX_RUN); }
 // Mix ist der STANDARD (Nutzerwunsch): ohne gespeicherte Wahl steht die Scheibe auf Mix.
@@ -1172,6 +1178,7 @@ export function deleteAllData() {
   remove(KEYS.GAME);
   remove(KEYS.MIX_STATS);
   remove(KEYS.MIX_RUN);
+  remove(KEYS.COOP_CHAT);
   remove(KEYS.STORY);
   remove(KEYS.STORY_RUN);
   remove(KEYS.MIX_ON);

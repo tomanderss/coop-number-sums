@@ -45,7 +45,7 @@ import {
   generateId, deviceId, isGameCompleted, markGameCompleted, loadActiveGameBackup, saveActiveGameBackup,
   gameId, restoreGameChoice, chooseGame, savePendingJoin, takePendingJoin,
   loadConflictBackup, saveConflictBackup, collectExportData,
-  loadMixStats, recordMixRun, loadMixRun, saveMixRun, loadMixOn, saveMixOn,
+  loadMixStats, recordMixRun, loadMixRun, saveMixRun, loadCoopChat, saveCoopChat, loadMixOn, saveMixOn,
   loadStoryProgress, saveStoryProgress, loadStoryRun, saveStoryRun,
 } from './storage.js';
 import { runLocalMcMigration } from './mcmigration.js';
@@ -418,7 +418,7 @@ const state = reactive({
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   masterUnlock: false,           // Feier-Screen „Großmeister freigeschaltet" offen?
   prestigeUnlock: null,          // Feier einer neu erreichten Prestige-Stufe { sym, tier, key, more } | null
-  chat: { open: false, messages: [], unread: 0, draft: '', kb: 0, typingUids: [] },  // Multiplayer-Textchat (ephemer; kb = Tastatur-Höhe px; typingUids = gerade tippende Mitspieler, live aus Coop.onTyping)
+  chat: { open: false, messages: [], unread: 0, draft: '', kb: 0, typingUids: [], room: '', flash: 0 },  // Multiplayer-Textchat (lebt so lange wie der Raum, room = Raumcode; flash = Zähler fürs Aufblinken bei neuer Nachricht; kb = Tastatur-Höhe px; typingUids = gerade tippende Mitspieler, live aus Coop.onTyping)
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
   walletLogOpen: false,          // Geldverlauf-Modal offen? (Transaktionshistorie)
@@ -2585,7 +2585,8 @@ function loadPuzzleIntoState(puzzle, saved) {
   state.trainingStep = null;
   state.trainingDone = false;
   state.paused = false;
-  resetChat();  // Chat ist pro Partie frisch (ephemer)
+  ensureChatRoom();  // Chat bleibt, solange der Raum lebt (auch über Spiele hinweg)
+  if (state.chat.open) closeChat();
   // Speicher-Slot JETZT festnageln (die Aufrufer setzen coop/team/race VOR diesem
   // Aufruf korrekt) — immun gegen späteres Flackern von coop.active bei Rejoin/
   // Rollenwechsel. Team läuft (wie Coop) im Coop-Slot; Race wird nie persistiert.
@@ -3080,19 +3081,43 @@ function flushCoopOutbox() {
 
 // ─── Multiplayer-Chat ─────────────────────────────────────────────────────────
 // Läuft über die room-weiten Events (Coop.send) — erreicht in ALLEN Modi
-// (Coop, Race/1v1, FFA, Team) alle im Raum. Nachrichten sind ephemer (nur
-// in-memory), werden pro Partie geleert. Der Absender empfängt sein eigenes
+// (Coop, Race/1v1, FFA, Team) alle im Raum. Der Chat gehört zum RAUM, nicht zur
+// Partie (Nutzerwunsch): er bleibt über neue Runden, Level und Spielwechsel
+// (Mix) hinweg bestehen und endet erst, wenn man den Raum verlässt (coopReset)
+// oder einen anderen betritt. Gerätelokal gesichert (cns_coop_chat), damit er
+// auch „Coop fortsetzen“ nach einem Neustart übersteht; nie synchronisiert. Der Absender empfängt sein eigenes
 // Event NICHT zurück (coop.js filtert author===uid), daher lokal einfügen.
 const CHAT_MAX = 120;      // Ringpuffer-Länge
 const CHAT_TEXT_MAX = 300; // max. Zeichen je Nachricht
 function isMultiplayer() { return !!(state.coop.active || state.race.active || state.team.active); }
 function chatSenderName() { return myUsername() || state.settings.coopName || t('chat.anon'); }
+function chatRoomKey() { return isMultiplayer() ? String(state.coop.code || '') : ''; }
+// Raum gewechselt? → Chat dieses Raums laden (oder leer beginnen). Ohne Raum
+// (Solo) bleibt alles, wie es ist — „Coop fortsetzen“ findet ihn wieder.
+function ensureChatRoom() {
+  const k = chatRoomKey();
+  if (!k || k === state.chat.room) return;
+  resetChat();
+  state.chat.room = k;
+  const saved = loadCoopChat(k);
+  if (saved) {
+    state.chat.messages = saved.messages.slice(-CHAT_MAX);
+    state.chat.unread = Math.max(0, Math.min(99, Number(saved.unread) || 0));
+    log('coop', 'Chat des Raums wiederhergestellt', { count: state.chat.messages.length });
+  }
+}
+function persistChat() {
+  if (!state.chat.room) return;
+  try { saveCoopChat({ room: state.chat.room, messages: state.chat.messages, unread: state.chat.unread }); } catch (e) { log('storage', 'Chat nicht gesichert', { error: String(e) }); }
+}
 function pushChatMessage(m) {
+  ensureChatRoom();
   const msgs = state.chat.messages;
   msgs.push(m);
   if (msgs.length > CHAT_MAX) msgs.splice(0, msgs.length - CHAT_MAX);
-  if (!state.chat.open && !m.self) state.chat.unread = Math.min(99, state.chat.unread + 1);
+  if (!state.chat.open && !m.self) { state.chat.unread = Math.min(99, state.chat.unread + 1); state.chat.flash++; }
   if (state.chat.open) nextTick(scrollChatToEnd);
+  persistChat();
 }
 function receiveChat(msg) {
   const text = String(msg.text || '').slice(0, CHAT_TEXT_MAX);
@@ -3166,10 +3191,12 @@ function unbindChatViewport() {
   chatVvHandler = null;
   state.chat.kb = 0;
 }
-function openChat() { state.chat.open = true; state.chat.unread = 0; bindChatViewport(); nextTick(() => { scrollChatToEnd(); document.querySelector('.chat-input')?.focus(); }); }
+function openChat() { state.chat.open = true; state.chat.unread = 0; persistChat(); bindChatViewport(); nextTick(() => { scrollChatToEnd(); document.querySelector('.chat-input')?.focus(); }); }
 function closeChat() { state.chat.open = false; unbindChatViewport(); stopChatTyping(); }
 function toggleChat() { state.chat.open ? closeChat() : openChat(); }
-function resetChat() { unbindChatViewport(); stopChatTyping(); state.chat.messages = []; state.chat.unread = 0; state.chat.open = false; state.chat.draft = ''; state.chat.typingUids = []; }
+function resetChat() { unbindChatViewport(); stopChatTyping(); state.chat.messages = []; state.chat.unread = 0; state.chat.open = false; state.chat.draft = ''; state.chat.typingUids = []; state.chat.room = ''; }
+// Raum endgültig verlassen → Chat weg (auch die Sicherung).
+function endChat() { resetChat(); saveCoopChat(null); }
 
 // Nachrichten, die einen LAUFENDEN Spielzustand voraussetzen — ohne geladenes
 // Brett (z.B. direkt nach dem Beitritt, bevor das INIT eintrifft) würden sie
@@ -3524,6 +3551,8 @@ function coopReset({ keepRoom = false } = {}) {
   coopOutbox = [];
   Coop.leave({ keepRoom });
   if (!keepRoom) clearCoopSession();
+  // Chat gehört zum Raum: endgültig verlassen → weg; nur pausiert (keepRoom) → bleibt für „Coop fortsetzen“.
+  if (keepRoom) closeChat(); else endChat();
   // Solo-Einladungs-Zustand gehört zur (gerade verlassenen) Coop-Verbindung.
   soloInviteMyId = null; pendingSoloJoin = null;
   state.soloInvite = { status: 'idle', code: '' };
@@ -8954,8 +8983,10 @@ const App = {
               <button class="zoom-btn" @click="setZoom(0.15)">+</button>
             </span>
           </span>
-          <button class="icon-btn chat-btn" v-if="isMultiplayer()" @click="toggleChat" :aria-label="t('chat.title')" :title="typingPlayers().length ? t('chat.typing', { name: typingPlayers()[0].name }) : t('chat.title')">
+          <button class="icon-btn chat-btn" :class="{ unread: state.chat.unread }" v-if="isMultiplayer()" @click="toggleChat" :aria-label="t('chat.title')" :title="typingPlayers().length ? t('chat.typing', { name: typingPlayers()[0].name }) : t('chat.title')">
             <span class="ico-wrap" v-html="ic('chat')"></span>
+            <!-- Neue Nachricht: einmal ein Ring um das Symbol (key = Zähler startet die Animation neu), der Punkt bleibt und pulsiert. -->
+            <span v-if="state.chat.unread && state.chat.flash" :key="state.chat.flash" class="chat-flash"></span>
             <span v-if="state.chat.unread" class="chat-unread">{{ state.chat.unread }}</span>
             <!-- Mitspieler tippt gerade → drei „wandernde" Punkte am Chat-Symbol. -->
             <span v-else-if="typingPlayers().length" class="chat-typing-dots" :style="{ '--tp-col': typingPlayers()[0].color }"><i></i><i></i><i></i></span>
@@ -11278,7 +11309,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, startCoopGame, startCoopMatch, startRaceMatch, endlessContinue, quitToHome, playStoryLevel, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend,
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, startCoopGame, startCoopMatch, startRaceMatch, endlessContinue, quitToHome, playStoryLevel, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend, coopReset,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint,
   boardRenders, cellRenders, currentGameInfo, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 
