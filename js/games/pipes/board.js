@@ -51,7 +51,7 @@ import * as Coop from '../../coop.js';
 import { log } from '../../debuglog.js';
 import { LiveLayer } from '../livelayer.js';
 import {
-  flow, isSolved, progressPct, normalizePuzzle as healPuzzle, normalizeRot,
+  flow, isSolved, progressPct, progressCells, normalizePuzzle as healPuzzle, normalizeRot,
   rotMask, mod4, has, degree, neighbor, opp,
 } from './model.js';
 import { solveLogic, nextDeduction } from './solver.js';
@@ -527,11 +527,15 @@ export function boardFieldsFrom(src) { return { pipeRot: src.pipeRot, pipeBy: sr
 // Ohne gezeigtes Wasser gilt das Brett nicht automatisch als gelöst — erst das
 // Einschalten des Flusses prüft es (setFlow → afterMove).
 export function boardSolved() { return !!state.puzzle && flowShown.value && isSolved(state.puzzle, state.pipeRot); }
-export function boardProgressPct() { return state.puzzle && flowShown.value ? progressPct(state.puzzle, state.pipeRot) : 0; }
-export function boardFilledCount() { return flowInfo.value && flowShown.value ? flowInfo.value.reached : 0; }
+// Fortschritt: durchströmte ODER gesperrte Felder, jedes einmal (s. progressCells).
+// Ohne gezeigtes Wasser zählen nur die gesperrten.
+export function boardProgressPct() { return state.puzzle ? progressPct(state.puzzle, state.pipeRot, state.pipeLock, flowShown.value) : 0; }
+export function boardFilledCount() { return state.puzzle ? progressCells(state.puzzle, state.pipeRot, state.pipeLock, flowShown.value).count : 0; }
 export function boardProgressCounts() {
   const p = state.puzzle;
-  return p ? { kept: flowInfo.value && flowShown.value ? flowInfo.value.reached : 0, total: p.rows * p.cols } : { kept: 0, total: 0 };
+  if (!p) return { kept: 0, total: 0 };
+  const c = progressCells(p, state.pipeRot, state.pipeLock, flowShown.value);
+  return { kept: c.count, total: c.total };
 }
 const solMask = (p, i) => rotMask(p.tiles[i], p.solRot[i]);
 const isRight = (p, i) => rotMask(p.tiles[i], state.pipeRot[i]) === solMask(p, i);
