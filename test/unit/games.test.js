@@ -94,3 +94,11 @@ describe('Spiel-Registry', () => {
     assert.equal(activeGame().id, activeGameId());
   });
 });
+
+// Nutzerwunsch: beim Start IMMER das App-Logo, nie das zuletzt gewählte Spiel.
+test('Splash zeigt immer das App-Icon', async () => {
+  const { readFileSync } = await import('node:fs');
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  assert.match(html, /<img id="splash-logo" src="\.\/icons\/icon-192\.png"/);
+  assert.doesNotMatch(html, /getElementById\('splash-logo'\)\.src/);
+});
