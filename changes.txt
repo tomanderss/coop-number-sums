@@ -1,0 +1,1 @@
+- Pipes: Rätsel werden zusätzlich unabhängig auf genau eine Lösung geprüft; ein nicht eindeutig lösbares Rätsel kann nie mehr ausgeliefert werden

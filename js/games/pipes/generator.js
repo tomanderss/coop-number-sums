@@ -74,6 +74,15 @@ export function generatePuzzle(input = {}) {
     if (!best || score > best.score) best = { mask: tree.mask, source: tree.source, res, score };
     if (res.solved && res.tier2 >= minTier2) break;
   }
+  // Absicherung: nie ein Rätsel ausliefern, das der Löser nicht komplett
+  // festlegt (sonst wäre es evtl. mehrdeutig). Weitere Versuche ohne die
+  // Netz-Schluss-Vorgabe, feste Zahl → deterministisch.
+  for (let t = 0; !best.res.solved && t < tries * 4; t++) {
+    const tree = spanningTree(rows, cols, rnd, branchy, wrap);
+    if (!tree) continue;
+    const res = solveLogic({ rows, cols, tiles: tree.mask, source: tree.source, ...(wrap ? { wrap: true } : {}) }, { maxTier });
+    if (res.solved) best = { mask: tree.mask, source: tree.source, res, score: 0 };
+  }
   let { mask, res } = best;
   // Klettern: mehr Netz-Schlüsse verlangen (s. climbTree). Nur die FORM der
   // Stücke zählt für die Logik — verdreht wird erst danach.
