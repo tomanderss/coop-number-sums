@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.4';
-export const BUILD_HASH = '07b7a42';
+export const BUILD      = '4.5';
+export const BUILD_HASH = 'd2addc0';
 
 export const CHANGELOG = [
+  {
+    "version": "4.5",
+    "date": "14.11.2026",
+    "changes": [
+      "- Gem Hunt: Wischen über Felder setzt jetzt auch mit dem Stein-Werkzeug Kreuze – Antippen setzt weiter einen Stein"
+    ]
+  },
   {
     "version": "4.4",
     "date": "13.11.2026",
