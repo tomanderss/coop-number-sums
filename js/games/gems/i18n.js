@@ -11,7 +11,7 @@ export default {
       rule1: "In jedem <b>Farbkäfig</b> ist genau <b>ein Edelstein</b> versteckt.",
       rule2: "Auch jede <b>Zeile</b> und jede <b>Spalte</b> enthält genau einen Edelstein.",
       rule3: "Zwei Edelsteine <b>berühren sich nie</b> – auch nicht über Eck.",
-      rule4: "Unter dem Brett wählst du das <b>Werkzeug</b>: mit <b>Stein</b> setzt (und entfernst) ein Tippen einen Edelstein, mit <b>Kreuz</b> eine Notiz „hier nicht“ – über Felder <b>wischen</b> setzt mit beiden Werkzeugen viele Kreuze auf einmal.",
+      rule4: "Unter dem Brett wählst du das <b>Werkzeug</b>: mit <b>Stein</b> setzt (und entfernst) ein Tippen einen Edelstein, mit <b>Kreuz</b> eine Notiz „hier nicht“ – über Felder <b>wischen</b> setzt mit beiden Werkzeugen viele Kreuze auf einmal (auf einem Kreuz begonnen: wegwischen; zurückwischen nimmt sie wieder weg).",
       rule5: "Steine, die sich widersprechen, leuchten <b>rot</b>. Ein Leben kostet es erst, wenn alle Steine liegen und es nicht aufgeht.",
       rule6: "Jedes Rätsel hat genau eine Lösung und ist <b>ohne Raten</b> lösbar. Ist das Brett gezoomt, verschiebst du es mit <b>zwei Fingern</b>.",
     },

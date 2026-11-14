@@ -1,0 +1,1 @@
+- Gem Hunt: Beim Wischen nimmt Zurückwischen ohne Absetzen die zuletzt gesetzten Kreuze wieder weg, schnelles Wischen überspringt keine Felder mehr
