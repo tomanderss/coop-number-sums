@@ -357,6 +357,14 @@ export function playerCorrect(id) {
   return n;
 }
 export function wrongCells() { return []; }
+// Solo → Coop: die bisher allein gemachten Züge gehören dem Gastgeber (sonst
+// zählte der Gast sie in der Coop-Verteilung als seine eigenen).
+export function claimLocalMoves(myId) {
+  if (!myId) return;
+  const sw = (x) => (x === LOCAL_PLAYER_ID ? myId : x);
+  state.pathBy = state.pathBy.map(sw);
+}
+
 
 // Mitspieler: die ganze Linie. Gleichzeitig gezogen? Die spätere gewinnt.
 export function applyRemoteMove(msg, eventKey = null) {

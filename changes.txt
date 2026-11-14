@@ -1,0 +1,1 @@
+- Coop-Prozentverteilung in Gem Hunt, Number Link und nach „Mitspieler einladen“ korrigiert: Kreuze zählen mit, Linien werden je Zelle dem zugerechnet, der sie gezogen hat

@@ -193,3 +193,27 @@ test('Endlos startet; Erfolge/Missionen ohne Große Zahlen; Freunde sehen das Sp
   await page.waitForFunction(() => window.__cns.state.status === 'won');
   await expect(page.locator('.endless-lives-row')).toBeVisible();
 });
+
+test('Coop-Verteilung: jede Zelle zählt für den, der sie gezogen hat (nicht die ganze Linie für den Letzten)', async ({ page, context }) => {
+  await gotoApp(page);
+  const p = { rows: 3, cols: 3, ends: [{ r: 0, c: 0, k: 1 }, { r: 0, c: 2, k: 1 }, { r: 1, c: 0, k: 2 }, { r: 1, c: 2, k: 2 }, { r: 2, c: 0, k: 3 }, { r: 2, c: 2, k: 3 }], solution: [1, 1, 1, 2, 2, 2, 3, 3, 3], colors: [0, 1, 2], seed: 1, difficulty: 'sehrleicht', game: 'numberlink' };
+  await page.evaluate((puzzle) => {
+    const s = window.__cns.state;
+    s.coop.active = true; s.coop.role = 'guest'; s.coop.myId = 'me';
+    s.coop.players = [{ id: 'host', name: 'H', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' }];
+    window.__cns.handleCoopMsg({ type: 'init', gameId: 'nl3', running: true, puzzle, links: ['', [3, 4], ''], linkBy: ['', 'host', ''], startTime: Date.now(), lives: 3, maxLives: 3, mistakes: 0 });
+  }, p);
+  await page.waitForSelector('.screen.game .nl-board');
+  const cdp = await context.newCDPSession(page);
+  const at = await centers(page);
+  // Ich ziehe die Linie des Partners (3→4) um EINE Zelle weiter.
+  await touch(cdp, 'touchStart', [at(4)]);
+  await touch(cdp, 'touchMove', [at(5)]);
+  await touch(cdp, 'touchEnd', []);
+  expect((await linksOf(page))[1]).toEqual([3, 4, 5]);
+  const share = () => page.evaluate(() => ({ host: window.__cns.board.playerCorrect('host'), me: window.__cns.board.playerCorrect('me') }));
+  expect(await share()).toEqual({ host: 2, me: 1 });
+  // Partner zieht Linie 1 komplett, schickt die Zieher je Zelle mit.
+  await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'move', op: 'links', set: { 1: [0, 1, 2] }, own: { 1: ['host', 'host', 'me'] }, by: 'host', from: 'host' }, '-N1'));
+  expect(await share()).toEqual({ host: 4, me: 2 });
+});

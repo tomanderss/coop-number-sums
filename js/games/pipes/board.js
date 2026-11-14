@@ -551,6 +551,14 @@ export function playerCorrect(id) {
   return n;
 }
 export function wrongCells() { return []; }
+// Solo → Coop: die bisher allein gemachten Züge gehören dem Gastgeber (sonst
+// zählte der Gast sie in der Coop-Verteilung als seine eigenen).
+export function claimLocalMoves(myId) {
+  if (!myId) return;
+  const sw = (x) => (x === LOCAL_PLAYER_ID ? myId : x);
+  state.pipeBy = state.pipeBy.map(sw);
+}
+
 
 // Züge eines Mitspielers: je Stück gewinnt der SPÄTERE Zug (Ereignis-Schlüssel).
 export function applyRemoteMove(msg, eventKey = null) {

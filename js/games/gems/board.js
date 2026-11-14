@@ -146,7 +146,7 @@ export function setCells(changes, { force = false, send = true, auto = null } = 
     if (cells[i] === GEM) gemRemoved = true;
     if (v === GEM) gemAdded = true;
     cells[i] = v;
-    by[i] = v === GEM ? me() : '';
+    by[i] = v ? me() : '';   // Stein UND Kreuz: wer es gesetzt hat (Coop-Verteilung)
     autoArr[i] = !!(auto && v === CROSS && auto.has(i));
     done.push([i, v]);
   }
@@ -495,7 +495,7 @@ export function loadBoard(puzzle, saved) {
   const n = puzzle.rows;
   state.gemCells = normalizeCells(saved && saved.gemCells, n);
   const by = arr(saved && saved.gemBy);
-  state.gemBy = state.gemCells.map((v, i) => (v === GEM ? (by[i] || LOCAL_PLAYER_ID) : ''));
+  state.gemBy = state.gemCells.map((v, i) => (v ? (by[i] || LOCAL_PLAYER_ID) : ''));
   state.gemKeys = {};
   const au = arr(saved && saved.gemAuto);
   state.gemAuto = state.gemCells.map((v, i) => v === CROSS && !!au[i]);
@@ -521,16 +521,26 @@ export function boardProgressCounts() {
   return p ? { kept: filledCells(state.gemCells), total: p.rows * p.rows } : { kept: 0, total: 0 };
 }
 // „Richtig" = Steine dieses Spielers auf Feldern der Lösung.
+// „Richtig" = Steine auf Lösungsfeldern UND Kreuze auf Nicht-Lösungsfeldern —
+// vorher zählten nur Steine (n Stück): wer kreuzte, stand bei 0 % (gemeldet).
 export function playerCorrect(id) {
   const sol = new Set(state.puzzle.solution);
   let n = 0;
   state.gemCells.forEach((v, i) => {
     const by = state.gemBy[i];
     const mine = by === id || (by === LOCAL_PLAYER_ID && id === state.coop.myId);
-    if (v === GEM && mine && sol.has(i)) n++;
+    if (mine && ((v === GEM && sol.has(i)) || (v === CROSS && !sol.has(i)))) n++;
   });
   return n;
 }
+// Solo → Coop: die bisher allein gemachten Züge gehören dem Gastgeber (sonst
+// zählte der Gast sie in der Coop-Verteilung als seine eigenen).
+export function claimLocalMoves(myId) {
+  if (!myId) return;
+  const sw = (x) => (x === LOCAL_PLAYER_ID ? myId : x);
+  state.gemBy = state.gemBy.map(sw);
+}
+
 export function wrongCells() { return []; }
 
 // Züge eines Mitspielers: je Feld gewinnt der SPÄTERE Zug (Ereignis-Schlüssel).
@@ -546,7 +556,7 @@ export function applyRemoteMove(msg, eventKey = null) {
     const isAuto = v === CROSS && a === 1;
     if (cells[i] === v && autoArr[i] === isAuto) continue;
     if (v === GEM) gemAdded = true;
-    cells[i] = v; by[i] = v === GEM ? (msg.from || '') : ''; autoArr[i] = isAuto; changed++;
+    cells[i] = v; by[i] = v ? (msg.from || '') : ''; autoArr[i] = isAuto; changed++;
   }
   state.gemKeys = keys;
   if (!changed) return;

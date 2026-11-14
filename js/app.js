@@ -174,7 +174,8 @@ const state = reactive({
   pathKey: null,             // Ereignis-Schlüssel der zuletzt übernommenen Linie (später gewinnt)
   // ── Number Link (s. js/games/numberlink/board.js) ──
   links: [],                 // Linie je Zahl: links[k-1] = [Zell-Index, …] ab einem Ende (leer = nicht gezogen)
-  linkBy: [],                // wer welche Linie zuletzt zog (Coop-Verteilung)
+  linkBy: [],                // wer welche Linie zuletzt zog
+  linkOwn: [],               // je Linie: wer welche Zelle gezogen hat (Coop-Verteilung)
   linkKeys: {},              // Ereignis-Schlüssel je Zahl (später gewinnt)
   // ── Rectangles (s. js/games/rectangles/board.js) ──
   rects: [],                 // gezogene Rechtecke [{ id, r, c, h, w, by, col, k }]
@@ -5019,6 +5020,8 @@ function completeSoloConversion() {
   for (let r = 0; r < state.markedBy.length; r++)
     for (let c = 0; c < state.markedBy[r].length; c++)
       if (state.markedBy[r][c] === LOCAL_PLAYER_ID) state.markedBy[r][c] = myId;
+  // Dasselbe für die Bretter der übrigen Spiele (wer hat was gezogen/gesetzt).
+  if (Board.claimLocalMoves) Board.claimLocalMoves(myId);
   // … und als serverkorrigierten Startzeitpunkt neu stempeln (gameNow nutzt ab
   // coop.active die Firebase-Server-Uhr — sonst zeigte der Gast eine falsche Zeit).
   const startTime = gameNow() - elapsedNow;

@@ -259,3 +259,26 @@ test('Kreuz-Farben: automatische Kreuze leicht anders, beide einstellbar, auch i
   await expect(page.locator('.gem-crosscolor-own .gx-sw')).toHaveCount(6);
   await expect(page.locator('.gem-crosscolor-auto .gx-sw.active')).toHaveClass(/c-gold/);
 });
+
+test('Coop-Verteilung: Kreuze zählen für den, der sie setzt — nicht nur Steine', async ({ page }) => {
+  await gotoApp(page);
+  const p = await page.evaluate(async () => {
+    const { generatePuzzle } = await import('/js/games/gems/generator.js');
+    return generatePuzzle({ difficulty: 'leicht', seed: 5 });
+  });
+  await page.evaluate((puzzle) => {
+    const s = window.__cns.state;
+    s.coop.active = true; s.coop.role = 'guest'; s.coop.myId = 'me';
+    s.coop.players = [{ id: 'host', name: 'H', color: '#e5679a' }, { id: 'me', name: 'Ich', color: '#67a3e5' }];
+    window.__cns.handleCoopMsg({ type: 'init', gameId: 'gm9', running: true, puzzle, startTime: Date.now(), lives: 3, maxLives: 3, mistakes: 0 });
+  }, p);
+  await page.waitForSelector('.screen.game');
+  const sol = new Set(p.solution);
+  const n = p.rows * p.cols;
+  const empties = Array.from({ length: n }, (_, i) => i).filter((i) => !sol.has(i));
+  // Partner setzt alle Steine, ich kreuze drei Felder.
+  await page.evaluate((list) => window.__cns.handleCoopMsg({ type: 'move', op: 'cells', list, from: 'host' }, '-N1'), p.solution.map((i) => [i, 2]));
+  await page.evaluate((list) => window.__cns.handleCoopMsg({ type: 'move', op: 'cells', list, from: 'me' }, '-N2'), empties.slice(0, 3).map((i) => [i, 1]));
+  const share = await page.evaluate(() => ({ host: window.__cns.board.playerCorrect('host'), me: window.__cns.board.playerCorrect('me') }));
+  expect(share).toEqual({ host: p.solution.length, me: 3 });
+});
