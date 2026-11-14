@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.7';
-export const BUILD_HASH = '3bb2e64';
+export const BUILD      = '4.8';
+export const BUILD_HASH = '1c42878';
 
 export const CHANGELOG = [
+  {
+    "version": "4.8",
+    "date": "14.11.2026",
+    "changes": [
+      "- Beim Start zeigt der Ladebildschirm jetzt immer das Logo von Coop Number Games statt des zuletzt gewählten Spiels"
+    ]
+  },
   {
     "version": "4.7",
     "date": "14.11.2026",
