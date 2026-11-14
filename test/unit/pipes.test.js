@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, E, S, W, rotMask, orientations, flow, isSolved, progressPct, progressCells, normalizePuzzle, normalizeRot, validPuzzleShape, degree } from '../../js/games/pipes/model.js';
+import { N, E, S, W, rotMask, orientations, flow, isSolved, progressPct, progressCells, normalizePuzzle, normalizeRot, validPuzzleShape, degree, neighbor, has, opp } from '../../js/games/pipes/model.js';
 import { solveLogic, nextDeduction } from '../../js/games/pipes/solver.js';
 import { generatePuzzle } from '../../js/games/pipes/generator.js';
 import { DIFFICULTIES } from '../../js/games/pipes/difficulty.js';
@@ -132,5 +132,88 @@ describe('Pipes: Fortschritt zählt durchströmte UND gesperrte Felder je einmal
     assert.equal(progressCells(p, rot, some, false).count, 5);
     // Gelöst bleibt 100.
     assert.equal(progressPct(p, p.solRot, all), 100);
+  });
+});
+
+// Unabhängige Gegenprobe (Nutzerwunsch „nur einzigartig und immer“): Lösungen per
+// Backtracking zählen — nur Kanten-Konsistenz + Kreisverbot, ohne den Logik-Löser.
+function countSolutionsBrute(p, limit = 2) {
+  const n = p.rows * p.cols;
+  let count = 0;
+  const propagate = (dom) => {
+    for (let changed = true; changed;) {
+      changed = false;
+      for (let i = 0; i < n; i++) {
+        const before = dom[i].length;
+        dom[i] = dom[i].filter((m) => {
+          for (let d = 0; d < 4; d++) {
+            const j = neighbor(p, i, d);
+            if (j < 0) { if (has(m, d)) return false; continue; }
+            if (!dom[j].some((mj) => has(mj, opp(d)) === has(m, d))) return false;
+          }
+          return true;
+        });
+        if (!dom[i].length) return false;
+        if (dom[i].length !== before) changed = true;
+      }
+    }
+    return true;
+  };
+  const rec = (dom) => {
+    if (count >= limit || !propagate(dom)) return;
+    let best = -1;
+    for (let i = 0; i < n; i++) if (dom[i].length > 1 && (best < 0 || dom[i].length < dom[best].length)) best = i;
+    if (best < 0) {
+      const rot = p.tiles.map((t, i) => [0, 1, 2, 3].find((k) => rotMask(t, k) === dom[i][0]));
+      if (isSolved(p, rot)) count++;
+      return;
+    }
+    for (const m of dom[best]) { const d2 = dom.map((x) => x.slice()); d2[best] = [m]; rec(d2); }
+  };
+  rec(p.tiles.map((m) => orientations(m).map((o) => o.m)));
+  return count;
+}
+
+describe('Pipes: jedes Rätsel hat GENAU eine Lösung (unabhängig gezählt)', () => {
+  test('der Gegen-Zähler erkennt mehrdeutige Bretter', async () => {
+    const { generatePuzzle } = await import('../../js/games/pipes/generator.js');
+    const { solveLogic } = await import('../../js/games/pipes/solver.js');
+    let multi = 0;
+    for (let s = 1; s <= 40; s++) {
+      const p = generatePuzzle({ rows: 6, cols: 6, wrap: s % 2 === 0, tries: 1, seed: s });
+      const c = countSolutionsBrute(p);
+      if (c > 1) { multi++; assert.equal(solveLogic(p, { maxTier: 2 }).solved, false, 'Löser hält ein mehrdeutiges Brett für gelöst'); }
+    }
+    assert.ok(multi > 0, 'Gegenprobe ohne Aussagekraft');
+  });
+  for (const id of ['mittel', 'extrem', 'mashallah', 'dikkawas', 'bismillah', 'rip']) {
+    test(`${id}: eindeutig`, async () => {
+      const { generatePuzzle } = await import('../../js/games/pipes/generator.js');
+      for (const seed of [11, 12, 13]) {
+        const p = generatePuzzle({ difficulty: id, seed });
+        assert.equal(countSolutionsBrute(p), 1, `Seed ${seed}`);
+      }
+    });
+  }
+  test('Story-Level (Pipes + Mix): eindeutig, ohne Raten lösbar, Lösung stimmt', async () => {
+    const fs = await import('node:fs');
+    const { solveLogic } = await import('../../js/games/pipes/solver.js');
+    let checked = 0;
+    for (const dir of ['pipes', 'mix']) {
+      const base = new URL(`../../data/story/${dir}/`, import.meta.url);
+      for (const f of fs.readdirSync(base).sort()) {
+        for (const L of JSON.parse(fs.readFileSync(new URL(f, base), 'utf8')).levels) {
+          if (L.game !== 'pipes') continue;
+          const p = L.puzzle;
+          assert.ok(isSolved(p, p.solRot), `${dir} ${L.level}: Lösung ungültig`);
+          const lg = solveLogic(p, { maxTier: 2 });
+          assert.ok(lg.solved, `${dir} ${L.level}: nicht ohne Raten lösbar`);
+          assert.ok(lg.masks.every((m, i) => m === rotMask(p.tiles[i], p.solRot[i])), `${dir} ${L.level}: Löser ≠ Lösung`);
+          if (L.level % 25 === 0) assert.equal(countSolutionsBrute(p), 1, `${dir} ${L.level}: mehrdeutig`);
+          checked++;
+        }
+      }
+    }
+    assert.ok(checked >= 500);
   });
 });
