@@ -1,1 +1,0 @@
-- Gem Hunt: Wischen über Felder setzt jetzt auch mit dem Stein-Werkzeug Kreuze – Antippen setzt weiter einen Stein
