@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.6';
-export const BUILD_HASH = 'bf25fc9';
+export const BUILD      = '4.7';
+export const BUILD_HASH = '3bb2e64';
 
 export const CHANGELOG = [
+  {
+    "version": "4.7",
+    "date": "14.11.2026",
+    "changes": [
+      "- Gem Hunt: Beim Wischen nimmt Zurückwischen ohne Absetzen die zuletzt gesetzten Kreuze wieder weg, schnelles Wischen überspringt keine Felder mehr"
+    ]
+  },
   {
     "version": "4.6",
     "date": "14.11.2026",
