@@ -115,6 +115,29 @@ test.describe('coop robustness', () => {
     await expect(page.locator('.chat-typing-row')).toHaveCount(0);
   });
 
+  test('chat: gehört zum Raum — überlebt neue Runden, endet beim Verlassen; neue Nachricht blinkt', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => { window.__cns.state.coop.code = 'CHAT01'; });
+    await asGuestInGame(page);
+    await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'chat', author: 'host', name: 'Hosti', text: 'Hallo' }));
+    // Ungelesen: Punkt bleibt + pulsiert, Ring blinkt einmal um das Symbol.
+    await expect(page.locator('.chat-btn.unread .chat-unread')).toHaveText('1');
+    await expect(page.locator('.chat-btn .chat-flash')).toHaveCount(1);
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector('.chat-unread')).animationName)).toBe('chat-dot-pulse');
+    // Neue Runde im selben Raum: Chat und Ungelesen-Zähler bleiben.
+    await page.evaluate((p) => window.__cns.handleCoopMsg({ type: 'init', gameId: 'g2', running: true, puzzle: p, marks: null, markedBy: null, startTime: Date.now(), lives: 3, maxLives: 3 }), PUZZLE('sehrleicht'));
+    await expect(page.locator('.chat-btn .chat-unread')).toHaveText('1');
+    await page.locator('.chat-btn').click();
+    await expect(page.locator('.chat-msg')).toHaveCount(1);
+    await expect(page.locator('.chat-btn.unread')).toHaveCount(0);
+    // Gerätelokal gesichert (für „Coop fortsetzen“).
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cns_coop_chat')).room)).toBe('CHAT01');
+    // Raum endgültig verlassen → Chat weg.
+    await page.evaluate(() => window.__cns.coopReset());
+    expect(await page.evaluate(() => window.__cns.state.chat.messages.length)).toBe(0);
+    expect(await page.evaluate(() => localStorage.getItem('cns_coop_chat'))).toBe(null);
+  });
+
   // Redesign des Ergebnis-Screens: selbst der VOLLSTE Fall (Coop-Endlos-Sieg,
   // 4 Spieler mit Verteilungs-Zeilen, Münzen + Multiplikator + Streak-Bonus,
   // Perfekt- + Bestzeit-Badge, Leben-Zeile) passt KOMPLETT auf den Bildschirm.

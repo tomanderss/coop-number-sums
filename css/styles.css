@@ -557,6 +557,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-radius: 99px; background: var(--accent); color: #fff; font-size: .66rem; font-weight: 900;
   display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--bg);
 }
+/* Ungelesen: der Punkt bleibt und pulsiert im Takt; bei JEDER neuen Nachricht
+   blinkt einmal ein Ring um das Symbol. Nur transform/opacity (Compositor). */
+.chat-btn.unread .chat-unread { animation: chat-dot-pulse 1.4s ease-in-out infinite; }
+.chat-btn.unread::after {
+  content: ''; position: absolute; inset: 3px; border-radius: 50%; pointer-events: none;
+  border: 2px solid var(--accent); opacity: 0; animation: chat-halo 1.4s ease-out infinite;
+}
+.chat-flash {
+  position: absolute; inset: -2px; border-radius: 50%; pointer-events: none;
+  border: 3px solid var(--accent); opacity: 0; animation: chat-flash .9s ease-out 2;
+}
+@keyframes chat-dot-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.22); opacity: .55; } }
+@keyframes chat-halo { 0% { transform: scale(.85); opacity: .55; } 100% { transform: scale(1.35); opacity: 0; } }
+@keyframes chat-flash { 0% { transform: scale(.7); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .chat-btn.unread .chat-unread, .chat-btn.unread::after, .chat-flash { animation: none; } }
 /* ── Tipp-Indikator („… schreibt", drei wandernde Punkte) ──
    Am Chat-Button der Topbar (Mini-Chip in Spielerfarbe) UND als Blase im Chat.
    Nur transform/opacity animiert (Compositor-sicher, s. Board-Render-Regeln). */
