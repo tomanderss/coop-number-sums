@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.11';
-export const BUILD_HASH = 'e09378d';
+export const BUILD      = '4.12';
+export const BUILD_HASH = 'cce8c97';
 
 export const CHANGELOG = [
+  {
+    "version": "4.12",
+    "date": "16.11.2026",
+    "changes": [
+      "- Chat überarbeitet: bei offener Tastatur bleiben Schließen-Knopf, neueste Nachrichten und Eingabe immer sichtbar – das Fenster wird gestaucht statt verschoben; Nachrichten nach Absender gruppiert mit Uhrzeit"
+    ]
+  },
   {
     "version": "4.11",
     "date": "14.11.2026",
