@@ -419,7 +419,7 @@ const state = reactive({
   prestigeOpen: false,           // Prestige-Screen (verdiente Abzeichen) offen?
   masterUnlock: false,           // Feier-Screen „Großmeister freigeschaltet" offen?
   prestigeUnlock: null,          // Feier einer neu erreichten Prestige-Stufe { sym, tier, key, more } | null
-  chat: { open: false, messages: [], unread: 0, draft: '', kb: 0, typingUids: [], room: '', flash: 0 },  // Multiplayer-Textchat (lebt so lange wie der Raum, room = Raumcode; flash = Zähler fürs Aufblinken bei neuer Nachricht; kb = Tastatur-Höhe px; typingUids = gerade tippende Mitspieler, live aus Coop.onTyping)
+  chat: { open: false, messages: [], unread: 0, draft: '', kb: 0, vvTop: 0, vvH: 0, typingUids: [], room: '', flash: 0 },  // Multiplayer-Textchat (lebt so lange wie der Raum, room = Raumcode; flash = Zähler fürs Aufblinken bei neuer Nachricht; kb = Tastatur-Höhe px; typingUids = gerade tippende Mitspieler, live aus Coop.onTyping)
   shopCategory: null,            // offene Shop-Kategorie ('winfx' | null = Kategorien-Übersicht)
   shopPreview: null,             // Item-Vorschau im Shop { cat, id } | null (▶ auf einer Karte, s. shopPreviewIt)
   walletLogOpen: false,          // Geldverlauf-Modal offen? (Transaktionshistorie)
@@ -3173,25 +3173,50 @@ function scrollChatToEnd() {
 // aus dem sichtbaren Bereich. visualViewport meldet die verbleibende Sichthöhe →
 // wir heben das Bottom-Sheet um die Tastaturhöhe an (margin-bottom), sodass Feld
 // UND die letzten Nachrichten sichtbar bleiben. Handler nur aktiv, solange offen.
-let chatVvHandler = null;
+// Das Chat-Fenster folgt dem SICHTBAREN Bereich (visualViewport): Oberkante =
+// vv.offsetTop, Höhe = vv.height. Öffnet sich die Tastatur, wird das Fenster
+// GESTAUCHT (Kopf mit X oben, Nachrichtenliste schrumpft, Eingabe direkt über
+// der Tastatur) statt nach oben geschoben — iOS verschiebt beim Fokussieren
+// den sichtbaren Bereich, ein am Layout-Viewport festes Fenster rutschte mit
+// seinem X aus dem Bild (gemeldet). Gebündelt per rAF, nur bei echter Änderung.
+let chatVvHandler = null, chatVvRaf = 0;
 function bindChatViewport() {
   const vv = window.visualViewport;
   if (!vv || chatVvHandler) return;
-  const update = () => {
+  const apply = () => {
+    chatVvRaf = 0;
+    const c = state.chat;
+    const top = Math.max(0, Math.round(vv.offsetTop));
+    const h = Math.round(vv.height);
     const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-    if (kb !== state.chat.kb) { state.chat.kb = kb; nextTick(scrollChatToEnd); }
+    if (top === c.vvTop && h === c.vvH && kb === c.kb) return;
+    const kbChanged = (kb > 0) !== (c.kb > 0);
+    c.vvTop = top; c.vvH = h; c.kb = kb;
+    if (kbChanged) log('app', 'Chat: Tastatur ' + (kb > 0 ? 'offen' : 'zu'), { h, top, kb });
   };
+  const update = () => { if (!chatVvRaf) chatVvRaf = requestAnimationFrame(apply); };
   chatVvHandler = update;
   vv.addEventListener('resize', update);
   vv.addEventListener('scroll', update);
-  update();
+  apply();
 }
 function unbindChatViewport() {
   const vv = window.visualViewport;
   if (vv && chatVvHandler) { vv.removeEventListener('resize', chatVvHandler); vv.removeEventListener('scroll', chatVvHandler); }
-  chatVvHandler = null;
-  state.chat.kb = 0;
+  if (chatVvRaf) cancelAnimationFrame(chatVvRaf);
+  chatVvHandler = null; chatVvRaf = 0;
+  state.chat.kb = 0; state.chat.vvTop = 0; state.chat.vvH = 0;
+  // Hat iOS die Seite beim Fokussieren verschoben, zurück an den Anfang.
+  try { if (window.scrollY) window.scrollTo(0, 0); } catch {}
 }
+// Chat-Darstellung: aufeinanderfolgende Nachrichten desselben Absenders bilden
+// eine Gruppe (Name nur über der ersten, Uhrzeit nur unter der letzten).
+const chatSender = (m) => (m ? (m.self ? '__me' : (m.uid || m.name)) : null);
+function chatFirst(i) { const l = state.chat.messages; return i === 0 || chatSender(l[i - 1]) !== chatSender(l[i]); }
+function chatLast(i) { const l = state.chat.messages; return i === l.length - 1 || chatSender(l[i + 1]) !== chatSender(l[i]); }
+function chatTime(ts) { try { return ts ? new Date(ts).toLocaleTimeString(i18nState.locale || undefined, { hour: '2-digit', minute: '2-digit' }) : ''; } catch { return ''; } }
+// Wer ist im Raum (ohne mich) — Kopfzeile des Chats.
+function chatPeople() { return (state.coop.players || []).filter((pl) => pl.id !== state.coop.myId); }
 function openChat() { state.chat.open = true; state.chat.unread = 0; persistChat(); bindChatViewport(); nextTick(() => { scrollChatToEnd(); document.querySelector('.chat-input')?.focus(); }); }
 function closeChat() { state.chat.open = false; unbindChatViewport(); stopChatTyping(); }
 function toggleChat() { state.chat.open ? closeChat() : openChat(); }
@@ -3234,6 +3259,8 @@ function startCoopResyncWatchdog() {
   }, 5000);
 }
 function stopCoopResyncWatchdog() { if (coopResyncTimer) { clearInterval(coopResyncTimer); coopResyncTimer = null; } }
+// Chat gestaucht/gestreckt (Tastatur) → die neueste Nachricht bleibt unten sichtbar.
+watch(() => [state.chat.vvH, state.chat.vvTop], () => { if (state.chat.open) nextTick(scrollChatToEnd); });
 watch(coopNeedsResync, (stuck) => { if (stuck) startCoopResyncWatchdog(); else stopCoopResyncWatchdog(); });
 
 function handleCoopMsg(msg, key = null) {
@@ -8547,7 +8574,7 @@ const App = {
       SETTINGS_SECTIONS, selectSettingsSection, toggleSettingsCard,
       cellClasses, cellStyle, cellAriaLabel, toggleTool,
       desktopKeyLabel, startDesktopKeyCapture, cancelDesktopKeyCapture, clearDesktopToolKey,
-      isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers,
+      isMultiplayer, sendChat, openChat, closeChat, toggleChat, toggleMuteAll, onChatTyping, typingPlayers, chatFirst, chatLast, chatTime, chatPeople,
       reclaimSession, dismissDeviceNotice,
       resolveVersionMismatch, fmtMismatchTime, mismatchSubText,
       openStory, storyPageLevels, storyPage, storyPages, storyInfo, storyTitle, storyLogo, playStoryLevel, resumeStoryRun, storyNextLevel, storyRetry, goStoryOverview, storyStarsArr, STORY_LEVELS, STORY_CHUNK, onStoryTile, openStoryDetail, canRestartStory, restartStoryLevel, deleteStoryRun, closeStoryDetail, playStoryDetail, storyBoardRows, storyDetailEntry, storyDetailAcc,
@@ -11192,20 +11219,29 @@ const App = {
     </div>
 
     <!-- ══ Multiplayer-Chat (Coop / Race / FFA / Team) ══ -->
-    <div v-if="state.chat.open" class="modal-bg chat-bg" @click.self="closeChat">
-      <div class="modal chat-modal" :style="state.chat.kb ? { marginBottom: state.chat.kb + 'px', maxHeight: 'calc(100dvh - ' + (state.chat.kb + 24) + 'px)' } : null">
+    <!-- Chat: folgt dem sichtbaren Bereich (über der Tastatur) und wird gestaucht,
+         Kopf mit X und Eingabe bleiben immer im Bild (s. bindChatViewport). -->
+    <div v-if="state.chat.open" class="modal-bg chat-bg" :class="{ kb: state.chat.kb > 0 }"
+         :style="state.chat.vvH ? { top: state.chat.vvTop + 'px', height: state.chat.vvH + 'px', bottom: 'auto' } : null" @click.self="closeChat">
+      <div class="modal chat-modal">
         <header class="chat-head">
-          <h3><span class="ico-wrap" v-html="ic('chat')"></span> {{ t('chat.title') }}</h3>
-          <button class="icon-btn" @click="closeChat" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
+          <div class="chat-title">
+            <h3><span class="ico-wrap" v-html="ic('chat')"></span> {{ t('chat.title') }}</h3>
+            <div v-if="chatPeople().length" class="chat-people">
+              <span v-for="pl in chatPeople()" :key="pl.id" class="chat-person"><i :style="pl.color ? { background: pl.color } : null"></i>{{ pl.name }}</span>
+            </div>
+          </div>
+          <button class="icon-btn chat-close" @click="closeChat" :aria-label="t('common.close')"><span class="ico-wrap" v-html="ic('close')"></span></button>
         </header>
         <div class="chat-msgs">
           <p v-if="!state.chat.messages.length" class="set-hint chat-empty">{{ t('chat.empty') }}</p>
-          <div v-for="(m,i) in state.chat.messages" :key="i" class="chat-msg" :class="{ mine: m.self }">
-            <div v-if="!m.self" class="chat-sender">
+          <div v-for="(m,i) in state.chat.messages" :key="i" class="chat-msg" :class="{ mine: m.self, first: chatFirst(i), last: chatLast(i) }">
+            <div v-if="!m.self && chatFirst(i)" class="chat-sender">
               <span v-if="badgeShown(m.badge)" class="badge-medal-inline chat-badge" v-html="badgeSvg(m.badge)"></span>
               <span class="chat-name" :style="m.color ? { color: m.color } : null">{{ m.name }}</span>
             </div>
             <div class="chat-bubble">{{ m.text }}</div>
+            <div v-if="chatLast(i) && m.ts" class="chat-time">{{ chatTime(m.ts) }}</div>
           </div>
           <!-- „… schreibt"-Blase (à la WhatsApp): erscheint live, solange ein
                Mitspieler tippt — mit Name in Spielerfarbe + wandernden Punkten. -->
@@ -11215,7 +11251,7 @@ const App = {
           </div>
         </div>
         <form class="chat-input-row" @submit.prevent="sendChat">
-          <input class="text-input chat-input" v-model="state.chat.draft" @input="onChatTyping" :maxlength="300" :placeholder="t('chat.placeholder')" autocomplete="off" />
+          <input class="text-input chat-input" v-model="state.chat.draft" @input="onChatTyping" :maxlength="300" :placeholder="t('chat.placeholder')" autocomplete="off" enterkeyhint="send" />
           <button type="submit" class="btn btn-primary chat-send" :disabled="!state.chat.draft.trim()" :aria-label="t('chat.send')" :title="t('chat.send')"><span class="ico-wrap" v-html="ic('send')"></span></button>
         </form>
       </div>

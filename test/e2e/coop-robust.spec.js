@@ -138,6 +138,36 @@ test.describe('coop robustness', () => {
     expect(await page.evaluate(() => localStorage.getItem('cns_coop_chat'))).toBe(null);
   });
 
+  test('chat: bei offener Tastatur wird das Fenster gestaucht — X, letzte Nachricht und Eingabe bleiben sichtbar', async ({ page }) => {
+    await gotoApp(page);
+    await page.evaluate(() => { window.__cns.state.coop.code = 'CHAT02'; });
+    await asGuestInGame(page);
+    await page.evaluate(() => { for (let i = 1; i <= 30; i++) window.__cns.handleCoopMsg({ type: 'chat', author: 'host', name: 'Hosti', text: 'Nachricht ' + i }); });
+    await page.locator('.chat-btn').click();
+    await expect(page.locator('.chat-modal')).toBeVisible();
+    const inside = async (top, bottom) => {
+      const r = await page.evaluate(() => {
+        const box = (sel) => { const e = document.querySelector(sel); const b = e.getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; };
+        const list = document.querySelector('.chat-msgs').getBoundingClientRect();
+        const msgs = document.querySelectorAll('.chat-msg');
+        const last = msgs[msgs.length - 1].getBoundingClientRect();
+        return { close: box('.chat-close'), input: box('.chat-input'), list: { top: list.top, bottom: list.bottom }, last: { top: last.top, bottom: last.bottom }, lastText: msgs[msgs.length - 1].textContent };
+      });
+      expect(r.close.top).toBeGreaterThanOrEqual(top);
+      expect(r.input.bottom).toBeLessThanOrEqual(bottom + 0.5);
+      expect(r.last.bottom).toBeLessThanOrEqual(r.list.bottom + 1);
+      expect(r.last.top).toBeGreaterThanOrEqual(r.list.top - 1);
+      expect(r.lastText).toContain('Nachricht 30');
+    };
+    await page.waitForTimeout(400);
+    const vh = page.viewportSize().height;
+    await inside(0, vh);
+    // Tastatur simulieren: der sichtbare Bereich ist nur noch 300 px hoch und um 80 px verschoben.
+    await page.evaluate(() => { const c = window.__cns.state.chat; c.vvTop = 80; c.vvH = 300; c.kb = 300; });
+    await page.waitForTimeout(500);
+    await inside(80, 380);
+  });
+
   // Redesign des Ergebnis-Screens: selbst der VOLLSTE Fall (Coop-Endlos-Sieg,
   // 4 Spieler mit Verteilungs-Zeilen, Münzen + Multiplikator + Streak-Bonus,
   // Perfekt- + Bestzeit-Badge, Leben-Zeile) passt KOMPLETT auf den Bildschirm.

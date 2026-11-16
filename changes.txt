@@ -1,0 +1,1 @@
+- Chat überarbeitet: bei offener Tastatur bleiben Schließen-Knopf, neueste Nachrichten und Eingabe immer sichtbar – das Fenster wird gestaucht statt verschoben; Nachrichten nach Absender gruppiert mit Uhrzeit
