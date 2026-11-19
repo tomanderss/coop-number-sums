@@ -1,2 +1,0 @@
-- Pipes: Sterne-Zeiten im Story-Modus an echte Zeiten der neuen, schwereren Rätsel angepasst
-- Pipes: Bestzeiten aus der Zeit vor dem Schwierigkeits-Umbau (ab „Mittel“) werden verworfen – auch in der Bestenliste

@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.12';
-export const BUILD_HASH = 'cce8c97';
+export const BUILD      = '4.13';
+export const BUILD_HASH = '25ee044';
 
 export const CHANGELOG = [
+  {
+    "version": "4.13",
+    "date": "19.11.2026",
+    "changes": [
+      "- Pipes: Sterne-Zeiten im Story-Modus an echte Zeiten der neuen, schwereren Rätsel angepasst",
+      "- Pipes: Bestzeiten aus der Zeit vor dem Schwierigkeits-Umbau (ab „Mittel“) werden verworfen – auch in der Bestenliste"
+    ]
+  },
   {
     "version": "4.12",
     "date": "16.11.2026",
