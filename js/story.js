@@ -84,15 +84,26 @@ export function cleanPuzzle(p) {
 // STORY_HARDER hochgerechnet (geschätzt, Nutzerentscheidung „erstmal schätzen")
 // und wird mit neuen Daten nachgeschärft. Schon verdiente Sterne bleiben
 // (recordStoryResult nimmt immer den besseren Wert).
+//
+// NACHGESCHÄRFT (STORY_CALIBRATED): Pipes mit Zeiten NACH dem Umbau (Sicherung
+// vom 19.11.2026). Die Werte enthalten die Härte schon, STORY_HARDER greift dort
+// nicht. Mittel: Bestzeit 70 s, Median ~87 s, Ø 104 s (12 Partien) → 1,75 s/Zelle.
+// Ab Extrem (Brett ohne Rand) gemessen 8×8: 571/572 s, 9×9: 1366 s, 10×10:
+// 452/599 s, 12×12: 2096 s — Ausgleichskurve t ≈ 4,7·Zellen^1,14 (≈ 8,5–9,6 s/
+// Zelle), 3★ = Kurve × 1,1, damit die eigene Bestzeit auf 8×8 noch 3★ bringt.
+// „Schwer“ (8×8 mit Rand) hat noch keine Messung — geschätzt zwischen Mittel
+// und Extrem.
 export const STORY_SEC_PER_CELL = {
   //            sehrl. leicht mittel schwer extrem mash.  dikk.  bism.  rip
   numberpath: [0.55, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.00],
-  pipes:      [1.40, 1.50, 1.80, 2.40, 2.80, 3.00, 3.30, 3.80, 4.00],
+  pipes:      [1.40, 1.50, 1.75, 2.40, 9.40, 9.70, 10.0, 10.3, 10.6],
   numberlink: [0.23, 0.25, 0.35, 0.45, 0.50, 0.60, 0.80, 1.00, 1.10],
 };
 // Aufschlag für die schwereren Rätsel ab „Mittel“ (Index = Stufe).
 export const STORY_HARDER = [1, 1, 2, 2.5, 3, 3, 3, 3, 3];
 export const STORY_TWO_STAR = 3;
+// Spiele, deren Werte schon an Zeiten der HEUTIGEN Rätsel gemessen sind (ohne Aufschlag).
+export const STORY_CALIBRATED = { pipes: true };
 // Rückfall für ein Spiel ohne eigene Werte (sollte nicht vorkommen: nur Spiele
 // ohne Leben werden nach Zeit gewertet).
 const FALLBACK_SPC = STORY_SEC_PER_CELL.numberpath;
@@ -101,7 +112,8 @@ const FALLBACK_SPC = STORY_SEC_PER_CELL.numberpath;
 export function storyParMs(cells, bandIndex = 4, game = null) {
   const b = Math.max(0, Math.min(8, bandIndex | 0));
   const spc = (STORY_SEC_PER_CELL[game] || FALLBACK_SPC)[b];
-  return Math.round(Math.max(1, cells) * spc * STORY_HARDER[b] * 1000);
+  const harder = STORY_CALIBRATED[game] ? 1 : STORY_HARDER[b];
+  return Math.round(Math.max(1, cells) * spc * harder * 1000);
 }
 export function storyStars({ lives = true, mistakes = 0, hints = 0, elapsedMs = 0, cells = 0, bandIndex = 0, game = null } = {}) {
   if (lives) {

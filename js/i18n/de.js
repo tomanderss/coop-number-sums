@@ -467,7 +467,7 @@ export default {
         'stats/coopHintsUsed': { l: 'Coop: Hinweise benutzt', d: 'Insgesamt verwendete Hinweise in Coop-Partien.' },
         'stats/perfectWins': { l: 'Solo: perfekte Siege', d: 'Siege ohne Fehler und ohne Hinweise (zählt für Belohnungs-Bonus und Bestenliste).' },
         'stats/coopPerfectWins': { l: 'Coop: perfekte Siege', d: 'Coop-Siege ohne Fehler und ohne Hinweise.' },
-        'stats/byDifficulty': { l: 'Details je Schwierigkeit', d: 'Je Schwierigkeit: gespielt/gewonnen/verloren, Zeiten und Bestzeit (bestTimeMs zählt nur perfekte Siege; coop*-Felder getrennt).' },
+        'stats/byDifficulty': { l: 'Details je Schwierigkeit', d: 'Je Schwierigkeit: gespielt/gewonnen/verloren, Zeiten und Bestzeit (bestTimeMs zählt nur perfekte Siege, bestAt = wann sie erzielt wurde; coop*-Felder getrennt).' },
         'race/*/racesPlayed': { l: 'Wettkämpfe gespielt', d: 'Beendete Wettkampf-Partien in diesem Modus.' },
         'race/*/racesWon': { l: 'Wettkämpfe gewonnen', d: 'Gewonnene Wettkampf-Partien in diesem Modus.' },
         'race/*/racesLost': { l: 'Wettkämpfe verloren', d: 'Verlorene Wettkampf-Partien in diesem Modus.' },

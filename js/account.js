@@ -27,7 +27,7 @@ import {
   deviceId, saveConflictBackup, pickActiveGame, pickEndlessSlot, mergeSaves, mergeSavesGone, HISTORY_MAX,
   loadWalletLog, mergeWalletLogs, unexplainedWalletDelta,
   gameId, splitSnapshot, joinSnapshot, ACCOUNT_FIELDS, GAME_FIELDS,
-  grantCurrency, withGameScope,
+  grantCurrency, withGameScope, BEST_RESETS,
 } from './storage.js';
 
 // ─── Reine Validierung (unit-testbar, ohne Firebase) ──────────────────────────
@@ -153,6 +153,16 @@ function mergeNumericDeep(a, b) {
   const out = {};
   for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
     out[k] = /esttimems$/i.test(k) ? bestOf(a[k], b[k]) : mergeNumericDeep(a[k], b[k]);
+  }
+  // Der Zeitstempel einer Bestzeit gehört zu GENAU dieser Zeit (nicht Maximum):
+  // sonst bekäme eine alte, ungültige Bestzeit den Stempel einer neueren Seite
+  // (s. cleanStaleBests in storage.js).
+  for (const [tk, ak] of [['bestTimeMs', 'bestAt'], ['coopBestTimeMs', 'coopBestAt']]) {
+    if (!(ak in a) && !(ak in b)) continue;
+    const from = out[tk] == null ? null : (Number(a[tk]) === out[tk] && a[tk] != null ? a : b);
+    const at = from && from[ak] != null ? from[ak] : null;
+    // Gleich schnelle Zeit auf beiden Seiten: der gültigere (spätere) Stempel.
+    out[ak] = a[tk] != null && b[tk] != null && Number(a[tk]) === Number(b[tk]) ? Math.max(a[ak] || 0, b[ak] || 0) || null : at;
   }
   return out;
 }
@@ -800,11 +810,32 @@ export async function updateLeaderboardBadge(diffIds, badge = null) {
 
 // Bestenliste einer Schwierigkeit live beobachten. cb(sortedEntries). Rückgabe:
 // Abmelde-Funktion.
+// Eigene Bestenlisten-Einträge von vor einem Schwierigkeits-Umbau löschen (dann
+// schreibt publishBestTime die neue Bestzeit). Fremde Einträge darf nur ihr
+// Besitzer löschen — sie blendet watchLeaderboard aus.
+export async function purgeStaleLeaderboard(game, cfg) {
+  try {
+    const fb = await ensureFirebase();
+    const u = currentUser(fb);
+    if (!u || u.isAnonymous || !cfg) return 0;
+    let n = 0;
+    for (const diff of cfg.diffs) {
+      const ref = fb.ref(fb.db, `leaderboard/${game}/${diff}/${u.uid}`);
+      const v = (await fb.get(ref)).val();
+      if (v && (v.ts || 0) < cfg.since) { await fb.remove(ref); n++; }
+    }
+    log('account', 'Alte Bestenlisten-Einträge geprüft', { game, removed: n });
+    return n;
+  } catch (e) { log('account', 'purgeStaleLeaderboard fehlgeschlagen', e); return 0; }
+}
 export async function watchLeaderboard(difficulty, cb) {
   try {
     const fb = await ensureFirebase();
-    const off = fb.onValue(fb.ref(fb.db, `leaderboard/${gameId()}/${difficulty}`), (snap) => {
-      const arr = Object.entries(snap.val() || {}).map(([uid, v]) => ({ uid, ...(v || {}) }));
+    const game = gameId();
+    const reset = BEST_RESETS[game] && BEST_RESETS[game].diffs.includes(difficulty) ? BEST_RESETS[game].since : 0;
+    const off = fb.onValue(fb.ref(fb.db, `leaderboard/${game}/${difficulty}`), (snap) => {
+      // Einträge von vor einem Schwierigkeits-Umbau zählen nicht mehr (s. BEST_RESETS).
+      const arr = Object.entries(snap.val() || {}).map(([uid, v]) => ({ uid, ...(v || {}) })).filter((e) => !reset || (e.ts || 0) >= reset);
       cb(sortLeaderboard(arr));
     });
     return () => { try { off(); } catch (_) {} };
