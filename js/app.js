@@ -30,7 +30,7 @@ const isFullyTier1Solvable = (...a) => activeGame().isFullyTier1Solvable(...a);
 import {
   loadSettings, saveSettings, loadActiveGame, saveActiveGame, loadActiveGameCoop, saveActiveGameCoop, loadActiveGameEndless, saveActiveGameEndless, snapshotSolved,
   loadSaves, upsertSave, removeSave, isSaveGone, snapshotProgress, SAVES_MAX,
-  loadStats, recordResult, recordEndlessRun, applyEndlessBackfill, clearStats,
+  loadStats, recordResult, BEST_RESETS, recordEndlessRun, applyEndlessBackfill, clearStats,
   loadSeenVersion, saveSeenVersion,
   exportToFile, importFromFile, withGameScope, deleteAllData, loadStreak, recordStreakResult,
   loadHistory, recordHistory,
@@ -6748,9 +6748,16 @@ function syncBestTimesToLeaderboard() {
     let n = 0;
     for (const g of GAME_IDS) {
       const stats = withGameScope(g, () => loadStats());
-      for (const [diff, d] of Object.entries(stats.byDifficulty || {})) {
-        if (d && d.bestTimeMs > 0) { Account.publishBestTime(diff, d.bestTimeMs, state.account.username, myBadge(), g); n++; }
-      }
+      const publish = () => {
+        for (const [diff, d] of Object.entries(stats.byDifficulty || {})) {
+          if (d && d.bestTimeMs > 0) Account.publishBestTime(diff, d.bestTimeMs, state.account.username, myBadge(), g);
+        }
+      };
+      n += Object.values(stats.byDifficulty || {}).filter((d) => d && d.bestTimeMs > 0).length;
+      // Nach einem Schwierigkeits-Umbau erst die eigenen alten Einträge löschen
+      // (sonst bliebe die alte, schnellere Zeit stehen), danach neu eintragen.
+      if (BEST_RESETS[g]) Account.purgeStaleLeaderboard(g, BEST_RESETS[g]).then(publish);
+      else publish();
     }
     if (n) log('account', 'Bestzeiten-Sync zur Bestenliste angestoßen', { count: n, games: GAME_IDS.length });
   } catch (e) { log('account', 'Bestzeiten-Sync fehlgeschlagen', e); }

@@ -286,7 +286,51 @@ export function loadStats() {
   // byDifficulty muss IMMER ein frisches Objekt sein -- sonst würde das geteilte
   // EMPTY_STATS.byDifficulty-Template selbst mutiert (Referenz statt Kopie),
   // sobald noch nichts in localStorage steht.
-  return { ...EMPTY_STATS, ...loaded, byDifficulty: { ...(loaded.byDifficulty || {}) } };
+  const s = { ...EMPTY_STATS, ...loaded, byDifficulty: { ...(loaded.byDifficulty || {}) } };
+  // Bestzeiten aus der Zeit VOR einem Schwierigkeits-Umbau verwerfen — bei JEDEM
+  // Laden, damit ein Cloud-Abgleich (Bestwert = Minimum) sie nicht zurückbringt.
+  const cfg = BEST_RESETS[gameId()];
+  if (cfg) {
+    const res = cleanStaleBests(s, load(KEYS.HISTORY, []), cfg);
+    if (res.changed) {
+      saveStats(s);
+      log('storage', 'Alte Bestzeiten verworfen (Schwierigkeits-Umbau)', { game: gameId(), cleared: res.cleared });
+    }
+  }
+  return s;
+}
+// Ein Schwierigkeits-Umbau macht ältere Bestzeiten unvergleichbar (Nutzerwunsch:
+// „die Bestzeiten vor dem Umbau löschen“). Je Spiel: ab wann gilt eine Bestzeit
+// (`since` = Zeitpunkt des Umbaus) und welche Stufen betrifft es.
+export const BEST_RESETS = {
+  // Pipes v3.38 (12.11.2026): ab „Mittel“ geklettert, ab „Extrem“ ohne Rand.
+  pipes: { since: 1794522853000, diffs: ['mittel', 'schwer', 'extrem', 'mashallah', 'dikkawas', 'bismillah', 'rip'] },
+};
+// Rein: eine Bestzeit zählt nur mit Zeitstempel `bestAt`/`coopBestAt` ab `since`
+// (ältere Einträge haben gar keinen). Verworfene werden aus dem Verlauf neu
+// berechnet (perfekte Siege nach dem Umbau), sonst bleiben sie leer.
+export function cleanStaleBests(stats, history, cfg) {
+  let changed = false;
+  const cleared = [];
+  const hist = Array.isArray(history) ? history : [];
+  for (const diff of cfg.diffs) {
+    const d = stats.byDifficulty[diff];
+    if (!d) continue;
+    for (const coop of [false, true]) {
+      const tk = coop ? 'coopBestTimeMs' : 'bestTimeMs', ak = coop ? 'coopBestAt' : 'bestAt';
+      if (d[tk] == null || (d[ak] || 0) >= cfg.since) continue;
+      let best = null, at = null;
+      for (const e of hist) {
+        if (!e || e.difficulty !== diff || e.outcome !== 'won' || !!e.coop !== coop || !(e.ts >= cfg.since) || !(e.timeMs > 0)) continue;
+        if ((e.mistakes || 0) !== 0 || (e.hintsUsed || 0) !== 0) continue;
+        if (best == null || e.timeMs < best) { best = e.timeMs; at = e.ts; }
+      }
+      stats.byDifficulty[diff] = { ...stats.byDifficulty[diff], [tk]: best, [ak]: at };
+      cleared.push((coop ? 'coop:' : '') + diff);
+      changed = true;
+    }
+  }
+  return { changed, cleared };
 }
 function saveStats(s) { save(KEYS.STATS, s); }
 
@@ -316,13 +360,13 @@ export function recordResult({ difficulty, outcome, timeMs, hintsUsed, mistakes,
       s.coopTotalTimeMs += timeMs || 0;
       if (perfect) s.coopPerfectWins++;
       d.coopWon++; d.coopSumTimeMs += timeMs || 0;
-      if (perfect && (d.coopBestTimeMs == null || timeMs < d.coopBestTimeMs)) { d.coopBestTimeMs = timeMs; newHighscore = true; }
+      if (perfect && (d.coopBestTimeMs == null || timeMs < d.coopBestTimeMs)) { d.coopBestTimeMs = timeMs; d.coopBestAt = Date.now(); newHighscore = true; }
     } else {
       s.won++; s.currentStreak++; s.bestStreak = Math.max(s.bestStreak, s.currentStreak);
       s.totalTimeMs += timeMs || 0;
       if (perfect) s.perfectWins++;
       d.won++; d.sumTimeMs += timeMs || 0;
-      if (perfect && (d.bestTimeMs == null || timeMs < d.bestTimeMs)) { d.bestTimeMs = timeMs; newHighscore = true; }
+      if (perfect && (d.bestTimeMs == null || timeMs < d.bestTimeMs)) { d.bestTimeMs = timeMs; d.bestAt = Date.now(); newHighscore = true; }
     }
   } else {
     if (coop) s.coopCurrentStreak = 0; else s.currentStreak = 0;

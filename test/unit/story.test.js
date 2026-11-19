@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import {
   STORY_LEVELS, STORY_CHUNK, STORY_BANDS, MIX_KEY, storyBandIndex, storyBandRange, storyDifficulty,
   storyChunkOf, storyChunkPath, storyStars, storyNext, storyUnlocked, recordStoryResult, mergeStory,
-  storyStarsTotal, mixStoryGames, cleanPuzzle, storyParMs, STORY_SEC_PER_CELL,
+  storyStarsTotal, mixStoryGames, cleanPuzzle, storyParMs, STORY_SEC_PER_CELL, STORY_CALIBRATED,
 } from '../../js/story.js';
 import { GAMES, GAME_IDS } from '../../js/games/index.js';
 
@@ -60,6 +60,14 @@ describe('Story: Sterne', () => {
       assert.equal(st(avg * 1.5), 2, `${game} 1,5 × Durchschnitt`);
     }
   });
+  test('Pipes nachgeschärft an Zeiten NACH dem Umbau: Bestzeit 3★, Durchschnitt 2★', () => {
+    const st = (bandIndex, cells, sec) => storyStars({ lives: false, game: 'pipes', bandIndex, cells, elapsedMs: sec * 1000 });
+    assert.equal(st(2, 49, 70), 3, 'Mittel Bestzeit');
+    assert.equal(st(2, 49, 104), 2, 'Mittel Durchschnitt');
+    assert.equal(st(4, 64, 571), 3, 'Extrem Bestzeit');
+    assert.equal(st(8, 144, 2096), 2, 'R.I.P. eine Messung');
+    assert.equal(st(8, 144, 2096 * 3), 1, 'R.I.P. dreifach zu langsam');
+  });
   test('ab „Mittel“ mit Aufschlag für die schwereren Rätsel, Werte steigen mit der Stufe', () => {
     for (const g of Object.keys(STORY_SEC_PER_CELL)) {
       let prev = 0;
@@ -68,7 +76,7 @@ describe('Story: Sterne', () => {
         assert.ok(par >= prev, `${g} Stufe ${b}`);
         prev = par;
       }
-      assert.ok(storyParMs(100, 2, g) > storyParMs(100, 1, g) * 2 - 1, g);
+      if (!STORY_CALIBRATED[g]) assert.ok(storyParMs(100, 2, g) > storyParMs(100, 1, g) * 2 - 1, g);
     }
   });
 });
