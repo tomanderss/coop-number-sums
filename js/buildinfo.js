@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.14';
-export const BUILD_HASH = '4f4977b';
+export const BUILD      = '4.15';
+export const BUILD_HASH = 'c195eaf';
 
 export const CHANGELOG = [
+  {
+    "version": "4.15",
+    "date": "20.11.2026",
+    "changes": [
+      "- 5 neue Sieganimationen in zwei neuen Preisstufen: Mythisch (Hyperraum-Sprung, Polarlicht, Krönung) und Göttlich (Supernova, Großes Finale) – mit eigenem, epischem Sound"
+    ]
+  },
   {
     "version": "4.14",
     "date": "20.11.2026",
