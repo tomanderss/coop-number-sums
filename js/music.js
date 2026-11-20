@@ -397,6 +397,18 @@ export function sfxWinFx(tier = 0) {
     [19, 24, 28, 31].forEach((s, i) => sfxVoice(midi(s), 1.1 + i * 0.1, 0.6, 0.18, { lp: 4000, attack: 0.004, partial2: 0.25 }));
     sfxVoice(midi(36), 1.7, 1.6, 0.2, { lp: 5000, attack: 0.006, partial2: 0.3 });
   }
+  if (tier >= 5) {
+    // Mythisch: tiefer Einschlag + breiter, lang stehender Akkord wie ein Chor.
+    sfxVoice(midi(-24), 0, 2.6, 0.42, { lp: 320, attack: 0.01, glideTo: midi(-26), glideTime: 1.2 });
+    sfxNoise(0, 1.1, 0.22, 700);
+    [0, 7, 12, 16, 19, 24].forEach((s, i) => sfxVoice(midi(s), 1.0 + i * 0.04, 2.6, 0.12, { lp: 2400, attack: 0.25, partial2: 0.12 }));
+  }
+  if (tier >= 6) {
+    // Göttlich: Glockenkaskade abwärts und ein letzter, gleißender Schlag.
+    [36, 31, 28, 24, 19].forEach((s, i) => sfxVoice(midi(s), 2.0 + i * 0.12, 1.4, 0.16, { lp: 6000, attack: 0.004, partial2: 0.35 }));
+    sfxVoice(midi(-12), 2.8, 2.2, 0.36, { lp: 600, attack: 0.01 });
+    sfxNoise(2.8, 1.4, 0.2, 9000);
+  }
 }
 // Verloren — sanfter, dunkler Moll-Fall G4 -> Eb4 -> C4 (traurig/dramatisch).
 export function sfxLose() {

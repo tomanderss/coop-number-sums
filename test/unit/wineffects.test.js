@@ -8,8 +8,9 @@ import {
 import { hasIcon } from '../../js/icons.js';
 
 describe('wineffects.catalog', () => {
-  test('contains confetti plus the 27 purchasable effects', () => {
-    assert.equal(WIN_EFFECTS.length, 28);
+  test('contains confetti plus the purchasable effects (27 classic + Mythic/Divine)', () => {
+    assert.equal(WIN_EFFECTS.length, 33);
+    assert.equal(WIN_EFFECTS.filter((e) => e.tier >= 5).length, 5);
     assert.equal(WIN_EFFECTS.filter((e) => e.tier === 0).length, 1);
     assert.equal(WIN_EFFECTS.filter((e) => e.tier === 4).length, 5);
     assert.equal(WIN_EFFECTS[0].id, CONFETTI_ID);
@@ -26,8 +27,10 @@ describe('wineffects.catalog', () => {
     }
   });
 
-  test('price tiers are 0/400/600/900/1500 as approved', () => {
-    assert.deepEqual(TIER_PRICES, { 0: 0, 1: 400, 2: 600, 3: 900, 4: 1500 });
+  test('price tiers are 0/400/600/900/1500 + Mythic 2500 / Divine 4000', () => {
+    assert.deepEqual(TIER_PRICES, { 0: 0, 1: 400, 2: 600, 3: 900, 4: 1500, 5: 2500, 6: 4000 });
+    assert.equal(effectPrice('aurora'), 2500);
+    assert.equal(effectPrice('supernova'), 4000);
     assert.equal(effectPrice('confetti'), 0);
     assert.equal(effectPrice('stars'), 400);
     assert.equal(effectPrice('fireworks'), 600);
@@ -39,7 +42,10 @@ describe('wineffects.catalog', () => {
 
   test('every locale has a shop.effect name for every effect', async () => {
     const { default: de } = await import('../../js/i18n/de.js');
-    for (const e of WIN_EFFECTS) assert.ok(de.shop.effect[e.id], `missing de name for ${e.id}`);
+    for (const lang of ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'pt-BR', 'ru', 'tr']) {
+      const { default: m } = await import(`../../js/i18n/${lang}.js`);
+      for (const e of WIN_EFFECTS) assert.ok(m.shop.effect[e.id], `missing ${lang} name for ${e.id}`);
+    }
   });
 });
 
