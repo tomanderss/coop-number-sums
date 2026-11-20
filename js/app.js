@@ -5930,6 +5930,83 @@ const PIECE_GENERATORS = {
     for (let i = 0; i < (perfect ? 40 : 24); i++) out.push({ id: 500 + i, shape: 'sparkle', left: R(0, 100), top: R(0, 55), delay: R(0, 2.6), dur: 1.1, size: R(8, 16), kind: 1 });
     return out;
   },
+  // ── Tier 5 (Mythisch) & Tier 6 (Göttlich): Kino-Momente in mehreren Akten ──
+  hyperjump(perfect) {
+    // Akt 1: Sterne treiben ruhig (k1). Akt 2: Sprung — Lichtstreifen schießen
+    // aus der Mitte und werden immer länger/schneller (k0). Akt 3: weißer Blitz
+    // (::after), danach taucht ein fremder Planet auf (::before) + Funkeln (k2).
+    const out = []; let id = 0;
+    for (let i = 0; i < (perfect ? 40 : 26); i++) out.push({ id: id++, left: R(0, 100), top: R(0, 100), delay: R(0, 0.4), dur: R(1, 1.4), size: R(2, 4), kind: 1 });
+    for (let i = 0; i < (perfect ? 110 : 70); i++) {
+      const t = i / (perfect ? 110 : 70);
+      out.push({ id: id++, ang: R(0, 360), rad: R(30, 90), delay: 0.7 + t * 1.8 + R(0, 0.1), dur: Math.max(0.28, 0.9 - t * 0.6), size: R(2, 3.5), hue: R(185, 235) });
+    }
+    for (let i = 0; i < (perfect ? 30 : 18); i++) out.push({ id: id++, shape: 'sparkle', left: R(8, 92), top: R(8, 80), delay: R(3, 4.6), dur: 1.1, size: R(8, 16), kind: 2 });
+    return out;
+  },
+  aurora(perfect) {
+    // Nachthimmel: Polarlicht-Vorhänge (k1) wogen in Grün/Türkis/Violett, Sterne
+    // funkeln (k2), Sternschnuppen ziehen durch (k3), feiner Glitzer rieselt (k4).
+    const out = []; let id = 0;
+    const hues = [140, 165, 190, 280, 150, 300];
+    for (let i = 0; i < (perfect ? 6 : 5); i++) out.push({ id: id++, left: -20 + i * 22, top: R(-6, 10), delay: i * 0.25, dur: R(4.6, 5.4), size: 0, hue: hues[i % hues.length], kind: 1 });
+    for (let i = 0; i < (perfect ? 60 : 40); i++) out.push({ id: id++, left: R(0, 100), top: R(0, 75), delay: R(0, 3.5), dur: R(1.2, 2.2), size: R(2, 4), kind: 2 });
+    for (let i = 0; i < (perfect ? 5 : 3); i++) out.push({ id: id++, left: R(20, 100), top: R(-5, 25), delay: 0.8 + i * R(0.8, 1.2), dur: 0.9, size: R(70, 120), kind: 3 });
+    for (let i = 0; i < (perfect ? 40 : 24); i++) out.push({ id: id++, left: R(0, 100), delay: R(0.5, 3.8), dur: R(2.4, 3.6), size: R(3, 5), hue: hues[i % hues.length], kind: 4 });
+    return out;
+  },
+  coronation(perfect) {
+    // Himmelsstrahlen drehen sich (::before), die Krone schwebt herab und landet
+    // (k1); beim Aufsetzen sprühen Juwelen (k2) und ein goldener Ring (k3), dann
+    // regnet Goldkonfetti (k0) und alles funkelt (k4).
+    const out = []; let id = 0;
+    out.push({ id: id++, shape: 'crown', left: 50, top: 40, delay: 0, dur: 4.6, size: 120, kind: 1 });
+    for (let i = 0; i < (perfect ? 28 : 18); i++) { const a = R(0, Math.PI * 2), r = R(140, 380); out.push({ id: id++, shape: i % 3 ? 'gem' : 'coin', left: 50, top: 40, delay: 1.5 + R(0, 0.15), dur: R(1.1, 1.8), size: R(14, 26), dx: Math.cos(a) * r, dy: Math.sin(a) * r * 0.8, rot: R(180, 720), kind: 2 }); }
+    for (let i = 0; i < 3; i++) out.push({ id: id++, left: 50, top: 40, delay: 1.5 + i * 0.22, dur: 1.2, size: 220, kind: 3 });
+    const gold = ['#ffd24a', '#f2b529', '#fff0a8', '#e0a828', '#ffe27a'];
+    for (let i = 0; i < (perfect ? 90 : 56); i++) out.push({ id: id++, left: R(0, 100), delay: 1.6 + R(0, 1.6), dur: R(2, 3.4), size: R(6, 12), rot: R(0, 360), color: gold[i % gold.length] });
+    for (let i = 0; i < (perfect ? 20 : 12); i++) out.push({ id: id++, shape: 'sparkle', left: R(10, 90), top: R(10, 80), delay: R(1.8, 4.2), dur: 0.9, size: R(10, 20), kind: 4 });
+    return out;
+  },
+  supernova(perfect) {
+    // Akt 1: ein Stern saugt Materie an (k0, einwärts) und bläht sich auf (k1).
+    // Akt 2: Kollaps — gleißender Blitz übers ganze Bild (::after). Akt 3:
+    // Schockwellen (k2), Trümmer in allen Spektralfarben (k3), farbige Nebel-
+    // wolken (k4) dehnen sich aus, zum Schluss funkelt der Sternenstaub (k5).
+    const out = []; let id = 0;
+    out.push({ id: id++, left: 50, top: 45, delay: 0, dur: 1.7, size: 130, kind: 1 });
+    for (let i = 0; i < (perfect ? 60 : 40); i++) { const a = R(0, Math.PI * 2), r = R(160, 520); out.push({ id: id++, left: 50, top: 45, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: R(0, 1), dur: R(0.5, 0.9), size: R(3, 7), hue: R(20, 55) }); }
+    for (let i = 0; i < 4; i++) out.push({ id: id++, left: 50, top: 45, delay: 1.65 + i * 0.22, dur: 1.5, size: 260, hue: [45, 190, 300, 20][i], kind: 2 });
+    for (let i = 0; i < (perfect ? 80 : 52); i++) { const a = R(0, Math.PI * 2), r = R(220, 760); out.push({ id: id++, left: 50, top: 45, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: 1.65 + R(0, 0.35), dur: R(1.8, 3.2), size: R(6, 16), rot: R(180, 900), hue: Math.floor(R(0, 360)), kind: 3 }); }
+    for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + R(-0.3, 0.3); out.push({ id: id++, left: 50, top: 45, dx: Math.cos(a) * R(60, 170), dy: Math.sin(a) * R(40, 130), delay: 1.7 + R(0, 0.5), dur: R(3.2, 3.9), size: R(260, 380), hue: [280, 200, 330, 170, 30, 250, 300][i], kind: 4 }); }
+    // Zweite, spätere Druckwelle: der Rest-Kern pulsiert noch einmal nach.
+    for (let i = 0; i < 2; i++) out.push({ id: id++, left: 50, top: 45, delay: 3.2 + i * 0.3, dur: 1.6, size: 220, hue: [200, 300][i], kind: 2 });
+    for (let i = 0; i < (perfect ? 36 : 22); i++) out.push({ id: id++, shape: 'sparkle', left: R(5, 95), top: R(5, 90), delay: R(2.6, 4.6), dur: 1, size: R(8, 18), kind: 5 });
+    return out;
+  },
+  grandfinale(perfect) {
+    // Das große Abschlussfeuerwerk in drei Wellen: bunte Päonien, goldene
+    // Trauerweiden, deren Funken lang herabsinken (k2), dann das Finale — viele
+    // Bomben gleichzeitig mit Ringen (k4) und Knister-Funken (k3) — und ein
+    // letzter Blitz übers ganze Bild (::after). Raketen steigen sichtbar auf (k1).
+    const out = []; let id = 0;
+    const H = window.innerHeight;
+    const burst = (cx, cy, delay, hue, n, kind, rMin, rMax, rings) => {
+      const rise = R(0.45, 0.6);
+      out.push({ id: id++, left: cx + R(-2, 2), top: 104, delay, dur: rise, size: R(4, 6), hue, dy: -((104 - cy) / 100) * H, kind: 1 });
+      for (let k = 0; k < n; k++) { const a = (k / n) * Math.PI * 2 + R(-0.08, 0.08), r = R(rMin, rMax); out.push({ id: id++, left: cx, top: cy, delay: delay + rise, dur: kind === 2 ? R(2, 2.8) : R(1.1, 1.8), size: R(5, 10), hue: kind === 2 ? R(38, 50) : hue, dx: Math.cos(a) * r, dy: Math.sin(a) * r, ...(kind ? { kind } : {}) }); }
+      if (rings) out.push({ id: id++, left: cx, top: cy, delay: delay + rise, dur: 1, size: R(140, 220), hue, kind: 4 });
+      return delay + rise;
+    };
+    const w1 = perfect ? 5 : 4, w2 = 3, w3 = perfect ? 7 : 5;
+    for (let b = 0; b < w1; b++) burst(R(15, 85), R(12, 40), b * 0.3 + R(0, 0.1), Math.floor(R(0, 360)), 22, 0, 110, 210, true);
+    for (let b = 0; b < w2; b++) burst(20 + b * 30 + R(-5, 5), R(14, 28), 1.5 + b * 0.35, 42, 22, 2, 120, 220, false);
+    for (let b = 0; b < w3; b++) {
+      const cx = R(10, 90), cy = R(10, 45), t = burst(cx, cy, 2.9 + b * 0.12 + R(0, 0.1), Math.floor(R(0, 360)), 18, 0, 120, 240, true);
+      for (let k = 0; k < (perfect ? 8 : 5); k++) out.push({ id: id++, shape: 'sparkle', left: cx + R(-10, 10), top: cy + R(-8, 8), delay: t + R(0.2, 0.7), dur: 0.5, size: R(6, 12), kind: 3 });
+    }
+    return out;
+  },
 };
 // Overlay-Lebensdauer je Effekt [normal, perfekt] — möglichst dicht an der
 // tatsächlich sichtbaren Animation, damit nach ihrem Ende nichts „nachhängt"
@@ -5943,6 +6020,8 @@ const WINFX_DURATION = {
   fireworks: [3400, 4600],   // letzte Burst-Welle je nach Anzahl
   meteor: [4600, 5600], gewitter: [4400, 5200], portal: [4200, 5000],
   feuertornado: [4200, 5000], synthgrid: [4600, 5600],
+  hyperjump: [5000, 5600], aurora: [5200, 5800], coronation: [4800, 5400],
+  supernova: [5200, 5800], grandfinale: [5400, 5800],
 };
 function launchWinFx(perfect, forceId) {
   const id = forceId || resolveActiveEffect(state.settings.winEffect, state.inventory);
@@ -5953,7 +6032,7 @@ function launchWinFx(perfect, forceId) {
   const mySeq = state.winFx.seq;
   // Sound zur Animation: an den Effekt gekoppelt und mit dessen Stufe grandioser
   // (perfekte Siege eine Stufe höher). Läuft damit auch in der Shop-Vorschau.
-  if (state.settings.sfxWin) Music.sfxWinFx(Math.min(4, (effectById(id)?.tier || 0) + (perfect ? 1 : 0)));
+  if (state.settings.sfxWin) Music.sfxWinFx(Math.min(6, (effectById(id)?.tier || 0) + (perfect ? 1 : 0)));
   setTimeout(() => { if (state.winFx && state.winFx.seq === mySeq) state.winFx = null; }, perfect ? durPerfect : durNormal);
 }
 // Stil-Bindung eines Partikels (nur einmal beim Erzeugen ausgewertet; die
@@ -11358,7 +11437,7 @@ app.mount('#app');
 // nachweisen können, ohne einen echten Firebase-Schreibzugriff zu brauchen
 // (Coop.setTeamProgress/setRaceProgress sind selbst nicht spionierbar, da
 // `import * as Coop` ein eingefrorenes Modul-Namespace-Objekt liefert).
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, startCoopGame, startCoopMatch, startRaceMatch, endlessContinue, quitToHome, playStoryLevel, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend, coopReset,
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.__cns = { ...(Board.testHooks ? Board.testHooks() : {}), state, onCellTap, isSolved, handleCoopMsg, recordMissionEvent, startCoopGame, startCoopMatch, startRaceMatch, endlessContinue, quitToHome, playStoryLevel, setLiveState: (m) => { state.coop.live = m; }, board: Board, get gameId() { return currentGame.id; }, switchGame, setSetting, repaintNudges: () => repaintNudgeCount, handleCoopConnection, coopSend, coopReset, previewWinFx,
   sentLog: () => sentLog.slice(), clearSentLog: () => { sentLog = []; }, upsertPlayer, removePlayer, onSoloInviteRoomOpen, onSoloInviteJoin, cellStyle, cellClasses, Music, launchWinFx, toggleTool, useHint,
   boardRenders, cellRenders, currentGameInfo, getProgressThrottle: () => ({ team: teamProgressThrottle, race: raceProgressThrottle }) };
 

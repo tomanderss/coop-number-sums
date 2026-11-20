@@ -6,7 +6,9 @@
 // Preismodell (vom Nutzer abgesegnet): gestaffelt nach Aufwand/Spektakel.
 // Tier 0 = Confetti, der kostenlose Standard (immer im Besitz, nicht kaufbar).
 export const CONFETTI_ID = 'confetti';
-export const TIER_PRICES = { 0: 0, 1: 400, 2: 600, 3: 900, 4: 1500 };
+// Tier 5 = Mythisch, Tier 6 = Göttlich: die großen Mehrphasen-Spektakel
+// (Nutzerwunsch „richtig was kosten, aber es wert sein“).
+export const TIER_PRICES = { 0: 0, 1: 400, 2: 600, 3: 900, 4: 1500, 5: 2500, 6: 4000 };
 
 // Reihenfolge = Anzeige-Reihenfolge im Shop (aufsteigend nach Preis, dann Kuration).
 export const WIN_EFFECTS = [
@@ -42,6 +44,13 @@ export const WIN_EFFECTS = [
   { id: 'portal',    icon: 'portal', tier: 4 },
   { id: 'feuertornado', icon: 'tornado', tier: 4 },
   { id: 'synthgrid', icon: 'sunset', tier: 4 },
+  // ── Tier 5 (2500): Mythisch — Kino-Momente in mehreren Akten ────────────────
+  { id: 'hyperjump', icon: 'planet', tier: 5 },
+  { id: 'aurora',    icon: 'aurora', tier: 5 },
+  { id: 'coronation', icon: 'crown', tier: 5 },
+  // ── Tier 6 (4000): Göttlich — das Größte, was die App kann ──────────────────
+  { id: 'supernova', icon: 'orb', tier: 6 },
+  { id: 'grandfinale', icon: 'firework', tier: 6 },
 ];
 
 export function effectById(id) { return WIN_EFFECTS.find((e) => e.id === id) || null; }
