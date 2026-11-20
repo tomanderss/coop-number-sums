@@ -284,7 +284,7 @@ export default {
     rematch: '다시 플레이',
   },
   settings: {
-    general: "일반", musicGame: "게임 중 음악", infoLegal: "정보 및 법적 고지", pipesFlow: "물 표시", gameSettings: "{game} 설정",
+    general: "일반", musicGame: "게임 중 음악", infoLegal: "정보 및 법적 고지", pipesFlow: "물 표시", pipesPartnerColor: "협동: 동료가 돌린 조각을 동료 색으로 테두리", gameSettings: "{game} 설정",
     title: '설정',
     tabGeneral: '일반',
     tabGame: '게임',

@@ -284,7 +284,7 @@ export default {
     rematch: 'Tekrar oyna',
   },
   settings: {
-    general: "Genel", musicGame: "Oyunda müzik", infoLegal: "Bilgi ve yasal", pipesFlow: "Suyu göster", gameSettings: "{game} ayarları",
+    general: "Genel", musicGame: "Oyunda müzik", infoLegal: "Bilgi ve yasal", pipesFlow: "Suyu göster", pipesPartnerColor: "Coop: oyun arkadaşının hamlelerini onun rengiyle çerçevele", gameSettings: "{game} ayarları",
     title: 'Ayarlar',
     tabGeneral: 'Genel',
     tabGame: 'Oyun',

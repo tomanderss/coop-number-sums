@@ -280,6 +280,7 @@ export const DEFAULT_SETTINGS = {
   // Rein private Notiz ohne Regel-Bedeutung; bewusst NICHT die Spielerfarbe:
   // die sagt im Mehrspieler, WER gesetzt hat.
   markColor: '#f2c024',
+  pipesPartnerColor: false, // Pipes im Coop: vom Mitspieler gedrehte Stücke in seiner Farbe umranden (Standard aus — das Brett wurde sonst bunt)
   pipesFlow: true,       // Pipes: Wasser sichtbar (aus = nur die Rohre; Einschalten prüft das Brett einmalig)
   gemAutoCross: false,   // Gem Hunt: ein Stein kreuzt seine Zone automatisch (Hilfe statt rein manuell)
   gemCrossColor: 'cage',      // Gem Hunt: Farbe der eigenen Kreuze (cage/soft/gold/mint/sky/rose)

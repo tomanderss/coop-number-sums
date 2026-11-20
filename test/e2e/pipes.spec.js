@@ -117,9 +117,12 @@ test('Coop: Drehungen des Partners kommen an, je Stück gewinnt die spätere', a
   // Eine ÄLTERE Drehung desselben Stücks wird verworfen.
   await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'move', op: 'rot', i: 4, r: 1, from: 'host' }, '-A0000000000000001'));
   expect((await rots(page))[4]).toBe(2);
-  // Sperren kommt auch an; das Stück trägt die Farbe des Partners.
+  // Sperren kommt auch an. Rahmen in der Partnerfarbe nur, wenn eingeschaltet (Standard aus).
   await page.evaluate(() => window.__cns.handleCoopMsg({ type: 'move', op: 'lock', i: 4, v: true, from: 'host' }, '-N0000000000000009'));
   expect(await page.evaluate(() => window.__cns.state.pipeLock[4])).toBe(true);
+  expect(await page.evaluate(() => window.__cns.state.settings.pipesPartnerColor)).toBe(false);
+  await expect(page.locator('.pp-tile[style*="--pb"]')).toHaveCount(0);
+  await page.evaluate(() => { window.__cns.state.settings.pipesPartnerColor = true; });
   await expect(page.locator('.pp-tile').nth(4)).toHaveAttribute('style', /--pb/);
 });
 

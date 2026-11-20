@@ -284,7 +284,7 @@ export default {
     rematch: 'Rivincita',
   },
   settings: {
-    general: "Generale", musicGame: "Musica in gioco", infoLegal: "Info e note legali", pipesFlow: "Mostra l’acqua", gameSettings: "Impostazioni di {game}",
+    general: "Generale", musicGame: "Musica in gioco", infoLegal: "Info e note legali", pipesFlow: "Mostra l’acqua", pipesPartnerColor: "Coop: evidenzia le mosse del compagno con il suo colore", gameSettings: "Impostazioni di {game}",
     title: 'Impostazioni',
     tabGeneral: 'Generale',
     tabGame: 'Gioco',

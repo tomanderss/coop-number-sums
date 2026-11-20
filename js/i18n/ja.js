@@ -284,7 +284,7 @@ export default {
     rematch: 'もう一度プレイ',
   },
   settings: {
-    general: "全般", musicGame: "ゲーム中の音楽", infoLegal: "情報と法的事項", pipesFlow: "水を表示", gameSettings: "{game}の設定",
+    general: "全般", musicGame: "ゲーム中の音楽", infoLegal: "情報と法的事項", pipesFlow: "水を表示", pipesPartnerColor: "協力: 相手が回したピースを相手の色で囲む", gameSettings: "{game}の設定",
     title: '設定',
     tabGeneral: '一般',
     tabGame: 'ゲーム',

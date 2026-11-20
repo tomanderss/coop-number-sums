@@ -335,7 +335,8 @@ function tileLook(i) {
     arms.push({ k, inn: wet && f.from[i] === k, leak: wet && leak });
   }
   const by = state.pipeBy[i];
-  const col = isMultiplayer() && by && by !== me() && by !== LOCAL_PLAYER_ID ? playerColor(by) : null;
+  // Rahmen in der Farbe des Mitspielers nur auf Wunsch (Einstellung, Standard aus).
+  const col = state.settings.pipesPartnerColor && isMultiplayer() && by && by !== me() && by !== LOCAL_PLAYER_ID ? playerColor(by) : null;
   const locked = !!state.pipeLock[i];
   // Verzögerung der Füllung nach Entfernung zur Quelle — zählt nur im Moment,
   // in dem das Stück nass wird (s. tileLookFrom).
