@@ -1,1 +1,0 @@
-- Pipes im Coop: Die farbige Umrandung der vom Mitspieler gedrehten Stücke ist jetzt standardmäßig aus und lässt sich unter Einstellungen ▸ Pipes einschalten
