@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.13';
-export const BUILD_HASH = '25ee044';
+export const BUILD      = '4.14';
+export const BUILD_HASH = '4f4977b';
 
 export const CHANGELOG = [
+  {
+    "version": "4.14",
+    "date": "20.11.2026",
+    "changes": [
+      "- Pipes im Coop: Die farbige Umrandung der vom Mitspieler gedrehten Stücke ist jetzt standardmäßig aus und lässt sich unter Einstellungen ▸ Pipes einschalten"
+    ]
+  },
   {
     "version": "4.13",
     "date": "19.11.2026",
