@@ -10335,6 +10335,9 @@ const App = {
           <div class="set-row pipes-flow-setting" @click="toggleSetting('pipesFlow')">
             <span>{{ t('settings.pipesFlow') }}</span><span class="switch" :class="{on:state.settings.pipesFlow !== false}"><i></i></span>
           </div>
+          <div class="set-row pipes-partner-setting" @click="toggleSetting('pipesPartnerColor')">
+            <span>{{ t('settings.pipesPartnerColor') }}</span><span class="switch" :class="{on:!!state.settings.pipesPartnerColor}"><i></i></span>
+          </div>
           </template>
           <template v-if="SKIN_GAMES.includes(state.settingsScope)">
           <!-- Dynamischer Skin (1.0): Code-Einlösung immer sichtbar; Editor nur, wenn freigeschaltet -->

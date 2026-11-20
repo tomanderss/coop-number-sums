@@ -284,7 +284,7 @@ export default {
     rematch: 'Nochmal spielen',
   },
   settings: {
-    general: "Allgemein", musicGame: "Musik im Spiel", infoLegal: "Infos & Rechtliches", pipesFlow: "Wasser anzeigen", gameSettings: "Einstellungen für {game}",
+    general: "Allgemein", musicGame: "Musik im Spiel", infoLegal: "Infos & Rechtliches", pipesFlow: "Wasser anzeigen", pipesPartnerColor: "Coop: Mitspieler-Züge farbig umranden", gameSettings: "Einstellungen für {game}",
     title: 'Einstellungen',
     tabGeneral: 'Allgemein',
     tabGame: 'Spiel',
@@ -487,6 +487,7 @@ export default {
         'settings/coopName': { l: 'Anzeigename', d: 'Name, der anderen im Coop/Wettkampf angezeigt wird.' },
         'settings/coopMyColor': { l: 'Persönliche Farbe', d: 'Hex-Farbe der eigenen Markierungen (in allen Modi).' },
         'settings/dragScale': { l: 'Reichweite beim Ziehen', d: 'Faktor, um den der gezogene Stein der Fingerbewegung verstärkt folgt (1 = aus).' },
+        'settings/pipesPartnerColor': { l: 'Pipes: Mitspieler-Züge umranden', d: 'Im Coop bekommen Stücke, die ein Mitspieler zuletzt gedreht hat, einen Rahmen in seiner Farbe. Standard aus.' },
         'settings/pipesFlow': { l: 'Pipes: Wasser zeigen', d: 'Zeigt das Wasser im Rohrnetz. Ausgeschaltet siehst du nur die Rohre; das Brett gilt erst als gelöst, wenn du das Wasser wieder einschaltest.' },
         'settings/gemCrossColor': { l: 'Gem Hunt: Farbe eigener Kreuze', d: 'Farbe der von Hand gesetzten Kreuze (Käfigfarbe, blass, Gold, Mint, Himmelblau, Rosé).' },
         'settings/gemAutoCrossColor': { l: 'Gem Hunt: Farbe automatischer Kreuze', d: 'Farbe der Kreuze, die ein Edelstein automatisch setzt — standardmäßig nur leicht anders als die eigenen.' },

@@ -284,7 +284,7 @@ export default {
     rematch: 'Rejouer',
   },
   settings: {
-    general: "Général", musicGame: "Musique en jeu", infoLegal: "Infos et mentions légales", pipesFlow: "Afficher l’eau", gameSettings: "Réglages de {game}",
+    general: "Général", musicGame: "Musique en jeu", infoLegal: "Infos et mentions légales", pipesFlow: "Afficher l’eau", pipesPartnerColor: "Coop : entourer les coups du partenaire de sa couleur", gameSettings: "Réglages de {game}",
     title: 'Paramètres',
     tabGeneral: 'Général',
     tabGame: 'Jeu',
