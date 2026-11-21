@@ -1,2 +1,0 @@
-- 10 weitere epische Sieganimationen: Origami-Kraniche, Atomkern, Planetenparade, Blutmond, Glitch-Apokalypse, Samurai-Schnitt (Mythisch) sowie Urknall, Elementar-Wirbel, Götterdämmerung und Kristallpalast (Göttlich)
-- Behoben: Galaxie, Kirschblüten, Phönix, Raketenstart, Drachenflug und Disco liefen seit 4.15 mit falscher Bewegung
