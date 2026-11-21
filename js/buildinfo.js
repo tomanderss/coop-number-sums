@@ -1,8 +1,16 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.16';
-export const BUILD_HASH = '0482f76';
+export const BUILD      = '4.17';
+export const BUILD_HASH = '0cf5fee';
 
 export const CHANGELOG = [
+  {
+    "version": "4.17",
+    "date": "21.11.2026",
+    "changes": [
+      "- 10 weitere epische Sieganimationen: Origami-Kraniche, Atomkern, Planetenparade, Blutmond, Glitch-Apokalypse, Samurai-Schnitt (Mythisch) sowie Urknall, Elementar-Wirbel, Götterdämmerung und Kristallpalast (Göttlich)",
+      "- Behoben: Galaxie, Kirschblüten, Phönix, Raketenstart, Drachenflug und Disco liefen seit 4.15 mit falscher Bewegung"
+    ]
+  },
   {
     "version": "4.16",
     "date": "21.11.2026",
