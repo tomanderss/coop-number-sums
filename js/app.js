@@ -6081,6 +6081,150 @@ const PIECE_GENERATORS = {
     for (let i = 0; i < (perfect ? 70 : 46); i++) out.push({ id: id++, left: 50 + R(-20, 20), top: R(60, 105), delay: R(2.4, 4.4), dur: R(1.6, 2.6), size: R(3, 7), hue: R(38, 54), dx: R(-30, 30), kind: 5 });
     return out;
   },
+  origami(perfect) {
+    // Bunte Papierbögen wirbeln heran und falten sich in der Mitte (k1), ein
+    // Falt-Blitz (::after), dann schwärmen Papierkraniche flatternd aus (k0),
+    // gefaltete Dreiecke rieseln (k2), Funkeln (k3); Faltmuster (::before).
+    const out = []; let id = 0;
+    const hues = [350, 20, 45, 160, 200, 270, 310];
+    for (let i = 0; i < (perfect ? 24 : 16); i++) { const a = R(0, Math.PI * 2), r = R(380, 620); out.push({ id: id++, left: 50, top: 45, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: R(0, 0.5), dur: 1.5, size: R(26, 44), hue: hues[i % hues.length], rot: R(360, 900), kind: 1 }); }
+    for (let i = 0; i < (perfect ? 26 : 18); i++) { const a = R(-Math.PI * 0.95, -Math.PI * 0.05), r = R(200, 560), dx = Math.cos(a) * r; out.push({ id: id++, shape: 'crane', left: 50, top: 45, dx, dy: Math.sin(a) * r - R(40, 160), delay: 1.55 + R(0, 1.3), dur: R(2.4, 3.2), size: R(40, 72), hue: hues[i % hues.length], rot: dx > 0 ? 180 : 0 }); }
+    for (let i = 0; i < (perfect ? 50 : 32); i++) out.push({ id: id++, left: R(0, 100), delay: R(2.2, 3.8), dur: R(2.2, 3.2), size: R(9, 15), hue: hues[i % hues.length], rot: R(0, 360), kind: 2 });
+    for (let i = 0; i < (perfect ? 18 : 12); i++) out.push({ id: id++, shape: 'sparkle', left: R(10, 90), top: R(10, 80), delay: R(1.6, 4.2), dur: 0.9, size: R(10, 18), kind: 3 });
+    return out;
+  },
+  atom(perfect) {
+    // Ein Atomkern formt sich (k1), drei Bahnen (k2), Elektronen rasen immer
+    // schneller (k3) — Spaltung: Lichtschlag (::after), Schockwellen (k4),
+    // Energie-Teilchen (k5), Strahlungs-Glühen (::before), Funkeln (k6).
+    const out = []; let id = 0;
+    for (let i = 0; i < 11; i++) { const a = (i / 11) * Math.PI * 2, r = i ? R(9, 17) : 0; out.push({ id: id++, left: 50, top: 45, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: R(0, 0.3), dur: 4.8, size: 22, hue: i % 2 ? 210 : 8, kind: 1 }); }
+    const angs = [0, 60, 120];
+    angs.forEach((a) => out.push({ id: id++, left: 50, top: 45, delay: 0.1, dur: 4.8, size: 270, ang: a, kind: 2 }));
+    angs.forEach((a, i) => { for (let k = 0; k < 2; k++) out.push({ id: id++, left: 50, top: 45, delay: 0.1, dur: 4.8, size: 270, ang: a, hue: k * 180 + i * 40, rot: 1440 + i * 180, kind: 3 }); });
+    for (let i = 0; i < 4; i++) out.push({ id: id++, left: 50, top: 45, delay: 2.2 + i * 0.2, dur: 1.5, size: 260, hue: [190, 140, 60, 280][i], kind: 4 });
+    for (let i = 0; i < (perfect ? 90 : 60); i++) { const a = R(0, Math.PI * 2), r = R(160, 560); out.push({ id: id++, left: 50, top: 45, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: 2.2 + R(0, 0.3), dur: R(1.2, 2), size: R(4, 9), hue: [180, 140, 60, 200][i % 4], kind: 5 }); }
+    for (let i = 0; i < (perfect ? 24 : 16); i++) out.push({ id: id++, shape: 'sparkle', left: R(5, 95), top: R(5, 90), delay: R(2.6, 4.4), dur: 0.9, size: R(8, 16), kind: 6 });
+    return out;
+  },
+  planets(perfect) {
+    // Sternenhimmel (k6), Sonnenglut (::before). Sechs Planeten gleiten auf
+    // eine Linie (k1, einer mit Ring k2); wenn sie stehen, läuft eine
+    // Lichtkette durch (k4), Konjunktions-Leuchten (::after), ein Komet (k3)
+    // zieht vorbei, Funken sprühen (k5).
+    const out = []; let id = 0;
+    for (let i = 0; i < 50; i++) out.push({ id: id++, left: R(0, 100), top: R(0, 100), delay: R(0, 3), dur: R(1.4, 2.4), size: R(2, 4), kind: 6 });
+    const P = [{ s: 34, h: 25 }, { s: 46, h: 200 }, { s: 70, h: 18 }, { s: 92, h: 38 }, { s: 60, h: 190 }, { s: 40, h: 230 }];
+    P.forEach((p, i) => {
+      const t = i / (P.length - 1), left = 16 + t * 70, top = 64 - t * 34 - Math.sin(t * Math.PI) * 6;
+      out.push({ id: id++, left, top, delay: i * 0.2, dur: 4.9 - i * 0.2, size: p.s, hue: p.h, kind: 1 });
+      if (i === 3) out.push({ id: id++, left, top, delay: i * 0.2, dur: 4.9 - i * 0.2, size: Math.round(p.s * 2), kind: 2 });
+      out.push({ id: id++, left, top, delay: 2.4 + i * 0.14, dur: 1.2, size: p.s * 2.6, hue: p.h, kind: 4 });
+      for (let k = 0; k < (perfect ? 10 : 6); k++) { const a = R(0, Math.PI * 2), r = R(50, 140); out.push({ id: id++, left, top, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: 2.45 + i * 0.14, dur: R(0.9, 1.4), size: R(3, 6), hue: p.h, kind: 5 }); }
+    });
+    out.push({ id: id++, left: 105, top: 8, delay: 1.2, dur: 1.6, size: 140, kind: 3 });
+    return out;
+  },
+  bloodmoon(perfect) {
+    // Silberner Vollmond (::before), der Erdschatten schiebt sich davor (k2),
+    // der Mond färbt sich blutrot (k1) und glüht (::after); Fledermäuse
+    // schwärmen aus (k3), roter Nebel steigt (k4), Sterne glimmen rot (k5).
+    const out = []; let id = 0;
+    out.push({ id: id++, left: 50, top: 32, delay: 0, dur: 5.6, size: 10, kind: 1 });
+    out.push({ id: id++, left: 50, top: 32, delay: 0, dur: 5.6, size: 10, kind: 2 });
+    for (let i = 0; i < (perfect ? 22 : 14); i++) { const a = R(-Math.PI, 0) + (i % 2 ? 0 : Math.PI * R(0.1, 0.3)), r = R(260, 620); out.push({ id: id++, shape: 'bat', left: 50, top: 32, dx: Math.cos(a) * r, dy: Math.sin(a) * r * 0.8 + R(-60, 120), delay: 2.3 + R(0, 1.6), dur: R(1.8, 2.6), size: R(26, 46), rot: R(-25, 25) || 5, kind: 3 }); }
+    for (let i = 0; i < (perfect ? 14 : 10); i++) out.push({ id: id++, left: R(0, 100), top: R(80, 110), delay: R(1.6, 3.4), dur: R(2.6, 3.4), size: R(160, 280), dx: R(-60, 60), kind: 4 });
+    for (let i = 0; i < 40; i++) out.push({ id: id++, left: R(0, 100), top: R(0, 85), delay: R(0, 4), dur: R(1.2, 2), size: R(2, 4), kind: 5 });
+    return out;
+  },
+  glitch(perfect) {
+    // Das Bild zerfällt: Scanlines (::before), springende RGB-Streifen (k1),
+    // Pixelblöcke (k2), ein Pixel-Pokal in drei Farbkanälen, die gegeneinander
+    // ruckeln (k3), Datensplitter (k4) — am Ende schaltet sich der Röhren-
+    // bildschirm zu einer Linie ab (::after).
+    const out = []; let id = 0;
+    for (let i = 0; i < (perfect ? 34 : 24); i++) out.push({ id: id++, left: 0, top: R(0, 100), delay: R(0, 4.2), dur: R(0.45, 0.9), size: R(6, 46), dx: R(-14, 14), kind: 1 });
+    for (let i = 0; i < (perfect ? 60 : 40); i++) out.push({ id: id++, left: R(0, 100), top: R(0, 100), delay: R(0.2, 4.3), dur: R(0.5, 1.1), size: Math.round(R(2, 8)) * 6, hue: [320, 180, 90, 50, 260][i % 5], dx: R(-30, 30), kind: 2 });
+    [[350, -7], [180, 7], [null, 0]].forEach(([h, dx]) => out.push({ id: id++, shape: 'pixeltrophy', left: 50, top: 44, delay: 0.8, dur: 3.9, size: 150, ...(h == null ? {} : { hue: h }), dx, kind: 3 }));
+    for (let i = 0; i < (perfect ? 40 : 26); i++) { const a = R(0, Math.PI * 2), r = R(140, 460); out.push({ id: id++, left: 50, top: 44, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: 1 + R(0, 3), dur: R(0.7, 1.2), size: Math.round(R(1, 3)) * 4, hue: [320, 180, 90][i % 3], kind: 4 }); }
+    return out;
+  },
+  samurai(perfect) {
+    // Rote Sonne (::before), Kirschblüten treiben im Wind (k2). Blitzschnelle
+    // Schwerthiebe zerschneiden das Bild (k1), ein Lichtschlag (::after),
+    // Tusche spritzt (k3), Blüten wirbeln auseinander (k4), ein Pinselkreis
+    // (Ensō, k5) schließt sich, Funkeln (k6).
+    const out = []; let id = 0;
+    for (let i = 0; i < (perfect ? 40 : 26); i++) out.push({ id: id++, shape: 'petal', left: R(-10, 60), top: R(-10, 60), delay: R(0, 3.6), dur: R(2.4, 3.4), size: R(12, 22), hue: R(330, 350), dx: R(200, 520), dy: R(140, 420), rot: R(180, 720), kind: 2 });
+    const cuts = perfect ? 6 : 5;
+    for (let i = 0; i < cuts; i++) out.push({ id: id++, left: 50 + R(-12, 12), top: 42 + R(-10, 10), delay: 0.9 + i * 0.2, dur: 1.2, size: 4, ang: (i % 2 ? 1 : -1) * R(18, 48) + (i === cuts - 1 ? 90 : 0), kind: 1 });
+    const T = 0.9 + cuts * 0.2;
+    for (let i = 0; i < (perfect ? 30 : 20); i++) { const a = R(0, Math.PI * 2), r = R(80, 300); out.push({ id: id++, left: 50, top: 42, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: T + R(0, 0.15), dur: R(0.8, 1.3), size: R(10, 30), kind: 3 }); }
+    for (let i = 0; i < (perfect ? 44 : 30); i++) { const a = R(0, Math.PI * 2), r = R(200, 560); out.push({ id: id++, shape: 'petal', left: 50, top: 42, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: T + R(0, 0.25), dur: R(1.6, 2.4), size: R(14, 26), hue: R(330, 355), rot: R(360, 1080), kind: 4 }); }
+    out.push({ id: id++, left: 50, top: 42, delay: T + 0.3, dur: 2.6, size: 300, kind: 5 });
+    for (let i = 0; i < (perfect ? 18 : 12); i++) out.push({ id: id++, shape: 'sparkle', left: R(10, 90), top: R(10, 80), delay: R(T + 0.3, 4.6), dur: 0.9, size: R(10, 18), kind: 6 });
+    return out;
+  },
+  bigbang(perfect) {
+    // Absolute Stille, ein Lichtpunkt zittert und kollabiert (k1) — Urknall:
+    // Lichtschlag (::after), Plasmaringe (k2), heiße Materie fliegt aus (k3),
+    // ein farbiger Nebel entsteht (::before), Galaxien drehen sich auf (k4),
+    // Sterne zünden (k5).
+    const out = []; let id = 0;
+    out.push({ id: id++, left: 50, top: 45, delay: 0, dur: 1.45, size: 26, kind: 1 });
+    for (let i = 0; i < 5; i++) out.push({ id: id++, left: 50, top: 45, delay: 1.4 + i * 0.16, dur: 1.8, size: 240, hue: [50, 20, 320, 200, 270][i], kind: 2 });
+    for (let i = 0; i < (perfect ? 170 : 120); i++) { const a = R(0, Math.PI * 2), r = R(160, 820); out.push({ id: id++, left: 50, top: 45, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: 1.4 + R(0, 0.4), dur: R(1.8, 3.4), size: R(3, 9), rot: R(180, 720), hue: Math.floor(R(0, 360)), kind: 3 }); }
+    const gal = perfect ? 6 : 5;
+    for (let i = 0; i < gal; i++) out.push({ id: id++, left: R(12, 88), top: R(12, 82), delay: 2 + i * 0.25, dur: R(3, 3.6), size: R(120, 220), hue: [200, 280, 320, 40, 180, 240][i], ang: R(-40, 40), kind: 4 });
+    for (let i = 0; i < (perfect ? 60 : 40); i++) out.push({ id: id++, left: R(0, 100), top: R(0, 100), delay: R(2.2, 4.6), dur: R(1, 1.8), size: R(2, 5), kind: 5 });
+    return out;
+  },
+  elements(perfect) {
+    // Feuer (k1), Wasser (k2), Erde (k3) und Luft (k4) wirbeln aus vier
+    // Richtungen spiralförmig zur Mitte, ein Elementar-Strudel dreht sich
+    // (::before); sie verschmelzen zu einer Regenbogen-Kugel (k5), die
+    // zerbirst: Lichtschlag (::after), alle Elemente fliegen aus (k6),
+    // vierfarbige Ringe (k7), Funkeln (k8).
+    const out = []; let id = 0;
+    const EL = [{ k: 1, shape: 'flame', base: 225, hue: 20 }, { k: 2, shape: 'droplet', base: 315, hue: 200 }, { k: 3, shape: 'leaf', base: 45, hue: 110 }, { k: 4, shape: 'puff', base: 135, hue: 0 }];
+    const per = perfect ? 22 : 15;
+    EL.forEach((e) => { for (let i = 0; i < per; i++) out.push({ id: id++, shape: e.shape, left: 50, top: 45, ang: e.base + R(-20, 20), rad: R(260, 460), delay: (i / per) * 2 + R(0, 0.1), dur: R(1.4, 1.8), size: R(26, 42), hue: e.hue, kind: e.k }); });
+    out.push({ id: id++, left: 50, top: 45, delay: 1.6, dur: 1.5, size: 150, kind: 5 });
+    EL.forEach((e) => { for (let i = 0; i < (perfect ? 14 : 10); i++) { const a = R(0, Math.PI * 2), r = R(200, 600); out.push({ id: id++, shape: e.shape, left: 50, top: 45, dx: Math.cos(a) * r, dy: Math.sin(a) * r, delay: 3.05 + R(0, 0.2), dur: R(1.4, 2.2), size: R(18, 32), hue: e.hue, rot: R(180, 720), kind: 6 }); } });
+    [20, 200, 110, 0].forEach((h, i) => out.push({ id: id++, left: 50, top: 45, delay: 3.05 + i * 0.14, dur: 1.4, size: 280, hue: h, kind: 7 }));
+    for (let i = 0; i < (perfect ? 22 : 14); i++) out.push({ id: id++, shape: 'sparkle', left: R(5, 95), top: R(5, 90), delay: R(3.2, 4.8), dur: 0.9, size: R(8, 16), kind: 8 });
+    return out;
+  },
+  ragnarok(perfect) {
+    // Der Himmel brennt: ein Runenkreis lodert auf (::before), Blitze schlagen
+    // ein (k1), Feuer steigt vom Boden (k2), Meteore stürzen (k3), eine
+    // Druckwelle (k5) — dann geht eine goldene Morgenröte auf (::after) und
+    // goldene Funken steigen (k4): Untergang und Neubeginn.
+    const out = []; let id = 0;
+    for (let i = 0; i < (perfect ? 9 : 7); i++) out.push({ id: id++, left: R(8, 92), top: 0, delay: 0.3 + i * 0.3 + R(0, 0.15), dur: 0.5, size: R(40, 70), hue: R(10, 40), kind: 1 });
+    for (let i = 0; i < (perfect ? 44 : 30); i++) out.push({ id: id++, shape: 'flame', left: R(0, 100), top: R(92, 110), delay: R(0.4, 2.8), dur: R(1.4, 2.2), size: R(22, 48), kind: 2 });
+    for (let i = 0; i < (perfect ? 10 : 7); i++) out.push({ id: id++, left: R(40, 120), top: -8, delay: 0.8 + i * 0.28 + R(0, 0.1), dur: R(0.8, 1.1), size: R(12, 20), kind: 3 });
+    for (let i = 0; i < 3; i++) out.push({ id: id++, left: 50, top: 42, delay: 2.5 + i * 0.25, dur: 1.4, size: 300, hue: [10, 30, 45][i], kind: 5 });
+    for (let i = 0; i < (perfect ? 70 : 46); i++) out.push({ id: id++, left: R(0, 100), top: R(70, 105), delay: R(3, 4.6), dur: R(1.8, 2.6), size: R(3, 7), hue: R(40, 54), dx: R(-40, 40), kind: 4 });
+    return out;
+  },
+  crystal(perfect) {
+    // Ein Kristallpalast wächst aus dem Boden (k1, in der Mitte am höchsten),
+    // eisiges Leuchten (::before), an der Spitze blitzt ein Diamantstern
+    // (::after), Regenbogen-Strahlen brechen sich (k2), farbige Lichtflecken
+    // wandern (k3), Schneekristalle rieseln (k4), Funkeln (k5).
+    const out = []; let id = 0;
+    const H = window.innerHeight, n = perfect ? 19 : 15;
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1), d = Math.abs(t - 0.5) * 2;
+      out.push({ id: id++, left: t * 100 + R(-2, 2), top: 100, delay: 0.15 + d * 1.2 + R(0, 0.1), dur: 5, size: Math.round(R(34, 70) * (1.3 - d * 0.5)), rad: Math.round(H * (0.56 - d * 0.42) * R(0.85, 1.05)), hue: [190, 205, 220, 260, 180][i % 5], kind: 1 });
+    }
+    for (let i = 0; i < (perfect ? 10 : 7); i++) out.push({ id: id++, left: 50, top: 46, delay: 2.1 + i * 0.12, dur: 2.4, size: 14, ang: -70 + (i / ((perfect ? 10 : 7) - 1)) * 140, kind: 2 });
+    for (let i = 0; i < 6; i++) out.push({ id: id++, left: R(15, 85), top: R(20, 70), delay: R(1.8, 2.8), dur: R(2.2, 2.8), size: R(120, 200), hue: [0, 60, 120, 200, 280, 320][i], dx: R(-120, 120), dy: R(-80, 80), kind: 3 });
+    for (let i = 0; i < (perfect ? 40 : 26); i++) out.push({ id: id++, shape: 'snowflake', left: R(0, 100), top: -8, delay: R(1.2, 4), dur: R(2.6, 3.6), size: R(10, 20), rot: R(90, 360), kind: 4 });
+    for (let i = 0; i < (perfect ? 24 : 16); i++) out.push({ id: id++, shape: 'sparkle', left: R(10, 90), top: R(15, 85), delay: R(1.6, 4.6), dur: 0.9, size: R(10, 18), kind: 5 });
+    return out;
+  },
 };
 // Overlay-Lebensdauer je Effekt [normal, perfekt] — möglichst dicht an der
 // tatsächlich sichtbaren Animation, damit nach ihrem Ende nichts „nachhängt"
@@ -6098,6 +6242,9 @@ const WINFX_DURATION = {
   supernova: [5200, 5800], grandfinale: [5400, 5800],
   eruption: [5200, 5800], lasershow: [5200, 5600], clockwork: [5000, 5400],
   kaleido: [5000, 5400], heavensgate: [5600, 5800],
+  origami: [5000, 5400], atom: [5000, 5400], planets: [5200, 5600], bloodmoon: [5400, 5800],
+  glitch: [5000, 5200], samurai: [5000, 5400], bigbang: [5600, 5800], elements: [5200, 5600],
+  ragnarok: [5400, 5800], crystal: [5400, 5800],
 };
 function launchWinFx(perfect, forceId) {
   const id = forceId || resolveActiveEffect(state.settings.winEffect, state.inventory);

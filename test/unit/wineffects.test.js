@@ -6,11 +6,12 @@ import {
   effectById, effectPrice, winEffectInvKey, ownsEffect, resolveActiveEffect,
 } from '../../js/wineffects.js';
 import { hasIcon } from '../../js/icons.js';
+import { readFileSync } from 'node:fs';
 
 describe('wineffects.catalog', () => {
   test('contains confetti plus the purchasable effects (27 classic + Mythic/Divine)', () => {
-    assert.equal(WIN_EFFECTS.length, 38);
-    assert.equal(WIN_EFFECTS.filter((e) => e.tier >= 5).length, 10);
+    assert.equal(WIN_EFFECTS.length, 48);
+    assert.equal(WIN_EFFECTS.filter((e) => e.tier >= 5).length, 20);
     assert.equal(WIN_EFFECTS.filter((e) => e.tier === 0).length, 1);
     assert.equal(WIN_EFFECTS.filter((e) => e.tier === 4).length, 5);
     assert.equal(WIN_EFFECTS[0].id, CONFETTI_ID);
@@ -87,5 +88,20 @@ describe('wineffects.resolveActiveEffect', () => {
   test('effectById resolves entries and returns null for unknown ids', () => {
     assert.equal(effectById('unicorn').tier, 3);
     assert.equal(effectById('nope'), null);
+  });
+});
+
+describe('wineffects.css', () => {
+  // Ein doppelter @keyframes-Name überschreibt still den früheren — so hatten
+  // neue Animationen schon einmal Galaxie, Kirschblüten, Rakete und Disco zerlegt.
+  test('every @keyframes name in styles.css is unique', () => {
+    const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+    const names = [...css.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1]);
+    const dup = names.filter((n, i) => names.indexOf(n) !== i);
+    assert.deepEqual(dup, []);
+  });
+  test('every purchasable effect has its own overlay styles', () => {
+    const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+    for (const e of WIN_EFFECTS) assert.ok(css.includes('.fx-' + e.id), e.id);
   });
 });
