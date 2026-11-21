@@ -9,8 +9,8 @@ import { hasIcon } from '../../js/icons.js';
 
 describe('wineffects.catalog', () => {
   test('contains confetti plus the purchasable effects (27 classic + Mythic/Divine)', () => {
-    assert.equal(WIN_EFFECTS.length, 33);
-    assert.equal(WIN_EFFECTS.filter((e) => e.tier >= 5).length, 5);
+    assert.equal(WIN_EFFECTS.length, 38);
+    assert.equal(WIN_EFFECTS.filter((e) => e.tier >= 5).length, 10);
     assert.equal(WIN_EFFECTS.filter((e) => e.tier === 0).length, 1);
     assert.equal(WIN_EFFECTS.filter((e) => e.tier === 4).length, 5);
     assert.equal(WIN_EFFECTS[0].id, CONFETTI_ID);

@@ -3,7 +3,7 @@ import { gotoApp } from './helpers.js';
 
 // Mythische (Tier 5) und göttliche (Tier 6) Sieganimationen: jede startet,
 // füllt das Overlay mit Teilchen und räumt es danach wieder ab.
-const EPIC = ['hyperjump', 'aurora', 'coronation', 'supernova', 'grandfinale'];
+const EPIC = ['hyperjump', 'aurora', 'coronation', 'supernova', 'grandfinale', 'eruption', 'lasershow', 'clockwork', 'kaleido', 'heavensgate'];
 
 for (const id of EPIC) {
   test(`Sieganimation ${id}: läuft an und verschwindet wieder`, async ({ page }) => {

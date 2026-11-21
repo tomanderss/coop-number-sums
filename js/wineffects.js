@@ -48,9 +48,14 @@ export const WIN_EFFECTS = [
   { id: 'hyperjump', icon: 'planet', tier: 5 },
   { id: 'aurora',    icon: 'aurora', tier: 5 },
   { id: 'coronation', icon: 'crown', tier: 5 },
+  { id: 'eruption',  icon: 'volcano', tier: 5 },
+  { id: 'lasershow', icon: 'bolt', tier: 5 },
+  { id: 'clockwork', icon: 'clock', tier: 5 },
+  { id: 'kaleido',   icon: 'mirror', tier: 5 },
   // ── Tier 6 (4000): Göttlich — das Größte, was die App kann ──────────────────
   { id: 'supernova', icon: 'orb', tier: 6 },
   { id: 'grandfinale', icon: 'firework', tier: 6 },
+  { id: 'heavensgate', icon: 'sun', tier: 6 },
 ];
 
 export function effectById(id) { return WIN_EFFECTS.find((e) => e.id === id) || null; }

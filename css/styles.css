@@ -2447,6 +2447,154 @@ html[data-game="mathcross"] .board-wrap.finale > .board { box-shadow: none; }
 .fx-grandfinale::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 30%, #fff, rgba(255, 240, 210, .85) 45%, rgba(255, 210, 160, .6)); opacity: 0; animation: fxFinaleFlash 5.8s linear forwards; }
 @keyframes fxFinaleFlash { 0%, 69% { opacity: 0; } 71% { opacity: .9; } 84%, to { opacity: 0; } }
 
+/* Vulkanausbruch: Berg bebt (::before) → Ausbruch (::after rot) → Lava-Fontäne (k0), Brocken (k3), Ströme (k5), Rauchsäule (k2), Glut (k4) */
+.fx-eruption { background: radial-gradient(ellipse at 50% 70%, rgba(90, 22, 8, .55), rgba(12, 4, 3, .8) 70%); }
+.fx-eruption::before {
+  content: ''; position: absolute; left: 50%; bottom: 0; width: 130vmin; height: 40vh; margin-left: -65vmin;
+  clip-path: polygon(0 100%, 40% 8%, 46% 3%, 54% 3%, 60% 8%, 100% 100%);
+  background: radial-gradient(ellipse 22% 26% at 50% 4%, rgba(255, 150, 40, .95), rgba(200, 60, 10, .55) 45%, transparent 72%), linear-gradient(#3a1a10, #1a0a06 60%, #0c0504);
+  opacity: 0; animation: fxVolcano 5.8s linear forwards; will-change: transform, opacity;
+}
+@keyframes fxVolcano {
+  0% { transform: translateY(30%); opacity: 0; }
+  8% { transform: translateY(0); opacity: 1; }
+  11% { transform: translateX(-4px); } 13% { transform: translateX(5px); } 15% { transform: translateX(-5px); }
+  17% { transform: translateX(4px); } 19% { transform: translateX(-3px); } 21%, 88% { transform: translateX(0); opacity: 1; }
+  to { transform: translateY(8%); opacity: 0; }
+}
+.fx-eruption::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 63%, rgba(255, 230, 160, .95), rgba(255, 110, 30, .65) 30%, rgba(160, 20, 0, .35) 70%); opacity: 0; animation: fxEruptFlash 5.8s linear forwards; }
+@keyframes fxEruptFlash { 0%, 20% { opacity: 0; } 22.5% { opacity: 1; } 34% { opacity: .25; } 60%, to { opacity: 0; } }
+.fx-eruption i:not(.k2):not(.k3):not(.k4):not(.k5) { border-radius: 50%; background: radial-gradient(circle, #fff6c8, hsl(var(--hue, 25) 100% 58%) 55%); box-shadow: 0 0 10px 3px hsl(var(--hue, 25) 100% 50% / .8); animation: fxLava linear forwards; opacity: 0; }
+@keyframes fxLava {
+  0% { transform: translate(0, 0) scale(1.3); opacity: 1; animation-timing-function: cubic-bezier(.2, .6, .4, 1); }
+  45% { transform: translate(calc(var(--dx, 0px) * .5), var(--dy, -300px)) scale(1); animation-timing-function: cubic-bezier(.6, 0, .8, .4); }
+  85% { opacity: 1; }
+  to { transform: translate(var(--dx, 0px), calc(var(--dy, -300px) * -.25 + 12vh)) scale(.5); opacity: 0; }
+}
+.fx-eruption i.k3 { border-radius: 38% 52% 44% 60%; background: radial-gradient(circle at 40% 35%, #ffd27a, #e2541a 45%, #4a1408 80%); box-shadow: 0 0 14px 4px rgba(255, 110, 30, .7); animation: fxRock linear forwards; opacity: 0; }
+@keyframes fxRock {
+  0% { transform: translate(0, 0) rotate(0) scale(.6); opacity: 1; animation-timing-function: cubic-bezier(.2, .6, .4, 1); }
+  45% { transform: translate(calc(var(--dx, 0px) * .5), var(--dy, -300px)) rotate(calc(var(--rot, 360deg) * .5)) scale(1); animation-timing-function: cubic-bezier(.6, 0, .8, .4); }
+  88% { opacity: 1; }
+  to { transform: translate(var(--dx, 0px), calc(var(--dy, -300px) * -.3 + 20vh)) rotate(var(--rot, 360deg)) scale(.8); opacity: 0; }
+}
+.fx-eruption i.k2 { border-radius: 50%; background: radial-gradient(circle, rgba(70, 55, 50, .85), rgba(40, 30, 28, .55) 45%, transparent 70%); animation: fxSmoke ease-out forwards; opacity: 0; }
+@keyframes fxSmoke { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 15% { opacity: .9; } 70% { opacity: .7; } to { transform: translate(calc(var(--dx, 0px) - 50%), calc(-50% - 58vh)) scale(3.4); opacity: 0; } }
+.fx-eruption i.k5 { width: 7px !important; height: 34vh !important; margin-left: -3px; transform-origin: 50% 0; border-radius: 99px; background: linear-gradient(#fff2b0, #ff8a1e 30%, #d23a0a 75%, transparent); box-shadow: 0 0 12px 3px rgba(255, 110, 20, .6); animation: fxLavaFlow ease-out forwards; opacity: 0; }
+@keyframes fxLavaFlow { 0% { transform: rotate(var(--ang, 0deg)) scaleY(0); opacity: 1; } 55% { transform: rotate(var(--ang, 0deg)) scaleY(1); opacity: 1; } to { transform: rotate(var(--ang, 0deg)) scaleY(1); opacity: 0; } }
+.fx-eruption i.k4 { border-radius: 50%; background: hsl(var(--hue, 30) 100% 65%); box-shadow: 0 0 6px 2px hsl(var(--hue, 30) 100% 55% / .8); animation: fxEmberUp ease-out forwards; opacity: 0; }
+@keyframes fxEmberUp { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } to { transform: translate(var(--dx, 0px), -55vh); opacity: 0; } }
+
+/* Laser-Show: Laserfächer vom Boden (k1), Lichtkegel (k2), Scanner (k3), Laser-Stern (::after) mit kreisenden Strahlen (k5), Dunst (::before), Funkeln (k4) */
+.fx-lasershow { background: radial-gradient(ellipse at 50% 100%, rgba(30, 20, 70, .6), rgba(3, 3, 12, .88) 70%); }
+.fx-lasershow::before { content: ''; position: absolute; left: -10%; right: -10%; bottom: -10%; height: 55%; background: radial-gradient(ellipse at 50% 100%, rgba(140, 90, 255, .4), rgba(60, 200, 255, .12) 50%, transparent 72%); opacity: 0; animation: fxHaze 5.6s ease-in-out forwards; }
+@keyframes fxHaze { 0% { opacity: 0; transform: scaleY(.6); } 20% { opacity: 1; transform: scaleY(1); } 55% { opacity: .7; } 70% { opacity: 1; } to { opacity: 0; } }
+.fx-lasershow i:not(.k2):not(.k3):not(.k4):not(.k5) { width: 4px !important; height: 120vh !important; margin: -120vh 0 0 -2px; transform-origin: 50% 100%; border-radius: 99px; background: linear-gradient(transparent, hsl(var(--hue, 120) 100% 60% / .4) 30%, hsl(var(--hue, 120) 100% 72%) 85%, #fff); box-shadow: 0 0 10px 2px hsl(var(--hue, 120) 100% 55% / .55); animation: fxLaserSweep ease-in-out forwards; opacity: 0; }
+@keyframes fxLaserSweep {
+  0% { transform: rotate(var(--ang, 30deg)) scaleY(0); opacity: 0; }
+  12% { transform: rotate(var(--ang, 30deg)) scaleY(1); opacity: 1; }
+  50% { transform: rotate(calc(var(--ang, 30deg) * -.8)); }
+  85% { transform: rotate(calc(var(--ang, 30deg) * .4)); opacity: 1; }
+  to { transform: rotate(calc(var(--ang, 30deg) * .2)); opacity: 0; }
+}
+.fx-lasershow i.k2 { border-radius: 50%; background: radial-gradient(circle, hsl(var(--hue, 300) 100% 70% / .5), hsl(var(--hue, 300) 100% 60% / .15) 50%, transparent 70%); animation: fxSpot ease-in-out forwards; opacity: 0; }
+@keyframes fxSpot { 0% { transform: translate(-50%, -50%) scale(.4); opacity: 0; } 25% { opacity: 1; } 75% { opacity: .8; } to { transform: translate(calc(var(--dx, 0px) - 50%), calc(var(--dy, 0px) - 50%)) scale(1.3); opacity: 0; } }
+.fx-lasershow i.k3 { width: 100vw !important; height: 3px !important; background: linear-gradient(90deg, transparent, hsl(var(--hue, 185) 100% 70%) 15%, #fff 50%, hsl(var(--hue, 185) 100% 70%) 85%, transparent); box-shadow: 0 0 16px 4px hsl(var(--hue, 185) 100% 60% / .6); animation: fxScan ease-in-out forwards; opacity: 0; }
+@keyframes fxScan { 0% { transform: translateY(-4vh); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } to { transform: translateY(104vh); opacity: 0; } }
+.fx-lasershow::after {
+  content: ''; position: absolute; left: 50%; top: 45%; width: 150vmax; height: 150vmax; margin: -75vmax 0 0 -75vmax; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 60, 120, .55) 0 1.2deg, transparent 1.2deg 10deg, rgba(60, 255, 160, .5) 10deg 11.2deg, transparent 11.2deg 20deg, rgba(80, 200, 255, .55) 20deg 21.2deg, transparent 21.2deg 30deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0, rgba(0, 0, 0, .6) 25%, transparent 60%); mask-image: radial-gradient(circle, #000 0, rgba(0, 0, 0, .6) 25%, transparent 60%);
+  opacity: 0; animation: fxLaserStar 5.6s ease-out forwards; will-change: transform, opacity;
+}
+@keyframes fxLaserStar { 0%, 57% { transform: rotate(0) scale(.1); opacity: 0; } 61% { transform: rotate(20deg) scale(1); opacity: 1; } 90% { opacity: .8; } to { transform: rotate(120deg) scale(1.1); opacity: 0; } }
+.fx-lasershow i.k5 { width: 3px !important; height: 70vmax !important; margin: -70vmax 0 0 -1.5px; transform-origin: 50% 100%; border-radius: 99px; background: linear-gradient(transparent, hsl(var(--hue, 120) 100% 72%) 70%, #fff); box-shadow: 0 0 10px 2px hsl(var(--hue, 120) 100% 55% / .6); animation: fxLaserSpin ease-in-out forwards; opacity: 0; }
+@keyframes fxLaserSpin { 0% { transform: rotate(var(--ang, 0deg)) scaleY(0); opacity: 1; } 20% { transform: rotate(var(--ang, 0deg)) scaleY(1); } 85% { opacity: 1; } to { transform: rotate(calc(var(--ang, 0deg) + var(--rot, 180deg))) scaleY(1); opacity: 0; } }
+.fx-lasershow i.k4 { animation: fxTwinkle ease-in-out forwards; opacity: 0; }
+
+/* Uhrwerk: Ziffernblatt (::before), gegenläufige Zahnräder (k1), rasende Zeiger (k2/k6) bis ZWÖLF → Gong (::after), Ringe (k3), Goldfunken (k4), Funkeln (k5) */
+.fx-clockwork { background: radial-gradient(circle at 50% 42%, rgba(70, 46, 18, .6), rgba(14, 9, 4, .84) 75%); }
+.fx-clockwork::before {
+  content: ''; position: absolute; left: 50%; top: 42%; width: 78vmin; height: 78vmin; margin: -39vmin 0 0 -39vmin; border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 47.5%, rgba(255, 214, 120, .95) 48.2% 49.6%, transparent 50.3%),
+    radial-gradient(circle, transparent 35.5%, rgba(255, 214, 120, .6) 36% 36.8%, transparent 37.4%),
+    repeating-conic-gradient(from -1.5deg, rgba(255, 224, 150, .95) 0 3deg, transparent 3deg 30deg),
+    repeating-conic-gradient(from -.4deg, rgba(255, 224, 150, .45) 0 .8deg, transparent .8deg 6deg),
+    radial-gradient(circle, rgba(60, 40, 14, .85), rgba(30, 20, 8, .7) 47%, transparent 50%);
+  -webkit-mask-image: radial-gradient(circle, #000 0 33%, transparent 33.5% 38%, #000 38.5% 50%, transparent 50.5%); mask-image: radial-gradient(circle, #000 0 33%, transparent 33.5% 38%, #000 38.5% 50%, transparent 50.5%);
+  box-shadow: 0 0 60px rgba(255, 200, 90, .25);
+  opacity: 0; animation: fxDial 5.4s ease-out forwards; will-change: transform, opacity;
+}
+@keyframes fxDial { 0% { transform: scale(.3) rotate(-90deg); opacity: 0; } 18% { transform: scale(1) rotate(0); opacity: 1; } 50% { transform: scale(1); } 54% { transform: scale(1.06); } 60% { transform: scale(1); } 88% { opacity: 1; } to { transform: scale(1.04); opacity: 0; } }
+.fx-clockwork i.k1 { animation: fxGearSpin linear forwards; opacity: 0; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .5)); }
+@keyframes fxGearSpin { 0% { transform: translate(-50%, -50%) scale(.2) rotate(0); opacity: 0; } 14% { transform: translate(-50%, -50%) scale(1) rotate(calc(var(--rot, 360deg) * .14)); opacity: .95; } 86% { opacity: .95; } to { transform: translate(-50%, -50%) scale(1.06) rotate(var(--rot, 360deg)); opacity: 0; } }
+.fx-clockwork i.k2, .fx-clockwork i.k6 { transform-origin: 50% 100%; border-radius: 99px; box-shadow: 0 0 10px rgba(255, 210, 110, .7); opacity: 0; z-index: 1; }
+.fx-clockwork i.k2 { width: 5px !important; height: 31vmin !important; margin: -31vmin 0 0 -2.5px; background: linear-gradient(#fff7d6, #ffcf5a 60%, #b07a1c); animation: fxHandMin linear forwards; }
+.fx-clockwork i.k6 { width: 10px !important; height: 20vmin !important; margin: -20vmin 0 0 -5px; background: linear-gradient(#ffe8a0, #e0a530 60%, #8a5a12); animation: fxHandHour linear forwards; }
+@keyframes fxHandMin { 0% { transform: rotate(-150deg); opacity: 0; } 8% { opacity: 1; } 15% { animation-timing-function: cubic-bezier(.5, 0, .3, 1); } 57% { transform: rotate(1440deg); } 61% { transform: rotate(1452deg); } 64%, 90% { transform: rotate(1440deg); opacity: 1; } to { transform: rotate(1440deg); opacity: 0; } }
+@keyframes fxHandHour { 0% { transform: rotate(-90deg); opacity: 0; } 8% { opacity: 1; } 15% { animation-timing-function: cubic-bezier(.5, 0, .3, 1); } 57% { transform: rotate(360deg); } 61% { transform: rotate(366deg); } 64%, 90% { transform: rotate(360deg); opacity: 1; } to { transform: rotate(360deg); opacity: 0; } }
+.fx-clockwork::after { content: ''; position: absolute; left: 50%; top: 42%; width: 140vmax; height: 140vmax; margin: -70vmax 0 0 -70vmax; border-radius: 50%; background: radial-gradient(circle, rgba(255, 250, 220, .95), rgba(255, 210, 100, .55) 18%, transparent 45%); opacity: 0; animation: fxGong 5.4s ease-out forwards; will-change: transform, opacity; }
+@keyframes fxGong { 0%, 47% { transform: scale(.05); opacity: 0; } 50% { transform: scale(.5); opacity: 1; } 70%, to { transform: scale(1.2); opacity: 0; } }
+.fx-clockwork i.k3 { border: 4px solid #ffd76a; border-radius: 50%; box-shadow: 0 0 20px rgba(255, 210, 100, .8), inset 0 0 14px rgba(255, 210, 100, .5); transform: translate(-50%, -50%) scale(.05); animation: fxNovaRing ease-out forwards; opacity: 0; }
+.fx-clockwork i.k4 { border-radius: 50%; background: hsl(var(--hue, 45) 100% 66%); box-shadow: 0 0 8px 2px hsl(var(--hue, 45) 100% 58% / .8); animation: fxBurst ease-out forwards; opacity: 0; }
+.fx-clockwork i.k5 { animation: fxTwinkle ease-in-out forwards; opacity: 0; }
+
+/* Kaleidoskop: drei gegenläufige Ringe aus Juwel-Blättern (k1) blühen auf und fliegen aus, Regenbogen-Rosette (::before), Farbringe (k3), Funkeln (k2), Glitzer (k4) */
+.fx-kaleido { background: radial-gradient(circle at 50% 45%, rgba(60, 20, 90, .55), rgba(8, 3, 20, .85) 75%); }
+.fx-kaleido::before {
+  content: ''; position: absolute; left: 50%; top: 45%; width: 120vmin; height: 120vmin; margin: -60vmin 0 0 -60vmin; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, hsla(330, 100%, 62%, .55) 0 10deg, hsla(40, 100%, 60%, .5) 10deg 20deg, hsla(160, 100%, 55%, .5) 20deg 30deg, hsla(210, 100%, 62%, .55) 30deg 40deg, hsla(275, 100%, 65%, .5) 40deg 45deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 0 8%, #000 9%, rgba(0, 0, 0, .5) 30%, transparent 50%); mask-image: radial-gradient(circle, transparent 0 8%, #000 9%, rgba(0, 0, 0, .5) 30%, transparent 50%);
+  opacity: 0; animation: fxRosette 5.4s ease-in-out forwards; will-change: transform, opacity;
+}
+@keyframes fxRosette { 0% { transform: rotate(0) scale(.2); opacity: 0; } 20% { opacity: 1; } 55% { transform: rotate(-140deg) scale(1); } 85% { opacity: .9; } to { transform: rotate(-260deg) scale(1.3); opacity: 0; } }
+.fx-kaleido i.k1 { animation: fxPetal ease-in-out forwards; opacity: 0; }
+@keyframes fxPetal {
+  0% { transform: translate(-50%, -50%) rotate(var(--ang, 0deg)) translateY(0) scale(0); opacity: 0; }
+  22% { transform: translate(-50%, -50%) rotate(calc(var(--ang, 0deg) + var(--rot, 240deg) * .2)) translateY(calc(var(--rad, 100px) * -1)) scale(1); opacity: 1; }
+  45% { transform: translate(-50%, -50%) rotate(calc(var(--ang, 0deg) + var(--rot, 240deg) * .45)) translateY(calc(var(--rad, 100px) * -.75)) scale(.85); }
+  70% { transform: translate(-50%, -50%) rotate(calc(var(--ang, 0deg) + var(--rot, 240deg) * .7)) translateY(calc(var(--rad, 100px) * -1.15)) scale(1.15); opacity: 1; }
+  to { transform: translate(-50%, -50%) rotate(calc(var(--ang, 0deg) + var(--rot, 240deg))) translateY(calc(var(--rad, 100px) * -3.2)) scale(.5); opacity: 0; }
+}
+.fx-kaleido i.k3 { border: 3px solid hsl(var(--hue, 300) 100% 68%); border-radius: 50%; box-shadow: 0 0 18px hsl(var(--hue, 300) 100% 60% / .7), inset 0 0 14px hsl(var(--hue, 300) 100% 60% / .45); transform: translate(-50%, -50%) scale(.05); animation: fxNovaRing ease-out forwards; opacity: 0; }
+.fx-kaleido i.k2 { animation: fxTwinkle ease-in-out forwards; opacity: 0; }
+.fx-kaleido i.k4 { top: -8px; border-radius: 1px; transform: rotate(45deg); background: hsl(var(--hue, 300) 100% 72%); box-shadow: 0 0 6px hsl(var(--hue, 300) 100% 60% / .8); animation: fxGlitterFall linear forwards; opacity: 0; }
+
+/* Himmelstor: Sterne (k6), Wolkenbänke teilen sich (k1/k2), Strahlen (::before), Lichtsäule (::after), Heiligenschein (k3), Federn (k4), aufsteigendes Licht (k5) */
+.fx-heavensgate { background: linear-gradient(rgba(10, 14, 40, .86), rgba(40, 36, 80, .7) 55%, rgba(90, 60, 50, .62)); }
+.fx-heavensgate::before {
+  content: ''; position: absolute; left: 50%; top: 20%; width: 200vmax; height: 200vmax; margin: -100vmax 0 0 -100vmax; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 236, 170, .55) 0 4deg, transparent 4deg 11deg, rgba(255, 250, 220, .35) 11deg 13deg, transparent 13deg 20deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0 4%, rgba(0, 0, 0, .8) 14%, transparent 48%); mask-image: radial-gradient(circle, #000 0 4%, rgba(0, 0, 0, .8) 14%, transparent 48%);
+  opacity: 0; animation: fxGodRays 5.8s ease-out forwards; will-change: transform, opacity;
+}
+@keyframes fxGodRays { 0%, 22% { transform: rotate(0) scale(.6); opacity: 0; } 42% { transform: rotate(6deg) scale(1); opacity: 1; } 90% { opacity: .9; } to { transform: rotate(22deg) scale(1.05); opacity: 0; } }
+.fx-heavensgate::after {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 34vmin; margin-left: -17vmin; transform-origin: 50% 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 240, 190, .55) 30%, rgba(255, 255, 240, .95) 50%, rgba(255, 240, 190, .55) 70%, transparent);
+  opacity: 0; animation: fxPillar 5.8s ease-out forwards; will-change: transform, opacity;
+}
+@keyframes fxPillar { 0%, 34% { transform: scaleY(0) scaleX(.3); opacity: 0; } 42% { transform: scaleY(1) scaleX(1); opacity: 1; } 52% { transform: scaleX(1.6); opacity: .85; } 90% { transform: scaleX(1.3); opacity: .5; } to { transform: scaleX(.8); opacity: 0; } }
+.fx-heavensgate i.k1, .fx-heavensgate i.k2 { border-radius: 50%; background: radial-gradient(circle at 50% 42%, rgba(255, 250, 244, .9), rgba(226, 220, 238, .72) 30%, rgba(170, 160, 205, .38) 52%, transparent 70%); opacity: 0; z-index: 1; }
+.fx-heavensgate i.k1 { animation: fxCloudL ease-in-out forwards; }
+.fx-heavensgate i.k2 { animation: fxCloudR ease-in-out forwards; }
+@keyframes fxCloudL { 0% { transform: translate(-50%, -50%) scale(1.3, .6); opacity: 0; } 12% { transform: translate(-50%, -50%) scale(1.7, .75); opacity: 1; } 32% { transform: translate(-50%, -50%) scale(1.75, .78); } 62% { transform: translate(calc(-50% - 60vw), -50%) scale(1.9, .8); opacity: 1; } to { transform: translate(calc(-50% - 72vw), -50%) scale(1.9, .8); opacity: 0; } }
+@keyframes fxCloudR { 0% { transform: translate(-50%, -50%) scale(1.3, .6); opacity: 0; } 12% { transform: translate(-50%, -50%) scale(1.7, .75); opacity: 1; } 32% { transform: translate(-50%, -50%) scale(1.75, .78); } 62% { transform: translate(calc(-50% + 60vw), -50%) scale(1.9, .8); opacity: 1; } to { transform: translate(calc(-50% + 72vw), -50%) scale(1.9, .8); opacity: 0; } }
+.fx-heavensgate i.k3 { border: 5px solid #ffe08a; border-radius: 50%; box-shadow: 0 0 26px rgba(255, 224, 138, .9), inset 0 0 18px rgba(255, 224, 138, .6); animation: fxHalo ease-out forwards; opacity: 0; z-index: 2; }
+@keyframes fxHalo { 0% { transform: translate(-50%, -50%) scale(.1, .03); opacity: 0; } 25% { transform: translate(-50%, -50%) scale(.6, .18); opacity: 1; } to { transform: translate(-50%, -50%) scale(2.6, .8); opacity: 0; } }
+.fx-heavensgate i.k4 { animation: fxFeather ease-in-out forwards; opacity: 0; z-index: 2; filter: drop-shadow(0 0 6px rgba(255, 240, 200, .8)); }
+@keyframes fxFeather {
+  0% { transform: translate(0, 0) rotate(var(--rot, 0deg)); opacity: 0; }
+  10% { opacity: 1; }
+  30% { transform: translate(calc(var(--dx, 0px) * .6), 28vh) rotate(calc(var(--rot, 0deg) + 40deg)); }
+  55% { transform: translate(calc(var(--dx, 0px) * -.4), 55vh) rotate(calc(var(--rot, 0deg) - 30deg)); }
+  80% { transform: translate(var(--dx, 0px), 80vh) rotate(calc(var(--rot, 0deg) + 25deg)); opacity: 1; }
+  to { transform: translate(calc(var(--dx, 0px) * .3), 100vh) rotate(var(--rot, 0deg)); opacity: 0; }
+}
+.fx-heavensgate i.k5 { border-radius: 50%; background: hsl(var(--hue, 46) 100% 74%); box-shadow: 0 0 8px 2px hsl(var(--hue, 46) 100% 62% / .8); animation: fxEmberUp ease-out forwards; opacity: 0; z-index: 2; }
+.fx-heavensgate i.k6 { border-radius: 50%; background: #f4f0ff; animation: fxTwinkle ease-in-out forwards; opacity: 0; }
+
 /* Reduzierte Bewegung: nur der ruhige Standard, keine Dauer-Loops */
 @media (prefers-reduced-motion: reduce) {
   .fx-disco::before, .fx-jackpot::before, .winfx-label,
