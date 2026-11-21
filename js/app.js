@@ -6007,6 +6007,80 @@ const PIECE_GENERATORS = {
     }
     return out;
   },
+  eruption(perfect) {
+    // Akt 1: der Berg grollt (::before bebt), erste Rauchfahnen (k2). Akt 2:
+    // Ausbruch — rotes Aufleuchten (::after), Lava-Fontäne in Bögen (k0),
+    // glühende Brocken (k3), Lavaströme laufen die Flanken herab (k5). Akt 3:
+    // die Rauchsäule wächst, Glut steigt über das ganze Bild (k4).
+    const out = []; let id = 0;
+    const CX = 50, CY = 63;
+    for (let i = 0; i < 4; i++) out.push({ id: id++, left: CX + R(-3, 3), top: CY, delay: i * 0.25, dur: 1.4, size: R(40, 70), dx: R(-30, 30), kind: 2 });
+    for (let i = 0; i < (perfect ? 120 : 80); i++) out.push({ id: id++, left: CX + R(-2, 2), top: CY, delay: 1.25 + R(0, 1.9), dur: R(1.3, 2.1), size: R(5, 11), hue: R(8, 42), dx: R(-260, 260), dy: -R(180, 480) });
+    for (let i = 0; i < (perfect ? 16 : 10); i++) out.push({ id: id++, left: CX + R(-2, 2), top: CY, delay: 1.3 + R(0, 1.4), dur: R(2, 2.8), size: R(14, 26), hue: R(10, 30), dx: R(-380, 380), dy: -R(260, 520), rot: R(-720, 720), kind: 3 });
+    for (let i = 0; i < 6; i++) out.push({ id: id++, left: CX + R(-3, 3), top: CY, delay: 1.6 + R(0, 0.8), dur: R(2.6, 3.4), size: 6, ang: (i % 2 ? 1 : -1) * R(8, 26), kind: 5 });
+    for (let i = 0; i < (perfect ? 14 : 10); i++) out.push({ id: id++, left: CX + R(-4, 4), top: CY - 2, delay: 1.3 + R(0, 2.2), dur: R(2.6, 3.6), size: R(90, 170), dx: R(-120, 120), kind: 2 });
+    for (let i = 0; i < (perfect ? 50 : 32); i++) out.push({ id: id++, left: R(0, 100), top: R(55, 105), delay: R(2, 4.2), dur: R(1.8, 2.8), size: R(3, 6), hue: R(15, 45), dx: R(-40, 40), kind: 4 });
+    return out;
+  },
+  lasershow(perfect) {
+    // Bühne im Dunst (::before): Laserfächer aus dem Boden schwenken über den
+    // Himmel (k1), Lichtkegel wandern (k2), Scanner-Linien ziehen durchs Bild
+    // (k3). Höhepunkt: Laser-Stern aus der Mitte (::after) mit kreisenden
+    // Strahlen (k5), dazu Funkeln (k4).
+    const out = []; let id = 0;
+    const hues = [350, 120, 185, 300, 220, 55];
+    const src = [12, 32, 50, 68, 88];
+    for (let i = 0; i < (perfect ? 24 : 16); i++) { const s = src[i % src.length]; out.push({ id: id++, left: s, top: 100, delay: Math.floor(i / src.length) * 0.75 + R(0, 0.25), dur: R(1.9, 2.5), size: 4, hue: hues[i % hues.length], ang: (s < 50 ? 1 : s > 50 ? -1 : (i % 2 ? 1 : -1)) * R(18, 52) }); }
+    for (let i = 0; i < 5; i++) out.push({ id: id++, left: R(15, 85), top: R(20, 70), delay: R(0.3, 2.4), dur: R(1.8, 2.6), size: R(140, 220), hue: hues[i], dx: R(-140, 140), dy: R(-90, 90), kind: 2 });
+    for (let i = 0; i < 4; i++) out.push({ id: id++, left: 0, top: 0, delay: 0.6 + i * 0.65, dur: 1.1, size: 2, hue: hues[(i + 2) % hues.length], kind: 3 });
+    for (let i = 0; i < (perfect ? 16 : 12); i++) out.push({ id: id++, left: 50, top: 45, delay: 3.25 + R(0, 0.15), dur: R(1.6, 2.1), size: 3, hue: hues[i % hues.length], ang: (i / (perfect ? 16 : 12)) * 360, rot: i % 2 ? 200 : -200, kind: 5 });
+    for (let i = 0; i < (perfect ? 34 : 22); i++) out.push({ id: id++, shape: 'sparkle', left: R(5, 95), top: R(5, 85), delay: R(3.2, 4.8), dur: 0.9, size: R(8, 16), kind: 4 });
+    return out;
+  },
+  clockwork(perfect) {
+    // Ein Ziffernblatt baut sich auf (::before), Zahnräder greifen ineinander
+    // und drehen gegenläufig (k1), die Zeiger rasen (k2 Minute, k6 Stunde) und
+    // treffen sich auf ZWÖLF — Gong: Lichtschlag (::after), Ringe (k3),
+    // Goldfunken (k4), Funkeln (k5).
+    const out = []; let id = 0;
+    const gears = perfect ? 11 : 9;
+    for (let i = 0; i < gears; i++) {
+      const a = (i / gears) * Math.PI * 2 + R(-0.12, 0.12), r = R(40, 47), size = R(60, 120);
+      out.push({ id: id++, shape: 'gear', left: 50 + Math.cos(a) * r, top: 42 + Math.sin(a) * r * 0.85, delay: i * 0.08, dur: 4.6, size, hue: [42, 30, 50, 20][i % 4], rot: (i % 2 ? 1 : -1) * Math.round(64000 / size), kind: 1 });
+    }
+    out.push({ id: id++, left: 50, top: 42, delay: 0.2, dur: 4.2, size: 1, kind: 2 });
+    out.push({ id: id++, left: 50, top: 42, delay: 0.2, dur: 4.2, size: 1, kind: 6 });
+    for (let i = 0; i < 3; i++) out.push({ id: id++, left: 50, top: 42, delay: 2.6 + i * 0.22, dur: 1.3, size: 300, kind: 3 });
+    for (let i = 0; i < (perfect ? 60 : 40); i++) { const a = R(0, Math.PI * 2), r = R(120, 380); out.push({ id: id++, left: 50, top: 42, delay: 2.6 + R(0, 0.2), dur: R(1.2, 1.9), size: R(4, 9), hue: R(36, 52), dx: Math.cos(a) * r, dy: Math.sin(a) * r, kind: 4 }); }
+    for (let i = 0; i < (perfect ? 22 : 14); i++) out.push({ id: id++, shape: 'sparkle', left: R(8, 92), top: R(8, 85), delay: R(2.8, 4.4), dur: 0.9, size: R(10, 18), kind: 5 });
+    return out;
+  },
+  kaleido(perfect) {
+    // Ein Kaleidoskop öffnet sich: drei Ringe aus Juwel-Blättern (k1) drehen
+    // gegeneinander, blühen auf und fliegen nach außen, darunter rotiert eine
+    // Regenbogen-Rosette (::before); Farbringe (k3), Funkeln (k2), Glitzer (k4).
+    const out = []; let id = 0;
+    const rings = [{ n: 12, rad: 70, sz: 34, d: 0.1, rot: 1 }, { n: 12, rad: 140, sz: 44, d: 0.35, rot: -1 }, { n: perfect ? 18 : 16, rad: 220, sz: 40, d: 0.6, rot: 1 }];
+    rings.forEach((g, gi) => { for (let k = 0; k < g.n; k++) out.push({ id: id++, shape: 'petalgem', left: 50, top: 45, delay: g.d, dur: 4.2, size: g.sz, hue: Math.floor((k / g.n) * 360 + gi * 40) % 360, ang: (k / g.n) * 360 + gi * 15, rad: g.rad, rot: g.rot * 240, kind: 1 }); });
+    for (let i = 0; i < 4; i++) out.push({ id: id++, left: 50, top: 45, delay: 1.2 + i * 0.6, dur: 1.4, size: 320, hue: [300, 190, 50, 120][i], kind: 3 });
+    for (let i = 0; i < (perfect ? 30 : 20); i++) out.push({ id: id++, shape: 'sparkle', left: R(5, 95), top: R(5, 90), delay: R(1, 4.4), dur: 0.9, size: R(8, 16), kind: 2 });
+    for (let i = 0; i < (perfect ? 50 : 32); i++) out.push({ id: id++, left: R(0, 100), delay: R(2.4, 4), dur: R(2, 3), size: R(3, 6), hue: Math.floor(R(0, 360)), kind: 4 });
+    return out;
+  },
+  heavensgate(perfect) {
+    // Dämmerhimmel mit Sternen (k6), davor dichte Wolkenbänke (k1 links, k2
+    // rechts), die sich teilen. Dahinter brechen Strahlen herab (::before), eine
+    // Lichtsäule fährt nieder (::after), ein Heiligenschein öffnet sich (k3),
+    // Federn schweben herab (k4) und goldenes Licht steigt auf (k5).
+    const out = []; let id = 0;
+    for (let i = 0; i < 30; i++) out.push({ id: id++, left: R(0, 100), top: R(0, 60), delay: R(0, 1.2), dur: R(1.2, 1.8), size: R(2, 4), kind: 6 });
+    for (let i = 0; i < 14; i++) out.push({ id: id++, left: R(-10, 54), top: (i / 14) * 105 - 5 + R(-4, 4), delay: R(0, 0.3), dur: R(3.6, 4.2), size: R(220, 340), kind: 1 });
+    for (let i = 0; i < 14; i++) out.push({ id: id++, left: R(46, 110), top: (i / 14) * 105 - 5 + R(-4, 4), delay: R(0, 0.3), dur: R(3.6, 4.2), size: R(220, 340), kind: 2 });
+    for (let i = 0; i < 3; i++) out.push({ id: id++, left: 50, top: 20, delay: 2.2 + i * 0.35, dur: 1.8, size: 260, kind: 3 });
+    for (let i = 0; i < (perfect ? 16 : 10); i++) out.push({ id: id++, shape: 'plume', left: R(10, 90), top: -10, delay: 2.2 + R(0, 2), dur: R(2.8, 3.4), size: R(22, 38), rot: R(-60, 60), dx: R(-60, 60), kind: 4 });
+    for (let i = 0; i < (perfect ? 70 : 46); i++) out.push({ id: id++, left: 50 + R(-20, 20), top: R(60, 105), delay: R(2.4, 4.4), dur: R(1.6, 2.6), size: R(3, 7), hue: R(38, 54), dx: R(-30, 30), kind: 5 });
+    return out;
+  },
 };
 // Overlay-Lebensdauer je Effekt [normal, perfekt] — möglichst dicht an der
 // tatsächlich sichtbaren Animation, damit nach ihrem Ende nichts „nachhängt"
@@ -6022,6 +6096,8 @@ const WINFX_DURATION = {
   feuertornado: [4200, 5000], synthgrid: [4600, 5600],
   hyperjump: [5000, 5600], aurora: [5200, 5800], coronation: [4800, 5400],
   supernova: [5200, 5800], grandfinale: [5400, 5800],
+  eruption: [5200, 5800], lasershow: [5200, 5600], clockwork: [5000, 5400],
+  kaleido: [5000, 5400], heavensgate: [5600, 5800],
 };
 function launchWinFx(perfect, forceId) {
   const id = forceId || resolveActiveEffect(state.settings.winEffect, state.inventory);
