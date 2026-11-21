@@ -1,8 +1,15 @@
 // Auto-generiert von build.js — nicht manuell bearbeiten!
-export const BUILD      = '4.15';
-export const BUILD_HASH = 'c195eaf';
+export const BUILD      = '4.16';
+export const BUILD_HASH = '0482f76';
 
 export const CHANGELOG = [
+  {
+    "version": "4.16",
+    "date": "21.11.2026",
+    "changes": [
+      "- 5 weitere epische Sieganimationen: Vulkanausbruch, Laser-Show, Uhrwerk, Kaleidoskop (Mythisch) und Himmelstor (Göttlich)"
+    ]
+  },
   {
     "version": "4.15",
     "date": "20.11.2026",
